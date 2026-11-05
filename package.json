@@ -1,0 +1,11 @@
+{
+  "name": "vbha-beheer",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Ledenbeheer en boekhouding van de Vriendenkring Brandweer Hoofdpost Aalst",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "@supabase/supabase-js": "2.45.4"
+  }
+}
