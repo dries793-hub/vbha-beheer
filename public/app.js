@@ -156,7 +156,7 @@ function showSetPassword(kind){
 }
 async function doLogin(f){const d=formData(f);$("#lErr").textContent="";const btn=f.querySelector("button[type=submit]");btn.disabled=true;
   const {data,error}=await SB.auth.signInWithPassword({email:d.email.trim(),password:d.pw});btn.disabled=false;
-  if(error){$("#lErr").textContent=/invalid/i.test(error.message)?"E-mailadres of wachtwoord klopt niet.":error.message;return}
+  if(error){const m=String(error.message||"");$("#lErr").textContent=/invalid login credentials/i.test(m)?"E-mailadres of wachtwoord klopt niet.":/api key|jwt|apikey/i.test(m)?"De sleutel van Supabase klopt niet ("+m+"). Gebruik de legacy anon key in Vercel (zie README).":/not confirmed/i.test(m)?"Dit e-mailadres is nog niet bevestigd. Vink in Supabase \"Auto Confirm User\" aan of bevestig de gebruiker.":"Aanmelden lukte niet: "+m;return}
   startApp(data.session)}
 async function doSetPassword(f){const d=formData(f);const e=$("#pwErr");if(d.pw1.length<8){e.textContent="Gebruik minstens 8 tekens.";return}if(d.pw1!==d.pw2){e.textContent="De twee wachtwoorden zijn niet gelijk.";return}
   const {data,error}=await SB.auth.updateUser({password:d.pw1});if(error){e.textContent=error.message;return}
