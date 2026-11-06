@@ -48,8 +48,8 @@ const DEF_JAAR={beginKas:0,beginRekening:0,gewichten:{kaarten:1,kalenders:25,shi
 const JUBILEA=[10,20,25,30,40,50,60];
 
 /* ============ toestand ============ */
-const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","kinderfeest","banket"];
-const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),kinderfeest:new Map(),banket:new Map()};
+const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","banket","kinderfeest"];
+const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),banket:new Map(),kinderfeest:new Map()};
 const loaded=new Set();
 let db=null,canWrite=true,JAAR=ls.get("jaar",null);
 const UI=Object.assign({ledenQ:"",ledenCat:"",ledenF:"alle",oudLeden:false,boekQ:"",boekCat:"",boekRek:"",puntQ:"",puntSort:"naam",kalQ:"",spQ:"",mailGroep:"alle",mailTpl:"",histJaar:null,histQ:"",boekDir:"",boekMaand:"",boekSort:{k:"datum",d:-1},boekPage:0},ls.get("ui",{}));
