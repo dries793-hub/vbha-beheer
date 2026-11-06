@@ -644,6 +644,32 @@ table.htab thead th{position:sticky;top:0;z-index:1;background:var(--sunken,#f3f
 table.htab td.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 table.htab td.hsel{font-weight:600}
 @media (max-width:760px){.htw{max-height:none}table.htab{table-layout:auto}table.htab colgroup{display:none}table.htab td.ell{white-space:normal}}
+.hgrid{align-items:stretch}
+.hgrid>.panel{display:flex;flex-direction:column}
+.hleg{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.hleg i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-left:6px}
+.hleg i.g{background:var(--good)}.hleg i.o{background:var(--bad)}
+.hcats{display:flex;flex-direction:column;gap:2px}
+.hcat{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) 118px;gap:14px;align-items:center;padding:7px 0;font-size:14px}
+.hcat+.hcat{border-top:1px solid var(--line)}
+.hcat-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hcat-b{display:grid;grid-template-columns:1fr 1fr;height:10px;position:relative}
+.hcat-b::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--line-strong)}
+.hcat-b span{display:flex;background:var(--sunken);overflow:hidden}
+.hcat-b .l{justify-content:flex-end;border-radius:5px 0 0 5px}.hcat-b .r{border-radius:0 5px 5px 0}
+.hcat-b i{display:block;height:100%}
+.hcat-b .l i{background:var(--bad);border-radius:5px 0 0 5px}.hcat-b .r i{background:var(--good);border-radius:0 5px 5px 0}
+.hcat-v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hkc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.hkc>div{background:var(--sunken);border-radius:10px;padding:12px 14px;min-width:0}
+.hkc span{display:block;font-size:12.5px;color:var(--muted)}
+.hkc b{display:block;font-size:18px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.hsal{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+table.hsal th,table.hsal td{padding:9px 0;border-bottom:1px solid var(--line);text-align:right;background:none;position:static;white-space:nowrap}
+table.hsal thead th{font-size:12px;color:var(--muted);font-weight:600;padding-top:0}
+table.hsal tbody th{text-align:left;color:var(--muted);font-weight:500;font-size:14px}
+table.hsal tr:last-child>*{border-bottom:0}
+@media (max-width:760px){.hcat{grid-template-columns:minmax(0,1fr) 108px;gap:6px 10px}.hcat-b{grid-column:1/-1;order:3}.hkc{gap:6px}.hkc>div{padding:9px 10px}.hkc span{font-size:11.5px}.hkc b{font-size:14px}}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
