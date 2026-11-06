@@ -38,18 +38,18 @@ const ICON={
 };
 const ic=n=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+ICON[n]+'</svg>';
 const NAV=[{id:"leden",label:"Leden",items:[["leden","Ledenlijst"],["punten","Puntensysteem"]]},{id:"boekhouding",label:"Boekhouding",items:[["boekhouding","Overzicht"],["boekingen","Transacties"],["verwerken","Te verwerken"],["historiek","Historiek"]]},{id:"administratie",label:"Administratie",items:[["kalenders","Kalenders"],["sponsors","Sponsors"],["banket","Banket"]]},{id:"communicatie",label:"Communicatie",items:[["mails","Mails"]]}];
-const ROUTES=[["boekingen","Transacties"],["verwerken","Te verwerken"],["regels","Regels"],["bank","Bankimport"],["dashboard","Dashboard"],["leden","Leden"],["boekhouding","Boekhouding"],["punten","Puntensysteem"],["kalenders","Kalenders"],["sponsors","Sponsors"],["banket","Banket"],["historiek","Historiek"],["mails","Mails"],["instellingen","Instellingen"]];
+const ROUTES=[["logboek","Logboek"],["boekingen","Transacties"],["verwerken","Te verwerken"],["regels","Regels"],["bank","Bankimport"],["dashboard","Dashboard"],["leden","Leden"],["boekhouding","Boekhouding"],["punten","Puntensysteem"],["kalenders","Kalenders"],["ronde","Kalenderronde"],["sponsors","Sponsors"],["banket","Banket"],["historiek","Historiek"],["mails","Mails"],["instellingen","Instellingen"]];
 
 /* ============ standaardwaarden ============ */
 const DEF_CONFIG={vereniging:"Vriendenkring Brandweer Hoofdpost Aalst",rekeningnummer:"",
   boekCategorieen:["Lidgeld","Banket","Kalenders","Jaarmarkt","Fuif","Sponsoring","Pontoise","Kinderfeest","Paasmaandagwandeling","Andere kosten","Andere opbrengsten"],
   ledenCategorieen:["Administratie","Vrijwilligers","Erewacht","Ploeg 1","Ploeg 2","Ploeg 3","Ploeg 4","Officieren"]};
-const DEF_JAAR={beginKas:0,beginRekening:0,gewichten:{kaarten:1,kalenders:25,shifts:35,vergaderingen:20},drempels:{zilver:65,goud:100},korting:{brons:20,zilver:35,goud:50},lidgeld:{gewoon:30,erewacht:20},kalenderStock:200};
+const DEF_JAAR={beginKas:0,beginRekening:0,gewichten:{kaarten:1,kalenders:25,shifts:35,vergaderingen:20},drempels:{zilver:65,goud:100},korting:{brons:20,zilver:35,goud:50},lidgeld:{gewoon:30,erewacht:20},kalenderStock:200,perDoos:100};
 const JUBILEA=[10,20,25,30,40,50,60];
 
 /* ============ toestand ============ */
-const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","banket","kinderfeest"];
-const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),banket:new Map(),kinderfeest:new Map()};
+const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","ronde","banket","kinderfeest"];
+const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),ronde:new Map(),banket:new Map(),kinderfeest:new Map()};
 const loaded=new Set();
 let db=null,canWrite=true,JAAR=ls.get("jaar",null);
 const UI=Object.assign({ledenQ:"",ledenCat:"",ledenF:"alle",oudLeden:false,boekQ:"",boekCat:"",boekRek:"",puntQ:"",puntSort:"naam",kalQ:"",spQ:"",mailGroep:"alle",mailTpl:"",histJaar:null,histQ:"",boekDir:"",boekMaand:"",boekSort:{k:"datum",d:-1},boekPage:0},ls.get("ui",{}));
@@ -93,15 +93,55 @@ function ctx(){
   CTX={Y,c,boek,kas:r2(kas),rek:r2(rek),tin,tuit,perCat,reeks,leden,oud,rows};CTXKEY=Y;dirty=false;return CTX;
 }
 
+/* ============ logboek ============ */
+const LOG_COLS=new Set(["leden","jaarleden","boekingen"]);
+let ME_NAME="";
+const LOGS={rows:[],loaded:false,done:false,err:null,busy:false};
+const LOG_SKIP=new Set(["id","jaar","lidId","extras","betaalToken","aangemeld","bron","bancontactId","regelNaam","bankRef","dubbelVan","lidgeldBedrag"]);
+const LOG_ID=["naam","voornaam","lidId","jaar","nr","datum","bedrag","partij","richting","mededeling"];
+function logDiff(a,b){a=a||{};b=b||{};const out=[];for(const k of new Set([...Object.keys(a),...Object.keys(b)])){if(LOG_SKIP.has(k)||k.startsWith("_"))continue;if(JSON.stringify(logN(a[k]))!==JSON.stringify(logN(b[k])))out.push(k)}return out}
+const logN=v=>v==null||v===""||v===0||v===false||(Array.isArray(v)&&!v.length)?null:v;
+function logEntry(col,id,oud,nieuw){if(!LOG_COLS.has(col))return null;oud=oud?stripId(oud):null;nieuw=nieuw?stripId(nieuw):null;
+  const actie=!oud?"nieuw":!nieuw?"verwijderd":"gewijzigd";const ch=logDiff(oud,nieuw);if(!ch.length&&actie==="gewijzigd")return null;
+  const pick=o=>{if(!o)return null;const r={};for(const k of [...ch,...LOG_ID])if(o[k]!==undefined)r[k]=o[k];return r};
+  return{ts:new Date().toISOString(),wie:ME_NAME||"Onbekend",tabel:col,doc_id:id,actie,oud:pick(oud),nieuw:pick(nieuw)}}
+function logWrite(entries){if(!LOG_CLIENT||!db)return;for(const e of entries){if(!e)continue;const lid=e.ts.replace(/\D/g,"").slice(0,17)+"-"+Math.random().toString(36).slice(2,8);db.collection("logboek").doc(lid).set(e).catch(()=>{})}}
+const LOG_FL={naam:"Naam",voornaam:"Voornaam",adres:"Adres",email:"E-mail",telefoon:"Telefoon",categorie:"Categorie",lidSinds:"Lid sinds",lidTot:"Lid tot",info:"Info",nieuw:"Nieuw via formulier",personen:"Personen",menu1:"Menu",menu2:"Menu partner",opmerking:"Opmerking",betaald:"Betaald",lid:"Lid",kinderen:"Kinderen",straat:"Straat",by:"Door",
+  kaarten:"Kaarten",shifts:"Shifts",vergaderingen:"Vergaderingen",kalOpgehaald:"Kalenderdozen opgehaald",kalUitgevoerd:"Kalenderdozen uitgevoerd",kal:"Kalenderlijst",extraTekst:"Extra inspanning",extraPunten:"Extra punten",
+  lidgeld:"Lidgeldstatus",lidgeldBron:"Lidgeld",betaling:"Online betaling",datum:"Datum",bedrag:"Bedrag",mededeling:"Mededeling",partij:"Tegenpartij",iban:"Rekening tegenpartij",rekening:"Rekening/Kas",richting:"Richting",status:"Status",nr:"Nr"};
+function logVal(k,v){if(v==null||v==="")return '<i class="muted">leeg</i>';
+  if(k==="lidgeld")return v==="OK"?"manueel betaald":v==="NOK"?"manueel niet betaald":esc(String(v));
+  if(k==="bedrag"&&typeof v==="number")return eur(v);if(k==="richting")return v==="uit"?"uitgave":"ontvangst";
+  if(k==="datum")return fmtDate(v);if(k==="betaling"&&typeof v==="object")return esc(v.status||"")+(v.bedrag?" · "+eur(v.bedrag):"");
+  if(typeof v==="boolean")return v?"ja":"nee";if(typeof v==="object")return esc(JSON.stringify(v).slice(0,60));
+  const s=String(v);return esc(s.length>70?s.slice(0,70)+"…":s)}
+function logOnderwerp(e){const o=e.nieuw||e.oud||{};
+  if(e.tabel==="leden"){const l=S.leden.get(e.doc_id);return esc([o.naam||(l&&l.naam),o.voornaam||(l&&l.voornaam)].filter(Boolean).join(" ")||e.doc_id)}
+  if(e.tabel==="jaarleden"){const lid=o.lidId||String(e.doc_id).replace(/^\d{4}_/,"");const l=S.leden.get(lid);const y=o.jaar||String(e.doc_id).slice(0,4);return esc(l?naamVol(l):(o.naam||lid.replace(/^x-/,"").replace(/-/g," ")))+` <span class="muted">· ${esc(String(y))}</span>`}
+  if(e.tabel==="boekingen"){const b=S.boekingen.get(e.doc_id)||{};const nr=o.nr??b.nr,p=o.partij||b.partij||o.mededeling||b.mededeling||"";return (nr!=null?"#"+esc(String(nr))+" ":"")+esc(p.slice(0,40))+(o.bedrag!=null||b.bedrag!=null?` <span class="muted">· ${eur(o.bedrag??b.bedrag)}</span>`:"")}
+  if(e.tabel==="banket"||e.tabel==="kinderfeest"){const r=(S[e.tabel]&&S[e.tabel].get(e.doc_id))||{};return esc(o.naam||o.lid||r.naam||r.lid||e.doc_id)}
+  if(e.tabel==="ronde"){const st=String(o.straat||String(e.doc_id).replace(/^\d{4}_/,""));const x=typeof KR!=="undefined"&&KR.byId&&KR.byId.get(st);return esc(x?x.n:st.replace(/--/g," · ").replace(/-/g," "))}
+  return esc(e.info||e.doc_id||"")}
+const LOG_TYPE={leden:"Lid",jaarleden:"Punten",boekingen:"Transactie",ronde:"Kalenderronde",banket:"Banket",kinderfeest:"Kinderfeest"};
+function logRegels(e){if(e.actie==="bulk")return esc(e.info||"");const a=e.oud||{},b=e.nieuw||{};
+  let ks=logDiff(a,b);if(e.actie==="nieuw")ks=ks.filter(k=>b[k]!=null&&b[k]!==""&&b[k]!==0&&b[k]!==false);
+  if(e.tabel==="jaarleden"&&ks.includes("extraTekst")&&ks.includes("extraPunten")){}
+  return ks.slice(0,8).map(k=>`<div class="lg-ch"><span>${esc(LOG_FL[k]||k)}</span>${e.actie==="nieuw"?logVal(k,b[k]):e.actie==="verwijderd"?logVal(k,a[k]):logVal(k,a[k])+' <span class="arr">→</span> '+logVal(k,b[k])}</div>`).join("")+(ks.length>8?`<div class="muted" style="font-size:12px">+${ks.length-8} meer</div>`:"")}
+const LOG_CLIENT=false; // op de eigen site logt de database zelf (supabase/logboek.sql)
+async function logStart(more){if(LOGS.busy||(LOGS.loaded&&!more))return;LOGS.busy=true;const from=LOGS.rows.length;
+  const {data,error}=await SB.from("logboek").select("id,ts,wie,tabel,doc_id,actie,oud,nieuw").order("id",{ascending:false}).range(from,from+299);LOGS.busy=false;
+  if(error){LOGS.err=error.message;LOGS.loaded=true}else{LOGS.rows.push(...data);LOGS.done=data.length<300;LOGS.loaded=true;LOGS.err=null}if(route()==="logboek")renderBody()}
+function logMeer(){const N=(UI.logN||100)+200;UI.logN=N;if(!LOGS.done&&LOGS.rows.length<N)logStart(true);else renderBody()}
 /* ============ opslag ============ */
 const queues=new Map();
-function write(col,id,data,{merge=false,del=false}={}){
+function write(col,id,data,{merge=false,del=false,oud}={}){
   if(!db){toast("Geen verbinding met de gegevens.",true);return Promise.reject()}
+  const _oud=oud!==undefined?oud:(S[col]&&S[col].get(id))||null;let _nieuw=del?null:data;
   const key=col+"/"+id;const prev=queues.get(key)||Promise.resolve();
   const p=prev.catch(()=>{}).then(()=>{const ref=db.collection(col).doc(id);
     if(del)return ref.delete();
-    if(merge){const cur=S[col].get(id);const {id:_i,...rest}=cur||{};return ref.set({...rest,...data})}
-    return ref.set(data)}).catch(e=>{handleWriteError(e);throw e});
+    if(merge){const cur=S[col].get(id);const {id:_i,...rest}=cur||{};_nieuw={...rest,...data};return ref.set(_nieuw)}
+    return ref.set(data)}).then(r=>{if(LOG_CLIENT&&LOG_COLS.has(col))logWrite([logEntry(col,id,_oud,_nieuw)]);return r}).catch(e=>{handleWriteError(e);throw e});
   queues.set(key,p);return p;
 }
 function handleWriteError(e){
@@ -183,7 +223,7 @@ async function startApp(session){
   if(error||!rol){authCard(`<h1>Geen toegang</h1><p style="margin:0">Je bent aangemeld als <b>${esc(ME.email)}</b>, maar dit adres staat niet in de lijst van bestuursleden.</p><button class="btn" data-act="logout">Afmelden</button>`);return}
   STARTED=true;document.body.classList.remove("anon");
   canWrite=rol.rol==="bewerker";canWriteConfirmed=true;applyRO();
-  const an=$("#acctName");if(an)an.textContent=ME.email;const w=$("#who");if(w){w.textContent=canWrite?(an?"Bewerker":ME.email):(an?"Alleen lezen":ME.email+" · alleen lezen");w.classList.toggle("ro",!canWrite)}
+  ME_NAME=ME.email;const an=$("#acctName");if(an)an.textContent=ME.email;const w=$("#who");if(w){w.textContent=canWrite?(an?"Bewerker":ME.email):(an?"Alleen lezen":ME.email+" · alleen lezen");w.classList.toggle("ro",!canWrite)}
   $("#main").innerHTML='<div class="loading" id="boot"><b>Gegevens laden…</b><span>Leden, boekhouding en punten worden opgehaald.</span></div>';
   const q=new URLSearchParams(location.search);if(q.get("bank")){const ok=q.get("bank")==="ok";setTimeout(()=>toast(ok?"De bankrekening is gekoppeld.":"Koppelen met de bank is niet gelukt"+(q.get("reden")?": "+q.get("reden"):"")+".",!ok),400);history.replaceState(null,"",location.pathname+"#bank")}
   const timer=setTimeout(()=>{if(loaded.size<COLS.length){const b=$("#boot");if(b)b.innerHTML="<b>De gegevens zijn nog niet bereikbaar.</b><span>Controleer je internetverbinding. De pagina blijft het proberen.</span>"}},10000);
@@ -259,9 +299,9 @@ function render(force){
   const ys=jaren();const cj=Number(cfg().actiefJaar)||0;
   if(!ys.length){JAAR=new Date().getFullYear()}
   else JAAR=ys.includes(cj)?cj:ys[ys.length-1];
-  const r=route();
-  renderTabbar(r);
-  $("#nav").innerHTML=NAV.map(n=>Array.isArray(n)?'<a href="#'+n[0]+'" class="'+(n[0]===r?"on":"")+'">'+ic(n[0])+esc(n[1])+'</a>':'<button type="button" class="navdd'+(n.items.some(i=>i[0]===r)?" on":"")+'" data-act="navdd" data-id="'+n.id+'" aria-haspopup="true" aria-expanded="false">'+ic(n.id)+esc(n.label)+'<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>').join("");
+  const r=route(),rn=r==="ronde"?"kalenders":r;
+  renderTabbar(rn);
+  $("#nav").innerHTML=NAV.map(n=>Array.isArray(n)?'<a href="#'+n[0]+'" class="'+(n[0]===rn?"on":"")+'">'+ic(n[0])+esc(n[1])+'</a>':'<button type="button" class="navdd'+(n.items.some(i=>i[0]===rn)?" on":"")+'" data-act="navdd" data-id="'+n.id+'" aria-haspopup="true" aria-expanded="false">'+ic(n.id)+esc(n.label)+'<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>').join("");
   $("#brandLbl").textContent=cfg().vereniging||"";
   const g=$("#gear");if(g)g.classList.toggle("on",INST_IDS.includes(r));
   const sy=window.scrollY;const tws=[...document.querySelectorAll("#body .tw")].map(e=>e.scrollTop);
@@ -278,11 +318,16 @@ const VIEWS={};
 const EMBLEM='<img class="emblem emblem-l" alt="" width="47" height="52" src="data:image/png;base64,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"><img class="emblem emblem-d" alt="" width="47" height="52" src="data:image/png;base64,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">';
 
 /* ---------- dashboard ---------- */
+function nieuweInschr(){return [...S.banket.values(),...S.kinderfeest.values()].filter(r=>r.nieuw&&Number(r.jaar)===JAAR)}
+function inschrMelding(){const L=nieuweInschr();if(!L.length)return"";const b=L.filter(r=>S.banket.has(r.id)).length,k=L.filter(r=>S.kinderfeest.has(r.id)).length;
+  const it=(v,n,t)=>n?`<a class="nm-i" href="#${v}"><b>${t}</b><span>${n} ${n===1?"nieuwe inschrijving":"nieuwe inschrijvingen"}</span></a>`:"";
+  return `<div class="nmeld" role="status"><span class="nm-ic">${ic("communicatie")}</span><div class="nm-body"><b>${L.length===1?"Er is een nieuwe inschrijving":L.length+" nieuwe inschrijvingen"} binnengekomen</b>
+  <div class="nm-l">${it("banket",b,"Banket")}${it("kinderfeest",k,"Kinderfeest")}</div></div>${canWrite?`<button type="button" class="nm-x" data-act="inschrGezien" aria-label="Melding sluiten" title="Melding sluiten">${ic("x")}</button>`:""}</div>`}
 function nieuweLeden(){return [...S.leden.values()].filter(l=>l.nieuw).sort((a,b)=>String(b.aangemeld||"").localeCompare(String(a.aangemeld||"")))}
 function nieuwMelding(){const L=nieuweLeden();if(!L.length)return"";
   const d=x=>{const t=new Date(x);return isNaN(t)?"":t.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})};
-  return `<div class="nmeld" role="status"><div class="nm-h"><span class="nm-ic">${ic("leden")}</span><div class="grow"><b>${L.length===1?"1 nieuw lid":L.length+" nieuwe leden"} via het inschrijfformulier</b><span>Kijk de gegevens na en zet de categorie juist.</span></div><button class="btn sm" data-w data-act="nieuwGezien">Alles gezien</button></div>
-  <div class="nm-l">${L.slice(0,8).map(l=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(l.id)}"><b>${esc(l.naam)}</b> ${esc(l.voornaam)}<span>${esc(l.categorie||"")}${l.aangemeld?" · "+d(l.aangemeld):""}</span>${l.dubbelVan?'<span class="pill warn">mogelijk al lid</span>':""}</button>`).join("")}${L.length>8?`<span class="nm-more">+${L.length-8} meer</span>`:""}</div></div>`}
+  return `<div class="nmeld" role="status"><span class="nm-ic">${ic("leden")}</span><div class="nm-body"><b>${L.length===1?"Er heeft zich een nieuw lid aangemeld":L.length+" nieuwe leden hebben zich aangemeld"} via het formulier</b>
+  <div class="nm-l">${L.slice(0,8).map(l=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(l.id)}"><b>${esc(l.naam)}</b> ${esc(l.voornaam)}<span>${esc(l.categorie||"")}${l.aangemeld?" · "+d(l.aangemeld):""}</span>${l.dubbelVan?'<span class="pill warn">mogelijk al lid</span>':""}</button>`).join("")}${L.length>8?`<span class="nm-more">+${L.length-8} meer</span>`:""}</div></div>${canWrite?`<button type="button" class="nm-x" data-act="nieuwGezien" aria-label="Melding sluiten" title="Melding sluiten">${ic("x")}</button>`:""}</div>`}
 VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   const C=ctx();const cur=C.leden.map(l=>C.rows.get(l.id));
   const ok=cur.filter(r=>r.lg.ok).length,nok=cur.length-ok;
@@ -296,27 +341,10 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   const recent=C.boek.slice(-6).reverse();
   const sgn=v=>(v>=0?"+":"−")+eur(Math.abs(v));
   const sec=(icon,titel,link,label)=>`<div class="dsec-h"><span class="dsec-ic">${ic(icon)}</span><h2>${titel}</h2><span class="grow"></span><a class="btn sm ghost" href="#${link}">${label} ›</a></div>`;
-  return nieuwMelding()+`<section class="dsec" aria-label="Financieel">${sec("boekhouding","Financieel","boekhouding","Naar boekhouding")}
-  <div class="tiles three">
-    <div class="tile hero"><span class="lbl">Totaal saldo</span><span class="val">${eur(C.kas+C.rek)}</span></div>
-    <a class="tile" href="#boekingen" data-act="filterRek" data-v="Rekening"><span class="lbl">Rekening</span><span class="val">${eur(C.rek)}</span></a>
-    <a class="tile" href="#boekingen" data-act="filterRek" data-v="Kas"><span class="lbl">Kas</span><span class="val">${eur(C.kas)}</span></a>
-  </div>
-  <div class="grid g2 eq">
-    <div class="panel"><div class="panel-h"><h2>Saldo doorheen het jaar</h2></div><div class="panel-b">${saldoChart(C)}</div></div>
-    <div class="panel"><div class="panel-h"><h2>Resultaat per categorie</h2><span class="grow"></span><span class="legend"><i style="background:var(--good)"></i>winst <i style="background:var(--bad)"></i>verlies</span></div><div class="panel-b">
-      ${cats.length?`<div class="dcats">${cats.map(c=>`<a class="dcat" href="#boekingen" data-act="filterCat" data-v="${esc(c.k)}"><span class="trunc">${esc(c.k)}</span><span class="dtrack"><span style="width:${Math.max(1.5,Math.abs(c.net)/maxNet*100)}%;background:var(--${c.net>=0?"good":"bad"})"></span></span><b class="${c.net>=0?"in":"out"}">${sgn(c.net)}</b></a>`).join("")}
-      <div class="dcat tot"><span>Resultaat ${JAAR}</span><span></span><b class="${C.tin-C.tuit>=0?"in":"out"}">${sgn(C.tin-C.tuit)}</b></div></div>`:'<div class="empty">Nog geen transacties in '+JAAR+'.</div>'}
-    </div></div>
-  </div>
-  <div class="panel"><div class="panel-h"><h2>Laatste transacties</h2><span class="grow"></span><a class="btn sm ghost" href="#boekingen">Alle transacties ›</a></div>
-    ${recent.length?`<div class="tw"><table class="journal drecent"><tbody>${recent.map(b=>`<tr class="click" data-act="toonBoeking" data-id="${esc(b.id)}"><td class="nowrap muted" style="width:96px">${fmtDate(b.datum)}</td><td class="desc"><div class="d1">${esc(b.partij||b.mededeling||"—")}</div>${b.partij&&b.mededeling?`<div class="d2">${esc(b.mededeling)}</div>`:""}</td><td class="nowrap hide-sm">${b.categorie?`<span class="cat">${esc(b.categorie)}</span>`:'<span class="pill warn">Te verwerken</span>'}</td><td class="nowrap muted small hide-sm">${esc(b.rekening)}</td><td class="num">${bedragCel(b)}</td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Nog geen transacties.</div>'}
-  </div></section>
-  <section class="dsec" aria-label="Leden">${sec("leden","Leden","leden","Naar ledenlijst")}
-  <div class="tiles three">
+  return nieuwMelding()+inschrMelding()+`<section class="dsec" aria-label="Leden">${sec("leden","Leden","leden","Naar ledenlijst")}
+  <div class="tiles two">
     <a class="tile" href="#leden" data-act="toonAlleLeden"><span class="lbl">Leden in orde</span><span class="val">${ok}<small style="font-size:16px;color:var(--muted)"> / ${cur.length}</small></span></a>
     <a class="tile" href="#leden" data-act="toonNietBetaald"><span class="lbl">Niet betaald</span><span class="val" style="color:${nok?"var(--bad)":"var(--good)"}">${nok}</span></a>
-    <a class="tile" href="#leden" data-act="toonAlleLeden"><span class="lbl">Nieuwe leden ${JAAR}</span><span class="val">${nieuw}</span></a>
   </div>
   <div class="grid g2 eq">
     <div class="stackcol">
@@ -328,30 +356,79 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
       </div></div></div>
     </div>
     <div class="panel"><div class="panel-h"><h2>Meeste punten</h2></div><div class="panel-b"><div class="list">
-      ${top.length?top.map((r,i)=>`<div class="li"><span class="rank">${i+1}</span><span class="grow trunc"><b>${esc(naamVol(r.lid))}</b></span>${medal(r.status)}<b style="width:48px;text-align:right">${r.p.totaal}</b></div>`).join(""):'<div class="empty">Nog geen punten ingevoerd.</div>'}
+      ${top.length?top.map((r,i)=>`<div class="li${i>=5?" top-x":""}"><span class="rank">${i+1}</span><span class="grow trunc"><b>${esc(naamVol(r.lid))}</b></span>${medal(r.status)}<b style="width:48px;text-align:right">${r.p.totaal}</b></div>`).join(""):'<div class="empty">Nog geen punten ingevoerd.</div>'}
     </div></div></div>
-  </div></section>`}});
+  </div></section>
+<section class="dsec" aria-label="Financieel">${sec("boekhouding","Financieel","boekhouding","Naar boekhouding")}
+  <div class="tiles three">
+    <div class="tile hero"><span class="lbl">Totaal saldo</span><span class="val">${eur(C.kas+C.rek)}</span></div>
+    <a class="tile" href="#boekingen" data-act="filterRek" data-v="Rekening"><span class="lbl">Rekening</span><span class="val">${eur(C.rek)}</span></a>
+    <a class="tile" href="#boekingen" data-act="filterRek" data-v="Kas"><span class="lbl">Kas</span><span class="val">${eur(C.kas)}</span></a>
+  </div>
+  <div class="grid g2 eq">
+    <div class="panel"><div class="panel-h"><h2>Saldo afgelopen 12 maanden</h2></div><div class="panel-b">${saldoChart(C)}</div></div>
+    <div class="panel"><div class="panel-h"><h2>Resultaat per categorie</h2><span class="grow"></span><span class="legend"><i style="background:var(--good)"></i>winst <i style="background:var(--bad)"></i>verlies</span></div><div class="panel-b">
+      ${cats.length?`<div class="dcats">${cats.map(c=>`<a class="dcat" href="#boekingen" data-act="filterCat" data-v="${esc(c.k)}"><span class="trunc">${esc(c.k)}</span><span class="dtrack"><span style="width:${Math.max(1.5,Math.abs(c.net)/maxNet*100)}%;background:var(--${c.net>=0?"good":"bad"})"></span></span><b class="${c.net>=0?"in":"out"}">${sgn(c.net)}</b></a>`).join("")}
+      <div class="dcat tot"><span>Resultaat ${JAAR}</span><span></span><b class="${C.tin-C.tuit>=0?"in":"out"}">${sgn(C.tin-C.tuit)}</b></div></div>`:'<div class="empty">Nog geen transacties in '+JAAR+'.</div>'}
+    </div></div>
+  </div>
+  </section>`}});
+let SALDO=null;
+function saldoHover(e){const wrap=e.target.closest&&e.target.closest(".dchart-wrap");if(!wrap||!SALDO)return;const svg=wrap.querySelector("svg"),g=svg.querySelector(".hov"),tip=wrap.querySelector(".dtip");
+  const r=svg.getBoundingClientRect(),S0=SALDO,vx=(e.clientX-r.left)/r.width*S0.W;
+  if(vx<S0.P-4||vx>S0.W-S0.R+4){g.style.display="none";tip.hidden=true;return}
+  const t=S0.tS+(vx-S0.P)/(S0.W-S0.P-S0.R)*(S0.tE-S0.tS);let lo=0,hi=S0.pts.length-1;while(hi-lo>1){const m=(lo+hi)>>1;if(S0.pts[m][0]<t)lo=m;else hi=m}
+  const p=Math.abs(S0.pts[lo][0]-t)<Math.abs(S0.pts[hi][0]-t)?S0.pts[lo]:S0.pts[hi];
+  const X=S0.P+(p[0]-S0.tS)/(S0.tE-S0.tS)*(S0.W-S0.P-S0.R),Y=S0.T+(S0.hi-p[2])/(S0.hi-S0.lo2)*(S0.H-S0.T-S0.B);
+  g.style.display="";g.querySelector("line").setAttribute("x1",X);g.querySelector("line").setAttribute("x2",X);const c=g.querySelector("circle");c.setAttribute("cx",X);c.setAttribute("cy",Y);
+  tip.innerHTML=`<span>${new Date(p[0]).toLocaleDateString("nl-BE",{weekday:"short",day:"numeric",month:"short",year:"numeric",timeZone:"UTC"})}</span><b>${eur(p[2])}</b>`;tip.hidden=false;
+  const px=X/S0.W*r.width,py=Y/S0.H*r.height,tw=tip.offsetWidth;let left=px-tw/2;left=Math.max(0,Math.min(r.width-tw,left));tip.style.left=left+"px";tip.style.top=Math.max(0,py-tip.offsetHeight-12)+"px"}
+document.addEventListener("pointermove",e=>{if(e.target.closest&&e.target.closest(".dchart-wrap"))saldoHover(e)});
+document.addEventListener("pointerdown",e=>{if(e.target.closest&&e.target.closest(".dchart-wrap"))saldoHover(e)});
+document.addEventListener("pointerout",e=>{const w=e.target.closest&&e.target.closest(".dchart-wrap");if(w&&!w.contains(e.relatedTarget)){const g=w.querySelector(".hov");if(g)g.style.display="none";const tp=w.querySelector(".dtip");if(tp)tp.hidden=true}});
+function saldoReeks(){
+  // dagelijks totaal saldo (kas + rekening) over de 12 maanden tot vandaag (of tot 31/12 van het gekozen boekjaar)
+  const ys=jaren();if(!ys.length)return null;
+  const today=todayISO(),cy=+today.slice(0,4);const end=JAAR>=cy?today:JAAR+"-12-31";
+  const DAY=86400000,tE=Date.parse(end+"T00:00:00Z"),tS=tE-365*DAY;
+  const per={};const yrs=new Set();for(let t=tS;t<=tE;t+=DAY)yrs.add(+new Date(t).toISOString().slice(0,4));
+  for(const Y of yrs){if(!S.jaren.has(String(Y)))continue;const c=jaarCfg(Y);
+    const ev=[...S.boekingen.values()].filter(b=>b.jaar===Y&&b.datum).map(b=>[b.datum,(b.richting==="uit"?-1:1)*(+b.bedrag||0)]).sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
+    per[Y]={begin:(+c.beginKas||0)+(+c.beginRekening||0),ev}}
+  const known=Object.keys(per).map(Number).sort((a,b)=>a-b);if(!known.length)return null;
+  const pts=[];const idx={},run={};
+  for(let t=tS;t<=tE;t+=DAY){const d=new Date(t).toISOString().slice(0,10),Y=+d.slice(0,4);let v;
+    if(per[Y]){const P=per[Y];if(run[Y]==null){run[Y]=P.begin;idx[Y]=0}while(idx[Y]<P.ev.length&&P.ev[idx[Y]][0]<=d){run[Y]+=P.ev[idx[Y]][1];idx[Y]++}v=run[Y]}
+    else{const nxt=known.find(k=>k>Y);v=nxt!=null?per[nxt].begin:null}
+    pts.push([t,d,v==null?null:r2(v)])}
+  return{pts:pts.filter(p=>p[2]!=null),tS,tE}}
 function saldoChart(C){
-  const pts=[[JAAR+"-01-01",C.c.beginKas+C.c.beginRekening],...C.reeks];
-  if(pts.length<2)return '<div class="empty">Nog geen transacties.</div>';
-  const narrow=window.innerWidth<640;const W=narrow?360:640,H=narrow?230:300,P=narrow?38:54,R=narrow?8:14,T=14,B=26,t0=Date.parse(JAAR+"-01-01"),t1=Date.parse((JAAR+1)+"-01-01");
-  const vals=pts.map(p=>p[1]);const top=Math.max(1,...vals);const lo=Math.min(0,...vals);
+  const R0=saldoReeks();if(!R0||R0.pts.length<2)return '<div class="empty">Nog geen transacties.</div>';
+  const {pts,tS,tE}=R0;
+  const narrow=window.innerWidth<640;const W=narrow?360:640,H=narrow?230:300,P=narrow?38:54,R=narrow?8:14,T=22,B=26;
+  const vals=pts.map(p=>p[2]);const top=Math.max(1,...vals);const lo=Math.min(0,...vals);
   const stepV=[500,1000,2000,2500,5000,10000,20000,25000,50000].find(s=>(top-lo)/s<=5)||100000;const hi=Math.ceil(top/stepV)*stepV;const lo2=Math.floor(lo/stepV)*stepV;
-  const x=d=>P+(Math.min(t1,Date.parse(d))-t0)/(t1-t0)*(W-P-R),y=v=>T+(hi-v)/(hi-lo2)*(H-T-B);
-  let d="";pts.forEach((p,i)=>{const X=x(p[0]),Y=y(p[1]);d+=i?"H"+X.toFixed(1)+"V"+Y.toFixed(1):"M"+X.toFixed(1)+" "+Y.toFixed(1)});
-  const last=pts[pts.length-1],lx=x(last[0]),ly=y(last[1]);const area=d+"V"+y(lo2)+"H"+x(pts[0][0])+"Z";
+  const x=t=>P+(t-tS)/(tE-tS)*(W-P-R),y=v=>T+(hi-v)/(hi-lo2)*(H-T-B);
+  let d="";pts.forEach((p,i)=>{d+=(i?"L":"M")+x(p[0]).toFixed(1)+" "+y(p[2]).toFixed(1)});
+  const first=pts[0],last=pts[pts.length-1],lx=x(last[0]),ly=y(last[2]);const area=d+"L"+lx.toFixed(1)+" "+y(lo2)+"L"+x(first[0]).toFixed(1)+" "+y(lo2)+"Z";
   const ticks=[];for(let v=lo2;v<=hi+1;v+=stepV)ticks.push(v);
   const kf=v=>v===0?"0":(v/1000).toLocaleString("nl-BE")+"k";
-  const months=MAANDEN.map((m,i)=>[m,x(JAAR+"-"+String(i+1).padStart(2,"0")+"-01")]);
+  // maandlabels: midden van elke maand binnen het venster
+  const months=[];{const s=new Date(tS);let yy=s.getUTCFullYear(),mm=s.getUTCMonth();
+    for(let k=0;k<14;k++){const a=Date.UTC(yy,mm,1),b=Date.UTC(yy,mm+1,1);if(a>tE)break;const a2=Math.max(a,tS),b2=Math.min(b,tE),mid=(a2+b2)/2;if(b2-a2>12*86400000)months.push([MAANDEN[mm],x(mid),a]);mm++;if(mm>11){mm=0;yy++}}}
+  const jan=months.filter(m=>new Date(m[2]).getUTCMonth()===0).map(m=>[x(m[2]),new Date(m[2]).getUTCFullYear()]);
   const labelRight=lx<W-150;
-  return `<svg viewBox="0 0 ${W} ${H}" class="dchart" role="img" aria-label="Verloop van het totale saldo in ${JAAR}">
+  SALDO={pts,tS,tE,P,R,W,H,T,B,hi,lo2};
+  return `<div class="dchart-wrap"><svg viewBox="0 0 ${W} ${H}" class="dchart" role="img" aria-label="Verloop van het totale saldo, dag per dag, over de laatste 12 maanden">
     ${ticks.map(v=>`<line x1="${P}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${P-10}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${kf(v)}</text>`).join("")}
-    ${months.filter((_,i)=>!narrow||i%2===0).map(([m,X],i)=>`<text x="${X+(W-P-R)/24}" y="${H-8}" text-anchor="middle" font-size="12" fill="var(--muted)">${m}</text>`).join("")}
-    <path d="${area}" fill="var(--accent)" fill-opacity=".09"/><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
-    <line x1="${lx}" x2="${lx}" y1="${ly}" y2="${y(lo2)}" stroke="var(--accent)" stroke-dasharray="3 3" stroke-opacity=".5"/>
+    ${jan.map(([X,yr])=>`<line x1="${X}" x2="${X}" y1="${T-6}" y2="${y(lo2)}" stroke="var(--line-strong)" stroke-dasharray="2 3"/><text x="${X+4}" y="${T-8}" font-size="11" fill="var(--muted)">${yr}</text>`).join("")}
+    ${months.filter((_,i)=>!narrow||i%2===0).map(([m,X])=>`<text x="${X}" y="${H-8}" text-anchor="middle" font-size="12" fill="var(--muted)">${m}</text>`).join("")}
+    <path d="${area}" fill="var(--accent)" fill-opacity=".09"/><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
     <circle cx="${lx}" cy="${ly}" r="5" fill="var(--surface)" stroke="var(--accent)" stroke-width="2.5"/>
-    <text x="${labelRight&&!narrow?lx+10:lx-10}" y="${ly-10}" text-anchor="${labelRight&&!narrow?"start":"end"}" font-size="13" font-weight="600" fill="var(--ink)">${eur(last[1])}</text>
-  </svg>`;
+    <text x="${labelRight&&!narrow?lx+10:lx-10}" y="${ly-10}" text-anchor="${labelRight&&!narrow?"start":"end"}" font-size="13" font-weight="600" fill="var(--ink)">${eur(last[2])}</text>
+    <g class="hov" style="display:none"><line x1="0" x2="0" y1="${T-6}" y2="${y(lo2)}" stroke="var(--ink)" stroke-opacity=".35"/><circle r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/></g>
+    <rect x="${P}" y="0" width="${W-P-R}" height="${H}" fill="transparent" class="hov-hit"/>
+  </svg><div class="dtip" hidden></div></div>`;
 }
 function medal(s){return s==="niet actief"?'<span class="medal na"><i></i>NIET ACTIEF</span>':'<span class="medal '+s+'"><i></i>'+s+'</span>'}
 function sparkline(C){
@@ -405,7 +482,7 @@ function lgPill(r){return r.lg.ok?'<span class="pill ok" title="'+esc(r.lg.bron)
 
 /* ---------- boekhouding ---------- */
 const BOEK_TABS=[["boekhouding","Overzicht"],["boekingen","Transacties"],["verwerken","Te verwerken"],["historiek","Historiek"]];
-const INST_TABS=[["instellingen","Algemeen"],["regels","Automatische regels"],["bank","Bankimport"]];
+const INST_TABS=[["instellingen","Algemeen"],["regels","Automatische regels"],["bank","Bankimport"],["logboek","Logboek"]];
 const INST_IDS=INST_TABS.map(t=>t[0]);
 function instTabs(act){return `<nav class="tabs" aria-label="Onderdelen instellingen">${INST_TABS.map(([k,l])=>`<a href="#${k}" class="${k===act?"on":""}">${esc(l)}</a>`).join("")}</nav>`}
 const MAANDEN=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
@@ -652,7 +729,7 @@ VIEWS.kalenders=()=>({title:"Kalenders "+JAAR,sub:"Verdeling en verkoop van de k
   const C=ctx(),k=kalStats(C);
   const inLijst=new Set(k.rows.map(j=>j.lidId).filter(Boolean));
   const ontbreekt=C.leden.filter(l=>l.categorie!=="Erewacht"&&C.rows.get(l.id).lg.ok&&!inLijst.has(l.id));
-  return `<div class="tiles"><div class="tile"><span class="lbl">Nog in stock</span><span class="val">${k.stock}</span><span class="hint">van ${C.c.kalenderStock} dozen</span></div>
+  return kalTabs("kalenders")+`<div class="tiles"><div class="tile"><span class="lbl">Nog in stock</span><span class="val">${k.stock}</span><span class="hint">van ${C.c.kalenderStock} dozen</span></div>
     <div class="tile"><span class="lbl">In omloop</span><span class="val">${k.omloop}</span><span class="hint">opgehaald, nog niet klaar</span></div>
     <div class="tile"><span class="lbl">Uitgevoerd</span><span class="val">${k.uit}</span><span class="hint">${k.uit*C.c.gewichten.kalenders} punten in totaal</span></div>
     <div class="tile"><span class="lbl">Personen in lijst</span><span class="val">${k.rows.length}</span><span class="hint">${ontbreekt.length} actieve leden ontbreken</span></div></div>
@@ -674,6 +751,248 @@ function kalTable(){
   </tbody></table></div>`;
 }
 
+/* ---------- kalenderronde (Kalenders › Kalenderronde) ----------
+   Kaart met alle straten waar de kalenders rondgebracht worden. Een straat aantikken toont een kaartje
+   met "Te doen" / "Gedaan". Aanduidingen staan in de collectie "ronde", één document per straat en per jaar:
+   id "<jaar>_<straat-id>" met {jaar, straat, status:"done", by, at}. De straten zelf staan als tekst in
+   <script id="krData"> onderaan (naam, deelgemeente 0-3, aantal adressen, delen in Google-polyline-codering).
+   Het aantal adressen = unieke huisnummers in OpenStreetMap binnen 120 m van de straat; pas het getal gerust aan. */
+const KR_WIJKEN=["Centrum","Gijzegem","Hofstade","Nieuwerkerken"];
+const KR_LABEL_ZOOM=16;
+/* Startbeeld van de kaart: midden van Aalst-centrum op zoomniveau 15. De knop met het speldje toont de hele regio. */
+const KR_START={at:[50.9402,4.0368],zoom:15};
+/* Lijndikte per zoomniveau (pixels): [te doen, gedaan, geselecteerd]. Tussen twee niveaus wordt de dichtstbijzijnde gebruikt. */
+const KR_DIKTE={12:[1,1.5,4],13:[1.2,2,4.5],14:[1.6,2.5,5],15:[2,3,6],16:[2.8,4,7],17:[3.5,5,8],18:[4,6,9]};
+const krDikte=z=>KR_DIKTE[Math.max(12,Math.min(18,Math.round(z)))]; // vanaf dit zoomniveau staan de straatnamen op de kaart
+const KR_CHECK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const krSlug=t=>t.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+function krDecode(s){const pts=[];let i=0,la=0,lo=0;
+  while(i<s.length){for(let k=0;k<2;k++){let r=0,sh=0,b;do{b=s.charCodeAt(i++)-63;r|=(b&31)<<sh;sh+=5}while(b>=32);const d=(r&1)?~(r>>1):(r>>1);if(k===0)la+=d;else lo+=d}pts.push([la/1e5,lo/1e5])}
+  return pts}
+/* Grenzen van de verdeelregio (<script id="krGrens">). Straatdelen die voor meer dan de helft buiten deze grenzen liggen,
+   worden weggelaten; een straat zonder delen binnen de grenzen verdwijnt helemaal (niet zichtbaar, niet aanklikbaar, niet geteld). */
+const KR_GRENS=(()=>{const el=document.getElementById("krGrens");if(!el)return[];return el.textContent.trim().split("\n").map(l=>l.slice(l.indexOf(" ")+1).trim().split(" ").map(krDecode)).flat()})();
+const krInRing=(p,r)=>{let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const yi=r[i][0],xi=r[i][1],yj=r[j][0],xj=r[j][1];if(((yi>p[0])!==(yj>p[0]))&&(p[1]<(xj-xi)*(p[0]-yi)/(yj-yi)+xi))c=!c}return c};
+const krBinnen=p=>!KR_GRENS.length||KR_GRENS.some(r=>krInRing(p,r));
+const KR_STREETS=(()=>{const el=document.getElementById("krData");if(!el)return[];
+  return el.textContent.trim().split("\n").map(l=>{const m=l.match(/^(.*) ([0-3]) (\d+) ([^0-9]*)$/);if(!m)return null;const n=m[1],w=KR_WIJKEN[+m[2]];
+    return{id:w==="Centrum"?krSlug(n):krSlug(n)+"--"+krSlug(w),n,w,a:+m[3],g:m[4].trim().split(" ").map(krDecode).filter(part=>part.filter(krBinnen).length*2>=part.length)}}).filter(s=>s&&s.g.length)})();
+const KR={ss:new Set(),map:null,host:null,sp:null,lines:new Map(),labels:null,labelAt:null,sel:null,busy:false,byId:new Map(KR_STREETS.map(s=>[s.id,s]))};
+const krNaam=()=>ls.get("rondeNaam","");
+const krVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const krAdr=n=>n===1?"1 adres":n+" adressen";
+const krNum=n=>n.toLocaleString("nl-BE");
+const krDT=iso=>{try{return new Date(iso).toLocaleString("nl-BE",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}catch(e){return""}};
+/* krAll: alle aanduidingen van het jaar; krMarks: alleen afgewerkte straten (status "done"); krRes: gereserveerde (status "reserved"). */
+function krAll(){const m={};for(const d of S.ronde.values())if(d.jaar===JAAR&&KR.byId.has(d.straat))m[d.straat]=d;return m}
+function krMarks(){const a=krAll(),m={};for(const k in a)if(a[k].status!=="reserved")m[k]=a[k];return m}
+function krRes(){const a=krAll(),m={};for(const k in a)if(a[k].status==="reserved")m[k]=a[k];return m}
+
+const KAL_TABS=[["kalenders","Verdeling"],["ronde","Kalenderronde"]];
+function kalTabs(act){return `<nav class="tabs" aria-label="Onderdelen kalenders">${KAL_TABS.map(([k,l])=>`<a href="#${k}" class="${k===act?"on":""}">${esc(l)}</a>`).join("")}</nav>`}
+
+VIEWS.ronde=()=>({title:"Kalenderronde",
+  actions:`<a class="btn" href="/kaart" target="_blank" rel="noopener" title="Kaart zonder aanmelden, om te delen">${ic("kaart")}Openbare kaart</a>`,
+  body(){
+  const M=krMarks(),RS=krRes(),nRes=Object.keys(RS).length,tot=KR_STREETS.length,done=Object.keys(M).length,pct=tot?done/tot*100:0;
+  const aTot=KR_STREETS.reduce((t,s)=>t+s.a,0),aDone=KR_STREETS.reduce((t,s)=>t+(M[s.id]?s.a:0),0),aPct=aTot?aDone/aTot*100:0;
+  const per=KR_WIJKEN.map(w=>{const ss=KR_STREETS.filter(s=>s.w===w),dd=ss.filter(s=>M[s.id]);return{w,n:ss.length,d:dd.length,an:ss.reduce((t,s)=>t+s.a,0),ad:dd.reduce((t,s)=>t+s.a,0)}});
+  return kalTabs("ronde")+`<div class="tiles three"><div class="tile hero"><span class="lbl">Bedeelde adressen ${JAAR}</span><span class="val">${krNum(aDone)}</span><span class="hint">van ${krNum(aTot)} adressen · ${Math.round(aPct)}%</span></div>
+    <div class="tile"><span class="lbl">Nog te bedelen</span><span class="val">${krNum(aTot-aDone)}</span><span class="hint">adressen in ${tot-done} straten</span></div>
+    <div class="tile"><span class="lbl">Afgewerkte straten</span><span class="val">${done}</span><span class="hint">van ${tot} straten · ${Math.round(pct)}%${nRes?` · ${nRes} gereserveerd`:""}</span></div></div>
+  <div class="panel"><div class="panel-b kr-prog">
+    <div class="kr-prog-main"><div class="kr-prog-t"><b>${Math.round(aPct)}%</b>van de verdeelregio bedeeld</div><span class="kr-track" aria-hidden="true"><span style="width:${aPct}%"></span></span></div>
+    <div class="kr-wijken">${per.map(p=>`<button type="button" class="kr-wijk" data-act="krWijk" data-id="${esc(p.w)}" title="Zoom naar ${esc(p.w)}: ${p.d} van ${p.n} straten"><span>${esc(p.w)}</span><b>${krNum(p.ad)}/${krNum(p.an)}</b><i class="kr-track sm" aria-hidden="true"><span style="width:${p.an?p.ad/p.an*100:0}%"></span></i><small>${p.d}/${p.n} straten</small></button>`).join("")}</div>
+  </div></div>
+  <div class="panel"><div class="kr-slot" id="krSlot"></div></div>
+  <div class="panel"><div class="panel-h"><h2>Aangeduide straten</h2>${done?`<span class="cnt">${done}</span>`:""}${nRes?`<span class="pill info">${nRes} gereserveerd</span>`:""}<span class="grow"></span></div>${krHistory(krAll())}</div>`}});
+VIEWS.ronde.after=krAfter;
+
+function krHistory(M){const E=Object.values(M).sort((a,b)=>(b.at||"").localeCompare(a.at||""));
+  if(!E.length)return '<div class="empty">Nog geen straten aangeduid voor '+JAAR+'. Tik een straat aan op de kaart en zet ze op Reserveren of Gedaan.</div>';
+  return `<div class="tw" style="max-height:440px"><table class="rcards" data-main="0"><thead><tr><th>Straat</th><th>Status</th><th>Deelgemeente</th><th class="num">Adressen</th><th>Door</th><th>Wanneer</th><th></th></tr></thead><tbody>${E.map(m=>{const s=KR.byId.get(m.straat);
+    return `<tr><td><button type="button" class="kr-link" data-act="krToon" data-id="${esc(s.id)}" title="Toon op de kaart">${esc(s.n)}</button></td><td>${m.status==="reserved"?'<span class="pill info">Gereserveerd</span>':'<span class="pill ok">Gedaan</span>'}</td><td class="muted">${esc(s.w)}</td><td class="num">${s.a}</td><td>${esc(m.by||"onbekend")}</td><td class="nowrap muted">${esc(krDT(m.at))}</td><td class="num"><button type="button" class="btn sm ghost danger" data-w data-act="krWis" data-id="${esc(s.id)}" title="Terug op Te doen zetten" aria-label="${esc(s.n)} wissen">${ic("x")}</button></td></tr>`}).join("")}</tbody></table></div>`}
+
+/* De kaart blijft bestaan als één element dat na elke hertekening terug in #krSlot gehangen wordt. */
+function krHost(){if(KR.host)return KR.host;const h=document.createElement("div");h.className="kr-host";
+  h.innerHTML=`<div class="kr-map" id="krMap" role="application" aria-label="Kaart van de straten van Aalst-centrum, Gijzegem, Hofstade en Nieuwerkerken"></div>
+  <button type="button" class="kr-search" id="krSearchOpen" aria-haspopup="dialog">${ic("search")}<span>Zoek een straat…</span></button>
+  <div class="kr-zoom"><button type="button" id="krZin" aria-label="Inzoomen">+</button><button type="button" id="krZout" aria-label="Uitzoomen">−</button><button type="button" id="krFit" aria-label="Hele kaart tonen" title="Hele kaart tonen">${ic("kaart")}</button></div>
+  <section class="kr-card" id="krCard" hidden aria-labelledby="krCardT"><div class="kr-card-h"><div class="kr-card-t"><h3 id="krCardT"></h3><span id="krCardM"></span><button type="button" class="kr-link kr-wie" id="krWie" data-w hidden>Naam wijzigen</button></div><button type="button" class="btn ghost sm" id="krCardX" aria-label="Sluiten">${ic("x")}</button></div>
+  <div class="kr-multi" id="krMulti" hidden></div>
+  <div class="kr-seg" data-w role="group" aria-label="Status van de straat"><button type="button" id="krTodo" aria-pressed="true">Te doen</button><button type="button" id="krResBtn" aria-pressed="false">Reserveren</button><button type="button" id="krDone" aria-pressed="false">${KR_CHECK}Gedaan</button></div></section>`;
+  h.querySelector("#krSearchOpen").onclick=krOpenSearch;
+  h.querySelector("#krZin").onclick=()=>KR.map&&KR.map.zoomIn();
+  h.querySelector("#krZout").onclick=()=>KR.map&&KR.map.zoomOut();
+  h.querySelector("#krFit").onclick=()=>KR.map&&KR.map.fitBounds(KR.bounds,{padding:[20,20]});
+  h.querySelector("#krCardX").onclick=()=>krSelect(null);
+  h.querySelector("#krCard").addEventListener("click",e=>{const b=e.target.closest("[data-krx]");if(b){e.stopPropagation();krToggle(b.dataset.krx)}});
+  h.querySelector("#krWie").onclick=()=>{const m=KR.sel&&krAll()[KR.sel];if(m)krKiesPersoon(KR.sel,m.status==="reserved"?"reserved":"done")};
+  h.querySelector("#krDone").onclick=()=>krZet("done");
+  h.querySelector("#krResBtn").onclick=()=>krZet("reserved");
+  h.querySelector("#krTodo").onclick=()=>krZet("todo");
+  KR.host=h;return h}
+
+function krInit(){const h=krHost();if(KR.map)return;
+  if(!window.L){h.querySelector("#krMap").innerHTML='<div class="empty">De kaart kon niet laden. Controleer je internetverbinding en herlaad de pagina.</div>';return}
+  const map=L.map(h.querySelector("#krMap"),{zoomControl:false,preferCanvas:true,minZoom:12,maxZoom:19});KR.map=map;
+  const renderer=L.canvas({tolerance:10});
+  KR.bounds=L.latLngBounds(KR_STREETS.flatMap(s=>s.g.flat()));
+  map.setView(KR_START.at,KR_START.zoom);map.setMaxBounds(KR.bounds.pad(.3));
+  map.on("zoomend",()=>krStyleAll());
+  map.attributionControl.setPrefix(false);map.attributionControl.setPosition("bottomleft");
+  map.attributionControl.addAttribution('Straten © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>');
+  for(const s of KR_STREETS){const line=L.polyline(s.g,{renderer,weight:4,lineCap:"round",lineJoin:"round"})
+    .on("click",e=>{L.DomEvent.stopPropagation(e);krToggle(s.id)}).addTo(map);KR.lines.set(s.id,line)}
+  
+  // Elke naam staat op het langste rechte stuk van de straat en draait mee, zoals op een wegenkaart.
+  KR.labelAt=new Map(KR_STREETS.map(s=>{let best=null,bl=-1;
+    for(const part of s.g)for(let i=1;i<part.length;i++){const a=map.project(part[i-1],KR_LABEL_ZOOM),b=map.project(part[i],KR_LABEL_ZOOM);const len=a.distanceTo(b);if(len>bl){bl=len;best=[part[i-1],part[i],a,b]}}
+    if(!best){const p=s.g[0][0];return[s.id,{at:p,angle:0}]}
+    const [p,q,a,b]=best;let ang=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;if(ang>90)ang-=180;if(ang<-90)ang+=180;
+    return[s.id,{at:[(p[0]+q[0])/2,(p[1]+q[1])/2],angle:ang}]}));
+  KR.labels=L.layerGroup().addTo(map);map.on("zoomend moveend",krLabels);
+  krBg();
+  const restyle=()=>{if(KR.map){krStyleAll();krBgStyle()}};
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change",restyle);
+  new MutationObserver(restyle).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+}
+function krLabels(){if(!KR.labels)return;KR.labels.clearLayers();const map=KR.map;if(map.getZoom()<KR_LABEL_ZOOM)return;
+  const view=map.getBounds().pad(.1);
+  for(const s of KR_STREETS){const {at,angle}=KR.labelAt.get(s.id);if(!view.contains(at))continue;
+    const t=document.createElement("span");t.textContent=s.n;t.style.transform=`rotate(${angle.toFixed(1)}deg)`;
+    KR.labels.addLayer(L.tooltip({permanent:true,direction:"center",className:"kr-lbl",interactive:false}).setLatLng(at).setContent(t))}}
+function krStyleAll(){const A=krAll();const todo=krVar("--kr-todo"),dn=krVar("--good"),rs=krVar("--info"),sel=krVar("--accent");const w=krDikte(KR.map?KR.map.getZoom():15);
+  for(const [id,line] of KR.lines){const s=KR.ss.has(id),m=A[id],r=m&&m.status==="reserved",d=m&&!r;line.setStyle({color:d?dn:r?rs:s?sel:todo,weight:m?w[1]:s?w[2]:w[0],opacity:1})}
+  /* aangeduide straten altijd boven de grijze tekenen, anders bedekken aansluitende straten ze deels en lijken ze dunner dan een net aangeduide straat */
+  for(const id in A){const l=KR.lines.get(id);if(l)l.bringToFront()}
+  for(const id of KR.ss){const l=KR.lines.get(id);if(l)l.bringToFront()}}
+function krCard(){const c=KR.host&&KR.host.querySelector("#krCard");if(!c)return;
+  const mu=c.querySelector("#krMulti");
+  if(KR.ss.size>1){const A=krAll(),ids=[...KR.ss].filter(id=>KR.byId.has(id)),L=ids.map(id=>KR.byId.get(id));const tot=L.reduce((t,x)=>t+x.a,0),pd=jaarCfg(JAAR).perDoos||100,doz=Math.ceil(tot/pd);
+    const st=ids.map(id=>A[id]?(A[id].status==="reserved"?"r":"d"):"t");const all=v=>st.every(x=>x===v);
+    c.hidden=false;c.classList.add("multi");c.querySelector("#krCardT").textContent=ids.length+" straten geselecteerd";
+    c.querySelector("#krCardM").textContent="Tik een straat aan om ze toe te voegen, nog eens om ze weg te halen.";c.querySelector("#krWie").hidden=true;
+    mu.hidden=false;mu.innerHTML=`<div class="kr-sum"><div><b>${krNum(tot)}</b><span>adressen</span></div><div><b>${krNum(doz)}</b><span>${doz===1?"doos":"dozen"} <small>(${pd} per doos)</small></span></div></div>
+      <ul class="kr-ml">${L.map((x,k)=>`<li><span class="kr-ml-n">${esc(x.n)}${A[x.id]?`<small>${A[x.id].status==="reserved"?"gereserveerd":"gedaan"}</small>`:""}</span><span class="kr-ml-a">${krNum(x.a)}</span></li>`).join("")}</ul>`;
+    c.querySelector("#krDone").setAttribute("aria-pressed",String(all("d")));c.querySelector("#krResBtn").setAttribute("aria-pressed",String(all("r")));c.querySelector("#krTodo").setAttribute("aria-pressed",String(all("t")));return}
+  c.classList.remove("multi");mu.hidden=true;mu.innerHTML="";
+  if(!KR.sel||!KR.byId.has(KR.sel)){c.hidden=true;return}
+  const s=KR.byId.get(KR.sel),m=krAll()[KR.sel],r=m&&m.status==="reserved";c.hidden=false;
+  c.querySelector("#krCardT").textContent=s.n;
+  c.querySelector("#krCardM").textContent=s.w+" · "+krAdr(s.a)+(m?` · ${r?"gereserveerd":"gedaan"} door ${m.by||"onbekend"} · ${krDT(m.at)}`:"");
+  c.querySelector("#krWie").hidden=!m;c.querySelector("#krDone").setAttribute("aria-pressed",String(!!m&&!r));c.querySelector("#krResBtn").setAttribute("aria-pressed",String(!!r));c.querySelector("#krTodo").setAttribute("aria-pressed",String(!m))}
+function krSelect(id){KR.ss=new Set(id?[id]:[]);KR.sel=id||null;if(KR.map)krStyleAll();krCard()}
+function krToggle(id){if(KR.ss.has(id))KR.ss.delete(id);else KR.ss.add(id);KR.sel=KR.ss.size===1?[...KR.ss][0]:KR.ss.size?id:null;if(KR.map)krStyleAll();krCard()}
+function krZoomTo(id){const l=KR.lines.get(id);if(l&&KR.map)KR.map.fitBounds(l.getBounds(),{maxZoom:17,paddingTopLeft:[40,80],paddingBottomRight:[70,200]})}
+function krAfter(){const slot=$("#krSlot");if(!slot)return;slot.appendChild(krHost());
+  if(!KR.map)krInit();else KR.map.invalidateSize({pan:false});
+  if(KR.map){krStyleAll();krLabels()}krCard();
+  if(KR.pending){const id=KR.pending;KR.pending=null;krZoomTo(id);krSelect(id)}}
+function krGoto(id){if(route()!=="ronde"){KR.pending=id;location.hash="ronde";return}
+  $("#krSlot").scrollIntoView({block:"center",behavior:"smooth"});krZoomTo(id);krSelect(id)}
+
+async function krZet(st,id=KR.sel){if(KR.ss.size>1)return krZetMeer(st);if(!id||!canWrite||KR.busy)return;const cur=krAll()[id];
+  if(st==="todo"){if(!cur)return;KR.busy=true;S.ronde.delete(JAAR+"_"+id);if(KR.map)krStyleAll();krCard();try{await write("ronde",JAAR+"_"+id,null,{del:true})}catch(e){}finally{KR.busy=false}if(KR.map)krStyleAll();krCard();return}
+  if(cur&&(cur.status==="reserved")===(st==="reserved"))return;krKiesPersoon(id,st)}
+async function krZetMeer(st){if(!canWrite||KR.busy)return;const ids=[...KR.ss].filter(id=>KR.byId.has(id)),A=krAll();
+  if(st==="todo"){const del=ids.filter(id=>A[id]);if(!del.length)return;KR.busy=true;del.forEach(id=>S.ronde.delete(JAAR+"_"+id));if(KR.map)krStyleAll();krCard();
+    try{await writeMany(del.map(id=>["ronde",JAAR+"_"+id,null]),()=>{})}catch(e){handleWriteError(e)}finally{KR.busy=false}if(KR.map)krStyleAll();krCard();return}
+  krKiesPersoon(ids,st)}
+/* Naam typen bij Reserveren of Gedaan; de lijst vult aan met de leden van het boekjaar en namen die al gebruikt werden.
+   Komt de naam overeen met een lid, dan wordt ook lidId bewaard. */
+function krLidVanNaam(n){const q=norm(n);if(!q)return null;for(const l of S.leden.values()){if(norm((l.voornaam||"")+" "+(l.naam||""))===q||norm((l.naam||"")+" "+(l.voornaam||""))===q)return l}return null}
+function krKiesPersoon(id,st){if(Array.isArray(id))return krKiesPersoonMeer(id,st);const s=KR.byId.get(id);if(!s)return;const cur=krAll()[id];const res=st==="reserved";
+  const namen=[...new Set([...ctx().leden.map(l=>naamVol(l).trim()),...[...S.ronde.values()].map(d=>d.by).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,"nl"));
+  const start=cur&&cur.by?cur.by:ls.get("rondeWie","")||krNaam();
+  modal(s.n+(res?" reserveren":" afgewerkt"),`<div class="fld"><label for="krWieIn">${res?"Gereserveerd door":"Afgewerkt door"}</label><input id="krWieIn" list="krWieLijst" maxlength="60" autocomplete="off" placeholder="Begin te typen…" value="${esc(start)}"><datalist id="krWieLijst">${namen.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist><span class="help">Kies een lid uit de lijst of typ een andere naam.</span></div><p class="err" id="krWieErr" hidden></p>`,
+  `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="krWieOk">${res?"Reserveren":"Op gedaan zetten"}</button>`);
+  const inp=$("#krWieIn"),er=$("#krWieErr");setTimeout(()=>{inp.focus();inp.select()},40);
+  const ok=async()=>{const by=inp.value.trim();if(!by){er.textContent="Geef een naam op.";er.hidden=false;inp.focus();return}
+    const l=krLidVanNaam(by);ls.set("rondeWie",by);closeModal();KR.busy=true;
+    const zelfde=cur&&(cur.status==="reserved")===res;
+    const doc={jaar:JAAR,straat:id,status:res?"reserved":"done",by:l?naamVol(l).trim():by,lidId:l?l.id:null,at:zelfde?cur.at:new Date().toISOString(),...(zelfde?{gewijzigd:new Date().toISOString()}:{})};
+    S.ronde.set(JAAR+"_"+id,{...doc,id:JAAR+"_"+id});if(KR.map)krStyleAll();krCard();
+    try{await write("ronde",JAAR+"_"+id,doc)}catch(e){}finally{KR.busy=false}
+    if(KR.map)krStyleAll();krCard()};
+  $("#krWieOk").onclick=ok;inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();ok()}})}
+function krKiesPersoonMeer(ids,st){const res=st==="reserved",A=krAll();
+  const namen=[...new Set([...ctx().leden.map(l=>naamVol(l).trim()),...[...S.ronde.values()].map(d=>d.by).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,"nl"));
+  const tot=ids.reduce((t,id)=>t+KR.byId.get(id).a,0);
+  modal(ids.length+" straten "+(res?"reserveren":"op gedaan zetten"),`<p style="margin:0;color:var(--muted)">${ids.map(id=>esc(KR.byId.get(id).n)).join(", ")} · ${krNum(tot)} adressen</p><div class="fld"><label for="krWieIn">${res?"Gereserveerd door":"Afgewerkt door"}</label><input id="krWieIn" list="krWieLijst" maxlength="60" autocomplete="off" placeholder="Begin te typen…" value="${esc(ls.get("rondeWie","")||krNaam())}"><datalist id="krWieLijst">${namen.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist><span class="help">Kies een lid uit de lijst of typ een andere naam.</span></div><p class="err" id="krWieErr" hidden></p>`,
+  `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="krWieOk">${res?"Reserveren":"Op gedaan zetten"}</button>`);
+  const inp=$("#krWieIn"),er=$("#krWieErr");setTimeout(()=>{inp.focus();inp.select()},40);
+  const ok=async()=>{const by=inp.value.trim();if(!by){er.textContent="Geef een naam op.";er.hidden=false;inp.focus();return}
+    const l=krLidVanNaam(by);ls.set("rondeWie",by);closeModal();KR.busy=true;const now=new Date().toISOString();
+    const ops=ids.map(id=>{const cur=A[id],zelfde=cur&&(cur.status==="reserved")===res;const doc={jaar:JAAR,straat:id,status:res?"reserved":"done",by:l?naamVol(l).trim():by,lidId:l?l.id:null,at:zelfde?cur.at:now,...(zelfde?{gewijzigd:now}:{})};S.ronde.set(JAAR+"_"+id,{...doc,id:JAAR+"_"+id});return["ronde",JAAR+"_"+id,doc]});
+    if(KR.map)krStyleAll();krCard();
+    try{await writeMany(ops,()=>{});toast(ids.length+" straten "+(res?"gereserveerd":"op gedaan gezet")+".")}catch(e){handleWriteError(e)}finally{KR.busy=false}if(KR.map)krStyleAll();krCard()};
+  $("#krWieOk").onclick=ok;inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();ok()}})}
+function krVraagNaam(next){
+  modal("Wie ben je?",`<p style="margin:0;color:var(--muted)">Je naam staat bij de straten die je afwerkt. Zo weten de anderen wie waar liep. Hij wordt op dit toestel onthouden.</p>
+  <div class="fld"><label for="krNaamIn">Naam</label><input id="krNaamIn" maxlength="40" placeholder="Bv. Jan of Ploeg 2" autocomplete="name" value="${esc(krNaam())}"></div>`,
+  `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="krNaamOk">Opslaan</button>`);
+  const inp=$("#krNaamIn"),ok=()=>{const v=inp.value.trim();if(!v){inp.focus();return}ls.set("rondeNaam",v);closeModal();render();if(next)next()};
+  $("#krNaamOk").onclick=ok;inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();ok()}})}
+
+/* Zoeken: volledig scherm met alle straten, gefilterd tijdens het typen. "hofstade" toont alle straten van Hofstade. */
+const krFold=t=>t.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const KR_SORTED=[...KR_STREETS].sort((a,b)=>a.n.localeCompare(b.n,"nl")||a.w.localeCompare(b.w,"nl"));
+function krOpenSearch(){if(!KR.sp){const p=document.createElement("section");p.className="kr-sp";p.hidden=true;p.setAttribute("role","dialog");p.setAttribute("aria-modal","true");p.setAttribute("aria-label","Zoek een straat");
+    p.innerHTML=`<div class="kr-sp-bar"><button type="button" id="krSpBack" aria-label="Terug naar de kaart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><input id="krSpIn" type="search" placeholder="Zoek een straat…" autocomplete="off" enterkeyhint="go" aria-label="Zoek een straat"></div><ul id="krSpList"></ul><p class="empty" id="krSpEmpty" hidden>Geen straat gevonden met deze naam.</p>`;
+    document.body.appendChild(p);KR.sp=p;
+    p.querySelector("#krSpBack").onclick=krCloseSearch;
+    const inp=p.querySelector("#krSpIn");inp.addEventListener("input",krResults);
+    inp.addEventListener("keydown",e=>{if(e.key==="Enter"&&KR.hits.length){e.preventDefault();krPick(KR.hits[0])}if(e.key==="Escape")krCloseSearch()})}
+  const inp=KR.sp.querySelector("#krSpIn");inp.value="";KR.sp.hidden=false;inp.focus();krResults();KR.sp.querySelector("#krSpList").scrollTop=0}
+function krCloseSearch(){if(!KR.sp)return;KR.sp.querySelector("#krSpIn").blur();KR.sp.hidden=true}
+function krPick(s){krCloseSearch();krZoomTo(s.id);krSelect(s.id)}
+function krResults(){const q=krFold(KR.sp.querySelector("#krSpIn").value.trim()),M=krAll();
+  KR.hits=q?KR_SORTED.filter(s=>krFold(s.n).includes(q)||krFold(s.w).startsWith(q)):KR_SORTED;
+  KR.sp.querySelector("#krSpEmpty").hidden=KR.hits.length>0;
+  KR.sp.querySelector("#krSpList").replaceChildren(...KR.hits.map(s=>{const li=document.createElement("li"),b=document.createElement("button");b.type="button";
+    const nm=document.createElement("span");nm.textContent=s.n;const sm=document.createElement("small");sm.textContent=s.w+" · "+krAdr(s.a);nm.append(sm);b.append(nm);
+    const m=M[s.id];if(m){const d=document.createElement("span");d.className="kr-ok";if(m.status==="reserved"){d.classList.add("res");d.append("gereserveerd · "+(m.by||""))}else{d.innerHTML=KR_CHECK;d.append(m.by||"gedaan")}b.append(d)}
+    b.onclick=()=>krPick(s);li.append(b);return li}))}
+function krWijk(w){const ss=KR_STREETS.filter(s=>s.w===w);if(!ss.length||!KR.map)return;KR.map.fitBounds(L.latLngBounds(ss.flatMap(s=>s.g.flat())),{padding:[30,30]});$("#krSlot").scrollIntoView({block:"center",behavior:"smooth"})}
+function krWisAlles(){const M=krAll(),ids=Object.keys(M);if(!ids.length)return;
+  confirmBox(`Alle <b>${ids.length}</b> aangeduide straten van ${JAAR} terug op Te doen zetten, voor iedereen? Dit kan je niet ongedaan maken.`,"Alles wissen",async()=>{
+    try{await writeMany(ids.map(id=>["ronde",JAAR+"_"+id,null]),()=>{});KR.sel=null;KR.ss.clear();toast(ids.length+" straten gewist.")}catch(err){handleWriteError(err)}})}
+
+/* ---------- kalenderronde: achtergrondkaart ----------
+   Getekend uit kaart.json (naast deze pagina gepubliceerd), gemaakt uit het GRB van Digitaal Vlaanderen:
+   groen, water, wegdek, spoor en gebouwen. Elk vlak is een Google-polyline (lengtegraad/breedtegraad zoals de straten);
+   een vlak met gaten is een lijst van ringen. Kleuren: --krb-* bovenaan de stijl. Gebouwen vanaf zoom KR_BLD_ZOOM. */
+const KR_BLD_ZOOM=15;
+const KR_BG_ORDER=[["green","--krb-green"],["water","--krb-water"],["road","--krb-road"],["rail","--krb-rail"],["bld","--krb-bld"]];
+function krBg(){if(KR.bgLoading||KR.bg||!KR.map)return;KR.bgLoading=true;
+  fetch("kaart.json").then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>{
+    const map=KR.map;map.createPane("krBg").style.zIndex=300;map.createPane("krBld").style.zIndex=310;
+    const rBg=L.canvas({pane:"krBg",padding:.3}),rBld=L.canvas({pane:"krBld",padding:.3});
+    KR.bg={groups:{},src:d.src||""};
+    for(const [k,tok] of KR_BG_ORDER){const items=(d.L&&d.L[k])||[];if(!items.length)continue;
+      const bld=k==="bld",g=L.layerGroup();
+      for(const it of items){const rings=(Array.isArray(it)?it:[it]).map(krDecode);
+        g.addLayer(L.polygon(rings,{renderer:bld?rBld:rBg,pane:bld?"krBld":"krBg",interactive:false,stroke:false,fillOpacity:1,_krTok:tok}))}
+      KR.bg.groups[k]=g;if(!bld)g.addTo(map)}
+    map.attributionControl.addAttribution("Achtergrond © GRB, Digitaal Vlaanderen");
+    krGrens(map);
+    map.on("zoomend",krBgZoom);krBgZoom();krBgStyle();
+  }).catch(()=>{KR.bgLoading=false})}
+/* Alles buiten de deelgemeenten Aalst, Gijzegem, Hofstade en Nieuwerkerken wordt afgedekt (--kr-out), met een stippellijn op de grens.
+   De grenzen staan in <script id="krGrens">: per lijn een naam en één ring. */
+function krGrens(map){const el=document.getElementById("krGrens");if(!el)return;
+  const R=KR_GRENS;if(!R.length)return;
+  map.createPane("krMask").style.zIndex=330;const r=L.canvas({pane:"krMask",padding:.5});
+  const world=[[52.5,2],[52.5,6.5],[49.5,6.5],[49.5,2]];
+  KR.bg.mask=L.polygon([world,...R],{renderer:r,pane:"krMask",interactive:false,stroke:false,fillOpacity:1}).addTo(map);
+  KR.bg.grens=L.polyline(R.map(x=>x.concat([x[0]])),{renderer:r,pane:"krMask",interactive:false,weight:1.5,dashArray:"6 5",opacity:1}).addTo(map)}
+function krBgZoom(){const g=KR.bg&&KR.bg.groups.bld;if(!g)return;const on=KR.map.getZoom()>=KR_BLD_ZOOM;
+  if(on&&!KR.map.hasLayer(g))g.addTo(KR.map);else if(!on&&KR.map.hasLayer(g))g.remove()}
+function krBgStyle(){if(!KR.bg)return;const c={};
+  for(const g of Object.values(KR.bg.groups))g.eachLayer(l=>{const t=l.options._krTok;l.setStyle({fillColor:c[t]||(c[t]=krVar(t))})});
+  if(KR.bg.mask)KR.bg.mask.setStyle({fillColor:krVar("--kr-out")});if(KR.bg.grens)KR.bg.grens.setStyle({color:krVar("--kr-grens")})}
+
 /* ---------- sponsors ---------- */
 function sponsorOntvangen(s,C){
   const toks=norm(s.bedrijf).split(/[^a-z0-9]+/).filter(t=>t.length>=4&&!["bvba","sprl","groep","group"].includes(t));
@@ -690,76 +1009,105 @@ VIEWS.sponsors=()=>({title:"Sponsors",sub:"Sponsorbeheer",actions:'<button class
   </tbody></table></div></div>`}});
 
 /* ---------- banket ---------- */
-const BK_DEF={prijs:65,deadline:"1 december",datum:"Zaterdag 12 december",uur:"19u00",locatie:"Feestzaal De Snip, Beugemstraat 9, Moorsel",open:true};
-const bkCfg=()=>Object.assign({},BK_DEF,S.config.get("banket")||{});
-const bkLink=()=>location.origin+"/banket";
+const BK_PUBLIEK="/banket";
+const BK_FORM="https://docs.google.com/forms/d/1L-eZqLg67w6InWQzEeV6x0EhRRF8_Ro-pPCKOS8CTyo/edit#responses";
+const bkCfg=()=>Object.assign({prijs:65,deadline:"1 december"},S.config.get("banket")||{});
+const bkMenu=m=>norm(m).includes("veg")?"Vegetarisch":"Normaal";
 const bkDue=r=>r2((r.personen===2?2:1)*num(bkCfg().prijs));
 const bkToks=s=>norm(s).split(/[^a-z0-9]+/).filter(t=>t.length>=3);
-const bkDag=iso=>{const d=new Date(iso);return isNaN(d)?String(iso||""):d.toLocaleDateString("nl-BE",{day:"2-digit",month:"2-digit",year:"numeric"})};
 function bkLijst(){return [...S.banket.values()].filter(r=>Number(r.jaar)===JAAR)}
-function bkLedenActief(){return ctx().leden.filter(l=>l.naam&&!l.dubbelVan).map(l=>({id:l.id,naam:((l.naam||"")+" "+(l.voornaam||"")).trim()})).sort((a,b)=>a.naam.localeCompare(b.naam,"nl"))}
 function bkBetaling(r,C){
   const due=bkDue(r);
-  if(r.betaald==="OK")return{ok:true,bedrag:due,bron:r.betaaldBron||"Manueel op betaald gezet"};
+  if(r.betaald==="OK")return{ok:true,bedrag:due,bron:"Manueel op betaald gezet"};
   if(r.betaald==="NOK")return{ok:false,bedrag:0,bron:"Manueel op niet betaald gezet"};
+  if(r.betaling&&r.betaling.status==="SUCCEEDED")return{ok:true,bedrag:due,bron:"Online betaald met Bancontact"+(r.betaling.betaaldOp?" op "+fmtDate(String(r.betaling.betaaldOp).slice(0,10)):"")};
   const t=bkToks(r.naam);if(!t.length)return{ok:false,bedrag:0,bron:""};
   const L=C.boek.filter(b=>b.richting!=="uit"&&(b.categorie==="Banket"||b._m.includes("banket"))&&t.every(x=>(b._m+" "+b._p).includes(x)));
   const s=r2(L.reduce((a,b)=>a+b.bedrag,0));
-  return{ok:s>0&&s>=due-0.01,deel:s>0&&s<due-0.01,bedrag:s,bron:L.length?"Overschrijving van "+L.map(b=>fmtDate(b.datum)).join(", "):""};
+  return{ok:s>0&&s>=due-0.01,deel:s>0&&s<due-0.01,bedrag:s,boekingen:L,bron:L.length?"Betaling "+L.map(b=>fmtDate(b.datum)).join(", "):""};
 }
-function bkRows(){const C=ctx();return bkLijst().map(r=>({r,p:bkBetaling(r,C),due:bkDue(r)})).sort((a,b)=>(a.r.naam||"").localeCompare(b.r.naam||"","nl"))}
+function bkLid(r){const t=bkToks(r.naam);if(!t.length)return null;
+  return [...S.leden.values()].find(l=>{const n=bkToks(naamVol(l));return n.length&&n.every(x=>t.includes(x))})||null}
+function bkEpc(naam,bedrag){const c=cfg();const iban=(c.rekeningnummer||"BE43 9730 6810 0401").replace(/\s/g,"").toUpperCase();
+  const med=String(naam||"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Za-z0-9 .,'\-\/]/g," ").replace(/\s+/g," ").trim()+" Banket "+JAAR;
+  const txt=["BCD","002","1","SCT","",(c.vereniging||"Vriendenkring Brandweer Hoofdpost Aalst").slice(0,70),iban,"EUR"+Number(bedrag).toFixed(2),"","",med.slice(0,140),""].join("\n");
+  let svg="";if(window.qrcode){const q=qrcode(0,"M");q.addData(txt);q.make();svg=q.createSvgTag({cellSize:4,margin:2,scalable:true})}
+  return{iban,med,svg}}
+function bkRows(){const C=ctx();return bkLijst().map(r=>({r,p:bkBetaling(r,C),due:bkDue(r),lid:bkLid(r)}))
+  .sort((a,b)=>(a.r.naam||"").localeCompare(b.r.naam||"","nl"))}
 function bkTable(){
   const q=norm(UI.bkQ||""),F=UI.bkF||"alle";
-  let R=bkRows();if(q)R=R.filter(x=>norm([x.r.naam,x.r.opmerking].join(" ")).includes(q));
+  let R=bkRows();if(q)R=R.filter(x=>norm([x.r.naam,x.r.opmerking,x.r.menu1,x.r.menu2].join(" ")).includes(q));
   if(F==="open")R=R.filter(x=>!x.p.ok);else if(F==="ok")R=R.filter(x=>x.p.ok);else if(F==="veg")R=R.filter(x=>x.r.menu1==="Vegetarisch"||(x.r.personen===2&&x.r.menu2==="Vegetarisch"));
   const pers=R.reduce((s,x)=>s+(x.r.personen===2?2:1),0);
   return `<div class="tw"><table class="rcards"><thead><tr><th>Naam</th><th>Formule</th><th>Menu</th><th>Opmerking</th><th class="num">Bedrag</th><th>Betaling</th><th>Ingeschreven</th></tr></thead><tbody>
   ${R.map(x=>{const r=x.r;const menu=r.personen===2?esc(r.menu1)+" + "+esc(r.menu2||"?"):esc(r.menu1);
     const pill=x.p.ok?`<span class="pill ok" title="${esc(x.p.bron)}">Betaald</span>`:x.p.deel?`<span class="pill warn" title="${esc(x.p.bron)}">Deels: ${eur(x.p.bedrag)}</span>`:`<span class="pill nok">Open</span>`;
-    return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b></td><td style="white-space:nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td><td class="muted" style="white-space:nowrap">${esc(bkDag(r.ingediend))}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
+    return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b>${x.lid?"":'<div class="small muted">niet gevonden in ledenlijst</div>'}</td><td class="nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td><td class="muted nowrap">${esc(r.ingediend||"")}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
   </tbody>${R.length?`<tfoot><tr><td>${R.length} inschrijvingen</td><td>${pers} personen</td><td></td><td></td><td class="num">${eur(R.reduce((s,x)=>s+x.due,0))}</td><td></td><td></td></tr></tfoot>`:""}</table></div>`}
 VIEWS.banket=()=>({title:"Banket "+JAAR,sub:"Inschrijvingen en betalingen",
-  actions:`<a class="btn" href="/banket" target="_blank" rel="noopener">${ic("communicatie")}Inschrijfpagina</a><button class="btn" data-act="bkExport">${ic("download")}Exporteren</button><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button>`,
+  actions:`<a class="btn" href="${BK_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden">${ic("communicatie")}Inschrijfpagina</a><button class="btn" data-act="bkExport">${ic("download")}Exporteren</button><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button>`,
   body(){
-  const R=bkRows(),bc=bkCfg(),d=canWrite?"":" disabled";const pers=R.reduce((s,x)=>s+(x.r.personen===2?2:1),0);
-  let nm=0,veg=0;for(const {r} of R){(r.menu1==="Vegetarisch"?veg++:nm++);if(r.personen===2)(r.menu2==="Vegetarisch"?veg++:nm++)}
+  const R=bkRows(),bc=bkCfg();const pers=R.reduce((s,x)=>s+(x.r.personen===2?2:1),0);
+  let norm_=0,veg=0;for(const {r} of R){(r.menu1==="Vegetarisch"?veg++:norm_++);if(r.personen===2)(r.menu2==="Vegetarisch"?veg++:norm_++)}
   const due=R.reduce((s,x)=>s+x.due,0),paid=R.reduce((s,x)=>s+Math.min(x.p.bedrag||0,x.due),0),open=R.filter(x=>!x.p.ok).length;
-  const F=UI.bkF||"alle";const sm=s=>`<small style="font-size:14px;color:var(--muted);font-weight:500">${s}</small>`;
+  const ontv=ctx().boek.filter(b=>b.categorie==="Banket"&&b.richting!=="uit").reduce((s,b)=>s+b.bedrag,0);
+  const F=UI.bkF||"alle";
   return `<div class="tiles"><div class="tile hero"><span class="lbl">Personen</span><span class="val">${pers}</span><span class="hint">${R.length} inschrijvingen</span></div>
-   <div class="tile"><span class="lbl">Menu's</span><span class="val">${nm} ${sm("normaal")} · ${veg} ${sm("veggie")}</span></div>
+   <div class="tile"><span class="lbl">Menu's</span><span class="val">${norm_} <small style="font-size:14px;color:var(--muted);font-weight:500">normaal</small> · ${veg} <small style="font-size:14px;color:var(--muted);font-weight:500">veggie</small></span></div>
    <div class="tile"><span class="lbl">Te ontvangen</span><span class="val">${eur(due)}</span><span class="hint">${eur(bc.prijs)} per persoon</span></div>
    <div class="tile"><span class="lbl">Betaald</span><span class="val in">${eur(paid)}</span><span class="hint">${open?open+" nog open":"alles ontvangen"}</span></div></div>
-  <div class="panel"><div class="panel-h"><h2>Inschrijfpagina</h2>${bc.open?'<span class="pill ok">Open</span>':'<span class="pill nok">Afgesloten</span>'}</div><div class="panel-b" style="display:flex;flex-direction:column;gap:10px"><span style="font-size:14px;color:var(--muted)">Deel deze link met de leden. Iedereen kan zich inschrijven zonder aan te melden: het lid kiest zijn naam uit de actieve ledenlijst van ${JAAR}, ziet meteen het bedrag en kan betalen. De inschrijving komt rechtstreeks in deze lijst. Betalingen worden herkend via Bancontact of via de transacties met categorie Banket (of "banket" in de mededeling) en de naam.</span>
-   <div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(bkLink())}" aria-label="Link naar de inschrijfpagina voor het banket" onclick="this.select()"><button class="btn" data-act="kopieerLink" data-v="${esc(bkLink())}">${ic("copy")}Kopiëren</button><a class="btn" href="/banket" target="_blank" rel="noopener">Openen</a></div></div></div>
+  <div class="note info">Leden schrijven zich in via de <a href="${BK_PUBLIEK}" target="_blank" rel="noopener">openbare inschrijfpagina</a> en betalen meteen met Bancontact of met een overschrijving. Inschrijvingen komen hier vanzelf binnen. Online betalingen staan meteen op betaald; overschrijvingen worden herkend in de transacties van ${JAAR} met categorie Banket (of "banket" in de mededeling) en de naam van het lid.</div>
   <div class="bar"><div class="search">${ic("search")}<input id="bkQ" data-live data-input="bkQ" placeholder="Zoek op naam of opmerking" value="${esc(UI.bkQ||"")}"></div>
    <div class="seg">${[["alle","Alle"],["open","Open"],["ok","Betaald"],["veg","Vegetarisch"]].map(([v,l])=>`<button type="button" data-act="bkF" data-v="${v}" class="${F===v?"on":""}">${l}</button>`).join("")}</div></div>
   <div class="panel" id="bkList">${bkTable()}</div>
-  <form class="panel" id="fBk"><div class="panel-h"><h2>Instellingen banket</h2></div><div class="panel-b"><div class="form">
-   ${fld("bkDat","Datum (zonder jaar)",inp("bkDat",bc.datum,'name="datum"'+d))}${fld("bkUur","Uur",inp("bkUur",bc.uur,'name="uur"'+d))}
-   ${fld("bkLoc","Locatie",inp("bkLoc",bc.locatie,'name="locatie"'+d),"full")}
-   ${fld("bkP","Prijs per persoon (€)",inp("bkP",bc.prijs,'name="prijs" inputmode="decimal"'+d))}${fld("bkD","Betalen voor",inp("bkD",bc.deadline,'name="deadline"'+d))}
-   <div class="fld full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="open" value="1"${bc.open?" checked":""}${d} style="width:16px;height:16px;accent-color:var(--accent)">Inschrijvingen open</label><span class="help">Zet dit uit om de inschrijfpagina af te sluiten.</span></div>
-   <div class="full bar" data-w><button class="btn primary" type="submit">Bewaren</button></div></div></div></form>`}});
+  <div class="panel"><div class="panel-h"><h2>Instellingen banket</h2></div><div class="panel-b"><form id="fBk" class="form">
+   ${fld("bkP","Prijs per persoon (€)",inp("bkP",bc.prijs,'name="prijs" inputmode="decimal"'+(canWrite?"":" disabled")))}${fld("bkD","Uiterste betaaldatum",inp("bkD",bc.deadline,'name="deadline"'+(canWrite?"":" disabled")))}
+   <div class="full bar" style="justify-content:space-between"><span class="small muted">Ontvangen met categorie Banket in ${JAAR}: <b>${eur(ontv)}</b></span><button class="btn primary" data-w type="submit">Bewaren</button></div></form></div></div>`}});
 function bkForm(r,id){
-  const p=id?bkBetaling(r,ctx()):null;const due=bkDue(r);const L=bkLedenActief();
-  const lidSel=id?inp("biN",r.naam,'name="naam" disabled'):`<select id="biN" name="lidId"><option value="">Kies een lid…</option>${L.filter(l=>!S.banket.has(JAAR+"_"+l.id)).map(l=>`<option value="${esc(l.id)}">${esc(l.naam)}</option>`).join("")}</select>`;
+  const p=id?bkBetaling(r,ctx()):null;const due=bkDue(r);const E=id?bkEpc(r.naam,due):null;
   modal(id?r.naam:"Nieuwe inschrijving",`<form id="fBkI" class="form">
-   ${fld("biN","Lid *",lidSel,"full")}
+   ${fld("biN","Naam en voornaam *",inp("biN",r.naam,'name="naam"'),"full")}
    ${fld("biP","Formule",`<select id="biP" name="personen">${selOpts([["1","Alleen (1 persoon)"],["2","Met partner (2 personen)"]],r.personen===2?"2":"1")}</select>`)}
-   ${fld("biB","Betaling",`<select id="biB" name="betaald">${selOpts([["","Automatisch"],["OK","Betaald (manueel)"],["NOK","Niet betaald (manueel)"]],r.betaald||"")}</select>`)}
+   ${fld("biB","Betaling",`<select id="biB" name="betaald">${selOpts([["","Automatisch uit transacties"],["OK","Betaald (manueel)"],["NOK","Niet betaald (manueel)"]],r.betaald||"")}</select>`)}
    ${fld("biM1","Menu lid",`<select id="biM1" name="menu1">${selOpts(["Normaal","Vegetarisch"],r.menu1||"Normaal")}</select>`)}
    ${fld("biM2","Menu partner",`<select id="biM2" name="menu2">${selOpts([["","—"],"Normaal","Vegetarisch"],r.menu2||"")}</select>`)}
    ${fld("biO","Allergieën / opmerkingen",`<textarea id="biO" name="opmerking" style="min-height:80px">${esc(r.opmerking||"")}</textarea>`,"full")}<div class="err full" id="biErr"></div></form>
-   ${id?`<div class="note info"><b>${eur(due)}</b> · mededeling <b>${esc(r.naam)} Banket ${r.jaar}</b><br><span class="muted small">${p.ok?"Betaald: "+esc(p.bron):p.deel?"Deels betaald ("+eur(p.bedrag)+"): "+esc(p.bron):"Nog geen betaling gevonden."}${r.ingediend?" · ingeschreven op "+esc(bkDag(r.ingediend))+(r.bron==="formulier"?" via de inschrijfpagina":""):""}</span></div>`:""}`,
+   ${id?`<div class="note info" style="display:grid;grid-template-columns:${E.svg?"130px ":""}minmax(0,1fr);gap:14px;align-items:center">${E.svg?`<div style="background:#fff;border-radius:6px;padding:4px">${E.svg}</div>`:""}<div><b>${eur(due)}</b> op ${esc(E.iban.replace(/(.{4})/g,"$1 ").trim())}<br>Mededeling: <b>${esc(E.med)}</b><br><span class="muted small">${p.ok?"Betaald — "+esc(p.bron):p.deel?"Deels betaald ("+eur(p.bedrag)+")":"Nog geen betaling gevonden."}</span></div></div>`:""}`,
    `${id?'<button class="btn ghost danger" data-w id="biDel">Verwijderen</button><span class="grow"></span>':""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="biOk">Bewaren</button>`);
   if(!canWrite)$$("#fBkI input,#fBkI select,#fBkI textarea").forEach(i=>i.disabled=true);
-  $("#biOk").onclick=async()=>{const f=formData($("#fBkI"));const pers=f.personen==="2"?2:1;let key=id,base;
-    if(id)base=stripId(r);else{const l=L.find(x=>x.id===f.lidId);if(!l){$("#biErr").textContent="Kies een lid.";return}key=JAAR+"_"+l.id;base={jaar:JAAR,lidId:l.id,naam:l.naam,bron:"manueel",ingediend:new Date().toISOString()}}
-    const betaald=f.betaald||null;const d={...base,personen:pers,menu1:f.menu1,menu2:pers===2?(f.menu2||"Normaal"):"",opmerking:f.opmerking.trim(),bedrag:r2(pers*num(bkCfg().prijs)),betaald,betaaldBron:betaald==="OK"?(base.betaald==="OK"&&base.betaaldBron?base.betaaldBron:"Manueel op betaald gezet"):null};
-    closeModal();await write("banket",key,d);toast("Inschrijving bewaard.")};
+  $("#biOk").onclick=async()=>{const f=formData($("#fBkI"));if(!f.naam.trim()){$("#biErr").textContent="Vul een naam in.";return}
+    const pers=f.personen==="2"?2:1;
+    const d={...(id?stripId(r):{jaar:JAAR,bron:"manueel",ingediend:fmtDate(todayISO())}),naam:f.naam.trim(),personen:pers,menu1:f.menu1,menu2:pers===2?(f.menu2||"Normaal"):"",opmerking:f.opmerking.trim(),betaald:f.betaald||null};
+    closeModal();await write("banket",id||newId("banket"),d);toast("Inschrijving bewaard.")};
   if(id)$("#biDel").onclick=()=>confirmBox("Inschrijving van <b>"+esc(r.naam)+"</b> verwijderen?","Verwijderen",async()=>{await write("banket",id,null,{del:true});toast("Inschrijving verwijderd.")});
 }
-function bkSheet(){return bkRows().map(x=>({Naam:x.r.naam,Formule:x.r.personen===2?"Met partner":"Alleen",Personen:x.r.personen===2?2:1,"Menu lid":x.r.menu1,"Menu partner":x.r.personen===2?x.r.menu2:"",Opmerking:x.r.opmerking||"",Bedrag:x.due,Betaald:x.p.ok?"Ja":x.p.deel?"Deels ("+x.p.bedrag+")":"Nee",Ingeschreven:bkDag(x.r.ingediend)}))}
+function bkImportDialog(){
+  modal("Antwoorden importeren",`<p style="margin:0">Open het <a href="${BK_FORM}" target="_blank" rel="noopener">Google-formulier</a>, ga naar <b>Antwoorden</b> › <b>⋮</b> › <b>Antwoorden downloaden (.csv)</b> en kies hier het gedownloade bestand (.zip of .csv). Inschrijvingen die al in de lijst staan, worden overgeslagen.</p>
+   <label class="btn primary" for="bkFile" style="align-self:flex-start;cursor:pointer">${ic("upload")}Bestand kiezen</label><input type="file" id="bkFile" accept=".zip,.csv,.xlsx" hidden><div id="bkArea"></div>`,"");
+}
+async function bkRead(file){
+  const area=$("#bkArea");area.innerHTML='<div class="note info">Bestand lezen…</div>';
+  let rows;try{let wb;
+    if(/\.zip$/i.test(file.name)){const z=await JSZip.loadAsync(await file.arrayBuffer());const f=Object.values(z.files).find(x=>/\.csv$/i.test(x.name));if(!f)throw new Error("Geen .csv gevonden in het zip-bestand.");wb=XLSX.read(await f.async("string"),{type:"string",raw:true})}
+    else if(/\.csv$/i.test(file.name))wb=XLSX.read(await file.text(),{type:"string",raw:true});
+    else wb=XLSX.read(new Uint8Array(await file.arrayBuffer()),{type:"array"});
+    rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:""})}
+  catch(e){area.innerHTML='<div class="err">'+esc(e.message||"Het bestand kon niet gelezen worden.")+'</div>';return}
+  const H=(rows[0]||[]).map(norm);const col=f=>H.findIndex(f);
+  const cT=col(h=>h.includes("tijdstempel")||h.includes("timestamp")),cN=col(h=>h.includes("naam")),cA=col(h=>h.includes("aanwezig")),
+    cM1=col(h=>h.includes("menu")&&h.includes("jezelf")),cM2=col(h=>h.includes("menu")&&h.includes("partner")),cO=col(h=>h.includes("allergie")||h.includes("opmerk"));
+  if(cN<0||cA<0){area.innerHTML='<div class="err">Dit lijkt geen export van het bankformulier: de kolommen "Naam lid" en "Aanwezigheid" ontbreken.</div>';return}
+  const items=[];for(const r of rows.slice(1)){const naam=String(r[cN]||"").trim();if(!naam)continue;
+    const ts=cT>=0?String(r[cT]||"").trim():"";const pers=norm(r[cA]).includes("met partner")?2:1;
+    items.push({id:"gf-"+slug(ts+"-"+naam),d:{jaar:JAAR,bron:"formulier",ingediend:ts,naam,personen:pers,menu1:bkMenu(cM1>=0?r[cM1]:""),menu2:pers===2?bkMenu(cM2>=0?r[cM2]:""):"",opmerking:cO>=0?String(r[cO]||"").trim():""}})}
+  const nieuw=items.filter(x=>!S.banket.has(x.id));
+  area.innerHTML=`<div class="note info"><b>${items.length}</b> antwoorden gelezen: <b>${nieuw.length}</b> nieuw, ${items.length-nieuw.length} stonden er al. Ze komen bij het banket van <b>${JAAR}</b>.</div>
+   <div class="bar" style="justify-content:flex-end"><span id="bkProg" class="muted"></span><button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="bkGo"${nieuw.length?"":" disabled"}>Importeren</button></div>`;
+  $("#bkGo").onclick=async()=>{try{await writeMany(nieuw.map(x=>["banket",x.id,x.d]),n=>{const p=$("#bkProg");if(p)p.textContent="Bezig: "+n+" / "+nieuw.length})}catch(e){handleWriteError(e);return}
+    closeModal();toast(nieuw.length+" inschrijvingen geïmporteerd.")};
+}
+function bkSheet(){return bkRows().map(x=>({Naam:x.r.naam,Formule:x.r.personen===2?"Met partner":"Alleen",Personen:x.r.personen===2?2:1,"Menu lid":x.r.menu1,"Menu partner":x.r.personen===2?x.r.menu2:"",Opmerking:x.r.opmerking||"",Bedrag:x.due,Betaald:x.p.ok?"Ja":x.p.deel?"Deels ("+x.p.bedrag+")":"Nee",Ingeschreven:x.r.ingediend||""}))}
 function bkExport(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bkSheet()),"Banket "+JAAR);save("VBHA_Banket_"+JAAR+".xlsx",XLSX.write(wb,{type:"array",bookType:"xlsx"}))}
 
 /* ---------- historiek ---------- */
@@ -951,6 +1299,20 @@ function eml(r,M){
   return ["To: "+r.email,"Subject: "+subj,"X-Unsent: 1","MIME-Version: 1.0","Content-Type: text/html; charset=UTF-8","Content-Transfer-Encoding: base64","",b64(full).replace(/.{76}/g,"$&\r\n")].join("\r\n");
 }
 
+VIEWS.logboek=()=>({title:"Logboek",actions:LOG_CLIENT?"":'<button class="btn" data-act="logVernieuw">Vernieuwen</button>',body(){logStart();
+  if(!LOGS.loaded)return instTabs("logboek")+'<div class="panel"><div class="empty">Logboek laden…</div></div>';
+  if(LOGS.err)return instTabs("logboek")+`<div class="note">Het logboek kon niet geladen worden${typeof LOGS.err==="string"?": "+esc(LOGS.err):""}.${LOG_CLIENT?"":" Voer eerst het bestand <b>supabase/logboek.sql</b> uit in de SQL Editor van Supabase."}</div>`;
+  const q=norm(UI.logQ||""),T=UI.logT||"",W=UI.logW||"";const wies=[...new Set(LOGS.rows.map(e=>e.wie).filter(Boolean))].sort();
+  let L=LOGS.rows;if(T)L=L.filter(e=>e.tabel===T);if(W)L=L.filter(e=>e.wie===W);
+  if(q)L=L.filter(e=>norm(logOnderwerp(e).replace(/<[^>]+>/g," ")+" "+(e.wie||"")+" "+JSON.stringify(e.nieuw||{})+JSON.stringify(e.oud||{})).includes(q));
+  const N=UI.logN||100;const dt=s=>{const d=new Date(s);return isNaN(d)?"":d.toLocaleDateString("nl-BE",{day:"numeric",month:"short",year:"numeric"})+" "+d.toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})};
+  const AP={nieuw:["ok","Toegevoegd"],gewijzigd:["info","Gewijzigd"],verwijderd:["nok","Verwijderd"],bulk:["neutral","Import"]};
+  return instTabs("logboek")+`<div class="bar"><div class="search">${ic("search")}<input id="logQ" data-live data-input="logQ" placeholder="Zoek op naam, wie of inhoud" value="${esc(UI.logQ||"")}"></div>
+  <select class="sel" data-change="logT" aria-label="Soort">${selOpts([["","Alles"],["leden","Ledenlijst"],["jaarleden","Punten en kalenders"],["boekingen","Transacties en betalingen"]],T)}</select>
+  <select class="sel" data-change="logW" aria-label="Wie">${selOpts([["","Iedereen"],...wies.map(w=>[w,w])],W)}</select></div>
+  <div class="panel"><div class="tw"><table class="rcards logt" data-main="2"><thead><tr><th>Wanneer</th><th>Wie</th><th>Over</th><th>Wat</th><th>Wijziging</th></tr></thead><tbody>
+  ${L.slice(0,N).map(e=>{const [c,l]=AP[e.actie]||["neutral",e.actie];return `<tr><td class="nowrap muted">${dt(e.ts)}</td><td class="trunc">${esc(e.wie||"")}</td><td><span class="lg-t">${LOG_TYPE[e.tabel]||esc(e.tabel||"")}</span> ${logOnderwerp(e)}</td><td><span class="pill ${c}">${l}</span></td><td>${logRegels(e)}</td></tr>`}).join("")||'<tr><td colspan="5" class="empty">'+(LOGS.rows.length?"Niets gevonden met deze filters.":"Nog geen wijzigingen gelogd. Vanaf nu wordt elke aanpassing aan leden, punten en transacties hier bijgehouden.")+'</td></tr>'}
+  </tbody></table></div>${L.length>N||!LOGS.done?`<div style="padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center"><span class="muted" style="font-size:13px">${Math.min(N,L.length)} van ${L.length}${LOGS.done?"":"+"} getoond</span><span class="grow"></span><button class="btn sm" data-act="logMeer">Meer tonen</button></div>`:""}</div>`}});
 /* ---------- instellingen ---------- */
 VIEWS.instellingen=()=>({title:"Instellingen",sub:"Boekjaren, puntensysteem, lijsten en back-ups",body(){
   const C=ctx(),c=cfg(),j=C.c,ys=jaren(),last=ys[ys.length-1];
@@ -969,6 +1331,7 @@ VIEWS.instellingen=()=>({title:"Instellingen",sub:"Boekjaren, puntensysteem, lij
     <div class="fld"><label for="jZ">Zilver vanaf (punten)</label><input id="jZ" name="d_zilver" inputmode="numeric" value="${j.drempels.zilver}"${d}></div>
     <div class="fld"><label for="jG">Goud vanaf (punten)</label><input id="jG" name="d_goud" inputmode="numeric" value="${j.drempels.goud}"${d}></div>
     <div class="fld"><label for="jStock">Kalenderdozen dit jaar</label><input id="jStock" name="kalenderStock" inputmode="numeric" value="${j.kalenderStock}"${d}></div>
+    <div class="fld"><label for="jPerDoos">Kalenders per doos</label><input id="jPerDoos" name="perDoos" inputmode="numeric" value="${j.perDoos}"${d}></div>
     <div class="fld full"><label for="jKaart">Link naar de kalenderkaart (uMap)</label><input id="jKaart" name="kaartUrl" type="url" value="${esc(j.kaartUrl||"")}" placeholder="https://umap.openstreetmap.de/…"${d}><span class="help">Verschijnt als knop “Kaart openen” op de pagina Kalenders.</span></div>
     <div class="full bar" data-w><button class="btn primary" type="submit">Boekjaar bewaren</button></div></div></div></form>
   <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
@@ -978,8 +1341,8 @@ VIEWS.instellingen=()=>({title:"Instellingen",sub:"Boekjaren, puntensysteem, lij
   <div class="panel"><div class="panel-h"><h2>Exporteren en importeren</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:10px">
     <button class="btn" data-act="exportXlsx" style="align-self:flex-start">${ic("download")}Boekjaar ${JAAR} als Excel</button>
     <button class="btn" data-act="exportJson" style="align-self:flex-start">${ic("download")}Volledige back-up (.json)</button>
-    <button class="btn" data-w data-act="importExcel" style="align-self:flex-start">${ic("upload")}Oud VBHA Excel-bestand importeren</button>
     <label class="btn" data-w for="restoreFile" style="align-self:flex-start;cursor:pointer">${ic("upload")}Back-up terugzetten (.json)</label><input type="file" id="restoreFile" accept=".json,application/json" hidden>
+    <button class="btn" data-w data-act="importExcel" style="align-self:flex-start">${ic("upload")}Oud VBHA Excel-bestand importeren</button>
     <span style="font-size:13px;color:var(--muted)">Maak af en toe een back-up en bewaar die op een veilige plaats.</span></div></div>
   </div></div>
   <form class="panel" id="fCfg"><div class="panel-h"><h2>Algemeen</h2></div><div class="panel-b"><div class="form">
@@ -1199,18 +1562,18 @@ function kalToevoegen(){
     await write("jaarleden",id,{...stripId(cur),jaar:JAAR,lidId:lid||null,naam:lid?"":naam,kal:true,kalOpgehaald:(cur.kalOpgehaald||0)+op,kalUitgevoerd:cur.kalUitgevoerd||0});toast("Toegevoegd aan de kalenderlijst.")};
 }
 const stripId=o=>{const {id,...r}=o||{};return r};
-function setJL(lidId,patch){const id=JAAR+"_"+lidId;const cur=S.jaarleden.get(id)||{jaar:JAAR,lidId};const d={...stripId(cur),jaar:JAAR,lidId,...patch};S.jaarleden.set(id,{...d,id});dirty=true;return write("jaarleden",id,d)}
-function setJLid(id,patch){const cur=S.jaarleden.get(id);if(!cur)return;const d={...stripId(cur),...patch};S.jaarleden.set(id,{...d,id});dirty=true;return write("jaarleden",id,d)}
+function setJL(lidId,patch){const id=JAAR+"_"+lidId;const prev=S.jaarleden.get(id)||null;const cur=prev||{jaar:JAAR,lidId};const d={...stripId(cur),jaar:JAAR,lidId,...patch};S.jaarleden.set(id,{...d,id});dirty=true;return write("jaarleden",id,d,{oud:prev})}
+function setJLid(id,patch){const cur=S.jaarleden.get(id);if(!cur)return;const d={...stripId(cur),...patch};S.jaarleden.set(id,{...d,id});dirty=true;return write("jaarleden",id,d,{oud:cur})}
 
 /* ---------- jaar & export ---------- */
 async function saveJaar(f){
   const g=k=>num(f[k]);const d={jaar:JAAR,beginKas:r2(g("beginKas")),beginRekening:r2(g("beginRekening")),lidgeld:{gewoon:g("lg_gewoon"),erewacht:g("lg_erewacht")},
-    gewichten:{kaarten:g("w_kaarten"),kalenders:g("w_kalenders"),shifts:g("w_shifts"),vergaderingen:g("w_vergaderingen")},drempels:{zilver:g("d_zilver"),goud:g("d_goud")},kalenderStock:g("kalenderStock"),kaartUrl:String(f.kaartUrl||"").trim()};
+    gewichten:{kaarten:g("w_kaarten"),kalenders:g("w_kalenders"),shifts:g("w_shifts"),vergaderingen:g("w_vergaderingen")},drempels:{zilver:g("d_zilver"),goud:g("d_goud")},kalenderStock:g("kalenderStock"),perDoos:Math.max(1,g("perDoos")||100),kaartUrl:String(f.kaartUrl||"").trim()};
   await write("jaren",String(JAAR),{...stripId(S.jaren.get(String(JAAR))),...d});toast("Boekjaar "+JAAR+" bewaard.");
 }
 async function nieuwJaar(){const ys=jaren(),last=ys[ys.length-1];const prevJ=JAAR;JAAR=last;dirty=true;const C=ctx();const c=C.c;JAAR=prevJ;dirty=true;
   confirmBox(`Boekjaar <b>${last+1}</b> openen met beginsaldo kas ${eur(C.kas)} en rekening ${eur(C.rek)}?`,"Openen",async()=>{
-    await write("jaren",String(last+1),{jaar:last+1,beginKas:C.kas,beginRekening:C.rek,gewichten:c.gewichten,drempels:c.drempels,korting:c.korting,lidgeld:c.lidgeld,kalenderStock:c.kalenderStock});
+    await write("jaren",String(last+1),{jaar:last+1,beginKas:C.kas,beginRekening:C.rek,gewichten:c.gewichten,drempels:c.drempels,korting:c.korting,lidgeld:c.lidgeld,kalenderStock:c.kalenderStock,perDoos:c.perDoos});
     await write("config","algemeen",{...stripId(S.config.get("algemeen")),actiefJaar:last+1});
     JAAR=last+1;ls.set("jaar",JAAR);dirty=true;toast("Boekjaar "+JAAR+" is geopend.");render(true)})}
 async function save(filename,data){
@@ -1228,7 +1591,6 @@ function exportXlsx(){
     ...C.boek.map(b=>({Nr:b.nr,Datum:fmtDate(b.datum),Categorie:b.categorie,Mededeling:b.mededeling,"Betaald aan/Ontvangen van":b.partij,"Rekening/Kas":b.rekening,Bedrag:b.bedrag,"IN/UIT":b.richting,"Cumul kas":b._kas,"Cumul rekening":b._rek,SALDO:r2(b._kas+b._rek)}))]),"Boekhouding");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(kalStats(C).rows.map(j=>({Persoon:kalNaam(j),Opgehaald:j.kalOpgehaald||0,Uitgevoerd:j.kalUitgevoerd||0,Punten:(j.kalUitgevoerd||0)*C.c.gewichten.kalenders}))),"Kalenders");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([...S.sponsors.values()].map(s=>({Bedrijf:s.bedrijf,Naam:s.naam,Voornaam:s.voornaam,Adres:s.adres,Email:s.email,Telefoon:s.telefoon,"KBO nr.":s.kbo,Bedrag:num(s.bedrag)}))),"Sponsorbeheer");
-  if(bkLijst().length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bkSheet()),"Banket");
   save("VBHA_"+JAAR+".xlsx",XLSX.write(wb,{type:"array",bookType:"xlsx"}));
 }
 function exportJson(){const o={};for(const c of COLS)o[c]=[...S[c].values()];save("VBHA_backup_"+todayISO()+".json",JSON.stringify(o,null,1))}
@@ -1298,12 +1660,16 @@ const DEF_TEMPLATES=[
 ];
 let IMPORTING=false;
 async function writeMany(ops,onProg){
-  let i=0,done=0;
+  let i=0,done=0;let logs=[];
+  if(LOG_CLIENT){const lo=ops.filter(o=>LOG_COLS.has(o[0]));if(lo.length&&lo.length<=50)logs=lo.map(o=>logEntry(o[0],o[1],(S[o[0]]&&S[o[0]].get(o[1]))||null,o[2]));
+    else if(lo.length){const per={};lo.forEach(o=>per[o[0]]=(per[o[0]]||0)+1);const main=Object.entries(per).sort((a,b)=>b[1]-a[1])[0][0];
+      logs=[{ts:new Date().toISOString(),wie:ME_NAME||"Onbekend",tabel:main,doc_id:"",actie:"bulk",info:Object.entries(per).map(([c,n])=>n+" "+({leden:"leden",jaarleden:"punten/kalenderregels",boekingen:"transacties"}[c]||c)).join(", ")+" in één keer aangepast (import of bulkactie)",oud:null,nieuw:null}]}}
   const worker=async()=>{while(i<ops.length){const op=ops[i++];
     for(let a=0;;a++){try{const ref=db.collection(op[0]).doc(op[1]);await(op[2]===null?ref.delete():ref.set(op[2]));break}
       catch(e){if(a<5&&e&&(e.code==="resource_exhausted"||e.code==="unavailable")){await new Promise(r=>setTimeout(r,600*(a+1)+Math.random()*500));continue}throw e}}
     onProg(++done)}};
   await Promise.all([worker(),worker(),worker(),worker()]);
+  logWrite(logs);
 }
 function importExcelDialog(){
   modal("Importeren uit Excel",`<p style="margin:0">Kies een VBHA-bestand (bv. <span class="kbd">VBHA_2025.xlsm</span>). Leden, boekhouding, punten, kalenders en sponsors van dat jaar worden ingelezen. Heb je meerdere jaren, importeer ze dan één voor één, het oudste eerst.</p>
@@ -1353,6 +1719,13 @@ document.addEventListener("click",async e=>{
   if(a==="closeModalBg"){if(e.target===t)closeModal();return}
   switch(a){
     case"closeModal":closeModal();break;
+    case"logout":await SB.auth.signOut();location.href="/";break;
+    case"pwVergeten":{const em=($("#lEmail")||{}).value||"";if(!em.trim()){$("#lErr").textContent="Vul eerst je e-mailadres in.";break}
+      const {error}=await SB.auth.resetPasswordForEmail(em.trim(),{redirectTo:location.origin+"/"});$("#lErr").textContent="";$("#lMsg").textContent=error?"Versturen lukte niet: "+error.message:"Als dit adres toegang heeft, krijg je zo een mail om een nieuw wachtwoord te kiezen.";break}
+    case"bankKoppel":bankKoppel();break;
+    case"bankSync":bankSync(t);break;
+    case"bankOntkoppel":bankOntkoppel(id);break;
+    case"kopieerLink":{try{await navigator.clipboard.writeText(t.dataset.v);toast("Link gekopieerd.")}catch(e){toast("Kopiëren lukte niet. Selecteer de link en kopieer hem zelf.",true)}break}
     case"acctMenu":{const m=$("#acctMenu");const open=m.hidden;m.hidden=!open;t.setAttribute("aria-expanded",String(open));break}
     case"acctClose":closeAcct();break;
     case"step":{if(!canWrite)break;const f=t.dataset.f,d=+t.dataset.d;if(t.dataset.k==="kal"){const cur=S.jaarleden.get(id);if(!cur)break;const v=Math.max(0,(cur[f]||0)+d);await setJLid(id,{[f]:v})}else{const cur=S.jaarleden.get(JAAR+"_"+id)||{};const v=Math.max(0,(cur[f]||0)+d);await setJL(id,{[f]:v})}renderBody();break}
@@ -1361,12 +1734,6 @@ document.addEventListener("click",async e=>{
     case"sheetOpen":openSheet(id);break;
     case"sheetClose":closeSheet();break;
     case"sheetBg":if(e.target===t)closeSheet();break;
-    case"logout":await SB.auth.signOut();location.href="/";break;
-    case"pwVergeten":{const em=($("#lEmail")||{}).value||"";if(!em.trim()){$("#lErr").textContent="Vul eerst je e-mailadres in.";break}
-      const {error}=await SB.auth.resetPasswordForEmail(em.trim(),{redirectTo:location.origin+"/"});$("#lErr").textContent="";$("#lMsg").textContent=error?"Versturen lukte niet: "+error.message:"Als dit adres toegang heeft, krijg je zo een mail om een nieuw wachtwoord te kiezen.";break}
-    case"bankKoppel":bankKoppel();break;
-    case"bankSync":bankSync(t);break;
-    case"bankOntkoppel":bankOntkoppel(id);break;
     case"navdd":{const m=$("#navmenu");if(HOVER&&!m.hidden&&m.dataset.for===t.dataset.id)break;openNavMenu(t);break}
     case"toonNietBetaald":UI.ledenF="nok";UI.ledenCat="";UI.ledenQ="";saveUI();break;
     case"toonAlleLeden":UI.ledenF="alle";UI.ledenCat="";UI.ledenQ="";saveUI();break;
@@ -1400,8 +1767,10 @@ document.addEventListener("click",async e=>{
       if(v==="naam")n=cur.k==="naam"?{k:"voornaam",d:1}:{k:"naam",d:1};
       else n=cur.k===v?{k:v,d:-cur.d}:{k:v,d:(v==="status"||v==="lidgeld")?-1:1};
       UI.ledenSort=n;saveUI();$("#ledenList").innerHTML=ledenTable();break}
-    case"kopieerLink":{try{await navigator.clipboard.writeText(t.dataset.v);toast("Link gekopieerd.")}catch(e){toast("Kopiëren lukte niet. Selecteer de link en kopieer hem zelf.",true)}break}
+    case"inschrGezien":{const L=nieuweInschr();for(const r of L){const col=S.banket.has(r.id)?"banket":"kinderfeest";const {id:_i,...rest}=r;await write(col,r.id,{...rest,nieuw:false})}toast("Melding afgevinkt.");break}
     case"nieuwGezien":{const L=nieuweLeden();for(const l of L){const {id:_i,nieuw,...rest}=l;await write("leden",l.id,{...rest,nieuw:false})}toast(L.length===1?"Melding afgevinkt.":L.length+" meldingen afgevinkt.");break}
+    case"logMeer":logMeer();break;
+    case"logVernieuw":LOGS.rows=[];LOGS.loaded=false;LOGS.done=false;UI.logN=100;renderBody();break;
     case"puntNaam":UI.puntSort=UI.puntSort==="naam"?"voornaam":"naam";saveUI();renderBody();break;
     case"puntSort":{let v=t.dataset.v;if(v==="naam"&&UI.puntSort==="naam")v="voornaam";UI.puntSort=v;saveUI();renderBody();break}
     case"nieuwLid":nieuwLid();break;
@@ -1414,9 +1783,15 @@ document.addEventListener("click",async e=>{
     case"toonSponsor":sponsorForm(S.sponsors.get(id),id);break;
     case"bkNieuw":bkForm({personen:1,menu1:"Normaal"},null);break;
     case"bkToon":{const r=S.banket.get(id);if(r)bkForm(r,id);break}
+    case"bkImport":bkImportDialog();break;
     case"bkExport":bkExport();break;
     case"bkF":UI.bkF=t.dataset.v;saveUI();$$(".seg button[data-act=bkF]").forEach(b=>b.classList.toggle("on",b===t));$("#bkList").innerHTML=bkTable();break;
     case"kalToevoegen":kalToevoegen();break;
+    case"krNaam":krVraagNaam();break;
+    case"krToon":krGoto(id);break;
+    case"krWis":krZet("todo",id);break;
+    case"krWijk":krWijk(id);break;
+    case"krWisAlles":krWisAlles();break;
     case"kalOphalen":{const j=S.jaarleden.get(id);if(j){await setJLid(id,{kalOpgehaald:(j.kalOpgehaald||0)+1});renderBody()}break}
     case"kalKlaar":{const j=S.jaarleden.get(id);if(j&&(j.kalOpgehaald||0)>0){await setJLid(id,{kalOpgehaald:j.kalOpgehaald-1,kalUitgevoerd:(j.kalUitgevoerd||0)+1});renderBody()}break}
     case"mailChip":{const ta=$("#mBody");const v=t.dataset.v;const s=ta.selectionStart??ta.value.length;ta.value=ta.value.slice(0,s)+v+ta.value.slice(ta.selectionEnd??s);ta.focus();ta.selectionStart=ta.selectionEnd=s+v.length;MAIL.body=ta.value;MAIL.touched=true;mailPreview();break}
@@ -1442,7 +1817,7 @@ document.addEventListener("click",async e=>{
 document.addEventListener("input",e=>{
   const t=e.target;
   if(t.dataset.input){UI[t.dataset.input]=t.value;const m={ledenQ:["#ledenList",ledenTable],boekQ:["#boekList",()=>{UI.boekPage=0;return journal()}],puntQ:["#puntList",puntTable],kalQ:["#kalList",kalTable],histQ:["#histList",()=>{const L=alleJaren();return histDetail(L,L.find(j=>j.jaar===UI.histJaar)||L[L.length-1])}]}[t.dataset.input];
-    if(m){const el=$(m[0]);if(el)el.innerHTML=m[1]()}else if(t.dataset.input==="bkQ"){const el=$("#bkList");if(el)el.innerHTML=bkTable()}else if(t.dataset.input==="spQ"){clearTimeout(input.t);input.t=setTimeout(()=>{renderBody();const i=$("#spQ");if(i){i.focus();i.selectionStart=i.selectionEnd=i.value.length}},250)}}
+    if(m){const el=$(m[0]);if(el)el.innerHTML=m[1]()}else if(t.dataset.input==="bkQ"){const el=$("#bkList");if(el)el.innerHTML=bkTable()}else if(t.dataset.input==="spQ"||t.dataset.input==="logQ"){const fid="#"+t.dataset.input;if(t.dataset.input==="logQ")UI.logN=100;clearTimeout(input.t);input.t=setTimeout(()=>{renderBody();const i=$(fid);if(i){i.focus();i.selectionStart=i.selectionEnd=i.value.length}},250)}}
   if(t.dataset.mail){MAIL[t.dataset.mail]=t.value;MAIL.touched=true;mailPreview()}
   if(t.dataset.rf!==undefined)regelPreview();
 });
@@ -1453,6 +1828,7 @@ document.addEventListener("change",async e=>{
   if(t.id==="bankFile"&&t.files[0]){readBankFile(t.files[0]);return}
   if(t.id==="xlsFile"&&t.files[0]){readVBHA(t.files[0]);return}
   if(t.id==="restoreFile"&&t.files[0]){restoreBackup(t.files[0]);t.value="";return}
+  if(t.id==="bkFile"&&t.files[0]){bkRead(t.files[0]);return}
   if(t.dataset.map!==undefined){IMP.map[t.dataset.map]=+t.value;buildImp();return}
   if(t.dataset.impok!==undefined){IMP.items[+t.dataset.impok].ok=t.checked;return}
   if(t.dataset.sel!==undefined){t.checked?SEL.add(t.dataset.sel):SEL.delete(t.dataset.sel);refreshJournal();return}
@@ -1471,6 +1847,7 @@ document.addEventListener("change",async e=>{
     return}
   const c=t.dataset.change;if(!c)return;
   if(c==="ledenSortSel"){const v=t.value;UI.ledenSort={k:v,d:(v==="status"||v==="lidgeld")?-1:1};saveUI();$("#ledenList").innerHTML=ledenTable();return}
+  if(c==="logT"||c==="logW"){UI[c]=t.value;UI.logN=100;renderBody();return}
   if(c==="actiefJaar"){await write("config","algemeen",{...stripId(S.config.get("algemeen")),actiefJaar:+t.value});toast("Actief boekjaar is nu "+t.value+".");return}
   if(c==="jaar"){JAAR=+t.value;ls.set("jaar",JAAR);dirty=true;render(true);return}
   if(c==="oudLeden"){UI.oudLeden=t.checked;saveUI();$("#ledenList").innerHTML=ledenTable();return}
@@ -1485,54 +1862,25 @@ document.addEventListener("submit",async e=>{
   if(f.id==="fLogin"){doLogin(f);return}
   if(f.id==="fPw"){doSetPassword(f);return}
   if(f.id==="fJaar"){await saveJaar(formData(f));return}
-  if(f.id==="fBk"){const d=formData(f);await write("config","banket",{...stripId(S.config.get("banket")),datum:String(d.datum||"").trim(),uur:String(d.uur||"").trim(),locatie:String(d.locatie||"").trim(),prijs:num(d.prijs)||65,deadline:String(d.deadline||"").trim(),open:d.open==="1"});toast("Instellingen banket bewaard.");return}
+  if(f.id==="fBk"){const d=formData(f);await write("config","banket",{...stripId(S.config.get("banket")),prijs:num(d.prijs)||65,deadline:String(d.deadline||"").trim()});toast("Instellingen banket bewaard.");return}
   if(f.id==="fCfg"){const d=formData(f);const lines=s=>String(s).split("\n").map(x=>x.trim()).filter(Boolean);
     await write("config","algemeen",{...stripId(S.config.get("algemeen")),vereniging:d.vereniging.trim(),rekeningnummer:d.rekeningnummer.trim(),boekCategorieen:lines(d.boekCategorieen),ledenCategorieen:lines(d.ledenCategorieen)});toast("Instellingen bewaard.");}
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#modal").innerHTML)closeModal()});
 document.addEventListener("focusout",e=>{const t=e.target;if(t.dataset&&(t.dataset.kal||t.dataset.jl)){setTimeout(()=>{const ae=document.activeElement;if(!(ae&&ae.dataset&&(ae.dataset.kal||ae.dataset.jl))&&pending){pending=false;if(PTR)DEFER=true;else renderBody()}},0)}});
 
-/* ============ Kinderfeest (Administratie › Kinderfeest) ============ */
-{const st=document.createElement("style");st.textContent=`/* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
-.kf-kids{display:flex;flex-direction:column;gap:10px}
-.kf-kid{display:grid;grid-template-columns:64px minmax(0,1fr) 170px 36px;gap:8px;align-items:center}
-.kf-kid .kf-n{font-size:13px;font-weight:600;color:var(--muted)}
-.kf-kid input{padding:9px 11px;border:1px solid var(--line-strong);border-radius:var(--r);background:var(--surface);width:100%;min-width:0}
-.kf-kid input:focus{border-color:var(--info);outline:none;box-shadow:0 0 0 3px var(--info-soft)}
-.kf-del{width:36px;height:36px;border:0;background:none;color:var(--muted);border-radius:8px;cursor:pointer;display:grid;place-items:center;padding:0}
-.kf-del:hover{background:var(--bad-soft);color:var(--bad)}
-.kf-del svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
-.kf-del[disabled]{visibility:hidden}
-.kf-add{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;border:1.5px dashed var(--line-strong);background:none;border-radius:var(--r);padding:8px 14px;font-weight:600;color:var(--accent);cursor:pointer}
-.kf-add:hover{border-color:var(--accent);background:var(--accent-soft)}
-.kf-add svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
-.kf-kl{display:flex;flex-wrap:wrap;gap:4px}
-.kf-k{display:inline-flex;gap:4px;align-items:baseline;padding:2px 8px;border-radius:6px;background:var(--sunken);font-size:13px;white-space:nowrap}
-.kf-k span{color:var(--muted);font-size:12px}
-.kf-k.oud{opacity:.6}
-.kf-ages{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}
-.kf-age{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px 8px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
-.kf-age b{font:600 20px/1 var(--f-display)}
-.kf-age span{font-size:12px;color:var(--muted)}
-.kf-age.zero b{color:var(--line-strong)}
-.kf-age i{display:block;width:100%;height:4px;border-radius:2px;background:var(--sunken);overflow:hidden}
-.kf-age i em{display:block;height:100%;background:var(--accent)}
-.kf-info{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:14px;color:var(--muted)}
-.kf-info b{color:var(--ink);font-weight:600}
-@media (max-width:640px){
-  .kf-kid{grid-template-columns:minmax(0,1fr) 36px;grid-template-areas:"n d" "naam d" "geb d";row-gap:6px;padding-bottom:10px;border-bottom:1px solid var(--line)}
-  .kf-kid .kf-n{grid-area:n}.kf-kid .kf-naam{grid-area:naam}.kf-kid .kf-geb{grid-area:geb}.kf-kid .kf-del{grid-area:d;align-self:start}
-}`;document.head.appendChild(st);}
+
+"use strict";
 /* ============ Kinderfeest ============
-   Inschrijvingen staan in de tabel "kinderfeest": {jaar, lid, lidId, email, opmerking, kinderen:[{naam,geb}], bron, nieuw, aangemeld, gfKey}
-   Openbare inschrijfpagina: /kinderfeest (public/kinderfeest.html) -> /api/kinderfeest
-   Instellingen per boekjaar in config "kf_<jaar>": {datum, tijd, locatie, leeftijd, open} */
+   Inschrijvingen staan in de collectie "kinderfeest": {jaar, lid, lidId, email, opmerking, kinderen:[{naam,geb}], bron, aangemeld, gfKey}
+   Instellingen per boekjaar in config/"kf_<jaar>": {datum, tijd, locatie, leeftijd, formUrl} */
 ICON.kinderfeest='<path d="M4 11h16v10H4zM2.5 7.5h19V11h-19zM12 7.5V21"/><path d="M12 7.5C10.5 4 7 3.5 7 5.8 7 7.5 12 7.5 12 7.5zM12 7.5c1.5-3.5 5-4 5-1.7 0 1.7-5 1.7-5 1.7z"/>';
 {const adm=NAV.find(n=>n.id==="administratie");if(adm&&!adm.items.some(i=>i[0]==="kinderfeest"))adm.items.push(["kinderfeest","Kinderfeest"]);}
 if(!ROUTES.some(r=>r[0]==="kinderfeest"))ROUTES.push(["kinderfeest","Kinderfeest"]);
-const KF_PUBLIEK=location.origin+"/kinderfeest";
+S.kinderfeest=S.kinderfeest||new Map();
+const KF_PUBLIEK="/kinderfeest";
 const KF_FORM="https://docs.google.com/forms/d/1nSPBTS3L0th1wRGPxII_8p30y5pv4ZaSZ8lQMhA2-TM/edit#responses";
-const kfCfg=()=>Object.assign({datum:JAAR+"-12-19",tijd:"14u30",locatie:"VTI - Sinte Annalaan 99b, Aalst",leeftijd:12,open:true},S.config.get("kf_"+JAAR)||{});
+const kfCfg=()=>Object.assign({datum:JAAR+"-12-19",tijd:"14u30",locatie:"VTI - Sinte Annalaan 99b, Aalst",leeftijd:12,formUrl:KF_PUBLIEK},S.config.get("kf_"+JAAR)||{});
 let KFQ="";
 function kfLeeftijd(geb,op){if(!geb||!/^\d{4}-\d{2}-\d{2}$/.test(geb))return null;const [y,m,d]=geb.split("-").map(Number);const [Y,M,D]=op.split("-").map(Number);let a=Y-y;if(M<m||(M===m&&D<d))a--;return a}
 function kfLidVan(naam){const n=norm(naam);if(!n)return null;for(const l of S.leden.values()){const a=norm((l.voornaam||"")+" "+(l.naam||"")),b=norm((l.naam||"")+" "+(l.voornaam||""));if(n===a||n===b)return l}return null}
@@ -1543,14 +1891,11 @@ function kfStats(){const c=kfCfg(),L=kfLijst();const per=new Map();let kids=0,ca
 function kfDubbel(L){const m={};for(const r of L){const e=norm(r.email);if(e)m[e]=(m[e]||0)+1}return m}
 
 VIEWS.kinderfeest=()=>({title:"Kinderfeest",sub:"Inschrijvingen kinderfeest",
-  actions:`<a class="btn" href="/kinderfeest" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden">${ic("communicatie")}Inschrijfpagina</a><button class="btn" data-w data-act="kfImport">${ic("upload")}Google Forms importeren</button><button class="btn" data-act="kfExport">${ic("download")}Excel</button><button class="btn iconbtn" data-w data-act="kfInst" title="Instellingen kinderfeest" aria-label="Instellingen kinderfeest">${ic("instellingen")}</button><button class="btn primary" data-w data-act="kfNieuw">${ic("plus")}Nieuwe inschrijving</button>`,
+  actions:`<a class="btn" href="${KF_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden">${ic("communicatie")}Inschrijfpagina</a><button class="btn" data-act="kfExport">${ic("download")}Excel</button><button class="btn iconbtn" data-w data-act="kfInst" title="Instellingen kinderfeest" aria-label="Instellingen kinderfeest">${ic("instellingen")}</button><button class="btn primary" data-w data-act="kfNieuw">${ic("plus")}Nieuwe inschrijving</button>`,
   body(){const st=kfStats(),c=st.c;const q=norm(KFQ);const dub=kfDubbel(st.L);
     const list=q?st.L.filter(r=>norm([r.lid,r.email,r.opmerking,...(r.kinderen||[]).map(k=>k.naam)].join(" ")).includes(q)):st.L;
     const max=Math.max(1,...st.per.values());const ages=[];for(let a=0;a<=c.leeftijd;a++)ages.push(a);
-    const nw=st.L.filter(r=>r.nieuw);
-    return `${nw.length?`<div class="nmeld" role="status"><div class="nm-h"><span class="nm-ic">${ic("kinderfeest")}</span><div class="grow"><b>${nw.length===1?"1 nieuwe inschrijving":nw.length+" nieuwe inschrijvingen"} via de inschrijfpagina</b><span>Kijk de gegevens na. Klik op een naam om ze te openen.</span></div><button class="btn sm" data-w data-act="kfGezien">Alles gezien</button></div><div class="nm-l">${nw.slice(0,8).map(r=>`<button type="button" class="nm-i" data-act="kfToon" data-id="${esc(r.id)}"><b>${esc(r.lid)}</b><span>${(r.kinderen||[]).length} ${(r.kinderen||[]).length===1?"kind":"kinderen"}</span></button>`).join("")}${nw.length>8?`<span class="nm-more">+${nw.length-8} meer</span>`:""}</div></div>`:""}
-    ${c.open===false?'<div class="note">De inschrijvingen zijn afgesloten. De inschrijfpagina neemt geen nieuwe inschrijvingen meer aan (aanpassen via het tandwiel).</div>':""}
-    <div class="kf-info"><span>Feest: <b>${c.datum?esc(new Date(c.datum+"T12:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})):"datum niet ingesteld"}</b>${c.tijd?" · "+esc(c.tijd):""}</span>${c.locatie?`<span>${esc(c.locatie)}</span>`:""}<span>Cadeau t.e.m. <b>${c.leeftijd} jaar</b></span></div>
+    return `<div class="kf-info"><span>Feest: <b>${c.datum?esc(new Date(c.datum+"T12:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})):"datum niet ingesteld"}</b>${c.tijd?" · "+esc(c.tijd):""}</span>${c.locatie?`<span>${esc(c.locatie)}</span>`:""}<span>Cadeau t.e.m. <b>${c.leeftijd} jaar</b></span></div>
     <div class="tiles"><div class="tile hero"><span class="lbl">Ingeschreven kinderen</span><span class="val">${st.kids}</span><span class="hint">${st.L.length} ${st.L.length===1?"inschrijving":"inschrijvingen"}</span></div>
       <div class="tile"><span class="lbl">Cadeautjes nodig</span><span class="val">${st.cadeau}</span><span class="hint">t.e.m. ${c.leeftijd} jaar op de feestdag${st.onbekend?" (incl. "+st.onbekend+" zonder geboortedatum)":""}</span></div>
       <div class="tile"><span class="lbl">Ouder dan ${c.leeftijd}</span><span class="val">${st.ouder}</span><span class="hint">geen cadeautje</span></div>
@@ -1560,9 +1905,7 @@ VIEWS.kinderfeest=()=>({title:"Kinderfeest",sub:"Inschrijvingen kinderfeest",
       ${st.onbekend?`<div class="kf-age"><b>${st.onbekend}</b><i><em style="width:0"></em></i><span>onbekend</span></div>`:""}
     </div></div></div>
     <div class="bar"><div class="search">${ic("search")}<input id="kfQ" data-kfq data-live placeholder="Zoek op lid, kind of e-mail" value="${esc(KFQ)}"></div></div>
-    <div class="panel"><div class="tw" id="kfList">${kfTable(list,dub,c)}</div></div>
-    <div class="panel"><div class="panel-h"><h2>Inschrijfpagina voor het kinderfeest</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:10px"><span style="font-size:14px;color:var(--muted)">Deel deze link met de leden. Iedereen kan ze invullen, zonder aan te melden. Inschrijvingen komen meteen in de lijst hierboven.</span>
-    <div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(KF_PUBLIEK)}" aria-label="Link naar de inschrijfpagina" onclick="this.select()"><button class="btn" data-act="kopieerLink" data-v="${esc(KF_PUBLIEK)}">${ic("copy")}Kopiëren</button><a class="btn" href="/kinderfeest" target="_blank" rel="noopener">Openen</a></div></div></div>`}});
+    <div class="panel"><div class="tw" id="kfList">${kfTable(list,dub,c)}</div></div>`}});
 
 function kfTable(list,dub,c){
   return `<table class="rcards"><thead><tr><th>Lid</th><th>E-mail</th><th>Kinderen</th><th class="num">Aantal</th><th>Ingeschreven</th><th>Bron</th></tr></thead><tbody>
@@ -1571,7 +1914,7 @@ function kfTable(list,dub,c){
     <td class="trunc">${esc(r.email)}</td>
     <td><div class="kf-kl">${kids.map(k=>{const a=kfLeeftijd(k.geb,c.datum);return `<span class="kf-k${a!=null&&a>c.leeftijd?" oud":""}">${esc(k.naam)}<span>${a==null?"?":a+" j"}</span></span>`}).join("")}</div></td>
     <td class="num">${kids.length}</td><td class="nowrap">${r.aangemeld?esc(fmtDate(String(r.aangemeld).slice(0,10))):""}</td>
-    <td>${r.bron==="formulier"?'<span class="pill info">'+(r.gfKey?"Google Forms":"Inschrijfpagina")+'</span>':'<span class="pill neutral">Manueel</span>'}${r.nieuw?' <span class="pill warn">nieuw</span>':""}</td></tr>`}).join("")||`<tr><td colspan="6" class="empty">${KFQ?"Geen inschrijvingen gevonden.":"Nog geen inschrijvingen voor "+JAAR+". Deel de inschrijfpagina hieronder, voeg er zelf een toe of importeer antwoorden van het oude Google-formulier."}</td></tr>`}
+    <td>${r.bron==="formulier"?'<span class="pill info">Formulier</span>':'<span class="pill neutral">Manueel</span>'}</td></tr>`}).join("")||`<tr><td colspan="6" class="empty">${KFQ?"Geen inschrijvingen gevonden.":"Nog geen inschrijvingen voor "+JAAR+". Voeg er een toe of importeer de antwoorden van het Google-formulier."}</td></tr>`}
   </tbody></table>`}
 
 /* ---------- formulier met kinderen (+ kind toevoegen) ---------- */
@@ -1594,7 +1937,7 @@ function kfForm(r,id){
     if(!kids.length){$("#kfErr").textContent="Voeg minstens één kind toe.";return}
     if(kids.some(k=>!k.naam)){$("#kfErr").textContent="Elk kind heeft een naam nodig.";return}
     const l=kfLidVan(f.lid);
-    const d={...stripId(r),jaar:r.jaar||JAAR,lid:f.lid.trim(),lidId:l?l.id:null,email:f.email.trim()||(l&&l.email)||"",opmerking:f.opmerking.trim(),kinderen:kids,bron:r.bron||"manueel",aangemeld:r.aangemeld||new Date().toISOString(),nieuw:false};
+    const d={...stripId(r),jaar:r.jaar||JAAR,lid:f.lid.trim(),lidId:l?l.id:null,email:f.email.trim()||(l&&l.email)||"",opmerking:f.opmerking.trim(),kinderen:kids,bron:r.bron||"manueel",aangemeld:r.aangemeld||new Date().toISOString()};
     closeModal();await write("kinderfeest",id||newId("kinderfeest"),d);toast("Inschrijving bewaard.")};
   if(id)$("#kfDel").onclick=()=>confirmBox("Inschrijving van <b>"+esc(r.lid)+"</b> verwijderen?","Verwijderen",async()=>{await write("kinderfeest",id,null,{del:true});toast("Inschrijving verwijderd.")});
 }
@@ -1604,9 +1947,9 @@ function kfInst(){const c=kfCfg();
     ${fld("kiL","Locatie",inp("kiL",c.locatie,'name="locatie"'),"full")}
     ${fld("kiA","Cadeautje tot en met leeftijd",inp("kiA",c.leeftijd,'name="leeftijd" type="number" min="0" max="18"'))}
     <div class="fld"><label>&nbsp;</label><span class="help">De leeftijd wordt berekend op de dag van het feest.</span></div>
-    <label class="full" style="display:flex;gap:10px;align-items:center;font-size:14px"><input type="checkbox" id="kiO" ${c.open!==false?"checked":""} style="width:18px;height:18px;accent-color:var(--accent)">Inschrijvingen via de inschrijfpagina zijn open</label></form>`,
+</form>`,
     `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="kiOk">Bewaren</button>`);
-  $("#kiOk").onclick=async()=>{const f={datum:$("#kiD").value,tijd:$("#kiT").value,locatie:$("#kiL").value,leeftijd:$("#kiA").value,open:$("#kiO").checked};closeModal();await write("config","kf_"+JAAR,{datum:f.datum,tijd:f.tijd.trim(),locatie:f.locatie.trim(),leeftijd:Math.max(0,Math.round(num(f.leeftijd)))||12,open:f.open});toast("Instellingen kinderfeest bewaard.")}}
+  $("#kiOk").onclick=async()=>{const f={datum:$("#kiD").value,tijd:$("#kiT").value,locatie:$("#kiL").value,leeftijd:$("#kiA").value};closeModal();await write("config","kf_"+JAAR,{datum:f.datum,tijd:f.tijd.trim(),locatie:f.locatie.trim(),leeftijd:Math.max(0,Math.round(num(f.leeftijd)))||12});toast("Instellingen kinderfeest bewaard.")}}
 
 /* ---------- import uit Google Forms (antwoordenblad als .xlsx of .csv) ---------- */
 let KFIMP=null;
@@ -1669,7 +2012,6 @@ document.addEventListener("click",e=>{
     case"kfInst":kfInst();break;
     case"kfImport":kfImport();break;
     case"kfExport":kfExport();break;
-    case"kfGezien":(async()=>{const L=kfLijst().filter(r=>r.nieuw);try{await writeMany(L.map(r=>["kinderfeest",r.id,{...stripId(r),nieuw:false}]),()=>{});toast(L.length===1?"Melding afgevinkt.":L.length+" meldingen afgevinkt.")}catch(e){handleWriteError(e)}})();break;
   }
 });
 document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.kfq!==undefined){KFQ=e.target.value;const st=kfStats();const q=norm(KFQ);
