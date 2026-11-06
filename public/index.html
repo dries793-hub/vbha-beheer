@@ -881,6 +881,23 @@ code.gb-ww{font-size:17px;letter-spacing:.04em;padding:3px 8px;border-radius:6px
 }
 /* mobiel: inhoud niet onder de onderste menubalk laten verdwijnen */
 @media (max-width:760px){#main{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))!important}}
+/* documenten op gsm */
+.doc-mup{display:none}
+@media (max-width:760px){
+  .doc-drop{border:0;padding:0;background:none}.doc-drop .doc-drop-ic,.doc-drop .doc-drop-t{display:none}.doc-drop-map{width:100%}.doc-drop-map select{flex:1}
+  .doc-mup{display:flex;justify-content:center;width:100%;padding:13px 16px;font-size:15.5px}
+  .doc-up{flex-direction:column}
+  .doc-seg{display:flex;flex-wrap:nowrap;overflow-x:auto;width:100%;scrollbar-width:none;-webkit-overflow-scrolling:touch}.doc-seg::-webkit-scrollbar{display:none}
+  .doc-seg button{flex:none}
+  .doc-mr{cursor:default;padding:10px 8px 10px 14px;gap:6px}
+  .doc-mr .doc-n{flex:1;min-width:0;gap:12px}
+  .doc-mr .doc-ic{width:38px;height:38px;font-size:10px}.doc-mr .ml-n{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3;font-size:15px}.doc-mr .ml-s{white-space:normal;flex-wrap:wrap}
+  .doc-mr .doc-rol{font-size:12px;margin-top:2px}
+  .doc-ma{flex:none;display:flex;gap:2px}
+  .iconbtn2{width:40px;height:40px;display:grid;place-items:center;border:0;background:none;border-radius:10px;color:var(--muted);cursor:pointer}
+  .iconbtn2:active{background:var(--sunken)}
+  .iconbtn2 svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
