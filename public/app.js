@@ -2462,14 +2462,13 @@ function mlStijl(inner){
   return R.innerHTML;
 }
 function mlKader(inner){const c=cfg();const ver=esc(c.vereniging||"Vriendenkring Brandweer Hoofdpost Aalst");const afm=esc((MAILSMTP&&MAILSMTP.van&&MAILSMTP.van.email)||"dries@vbha.be");
-  const pre=esc(new DOMParser().parseFromString(inner.replace(/^\s*<p[^>]*>[^<]{0,60}<\/p>/i,"").replace(/<\/(p|h2|h3|li|td)>/gi,"$& "),"text/html").body.textContent.replace(/\s+/g," ").trim().slice(0,140));
-  return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${ver}</title></head><body style="margin:0;padding:0;background:#f7f7f7"><div data-pre style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f7f7f7;opacity:0">${pre}</div>
+  return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${ver}</title></head><body style="margin:0;padding:0;background:#f7f7f7">
 <table role="presentation" border="0" width="100%" cellspacing="0" cellpadding="0" bgcolor="#f7f7f7" style="margin:0;padding:0"><tr><td align="center" valign="top" style="padding:25px 10px">
 <table role="presentation" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="width:100%;max-width:680px;border-collapse:collapse">
 <tr><td align="center" bgcolor="#f7f7f7" style="padding:20px"><img src="${ML_LOGO}" alt="${ver}" width="220" height="84" style="display:block;width:220px;height:84px;border:0;outline:none;text-decoration:none"></td></tr>
-<tr><td bgcolor="#b30000" style="font-size:1px;line-height:1px;height:8px">&nbsp;</td></tr>
+<tr><td style="border-top:8px solid #b30000;padding:0"></td></tr>
 <tr><td bgcolor="#ffffff" style="${ML_FONT}font-size:15px;color:#222222;line-height:1.5;padding:28px 40px 22px">${inner}</td></tr>
-<tr><td bgcolor="#b30000" style="font-size:1px;line-height:1px;height:8px">&nbsp;</td></tr>
+<tr><td style="border-top:8px solid #b30000;padding:0"></td></tr>
 <tr><td align="center" bgcolor="#f7f7f7" style="${ML_FONT}font-size:12px;color:#888888;line-height:1.5;padding:14px 20px">${ver} &middot; <a href="https://www.vbha.be" style="color:#888888;text-decoration:underline">www.vbha.be</a><br>Liever geen mails meer van ons? <a href="mailto:${afm}?subject=Afmelden%20mails%20VBHA" style="color:#888888;text-decoration:underline">Meld je af</a>.</td></tr>
 </table></td></tr></table></body></html>`}
 function mailHtml(r,M){

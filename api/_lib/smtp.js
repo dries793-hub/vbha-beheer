@@ -33,7 +33,8 @@ export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan })
     "X-Auto-Response-Suppress: OOF, AutoReply",
     "Subject: " + hdr(onderwerp),
     "Date: " + new Date().toUTCString().replace("GMT", "+0000"),
-    "Message-ID: <" + crypto.randomUUID() + "@" + domein + ">",
+    // Gewone vorm (tijd.teller.willekeurig) i.p.v. een UUID: SpamAssassin vindt een UUID-achtige ID verdacht.
+    "Message-ID: <" + new Date().toISOString().replace(/\D/g, "").slice(0, 14) + "." + crypto.randomBytes(5).toString("hex") + ".vbha@" + domein + ">",
     "MIME-Version: 1.0",
     `Content-Type: multipart/alternative; boundary="${grens}"`,
     "",
