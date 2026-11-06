@@ -76,7 +76,7 @@ export default async function handler(req, res) {
     let online = null;
     if (token) {
       try {
-        const bt = await startBetaling(sb, req, { id, data: lid }, { bedrag, jaar: I.jaar });
+        const bt = await startBetaling(sb, req, "leden", { id, data: lid }, { bedrag, jaar: I.jaar });
         online = { id, token, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp };
       } catch (e) { console.error("Bancontact", e); }
     }

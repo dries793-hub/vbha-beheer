@@ -308,20 +308,21 @@ th.num .thsort{justify-content:flex-end}
 .pill.nok{background:var(--bad-soft);color:var(--bad)}
 .pill.warn{background:var(--warn-soft);color:var(--warn)}
 .pill.info{background:var(--info-soft);color:var(--info)}
-.nmeld{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--info);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:12px}
-.nm-h{display:flex;align-items:center;gap:12px}
-.nm-h .grow{display:flex;flex-direction:column;min-width:0}
-.nm-h b{font-size:15px}
-.nm-h .grow span{font-size:13px;color:var(--muted)}
-.nm-ic{width:36px;height:36px;border-radius:50%;background:var(--info-soft);color:var(--info);display:grid;place-items:center;flex:none}
-.nm-ic svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.nm-l{display:flex;flex-wrap:wrap;gap:8px}
-.nm-i{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--sunken);color:var(--ink);font:400 14px var(--f-body);cursor:pointer}
-.nm-i:hover{border-color:var(--line-strong);background:var(--surface)}
-.nm-i>span:not(.pill){color:var(--muted);font-size:12.5px}
-.nm-more{align-self:center;font-size:13px;color:var(--muted)}
-.nm-i>span{white-space:nowrap}
-@media (max-width:760px){.nm-h{flex-wrap:wrap}.nm-h .btn{width:100%;justify-content:center}}
+.nmeld{position:relative;display:flex;align-items:flex-start;gap:12px;background:#FFF4D6;border:1px solid #F2C14E;border-radius:var(--r);padding:12px 44px 12px 14px;color:#5C3D00}
+.nm-ic{width:32px;height:32px;border-radius:50%;background:#F5B800;color:#3A2600;display:grid;place-items:center;flex:none}
+.nm-ic svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.nm-body{display:flex;flex-direction:column;gap:8px;min-width:0;padding-top:5px}
+.nm-body>b{font-size:14.5px;color:#3A2600}
+.nm-l{display:flex;flex-wrap:wrap;gap:6px}
+.nm-i{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #F2C14E;border-radius:8px;background:#FFFBEF;color:#2A1C00;font:400 13.5px var(--f-body);cursor:pointer}
+.nm-i:hover{background:#fff;border-color:#D9A21F}
+.nm-i>span:not(.pill){color:#7A5A12;font-size:12.5px;white-space:nowrap}
+.nm-more{align-self:center;font-size:13px;color:#7A5A12}
+.nm-x{position:absolute;top:8px;right:8px;width:30px;height:30px;border:0;border-radius:6px;background:none;color:#7A5A12;display:grid;place-items:center;cursor:pointer}
+.nm-x:hover{background:rgba(245,184,0,.25);color:#3A2600}
+.nm-x svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .nmeld{background:#3A2C0A;border-color:#7A5A12;color:#F5DFA6}:root:not([data-theme="light"]) .nmeld .nm-body>b{color:#FFE9B0}:root:not([data-theme="light"]) .nm-i{background:#2A2008;border-color:#7A5A12;color:#FFE9B0}:root:not([data-theme="light"]) .nm-i>span:not(.pill),:root:not([data-theme="light"]) .nm-x{color:#D9B866}}
+.tiles.two{grid-template-columns:repeat(2,minmax(0,1fr))}
 .pill.neutral{background:var(--sunken);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
 .medal{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:12.5px;letter-spacing:.03em}
 .medal i{width:9px;height:9px;border-radius:50%;display:inline-block}
@@ -483,6 +484,135 @@ details summary{font-weight:500}
   .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
   .auth{min-height:auto;padding-block:8px}
 }
+@media (max-width:640px){
+  .tiles.three{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .tiles.three .tile:last-child,.tiles.three .tile.hero{grid-column:auto}
+  .tiles.three:has(.hero) .tile{padding:10px 10px 11px;min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:4px}
+  .tiles.three:has(.hero) .lbl{font-size:11.5px;line-height:1.25;white-space:normal}
+  .tiles.three:has(.hero) .val{font-size:15.5px;white-space:nowrap;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .tiles.three:not(:has(.hero)) .tile{padding:10px 10px 11px;min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:4px}
+  .tiles.three:not(:has(.hero)) .lbl{font-size:11.5px;line-height:1.25;white-space:normal}
+  .tiles.three:not(:has(.hero)) .val{font-size:21px}
+  .tiles.three:not(:has(.hero)) .val small{font-size:12px!important}
+}
+.dchart-wrap{position:relative;touch-action:pan-y}
+.dchart-wrap .hov-hit{cursor:crosshair}
+.dtip{position:absolute;pointer-events:none;background:var(--ink);color:var(--surface);border-radius:8px;padding:6px 10px;display:flex;flex-direction:column;gap:1px;white-space:nowrap;box-shadow:var(--shadow-lg);z-index:2}
+.dtip span{font-size:11.5px;opacity:.75}
+.dtip b{font-size:14px;font-variant-numeric:tabular-nums}
+.dtip[hidden]{display:none}
+@media (max-width:760px){.li.top-x{display:none}}
+.lg-ch{font-size:13px;line-height:1.45}
+.lg-ch>span:first-child{color:var(--muted);margin-right:6px}
+.lg-ch .arr{color:var(--muted);margin:0 2px}
+.lg-t{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);background:var(--sunken);border-radius:4px;padding:1px 6px;margin-right:4px}
+table.logt td{vertical-align:top}
+.pill.neutral{background:var(--sunken);color:var(--muted)}
+</style>
+<style>
+/* ============ Kalenderronde: kaart met alle straten (Kalenders › Kalenderronde) ============
+   Eigen klassen met prefix kr- zodat ze niet botsen met de rest van VBHA.
+   Geen achtergrondkaart: de pagina mag geen kaarttegels van buitenaf laden, dus de straten zelf vormen de kaart. */
+:root{--kr-map:#E8EAED;--kr-todo:#A3A8B0;--kr-halo:#FFFFFF;--krb-road:#FFFFFF;--krb-bld:#D2D4D9;--krb-water:#AECBE6;--krb-green:#CFE3C8;--krb-rail:#C2C4CA;--kr-out:#F5F6F8;--kr-grens:#7F848D}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--kr-map:#131418;--kr-todo:#5A5E67;--kr-halo:#131418;--krb-road:#25272D;--krb-bld:#2D3037;--krb-water:#1A2E45;--krb-green:#18271B;--krb-rail:#34373E;--kr-out:#0C0D10;--kr-grens:#6C717A}}
+:root[data-theme="dark"]{--kr-map:#131418;--kr-todo:#5A5E67;--kr-halo:#131418;--krb-road:#25272D;--krb-bld:#2D3037;--krb-water:#1A2E45;--krb-green:#18271B;--krb-rail:#34373E;--kr-out:#0C0D10;--kr-grens:#6C717A}
+.kr-prog{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:center}
+.kr-prog-main{flex:1 1 240px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.kr-prog-t{font-size:14.5px;color:var(--muted)}
+.kr-prog-t b{font:600 24px/1 var(--f-display);color:var(--ink);letter-spacing:-.01em;margin-right:4px}
+.kr-track{display:block;height:8px;background:var(--sunken);border-radius:4px;overflow:hidden}
+.kr-track span{display:block;height:100%;background:var(--good);border-radius:4px;transition:width .3s}
+.kr-track.sm{height:5px}
+.kr-wijken{flex:2 1 420px;min-width:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.kr-wijk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 8px;align-items:center;text-align:left;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);cursor:pointer;font-size:13px;color:var(--muted)}
+.kr-wijk span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kr-wijk b{color:var(--ink);font-weight:600}
+.kr-wijk .kr-track,.kr-wijk small{grid-column:1/-1}
+.kr-wijk small{font-size:12px}
+.kr-wijk:hover{border-color:var(--line-strong);color:var(--ink)}
+@media (max-width:640px){.kr-wijken{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kr-slot{position:relative;height:clamp(380px,68vh,760px)}
+.kr-host{position:absolute;inset:0;isolation:isolate}
+.kr-map{position:absolute;inset:0;background:var(--kr-map)}
+.kr-map .empty{position:absolute;inset:0;display:grid;place-items:center}
+.kr-search{position:absolute;z-index:1000;top:12px;left:12px;right:12px;max-width:420px;display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--line-strong);border-radius:var(--r);background:var(--surface);color:var(--muted);box-shadow:0 4px 14px rgba(17,18,20,.12);font-size:15px;text-align:left;cursor:pointer}
+.kr-search svg,.kr-zoom svg,.kr-sp svg{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.kr-search:hover{border-color:var(--info);color:var(--ink)}
+.kr-zoom{position:absolute;z-index:1000;right:12px;bottom:12px;display:flex;flex-direction:column;border:1px solid var(--line-strong);border-radius:var(--r);background:var(--surface);overflow:hidden;box-shadow:0 4px 14px rgba(17,18,20,.12)}
+.kr-zoom button{width:40px;height:40px;border:0;background:none;color:var(--ink);font:500 21px/1 var(--f-body);display:grid;place-items:center;cursor:pointer;padding:0}
+.kr-zoom button+button{border-top:1px solid var(--line)}
+.kr-zoom button:hover{background:var(--sunken);color:var(--accent)}
+.kr-card{position:absolute;z-index:1001;left:12px;right:64px;bottom:12px;max-width:420px;display:flex;flex-direction:column;gap:12px;padding:14px 12px 14px 16px;background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow-lg)}
+.kr-card-h{display:flex;gap:8px;align-items:flex-start}
+.kr-card-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.kr-card h3{margin:0;font:600 18px/1.2 var(--f-display);letter-spacing:-.01em;text-wrap:balance}
+.kr-card-t span{font-size:13px;color:var(--muted);min-height:1.4em}
+.kr-seg{display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid var(--line-strong);border-radius:var(--r);overflow:hidden}
+.kr-seg button{border:0;background:var(--surface);color:var(--ink);padding:10px;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;min-height:42px}
+.kr-seg button+button{border-left:1px solid var(--line-strong)}
+.kr-seg button:hover{background:var(--sunken)}
+.kr-seg #krTodo[aria-pressed="true"]{background:var(--navy);color:var(--navy-ink);cursor:default}
+.kr-seg #krDone[aria-pressed="true"]{background:var(--good);color:#fff;cursor:default}
+.kr-seg #krResBtn[aria-pressed="true"]{background:var(--info);color:#fff;cursor:default}
+.kr-seg svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.kr-link{all:unset;cursor:pointer;font-weight:600}
+.kr-wie{font-size:13px;font-weight:500;color:var(--info);align-self:flex-start}
+.kr-link:hover,.kr-link:focus-visible{color:var(--accent);text-decoration:underline}
+/* zoekscherm */
+.kr-sp{position:fixed;inset:0;z-index:70;display:flex;flex-direction:column;background:var(--bg)}
+.kr-sp-bar{display:flex;align-items:center;gap:8px;background:var(--navy);padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(8px,env(safe-area-inset-left,0px))}
+.kr-sp-bar button{width:44px;height:44px;flex:none;display:grid;place-items:center;border:0;background:none;color:var(--navy-ink);cursor:pointer;border-radius:50%}
+.kr-sp-bar button svg{width:22px;height:22px}
+.kr-sp-bar input{flex:1;min-width:0;padding:10px 12px;border:0;border-radius:var(--r);background:var(--surface);color:var(--ink);font-size:16px}
+.kr-sp ul{list-style:none;margin:0;padding:0 0 env(safe-area-inset-bottom,0px);overflow-y:auto;flex:1}
+.kr-sp li button{width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:left;padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));border:0;border-bottom:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600;font-size:15px;cursor:pointer}
+.kr-sp li button:hover{background:var(--sunken)}
+.kr-sp small{display:block;font-weight:400;font-size:12.5px;color:var(--muted)}
+.kr-sp .kr-ok{flex:none;display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-weight:400;font-size:12.5px}
+.kr-sp .kr-ok svg{color:var(--good);stroke-width:2.6}
+.kr-sp .kr-ok.res{color:var(--info)}
+.kr-sp .empty{margin:0}
+/* Leaflet: alleen de delen die deze kaart gebruikt (de stylesheet zelf mag niet van een CDN komen) */
+.kr-map.leaflet-container{overflow:hidden;-webkit-tap-highlight-color:transparent;outline-offset:-2px;font-family:var(--f-body)}
+.kr-map .leaflet-pane,.kr-map .leaflet-pane>svg,.kr-map .leaflet-pane>canvas,.kr-map .leaflet-layer{position:absolute;left:0;top:0}
+.kr-map.leaflet-touch-zoom{touch-action:pan-x pan-y}
+.kr-map.leaflet-touch-drag,.kr-map.leaflet-touch-drag.leaflet-touch-zoom{touch-action:none}
+.kr-map .leaflet-pane{z-index:400}
+.kr-map .leaflet-overlay-pane{z-index:400}
+.kr-map .leaflet-tooltip-pane{z-index:650}
+.kr-map .leaflet-map-pane canvas{z-index:100}
+.kr-map .leaflet-zoom-animated{transform-origin:0 0}
+.kr-map.leaflet-zoom-anim .leaflet-zoom-animated{transition:transform .25s cubic-bezier(0,0,.25,1)}
+.kr-map.leaflet-zoom-anim .leaflet-zoom-hide{visibility:hidden}
+.kr-map .leaflet-interactive{cursor:pointer}
+.kr-map.leaflet-grab{cursor:grab}
+.kr-map.leaflet-dragging .leaflet-grab,.kr-map.leaflet-dragging{cursor:grabbing}
+.kr-map .leaflet-top,.kr-map .leaflet-bottom{position:absolute;z-index:1000;pointer-events:none}
+.kr-map .leaflet-bottom{bottom:0}.kr-map .leaflet-left{left:0}.kr-map .leaflet-right{right:0}.kr-map .leaflet-top{top:0}
+.kr-map .leaflet-control{position:relative;pointer-events:auto;float:left;clear:both}
+.kr-map .leaflet-control-attribution{margin:0;padding:1px 6px;font-size:11px;background:color-mix(in srgb,var(--surface) 80%,transparent);color:var(--muted)}
+.kr-map .leaflet-control-attribution a{color:var(--muted)}
+.kr-map .leaflet-tooltip{position:absolute;white-space:nowrap;pointer-events:none;user-select:none}
+.kr-map .leaflet-tooltip.kr-lbl{background:transparent;border:0;box-shadow:none;padding:0;font:600 11px/1.2 var(--f-body);color:var(--ink);text-shadow:0 0 3px var(--kr-halo),0 0 3px var(--kr-halo),0 0 2px var(--kr-halo)}
+.kr-map .kr-lbl span{display:block;transform-origin:center}
+@media (max-width:760px){.kr-slot{height:calc(100dvh - 250px);min-height:360px}.kr-card{right:60px}}
+@media (prefers-reduced-motion:reduce){.kr-map.leaflet-zoom-anim .leaflet-zoom-animated{transition:none}}
+.kr-multi{display:flex;flex-direction:column;gap:10px}
+.kr-sum{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kr-sum>div{background:var(--sunken);border-radius:8px;padding:8px 12px;display:flex;flex-direction:column}
+.kr-sum b{font:600 22px/1.15 var(--f-display);letter-spacing:-.01em}
+.kr-sum span{font-size:12.5px;color:var(--muted)}
+.kr-sum small{font-size:11.5px}
+.kr-ml{list-style:none;margin:0;padding:0;max-height:min(34vh,220px);overflow:auto;border:1px solid var(--line);border-radius:8px}
+.kr-ml li{display:flex;align-items:center;gap:8px;padding:7px 12px 7px 10px;border-bottom:1px solid var(--line);font-size:14px}
+.kr-ml li:last-child{border-bottom:0}
+.kr-ml-n{flex:1;min-width:0;font-weight:500;overflow:hidden;text-overflow:ellipsis}
+.kr-ml-n small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.kr-ml-a{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.kr-ml-x{width:28px;height:28px;flex:none;border:0;background:none;color:var(--muted);font-size:18px;border-radius:6px;cursor:pointer}
+.kr-ml-x:hover{background:var(--bad-soft);color:var(--bad)}
+.kr-card.multi{max-height:calc(100% - 24px);overflow:auto}
+.kr-card [hidden]{display:none!important}
 </style>
 <style>
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
@@ -496,11 +626,44 @@ img{max-width:100%}
 .auth-card .panel-b{padding:28px}
 .auth-card h1{font-size:22px;margin:0;font-weight:600}
 .auth-card .emblem{height:56px;width:auto;align-self:flex-start}
+a.nm-i{text-decoration:none;color:inherit}
+</style>
+<style>
+/* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
+.kf-kids{display:flex;flex-direction:column;gap:10px}
+.kf-kid{display:grid;grid-template-columns:64px minmax(0,1fr) 170px 36px;gap:8px;align-items:center}
+.kf-kid .kf-n{font-size:13px;font-weight:600;color:var(--muted)}
+.kf-kid input{padding:9px 11px;border:1px solid var(--line-strong);border-radius:var(--r);background:var(--surface);width:100%;min-width:0}
+.kf-kid input:focus{border-color:var(--info);outline:none;box-shadow:0 0 0 3px var(--info-soft)}
+.kf-del{width:36px;height:36px;border:0;background:none;color:var(--muted);border-radius:8px;cursor:pointer;display:grid;place-items:center;padding:0}
+.kf-del:hover{background:var(--bad-soft);color:var(--bad)}
+.kf-del svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.kf-del[disabled]{visibility:hidden}
+.kf-add{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;border:1.5px dashed var(--line-strong);background:none;border-radius:var(--r);padding:8px 14px;font-weight:600;color:var(--accent);cursor:pointer}
+.kf-add:hover{border-color:var(--accent);background:var(--accent-soft)}
+.kf-add svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
+.kf-kl{display:flex;flex-wrap:wrap;gap:4px}
+.kf-k{display:inline-flex;gap:4px;align-items:baseline;padding:2px 8px;border-radius:6px;background:var(--sunken);font-size:13px;white-space:nowrap}
+.kf-k span{color:var(--muted);font-size:12px}
+.kf-k.oud{opacity:.6}
+.kf-ages{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}
+.kf-age{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px 8px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.kf-age b{font:600 20px/1 var(--f-display)}
+.kf-age span{font-size:12px;color:var(--muted)}
+.kf-age.zero b{color:var(--line-strong)}
+.kf-age i{display:block;width:100%;height:4px;border-radius:2px;background:var(--sunken);overflow:hidden}
+.kf-age i em{display:block;height:100%;background:var(--accent)}
+.kf-info{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:14px;color:var(--muted)}
+.kf-info b{color:var(--ink);font-weight:600}
+@media (max-width:640px){
+  .kf-kid{grid-template-columns:minmax(0,1fr) 36px;grid-template-areas:"n d" "naam d" "geb d";row-gap:6px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .kf-kid .kf-n{grid-area:n}.kf-kid .kf-naam{grid-area:naam}.kf-kid .kf-geb{grid-area:geb}.kf-kid .kf-del{grid-area:d;align-self:start}
+}
 </style>
 </head>
 <body class="anon">
 <div class="app" id="app">
-  <header class="hdr"><div class="inner"><a class="brand" href="#dashboard" title="Naar het dashboard" aria-label="VBHA – naar het dashboard"><img class="logo" alt="VBHA" width="132" height="40" src="data:image/png;base64,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"><span class="brand-lbl" id="brandLbl">Vriendenkring Brandweer Hoofdpost Aalst</span></a><span class="grow"></span><div class="acct" id="acct"><button type="button" class="hdr-btn avatar" id="gear" data-act="acctMenu" aria-haspopup="menu" aria-expanded="false" aria-controls="acctMenu" title="Account"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 19.5c1.2-3.3 3.9-5 7-5s5.8 1.7 7 5"/></svg></button><div class="acct-menu" id="acctMenu" role="menu" hidden><div class="acct-who"><span class="acct-av"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 19.5c1.2-3.3 3.9-5 7-5s5.8 1.7 7 5"/></svg></span><div class="acct-txt"><b id="acctName">Aangemeld</b><span id="who"></span></div></div><a href="#instellingen" class="acct-i" role="menuitem" data-act="acctClose"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Instellingen</a><button type="button" class="acct-i" role="menuitem" data-act="logout"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 17l5-5-5-5M20 12H9M12 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/></svg>Afmelden</button></div></div></div></header>
+  <header class="hdr"><div class="inner"><a class="brand" href="#dashboard" title="Naar het dashboard" aria-label="VBHA – naar het dashboard"><img class="logo" alt="VBHA" width="132" height="40" src="data:image/png;base64,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"><span class="brand-lbl" id="brandLbl">Vriendenkring Brandweer Hoofdpost Aalst</span></a><span class="grow"></span><div class="acct" id="acct"><button type="button" class="hdr-btn avatar" id="gear" data-act="acctMenu" aria-haspopup="menu" aria-expanded="false" aria-controls="acctMenu" title="Account"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 19.5c1.2-3.3 3.9-5 7-5s5.8 1.7 7 5"/></svg></button><div class="acct-menu" id="acctMenu" role="menu" hidden><div class="acct-who"><span class="acct-av"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 19.5c1.2-3.3 3.9-5 7-5s5.8 1.7 7 5"/></svg></span><div class="acct-txt"><b id="acctName">Aangemeld</b><span id="who"></span></div></div><a href="#instellingen" class="acct-i" role="menuitem" data-act="acctClose"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Instellingen</a></div></div></div></header>
   <div class="navbar"><nav class="nav inner" id="nav" aria-label="Modules"></nav></div>
   <main class="main"><div class="wrap inner" id="main">
     <div class="loading" id="boot"><b>Laden…</b></div>
@@ -511,9 +674,515 @@ img{max-width:100%}
 <div class="navmenu" id="navmenu" role="menu" hidden></div>
 <div id="modal"></div>
 <div id="toast" hidden></div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- Grenzen van de deelgemeenten van de verdeelregio (OpenStreetMap, admin_level 9): naam, ring als Google-polyline. -->
+<script type="text/plain" id="krGrens">
+Aalst }vzuH}~~WpDr[hCEpDjX?xDdIfZvEjYzG~p@y@rAvClFXTVhJjBLz@jEsGpC`AbCLbBkEbC?tHtAbIbDxL~BMt@nGkETeDfB}CvCsGbQpBnRl@eBx@P`EzEsG~HdClGyAzApCdGy@vBpCR[dCDFmEjU~GxB{AnKx@nDzFnCfLHzGvF~DlCC|NyCjFQxBgAq@gAn@sBnBaAzAwAt@cCDoAbA}BlAyBxCuCnCwCz@sD`DoBZ{@hBo\oNe@vJGhIbBpJV~Kq@zLgBhOmDjEeItHu@|BP`G`AdK`DxKBnBu@jDf@tH_@b@WKqHnAoBjAXvE}@v@aA`BwE{LyA|FOtBHLS`AuA|EKB}CrIiGgFS]E_AWwBkCwBoCqDgAmCgAmBHc@y@qCyEwJUeBJ_Bm@yAm@_@iCgEsAK_@g@c@eDWaEn@iBmBoCYu@OeARmC}CuCe@d@gAEoGzGsJ`Gw@hBWZ[Hs@UaBx@kGdEQw@@kBU}@~BeBb@aA}A_E[_Dg@kBQ{HJw@Wu@Xm@XcEnAmCVeAh@SD_ASoATw@lAc@dAIdCdCfBqAzBeCi@q@HaBb@y@k@oAjBsDkFsH_A_DJoBkAy@HeAe@{@EmBOcANgA~@uAxBG`AgDz@wAdAOFoBrFyBz@}Bo@qBQcMcASDm@K_AyAmDs@mGyBHCkAwD^O}G_BsI}MeBqLqCeJ_FoFqEeFwIeCaMiQcZXiAn@y@nAeGxAqAtEIVf@bAkCjEwFr@_Ex@mG|ByDhBqAVk@hFoH~B{JbB\Lk@v@yPzC{_@]iACmO`AsA_@}@~Cg[hJgDe@iBxE{D`AlEzFaHlRaNlFZfFaI~Fr@jDnBk@dB|AnAhByBj@GLv@d@^b@s@lNQEkAoEeI?w@fDClF{DxEaHLsArDgFhHeGpJoA`Mqd@
+Gijzegem gkbvHa{vW_bAcmAsAwA{GaFu@fBWHGNOfBY`@q@O{@}Bw@Q{AJuA`@uA~AC~@BXJNlBj@b@^XxBCj@yBzBq@ZMXRZF^_DzHq@x@uFrEaBnIcAfH_AxB{D~C{BhAwElD}B|Bc@n@c@R}BOg@j@[bD|A`F@z@Px@Zp@t@d@Fl@LR~@l@d@Ch@ZH\TNZp@e@fCC~@PPIz@@vASbBQp@u@`Bi@vC@hA[\O|@k@Wi@b@?r@HfAL^KrCB~@z@~Cf@b@h@dAHrAVbBx@r@dBhCFt@d@dB?x@s@f@OVQhABPzCnGbGtHXL|AfDx@hC~B~EOVZh@lAfBZu@VTZl@m@lBtAnAe@fD@pADf@l@b@h@jAV`A^|Gg@t@JrBgBnLlAhA^rALfCTf@@`@GzBUzCeCxEWrKr@BnAdFpApHz@Jz@n@|@v@l@|@bAv@hABNLrAR`Ar@tFcFt@gAj@yAJc@?kCb@sG@aAfAkGCY_BeEB_Ef@eDfCmH~@eEl@mDh@}HzDcK|AcK`BoH}EgFfBsN}CaBwAuBp@sFv@yAtC]lAb@|AWz@{FYc@b@mCZkAjA\jCoMt@}Br@kM}@?BaC`B]z@lAZC\[d@oBbCqCAkCOqCtB}D\@xA}FE_AlBmDdBr@r@tBNi@n@aAZmAZe@`AK^gA
+Hofstade amavHcwuWhQbZdC`MdFvInFpEdJ~EpLpC|MdB~ArIN|GvD_@BjAxBIr@lGxAlDJ~@El@bARPbMn@pB{@|BsFxBGnBeAN{@vAaAfDyBF_AtAOfANbADlBd@z@IdAjAx@KnB~@~CjFrHkBrDj@nAc@x@I`Bh@p@{BdCgBpAeCeCeAHmAb@Uv@RnAE~@i@RWdAoAlCYbEYl@HPoHpP_@oABQoF_Oi@w@uAw@_@_AmAsAm@oAuBaA_ArDm@tAwCtFeBjCo@Ee@g@uAt@HnGgCvAmBpBmBgG_Bj@w@DyB_By@oBa@cBgAmHoEwAgBmEaAnAKEm@gBgJtGUgA{Br@?pC{N`@@eBIO?aDcAkBoBKwAh@QZi@WAOyBNFsAKMVw@yAUMJyCmEJYiEgEiA_CQwA@c@ZeAv@mAtC}CrDsLi@iDcCgAyDa@}BtI}CbJkBM{BjD_BeEB_Ef@eDfCmH~@eEl@mDh@}HzDcK|AcK`BoH}EgFfBsNeCmAg@e@gAcBLuAb@}Cv@yAtC]lAb@|AWz@{FYc@b@mCZkAjA\jCoMt@}Br@kM}@?BaC`B]z@lAZC\[d@oBbCqCAkCOqCtB}D\@xA}FE_AlBmDdBr@r@tBNi@n@aAZmAZe@`AK^gAd]|b@
+Nieuwerkerken yoxuH_tqWgAq@gAn@sBnBaAzAwAt@cCDoAbA}BlAyBxCuCnCwCz@sD`DoBZ{@hBo\oNe@vJGhIbBpJV~Kq@zLgBhOmDjEeItHu@|BP`G`AdK`DxKBnBu@jDf@tH_@b@WKqHnAoBjAXvE}@v@fBtL{C`D|AnCh@hBFdBr@~AhApAZNbCj@~DfDMrBBv@^Z|AtDw@zApIpO`AaCMQtAwDfIsKrFkDzJpb@dD}AjCi@|@bE`BeARbBh@hB|AHlC_AdB@SyAtC{AXfCfDSr@tB|A|CbAbD~@eA`AzBrBpBfFwDpA[HqIfBsA|@_AhCSpJeCr@JxCsDq@}AnH{EHGC]d@S|A@BqBKyIDQXI_@gA?uAu@uA]cB?{@wBgE_@i@Y?Ig@[[Ca@e@a@Bg@_@[SmBg@s@e@{BaA}B_AwLtDcDvHqC[eDQqb@zBaA`@B\ZvJcFy@uDbEuCQo@~BsBIa@|EyD}EoN}FgIzFgI|@vAzEoIw@[kCiF_@[eAeFi@sHoAaFcCy@uCd@iFxEmDbCkDEuCcC}CYaDnBu@fFkAnCy@nAeIeLp@oByKsJJaBmFuC
+</script>
+<script type="text/plain" id="krData">
+'t Maegelijnplein 0 4 cb|uHansWGe@COUe@
+1 Meistraat 0 14 mq|uHm|tWKEWK qr|uH_}tWWM is|uHm}tWQOUc@I]Ce@BiC?Q
+Abbeelstraat 0 23 mf}uHacqWdAbF gd}uH}{pWANDr@@FPO@GOi@II
+Acaciastraat 0 33 gwzuHcbtWdE_DDC
+Affligemdreef 0 50 kozuHa}wWGMAAkCqEkB_DyAeCgD{F o_{uHeuxWGMi@_AYg@
+Afspanningsstraat 0 36 kk{uHy`qWcAxH?\ cj{uH_gqWg@dE
+Albert Liénartstraat 0 30 ws|uHq{sW~BG~AIJ?
+Albrechtlaan 0 47 i{zuHw_wWG@mAJq@FYBkAJ ct{uHe|vWQBg@F ut{uH}zvWRC at{uHa{vWD@F?NA aa|uH}xvW|@Ip@GZC ql{uHe|vWVAFA wz{uHyzvWYF gm{uH}{vWHAJE im{uHe}vWgAJ {u{uHuzvWHADC er{uHk|vWMB qo{uHy|vWsAL u|{uHsyvWXCRC ku{uH{zvWTA sr{uHg|vWSB gs{uHc|vWMC qr{uHc{vWLAj@E`@El@G^C g{{uH{yvWhBMz@IDA y~zuHo~vW`@Ed@EZC@?D? wf|uH}xvWm@AO?gAMYC qk{uHi|vWNAF?ZCJAj@GF?`@Gt@KXCHA~BUf@E _~{uHczvWwALiAJ }u{uHy{vWG?}BXSD ki{uHy}vWgAJe@DO@ gk|uHcvvWp@WHC\Kf@KPC sf|uH{wvWn@GPCd@I cs{uHa{vWPA qzzuH}_wWWD m{zuH__wWTE kc|uHqxvW@?fAK ac|uHiyvWcADa@BO@ q{{uHqzvWmAL us{uHg|vWM@ wb{uHq~vWm@F{@FQ@E?C@O?M@o@@
+Alfred Keldersstraat 0 9 }a|uHgasWnA{@FEt@a@h@M
+Alfred Nichelsstraat 0 33 _e{uHgiuWEUG]AE ed{uHk}tWQs@s@cBa@eACKAO?E ye{uHwquW?Q {e{uHwouW@_A ue{uHeluWC] oe{uHakuWEc@ ye{uHcmuW?GAu@?U sg{uHkeuW?M
+Anna Snelstraat 0 8 es{uHo{tWfApARh@~@xCBF@@BD }p{uH}xtW?O[{@EK
+Apostelstraat 0 1 al|uHm~vWMLABw@`As@|@?R }o|uHgyvW?H
+Appelstraat 0 26 go|uH{ovW`@GF`BDHHDfAKfCULFJR go|uH{ovWqCZC?E@
+Arbeidstraat 0 96 {n{uHqarWBPx@fE@D?@@@BL {n{uHqarWEMcAgFEc@c@{B qy{uHkzrW@B@BHFPHTHRLVVVZP^N`@b@nBJXTpA
+Arendstraat 0 21 ae~uHspwWCDCB{C~E
+Arendsveld 0 40 q{}uHs`wWsAcDs@{A q{}uHs`wWVh@LRNNx@t@
+Asserendries 0 106 {b}uH_ppWFSDIHOBK?G _b}uHarpWEAE?ONCBEJ }n|uH{pqWIN}DtIYn@qBlEGJ yy|uHk}pWEH[p@S`@mAfC]b@m@n@u@n@
+August Marcelstraat 0 74 {mzuHslrWAMAKIy@]kDWgCeAaKCiA@_@AK wmzuH{krWCW
+Baron Romain Moyersoen Park 0 35 uu{uHgqwWxAzINPFDV?~Bw@r@vG@V@D?F up{uHkxwWhB~O sk{uHm}vW@b@
+Bauwensplein 0 12 ut|uHgksWIYMa@Qq@?CCS cv|uHmosWID_@^GHDDBHl@pBBGNQRQ
+Bedrijvigheidstraat 0 11 }g|uH}}pW_D}C
+Beekveldstraat 0 62 uc{uHc|rWIJG`@IPAJYjAKh@g@`Cm@pCANIh@Af@B^@PBPp@dEN`A@D@BBJDX uc{uHc|rWnBmDHO
+Begijnhof 0 54 gl{uH_vtWAE]iAEQCo@CUEMMa@q@aC qm{uHqztW|AyA]gAwAzA in{uHsytWJGJU yn{uHsztW\a@ {o{uH}wtWp@u@KYCEC@m@l@FPFRMH wk{uH{ttWGS _l{uHoutWGO
+Bergekouter 0 108 cd{uHe|xWIDIHIPADQl@y@fBKPIJoBdCKLw@\_@DgBLw@Tg@^e@b@}BrBaCjB w~{uH{dxWEDEB yy|uHymwWLM c_|uHqdxWEBeA|@ qp|uHivwWJARCJGHKfDiC si|uHm{wWbGaF g~{uHiexWOL
+Bergemeersenstraat 0 114 gs{uHc|vW@N@PBZJ~@Fj@H`AHnC@R@VCPETCBEBSRqAd@y@VKD gx{uHijvWk@TaA\_@Ng@Nq@RqCNW@uElCu@I_BSA?MC sw{uHsjvWSH
+Bert Van Hoorickstraat 0 53 q}{uH_srWKHA@_Ap@kE|C]VQLw@h@CHGJ
+Beukendreef 0 73 {g{uHuuxWJHJL^j@\h@PVNXPd@\dANp@NdAFrAJjAHv@tBpGjDhKJZ@BDP qc{uHooxWdAmB sb{uHimxWFIdAoB ka{uH}rxWd@x@PZ
+Bevrijdingsstraat 0 54 _v}uH_euWf@{@RWv@k@bAw@vBw@^C
+Biekorfstraat 0 83 uj}uH}wpWGN }j}uHmwpWCHyAzDAF?F@D@DpAfBFJzBbEVf@tAjCxBbE
+Binnenkoer Oud Stadhuis 0 0 e`|uH}{sWpAMASAWSBAI_@N[B@V@T?A
+Binnenstraat 0 330 sl}uHwavWQKcAs@q@g@k@o@m@{@q@_Aa@m@IKyAyB_@w@k@aB[i@ sl}uHwavWRN _l}uHgavWNJxDnChDlCjBvAHFRNLJFHDHxAbDN`@BJ|@nBVd@BDL@@@ u|}uHcvvWIMWa@w@aAY[W[QS}AmCGIKO ej~uHiiwW_EmIYe@CCKQ wh~uHqewW?a@ESg@aA ee~uHiawW}AaCSE
+Bleekveld 0 19 {_|uHksuWhHcFXi@z@qCHYFYD]D]Fk@Bk@@U?YAW?UAYGkA {_|uHwsuWAMCIEGGCG@GBEFCJAL@JBJFFFBD?NOBK?K
+Bolleweg 0 97 _y|uHefuWIMCIoAeC]{@eAoAcAy@{@e@uAw@IE
+Borluutstraat 0 27 o{|uHeutW~Bx@H@R@
+Boterstraat 0 6 wq{uHyhsWIUe@kAEE
+Boudewijnlaan 0 161 at}uH_pqWTrALr@ s_~uHmcsWNzCHvAHlAF~@J`ALrARpAPlAThA q{}uHkkrWLd@ a{}uHycrWLELBJFJNFRHP q{}uHkkrWBVDZHb@B\?^ ez}uHuqrW@RABCP uq}uHwiqWI]q@sDaAgF_@wB_@sB_@uBg@mCWwA wp|uH{uoWIUGe@EQo@{Ba@{A[kAMa@Ws@g@cAk@aA[IGC ec}uHcqpWYU_@]w@q@sAiA }j}uHmwpWJN|@v@vAnA uj}uH}wpW_@i@[o@Qc@Qe@ e}}uHusrW?w@DS c_~uH}asWAs@ sz}uHyirWOq@ m|}uHiprWOeAGe@ c{}uHkkrWMs@[iB e}}uHusrWEQEe@Gk@KqAIoAIwAIiB _}}uHavrWDIHGHENBHFDLRx@Ff@Bf@ kp}uHscqWn@nCJd@ ki}uHsvpWi@i@ st}uH_rqWP~@ _y}uHobrWBP {e}uHurpWjAbA@@PN {x}uH}arWZhB^rBl@fD\vB wo}uHmcqW_@iBAGKc@ in}uHw~pWa@kBKi@ on}uH}}pWNl@DR uq}uHugqWLh@ZvA c{}uHejrWTjAl@hD um}uHa}pWMg@EM eq}uHchqWKi@CI }r}uHwkqWLj@F^ ym}uH{{pWN\LX|@tA {b}uH_ppW^Z`FjEPN {y|uHwhpWEE_DmCo@i@CC_@] w{}uH{brWHQJK q_~uHq}qWLM`@e@\m@ {}}uHg|rWMa@Ge@GgACi@ gz|uHghpWXt@NRXf@\l@N`@j@nBTl@Vz@n@|BFTN\BDBF ua}uHwopW][QO gr}uHkiqWBJ@DJb@ c}}uHs`rWLU\q@
+Brakelstraat 0 70 wf}uHkfxWI_@Ci@ m~|uH{jxWEBEBC@KD{Bz@KDe@PQFMBKAICKKKWk@gE{AkL ie}uHogxWCRIJMDA?OA
+Bredestraat 0 118 {s}uHq`uWKNgBzAuAr@w@^ ih~uHwrtWU\Yd@U^Wb@UNu@ZQHOHILCB o_~uHqxtWE@a@NQDE@ ac~uHwvtWMFOFOD]Pa@Xy@|@ ac~uHwvtWJ@LFB@@@FB oa~uHwwtWGBEBCB_@R }{}uHqztWOF_@P{@^A@CB
+Brouwerijstraat 0 55 or}uH}qtWsC\oBVeCZe@FEAA?G?
+Brusselse steenweg 0 69 ye{uHiruW@gB _a{uHievWTeA i`{uHogvWZ}AJm@Ny@L{@z@yG ke{uH{wuWEZ {d{uHmyuWOp@ we{uHquuWDm@ iezuHguxWb@{A {d{uHmyuWViAbBqH qzzuH}_wWD] wzzuHe_wWDW }tzuHmqwWRi@Xw@j@wAFQ g|zuHkxvW@GBOLw@NoA uuzuHwowWVu@ c{zuHk}vWJy@ }yzuHacwWL{@ iwzuHokwWH[h@kB ayzuHqfwWNq@Nk@V_A {qzuHywwW\}@n@cB@E ilzuHocxW`@oA\eA~CaL kozuHa}wWHS\{@x@}B kzzuH{`wWLeA oyzuH}dwWLs@
+Burchtstraat 0 17 _y{uHwttWS@w@DWAUIMGSMUOUOg@_@SIQAM?i@LKB sg{uHyeuWE?CACCCCQ[GAEBEHIN]~@ILIHGFGBG?M@iAAO@M@KDKFIJKNEPEP[nAEPADQt@ qt{uHywtWGPMZ[\OHa@Di@D es{uHo{tWSx@Od@GT yc|uHkwtWSDIB
+Burgemeestersplein 0 18 i|zuHeeuWQPc@d@GJ?@KV ozzuHmiuWDDZV@@DB c|zuHgduWOL_@X_@V uzzuHceuWLGRE s~zuHgbuWe@\ y{zuHccuW\c@D[ e{zuHyduW]P uzzuHceuWOH y_{uHiauWG@GBG?I@ a{zuHofuW_@^GH y_{uHiauWr@KXM^SPK yzzuHwfuWGF
+Capucienenlaan 0 100 a|zuHaerW{BbAeBt@IH ss{uHirqWdCcC qi{uH{|qW}@v@ mt{uHorqWQP if{uHi_rW]Re@\c@Z yh{uHq|qWx@i@ZS mc{uH}`rWs@\g@T mo{uHmvqWdAcAPOFG kj{uHi{qWp@g@ ul{uH_zqWYVwClC cf{uHo~qW^UFCpCqAb@StAm@TIHE _zzuHgerW|@a@TMZM wvzuHygrW[JaCbAKF ok{uHc{qWe@b@ wt{uHkqqWPMNM@A ml{uHiyqWd@c@ o{zuHmdrWn@Y gr{uHytqWQRILSRED gk{uHmzqWZ[ }s{uH}rqWOL
+Caudronstraat 0 39 s{|uHgnrWLKXUvAyAZ] s{|uHgnrWIF_Ah@kAp@
+Cesar Haeltermanstraat 0 24 o}|uH_hqW{@p@WJKF{A\k@Pu@f@eAp@a@\sBdBKH
+Cumontstraat 0 14 k{|uHupsWtBvA
+De Coninckstraat 0 4 u_|uHkrtWg@f@GFSPOP g_|uHqvtWANKtB
+De Gheeststraat 0 18 {`{uHaauWGCGEGEGGCIEI eb{uHmbuW]iAg@}AGWKY
+De Ridderstraat 0 39 {`|uHswrWDAFA@ABC@C@E?C@E?C?C?EAEa@{CWeBe@qDGa@WmBGYQw@AM
+De Schrijverstraat 0 24 iy|uHgirWc@oA[{@CGEK g}|uHuqrWDJf@tADJ
+De Vilanderstraat 0 52 _e{uHgiuWIFABKN k~zuHgnuWiAv@uBxAEBCBA?GD _xzuHeuuWe@XsAbBqA~A we{uHkhuWs@lAGB
+De Visscherestraat 0 29 qy|uHsyrWxApEjAxD
+Den Haring 0 0 kzyuHk~rWF@B@ ezyuH}asWIBIH _zyuHg~rWJCDGFMFQ?QAO {zyuHy~rWFHFB _yyuHu`sWEOGM yzyuHoasWEFCJCN?HBRBHBH myyuHsasWGEGCG?
+Dendermondse steenweg 0 209 uo|uH}dsWsAv@YJc@LMBG@i@F k~}uHeirW]J gv|uH}asWi@BM?}BHeDJSB[LWNgAx@C@ ax}uHumrWD?FCPI^WBARU iu}uHsorWKDKBEBe@NQBMCGA i_~uHyhrWo@PkCRuBJS?u@Gu@G ai}uHq{rWCBOPGFOPo@t@GFA@MNCBk@n@WZQPcClBMJ we}uHe~rWiBrA k~}uHeirWn@W }x}uHumrWZ? at}uHuprW]XIF
+Denderstraat 0 55 si}uH}{sW\tA@D sh}uHaysWHT a`}uHensWSc@_AmA gv|uH}asWWc@GIgB}BGGU[s@aA[c@ yd}uHetsWu@_A ub}uHwqsWSWo@u@ }}|uHsksWEG}@iA of}uHevsWi@q@OS
+Diepestraat 0 147 gozuHstrWrAm@pCwA g{yuHy}rWI@A?Y@wDx@{D`B orzuH{srWfBW oyzuHeqrWDADCDAlEmA
+Dirk Martensstraat 0 101 _j|uH}hrWMOmDmEEEKMGWmCcNCOCI[W
+Dokter André Goffaertsstraat 0 101 o`zuHqcsW?s@MaAMa@Wg@OOSa@qAaDEI[u@I_@aAeCMQi@yAG]eAqC mmzuHg`tWeAmC]cAIMEK}@aCIY
+Dokter André Sierensstraat 0 7 uj|uHiptWe@H{@FG@GFCHE\ {r|uHubtWa@jA qn|uHentWGl@ALER ao|uHuktWG`@Ib@GNi@tA eq|uHiftW_@dAUl@ }s|uHi`tW_@|@EX
+Dokter De Moorstraat 0 120 {s}uHq`uWDEHE~@OdAObAQjAc@JAF?tAH se}uH}buWhBr@pAp@tCxA {f}uHgcuWf@H kg}uHkcuWNB
+Dompelstraat 0 66 wh~uHqewWq@h@aCrBa@d@KP[x@Of@?~@JtAITuDrB
+Doolhofstraat 0 116 ad|uHqfvW@Ld@lFiG|CGFo@r@YXe@j@ABCF
+Doornstraat 0 39 {q}uH{bxWK?CEEE?EAM?MBKFWBMDODVBZB^ALCFED }q}uHkfxWAMiAoNAOAIEk@
+Dr. Jozef Kluyskensstraat 0 33 up|uHkdrWmBiGGQ
+Draaiersstraat 0 30 y}}uHcqxWcDzAC@E@ y}}uHcqxWCO@MDGXMF?BH?LEHc@P
+Drie Sleutelsstraat 0 93 ar}uH{etW?GMyJGsDe@mG@Q
+Drie Veldenweg 0 55 wj}uHmgwWjE{AhA_@bDcA k||uHinwWCDAF?B?B?FBF@@@BB@D?BABEBE?G?GAEAGCCEAC?EB q||uHwmwWKH }||uHmmwWH@@?
+Duivekeetstraat 0 43 a{{uHu}qWOaFOwESkCBS@K
+Désiré De Wolfstraat 0 29 syzuHqeuWAUAK wyzuHsfuWA]RWFI|EyKHc@
+Eendrachtstraat 0 5 qd~uHivsWAiCAO?eAAiAAc@?Y?[A_@ {d~uHmctW@MBI qd~uHivsWC`@CXAVAL od~uH}rsW@i@CaA
+Eikstraat 0 83 _yzuHsjsWHkALiBHo@HYJWFMzAsBLS uszuHaxsWfEeG mmzuHg`tWtBwCHMJONSBEDE ghzuH}ftWJM
+Erembodegemstraat 0 18 i~yuHcdvWUTi@d@[b@oCjDUVSNQHu@T{@Vo@Pi@PaANu@P uqzuHqvuWQAg@Gi@FgAVODMN
+Esplanadeplein 0 23 {p|uHqhsWJRJj@FX?DDR em|uH{ksWCBQLuA~@IV mk|uH}gsWBIAMC] yk|uHsgsWFABG em|uH{ksWF`@FPFN@L }l|uH}fsWLCDCFCFI al|uHelsWG?G?SH ok|uHsisWKgAACCE uo|uH}dsWFKBINIl@_@L? kl|uHiisWF\ cl|uHkhsW@J@DDD cl|uHkhsWMRADIR
+Esplanadestraat 0 25 kl|uHc|sW?ZItD?XBXBVP~D?PADCF
+Eugeen Bosteelsstraat 0 45 _xzuHeuuWIl@eAhIEb@Ab@AF?D
+Fabriekstraat 0 8 {p|uHqhsWqBwAG@
+Felix de Hertstraat 0 108 {yzuHu~tWJJd@pALb@DTp@pDDRJ`@`ApDDR c|zuHgduWDRBN {yzuHu~tWy@{BCQ
+Fonteinstraat 0 41 s`~uHaxxW}@`A[U eu}uHoxxW_DIGPIHWDiAEyACYCI?I@[^OLmArA
+Frans Blanckaertdreef 0 1 _tyuHm`uWaEvF w{yuHqvtWcBzByArB{@fAe@p@}ArBA@CD azyuHuxtWWZ]f@
+Frans Breckpotwijk 0 5 mh}uH{otWUAS?_@@[Ho@\KAGOGwANaBTo@BODg@@UNGDCDMBWDs@@MA_@?G@K@GDGDClASJCJCFIDI cg}uHi`uWF}A
+Frans Roucelstraat 0 15 eozuHqhqWF?LDZZ`AzAfAlA iizuHebqWj@l@
+Fritz De Wolfkaai 0 9 _l|uHsvtWFCBAHEHGHIHKr@cAzAyBDGHMBCFG _e|uH}~tWNKDEdCiBj@c@ ql|uHavtWPQ w~{uH}cuWNM
+Frédéric Van der Nootstraat 0 40 c`{uHgvuWv@~F k~zuHgnuW`@vC\dC@B i|zuHeeuWBR@H
+Garenstraat 0 15 oc~uHarrWsAx@WNEDAL
+Gasthuisstraat 0 39 }g}uH{ntWDA`@KRED@D@PVLBXAHGDIDS o{|uHeutWQG a||uHmutW{DeAKjAGt@ADIz@Gv@
+Gefusilleerdenstraat 0 15 o_~uHuyvWFUj@cBhAcB
+Geldhofstraat 0 115 {|}uHajuWPS^[DM@QAQYoEESIaBEo@UaC@UI{@EQO}A?AAY@MDY`@aCJWDUP_AReAX_B
+Gentse steenweg 0 155 qz{uH_}pWDc@ gz{uH{~pWDKBE }u{uHcqqWSZMV mz{uHu_qW@HBN az{uHgbqWGr@CX?B }y{uHm_qWBWV}C ay{uHceqWBa@ ib|uHgzoWFg@Jo@ q{{uHixpWPoA ea|uHi_pWd@kD\cC`BqLL}@ }x{uHefqWFy@ ox{uHalqWKj@ _w{uHooqWKVABWp@I^ {v{uHknqWJWTe@BE\[ ey{uHehqWQxBIbA yd|uHmooWNkANmAPiAPiAJk@ ix{uHgjqWDa@Ru@N_@BK kz{uHc~pWBW _{{uHyzpWD[@C?GD] ua|uH_}oW@ML{@ _u{uH}qqW]X ox{uH}hqWDi@ ux{uH_hqWD] ay{uHkiqWCd@ {x{uHujqWEh@
+Gentsestraat 0 108 q}{uH_srWFLXt@RXhA~A^h@ cz{uH_wrWQRw@|@W^A@IJ ix{uHwjrWp@lIT`E@TN~B@lA@BBN@@DN ix{uHwjrWEWAG _u{uH}qqWFP
+Geraardsbergsestraat 0 212 }c{uH}qsW?u@?m@EQGSKIKCG?GB]d@YV o`zuHqcsWw@c@a@Ma@GwC_@_BSs@Kk@Mq@Ks@M c{yuH{`sWMBC?M?OEIC e}yuHaasWFHJHRLFBBBLH _yyuHu`sWFKBIHOHKJG@K qwyuH{bsWECUJCBEBCDCFC@?@ID irzuHshsWWEsBa@ uvzuH{isWw@OQGKCi@QoCeA ynyuHmfsWi@HQBUFUF[JSHk@Tw@X[L }zyuHmcsWANEN?@GJIFGFIDGBKB e_{uHomsWiAw@q@w@[]SMGAK@IBSJ e}yuHaasWCAi@a@{@k@ }|yuHaasWG?
+Gheeraerdtsstraat 0 14 a`}uHensWCHgBtE mc}uHegsWO?IK
+Goudbloemstraat 0 59 cx}uH__xWpCbHBRNThAjEHDNJVCdAaA ms}uHguwWgBdBObAqA~@
+Gouden Leeuwstraat 0 16 az}uHi_vWkBiCMQKA
+Graanmarkt 0 14 yk|uHqatWMfC?DANAN qe|uHu_tW_@NaA`@u@Z yk|uHqatWF@D?\O\MFAH?NOv@YF?@D@FRdBBN ij|uHg}sWMDWLMFMF
+Groenstraat 0 272 ew}uHkcwWWH?VAzCA\ETIZqBpBGJIZ kv}uHwcwWnBu@FA`C[FGpBYnAzELd@Hl@V|A ew}uHkcwWXK a||uHmtuW?Ej@qD@UAkBTsAL{@ wf}uH_{vWPp@JTBFVh@@BbC`F@BDL _`}uHynvWBJ@@`CpFXp@P`@Xl@
+Grote Markt 0 28 {{{uHi}sWGH?@CFAL@J@JDHHFJ? _{{uHg{sWBTAh@QpBGp@ wz{uH{{sW@KAK??CI _{{uHg{sWDG@K i{{uH}zsWDCBE {z{uH}|sWEGEEEAG?EB o{{uHuusWe@Qk@ICA[Q
+Grotstraat 0 20 in|uHcbxWXCXFLP`@lAp@pB
+Guido Gezellestraat 0 73 ym}uHywwWJA`Aa@HGv@Q`@ETGFBvBc@NQ|Be@JDx@OBAB?FAF?
+Guldenboomplein 0 33 q_~uHytrWHb@Jh@g@Z_@TGDWNUN yb~uHsorWKi@Ic@ q_~uHytrWg@ZOHm@^WP
+Gustaaf Papestraat 0 65 gd{uHuzrWh@fBzBlHj@~Bb@jBDRDL?BBJ
+Hakelenberg 0 12 ov{uHuvxWBEBG@G?KAKCIEGGAG?EBEHAHAJBNBHHFF?FC ov{uHuvxWLf@Rr@?T^vAR|@
+Hazelaarstraat 0 17 amyuHg`pWGMeEwDECG?
+Heilig Hartlaan 0 87 oa~uHgvsWBl@v@jP sb~uH{btWHPBN?N my}uHmprWEWCO?WC]OaA cb~uHmptW@T?LBRFfA@^?b@A\Cd@AH gv}uHeorWa@GWMMOMWGUEYIe@GQMa@ kz}uHmurWOk@Sk@_@y@ ab~uHiotWj@BD? {{}uHgiuWKZc@xAMh@Ql@Id@CH e_~uHqcsW{@yQ aa~uHkvsWEk@Gq@Ek@Gu@Ak@?] cc~uHuctWFLFJ }|}uHaeuWRq@ZaA mb~uHg}sWBl@Fp@Fp@HlA y~}uHiauWMv@_@nCGZIVIVITAF o_~uHqxtWAk@?O?QHo@RsARuAT}@F[BM eb~uHiatWG`C _b~uHu~sWAEBgABW@U@I oa~uHwwtWEXCVA^ cc~uHaetWAL?N@L ua~uH{btWLIFMDO?Y {a~uHeutWGvC oa~uHugtWDg@BoABa@De@Jo@Hc@Fa@@a@DkADwB y`~uH}dtWAKCIKOCKAO?G@M gb~uHiftWGFGFGHCL {a~uH{gtWALCTEL sb~uH{btWN@LA o|}uH_zrW[k@O[
+Heilige Hartlaan 0 0 }~}uHabsWGo@
+Henri Matthieustraat 0 28 yc~uH_ovWQZEUBKH?HDl@_AlB_Dd@s@
+Herman De Vosstraat 0 9 clzuH_gsW@_@SwC
+Hertshage 0 87 wg}uHeftWUHUDoAHABEBA@ED kx}uHedtWp@KhCe@LCN@@?@?ZBtBHJBDBDF wg}uHeftWPEBExBcAl@w@LOp@}@PUV[FIFInAcE
+Het Walleken 0 16 od~uH_puWXQFAF@FBDLfAbG
+Hippoliet Meertwijk 0 4 uf}uHy_uWxAb@BNEx@
+Hoenderveld 0 10 oj~uHy{tWK@oBR
+Hoezekouterdreef 0 22 klyuHolrWwAoBKQy@gAGMaB{BqAiBS[KKKGKCKAQA coyuH{prWJJdA~@DDFFFD klyuHolrWDHTZVZ`@f@l@j@ZV^T|BjA {yyuHe|rWc@CC? {jyuHcmrWUOIG {kyuH{mrWGT glyuH{lrWABAF clyuHemrWCH
+Hof ten Bergestraat 0 16 oi{uHmxxWh@bB og{uHgvxWSQk@s@
+Hoge Steenberg 0 7 ys}uHk~uWCR?PCFADGBE?CCCG?I@KDIVKVKHBHJTfAHV@DFJ
+Hoge Vesten 0 55 _q|uHu~tWFENQrAaCR]b@c@hAm@J@HFHB qh|uHqfuWdAJ
+Hoogveld 0 24 }x}uHkpxW{@lAEP?PDVANwBbAeAb@
+Hopmarkt 0 36 k|{uH{osWn@FnAHB@Bh@f@h@TZFP ms{uHalsWAQQ_AMeBEWOHkAZYDC@yAOYC ms{uHalsW}@TE@A?IB
+Hospitaalstraat 0 22 sg}uHiwtW~Ad@hAZ
+Houtkaai 0 12 qv|uHgstW?ZAN?lABJ?~@ }s|uHmotWq@mCGS
+Houtmarkt 0 33 gb{uHurtW@QBSHU@Y?KAOi@qB_@{ACU {e{uHo{tWv@xCDL^bBBF {e{uHo{tW`@g@BCDEHI mg{uH}ytW|@bD yb{uH{rtWD@JB oe{uHyttWp@m@
+Hoveniersstraat 0 87 a{|uH}|tW^}@H[@QUyB?Q?K {t|uHafuWA?IBA?GAiBEC?KBOHGHGJ iq|uHeauWBkCMAeAEOAQE _q|uHu~tWG_AAO
+Hugo Lefèvrestraat 0 39 cozuHygsW@MDsAsCuKEO {nzuH{jsWX|@
+Ingang Bonner 0 11 eo}uHcjqWBJZdB
+Ingang De Prez 0 6 ef|uHc{qWDEnAcB
+Ingang Levionois 0 5 }l{uHaatWTq@g@_A
+Jan Bijlstraat 0 36 my}uHgiuWHFb@f@Zb@b@r@bA|B?N my}uHgiuWGSCMAS?O {z}uHmiuWHEP@PH
+Jan De Windtstraat 0 59 kz|uHaeuWsBAoAQiBh@k@VMT
+Jan Jeliestraat 0 59 yi~uH{ttWI@aCVQ@c@Bq@CGCECaBGeBI
+Jasmijnstraat 0 16 s~}uHc_uWFBh@XPXHp@Ff@
+Josse Ringoirkaai 0 0 mm|uHmutWFCHGHG }s|uHmotWdC{BhAcA }s|uHmotWWTKHe@b@
+Jozef Borremanstraat 0 42 il}uHglxWa@DGAEKWyBS}Ak@}D wf}uHkfxWIDKDm@Po@PIEGSk@qEUmBEUk@@ }j}uHuexWoBh@DXfBg@HG em}uHkpxWd@I {h}uHmexWCRT|BBDDABC@IWyBIM
+Jozef Meganckstraat 0 40 q}|uHkerWV\bHzADF
+Kalfstraat 0 22 cf{uH{qsW`@pAvBfH
+Kanunnik Colinetstraat 0 7 kg{uHstsWf@vA
+Kapellekensbaan 0 18 ipyuHsfvW?M@GDe@ ktyuHifvW\E\EXA ktyuHifvWYBqDZUD{@LQFIDCB y_yuHisvWELKHKDiDjBkGhDm@ZEH uqyuHwfvWV@R@
+Kapiteintjesstraat 0 8 uj{uHuhsWTb@~@pB@@JT`@TJFFLp@dCLb@DL
+Kardoenstraat 0 8 elyuHelrWCDe@`AW^WP??IHIHS^e@t@CF?B
+Kareelstraat 0 26 awyuHm`sWDd@BPDLlClDtAdB~AfBx@p@v@f@|@b@x@Vt@RVDr@Hh@Dv@@bAGjCM~AINAr@CB?LB qwyuH{bsWBPBPFh@
+Karel Van de Woestijnestraat 0 34 {g{uH}qqWdAkI cf{uHo~qWBJ@B@DBJ@P?P cj{uH_gqWj@sE
+Katoenstraat 0 23 cg~uHcorW@Nj@`DN|@
+Kattestraat 0 82 _e|uHinsWLWj@{@Zk@fB{C mk|uH}gsWPA@Cz@{@x@{@bAmA a_|uHewsWNSd@c@t@_@J_@
+Keienberg 0 8 ec}uH_}vWFE@?p@]NGLIJMA]OcBo@cG wf}uH_{vW^QZO {d}uHa|vWn@[DA
+Keizersplein 0 76 }x{uHq{rWf@_ATO~AeDFM qj{uHytsWVm@BEBIHO qy{uHkzrWRe@ qj{uHytsWm@dAEFIN{ClGKR ws{uHucsW|A{C`DsGDKDMXyA mz{uH{yrWFCRK wq{uHyhsW_ApBEHER
+Kerkhoflaan 0 74 mczuHyirWBOT[ o~yuHkorW_C`CCB sbzuHekrW}@sCAGACCK aezuHeqrWFR wmzuHkgsWDPjBpG@P^jAFJXbAtAxE@B@DDN
+Kerkstraat 0 21 {z{uH}|sWF[RcEFC
+Kerrebroekstraat 0 136 oi~uHggrWBt@HpBF|@ ud~uHmcqWHAJGJK~@_CBEDAD?FDV^Z`@FDHB od~uHc~pWx@iBBC\MH?LCFCLO^w@DGBIDW ol~uHceqWf@pAFPDABE m`~uHa`qWOc@KY uh~uHiuqWAD?B?FAf@?\?f@BzCLp@Lj@N|@B^ uj~uHgbqWDGp@_Aj@w@JI eg~uHqfqWDNFNl@z@HDH@ u~}uHyeqWN@F@D@BDDF@Dn@`B uh~uHiuqW?C?C@YVmB?SK_A?E yh~uHa`rWPlB
+Klapstraat 0 17 _m{uHgetW[s@i@sAI]a@sC
+Klaterbaan 0 62 oa|uHk_yW@L?R@LvA`GfBpHd@pB
+Klaverstraat 0 52 i`~uHqzvWgDzE {e~uHgsvWe@l@u@jAENg@t@y@hAOPABAD?D@BDLXv@b@jAXz@
+Klein Parksken 0 5 {z{uHsyqWdCQH?HA
+Kleine Hoezekouter 0 20 ooyuHqprWUX_CrD]f@QXOXEH?b@ kvyuHyerWb@hA@BB@B@B@@?@ABA@C@C@C?C?C?E?EACAC{@kA ooyuHqprWBIF?
+Kluisdreef 0 6 iezuHguxWGKAAMSo@eAcDgF
+Koningin Astrid Park 0 24 cb|uHgwqWN[N[NYHMT[f@k@VOVK`@IL?H? ca|uH_yqWJVPb@RXLLTPVLVHb@J {z{uHsyqWEaC qz{uHavqW?A?_@COE_A y{{uHetqWJ?RSF[?K
+Koolstraat 0 127 ay{uHkiqWGGAAGGYWqByAeAeACCOMa@a@k@w@Se@ {c|uHgtqWDIp@uA oi|uH}grWDX _j|uH}hrWHLDP ii|uHcgrWtA`IBV {c|uHgtqWIWEQGSEQk@kCCMEW
+Korte Binnenstraat 0 22 u||uH}tuWc@nA a~|uH{quW_@jA
+Korte Lindenstraat 0 45 ec|uHglpWCJwBzL
+Korte Moutstraat 0 0 wu|uHottWLQd@s@VYDO wu|uHottWYf@
+Korte Nieuwstraat 0 12 }u{uHeksW@Nj@xDBDFJ ct{uHidsWJR
+Korte Sint Janstraat 0 40 uwzuH}ytWmA~Au@gBSe@
+Korte Vooruitzichtstraat 0 43 my|uHqfpWEFEFSVGHeB|BOZK^G^SvAGP
+Korte Zoutstraat 0 63 so{uHw`tWzD~GNN gi{uHgwsWT^@@@@NTPX
+Krekelstraat 0 20 wj}uHmgwWEUESE_@m@mDCSIWc@eB in}uHwswWAQAS?U@SBSBKHQ
+Kriekenlaan 0 22 w}{uHqqoWP?FFNb@?HIHEAY}@GMwAcEWm@KICAII
+Kroonstraat 0 33 kd}uHijwW}@}HCUYiCAY gh}uH}ywWD`@XjCBT
+Kruisveldstraat 0 17 {l}uHyowWLKvAgARMRKZKLEXM
+Kunstzijdestraat 0 0 u~}uH}trWLhA@HHp@J`@JJJB ab~uHiksW@V@`@?L?N@PBZBb@VlCl@jGVfC w|}uHeorWH?L@N?F@F@
+Kwadesteenstraat 0 16 }|yuH{coWp@w@r@y@~BcBb@a@LUb@gBH]VcAx@cD|AcFDU?U
+Kwalestraat 0 32 eozuHqhqW?P?PARAR_@rE?R?n@HpH _pzuH{spW@r@@b@DhAJxAHl@XpBb@hC`AvEx@lBTb@
+Laborstraat 0 27 u|{uHehvWBNJv@|AtC\jAF@Ta@EOu@[
+Lambrechtstraat 0 65 uq|uHabyWDdF@tBDf@ cp|uHwqxWG]QqAIU gq|uH}uxWC`@@~A
+Landbouwersstraat 0 30 gk~uH_juWRrH?xA@T@`@T|ERZRXFL
+Lange Zoutstraat 0 59 uv{uHa}sW\I`AYTGl@Ub@YXY wz{uH{{sWn@I^Gp@S
+Langestraat 0 116 _l|uHuvxWe@|BGh@QnHGdDAREx@]|CGd@QvACREN oi|uHk_yWCJQ`ASbAe@bC
+Lazaretstraat 0 21 wg}uHeftW@A?C?C@C?CAC?C?CAAAC?E?C?C?CBWBSAQCy@EgBGSGK?[D_@Fy@Fy@?E@[@[?SH{@Ba@CKRqCKMAA
+Ledebaan 0 223 uq}uHugqWNMFGHGPQRU@ADEJOVe@JOR]z@wALQTQNKRK uq}uHugqWGDA@ABu@^a@Po@VuAh@IBIDC@MFQJc@V aa~uHuupWU\QZm@rAy@`CUdAQtAW~BMfA a{|uHe{qWI\OL_@RsA`AuAp@ ky}uH{upW?e@@eBBSDyG yu}uHe|pWm@Tk@NQB }h}uH{qqWx@e@NGZMpBy@ _h~uHabpWCROf@kAn@ {{}uH}aqWh@`B qz}uH{~pWFR?TEZcAlBGREHGHIHIHw@^k@T
+Leo Gheeraerdtslaan 0 1 ke{uH{wuWMF?@UJk@l@KH g~{uHkduW`TmOXQBA gh{uHmuuWVEj@U@CNQ
+Leo de Béthunelaan 0 116 ydzuHqprWRKpAk@f@[`@c@h@u@R]Ti@ aezuHeqrWWFkBz@aCbASHeChA c{yuHi|rWH]DK@GDO {zyuHy~rWENENMl@ ovzuHegrWRI|BcA wmzuH{krWRIdCgAfBu@ZM q{yuHe{rWLc@ u|yuHgxrWBI q|yuHqxrWLa@Pq@ qbzuHurrWMLIB_@PWJ _pzuHujrWr@[RI uszuHmirWkAf@UJ _|yuHq{rWMf@Sn@Sd@MVOTSXSVQNQNSL]N u{yuHk|rWIX arzuHijrWs@Z }qzuHsirW|@a@
+Leopoldlaan 0 92 u_}uHepvWYV {u|uHcvvWYL}@b@YT m{}uHuhuWHKFK^_AJW\q@ sw}uHmpuW[h@ kk}uH_bvWLQ^i@ k_}uHiovWNODE ug}uHwgvWg@p@ sl}uHwavW[`@ o{|uHwrvW[LMF y||uHarvW]NQJk@^ an}uHy_vWIR my|uH{svWk@VUJ ae}uH}jvWa@h@ om}uHu`vWQZ _l}uHgavWRW }i}uH{cvWd@o@Xa@Z_@ u~|uH_pvWd@Yf@WHCVKlAm@ ox}uHcouWU^Wf@OVOZO\M`@ cf}uHsivWe@l@KL oc}uHskvWLONM kb}uHwmvWk@h@ABg@j@ wx|uHosvW~@e@BABAZG o`}uHmovW{@t@ ko}uHo|uW`@s@j@{@ _`}uHynvWLIDE kn}uHe_vWk@dAk@hAu@vA ag}uHmgvWRYV[TYRYZ[ }h}uHefvWWZ_AnA]`@ yr}uH}wuWi@`Ai@|@c@|@a@p@ qx}uHwmuWHS gx}uHknuWxBaENUlA{B@ER]HOb@{@ ua}uHkmvWFEl@g@ qb}uHqlvWZY }l}uH_`vW\g@
+Liefdadigheidstraat 0 4 _f}uHgatWU}@a@_B
+Lindenstraat 0 109 {_}uH{zoWiAxCOj@IXGTADAJ?D?F?LDR _k~uHu~oW~AlEx@t@\ZXX|CtGDBH?|@UD@B@n@|@JP~@jAHH mu|uHo~oWsA`BKN[Z]`@qA~Aw@}Ai@}@ wp|uH{`pWTGzAyB
+Lokerenveldstraat 0 52 qsyuHydsWBJ@FFLLRjAbAhDdBt@^r@f@tAz@N@tA`AlA|@nB|AFDDJ?PKnCAN
+Louis Camustraat 0 35 edzuHcxxWHLxDvG`BxBPz@Fr@ ezyuHsgxWqCdFMJOBOEMMg@yAC]D[P{@dB{F
+Louis D'Haeseleerstraat 0 59 yb{uH{rtWEFc@l@ eg{uHcmtWyDzF so{uHw`tWBS~@gBNS cd{uHeqtWaB`C
+Louis De Rijckestraat 0 22 qb~uHqivWu@yBCI?M sb~uHofvWUaAV_@tAwB
+Louis Paul Boonstraat 0 35 }uzuHwstWCFY^UPi@x@I\[f@[d@
+Maanstraat 0 39 gc{uHuhtWB@rF`A
+Majoor Charles Claserstraat 0 18 }}|uHsksWBIlAwCdB{E\g@
+Marcel De Bisschopstraat 0 9 {jyuHcmrW^TdAf@t@Xp@Pl@JdALh@Br@?hAEdDSnBCTV
+Marktweg 0 32 oc{uHmlqWFCB?FGDMJO {g{uH}qqW[Y{@u@KMM]WsAAGACCO oc{uHmlqWyBy@KGGKEK?MAK }b{uHglqWQE eh{uHapqWH{@
+Merestraat 0 110 }w{uHa{pWt@~A@DDLl@~C`@hCFn@RdBN~A@FDf@ cq{uHy~oW?x@?jA@fA@bA?TBlA@J@n@DfB {q{uH}dpWJlADj@Dd@?b@ yp{uHy~oW@WCwCE[ aq{uHeepWYF gp{uHanoWIwC?KEyA?GCoE?G@y@ {y{uH}}pWBBXZN\ mx{uH_|pWLa@ mx{uH_|pWN\ kz{uHc~pWND qt{uHmrpWOHGH_BvD
+Meuleschettestraat 0 89 oy|uH}yqWXs@zCiDHMHGnAyAlAcAJIlBWBA@? gj|uHsgrWDS@G?M gj|uHsgrWJCBAFC
+Mijlbekelaan 0 36 cf}uHsivWIKMUsB}Co@{@S[_AuAcBaCOUKOU]e@_A[gAQgACQIm@ ew}uHkcwWJ`@@JHj@P`AZdA^t@^l@FHRT~CvERZlAfB`@l@JPXx@FT@DDL
+Molendreef 0 62 om{uHavpWc@FO@ om{uHavpWf@IbDo@b@G^ILELS _x{uHa}pWo@e@CAEE cd{uHgypWLwA sw{uHw|pWKI yy{uHo~pWMK co{uHwupWOKqFkEMG
+Molendries 0 32 _l|uH{xtWAACAoA{@MKGG _q|uHm}tW@KA[ ko|uHo{tWGGIKKMIQKI
+Molenstraat 0 83 {{{uHi}sW_@s@_@iAGIUWGI mf|uHustW|@b@b@b@`@t@Pf@Pj@N|@Bd@Hx@TpBJh@@L@F
+Molslastraat 0 8 qqyuHudrW@FJRt@dB
+Moorselbaan 0 258 {u|uHcvvWAYAQCSGk@Ec@Ek@Gu@Ek@MmBEe@AUKuBAY m||uHk}wWAg@GaAIkAM_AK_AWuBcAuFcAeGM{@K{@C_A mt|uH{guWDE@EFQTk@h@mA~AoDBUGoACQGg@Ek@K{A?a@G_BCeAAKAKEW[iAEWYqA ky|uHgnwWISCIK[M]EOGQ }x|uH}jwWBX@PR~DBPDv@FfADl@B\BVJnAJ`A@J@BJT m||uHk}wW?bA?^?~@@`@@Z@X@TBRBVF\FVHZHNBHDJHZDH _z|uHonwWDT a{|uHarwWI[G[Ec@C[?Q ix|uH{hwWEi@C]CUCQEOAIESAM }{|uHkvwWC[?a@A}@Aa@GaA su|uHauvWGa@ qr|uHwhvWEQEUIe@OcAEWE[EY it|uHwovWU}ACMCOESCK yy|uHymwWH^BNLj@ {t|uHafuWFi@DO qu|uHstvWAM
+Moutstraat 0 16 es|uH_xtWh@AHEHI gq|uHqxtW@B@BBB@@FDBBB@D@B?~@DH@LJB@FFBDDFBF _u|uHwxtW`@HVL
+Naarstigheidstraat 0 151 wc|uHivpWiA~ECL em|uHizoWlAeFBM sj|uH}apWDO`C_KDM sb|uHoypWjAcFFU em|uHizoWKZ]t@W^ wc|uHivpWb@eB
+Nedersteenberg 0 23 mu}uH}suWGKAAsBuDCCE?}Aj@
+Nestor de Tièrestraat 0 55 kf|uHclrWAQs@cKCY
+Nette Coessensstraat 0 0 wl{uHkfpWAYOoAi@wEQ}A@cA?G
+Nieuwbeekstraat 0 149 av{uHgzqWNKBE`AaAVWpBuBDG a_{uH_nrWiH~CKD wh{uHyhrWIDk@\GDGF}BtD oyzuHeqrWKFQJsCpA
+Nieuwbrugstraat 0 24 {i}uHw|sWFX cl}uH{dtWDN^rB }j}uHw`tWDV@@Hj@DTDPBP
+Nieuwstraat 0 64 mz{uH{yrWEe@Ia@Ca@QiBMiBC_@KeDEaA?e@FYBy@ k|{uH{osWF{@JkA
+Ninovesteenweg 0 83 {uxuHejsWK?o@FSBk@B[B[Bm@Ha@DsD\mBRqAH]BS@U?UBu@FQ@
+Oliemolen 0 55 aq{uHkxoWI@C?yAd@K@ICIGGIM? _v{uHwwoWASSgCWg@CGc@y@?AAAA?CAA?A@A@A@OTGH }y{uH}~oWy@cB`@q@ }y{uH}~oWaBlCt@zABFJVT~@zBwABCBG
+Onderwijsstraat 0 3 sx{uHmptWALCL[r@EF gz{uHimtWEFIBQDK?eAOG]CKm@yB {y{uHumtWKJ
+Onze Lieve Vrouwplein 0 20 }o|uH}xvWE@G@_@H su|uHauvWXGP? wk|uHqyvWS? al|uHwuvWXK ao|uHutvWXCRGXIVK kl|uHqyvWY?W@w@LGB wp|uHqtvWTAN?NA gt|uHiuvWbANj@F kq|uHoxvW_@LYJ cv|uHcxvWD?lAG@@@@BF@H es|uHuwvWSJc@TC@YL gu|uHssvWJClAQDEBI
+Onze Lieve Vrouwstraat 0 5 cd{uHeqtWk@sB
+Osbroekstraat 0 58 iszuHoltW~CsBFC\UDC iszuHoltWkD`COJ }lzuHaqtWBC
+Oude Gentbaan 0 26 {c|uHczoWOh@Od@c@|Ai@lB
+Oude Vismarkt 0 8 sx{uHmptW?MI}@DOGm@
+Ouden Dendermondse steenweg 0 84 {{}uHgiuWEEYS m{}uHuhuWMQ {|}uHajuWBNBLDJDJ {|}uHajuWQHaBz@KDQ@gAM_AMkAGcA[a@K
+Oudstrijdersplein 0 4 ea|uHa~rWFCVOLOHYAIHi@Ee@AI
+Overhammedreef 0 15 ijzuHehxWNVvAtI|AxJVbB
+Paardendries 0 15 it}uHivxWt@g@VU
+Parklaan 0 140 ezyuH}asWCOCc@K{AEm@Ik@EYESI_@o@oBaAwCcCqHw@cCi@gB syzuHqeuWFDH@ {gzuHkgtWKYACaBaF ghzuH}ftWfCvHdCpHfBnFH\H^Jj@ ayzuHieuWh@CP@FBHBLFh@n@Tj@j@~APh@fBnFz@hCHT uhzuH{gtWL\ wfzuH{dtWc@oA klzuHsqtWIUM_@m@iBmAoD[_AaAsCWk@g@k@IIMEMCMAG?I?]@KDEJ q{yuHyhsWFl@Bf@FtA kkzuHkotW_@gA }zyuHmcsW@b@?B@T ylzuHeqtWbChH
+Passage Pieter van Aelst 0 20 }|{uH_nsWsCA qa|uHansWQ?e@\E?SUCCIGMC o|{uHansWM@
+Pastoor Lauwereysstraat 0 24 cf|uHwlvWh@fE
+Peperstraat 0 19 _e|uHinsWAQK[]iAcAiD oh|uHkwsWuB|ACBGJ
+Peter Benoitstraat 0 24 ii}uHyurW|C~FHJHBj@DRD wa}uH}lrWFSHK
+Petrus Van Nuffelstraat 0 49 ee~uHiawWBGfDaFXc@xCmD
+Pierre Corneliskaai 0 19 {i}uHw|sWIJCD[d@}DfDcBxA_Ax@WHUDYFaBVI?sAGMCMCEC gv|uHimtWGFmDvCoDxCaCrB {i}uHw|sWHIB?RCNExAoA ya~uHwpsWKIKSAG ud~uHqqsWVDTFXLRA ya~uHwpsWD?TB^BB@FD
+Pieter Coeckestraat 0 88 qy|uHsyrWGNm@bBg@rAWt@EBoBhBGH gv|uH}asWGf@Up@kAnD
+Pieter Daensstraat 0 29 _k}uHehuWKqAC{@@e@QqF
+Pieter De Bruynestraat 0 55 }h~uH}nvWt@xAL`@FZ@J@H?XAXI`@KPEJgApAe@j@OPSN]RcAl@KDQ@O?S@
+Politieke Gevangenenstraat 0 15 ir}uHwquWGa@c@y@AAEM gp}uHwjuWo@uDQi@ mt}uHmtuWFJDD`@t@RL
+Polydoor De Paepestraat 0 34 ao}uHwvuWM_@_@y@ACGM ao}uHwvuWXVNFv@JnDXLB mq}uHeyuWHJHD^j@VN
+Pontstraat 0 68 _n{uHirtWMNORm@z@A@CD _n{uHirtWNSv@}@JOj@o@Xa@n@u@FI qp{uHaotWABGHGJcAxAa@h@ITm@r@
+Pontstraat / Houtmarkt 0 0 mg{uH}ytWp@q@
+Posthoornstraat 0 93 gc{uHccqW{E{B cj{uH_gqW{@a@IAaBu@OIMOOOIMMMYa@Wu@U}@GWCKGU
+Priester Daensplein 0 7 wy{uHadtW@@FFFBHBFARCJC sw{uHyctWHCDCHMHQNq@@I@IAICG
+Rammenasstraat 0 8 _oyuHkhrW|@rB
+Rapenstraat 0 30 k`}uH}wuWBE@Cx@aBLIfBsA
+Regelsbruggestraat 0 91 _b{uH_{pWu@_@ kk{uHy`qWsKwFECCCEC uc{uH_|pWuFyC
+Restert 0 63 slyuHcyoWpA\fAf@^h@Zr@N|@NrAJj@TpAh@xBFVJd@U`BRfAAV
+Roklijf 0 48 ig|uHgqoW}@_B}BaE em|uHizoWsBuDAI?IBG
+Rooms-Hofstraat 0 0 u_yuHw`vW]IIC}DcAqG{A[M
+Rozemarijnstraat 0 15 y~{uHibtWd@s@HGHEHALCh@IVG
+Rozendreef 0 97 {w}uH{dwWAd@ ez}uHeowWMo@AGqAmGKi@eBsL ew}uHkcwWGMMa@ wy}uH}mwW\`BNx@@T?VHr@@b@ on~uHajyWNrAB\Jf@z@pCf@tAn@pBpAnDLZ wy}uH}mwWMg@ }w}uHucwW?R y`~uHihxWMi@_AoCiAiDIS
+Rozenweg 0 29 sn}uHauvWBM@IAMg@kCcByI wo}uHszvW_An@K\
+Rustoordstraat 0 23 iq|uH{qxWo@AYAKBk@C?s@Z@LRL\ iq|uH{qxWd@BdADNB
+Schendelbeekhofstraat 0 36 ky|uHgnwWBCBChFyDTYPe@
+Scherreveldstraat 0 55 wzzuHyktWEQ?KgAeEy@aD
+Schuttersstraat 0 0 gc}uHuhtW^zAXhA
+Sint Janstraat 0 56 __{uH_xtWv@iAXa@pAiB __{uH_xtWw@hAEFKBCAG?
+Sint Jobstraat 0 192 ia{uHafsWHj@Tv@FTDDf@|Ab@`BxBhIDPDRdAlFFX?@BL }ozuH{lqW@HT~B wvzuHygrWFR ovzuHegrWBNn@hD|@nEn@~CHv@\tD@H }rzuH{zqWc@\IH{@`@{A|@ ia{uHafsW`AcF@I _pzuHimqW@L cpzuHcnqWBX
+Sint Jorisstraat 0 32 ut{uHqrsWGqAC}AGeAGq@Eq@
+Sint Jozefstraat 0 23 mp|uHoprWHKLMfBsBdAmAp@w@NO`@aABIBG
+Sint Kamielstraat 0 75 o{zuHqftWWfCGl@Ed@CPCHe@tEA`@Aj@UnFADADCH o{zuHqftWAST_CBS
+Sint Martensplein 0 7 gz{uHimtWLhADL ey{uH_ktWAKSiA ey{uH_ktWGDEF sy{uHqjtWEHCNKxAARDd@@JBHFJ av{uHygtWIYGOEMOSSWICIASB
+Sint Ursmaarstraat 0 16 y_~uHshwWy@mBAEw@k@s@_B
+Sint Vincentiusstraat 0 44 up|uHccvWE?G?C?EBu@N}BDy@BM?
+Sinte Annalaan 0 144 qz{uH_}pWQICACAEECCa@[ wi|uHgkqWeDsD }n|uH{pqWIIsA_B {q|uHetqW]_@oAoAsAi@UI[S w|{uHs~pWIC}AqAQWgCkCMOe@g@QGkAmAKK
+Sinte Gudulastraat 0 56 kg}uHkcuWf@gO@Y@W@]FgE
+Sintelstraat 0 13 exyuHq`pWx@~AVl@Vz@RbALbAR~ALnA
+Slotstraat 0 69 kx|uHinuW@C@Al@_ALWFQAe@UiEG_AEi@Ii@Mq@Y{@MYGQ
+Sluierstraat 0 5 sw{uHyctWHtAJz@FdA
+Sluisken 0 28 uc{uH_|pWJoE@S yb{uHyhqWEpAGbB
+Spaarzaamheidstraat 0 84 ap|uHcjpWFIl@y@ yd|uHmfqWKXwAtF wk|uHospWvAgF kn|uHglpWDIlA}E
+Spinnerstraat 0 11 {|}uH}irWFIBG?QS_AAS@O@GBEDQ
+Spoelstraat 0 15 {n}uHmnvWv@_B sp}uHylvWP]d@U iv}uHykvWFQXo@RYNIPEN@PFLJl@t@ sp}uHylvWFDH@FC\w@ cm}uHmqvWN]
+Statieplein 0 13 cu|uHq}sWGP{@dC gw|uHyxsWj@r@ cu|uHq}sWLZPTJL {u|uHewsW\{@ }t|uHaysWd@oA
+Stationsstraat 0 34 }t|uHaysWjFnKHN@D
+Steenstraat 0 36 sd|uHevqWKNi@jA{AlEGVIZ
+Steenweg naar Dendermonde 0 0 _z}uH}lrWJ?FEFEDK ux}uHwnrWAIAKEMEIGGIAI?GBGFEFCHALAB uz}uHomrWDFFFF@ }x}uHumrWDO@Q _{}uH_orW?J@J@JDJ
+Steenweg op Dendermonde 0 0 {b~uHg_rWRU`A}@n@{@d@y@z@iBRe@Tm@F]@O ki~uHy~qWu@Dy@?k@Ai@Ea@Ec@Ge@K_@Km@S_@Ms@]g@Wk@_@}@s@}@{@{@aAcAyAsAyBe@s@ gh~uH{~qWc@@ gh~uH}}qWjAIL@FA gi~uHy}qW^C uz}uHomrW?p@Sh@Qd@g@bA ce~uHg_rWWBkAF ic~uHg`rWKIO?KFKLER {c~uHy|qWJLD@NDN@JAJB eh~uHs}qWP?HBNBZLVPHDPF^F\@XK gi~uHo}qW`@C ij~uHo}qW`@? s_~uHocrW]^[Z[TWNGD ce~uHg_rWAN?NDRHNJHL?HAFGDGDKBO?OAO {b~uHg_rWCQIM y}}uHafrWi@~@OP c}}uHigrWUf@ gq~uHa~qW`@D^D`@Bn@@P?v@? ij~uHo}qW`@I
+Stefaan De Jonghestraat 0 49 uvzuH{isWAJEv@A`@A\@j@Dj@Fh@DVrBnKFP
+Sterherenstraat 0 3 mg{uH}ytW]u@GM?YQc@
+Stoofstraat 0 16 sx{uHmptWTATYD?Zx@Tz@^~ADN
+Ten Berg 0 41 sn{uHayxWAH?d@@FbAjCXx@
+Terlindenstraat 0 21 it|uHuqoWwBwH
+Tragel 0 20 so}uHcrsWKJy@t@uCbCa@P[Hq@DqBGw@?u@CQA ab_vHensWr@BvNj@`IZ^Bj@BdAF ab~uHiksWN? yi}uHgwsWCBg@\ ek}uHevsW{@v@EDkAbA ih}uHkxsWQJ]V
+Tramstraat 0 11 oe}uH{_tWEQIYOGKEMGMEIAIAK?K@E@GB_@VCDADEB
+Treinstraat 0 15 kf|uHefuW}@rB]jAe@rBYvAENADC@ABC@A?C? g~{uHkduWEQAAAA?AA?}E]CA ue|uHcfuWM?GA
+Tulpstraat 0 25 a}}uHsduWFDBBhCfCHRDX uw}uHa~tWDZ {w}uHs~tWDP
+Twee Hagenstraat 0 32 ue}uHk|uW@EfAkHD_@TwA@[?I?YAE?C ob}uH_lvWAQ
+Twijnderstraat 0 22 y`~uHghrW_AkF
+Utopiaplein 0 0 ol|uHktsW~B_BBGAEUmACMG]CGAM??AIA@AKKBQBFBHb@P@IvC_@C?@QA?C]AA`@@n@
+Vaartstraat 0 7 uj|uHiptWFn@?F?f@Cd@KvA }j|uHkitWEdAUrD
+Vakschoolstraat 0 48 of|uHi|qWMJUPY^q@hAy@tAgAfBKPIJEH
+Valerius De Saedeleerstraat 0 109 ea}uH}mrWDJTlAH`@Dd@LfADp@D\Ft@dAzCTb@JTLP we}uHa|rWAQ??@S@S@K oy|uH}yqWq@g@ ea}uH}mrWEKSw@cB}HSaA
+Van Geemstraatje 0 1 c~|uH{ksWe@fAABKLABe@~@
+Van Langenhovestraat 0 10 ed{uHk}tWHIBCDEr@q@PQFM@CDK
+Van Wambekekaai 0 1 ud|uH{xtWEPCV?D?L md|uHewtWCKCU?S ed|uH_{tWCDCLGn@
+Varenlaan 0 21 cr}uH{crWhCgH`AeCPc@z@kB of}uHo{rWyAtD we}uHa|rWGBGBGH
+Varkensmarkt 0 10 gq|uHqxtWAEAI?EAGBgAAMAG mq|uHm|tWBIBGBE@G
+Veldstraat 0 13 gv|uH}asWBe@?W@qD?EBG
+Verastenstraat 0 26 yd|uHmfqWDSrBwGDM
+Verbrandhofstraat 0 53 y`~uH}dtWJIBC ud~uHedtWCa@AMA[ESCEEGa@I cc~uHaetWKFMDQH od~uHidtWRHLDHB k`~uH}etWODCB u_~uHyetWNDhB`@`@H\FJ@F?D?LEFA of~uH}gtWcGwAIUEQ od~uHidtWEB i`~uHketWJIFC u_~uHyetWIEK@
+Victor Bocquestraat 0 6 cf~uHmrsWHBJF af~uHcssWa@B cg~uH_ssWHFTH ge~uHcssWY? op~uHwssWtAFdELN@
+Vilainstraat 0 55 }h}uH{qqWi@eBEOKe@ yj}uHwvqW@M|AiCBKD[n@uBRq@Pq@f@uBr@yCD[
+Violettestraat 0 23 a{|uH}|tWIVSdEAP
+Vlaanderenstraat 0 25 qx{uHwkrWEaAk@eH cz{uH_wrWI}@?S?I
+Voldersstraat 0 1 qt{uHywtWRTHNDJ`@lBDN er{uHirtW?HLr@RbA
+Volksplaats 0 14 _i|uHwzpW|BhBh@b@ }g|uH}}pWhDlC
+Volksverheffingstraat 0 110 ef|uH{npWIGgDkC_@_@uBeDqDoI ef|uH{npWHFtAjAvAfA`@Z@@FF
+Vooruitgangstraat 0 18 cv|uHmosW?yEF]
+Vooruitzichtstraat 0 93 }l|uH{bqWbAqDXgAFQ _t|uHyqpWDMdAmCd@_B\mA oo|uHc|pWpAwE
+Vredeplein 0 18 mz{uH{yrWg@m@iBfAMJELEl@ y_|uHyvrWJITMxBoAB?B@FB
+Vrijheidstraat 0 60 mk|uH}gsWLb@r@lCz@rCL`@DLHHJJbAp@nAz@TNRNLH y_|uHyvrWNNLNL^LZDJFP
+Walstraat 0 0 ue|uHcfuWRpE ae|uHq_uW@R
+Watertorenstraat 0 64 eyzuHahtWB\x@~CjBpHDN ayzuHcgtWCHAFEDGDKAm@I eyzuHahtWMQ]sAAICG
+Weggevoerdenstraat 0 33 i`|uHgzqWEKiAsCXa@BCLOVQn@_@rBgA
+Wellekensstraat 0 62 mp|uHoprWCBA@C@C@CDkBvA}C~B iy|uHgirWgCzB q}|uHkerWm@f@
+Welvaartstraat 0 161 eb}uHquqWBLdC`KJ`@ ib|uHgzoWMKGGIAGFIP {c|uHczoWFJFHFF@@JF yy|uHk}pWJV`A`C _t|uHyqpWFNjBnEHT st|uHcspWHRHT kw|uHqxpWvAlD oo|uH_ipW\v@j@hAhArAFJ o}|uH_hqWnBbIDN ap|uHcjpWLVBJ ag|uH_~oWxA`B@BHT sj|uH}apWFFhBtB
+Werf 0 11 ql|uHavtWFT kk|uHurtWAEWcAAEAE ui|uHoptWI@I@K@ uj|uHiptWG[I_@AEAI wd|uHawtWGBEDGPKx@ST mf|uHustWGFo@l@ eh|uH_rtWg@j@GB
+Weverijstraat 0 58 }{}uHqztWNfB@l@TdD@LBJ`AbJ@F?H
+Wijmenput 0 53 qp}uHuetWDPZjACBGFe@\GFiA`AYVA?_@RSJc@LOFE?A@A?AAAACAACACK_@Em@ _y}uHo_tWQkB@S?M
+Wijngaardstraat 0 53 _l|uHuvxWX\\f@n@vAl@|AvAjD^dAj@dBTp@
+Windmolenstraat 0 38 eg{uHcmtW|AnFNRD@
+Withuisstraat 0 29 or{uHgnrWMH_D|AC@GD
+Zavelbaan 0 103 i~}uHycvWMl@WhAQ`@Q^SVSTaCxBwAnAIHKPERAN?RFnA@TAPANCJoA`B
+Zeebergkaai 0 4 ye{uHwquWHG@ANOJAJ@ZJLGZ]RWf@cA
+Zegepraalstraat 0 1 g~|uHwntWJ^|@lD
+Zijpbeekstraat 0 13 }s~uHqoqWb@OPDJC`AYbEiA yh~uHosqWM?MJ ui~uHcsqWLNL@
+Zonnestraat 0 80 gi{uHgwsWBQBGRc@@Cn@uAJWp@yAHQH[Nu@DgAFcB@S^_I
+Zurendries 0 26 }syuHqfpWG@IHMVy@|AKNa@l@UXiExFqChDSVSL
+Zwarte Zustersstraat 0 18 a_|uHsbtWCFEBk@R]HeAZk@RIB
+Zwembadlaan 0 0 {x{uHgnwWTxAVxA`AtFLx@Bj@?D@h@@D?b@ at{uHa{vWAc@ {x{uHgnwWMs@YeB_AiFi@gDc@uCEQ ct{uHe|vWAW?UAGAc@Gc@Ie@a@_CAE]mBMq@YgAUo@
+Ansmeerweg 1 12 kydvHm~sWFLVZlA|AbAlABDh@f@x@n@JJ
+Beekweg 1 0 kmfvHostWFQfA_D
+Berkenlaan 1 93 ysevH}iwW`CeCzByCxB{CbCkCtBuBPK sfevHmoxWfBzH u_evHg`xWM}AKm@W{@GIIAq@h@ kcevHqexWkG~FoE~EuCdD
+Bundelweestraat 1 37 _fdvHe`vW?I?I _fdvHy`vWBk@lBsG^{AJ_@@k@Ci@ ohdvH}ruW|AiFFUBc@YcC
+Damkouterbaan 1 18 yldvHkctWFO oqdvHwluWHxIJtA@Th@jIPpCPrAz@`GDL qldvH{ctWHS gqdvHo|uWERAD?|E?~F
+Denderweg 1 64 ywdvHogvWLIdA{Ap@PhAJhA@^?L?DA`@MLM g|cvHsewWjAcApG_GvEkE {kdvHsjvWNS kkdvHgkvWHMvAqELg@pAwBlBcDNSXi@ qjcvHcvwWDC^]b@U q`dvHi~vWNSp@_BTk@LYJSJOJK ghcvH{wwWDC
+Dijkweg 1 9 {tevHs`vWz@{Az@}AHG
+Dokter De Cockstraat 1 8 u|evHk{sWo@qAmBgECI wafvHodtWcBmDuA_DmByAy@o@QG kmfvHostWYl@]p@U^m@j@OPW^QX
+Drapstraat 1 68 c}dvH}yrWd@?XMp@}AVm@jBaEVo@^mA\}ADUl@sC\mBn@cBJO wedvHgrsW_@][Qa@O_AW]MQIOMUU]e@
+Eerste Bochtweg 1 1 u_evHg`xWHp@J^DH\d@x@rAd@x@\ZhAv@HF
+Essenlaan 1 10 qoevHobwWzBeF
+Fatimawijk 1 31 qjevH__vWfBhC }kevH_ruWh@kAhBiE^y@HO@G?GAEAECCEAC@CBCF?D?F@FJL
+Gijzegem-Dorp 1 27 ezdvHgfvW?KEOEEYc@U_@}@eBw@oBu@mBSY
+Gravin de Robianostraat 1 20 asdvHi_vW[t@Yt@sApDADCHiC~GwA|D_@hAIX s~dvH}fuWGAA?CBSl@AD@B?F@F
+Haynehof 1 12 kbevHm_vW~@gBCs@
+IJsbroekstraat 1 49 oqdvHwluWeAFBbBa@BQAOGW]EEOCQLu@fBIp@SX[t@]x@EDEDEBG? asdvHucuWD~AW@aAEYMQUsAsB gsdvHyfuWIqA }|dvHw`uWGCMOKMc@i@KKMI
+Kruisstraat 1 74 }_evHycuWI?{AwAU[mBcCe@u@GG inevHquuWkAsBy@}Ae@cA {zevHc|uWpAsBBa@DWl@_A qvevHm~uWTY^k@ qvevHqcvWUi@Ei@ uhevHomuWgBoC usevHg~uWe@kAo@yAEC }kevH_ruWe@u@e@{@
+Langehaagstraat 1 53 indvHaxsWJ_@Fk@Bc@?_@KsABc@Fc@BKPm@@C gldvHodtW`ByD|AgE^wATsAReAPy@Z}A@IRcAj@eDX}AHg@DQ
+Legeweg 1 21 q~cvHuluWCKRsBL_A q~cvHuluWFAr@TnDtAhCnBBF@HALQjA c_dvHgiuWBQHe@B]?W
+Mannaertweg 1 5 madvHumvWlC~B
+Meersstraat 1 20 }{evHu{wWTh@xAzD }cevH}xvWVlAFZJRNR krevHmfwWBH grevHcfwWNZf@~@\VpBvAx@l@~AfATPh@`@\XDHBJ }vevHkqwWbBlFJ\X~@FP mxevHotwWFPf@pA
+Meirbeekstraat 1 88 amdvHwzvWn@z@Zh@nAxBHFjC`ARFJ@L?PAJETMfA{@LKHMFEZOf@Cf@?F? amdvHwzvWR_@jAqBt@e@RCVD|@`Ab@Pj@A^MPCLB {advHk|vWUo@ m}cvHotvWOU]c@i@m@IOISEOCU?ECo@Cg@ gxdvHwhwWJFDFBBj@hAh@p@`@h@hAzA oqdvHa`wWbArAx@bANP qycvHiuvWf@Bz@L
+Meirweg 1 4 {|dvHyqvWHKhB_CFI@W?I
+Migrostraat 1 5 o|evHg}rWGBKH
+Mimosastraat 1 102 {nfvHu{uWlBuFFKHCp@Lj@P~Bn@fBd@HFDP?RCh@SxBEh@?LDPFHlA^hCt@L@HILU`D_H gefvHkxuWh@_H gifvHeyuWh@uH iifvHmcvWLcBNk@N[Vw@FYB[
+Molenhoekweg 1 11 ypevHufvWPa@fBiDd@u@f@s@
+Muntstraat 1 7 c{dvHkzrWo@xA g}dvHmkrWSsE?y@ {nevHmipWHWJi@Da@Fw@By@JeCBWBODOpA}B _revH{epWF?FCJMt@eAPY {}dvH{srWNgAVm@Ee@Ie@
+Neerhoflaan 1 42 abevHktvWaEnNmAzDwBlH y`evHkwvWAD_@jAEL
+Nijverheidslaan 1 4 emevHgbuWFBfAr@`@Pj@NLHZVpAhA`@j@JNFHrAp@dGxC
+Osseweilaan 1 24 ahevHywwWh@rA gaevHafwWqAyAOQ qfevH{twW~AzDPh@BRCPIR_@lAMLIBICQYcBaCQY _jevHgowW{@uB sievHunwWEGEI wfevHeuwWDH
+Ouburg 1 3 {|fvHuwvWHB
+Pachthofstraat 1 111 c}evHocsWGa@w@gEKgAEgABkAHgAL}@R{@n@sB u|evHk{sWhDeLzCgKJ]BIBKFOlCiJv@gC mkevHofuWBKDI ckevHeguW@GbAmDBIBI uhevHomuWDKhB_EhB{DJQJUf@aAxCsFJU y|evH_~rWF{@ q|evH{_sW?SAe@Oy@ uzdvHkevWBEFKBI
+Roland Monteynestraat 1 25 eldvHo~xW[vBqAzIAH _qdvHiixWh@gE midvHoiyWw@vE[lB {sdvHgkyWCY ysdvHijyWA] _{dvHcdwWML uodvHqoxWGCCCECEGEMASCs@KaAUuAKs@Is@Ew@UmGKgD iwdvH{twWIl@In@Eh@Aj@?fB?hA iqdvHwgxWm@|DSt@y@dDo@fCSx@ aldvHi_yWCX exdvHuiwWA\ _qdvHiixWIp@
+Schuiteplasstraat 1 0 gyevHqjpWJAb@@T@XDTLNHNPNVLXPVNLDBJF
+Spoorwegstraat 1 8 mqevH{vtWEAyCiA
+Steenweg naar Oudegem 1 197 q|fvHqwvWHB g|fvHmwvWpA^j@Vn@Xr@\lDnBb@T|@\nA`@PFr@T ezdvHgfvW\AB?H? a|cvHmguWvG|CbAd@ mvdvHsdvWX`@h@bA@BDH^t@FH@Bn@jAl@v@ yodvHwzuW~AfB`BhBf@f@rAvAzA`Bp@v@f@d@`@\ mwevHefvWVEj@Od@GhBLvEn@|@H`CNx@@v@?d@El@KdAYDAh@O wffvHglvWlJtC i{evHqgvWtAb@d@F yxdvHifvWXJ _xdvH}evW\RRT c_dvHgiuWHBvAt@ eqcvHiauWlAl@z@h@ _hfvHylvWf@P
+Vereeckenstraat 1 60 {|dvHyqvWDJZt@h@hAR`@^z@Vv@FV@NC\AR m{dvHucwWm@h@aAxBOb@G\@X gxdvHwhwWKb@EJMZA@KTABg@j@ s_evHu{vWTx@H`A@V q~dvHawvWFt@Jh@Xv@FN
+Waterstraat 1 38 c}dvH}yrWQEi@YYK[AoCRe@Lc@VcClAcAd@QP[^MNQF_@Au@MyAs@SOKMo@oAUi@e@_AOWOKQGWs@EK s{evH{}rW[R
+Aldegondisstraat 2 4 occvH}xsWF{ABw@Fq@Fi@Vy@^iA\{@ZqAVkAPeBDm@Ck@OeAAM?K qfcvHgssWZAXKVc@DS@EBUDaA@Q g~bvHkttW?MBQBO
+Alverenbergbaan 2 5 {x`vH{tsWASIu@kAmHMi@CK
+Anjersstraat 2 59 esavHqgsWi@tAGLiBjDI?E? qxavHa_sWcDuF?O|@sDvAwD esavHqgsWVm@DQBIAICKOUiAwA{BsC
+Babbelaarstraat 2 156 cqcvHgzpW@IB_@RuCL{@Ji@b@}AX{@f@{ANy@H_@FSj@}BfA}BvBiC~@aBt@uAp@kAd@mAJ[D[@U y|bvHwgrWECIIwAuB?OECAAk@y@_@u@g@}@q@iAyAcBQU_@w@Ik@Cs@KqDG_ASiAQ_@ clcvHwgsWIRWBa@Eg@Wq@m@w@u@[UQIKG]I qucvHslsW[G]B{@TUF]F]Di@BQCKC }ucvHaooWOUiC}Bs@{@o@kAYs@Oo@Ag@@c@Le@L_@BE mtcvHcopWp@_CNg@BGBEJMLoBDo@
+Bergweg 2 33 _h_vHsnsWY?WDKFMH _h_vHsnsW|DL {v_vH}dsWOPIDK?KAKGWMYOWSKK oa`vHkgsWDTATGP sa`vHmesWMVaClD kj_vH{msWMJYROJg@PcDhAaA\GDIFEFEFKZO`@OZ i}_vHyhsWMQIKCEA?CCEAGCC?CAW? o{_vHmfsWQWg@s@
+Bieststraat 2 33 _yavHsrsW[a@ECGCI?K@iAVuAd@oAd@_A`@_@PaA^UHMBI@EAIIMM[W okbvHcgsWZt@BDB@B@BA@CJyCBy@@aA _yavHsrsWDGf@eAt@{BBG
+Blektestraat 2 104 }e`vHkmoWLSrAyA\c@NYVk@f@aBd@}Av@oDJa@Tq@Z{@Ty@d@oBPaA?UAWC]Ek@ gq_vHytqW?EDOXcADUBUDgA?_A@iE eo_vHwjqWCOIYOi@g@{AEUAY?W@YFi@@E mh`vHaioWl@sA`@u@ _s_vHwcqWNYPWb@m@DEJSXg@@IBI@U?S uo_vHqcrWqAqAiAiA_E_EEE ox_vHgopWBiD?yB@WFQf@{@JULWl@gBDIj@eB ij`vHeeoWHSFQ wi`vHkfoWFMNc@Pc@
+Blektestraat / Dobbelhofstraat 2 0 ku`vHspnWJMh@aAxB}DbAmBl@sAFQDURcANq@ wj`vHadoWLc@
+Bosselingen 2 6 yfavH_ctWqDiEqBoDkGiN o_avHq|sWQK{CcC{@}@
+Bresillestraat 2 1 wpbvHyvnW?sC?iI
+Brokenlochtingbaan 2 2 }e`vHkmoWk@aBo@{A_@cAi@yBsA{GKc@k@sBe@kBs@kC
+De Naeyerstraat 2 33 _a_vHs`rWh@tG^pE?H
+Doorsteeklaan 2 3 y_`vHijsWG\ENEV y_`vHijsWDW@Cf@aDj@mD
+Doriksveld 2 68 gj`vHedqWMG_@i@Wc@O[K[Oc@WeAYw@MOOIOGKAMBIHm@p@GH[Z ok`vH_wqWU~D ko`vHumqWLSt@aANMPELDJTZz@LXPj@\z@HPDT@NCPSn@IFOTUf@CT@XAVETSp@Uz@g@bBGZ ch`vHwoqW}@hA _g`vHydqWGAMCKIIMKS sf`vHudqWKC
+Gooikenstraat 2 52 ej_vHqurWEVCNGZ}CzN }i_vHuvrWGb@
+Heerlijkheidstraat 2 46 qscvHwmsWC~@ clcvHwgsWvBgGFO@E yocvHstsWCDsAxC_@z@_Ab@ ahcvHupsWBEXu@PU amcvH_{sWnEvF amcvH_{sWa@hBWp@Yf@A@AD
+Hekkestraat 2 50 i_avHq~sWPC@Ax@{A k`avHaxsWBSDa@PyAD_ABu@?eAEuA?U?QFSFKFK[eAe@eAuBcDoGkJeFyGO?MJ_BhEIRiCdH e|`vHibtWIUUq@Ww@Um@ {bavH{ksWDe@RyATsBLoAFa@ gbbvHagtWKX u`avHawsWH_@ s|avH}ttWKXu@lB_@hAOh@w@fDCFEN
+Hendrik Consciencestraat 2 54 wh_vHuyrWFo@DoFDoEBmD
+Hof te Vierenstraat 2 3 amcvHqrsWd@L|An@PR
+Hof te Wachenenstraat 2 16 epavHossWFi@`@iEfIfCx@d@NLR\HX
+Hofmeers 2 22 sr_vH_prWMGI@GFGd@DXNF es_vHumrWPiA cn_vHqvrW]rBM`@ID es_vHumrWEP?NCVGHUpACP yo_vHuqrWUB}@f@EH
+Hofstade-Dorp 2 46 gm`vHc{rWt@uAJQNS ai`vHk{rWHAX[RUFIJW@_@EWKKUUIEUGM?GDSb@O^AN@HDJl@lA eh`vHaasWRcCD[ sf`vHa_sWNE oi`vHwxrWJgA@K {i`vHmwrWJi@
+Hoogstraat 2 111 ih`vHanrWAMAy@CqAAYEe@G]CGCKGMIQ _bavHgksWl@ZXLhDt@d@LJBf@T\Tn@n@hDfEPTHL {i`vHmwrWeBoBEEi@w@MQ gy`vHygsWDa@FiAZmC
+Houtzagerijstraat 2 25 gr_vHcfrWKXa@VMnAIJwAr@OHKCaD}CmAmE?A?G?K
+Huisebaan 2 3 occvH}xsWyAsDwAkD
+Kamdriesstraat 2 13 aabvHmuoWbCaGdA_CFu@ kbbvHwroWh@uA
+Kammenstraat 2 31 ib_vHchsWIrLAr@Mf@ ab_vHensWGtD?J
+Karel Van der Slotenstraat 2 114 mtavHs_rWx@K\AlABd@?j@@`CBJ?PED?VSrCaDPO c}`vH}jrW@CNQpDaFx@oAFIpByCx@iAPY qaavHcfrWbCoCBCDE yxavHm~qWP@ gxavHk~qWXA~Ae@
+Kasteelstraat 2 58 }lavH__sWCGm@wAOYMMkAwAc@i@GG giavH_psWAHAFyAjEyAfE q|`vHskrWKM{B_A
+Katelijnestraat 2 11 e`bvHamtWBBDBj@`@ZPJNZb@^n@V`@N^JNLR
+Konijnenberg 2 37 mu_vHscsWMAGAKQCEACEIEI eu_vHscsWC?C? ih_vHubsWyEMaEO
+Koningshofbaan 2 36 e`bvHamtWGImFaG}GaFmBy@w@_@y@]sDaBSE
+Kortenhoekstraat 2 138 ku`vHspnWIe@Ow@kAcGeCqMkBiECu@ qw`vHwqqWjA~BL\DP@RFbAHpABRDP|@`CX`ALn@Hn@Fr@@x@?d@Cl@En@Ir@Kl@Kd@M\Uf@ g`avHgroWn@yBV_ALq@NgALiCNs@|AgD^m@`@e@dB{AV[Ze@ _}`vHuzqWXHRJDJt@pBHVZz@\t@ y}`vHg{qWPLFB
+Kosterijken 2 25 uibvHcjsWF@NH~BrAzAz@JBFG^wABKD[XeA
+Krokusstraat 2 15 w{avH{lsWbBvBzBtC
+Kuipersstraat 2 92 yjbvHeosWCcA?K@OBMF_@Ro@vByGpA}D a`cvHklrWP_@z@yABCdAkBL]fAaCxAsD\i@X[VSx@e@TOLONQ qobvHgdsWDEFIHGJGjAg@PSFWB[BYBcABwAAW {obvH{csWFI@A qcbvH{ctWNg@HYBI
+Ledebaan 2 8 _k~uHu~oW_@RcA^e@XSZQb@oA|DGTEn@GVGLIFc@FIBKF
+Lindeveld 2 13 {a`vHy`rWn@dBVRhCfAFB~HbD
+Lindeveldstraat 2 43 {a`vHy`rW_Aj@KPELA@?FAH _s_vHwcqWIO}@wBOe@sA{DoA}CmBoDSa@KOk@WaAc@y@[ qd`vHy}qWoAi@uAm@s@UUX qe`vHajrWBFBDlBxG
+Maurits De Smetstraat 2 22 qaavHcfrWlBzHH^
+Molenkouterstraat 2 91 uo_vHqcrW|BrBRNLFJB ij_vHa_rWRB ui_vH}~qWL?b@?zAEPAPCbBi@tBw@PAl@`@l@f@ cs~uH{grW}CjBKBM?QEYSu@k@yAyA {y~uHc`rWf@T cs~uH{grW\OHQ mr~uHmirWGRM\
+Mottantstraat 2 47 }t`vHourWw@}AsCwFuCuFGUEWCa@
+Nederhase 2 4 {}bvHoluWE~GChBEhBI|C?DAJ
+Nekkersweg 2 4 mtavHs_rWKa@iB{Do@kA
+Noenstraat 2 20 g`avHgroW[VcBjDo@bAONgAfAg@t@YZg@T[b@uAfDAB o}avHueoWm@{A_@iAUaAU{@UkAKq@UeA[w@ u_bvHekmW@{@HeHHM|@XHKXkH@eBLaDXoF@_@Bo@LqJBa@ moavHo}nWOTMROJQLSBC?WEo@OiBi@w@]KI {yavHo~nW_A_Cs@eB
+Onegem 2 6 av~uHapoWqAxAW^YZ ez~uHkkoWa@NOFOLS^E`@?T
+Overbroekstraat 2 47 yxavHm~qW_AQkAa@oAa@k@SSISGgCaA_A[GAwBw@cAYq@SSAc@AyIZ gobvHiarWtAwD
+Pennebaan 2 7 sx~uHgmoWK]u@eEG]CICICK??a@aBWgAaAuEoBeJe@uAk@uAe@sAo@wBEUY_Ag@iBs@oAQO_Au@cAwACG
+Reutelaarstraat 2 4 wqavHq`pW_AoBaA}BO]
+Rozenstraat 2 26 {y~uHc`rWENQXaDzEkCbE
+Spuimeersenweg 2 1 qtavHmeuWAIGSgBeC
+Steenbergstraat 2 35 kw`vHo}pW`@uD?a@u@}D uy`vHgeqWMm@G]?OBE@CdAw@fBsA my`vHuopWM`A?Jt@vC uy`vHgeqWNz@Ad@GXQR
+Steenweg op Aalst 2 179 ih`vHanrWHXFN^r@DHHJJFHBHAv@g@ZOHAFAnA@V?XCLCLEVMTSLONUlC_GJQJMTUXQv@Sb@MLMJUDO wh_vHuyrWGRWx@EP wh_vHuyrWkB[ ep_vHq{rWHa@ cc_vHswrW_@Su@Wg@IYCYEAA kn~uH}grWg@CKASCOEWOQOs@i@aGiFqAaA{@o@UO{@o@
+Steenweg op Dendermonde 2 108 qfbvHshtWFHr@\J@ ki~uHy~qWu@Dy@?k@Ai@Ea@Ec@Ge@K_@Km@S_@Ms@]g@Wk@_@}@s@}@{@{@aAcAyAsAyBe@s@ giavH_psWoAk@_Bi@WGUQMIm@o@WWi@i@KMg@k@mDcECCq@o@IK e{bvHgttWH`@NJdEnBlCnAlAj@lCpAZNRJNE@CFI o|bvH_utWSi@CG }fbvH{itWQKoCqAy@a@eEmBkEsB{As@o@YSEMEo@[SSe@SiFeCQJKD _bbvHyetWJJtAfA wobvHymtW?X?D kkcvHo}tWNh@bJhE`@RLL y|avH{btWLFJBtTbH ej_vHqurWRXDD@BpAtBxBnDv@hA`AhAx@x@jA`Aj@\f@XpAj@j@Pj@Nv@N _dbvHygtWaASOE i`bvHaftW}@_@ ep_vHq{rW\VD@|@t@@@v@|@X`@HL e{bvHgttWp@X|CzA|CvAdCjA~CxA e}avHiatWw@{@ qfbvHshtWAWIO {o_vHs|rW_@WCAqMaI {j_vH}wrW{@aA_Aw@AAA?_@Y {lcvHq~tWn@`@ y|avHodtWe@OMA _bbvHyetWJBzAv@p@\ o|bvH_utWh@V kkcvHo}tWj@XlI|Dp@Zn@Z g``vHofsWJDrHpE|CjBB@@@\T k`avHaxsWwQ_G sbbvHgftWRL gbbvHagtWUKa@K e}avH_ctWJB _bavHgksW[S {bavH{ksWeDkBe@W }i_vHuvrW]g@ if_vHsqrWKO}@yAKMCGYa@ gq~uHa~qW`@D^D`@Bn@@P?v@? oa`vHkgsWf@Z _g`vHaksW~CfBBB@BHD m``vHchsWe@SAA_CuAeDiB_MaE {x`vH{tsWaEqAm@S u`avHawsWr@V~RvG|BlAB@ ifavHkysWrDhA csavHa`tW_AYoCaAy@Y m{avHwctWSMWI m~avHaetW{@_@ idbvHigtWt@`@ q_`vHogsW[S
+Torensveld 2 69 _{_vHobqW_@u@u@yAMIMAG@IFINcA`Bo@j@Y`@Uh@Oj@AJG`@C`A?Z yd`vHaeqWv@|A ma`vHo{pWQ_@MCm@gAU[ _|_vHedqW]p@u@jAU\KAKHQVOFUXEV yd`vHaeqWGOQTGDI@IAA?A? of`vHudqW@{@Zg@HL ae`vHqeqWb@s@ oe`vH{zpW_@EMW?C?G?Cf@s@DEJB of`vHo`qWj@nA c_`vH_jqWHQ g~_vHqhqW[m@IL y~_vHigqWHYFML[KS
+Tragel 2 0 ab_vHensWr@BvNj@`IZ^Bj@BdAF
+Vijverstraat 2 8 ox_vHgopWKCQOq@qA[g@a@a@a@c@gAoAKIKGiAe@ICK?O?_@FQFsAd@QFQ?IE on`vH{ypWKH]J cj`vHoxpWc@Wq@MQCc@AKOQMME
+Vogelenzang 2 8 aadvH}wnWFgAHcA@ERkARg@rB_DPIR@TFTHRQHa@RoDH]HWNYJS
+Vondelbeekstraat 2 14 {zbvHstrWZZfAdAhAtAfAvA|@xAJV
+Wacheneveld 2 26 {ebvH{rsWvDoL^kA@CBI
+Weyvelt 2 22 _w`vHurrWTl@jAjCp@|A }s`vH{lrWz@oAxAuBFCDBLX
+Zakstraat 2 39 erbvHcpqWOYgAcBeBwCiBaDeB_D }tbvHatqWx@yB
+Zijpbeekstraat 2 7 }s~uHqoqWb@OPDJC`AYbEiA {q~uH_pqWNRDB`@KBED_@
+Zijpstraat 2 147 gbbvHoyoWRa@fByCzByBdCwDBE\i@l@uAf@sAR_A {ocvH{koWFR\lAHNNH|ATbAHTANGLOvBeDNOLENBPLHJNR`@d@b@XbBx@z@f@ZTxA~AVPPDNAXOjAqA ih`vHanrWKJEFy@v@i@j@Y^[h@Yr@Sd@GJGFEDCB wpbvHweoWV[vBsBjBkCV]Xg@FIbBqD }q`vHubrWd@]PMFE }q`vHubrWKLeBrAi@d@{ApAGBIDEDOLKLABEJ }cbvHuvoWt@yA wjavHchqWvCsCv@u@HWBY@q@Aq@Bg@Ji@Xk@Za@j@e@f@a@d@[ }pavHevpW@QHgCRmCTq@DMv@cBpAqB }qavHwqpWTqAH{@ }ucvHaooWjAsAFEHCH?JDJRd@|AZjA
+'t Vestjen 3 22 _gyuHwxlWHVr@jCRv@DXV~@ _cyuHmulWi@n@C@AGKJEB
+Achterbremt 3 20 mhxuH_siWPKzBmANOBOBMLwBDSp@_AJ]JgAHUZc@DU qhxuH{|hWHOdA_A\]b@]RUFWCYc@mBQs@ mhxuH_siWwAt@mAp@KFGH }dxuHqhiW_@yAq@uC]}A
+Achtermaal 3 44 a{zuHuvlWSXOf@Sn@UnAIh@Od@UZeAt@_BhA{@l@OH qzzuHuylWIXEdA ig{uHgujWr@sEXsCDq@@i@E{@GcBGaBAQCOIMQ_@Og@Oi@c@iBQaAEYMwACY@]N}@BUB]?]Am@B_@Fq@Je@Na@T]PS wb{uHclkWk@Ge@CE? gzzuHgwlWYP
+Ankerstraat 3 19 u`xuHgsmWyB|A{ApAi@d@WfAe@vB sjxuHqfmWCPK|@CNEFIFE?EAECk@e@g@c@]W
+Bergstraat 3 87 swvuH}djW_@}De@}CUeASu@ c{vuHusjWeCqIoBmG_@qAcAoD_EwIiAaCa@_Aa@aAq@yBQo@
+Blauwenbergstraat 3 83 igzuHsyjWsB{IWmAYaBU}AW{BE_@c@wDEUQ{AM_AOw@GYEUSq@Qm@Wo@yAsD}@}BWeA[}BQuA
+Bredeweg 3 75 alxuHyimWq@{ECOY_By@eEqBuJ }sxuHafnWm@eDeAyFm@kCa@kB_@aB
+Bremtstraat 3 158 ijxuHk_lWb@bAxCjHTx@pAdExApEJh@ ewwuH_gjWEJAF?F?F@DJ\P`Ad@dE~AtK }wwuH}jjWB~@BNFVFT asxuHyllWVRVTDDJJZf@LRz@xAnBzE }}wuH_dkWp@fENn@BDVhAHf@PjA\jCLx@Jt@Dl@Fz@
+Bremtstraat / Jeruzalemstraat 3 0 grwuHyoiW@J
+Broekveldstraat 3 24 kwyuHo~kWnBmAnBeAxAu@nB_ADCb@c@FI
+Brugstraat 3 12 alwuH_~oWHHHHvC|C
+Daalbroek 3 8 yfxuH{zhW~@dA qhxuH{|hWBHHHh@j@
+Damstraat 3 42 q|wuH}bmWzFoG\Fz@LZCp@S
+Dries 3 67 cbwuHmepWOHg@^IF sqvuHgdpWyAeDQ_@OWOMUA}@R[E[K ynvuHm~oWQa@Wq@ kfwuHebpW}B`BYRGDIFK@ eawuHmfpW`BcEPs@DY@g@ edwuH{cpWa@Xc@Z qgvuHitoWgAyAe@s@a@w@e@q@q@kA cbwuHmepWPOJO q}vuHu}pWAJAd@Q~AEt@?h@Fh@XhB@f@ cpvuHaapWCIKY_@aA
+Dwarsstraat 3 25 koxuHqqnWgAcEEa@FQJSI_@gCmH
+Désiré Souffreauweg 3 4 o|wuHkbmWUHSBc@\gAz@
+Ediksveldestraat 3 12 ynyuHykiWf@]rAaAPI _~xuHqjiW_CVeAT
+Edixvelde 3 165 {gxuHksiWmCcH kjyuHcoiWB?RAb@D^AXSxCiDX_@Hi@BYBMFIBCHIdAQdAS`AMVCHAH@JDHJ~@tATRRDP? }~wuHicjWbAsApA_Bj@i@\U msxuH_wiWJCBC@Ap@i@l@e@|AeAROtBsA mgxuHa`jWzC{Bb@_@PIJAB@DBf@x@ shxuHc_jWd@]
+Erkendries 3 12 {cwuHcdpWUQmDjAGBEDCDGNIROl@GRER kzvuHskpW@[CKEIGK[_@[g@UM s`wuHmfpWQ? s`wuHmfpWjDcCROFQ
+Haaltertstraat 3 31 mlwuH{bmWLJ|@h@~@b@vBfA^LXDlBNn@DvAVT@h@@p@EpAK^Gb@Cj@@ mowuHokmWIUCQSoBKi@WyAKa@Kq@ mowuHokmWFTr@nDX|@HN
+Hoezekouterdreef 3 10 owxuHimqWK[Ii@Ec@g@sEYyBQi@Qa@EG
+Hoezestraat 3 82 mtxuHchqWy@yAMY }qxuHidqWoAyB mpxuH{aqWo@mA ajxuHq}nW@U@i@R{DEqLEaAGa@g@{A ajxuHq}nWAh@?j@ ylxuHo|oWeA}Ce@kB[gC scxuH_bnWEQYuBcA{EW{AKi@YoBe@}CGc@ euxuHisqWVt@ omxuHiypWg@aD]gAWg@ }vxuHglqWQa@ uvxuHwkqWGO ekxuH_yoWs@oB aqxuHaipW[aID]fCgD
+Huytstraat 3 79 ewwuH_gjWLRFFJHZN^Nb@H`BVF@B@TD~Bn@nCt@N@FBNFHJr@d@VTJNLNHL ebwuHa}iWBa@e@eA mawuHc|iWZn@Xj@
+Kantonstraat 3 72 yhyuHm`nWeClDW\gEnIw@|Au@bC mwyuHohmW}FuA
+Keizerstraat 3 27 opzuHsgmWKHcB`BiDdDq@Z adzuH_lmWa@NyAn@w@Jy@JkAPo@L kozuHghmWMBUN
+Kerkmeersstraat 3 23 idyuHghnWa@wAcDeH e_yuHuzmWyAoFg@iB gcyuHoenWa@wA
+Kerkveldweg 3 53 udyuH{zlWEI_@kBQ{@Mw@a@cCaAiGm@uEq@uD
+Kerselaarstraat 3 12 mwyuHohmWQnAy@tFMt@Wn@i@`A szyuHwylWKQ?Y
+Kleinderbeek 3 27 ocyuHaolWyArBo@|@Ub@ syxuHu{lW_A|Ay@rA_BlBwAjBIF
+Kraaiwinkelstraat 3 48 }bwuHyunWy@wEG]i@uCa@{CMu@GWEKAA ufwuHmxoWp@{B~@yCb@aB@KAGCS _iwuHgkoWGMEUCe@@]Hs@~@uENs@ ihwuH}ioWUi@
+Kriekstraat 3 12 mjzuHoxlWcAuEyAaH
+Kwadesteenstraat 3 0 }|yuH{coWp@w@r@y@~BcBb@a@LUb@gBH]VcAx@cD|AcFDU?U
+Kwalenhoekstraat 3 54 msxuH_wiWFTFRDFlAtB\b@b@l@ enxuHaoiWNh@T`BXjBV~BLnA gnxuHeoiW@B
+Kwalenhoekstraat / Daalbroek 3 0 _kxuHy`iWBVTn@Tf@LLN?
+Kwalestraat 3 91 mvyuHoynWVVRXNb@Jh@R|@FPDLDJjBbD eyyuHk{nWvAz@ _pzuH{spW@r@@b@DhAJxAHl@XpBb@hC`AvEx@lBTb@ qoyuHamnWjAzBh@bAJVLd@p@lBNVDN egzuHeuoWLZ@BNVZn@HNnDbHp@rAVh@FNX|@TtATx@Tf@ZX ohzuHkwoWBF@@BFNXNX
+Laarstraat 3 34 q|wuH}bmWe@}Cu@aEYuBMs@ u`xuHgsmWGc@E[K}@SkBA[@YDi@Bg@A[GWOOYYEG
+Lippenshofweg 3 5 _xyuH_fmWh@lDz@tEH~@
+Louis Callebautstraat 3 47 mozuHgxkW_A\qAb@aAZM?KE {vzuHoukWGKSe@k@oAq@gBcAeCq@cBc@kA]yAWgA {vzuHoukWe@tA
+Luc Schampstraat 3 15 stxuHm_jWDBDAlAs@xA_A
+Maaldreef 3 69 i~xuHqemWQ\qAvCkAtBOXKNUVm@d@EDUR k|xuHqamWu@hAKLM@SXCTcCjAGDE?OE qsyuHmwlWs@Li@h@KR ayyuHsrlWdAmA ugyuHcxlWUNqBxASHOD[A]GeBaAo@W
+Maatweg 3 20 }gyuHifmWq@\Q@y@f@MMo@}D {kyuHadmWTxA@`@ZhB
+Maleveld 3 9 mj{uHyllWMGU?yBZ qf{uHoglWs@gAOSw@mA
+Merestraat 3 2 wxyuHesiWOAWF yvyuHaliWEm@Ce@UqAMg@OU {zzuHe~lWAi@WqAYwA o|zuHydmW]sCYiBCQG]sDeP_@mBg@cCS}AKcAGa@Iq@ gzzuHgwlWImA w}yuH_qiWKaACWEqBGmAGeAKoAWsCeAkFAC]}AuB}IKc@ _zyuH_siWuAl@ qzzuHuylWEiACeA
+Mortelveld 3 9 edxuHoapWgAwA[m@Si@OaAWqBQaA mywuHayoWmAmDQc@QQMES?UB[RWH[BWE_@Ye@i@ ekxuH_yoWj@cAj@u@xAuAl@_A wixuHunpWS_A]qAg@{AMk@Oy@
+Muisstraat 3 7 q~uuHgioWEIEGKOCCEGc@s@m@y@cCoCg@u@
+Nieuwenbroekstraat 3 26 k`zuHowlW}BQ qsyuHmwlW]Mu@[s@Uk@Mm@Bu@T idzuHaxlWwBMkA?{@DcDL}EN i|yuHaylWg@Va@P[H[A kxzuHkwlW{@B
+Nieuwerkerken-Dorp 3 78 ehyuHc_nWZ`A^dAfAlD adyuHmumWlBvGLp@Ff@r@hC i~xuHqemW|@~BFN yhyuHm`nWRh@
+Papaverstraat 3 6 oawuHgkoWYFUJw@ZM?KAo@Ig@D i~vuHmloWeBd@
+Papestraat 3 39 syxuHu{lWdC{C {oxuHifmWxBoB muxuHq`mW`CuC sexuH}{mWyAfH_@bBu@xC]\ kqxuHgemWn@a@ scxuH_bnWWz@g@dC
+Pastorijstraat 3 6 c|xuHaamW`@c@~@aAl@k@ otxuHokmW`@|@Zx@d@nA
+Patrick Lanckmanstraat 3 7 {vyuHaulWMpDOdEIrBAx@?v@Bb@TnA wxyuHesiWCk@{AkJCK?GBIBGBCfAs@BCDG@G@G?MAKq@gDo@_DMq@ESC]CY?U?g@@i@Bg@B_@Fi@BQFOP_@Zm@z@}AFM`@eAJ]Ja@Nu@Hi@DYD]Dc@Bc@@a@@c@?u@Ao@IuBC[Iw@ uuyuHiwkW]}BWgB
+Pijpenbeek 3 77 mywuHayoW]\Y\a@r@AHEFUj@i@pBEDm@dCa@hBMb@ alwuH_~oWEAIEGC[WGCKEIAA?QBMF_Ad@OHmCtAgAj@QN saxuHggoWCNITYj@qA`CU\UV[T_@Lk@F
+Restert 3 66 slyuHcyoWpA\fAf@^h@Zr@N|@NrAJj@TpAh@xBFVJd@U`BRfAAV _`yuHsjoWRd@\|@RbAf@bC`@rB o{xuHs}nWLGh@s@b@y@b@m@v@s@`@g@h@m@TB^ZTZ^L~@Ml@AfBE c_yuHy|nW`@Al@Mb@I abyuHu_oWLLVd@d@d@P@
+Rijdentstraat 3 12 {ayuHsgkWIOEQAQG}@]uDo@uE_@kCEWUkAO_AEo@Ee@GoBEUEM uvxuHihjWPbCTlAP`AFF qayuHggkWIK
+Schoolstraat 3 82 adyuHmumW~@eA cjxuH{znW}@p@g@f@Yt@[fBKp@k@~CWhAUt@[n@[^ }sxuHafnWgAdAuBlBKJ}CjD abyuHswmWzAaB
+Sint Rochusstraat 3 49 orwuH}flWiA{D]eAm@kB[y@Og@ oywuHcxlWm@qCg@}BGe@AQ qxwuHmulWGUU_A o|wuHkbmWAQ
+Sintelstraat 3 0 exyuHq`pWx@~AVl@Vz@RbALbAR~ALnA
+Spechtmeersstraat 3 0 orwuH}flWGHi@xESvBEp@?l@?x@D~AAj@QbAS~@W~@a@hAe@dAWx@Sz@]zBCXC|@C`@CX
+Spechtweg 3 4 wcxuHwljWj@nAd@hAPb@JZ@X
+Stationweg 3 10 _{wuHwyjWHEVJl@f@d@`@HLHZJb@BNLZ`@|@L^Rl@DFHLRXHNFLHf@Jx@VhBJv@@V
+Steenoven 3 28 omxuHaenWb@YNRzArHHJL@p@_@P?NF
+Sterrebosstraat 3 22 cfxuHu_oWZlA@JPnATzBHr@HbANRLM?_@g@i@ eexuH{|nWjAgBd@CDR
+Strekstraat 3 15 {ayuH_uiWuBwHAKBOLEv@OVMxBwB w~xuHodjWcA_KQuBEwA@aFBg@Py@Ts@To@L]
+Teerlingveldstraat 3 57 a_yuHcekW^Xl@h@FFHHFDLRRd@rAtDtAzD q_yuHqekW_@Y_@[ apxuHkfjWXUjAy@ ksxuHiojWn@|Bp@hCFT`@jB`A~E q_yuHqekWNL muxuH{tjW`ApD
+Terbekenstraat 3 58 {iyuH}flWlAdI wuyuHslmWzArDn@|Ab@vAj@~Df@zCHj@FVHr@zAvJ
+Tolstraat 3 56 stxuHanlWp@f@ ywxuHqulWBJ\rAd@`BDNDHDHJH stxuHoplW}A_E]w@ c|xuHaamWt@tBXt@b@lBTtA
+Verenigde Natiesstraat 3 21 ojyuHetnWaDbF ojyuHetnWdCyDxBmDLG
+Vijverputstraat 3 11 qwvuHicjWAs@
+Vlaamsegaaistraat 3 19 muxuHq`mWeAaD cxxuH{fmWk@{B{AyFyAcG swxuHsemWEKI[
+Vlierbesstraat 3 13 aayuH_viWXtAf@lCNz@Jn@B\
+Zeeldraaierstraat 3 3 ko{uHellW[DyBd@g@Pg@X]ZY\m@z@{@nAo@r@MH
+Zurendries 3 0 }syuHqfpWG@IHMVy@|AKNa@l@UXiExFqChDSVSL
+</script>
 <script src="/app.js"></script>
 </body>
 </html>

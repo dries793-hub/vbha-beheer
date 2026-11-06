@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "public",
-  "cleanUrls": true,
   "crons": [
     {
       "path": "/api/bank/sync",
@@ -26,5 +25,6 @@
         }
       ]
     }
-  ]
+  ],
+  "cleanUrls": true
 }

@@ -9,10 +9,15 @@ Webapp voor de ledenadministratie, het lidgeld, de boekhouding, het puntensystee
 
 ```
 public/          index.html, app.js, favicon.png  → de app zelf
+                 inschrijven.html, banket.html, kinderfeest.html, kaart.html (+ kaart.json) → openbare pagina's
+api/inschrijving.js, api/banket.js, api/kinderfeest.js, api/ronde.js → openbare formulieren en de live kaart
+api/betaling.js, api/bancontact/callback.js → online betalen met Bancontact Pay
 api/config.js    geeft de publieke Supabase-gegevens aan de browser
 api/bank/*       koppeling met Enable Banking (start, callback, status, sync, unlink, aspsps)
 api/_lib/*       gedeelde code: Supabase, Enable Banking (JWT), categorieregels
 supabase/schema.sql  tabellen, beveiliging (RLS) en realtime
+supabase/update-banket-kinderfeest-ronde.sql  extra tabellen voor een bestaande installatie
+supabase/logboek.sql logboek van alle wijzigingen
 vercel.json      instellingen en de dagelijkse synchronisatie (06:00/07:00 Belgische tijd)
 ```
 
@@ -74,7 +79,7 @@ Of sleep de bestanden in GitHub via **Add file › Upload files**.
 1. Open de huidige app in Claude › **Instellingen** › **Volledige back-up (.json)**.
 2. Open de nieuwe site › **Instellingen** (tandwiel) › **Back-up terugzetten (.json)** › kies het bestand.
 
-Alle leden, boekingen (2025–2026), het archief 2015–2024, punten, kalenders, sponsors, sjablonen, regels en instellingen komen mee. Terugzetten overschrijft records met dezelfde sleutel en laat andere staan, dus je kunt het veilig herhalen.
+Alle leden, boekingen (2025–2026), het archief 2015–2024, punten, kalenders, de kalenderronde, het banket, sponsors, sjablonen, regels en instellingen komen mee. Terugzetten overschrijft records met dezelfde sleutel en laat andere staan, dus je kunt het veilig herhalen.
 
 ## Stap 6 — Bankkoppeling met Enable Banking
 
@@ -110,18 +115,6 @@ Op `https://jouw-site.vercel.app/inschrijven` staat een openbaar formulier. Iede
 
 De link staat ook bij Instellingen, met een knop om ze te kopiëren.
 
-## Inschrijven voor het banket
-
-Op `https://jouw-site.vercel.app/banket` staat de openbare inschrijfpagina voor het banket. Iedereen met de link kan ze invullen, zonder aan te melden.
-
-- Het lid kiest zijn naam uit de **actieve ledenlijst** van het actieve boekjaar (lid sinds ≤ jaar, lid tot leeg of ≥ jaar), duidt aan of hij alleen of met partner komt, kiest de menu's en vult eventuele allergieën in.
-- De inschrijving komt rechtstreeks in de tabel `banket` en verschijnt meteen in de app onder **Administratie › Banket**. Per lid kan je maar één keer inschrijven per jaar.
-- Na het inschrijven ziet het lid het juiste bedrag (prijs × aantal personen), de betaal-QR en de mededeling `Naam Voornaam Banket JAAR`. Staat `BANCONTACT_API_KEY` ingesteld, dan krijgt het lid ook de knop **Betaal met Bancontact**; een gelukte betaling zet de inschrijving automatisch op betaald.
-- Overschrijvingen worden herkend in de transacties van dat jaar met categorie **Banket** (of "banket" in de mededeling) en de naam van het lid.
-- Datum, uur, locatie, prijs, betaaldatum en of de inschrijvingen open zijn, stel je in onder **Administratie › Banket › Instellingen banket**.
-
-Bestaande installatie: voer `supabase/schema.sql` opnieuw uit (of enkel de regel met `'banket'`), zodat de tabel `banket` bestaat.
-
 ### Online betalen met Bancontact Pay
 
 Staat de sleutel ingesteld, dan krijgt een nieuw lid na het inschrijven de knop **Betaal met Bancontact**. Op de gsm opent die de bank- of Bancontact-app. Op een computer staat er een QR-code om met de gsm te scannen. Zodra de betaling gelukt is, staat het lidgeld van dat lid automatisch op **betaald**. Het lid ziet dat ook meteen op het scherm.
@@ -134,18 +127,26 @@ Zonder sleutel blijft het formulier werken zoals vroeger, met de betaal-QR en de
 
 Boekhouding: Bancontact stort de betalingen gebundeld door op de rekening. Die doorstorting komt via de bankimport binnen; zet ze op categorie **Lidgeld**. De leden zelf staan al op betaald.
 
-## Kinderfeest
+## Openbare pagina's: banket, kinderfeest en kalenderkaart
 
-Onder **Administratie › Kinderfeest** staat het overzicht van de inschrijvingen: aantal kinderen, hoeveel cadeautjes nodig zijn (per leeftijd op de dag van het feest), welke inschrijvingen niet in de ledenlijst gevonden worden en mogelijke dubbels. Exporteren naar Excel kan met één klik.
+Deze pagina's zijn voor iedereen bereikbaar met de link, zonder aan te melden. Alles wat leden invullen komt meteen in de app terecht. Er is geen Google-formulier meer nodig en je hoeft niets in te laden.
 
-Op `https://jouw-site.vercel.app/kinderfeest` staat een openbare inschrijfpagina (geen aanmelden nodig). Ouders vullen hun naam en e-mail in, beginnen met één kind en voegen met **+ Nog een kind toevoegen** extra kinderen toe. Het vervangt het Google-formulier.
+| Pagina | Wat het doet |
+|---|---|
+| `/inschrijven` | Nieuw lid: komt in de ledenlijst en betaalt het lidgeld |
+| `/banket` | Inschrijving banket (alleen of met partner, menu's). Het lid betaalt meteen met Bancontact of met een overschrijving. Een online betaling staat in **Banket** meteen op **Betaald**. |
+| `/kinderfeest` | Inschrijving kinderen voor het kinderfeest. Datum, uur, plaats en maximumleeftijd komen uit de instellingen van het kinderfeest in de app. |
+| `/kaart` | Kalenderronde: de kaart met de bedeelde en gereserveerde straten, met naam en datum. Ze ververst zichzelf elke 30 seconden. |
 
-- Een inschrijving komt meteen in het overzicht, met het label **nieuw**. Klik **Alles gezien** om de melding weg te halen.
-- Datum, uur, locatie, leeftijdsgrens voor een cadeautje en of de inschrijvingen open zijn: via het tandwiel op de pagina Kinderfeest (per boekjaar).
-- Antwoorden die nog in het oude Google-formulier staan, lees je in met **Google Forms importeren** (Antwoorden › ⋮ › Antwoorden downloaden (.csv)).
-- Dezelfde spambescherming als bij het ledenformulier: verborgen veld, minimale invultijd, maximaal 30 inschrijvingen per uur.
+Nieuwe inschrijvingen voor het banket en het kinderfeest verschijnen als gele melding op het dashboard. Met het kruisje sluit je de melding.
 
-**Eenmalig nodig:** voer `supabase/schema.sql` opnieuw uit in Supabase (SQL Editor). Dat maakt de tabel `kinderfeest` aan; de rest blijft ongewijzigd.
+Heb je de site al eerder geïnstalleerd? Voer dan eenmalig `supabase/update-banket-kinderfeest-ronde.sql` uit in de **SQL Editor**. Voer daarna `supabase/logboek.sql` opnieuw uit, zodat ook de nieuwe tabellen in het logboek komen.
+
+## Logboek
+
+Bij Instellingen › **Logboek** zie je elke wijziging aan de ledenlijst, de punten en kalenders, en de transacties en betalingen: wanneer, wie (e-mailadres) en wat er veranderde. Je kan zoeken en filteren op soort en persoon.
+
+Eenmalig instellen: open in Supabase de **SQL Editor**, plak de inhoud van `supabase/logboek.sql` en klik **Run**. De database houdt het logboek dan zelf bij. Niemand kan het vanuit de app aanpassen of wissen. Inschrijvingen via het formulier en betalingen via Bancontact staan erin als "Automatisch (formulier of bank)".
 
 ## Beveiliging
 
