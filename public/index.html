@@ -758,6 +758,20 @@ button.acct-i{width:100%;border:0;background:none;font:inherit;text-align:left;c
 .sp-nat:has(input:checked){border-color:var(--good);background:var(--good-soft)}
 .sp-nat input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--good);flex:none}
 .sp-nat span{display:flex;flex-direction:column;gap:2px}.sp-nat small{color:var(--muted);font-size:13px}
+.ft-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
+.ft-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.ft-img{display:block;aspect-ratio:16/10;background:var(--sunken);overflow:hidden}
+.ft-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+.ft-img:hover img{transform:scale(1.03)}
+.ft-img.leeg{display:grid;place-items:center;background:linear-gradient(135deg,#2a2c31,#18191C);color:#fff}
+.ft-img.leeg span{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center}
+.ft-img.leeg svg{width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+.ft-b{padding:14px 16px 12px;display:flex;flex-direction:column;gap:10px;flex:1}
+.ft-t{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ft-t b{font-size:16px}.ft-t span{font-size:13px;color:var(--muted)}.ft-t .ft-o{color:var(--ink);font-size:13.5px}
+.ft-a{display:flex;gap:8px;align-items:center;margin-top:auto}
+.ft-a .btn.iconbtn{margin-left:auto;width:32px}
+.ft-h{font-size:11.5px;color:var(--muted)}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
