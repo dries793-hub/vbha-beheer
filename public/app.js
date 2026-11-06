@@ -760,7 +760,7 @@ function puntTable(){
 /* ---------- kalenders ---------- */
 function kalStats(C){const rows=[...S.jaarleden.values()].filter(j=>j.jaar===C.Y&&j.kal);const omloop=rows.reduce((s,j)=>s+(j.kalOpgehaald||0),0),uit=rows.reduce((s,j)=>s+(j.kalUitgevoerd||0),0);return{rows,omloop,uit,stock:C.c.kalenderStock-omloop-uit}}
 VIEWS.kalenders=()=>({title:"Kalenders "+JAAR,sub:"Verdeling en verkoop van de kalenderdozen",
-  actions:(/^https?:\/\//i.test(jaarCfg(JAAR).kaartUrl||"")?'<a class="btn" href="'+esc(jaarCfg(JAAR).kaartUrl)+'" target="_blank" rel="noopener">'+ic("kaart")+'Kaart openen</a>':'')+'<button class="btn primary" data-w data-act="kalToevoegen">'+ic("plus")+'Persoon toevoegen</button>',body(){
+  actions:'<a class="btn" href="/kaart" target="_blank" rel="noopener" title="Openbare kaart van de kalenderronde">'+ic("kaart")+'Kaart openen</a>'+'<button class="btn primary" data-w data-act="kalToevoegen">'+ic("plus")+'Persoon toevoegen</button>',body(){
   const C=ctx(),k=kalStats(C);
   const inLijst=new Set(k.rows.map(j=>j.lidId).filter(Boolean));
   const ontbreekt=C.leden.filter(l=>l.categorie!=="Erewacht"&&C.rows.get(l.id).lg.ok&&!inLijst.has(l.id));
@@ -827,7 +827,7 @@ const KAL_TABS=[["kalenders","Verdeling"],["ronde","Kalenderronde"]];
 function kalTabs(act){return `<nav class="tabs" aria-label="Onderdelen kalenders">${KAL_TABS.map(([k,l])=>`<a href="#${k}" class="${k===act?"on":""}">${esc(l)}</a>`).join("")}</nav>`}
 
 VIEWS.ronde=()=>({title:"Kalenderronde",
-  actions:`<a class="btn" href="/kaart" target="_blank" rel="noopener" title="Kaart zonder aanmelden, om te delen">${ic("kaart")}Openbare kaart</a>`,
+  actions:`<a class="btn" href="/kaart" target="_blank" rel="noopener" title="Kaart zonder aanmelden, om te delen">${ic("kaart")}Kaart openen</a>`,
   body(){
   const M=krMarks(),RS=krRes(),nRes=Object.keys(RS).length,tot=KR_STREETS.length,done=Object.keys(M).length,pct=tot?done/tot*100:0;
   const aTot=KR_STREETS.reduce((t,s)=>t+s.a,0),aDone=KR_STREETS.reduce((t,s)=>t+(M[s.id]?s.a:0),0),aPct=aTot?aDone/aTot*100:0;
@@ -1365,7 +1365,6 @@ VIEWS.instellingen=()=>({title:"Instellingen",sub:"Boekjaren, puntensysteem, lij
     <div class="fld"><label for="jG">Goud vanaf (punten)</label><input id="jG" name="d_goud" inputmode="numeric" value="${j.drempels.goud}"${d}></div>
     <div class="fld"><label for="jStock">Kalenderdozen dit jaar</label><input id="jStock" name="kalenderStock" inputmode="numeric" value="${j.kalenderStock}"${d}></div>
     <div class="fld"><label for="jPerDoos">Kalenders per doos</label><input id="jPerDoos" name="perDoos" inputmode="numeric" value="${j.perDoos}"${d}></div>
-    <div class="fld full"><label for="jKaart">Link naar de kalenderkaart (uMap)</label><input id="jKaart" name="kaartUrl" type="url" value="${esc(j.kaartUrl||"")}" placeholder="https://umap.openstreetmap.de/…"${d}><span class="help">Verschijnt als knop “Kaart openen” op de pagina Kalenders.</span></div>
     <div class="full bar" data-w><button class="btn primary" type="submit">Boekjaar bewaren</button></div></div></div></form>
   <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
   <div class="panel" data-w><div class="panel-h"><h2>Nieuw boekjaar</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:10px">
