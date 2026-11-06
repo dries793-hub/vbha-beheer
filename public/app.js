@@ -372,7 +372,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   </div>
   <div class="grid g2 eq">
     <div class="panel"><div class="panel-h"><h2>Saldo afgelopen 12 maanden</h2></div><div class="panel-b">${saldoChart(C)}</div></div>
-    <div class="panel"><div class="panel-h"><h2>Resultaat per categorie</h2><span class="grow"></span><span class="legend"><i style="background:var(--good)"></i>winst <i style="background:var(--bad)"></i>verlies</span></div><div class="panel-b">
+    <div class="panel"><div class="panel-h"><h2>Resultaat per categorie</h2></div><div class="panel-b">
       ${cats.length?`<div class="dcats">${cats.map(c=>`<a class="dcat" href="#boekingen" data-act="filterCat" data-v="${esc(c.k)}"><span class="trunc">${esc(c.k)}</span><span class="dtrack"><span style="width:${Math.max(1.5,Math.abs(c.net)/maxNet*100)}%;background:var(--${c.net>=0?"good":"bad"})"></span></span><b class="${c.net>=0?"in":"out"}">${sgn(c.net)}</b></a>`).join("")}
       <div class="dcat tot"><span>Resultaat ${JAAR}</span><span></span><b class="${C.tin-C.tuit>=0?"in":"out"}">${sgn(C.tin-C.tuit)}</b></div></div>`:'<div class="empty">Nog geen transacties in '+JAAR+'.</div>'}
     </div></div>
