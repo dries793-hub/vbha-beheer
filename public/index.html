@@ -676,6 +676,52 @@ table.hsal tr:last-child>*{border-bottom:0}
 .hk-leg i{width:11px;height:11px;border-radius:3px;display:inline-block}
 #histList{display:flex;flex-direction:column;gap:20px;min-width:0}
 @media (max-width:760px){.tabbar a,.tabbar button{padding-inline:0;font-size:10.5px;letter-spacing:-.01em}}
+:root{--ag-act:#E8A33D}
+.ag-leg i.act{background:var(--ag-act)}.ag-leg i.verg{background:var(--info)}
+.grid.eq>.panel>.panel-b.ag-top{justify-content:flex-start}
+.ag-dash{gap:18px}
+.agc-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.agc-h b{text-transform:capitalize;font-size:14.5px}
+.agc-g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.agc-w{font-size:11px;color:var(--muted);font-weight:600;padding:2px 0 6px}
+.agc-d{position:relative;height:36px;border:0;background:none;border-radius:8px;font:inherit;font-size:13px;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.agc-d:hover{background:var(--sunken)}
+.agc-d.nu{box-shadow:inset 0 0 0 1.5px var(--accent);font-weight:700;color:var(--accent)}
+.agc-d.ev{font-weight:600}
+.agc-d.sel{background:var(--ink);color:var(--surface)}
+.agc-d i{position:absolute;bottom:4px;left:0;right:0;display:flex;justify-content:center;gap:2px}
+.agc-d em{width:5px;height:5px;border-radius:50%;background:var(--ag-act)}
+.agc-d em.verg{background:var(--info)}
+.ag-sub{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;min-height:28px}
+.ag-sub span:first-child{text-transform:none;letter-spacing:0;font-size:13px}
+.ag-sub span:first-child::first-letter{text-transform:uppercase}
+.ag-list{display:flex;flex-direction:column}
+.ag-r{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none;cursor:pointer;min-width:0}
+.ag-list>.ag-r:first-of-type{border-top:0}
+.ag-list.big .ag-r{padding:12px 18px}
+.ag-list.big .ag-r:hover,.ag-dash .ag-r:hover{background:var(--sunken)}
+.ag-dt{flex:none;width:44px;height:46px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--warn-soft,#fdf1dc);color:#8a5a12;line-height:1}
+.ag-dt b{font-size:17px}.ag-dt span{font-size:11px;text-transform:uppercase;margin-top:3px;font-weight:600}
+.ag-dt.verg{background:var(--info-soft);color:var(--info)}
+
+.ag-m{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ag-m>span{font-size:13px;color:var(--muted)}
+.ag-m .trunc{max-width:100%}
+.ag-w{flex:none;font-size:12px;color:var(--muted);white-space:nowrap}
+.vg-next{display:flex;gap:16px;align-items:flex-start;color:inherit;text-decoration:none;cursor:pointer;padding:4px 0 2px}
+.vg-cal{flex:none;width:72px;border-radius:12px;overflow:hidden;border:1px solid var(--line);text-align:center;display:flex;flex-direction:column;background:var(--surface)}
+.vg-cal span:first-child{background:var(--info);color:#fff;font-size:12px;font-weight:600;text-transform:uppercase;padding:4px 0}
+.vg-cal b{font-size:28px;line-height:1.15;padding-top:4px}
+.vg-cal span:last-child{font-size:12px;color:var(--muted);padding-bottom:6px}
+.vg-i{display:flex;flex-direction:column;gap:3px;min-width:0;font-size:14px}
+.vg-i>b{font-size:17px}
+.vg-ag{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.vg-ag .lbl{display:block;font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:6px}
+.vg-ag div{white-space:pre-wrap;font-size:14px;display:-webkit-box;-webkit-line-clamp:7;-webkit-box-orient:vertical;overflow:hidden}
+.vg-last{display:flex;align-items:center;gap:8px;margin-top:16px;padding:10px 12px;border-radius:10px;background:var(--sunken);font-size:13.5px;color:inherit;text-decoration:none;cursor:pointer}
+.vg-last svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;color:var(--muted)}
+@media (max-width:760px){.ag-list.big .ag-r{padding:11px 14px}.ag-w{display:none}}
+#vgList{display:flex;flex-direction:column;gap:20px;min-width:0}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */

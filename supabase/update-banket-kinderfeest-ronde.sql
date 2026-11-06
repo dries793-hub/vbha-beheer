@@ -1,9 +1,9 @@
--- Nieuwe tabellen voor Kalenderronde, Banket en Kinderfeest (eenmalig uitvoeren in Supabase › SQL Editor).
+-- Tabellen voor Kalenderronde, Banket, Kinderfeest, Activiteiten en Vergaderingen (eenmalig uitvoeren in Supabase › SQL Editor).
 -- Mag gerust opnieuw uitgevoerd worden.
 do $$
 declare t text;
 begin
-  foreach t in array array['ronde','banket','kinderfeest'] loop
+  foreach t in array array['ronde','banket','kinderfeest','activiteiten','vergaderingen'] loop
     execute format('create table if not exists public.%I (
         id text primary key,
         data jsonb not null default ''{}''::jsonb,
