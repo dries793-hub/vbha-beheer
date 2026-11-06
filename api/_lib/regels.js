@@ -34,6 +34,6 @@ export function suggest(b, regels, pidx) {
 
 export function findLid(b, leden, jaar) {
   const t = norm(`${b.mededeling || ""} ${b.partij || ""}`);
-  const hits = leden.filter(l => (!l.lidTot || l.lidTot >= jaar) && (!l.lidSinds || l.lidSinds <= jaar) && norm(l.naam) && norm(l.voornaam) && t.includes(norm(l.naam)) && t.includes(norm(l.voornaam)));
+  const hits = leden.filter(l => !l.geenLid && (!l.lidTot || l.lidTot >= jaar) && (!l.lidSinds || l.lidSinds <= jaar) && norm(l.naam) && norm(l.voornaam) && t.includes(norm(l.naam)) && t.includes(norm(l.voornaam)));
   return hits.length === 1 ? hits[0].id : null;
 }

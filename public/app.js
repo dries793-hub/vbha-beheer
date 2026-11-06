@@ -72,7 +72,7 @@ function ctx(){
   for(const b of boek){const v=b.richting==="uit"?-b.bedrag:b.bedrag;if(b.rekening==="Kas")kas+=v;else rek+=v;b._kas=r2(kas);b._rek=r2(rek);
     if(b.richting==="uit")tuit+=b.bedrag;else tin+=b.bedrag;const k=b.categorie||"(geen categorie)";perCat[k]=perCat[k]||{in:0,uit:0,n:0};perCat[k][b.richting==="uit"?"uit":"in"]+=b.bedrag;perCat[k].n++;reeks.push([b.datum,kas+rek])}
   const lidBoek=boek.filter(b=>b._m.includes("lidgeld")||b.lidId);
-  const leden=[...S.leden.values()].filter(l=>(!l.lidSinds||l.lidSinds<=Y)&&(!l.lidTot||l.lidTot>=Y));
+  const leden=[...S.leden.values()].filter(l=>!l.geenLid&&(!l.lidSinds||l.lidSinds<=Y)&&(!l.lidTot||l.lidTot>=Y));
   const oud=[...S.leden.values()].filter(l=>!leden.includes(l)&&!(l.lidSinds>Y));
   const rows=new Map();
   for(const lid of [...leden,...oud]){
@@ -481,9 +481,9 @@ function ledenTable(){
     const sub=[r.huidig&&r.status!=="niet actief"?`<span class="ml-st ${r.status}"><i></i>${esc(r.status.charAt(0)+r.status.slice(1).toLowerCase())}</span>`:"",esc(r.lid.categorie||"")].filter(Boolean).join('<span class="ml-dot">·</span>');
     return `<button type="button" class="ml-row" role="listitem" data-act="toonLid" data-id="${esc(r.lid.id)}"><span class="ml-av ${r.huidig?(r.lg.ok?"ok":"nok"):"oud"}" aria-hidden="true">${esc(((vn?r.lid.voornaam:r.lid.naam)||"?").charAt(0).toUpperCase())}</span>
       <span class="ml-m"><span class="ml-n">${nm}${r.lid.nieuw?' <span class="pill info">nieuw</span>':""}</span><span class="ml-s">${sub}</span></span>
-      <span class="ml-r">${r.huidig?(r.lg.ok?'<span class="pill ok">✓ Betaald</span>':'<span class="pill nok">Open</span>'):'<span class="pill neutral">oud-lid</span>'}</span><span class="ml-chev" aria-hidden="true">›</span></button>`}).join("")}</div>`;
+      <span class="ml-r">${r.huidig?(r.lg.ok?'<span class="pill ok">✓ Betaald</span>':'<span class="pill nok">Open</span>'):`<span class="pill neutral">${r.lid.geenLid?"geen lid":"oud-lid"}</span>`}</span><span class="ml-chev" aria-hidden="true">›</span></button>`}).join("")}</div>`;
   return mob+`<div class="tw dsk-only"><table class="rcards"><thead><tr>${th("naam","Naam")}${th("status","Status")}${th("lidgeld","Lidgeld "+JAAR)}${th("categorie","Categorie")}${th("lidSinds","Lid sinds","num")}<th>E-mail</th><th>Telefoon</th></tr></thead><tbody>
-  ${list.map(r=>`<tr class="click" data-act="toonLid" data-id="${esc(r.lid.id)}"><td class="nm">${vn?`<b>${esc(r.lid.voornaam)}</b> ${esc(r.lid.naam)}`:`<b>${esc(r.lid.naam)}</b> ${esc(r.lid.voornaam)}`}${r.huidig?"":' <span class="pill neutral">oud-lid</span>'}${r.lid.nieuw?' <span class="pill info">nieuw</span>':""}</td>
+  ${list.map(r=>`<tr class="click" data-act="toonLid" data-id="${esc(r.lid.id)}"><td class="nm">${vn?`<b>${esc(r.lid.voornaam)}</b> ${esc(r.lid.naam)}`:`<b>${esc(r.lid.naam)}</b> ${esc(r.lid.voornaam)}`}${r.huidig?"":` <span class="pill neutral">${r.lid.geenLid?"geen lid":"oud-lid"}</span>`}${r.lid.nieuw?' <span class="pill info">nieuw</span>':""}</td>
     <td>${r.huidig?medal(r.status):""}</td><td>${r.huidig?lgPill(r):""}</td><td>${esc(r.lid.categorie)}</td><td class="num">${esc(r.lid.lidSinds||"")}</td>
     <td class="trunc">${esc(r.lid.email)||'<span class="pill warn">geen e-mail</span>'}</td><td style="white-space:nowrap">${esc(r.lid.telefoon)}</td></tr>`).join("")}
   </tbody></table></div><div style="padding:10px 16px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)">${list.length} leden getoond</div>`;
@@ -1525,19 +1525,20 @@ function lidForm(l={}){const c=cfg();return `<form id="fLid" class="form">
   ${fld("lidSinds","Lid sinds (jaar)",inp("lidSinds",l.lidSinds??JAAR,'inputmode="numeric"'))}
   ${fld("info","Info",inp("info",l.info,'placeholder="bv. Ere-voorzitter, via William"'))}
   ${fld("lidTot","Lid tot en met (jaar)",inp("lidTot",l.lidTot,'inputmode="numeric" placeholder="leeg = nog lid"'))}
+  <label class="sp-nat full" for="geenLid"><input type="checkbox" id="geenLid"${l.geenLid?" checked":""}><span><b>Geen lid</b><small>Verdwijnt uit de ledenlijst, de mails en de inschrijfpagina's. Je vindt de persoon nog terug via de zoekbalk.</small></span></label>
   <div class="err full" id="lidErr"></div></form>`}
 function readLid(){const f=formData($("#fLid"));const e=$("#lidErr");
   if(!f.naam.trim()||!f.voornaam.trim()){e.textContent="Vul naam en voornaam in.";return null}
   if(!f.categorie){e.textContent="Kies een categorie.";return null}
   const ls_=parseInt(f.lidSinds,10),lt=parseInt(f.lidTot,10);
-  return{naam:f.naam.trim(),voornaam:f.voornaam.trim(),adres:f.adres.trim(),email:f.email.trim(),telefoon:f.telefoon.trim(),categorie:f.categorie,lidSinds:isNaN(ls_)?null:ls_,info:f.info.trim(),lidTot:isNaN(lt)?null:lt}}
+  return{naam:f.naam.trim(),voornaam:f.voornaam.trim(),adres:f.adres.trim(),email:f.email.trim(),telefoon:f.telefoon.trim(),categorie:f.categorie,lidSinds:isNaN(ls_)?null:ls_,info:f.info.trim(),lidTot:isNaN(lt)?null:lt,geenLid:!!($("#geenLid")&&$("#geenLid").checked)}}
 function nieuwLid(){modal("Nieuw lid",lidForm(),`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="lidOk">Lid toevoegen</button>`);
   $("#lidOk").onclick=async()=>{const d=readLid();if(!d)return;let id=slug(d.naam+"-"+d.voornaam);if(S.leden.has(id)){$("#lidErr").textContent="Er bestaat al een lid met deze naam.";return}
     closeModal();await write("leden",id,d);toast(naamVol(d)+" is toegevoegd.")}}
 function toonLid(id){
   const C=ctx(),r=C.rows.get(id);if(!r)return;const l=r.lid;
   const b=r.lg.boeking;
-  const body=`<div class="grid g2"><dl class="kv"><dt>Adres</dt><dd>${esc(l.adres)||"–"}</dd><dt>E-mail</dt><dd>${esc(l.email)||"–"}</dd><dt>Telefoon</dt><dd>${esc(l.telefoon)||"–"}</dd><dt>Categorie</dt><dd>${esc(l.categorie)}</dd><dt>Lid sinds</dt><dd>${esc(l.lidSinds||"–")}${r.jaren!=null?" ("+r.jaren+" jaar)":""}</dd>${l.info?`<dt>Info</dt><dd>${esc(l.info)}</dd>`:""}${l.lidTot?`<dt>Lid tot</dt><dd>${l.lidTot}</dd>`:""}</dl>
+  const body=`<div class="grid g2"><dl class="kv"><dt>Adres</dt><dd>${esc(l.adres)||"–"}</dd><dt>E-mail</dt><dd>${esc(l.email)||"–"}</dd><dt>Telefoon</dt><dd>${esc(l.telefoon)||"–"}</dd><dt>Categorie</dt><dd>${esc(l.categorie)}</dd><dt>Lid sinds</dt><dd>${esc(l.lidSinds||"–")}${r.jaren!=null?" ("+r.jaren+" jaar)":""}</dd>${l.info?`<dt>Info</dt><dd>${esc(l.info)}</dd>`:""}${l.lidTot?`<dt>Lid tot</dt><dd>${l.lidTot}</dd>`:""}${l.geenLid?`<dt>Status</dt><dd><span class="pill neutral">Geen lid</span></dd>`:""}</dl>
    <div style="display:flex;flex-direction:column;gap:10px"><div><b>Lidgeld ${JAAR}</b> &nbsp;${lgPill(r)} <span style="color:var(--muted)">${eur(r.bedrag)}</span></div>
    <div style="font-size:13.5px;color:var(--muted)">${b?`Gevonden in transactie ${b.nr??""} van ${fmtDate(b.datum)}: “${esc(b.mededeling)}”`:esc(r.lg.bron)||"Geen betaling gevonden met naam, voornaam en het woord lidgeld in de mededeling."}</div>
    <div class="fld" data-w><label for="lgOv">Lidgeldstatus</label><select id="lgOv" data-lgov="${esc(id)}">${selOpts([["","Automatisch (uit de boekhouding)"],["OK","Manueel: betaald"],["NOK","Manueel: niet betaald"]],r.jl.lidgeld||"")}</select></div>
@@ -1545,7 +1546,7 @@ function toonLid(id){
    ${l.categorie!=="Erewacht"?`<div><b>Punten ${JAAR}</b>: ${r.p.totaal} &nbsp;${medal(r.status)}</div>`:""}</div></div>`+lidgeldHistHtml(l,r);
   modal(naamVol(l),body,`<button class="btn ghost danger" data-w id="lidDel">Verwijderen</button><span class="grow"></span><button class="btn" data-act="closeModal">Sluiten</button><button class="btn primary" data-w id="lidEdit">Gegevens wijzigen</button>`,{wide:true});
   $("#lidEdit").onclick=()=>{modal("Lid wijzigen",lidForm(l),`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="lidOk">Bewaren</button>`);
-    $("#lidOk").onclick=async()=>{const d=readLid();if(!d)return;closeModal();await write("leden",id,d);toast("Gegevens bewaard.")}};
+    $("#lidOk").onclick=async()=>{const d=readLid();if(!d)return;closeModal();await write("leden",id,{...stripId(S.leden.get(id)||l),...d});toast(d.geenLid&&!l.geenLid?naamVol(d)+" staat niet meer in de ledenlijst.":"Gegevens bewaard.")}};
   $("#lidDel").onclick=()=>confirmBox(`<b>${esc(naamVol(l))}</b> definitief verwijderen? Wil je iemand enkel niet meer als lid tonen, vul dan beter "Lid tot en met" in.`,"Verwijderen",async()=>{await write("leden",id,null,{del:true});toast("Lid verwijderd.")});
 }
 function lidgeldHist(lid){

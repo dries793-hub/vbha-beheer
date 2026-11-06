@@ -53,6 +53,7 @@ export async function actieveLeden(sb, jaar) {
     if (!l.naam || l.dubbelVan) continue;
     if (l.lidSinds && Number(l.lidSinds) > jaar) continue;
     if (l.lidTot && Number(l.lidTot) < jaar) continue;
+    if (l.geenLid) continue; // manueel aangeduid als geen lid
     const j = JL.get(jaar + "_" + r.id) || {};
     let ok;
     if (nm(l.info).includes("ere-voorzitter")) ok = true;
