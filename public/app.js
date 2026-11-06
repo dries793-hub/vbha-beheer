@@ -2717,9 +2717,9 @@ VIEWS.gebruikers=()=>({title:"Gebruikers",actions:ROL==="admin"?'<button class="
   return `<div class="gb-rollen">${["admin","boekhouder","lezer"].map(r=>`<div class="gb-rol"><span class="pill ${r==="admin"?"info":r==="boekhouder"?"ok":"neutral"}">${ROL_LBL[r]}</span><span class="muted small">${ROL_UITLEG[r]}</span></div>`).join("")}</div>
   <div class="panel"><div class="panel-h"><h2>Wie heeft toegang</h2><span class="grow"></span><span class="muted small">${L.length}</span></div><div class="list">
   ${L.map(u=>`<div class="li gb-li"><span class="acct-av gb-av">${esc(((u.naam||u.email)[0]||"?").toUpperCase())}</span><div class="grow" style="min-width:0">
-    <div class="trunc"><b>${esc(u.naam||u.email)}</b>${u.ik?' <span class="muted small">(jij)</span>':""}</div>
+    <div class="trunc"><b>${esc(u.naam||u.email)}</b>${u.ik?' <span class="muted small">(jij)</span>':""}</div><div class="gb-rm"><span class="pill ${u.rol==="admin"?"info":u.rol==="boekhouder"?"ok":"neutral"}">${ROL_LBL[u.rol]||esc(u.rol)}</span></div>
     <div class="muted small trunc">${u.naam?esc(u.email)+" · ":""}laatst aangemeld: ${esc(gbDt(u.laatst))}${u.tijdelijk?' · <span class="gb-tmp">tijdelijk wachtwoord</span>':""}</div></div>
-    <span class="pill ${u.rol==="admin"?"info":u.rol==="boekhouder"?"ok":"neutral"}">${ROL_LBL[u.rol]||esc(u.rol)}</span>
+    <span class="pill gb-rp ${u.rol==="admin"?"info":u.rol==="boekhouder"?"ok":"neutral"}">${ROL_LBL[u.rol]||esc(u.rol)}</span>
     <button class="btn sm" data-act="gbEdit" data-id="${esc(u.id)}">Wijzigen</button></div>`).join("")||'<div class="empty">Nog niemand.</div>'}</div></div>`}});
 
 const gbRolSel=(id,v)=>`<div class="gb-rkeus" role="radiogroup" aria-label="Rechten">${["admin","boekhouder","lezer"].map(r=>`<label class="sp-nat"><input type="radio" name="${id}" value="${r}"${r===v?" checked":""}><span><b>${ROL_LBL[r]}</b><small>${ROL_UITLEG[r]}</small></span></label>`).join("")}</div>`;
