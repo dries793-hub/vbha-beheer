@@ -836,6 +836,37 @@ code.gb-ww{font-size:17px;letter-spacing:.04em;padding:3px 8px;border-radius:6px
 .gb-li .trunc{display:block;max-width:100%}
 .gb-rm{display:none}
 @media (max-width:640px){.gb-li{padding:12px 14px;gap:12px}.gb-rp{display:none}.gb-rm{display:block;margin:4px 0 3px}.gb-rm .pill{min-width:0}}
+/* mobiele lijsten (ledenlijst, puntensysteem) */
+.mlist{display:none}
+@media (max-width:760px){
+  .dsk-only{display:none!important}
+  .mlist{display:flex;flex-direction:column}
+  .ml-row{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer;min-height:58px}
+  .mlist>.ml-row:last-child,.mlist>.pm:last-child>.ml-row{border-bottom:0}
+  .ml-row:active{background:var(--sunken)}
+  .ml-av{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;background:var(--sunken);color:var(--muted)}
+  .ml-av.ok{background:color-mix(in srgb,var(--good,#1a7f45) 14%,transparent);color:var(--good,#1a7f45)}
+  .ml-av.nok{background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)}
+  .ml-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .ml-n{font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ml-n b{font-weight:700}
+  .ml-s{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:0}
+  .ml-s .medal{font-size:11px}
+  .ml-dot{margin:0 6px;opacity:.6}
+  .ml-st{display:inline-flex;align-items:center;gap:5px;font-weight:600}.ml-st i{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+  .ml-st.BRONS{color:#9a5b2b}.ml-st.ZILVER{color:#6b7280}.ml-st.GOUD{color:#a07c10}
+  .ml-r{flex:none}.ml-r .pill{font-size:12px}
+  .ml-chev{flex:none;color:var(--muted);font-size:20px;line-height:1;margin-left:-2px}
+  .pm-tot{flex:none;display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}.pm-tot b{font-size:18px;font-variant-numeric:tabular-nums}.pm-tot small{font-size:11px;color:var(--muted)}
+  .pm.open>.ml-row{border-bottom:0;background:var(--sunken)}.pm.open .ml-chev{transform:rotate(90deg)}
+  .pm-d{padding:4px 14px 14px;background:var(--sunken);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
+  .pm-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pm-c{display:flex;flex-direction:column;gap:5px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+  .pm-c>span,.pm-x>span{font-size:12px;color:var(--muted);font-weight:500}
+  .pm-v{font-size:17px;padding:6px 0}
+  .pm-c .step{align-self:flex-start}
+  .pm-x{display:flex;flex-direction:column;gap:6px}
+  .pm-x .xl{display:flex;gap:8px;align-items:center}.pm-x .xl .wide{flex:1;min-width:0}.pm-x .xp{width:72px}
+}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */

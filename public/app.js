@@ -477,7 +477,12 @@ function ledenTable(){
   list.sort(cmp);
   const th=(k,l,cls="")=>{const on=LS.k===k||(k==="naam"&&vn);return `<th${cls?` class="${cls}"`:""}><button type="button" class="thsort${on?" on":""}" data-act="ledenSort" data-v="${k}" title="${k==="naam"?(LS.k==="naam"?"Klik om te sorteren op voornaam":"Sorteren op achternaam"):"Sorteren op "+l.toLowerCase()}">${k==="naam"&&vn?"Voornaam":l} <span>${on?(LS.d>0?"▲":"▼"):""}</span></button></th>`};
   if(!list.length)return '<div class="empty">Geen leden gevonden'+(q?' voor “'+esc(UI.ledenQ)+'”':'')+'.</div>';
-  return `<div class="tw"><table class="rcards"><thead><tr>${th("naam","Naam")}${th("status","Status")}${th("lidgeld","Lidgeld "+JAAR)}${th("categorie","Categorie")}${th("lidSinds","Lid sinds","num")}<th>E-mail</th><th>Telefoon</th></tr></thead><tbody>
+  const mob=`<div class="mlist" role="list">${list.map(r=>{const nm=vn?`<b>${esc(r.lid.voornaam)}</b> ${esc(r.lid.naam)}`:`<b>${esc(r.lid.naam)}</b> ${esc(r.lid.voornaam)}`;
+    const sub=[r.huidig&&r.status!=="niet actief"?`<span class="ml-st ${r.status}"><i></i>${esc(r.status.charAt(0)+r.status.slice(1).toLowerCase())}</span>`:"",esc(r.lid.categorie||"")].filter(Boolean).join('<span class="ml-dot">·</span>');
+    return `<button type="button" class="ml-row" role="listitem" data-act="toonLid" data-id="${esc(r.lid.id)}"><span class="ml-av ${r.huidig?(r.lg.ok?"ok":"nok"):"oud"}" aria-hidden="true">${esc(((vn?r.lid.voornaam:r.lid.naam)||"?").charAt(0).toUpperCase())}</span>
+      <span class="ml-m"><span class="ml-n">${nm}${r.lid.nieuw?' <span class="pill info">nieuw</span>':""}</span><span class="ml-s">${sub}</span></span>
+      <span class="ml-r">${r.huidig?(r.lg.ok?'<span class="pill ok">✓ Betaald</span>':'<span class="pill nok">Open</span>'):'<span class="pill neutral">oud-lid</span>'}</span><span class="ml-chev" aria-hidden="true">›</span></button>`}).join("")}</div>`;
+  return mob+`<div class="tw dsk-only"><table class="rcards"><thead><tr>${th("naam","Naam")}${th("status","Status")}${th("lidgeld","Lidgeld "+JAAR)}${th("categorie","Categorie")}${th("lidSinds","Lid sinds","num")}<th>E-mail</th><th>Telefoon</th></tr></thead><tbody>
   ${list.map(r=>`<tr class="click" data-act="toonLid" data-id="${esc(r.lid.id)}"><td class="nm">${vn?`<b>${esc(r.lid.voornaam)}</b> ${esc(r.lid.naam)}`:`<b>${esc(r.lid.naam)}</b> ${esc(r.lid.voornaam)}`}${r.huidig?"":' <span class="pill neutral">oud-lid</span>'}${r.lid.nieuw?' <span class="pill info">nieuw</span>':""}</td>
     <td>${r.huidig?medal(r.status):""}</td><td>${r.huidig?lgPill(r):""}</td><td>${esc(r.lid.categorie)}</td><td class="num">${esc(r.lid.lidSinds||"")}</td>
     <td class="trunc">${esc(r.lid.email)||'<span class="pill warn">geen e-mail</span>'}</td><td style="white-space:nowrap">${esc(r.lid.telefoon)}</td></tr>`).join("")}
@@ -747,6 +752,7 @@ function toonReglement(){const c=jaarCfg(JAAR),w=c.gewichten,dr=c.drempels,k=c.k
   <h4>5. Regels rond gebruik</h4><ul><li>Punten zijn strikt persoonsgebonden en kunnen onder geen enkele voorwaarde verkocht, overgedragen of gedeeld worden met andere leden. Ze dienen uitsluitend ter beloning van de individuele inzet van het lid.</li><li>Punten die tijdens een werkjaar worden verzameld, zijn geldig voor het daaropvolgende inzetjaar. Ze kunnen enkel tijdens dat inzetjaar ingezet worden en vervallen bij de jaarlijkse reset. Punten doorschuiven naar een volgend werkjaar kan niet. Zo start elk lid elk jaar opnieuw met gelijke kansen.</li><li>Inzet wordt gewaardeerd op basis van vastgelegde categorieën. Het bestuur kan bij bijzondere inspanningen bijkomende punten toekennen.</li><li>Enkel leden die hun jaarlijkse lidgeld betaald hebben, kunnen punten verzamelen en inruilen. Is het lidgeld niet betaald, dan vervallen alle rechten op deelname aan het puntensysteem.</li><li>Punten geven recht op een korting van maximum ${k.goud}% van de kostprijs van een betalende activiteit. Volledig gratis deelnemen aan een activiteit is dus niet mogelijk.</li><li>Meent een lid te weinig punten ontvangen te hebben, dan kan dit binnen een redelijke termijn gemeld worden bij het bestuur. Het bestuur bekijkt de melding en neemt een definitieve, bindende beslissing.</li><li>Er is geen maximumaantal punten dat een lid kan verzamelen. Enkel de korting per activiteit is begrensd.</li><li>Enkel leden van de vriendenkring komen in aanmerking om punten te verzamelen. Brengt een lid een extern persoon (bv. partner) mee om te helpen, dan krijgt dat lid hiervoor extra punten.</li><li>Het bestuur kan tijdens het jaar extra afspraken maken voor activiteiten die spontaan tot stand komen en niet in dit reglement vermeld staan.</li></ul>
   <div class="regl-end"><b>Afsluitende opmerking</b><br>Het systeem is bedoeld om inzet zichtbaar en belonend te maken, niet om leden uit te melken of te rangschikken.</div></div>`,
   `<button class="btn" data-act="reglPrint">${ic("download")}Afdrukken / PDF</button><button class="btn primary" data-act="closeModal">Sluiten</button>`)}
+const PT_OPEN=new Set();
 function puntTable(){
   const C=ctx(),w=C.c.gewichten,q=norm(UI.puntQ);
   let list=C.leden.filter(l=>l.categorie!=="Erewacht").map(l=>C.rows.get(l.id)).filter(r=>r&&r.lg.ok);
@@ -756,7 +762,13 @@ function puntTable(){
   else if(vn)list.sort((a,b)=>(a.lid.voornaam||"").localeCompare(b.lid.voornaam||"","nl")||(a.lid.naam||"").localeCompare(b.lid.naam||"","nl"));
   const dis=canWrite?"":" disabled";
   const inp=(r,f)=>stepper("jl",f,r.lid.id,r.jl[f]||0,f+" "+naamVol(r.lid));
-  return `<div class="tw" style="max-height:72vh"><table class="rcards ptab"><thead><tr><th><button type="button" class="thsort" data-act="puntNaam" title="Klik om te sorteren op ${vn?"achternaam":"voornaam"}">${vn?"Voornaam":"Naam"} <span>${UI.puntSort==="totaal"?"":"▲"}</span></button></th><th>Kalenderdozen</th><th>Kaarten</th><th>Shifts</th><th>Vergaderingen</th><th>Extra inspanningen</th><th class="num">Totaal</th><th>Status</th></tr></thead><tbody>
+  const mob=`<div class="mlist" role="list">${list.map(r=>{const id=r.lid.id,open=PT_OPEN.has(id);const nm=vn?`<b>${esc(r.lid.voornaam)}</b> ${esc(r.lid.naam)}`:`<b>${esc(r.lid.naam)}</b> ${esc(r.lid.voornaam)}`;
+    const det=[["Kaarten","kaarten"],["Shifts","shifts"],["Vergaderingen","vergaderingen"]];
+    return `<div class="pm${open?" open":""}" role="listitem"><button type="button" class="ml-row" data-act="ptOpen" data-id="${esc(id)}" aria-expanded="${open}">
+      <span class="ml-m"><span class="ml-n">${nm}</span><span class="ml-s">${medal(r.status)}</span></span><span class="pm-tot"><b>${r.p.totaal}</b><small>punten</small></span><span class="ml-chev" aria-hidden="true">›</span></button>
+      ${open?`<div class="pm-d"><div class="pm-g"><div class="pm-c"><span>Kalenderdozen</span><b class="pm-v">${r.jl.kalUitgevoerd||0}</b></div>${det.map(([l,f])=>`<div class="pm-c"><span>${l}</span>${inp(r,f)}</div>`).join("")}</div>
+        <div class="pm-x"><span>Extra inspanningen</span>${extraHtml(r,dis)}</div></div>`:""}</div>`}).join("")||'<div class="empty">Geen actieve leden gevonden.</div>'}</div>`;
+  return mob+`<div class="tw dsk-only" style="max-height:72vh"><table class="rcards ptab"><thead><tr><th><button type="button" class="thsort" data-act="puntNaam" title="Klik om te sorteren op ${vn?"achternaam":"voornaam"}">${vn?"Voornaam":"Naam"} <span>${UI.puntSort==="totaal"?"":"▲"}</span></button></th><th>Kalenderdozen</th><th>Kaarten</th><th>Shifts</th><th>Vergaderingen</th><th>Extra inspanningen</th><th class="num">Totaal</th><th>Status</th></tr></thead><tbody>
   ${list.map(r=>`<tr><td class="nm" style="white-space:nowrap">${vn?`<b>${esc(r.lid.voornaam)}</b> ${esc(r.lid.naam)}`:`<b>${esc(r.lid.naam)}</b> ${esc(r.lid.voornaam)}`}</td><td class="num">${r.jl.kalUitgevoerd||0}</td><td class="num">${inp(r,"kaarten")}</td><td class="num">${inp(r,"shifts")}</td><td class="num">${inp(r,"vergaderingen")}</td>
   <td class="xcell">${extraHtml(r,dis)}</td><td class="num"><b>${r.p.totaal}</b></td><td>${medal(r.status)}</td></tr>`).join("")||'<tr><td colspan="8" class="empty">Geen actieve leden gevonden.</td></tr>'}
   </tbody></table></div>`;
@@ -1857,6 +1869,7 @@ document.addEventListener("click",async e=>{
     case"puntSort":{let v=t.dataset.v;if(v==="naam"&&UI.puntSort==="naam")v="voornaam";UI.puntSort=v;saveUI();renderBody();break}
     case"nieuwLid":nieuwLid();break;
     case"toonLid":toonLid(id);break;
+    case"ptOpen":{PT_OPEN.has(id)?PT_OPEN.delete(id):PT_OPEN.add(id);const el=$("#puntList");if(el)el.innerHTML=puntTable();break}
     case"lidgeldBetaald":closeModal();lidgeldBetaald(id);break;
     case"nieuweBoeking":boekingForm({},null);break;
     case"toonBoeking":{const b=S.boekingen.get(id);if(b)canWrite?boekingForm(b,id):toast("Je hebt alleen leesrechten.");break}
