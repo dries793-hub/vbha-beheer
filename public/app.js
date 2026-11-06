@@ -279,7 +279,7 @@ window.addEventListener("resize",closeNavMenu);window.addEventListener("scroll",
 
 /* ============ mobiel: onderbalk, keuzeblad en kaarttabellen ============ */
 const KORT={boekhouding:"Financiën",administratie:"Activiteiten",communicatie:"Admin"};
-function navGroups(){return [{id:"dashboard",label:"Home",items:[["dashboard","Dashboard"]]},...NAV.map(n=>Array.isArray(n)?{id:n[0],label:n[1],items:[n]}:n)]}
+function navGroups(){return [{id:"dashboard",label:"Dashboard",items:[["dashboard","Dashboard"]]},...NAV.map(n=>Array.isArray(n)?{id:n[0],label:n[1],items:[n]}:n)]}
 function renderTabbar(r){const tb=$("#tabbar");if(!tb)return;
   tb.innerHTML=navGroups().map(g=>{const on=g.items.some(i=>i[0]===r);const single=g.items.length===1;
     return single?`<a href="#${g.items[0][0]}" class="${on?"on":""}">${ic(g.id==="dashboard"?"dashboard":g.id)}<span>${esc(KORT[g.id]||g.label)}</span></a>`:`<button type="button" class="${on?"on":""}" data-act="sheetOpen" data-id="${g.id}" aria-haspopup="true" aria-label="${esc(g.label)}">${ic(g.id)}<span>${esc(KORT[g.id]||g.label)}</span></button>`}).join("")}
