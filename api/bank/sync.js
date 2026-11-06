@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { admin, requireUser, isCron, sendError, selectAll, httpErr } from "../_lib/sb.js";
+import { admin, requireUser, isCron, isDbCron, sendError, selectAll, httpErr } from "../_lib/sb.js";
 import { configured, eb, mapTransaction } from "../_lib/enable.js";
 import { norm, suggest, partijIndex, findLid } from "../_lib/regels.js";
 
@@ -7,11 +7,11 @@ const slug = s => norm(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "
 const r2 = n => Math.round(n * 100) / 100;
 
 // Haalt nieuwe verrichtingen op voor alle gekoppelde rekeningen en boekt ze.
-// Wordt elke ochtend door Vercel Cron aangeroepen (zie vercel.json) of via de knop "Nu ophalen".
+// Wordt om 9u, 13u en 17u aangeroepen door een geplande taak in Supabase (pg_cron, functie bank_sync_cron) of via de knop "Nu ophalen".
 export default async function handler(req, res) {
   try {
     let sb;
-    if (isCron(req)) sb = admin();
+    if (isCron(req) || await isDbCron(req)) sb = admin();
     else { if (req.method !== "POST") throw httpErr(405, "Gebruik POST"); ({ sb } = await requireUser(req, { boek: true })); }
     if (!configured()) throw httpErr(501, "Enable Banking is nog niet ingesteld");
     const result = await syncAll(sb);
