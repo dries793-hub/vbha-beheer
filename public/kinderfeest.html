@@ -116,6 +116,7 @@ input[type=date]{width:100%;font:inherit;font-size:16px;padding:10px 12px;border
 .lp-i:hover,.lp-i.on{background:var(--sunken)}
 .lp-i b{font-weight:700}
 .lp-leeg{padding:11px 14px;font-size:14px;color:var(--muted)}
+.mhint{margin:6px 0 0;font-size:13px;color:var(--muted)}
 .lp input.lp-ok{border-color:var(--good);background:var(--good-soft)}
 .bevestig{text-align:center;padding:34px 24px}
 .bevestig .ic{width:72px;height:72px;border-radius:50%;background:var(--good-soft);color:var(--good);display:grid;place-items:center;margin:0 auto 16px}
@@ -150,7 +151,7 @@ input[type=date]{width:100%;font:inherit;font-size:16px;padding:10px 12px;border
   <div id="box"><form class="card" id="f" novalidate>
     <div class="grid">
       <div class="full"><label for="lid">Naam van het lid</label><input type="text" id="lid" placeholder="Begin je naam te typen…" maxlength="100"></div>
-      <div class="full"><label for="mail">E-mailadres</label><input type="email" id="mail" autocomplete="email" inputmode="email" maxlength="120"></div>
+      <div class="full"><label for="mail">E-mailadres</label><input type="email" id="mail" autocomplete="email" inputmode="email" maxlength="120"><p class="mhint" id="mhint" hidden>Dit is het adres dat we van dit lid hebben (deels verborgen). Ander adres gebruiken? Typ het gewoon hier.</p></div>
       <div class="full"><span class="lbl">Kinderen</span><div id="kids" style="display:flex;flex-direction:column;gap:10px"></div><button type="button" class="kadd" id="add">+ Nog een kind toevoegen</button></div>
       <div class="full"><label for="opm">Opmerking</label><textarea id="opm" maxlength="400" placeholder="Optioneel"></textarea></div>
     </div>
@@ -186,12 +187,13 @@ $("#kids").addEventListener("input",e=>{if(e.target.classList.contains("kg"))$("
 $("#f").addEventListener("submit",async e=>{e.preventDefault();read();const er=$("#err");er.textContent="";
   const lid=$("#lid").value.trim(),mail=$("#mail").value.trim();
   const lidId=$("#lid").dataset.id||"";if(!lidId){er.textContent=lid?"Kies de naam van het lid uit de lijst.":"Vul de naam van het lid in en kies ze uit de lijst.";$("#lid").focus();return}
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)){er.textContent="Vul een geldig e-mailadres in.";$("#mail").focus();return}
+  const auto=!!$("#mail").dataset.auto;
+  if(!auto&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)){er.textContent="Vul een geldig e-mailadres in.";$("#mail").focus();return}
   KIDS=KIDS.filter((k,i)=>i===0||k.naam.trim()||k.geb);draw();
   for(let i=0;i<KIDS.length;i++){const k=KIDS[i];if(!k.naam.trim()){er.textContent="Vul de naam van kind "+(i+1)+" in.";$("#kn"+i).focus();return}
     const a=lft(k.geb);if(a==null||a<0){er.textContent="Vul een geldige geboortedatum in voor "+k.naam.trim()+".";$("#kg"+i).focus();return}}
   const b=$("#go");b.disabled=true;b.textContent="Bezig…";
-  try{const r=await fetch("/api/kinderfeest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({lid,lidId,email:mail,kinderen:KIDS,opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0})});
+  try{const r=await fetch("/api/kinderfeest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({lid,lidId,email:auto?"":mail,lidMail:auto,kinderen:KIDS,opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0})});
     const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Inschrijven lukte niet.");
     $("#box").innerHTML=`<div class="card ok"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Bedankt!</h2><p>De inschrijving van ${esc(lid)} is goed ontvangen.</p><p class="sum">${KIDS.map(k=>esc(k.naam.trim())+" ("+lft(k.geb)+" j)").join(", ")}</p><p class="sum">Tot op het kinderfeest!</p><p style="margin-top:16px"><button type="button" class="cp" onclick="location.reload()">Nog een gezin inschrijven</button></p></div>`;window.scrollTo({top:0,behavior:"smooth"})}
   catch(x){er.textContent=x.message;b.disabled=false;b.textContent="Inschrijving versturen"}});
@@ -201,7 +203,8 @@ function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");co
   const mark=(n,q)=>{const t=q.trim().split(/\s+/).filter(Boolean);let h=esc(n);for(const x of t){const re=new RegExp("("+x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i");h=h.replace(re,"<b>$1</b>")}return h};
   const teken=q=>{if(!L.length){box.innerHTML=q.trim().length>=2?'<div class="lp-leeg">Geen lid gevonden met deze naam.</div>':"";box.hidden=q.trim().length<2;return}
     box.innerHTML=L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${mark(l.naam,q)}</button>`).join("");box.hidden=false};
-  const kies=l=>{inp.value=l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.naam};
+  const kies=l=>{inp.value=l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.naam;
+    const m=$("#mail");if(m&&(!m.value.trim()||m.dataset.auto)){if(l.mail){m.value=l.mail;m.dataset.auto="1";m.type="text";$("#mhint").hidden=false}else if(m.dataset.auto){m.value="";delete m.dataset.auto;m.type="email";$("#mhint").hidden=true}}};
   inp.addEventListener("input",()=>{delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;
     if(q.trim().length<2){L=[];box.hidden=true;return}
     T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[];}catch(e){L=[]}if(inp.value===q)teken(q)},160)});
@@ -211,6 +214,9 @@ function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");co
   box.addEventListener("mousedown",e=>{const b=e.target.closest(".lp-i");if(!b)return;e.preventDefault();kies(L[+b.dataset.i])});
   inp.addEventListener("blur",()=>setTimeout(()=>{box.hidden=true;if(!inp.dataset.id&&L.length===1&&inp.value.trim())kies(L[0])},150));}
 lidPicker($("#lid"));
+/* zelf iets aanpassen aan het voorgestelde adres: dan geldt het getypte adres */
+$("#mail").addEventListener("focus",e=>{const m=e.target;if(m.dataset.auto){m.select()}});
+$("#mail").addEventListener("input",e=>{const m=e.target;if(m.dataset.auto){delete m.dataset.auto;m.type="email";$("#mhint").hidden=true}});
 draw();
 
 </script>

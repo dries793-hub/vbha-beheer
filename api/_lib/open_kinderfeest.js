@@ -21,7 +21,9 @@ export default async function handler(req, res) {
     if (!I.open) throw httpErr(403, "De inschrijvingen voor het kinderfeest zijn afgesloten.");
     const lidRij = (await actieveLeden(sb, I.jaar)).find(l => l.id === String(b.lidId || ""));
     if (!lidRij) throw httpErr(400, "Kies de naam van het lid uit de lijst.");
-    const lid = lidRij.naam, email = clean(b.email, 120).toLowerCase();
+    const lid = lidRij.naam;
+    // "lidMail": de inschrijver liet het bekende adres van het lid staan (dat adres krijgt de browser enkel verborgen te zien)
+    const email = b.lidMail && lidRij.em ? lidRij.em : clean(b.email, 120).toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw httpErr(400, "Vul een geldig e-mailadres in.");
     const kinderen = (Array.isArray(b.kinderen) ? b.kinderen : []).slice(0, 8)
       .map(k => ({ naam: clean(k && k.naam, 80), geb: /^\d{4}-\d{2}-\d{2}$/.test(String(k && k.geb)) ? String(k.geb) : "" }))
