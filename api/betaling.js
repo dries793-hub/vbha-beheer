@@ -1,5 +1,5 @@
 import { admin, sendError, httpErr } from "./_lib/sb.js";
-import { bcConfigured } from "./_lib/bancontact.js";
+import { onlineConfigured } from "./_lib/betaalprovider.js";
 import { startBetaling, controleerBetaling, BETAALTABELLEN } from "./_lib/betaal.js";
 
 // Openbaar, maar enkel met het geheime token dat de inschrijver na het inschrijven kreeg.
@@ -8,7 +8,7 @@ import { startBetaling, controleerBetaling, BETAALTABELLEN } from "./_lib/betaal
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
-    if (!bcConfigured()) throw httpErr(501, "Online betalen is niet ingesteld");
+    if (!onlineConfigured()) throw httpErr(501, "Online betalen is niet ingesteld");
     const b = req.method === "POST" ? (typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {})) : (req.query || {});
     const tabel = BETAALTABELLEN.includes(b.t) ? b.t : "leden";
     const id = String(b.id || ""), token = String(b.token || "");
@@ -26,4 +26,4 @@ export default async function handler(req, res) {
   } catch (e) { sendError(res, e); }
 }
 
-const publiek = b => b ? { status: b.status, deeplink: b.deeplink, qrcode: b.qrcode, checkout: b.checkout, verlooptOp: b.verlooptOp, bedrag: b.bedrag } : { status: null };
+const publiek = b => b ? { status: b.status, deeplink: b.deeplink, qrcode: b.qrcode, checkout: b.checkout, provider: b.provider || null, verlooptOp: b.verlooptOp, bedrag: b.bedrag } : { status: null };

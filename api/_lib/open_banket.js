@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { admin, sendError, httpErr } from "./sb.js";
 import { epcPayload, qrSvg } from "./epc.js";
-import { bcConfigured } from "./bancontact.js";
+import { onlineConfigured as bcConfigured } from "./betaalprovider.js";
 import { startBetaling } from "./betaal.js";
 import { clean, body, nieuwId, vandaag, algemeen, configDoc, spamCheck } from "./publiek.js";
 
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
     if (token) {
       try {
         const bt = await startBetaling(sb, req, "banket", { id, data: d }, { bedrag: teBetalen, jaar: I.jaar });
-        online = { t: "banket", id, token, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp };
+        online = { t: "banket", id, token, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp, provider: bt.provider || null };
       } catch (e) { console.error("Bancontact", e); }
     }
     res.status(200).json({ ok: true, jaar: I.jaar, bedrag: teBetalen, rekeningnummer: I.rekeningnummer, begunstigde: I.vereniging, mededeling, qr, online, personen, deadline: I.deadline });

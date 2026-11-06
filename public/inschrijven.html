@@ -134,7 +134,7 @@ function handmatig(j){return `<dl class="pd"><div><dt>Bedrag</dt><dd><b>${eur(j.
 function appLink(o){if(!o||!o.deeplink)return null;const ret=location.origin+location.pathname+"?betaling=terug";return o.deeplink+(o.deeplink.includes("?")?"&":"?")+"returnUrl="+encodeURIComponent(ret)}
 function onlineBlok(o,bedrag){const href=appLink(o);
   return `<div id="online"><a class="btn bc" id="bcGo" href="${esc(href||o.checkout||"#")}">${BC_ICON}Betaal ${eur(bedrag)} met Bancontact</a>
-  <p class="hint c">Je bank- of Bancontact-app opent en je bevestigt de betaling daar.</p>
+  <p class="hint c">${o.deeplink?"Je bank- of Bancontact-app opent en je bevestigt de betaling daar.":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
   ${o.qrcode?`<div class="qrwrap desk"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div><p>Op een computer? Scan deze code met de Bancontact-app of de app van je bank.</p></div>`:""}
   <p class="wacht" id="bcStatus" aria-live="polite"></p></div>`}
 function toonKlaar(j){

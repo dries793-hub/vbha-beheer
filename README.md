@@ -115,17 +115,20 @@ Op `https://jouw-site.vercel.app/inschrijven` staat een openbaar formulier. Iede
 
 De link staat ook bij Instellingen, met een knop om ze te kopiëren.
 
-### Online betalen met Bancontact Pay
+### Online betalen met Mollie
 
-Staat de sleutel ingesteld, dan krijgt een nieuw lid na het inschrijven de knop **Betaal met Bancontact**. Op de gsm opent die de bank- of Bancontact-app. Op een computer staat er een QR-code om met de gsm te scannen. Zodra de betaling gelukt is, staat het lidgeld van dat lid automatisch op **betaald**. Het lid ziet dat ook meteen op het scherm.
+Staat de sleutel ingesteld, dan krijgt wie zich inschrijft (lidgeld of banket) de knop **Betaal met Bancontact**. Die opent de beveiligde betaalpagina van Mollie; op de gsm gaat dat meteen naar de Bancontact- of bankapp, op een computer staat er een QR-code. Zodra de betaling gelukt is, staat het lidgeld of de banketinschrijving automatisch op **betaald** en ziet de persoon dat ook meteen op het scherm.
 
-1. Vraag bij Bancontact Pay de **API-sleutel** op voor een betaalprofiel voor online betalingen (in het merchant-portaal of via hun support).
-2. Zet in Vercel bij Environment Variables `BANCONTACT_API_KEY` = die sleutel. Zet ook `SITE_URL` op het adres van je site, bv. `https://vbha-beheer.vercel.app`.
-3. Doe een **Redeploy**.
+1. Maak een account op [mollie.com](https://www.mollie.com) (als vereniging/vzw) en activeer de betaalmethode **Bancontact**.
+2. Kopieer in het Mollie-dashboard › **Ontwikkelaars** › **API-sleutels** de **Live API-sleutel** (`live_…`). Om eerst te testen kan je de **Test API-sleutel** (`test_…`) gebruiken: dan wordt er niets echt betaald.
+3. Zet in Vercel › **Settings** › **Environment Variables**: `MOLLIE_API_KEY` = die sleutel, en `SITE_URL` = het adres van je site (bv. `https://vbha-beheer.vercel.app`).
+4. Doe een **Redeploy**.
 
-Zonder sleutel blijft het formulier werken zoals vroeger, met de betaal-QR en de overschrijvingsgegevens.
+Optioneel: `MOLLIE_METHODS=bancontact,kbc,belfius` laat ook andere betaalmethodes toe die je in Mollie geactiveerd hebt.
 
-Boekhouding: Bancontact stort de betalingen gebundeld door op de rekening. Die doorstorting komt via de bankimport binnen; zet ze op categorie **Lidgeld**. De leden zelf staan al op betaald.
+Zonder sleutel blijft alles werken met de betaal-QR en de overschrijvingsgegevens. (De oude koppeling met Bancontact Pay via `BANCONTACT_API_KEY` werkt nog steeds als je Mollie niet invult.)
+
+Boekhouding: Mollie stort de betalingen gebundeld door op de rekening. Die doorstorting komt via de bankimport binnen; zet ze op de juiste categorie (Lidgeld of Banket). De leden en inschrijvingen zelf staan al op betaald.
 
 ## Openbare pagina's: banket, kinderfeest en kalenderkaart
 

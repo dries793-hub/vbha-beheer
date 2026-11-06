@@ -1,14 +1,15 @@
 import { admin } from "../_lib/sb.js";
-import { bcConfigured } from "../_lib/bancontact.js";
+import { onlineConfigured } from "../_lib/betaalprovider.js";
 import { controleerBetaling, BETAALTABELLEN } from "../_lib/betaal.js";
 
-// Bancontact Pay meldt hier een statuswijziging. We vertrouwen de inhoud niet blind:
+// Mollie (webhook, formulier met id=tr_…) of Bancontact Pay (JSON met paymentId) meldt hier een statuswijziging. We vertrouwen de inhoud niet blind:
 // de status wordt altijd opnieuw opgevraagd bij Bancontact met onze eigen API-sleutel.
 export default async function handler(req, res) {
   try {
-    if (req.method !== "POST" || !bcConfigured()) return res.status(200).end();
-    const b = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-    const pid = String(b.paymentId || "");
+    if (req.method !== "POST" || !onlineConfigured()) return res.status(200).end();
+    let b = req.body || {};
+    if (typeof b === "string") { try { b = JSON.parse(b || "{}"); } catch { b = Object.fromEntries(new URLSearchParams(b)); } }
+    const pid = String(b.paymentId || b.id || "");
     if (!pid) return res.status(200).end();
     const sb = admin();
     for (const t of BETAALTABELLEN) {
