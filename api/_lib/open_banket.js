@@ -1,9 +1,9 @@
 import crypto from "node:crypto";
-import { admin, sendError, httpErr } from "./_lib/sb.js";
-import { epcPayload, qrSvg } from "./_lib/epc.js";
-import { bcConfigured } from "./_lib/bancontact.js";
-import { startBetaling } from "./_lib/betaal.js";
-import { clean, body, nieuwId, vandaag, algemeen, configDoc, spamCheck } from "./_lib/publiek.js";
+import { admin, sendError, httpErr } from "./sb.js";
+import { epcPayload, qrSvg } from "./epc.js";
+import { bcConfigured } from "./bancontact.js";
+import { startBetaling } from "./betaal.js";
+import { clean, body, nieuwId, vandaag, algemeen, configDoc, spamCheck } from "./publiek.js";
 
 // Openbare banketinschrijving: komt rechtstreeks in Administratie › Banket, met online betaling.
 async function info(sb) {

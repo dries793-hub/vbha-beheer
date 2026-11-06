@@ -26,5 +26,19 @@
       ]
     }
   ],
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/banket",
+      "destination": "/api/openbaar?f=banket"
+    },
+    {
+      "source": "/api/kinderfeest",
+      "destination": "/api/openbaar?f=kinderfeest"
+    },
+    {
+      "source": "/api/ronde",
+      "destination": "/api/openbaar?f=ronde"
+    }
+  ]
 }
