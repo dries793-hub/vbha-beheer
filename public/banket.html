@@ -178,7 +178,7 @@ let KLAAR=null;
 function toonKlaar(j){KLAAR=j;
   const o=j.online&&(j.online.deeplink||j.online.checkout)?j.online:null;
   $("#box").innerHTML=`<div class="card ok"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Bedankt, ${esc(j.voornaam)}!</h2><p>Je inschrijving voor ${j.personen===2?"2 personen":"1 persoon"} is goed ontvangen.</p>
-  ${j.rekeningnummer||o?`<div class="paybox" id="paybox"><h3>Betaal ${eur(j.bedrag)}${!o&&j.deadline?" voor "+esc(j.deadline):""}</h3>
+  ${j.rekeningnummer||o?`<div class="paybox" id="paybox">${o?"":`<h3>Betaal ${eur(j.bedrag)}${j.deadline?" voor "+esc(j.deadline):""}</h3>`}
   ${o?onlineBlok(o,j.bedrag)+`<details class="zelf"><summary>Liever zelf overschrijven?</summary>${j.deadline?`<p class="hint" style="margin:0 0 10px">Schrijf het bedrag over voor <b>${esc(j.deadline)}</b>.</p>`:""}${handmatig(j)}</details>`
      :`${j.qr?`<div class="qrwrap"><div class="qr">${j.qr}</div><p>Scan deze code met de app van je bank. Bedrag, rekeningnummer en mededeling staan dan al ingevuld.</p></div><div class="or"><span>of schrijf zelf over</span></div>`:""}${handmatig(j)}`}
   </div>`:""}</div>`;
