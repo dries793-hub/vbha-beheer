@@ -3,7 +3,7 @@ import { admin, sendError, httpErr } from "./sb.js";
 import { epcPayload, qrSvg } from "./epc.js";
 import { onlineConfigured as bcConfigured } from "./betaalprovider.js";
 import { startBetaling } from "./betaal.js";
-import { clean, body, nieuwId, vandaag, algemeen, configDoc, spamCheck } from "./publiek.js";
+import { clean, body, nieuwId, vandaag, algemeen, configDoc, spamCheck, actieveLeden } from "./publiek.js";
 
 // Openbare banketinschrijving: komt rechtstreeks in Administratie › Banket, met online betaling.
 async function info(sb) {
@@ -22,8 +22,9 @@ export default async function handler(req, res) {
     const b = body(req);
     if (await spamCheck(sb, "banket", b, httpErr)) return res.status(200).json({ ok: true });
     const I = await info(sb);
-    const naam = clean(b.naam, 100), personen = Number(b.personen) === 2 ? 2 : 1;
-    if (!naam) throw httpErr(400, "Vul je naam in.");
+    const lidRij = (await actieveLeden(sb, I.jaar)).find(l => l.id === String(b.lidId || ""));
+    if (!lidRij) throw httpErr(400, "Kies je naam uit de lijst van leden.");
+    const naam = lidRij.naam, personen = Number(b.personen) === 2 ? 2 : 1;
     if (!b.menu1) throw httpErr(400, "Kies je menu.");
     if (personen === 2 && !b.menu2) throw httpErr(400, "Kies het menu voor je partner.");
     const teBetalen = Math.round(personen * I.prijs * 100) / 100;
@@ -31,7 +32,7 @@ export default async function handler(req, res) {
     const id = nieuwId("web");
     const d = {
       jaar: I.jaar, bron: "formulier", ingediend: vandaag(), aangemeld: new Date().toISOString(), nieuw: true,
-      naam, personen, menu1: menu(b.menu1), menu2: personen === 2 ? menu(b.menu2) : "", opmerking: clean(b.opmerking, 400),
+      naam, lidId: lidRij.id, personen, menu1: menu(b.menu1), menu2: personen === 2 ? menu(b.menu2) : "", opmerking: clean(b.opmerking, 400),
       betaald: null, teBetalen, ...(token ? { betaalToken: token } : {}),
     };
     const { error } = await sb.from("banket").insert({ id, data: d });

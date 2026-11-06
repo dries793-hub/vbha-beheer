@@ -25,3 +25,31 @@ export async function spamCheck(sb, tabel, b, httpErr) {
   if ((count || 0) >= 40) throw httpErr(429, "Er zijn net veel inschrijvingen binnengekomen. Probeer het later opnieuw.");
   return null;
 }
+
+// Leden van het actieve jaar (lid sinds ≤ jaar, lid tot leeg of ≥ jaar), voor de naamkeuze op de inschrijfpagina's.
+let LEDEN_CACHE = null;
+export async function actieveLeden(sb, jaar) {
+  if (LEDEN_CACHE && LEDEN_CACHE.jaar === jaar && Date.now() - LEDEN_CACHE.t < 60000) return LEDEN_CACHE.L;
+  const L = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from("leden").select("id,data").range(from, from + 999);
+    if (error) throw error;
+    for (const r of data) {
+      const l = r.data || {};
+      if (!l.naam || l.dubbelVan) continue;
+      if (l.lidSinds && Number(l.lidSinds) > jaar) continue;
+      if (l.lidTot && Number(l.lidTot) < jaar) continue;
+      L.push({ id: r.id, naam: `${l.naam} ${l.voornaam || ""}`.replace(/\s+/g, " ").trim() });
+    }
+    if (data.length < 1000) break;
+  }
+  L.sort((a, b) => a.naam.localeCompare(b.naam, "nl"));
+  LEDEN_CACHE = { jaar, t: Date.now(), L };
+  return L;
+}
+// Zoeken op (een deel van) naam en/of voornaam; geeft enkel id + naam terug, maximaal 8.
+export function zoekLeden(L, q) {
+  const t = norm(q).split(/\s+/).filter(Boolean);
+  if (!t.length || norm(q).replace(/\s/g, "").length < 2) return [];
+  return L.filter(l => { const n = norm(l.naam); return t.every(x => n.split(/[\s'-]+/).some(w => w.startsWith(x)) || n.includes(x)); }).slice(0, 8);
+}

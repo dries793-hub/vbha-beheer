@@ -119,6 +119,15 @@ input[type=date]{width:100%;font:inherit;font-size:16px;padding:10px 12px;border
 .bevestig .sam span{color:var(--muted)}
 .bevestig .sam b{text-align:right}
 .bevestig .tot{margin:22px 0 0;font-size:18px;font-weight:700}
+.lp{position:relative}
+.lp-l{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:20;overflow:hidden;max-height:280px;overflow-y:auto}
+.lp-l[hidden]{display:none}
+.lp-i{display:block;width:100%;text-align:left;border:0;background:none;padding:11px 14px;font:inherit;font-size:15px;color:var(--ink);cursor:pointer}
+.lp-i+.lp-i{border-top:1px solid var(--line)}
+.lp-i:hover,.lp-i.on{background:var(--sunken)}
+.lp-i b{font-weight:700}
+.lp-leeg{padding:11px 14px;font-size:14px;color:var(--muted)}
+.lp input.lp-ok{border-color:var(--good);background:var(--good-soft)}
 </style>
 </head>
 <body>
@@ -131,7 +140,7 @@ input[type=date]{width:100%;font:inherit;font-size:16px;padding:10px 12px;border
     <div class="fact"><span>Prijs</span><b id="fPrijs">€65 per persoon</b><small id="fDead">betalen voor 1 december</small></div></div></section>
   <div id="box"><form class="card" id="f" novalidate>
     <div class="grid">
-      <div class="full"><label for="naam">Naam en voornaam van het lid</label><input type="text" id="naam" name="naam" autocomplete="name" placeholder="bv. Peeters Jan" maxlength="100"></div>
+      <div class="full"><label for="naam">Naam van het lid</label><input type="text" id="naam" name="naam" placeholder="Begin je naam te typen…" maxlength="100"></div>
       <fieldset class="full" style="border:0;margin:0;padding:0"><legend class="lbl">Aanwezigheid</legend><div class="ch">
         <label><input type="radio" name="personen" value="1"><b>Ik kom alleen</b><span>1 persoon</span><span class="pr" data-pr="1"></span></label>
         <label><input type="radio" name="personen" value="2"><b>Ik kom met partner</b><span>2 personen</span><span class="pr" data-pr="2"></span></label></div></fieldset>
@@ -202,8 +211,8 @@ function upd(){$$("[data-pr]").forEach(e=>e.textContent=eur(+e.dataset.pr*INFO.p
   const pay=$("#pay");if(p){pay.hidden=false;pay.innerHTML=`Te betalen: <b>${eur(p*INFO.prijs)}</b>. ${INFO.online?"Na het inschrijven betaal je meteen met Bancontact of met een overschrijving.":"Na het inschrijven zie je hoe je overschrijft."}`}else pay.hidden=true}
 document.addEventListener("change",e=>{if(e.target.name)upd()});
 $("#f").addEventListener("submit",async e=>{e.preventDefault();const er=$("#err");er.textContent="";
-  const d={naam:$("#naam").value.trim(),personen:+val("personen"),menu1:val("menu1"),menu2:val("menu2"),opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0};
-  if(!d.naam){er.textContent="Vul je naam in.";$("#naam").focus();return}
+  const d={naam:$("#naam").value.trim(),lidId:$("#naam").dataset.id||"",personen:+val("personen"),menu1:val("menu1"),menu2:val("menu2"),opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0};
+  if(!d.lidId){er.textContent=d.naam?"Kies je naam uit de lijst van leden.":"Vul je naam in en kies ze uit de lijst.";$("#naam").focus();return}
   if(!d.personen){er.textContent="Kies of je alleen of met partner komt.";return}
   if(!d.menu1){er.textContent="Kies je menu.";return}
   if(d.personen===2&&!d.menu2){er.textContent="Kies het menu voor je partner.";return}
@@ -212,6 +221,22 @@ $("#f").addEventListener("submit",async e=>{e.preventDefault();const er=$("#err"
     const v={...j,naam:d.naam,menu1:d.menu1,menu2:d.menu2,personen:d.personen,voornaam:d.naam.split(" ").slice(-1)[0]||d.naam};toonKlaar(v);try{sessionStorage.setItem("vbha_banket",JSON.stringify({...v,qr:null}))}catch(x){}window.scrollTo({top:0,behavior:"smooth"})}
   catch(x){er.textContent=x.message;b.disabled=false;b.textContent="Inschrijven en betalen"}});
 (function(){if(!/[?&]betaling=terug/.test(location.search))return;let j=null;try{j=JSON.parse(sessionStorage.getItem("vbha_banket")||"null")}catch(x){}if(!j)return;history.replaceState(null,"",location.pathname);toonKlaar(j)})();
+/* naam van het lid kiezen: suggesties terwijl je typt */
+function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");const box=document.createElement("div");box.className="lp-l";box.hidden=true;box.setAttribute("role","listbox");wrap.append(box);
+  let T=0,L=[],sel=-1,laatste="";inp.setAttribute("autocomplete","off");inp.setAttribute("role","combobox");inp.setAttribute("aria-autocomplete","list");
+  const mark=(n,q)=>{const t=q.trim().split(/\s+/).filter(Boolean);let h=esc(n);for(const x of t){const re=new RegExp("("+x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i");h=h.replace(re,"<b>$1</b>")}return h};
+  const teken=q=>{if(!L.length){box.innerHTML=q.trim().length>=2?'<div class="lp-leeg">Geen lid gevonden met deze naam.</div>':"";box.hidden=q.trim().length<2;return}
+    box.innerHTML=L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${mark(l.naam,q)}</button>`).join("");box.hidden=false};
+  const kies=l=>{inp.value=l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.naam};
+  inp.addEventListener("input",()=>{delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;
+    if(q.trim().length<2){L=[];box.hidden=true;return}
+    T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[];}catch(e){L=[]}if(inp.value===q)teken(q)},160)});
+  inp.addEventListener("keydown",e=>{if(box.hidden||!L.length)return;
+    if(e.key==="ArrowDown"){e.preventDefault();sel=(sel+1)%L.length;teken(inp.value)}else if(e.key==="ArrowUp"){e.preventDefault();sel=(sel-1+L.length)%L.length;teken(inp.value)}
+    else if(e.key==="Enter"){e.preventDefault();kies(L[sel<0?0:sel])}else if(e.key==="Escape"){box.hidden=true}});
+  box.addEventListener("mousedown",e=>{const b=e.target.closest(".lp-i");if(!b)return;e.preventDefault();kies(L[+b.dataset.i])});
+  inp.addEventListener("blur",()=>setTimeout(()=>{box.hidden=true;if(!inp.dataset.id&&L.length===1&&inp.value.trim())kies(L[0])},150));}
+lidPicker($("#naam"));
 upd();
 
 </script>

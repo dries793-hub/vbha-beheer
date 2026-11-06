@@ -39,6 +39,10 @@
     {
       "source": "/api/ronde",
       "destination": "/api/openbaar?f=ronde"
+    },
+    {
+      "source": "/api/leden",
+      "destination": "/api/openbaar?f=leden"
     }
   ]
 }

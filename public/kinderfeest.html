@@ -108,6 +108,15 @@ input[type=date]{width:100%;font:inherit;font-size:16px;padding:10px 12px;border
 .kadd:hover{border-color:var(--accent);background:var(--accent-soft)}
 .sum{margin:8px 0 0;color:var(--muted)}
 @media (max-width:560px){.facts{grid-template-columns:1fr 1fr}.facts .fact:last-child{grid-column:1/-1}.ch{grid-template-columns:1fr}.kid{grid-template-columns:1fr}}
+.lp{position:relative}
+.lp-l{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:20;overflow:hidden;max-height:280px;overflow-y:auto}
+.lp-l[hidden]{display:none}
+.lp-i{display:block;width:100%;text-align:left;border:0;background:none;padding:11px 14px;font:inherit;font-size:15px;color:var(--ink);cursor:pointer}
+.lp-i+.lp-i{border-top:1px solid var(--line)}
+.lp-i:hover,.lp-i.on{background:var(--sunken)}
+.lp-i b{font-weight:700}
+.lp-leeg{padding:11px 14px;font-size:14px;color:var(--muted)}
+.lp input.lp-ok{border-color:var(--good);background:var(--good-soft)}
 </style>
 </head>
 <body>
@@ -120,8 +129,8 @@ input[type=date]{width:100%;font:inherit;font-size:16px;padding:10px 12px;border
     <div class="fact"><span>Voor wie</span><b>Kinderen van leden</b><small id="kLft">cadeautje t.e.m. 12 jaar</small></div></div></section>
   <div id="box"><form class="card" id="f" novalidate>
     <div class="grid">
-      <div><label for="lid">Naam van het lid</label><input type="text" id="lid" autocomplete="name" placeholder="bv. Peeters Jan" maxlength="100"></div>
-      <div><label for="mail">E-mailadres</label><input type="email" id="mail" autocomplete="email" inputmode="email" maxlength="120"></div>
+      <div class="full"><label for="lid">Naam van het lid</label><input type="text" id="lid" placeholder="Begin je naam te typen…" maxlength="100"></div>
+      <div class="full"><label for="mail">E-mailadres</label><input type="email" id="mail" autocomplete="email" inputmode="email" maxlength="120"></div>
       <div class="full"><span class="lbl">Kinderen</span><div id="kids" style="display:flex;flex-direction:column;gap:10px"></div><button type="button" class="kadd" id="add">+ Nog een kind toevoegen</button></div>
       <div class="full"><label for="opm">Opmerking</label><textarea id="opm" maxlength="400" placeholder="Optioneel"></textarea></div>
     </div>
@@ -154,16 +163,32 @@ $("#kids").addEventListener("click",e=>{const b=e.target.closest("[data-del]");i
 $("#kids").addEventListener("input",e=>{if(e.target.classList.contains("kg"))$("#ka"+e.target.id.slice(2)).textContent=ageTxt(e.target.value)});
 $("#f").addEventListener("submit",async e=>{e.preventDefault();read();const er=$("#err");er.textContent="";
   const lid=$("#lid").value.trim(),mail=$("#mail").value.trim();
-  if(!lid){er.textContent="Vul de naam van het lid in.";$("#lid").focus();return}
+  const lidId=$("#lid").dataset.id||"";if(!lidId){er.textContent=lid?"Kies de naam van het lid uit de lijst.":"Vul de naam van het lid in en kies ze uit de lijst.";$("#lid").focus();return}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)){er.textContent="Vul een geldig e-mailadres in.";$("#mail").focus();return}
   KIDS=KIDS.filter((k,i)=>i===0||k.naam.trim()||k.geb);draw();
   for(let i=0;i<KIDS.length;i++){const k=KIDS[i];if(!k.naam.trim()){er.textContent="Vul de naam van kind "+(i+1)+" in.";$("#kn"+i).focus();return}
     const a=lft(k.geb);if(a==null||a<0){er.textContent="Vul een geldige geboortedatum in voor "+k.naam.trim()+".";$("#kg"+i).focus();return}}
   const b=$("#go");b.disabled=true;b.textContent="Bezig…";
-  try{const r=await fetch("/api/kinderfeest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({lid,email:mail,kinderen:KIDS,opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0})});
+  try{const r=await fetch("/api/kinderfeest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({lid,lidId,email:mail,kinderen:KIDS,opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0})});
     const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Inschrijven lukte niet.");
     $("#box").innerHTML=`<div class="card ok"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Bedankt!</h2><p>De inschrijving van ${esc(lid)} is goed ontvangen.</p><p class="sum">${KIDS.map(k=>esc(k.naam.trim())+" ("+lft(k.geb)+" j)").join(", ")}</p><p class="sum">Tot op het kinderfeest!</p><p style="margin-top:16px"><button type="button" class="cp" onclick="location.reload()">Nog een gezin inschrijven</button></p></div>`;window.scrollTo({top:0,behavior:"smooth"})}
   catch(x){er.textContent=x.message;b.disabled=false;b.textContent="Inschrijving versturen"}});
+/* naam van het lid kiezen: suggesties terwijl je typt */
+function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");const box=document.createElement("div");box.className="lp-l";box.hidden=true;box.setAttribute("role","listbox");wrap.append(box);
+  let T=0,L=[],sel=-1,laatste="";inp.setAttribute("autocomplete","off");inp.setAttribute("role","combobox");inp.setAttribute("aria-autocomplete","list");
+  const mark=(n,q)=>{const t=q.trim().split(/\s+/).filter(Boolean);let h=esc(n);for(const x of t){const re=new RegExp("("+x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i");h=h.replace(re,"<b>$1</b>")}return h};
+  const teken=q=>{if(!L.length){box.innerHTML=q.trim().length>=2?'<div class="lp-leeg">Geen lid gevonden met deze naam.</div>':"";box.hidden=q.trim().length<2;return}
+    box.innerHTML=L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${mark(l.naam,q)}</button>`).join("");box.hidden=false};
+  const kies=l=>{inp.value=l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.naam};
+  inp.addEventListener("input",()=>{delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;
+    if(q.trim().length<2){L=[];box.hidden=true;return}
+    T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[];}catch(e){L=[]}if(inp.value===q)teken(q)},160)});
+  inp.addEventListener("keydown",e=>{if(box.hidden||!L.length)return;
+    if(e.key==="ArrowDown"){e.preventDefault();sel=(sel+1)%L.length;teken(inp.value)}else if(e.key==="ArrowUp"){e.preventDefault();sel=(sel-1+L.length)%L.length;teken(inp.value)}
+    else if(e.key==="Enter"){e.preventDefault();kies(L[sel<0?0:sel])}else if(e.key==="Escape"){box.hidden=true}});
+  box.addEventListener("mousedown",e=>{const b=e.target.closest(".lp-i");if(!b)return;e.preventDefault();kies(L[+b.dataset.i])});
+  inp.addEventListener("blur",()=>setTimeout(()=>{box.hidden=true;if(!inp.dataset.id&&L.length===1&&inp.value.trim())kies(L[0])},150));}
+lidPicker($("#lid"));
 draw();
 
 </script>
