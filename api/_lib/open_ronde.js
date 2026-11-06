@@ -1,5 +1,5 @@
-import { admin, sendError, httpErr } from "./_lib/sb.js";
-import { algemeen } from "./_lib/publiek.js";
+import { admin, sendError, httpErr } from "./sb.js";
+import { algemeen } from "./publiek.js";
 
 // Openbare stand van de kalenderronde voor de kaart op /kaart: status, wie en wanneer per straat.
 export default async function handler(req, res) {

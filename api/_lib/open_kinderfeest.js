@@ -1,5 +1,5 @@
-import { admin, sendError, httpErr } from "./_lib/sb.js";
-import { clean, body, nieuwId, algemeen, configDoc, spamCheck } from "./_lib/publiek.js";
+import { admin, sendError, httpErr } from "./sb.js";
+import { clean, body, nieuwId, algemeen, configDoc, spamCheck } from "./publiek.js";
 
 // Openbare inschrijving kinderfeest: komt rechtstreeks in Administratie › Kinderfeest.
 async function info(sb) {
