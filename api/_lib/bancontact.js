@@ -61,3 +61,26 @@ export async function haalBetaling(id) {
 }
 
 export const EIND = new Set(["SUCCEEDED", "FAILED", "EXPIRED", "CANCELLED", "AUTHORIZATION_FAILED", "VOIDED"]);
+
+// Verkenning (geen persoonsgegevens): hoeveel betalingen ziet deze sleutel, en is reconciliatie bereikbaar?
+export async function verken() {
+  const key = String(process.env.BANCONTACT_API_KEY || "").trim();
+  if (!key) return { ingesteld: false };
+  const H = { Authorization: "Bearer " + key, "Content-Type": "application/json" };
+  const out = {};
+  try {
+    const from = new Date(Date.now() - 30 * 864e5).toISOString().replace(/\.\d+Z$/, "Z");
+    const r = await fetch(base() + "/payments/search?page=0&size=100", { method: "POST", headers: H, body: JSON.stringify({ from }) });
+    const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch {}
+    const L = j?.details || [];
+    out.zoek = { status: r.status, totaal: j?.totalElements ?? null, inPagina: L.length,
+      statussen: L.reduce((a, p) => (a[p.status] = (a[p.status] || 0) + 1, a), {}),
+      velden: L[0] ? Object.keys(L[0]) : [], kanalen: [...new Set(L.map(p => p.channel || p.paymentChannel).filter(Boolean))],
+      fout: r.ok ? null : t.slice(0, 200) };
+  } catch (e) { out.zoek = { fout: String(e.message || e) }; }
+  for (const pad of ["/reconciliation/payouts", "/reconciliation/payments?startDate=" + new Date(Date.now() - 20 * 864e5).toISOString().slice(0, 10) + "&endDate=" + new Date().toISOString().slice(0, 10)]) {
+    try { const r = await fetch(base() + pad, { headers: H }); out[pad.split("?")[0]] = { status: r.status, antwoord: (await r.text()).slice(0, 200) }; }
+    catch (e) { out[pad] = { fout: String(e.message || e) }; }
+  }
+  return out;
+}
