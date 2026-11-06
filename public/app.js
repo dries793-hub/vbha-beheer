@@ -26,7 +26,6 @@ const ICON={
   upload:'<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>', download:'<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>', copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
   x:'<path d="M6 6l12 12M18 6L6 18"/>',
   historiek:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
-  banket:'<path d="M7 3v7a3 3 0 0 0 3 3v8M7 3v4M10 3v4M4 3v4a3 3 0 0 0 3 3"/><path d="M17 21V3c-2 1.5-3 4-3 7v4h3"/>',
   administratie:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/>',
   boekingen:'<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
   verwerken:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/>',
@@ -37,8 +36,8 @@ const ICON={
   communicatie:'<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'
 };
 const ic=n=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+ICON[n]+'</svg>';
-const NAV=[{id:"leden",label:"Leden",items:[["leden","Ledenlijst"],["punten","Puntensysteem"]]},{id:"boekhouding",label:"Boekhouding",items:[["boekhouding","Overzicht"],["boekingen","Transacties"],["verwerken","Te verwerken"],["historiek","Historiek"]]},{id:"administratie",label:"Administratie",items:[["kalenders","Kalenders"],["sponsors","Sponsors"],["banket","Banket"]]},{id:"communicatie",label:"Communicatie",items:[["mails","Mails"]]}];
-const ROUTES=[["boekingen","Transacties"],["verwerken","Te verwerken"],["regels","Regels"],["bank","Bankimport"],["dashboard","Dashboard"],["leden","Leden"],["boekhouding","Boekhouding"],["punten","Puntensysteem"],["kalenders","Kalenders"],["sponsors","Sponsors"],["banket","Banket"],["historiek","Historiek"],["mails","Mails"],["instellingen","Instellingen"]];
+const NAV=[{id:"leden",label:"Leden",items:[["leden","Ledenlijst"],["punten","Puntensysteem"]]},{id:"boekhouding",label:"Boekhouding",items:[["boekhouding","Overzicht"],["boekingen","Transacties"],["verwerken","Te verwerken"],["historiek","Historiek"]]},{id:"administratie",label:"Administratie",items:[["kalenders","Kalenders"],["sponsors","Sponsors"]]},{id:"communicatie",label:"Communicatie",items:[["mails","Mails"]]}];
+const ROUTES=[["boekingen","Transacties"],["verwerken","Te verwerken"],["regels","Regels"],["bank","Bankimport"],["dashboard","Dashboard"],["leden","Leden"],["boekhouding","Boekhouding"],["punten","Puntensysteem"],["kalenders","Kalenders"],["sponsors","Sponsors"],["historiek","Historiek"],["mails","Mails"],["instellingen","Instellingen"]];
 
 /* ============ standaardwaarden ============ */
 const DEF_CONFIG={vereniging:"Vriendenkring Brandweer Hoofdpost Aalst",rekeningnummer:"",
@@ -48,8 +47,8 @@ const DEF_JAAR={beginKas:0,beginRekening:0,gewichten:{kaarten:1,kalenders:25,shi
 const JUBILEA=[10,20,25,30,40,50,60];
 
 /* ============ toestand ============ */
-const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","banket"];
-const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),banket:new Map()};
+const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","kinderfeest"];
+const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),kinderfeest:new Map()};
 const loaded=new Set();
 let db=null,canWrite=true,JAAR=ls.get("jaar",null);
 const UI=Object.assign({ledenQ:"",ledenCat:"",ledenF:"alle",oudLeden:false,boekQ:"",boekCat:"",boekRek:"",puntQ:"",puntSort:"naam",kalQ:"",spQ:"",mailGroep:"alle",mailTpl:"",histJaar:null,histQ:"",boekDir:"",boekMaand:"",boekSort:{k:"datum",d:-1},boekPage:0},ls.get("ui",{}));
@@ -689,79 +688,6 @@ VIEWS.sponsors=()=>({title:"Sponsors",sub:"Sponsorbeheer",actions:'<button class
   ${list.map(s=>{const o=sponsorOntvangen(s,C);return `<tr class="click" data-act="toonSponsor" data-id="${esc(s.id)}"><td><b>${esc(s.bedrijf)}</b><div style="color:var(--muted);font-size:13px">${esc(s.adres)}</div></td><td>${esc(s.voornaam)} ${esc(s.naam)}</td><td class="trunc">${esc(s.email)}</td><td style="white-space:nowrap">${esc(s.telefoon)}</td><td class="muted">${esc(s.kbo)}</td><td class="num">${eur(num(s.bedrag))}</td><td>${o?'<span class="pill ok">'+eur(o)+'</span>':'<span class="pill neutral">nog niets gevonden</span>'}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Geen sponsors.</td></tr>'}
   </tbody></table></div></div>`}});
 
-/* ---------- banket ---------- */
-const BK_DEF={prijs:65,deadline:"1 december",datum:"Zaterdag 12 december",uur:"19u00",locatie:"Feestzaal De Snip, Beugemstraat 9, Moorsel",open:true};
-const bkCfg=()=>Object.assign({},BK_DEF,S.config.get("banket")||{});
-const bkLink=()=>location.origin+"/banket";
-const bkDue=r=>r2((r.personen===2?2:1)*num(bkCfg().prijs));
-const bkToks=s=>norm(s).split(/[^a-z0-9]+/).filter(t=>t.length>=3);
-const bkDag=iso=>{const d=new Date(iso);return isNaN(d)?String(iso||""):d.toLocaleDateString("nl-BE",{day:"2-digit",month:"2-digit",year:"numeric"})};
-function bkLijst(){return [...S.banket.values()].filter(r=>Number(r.jaar)===JAAR)}
-function bkLedenActief(){return ctx().leden.filter(l=>l.naam&&!l.dubbelVan).map(l=>({id:l.id,naam:((l.naam||"")+" "+(l.voornaam||"")).trim()})).sort((a,b)=>a.naam.localeCompare(b.naam,"nl"))}
-function bkBetaling(r,C){
-  const due=bkDue(r);
-  if(r.betaald==="OK")return{ok:true,bedrag:due,bron:r.betaaldBron||"Manueel op betaald gezet"};
-  if(r.betaald==="NOK")return{ok:false,bedrag:0,bron:"Manueel op niet betaald gezet"};
-  const t=bkToks(r.naam);if(!t.length)return{ok:false,bedrag:0,bron:""};
-  const L=C.boek.filter(b=>b.richting!=="uit"&&(b.categorie==="Banket"||b._m.includes("banket"))&&t.every(x=>(b._m+" "+b._p).includes(x)));
-  const s=r2(L.reduce((a,b)=>a+b.bedrag,0));
-  return{ok:s>0&&s>=due-0.01,deel:s>0&&s<due-0.01,bedrag:s,bron:L.length?"Overschrijving van "+L.map(b=>fmtDate(b.datum)).join(", "):""};
-}
-function bkRows(){const C=ctx();return bkLijst().map(r=>({r,p:bkBetaling(r,C),due:bkDue(r)})).sort((a,b)=>(a.r.naam||"").localeCompare(b.r.naam||"","nl"))}
-function bkTable(){
-  const q=norm(UI.bkQ||""),F=UI.bkF||"alle";
-  let R=bkRows();if(q)R=R.filter(x=>norm([x.r.naam,x.r.opmerking].join(" ")).includes(q));
-  if(F==="open")R=R.filter(x=>!x.p.ok);else if(F==="ok")R=R.filter(x=>x.p.ok);else if(F==="veg")R=R.filter(x=>x.r.menu1==="Vegetarisch"||(x.r.personen===2&&x.r.menu2==="Vegetarisch"));
-  const pers=R.reduce((s,x)=>s+(x.r.personen===2?2:1),0);
-  return `<div class="tw"><table class="rcards"><thead><tr><th>Naam</th><th>Formule</th><th>Menu</th><th>Opmerking</th><th class="num">Bedrag</th><th>Betaling</th><th>Ingeschreven</th></tr></thead><tbody>
-  ${R.map(x=>{const r=x.r;const menu=r.personen===2?esc(r.menu1)+" + "+esc(r.menu2||"?"):esc(r.menu1);
-    const pill=x.p.ok?`<span class="pill ok" title="${esc(x.p.bron)}">Betaald</span>`:x.p.deel?`<span class="pill warn" title="${esc(x.p.bron)}">Deels: ${eur(x.p.bedrag)}</span>`:`<span class="pill nok">Open</span>`;
-    return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b></td><td style="white-space:nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td><td class="muted" style="white-space:nowrap">${esc(bkDag(r.ingediend))}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
-  </tbody>${R.length?`<tfoot><tr><td>${R.length} inschrijvingen</td><td>${pers} personen</td><td></td><td></td><td class="num">${eur(R.reduce((s,x)=>s+x.due,0))}</td><td></td><td></td></tr></tfoot>`:""}</table></div>`}
-VIEWS.banket=()=>({title:"Banket "+JAAR,sub:"Inschrijvingen en betalingen",
-  actions:`<a class="btn" href="/banket" target="_blank" rel="noopener">${ic("communicatie")}Inschrijfpagina</a><button class="btn" data-act="bkExport">${ic("download")}Exporteren</button><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button>`,
-  body(){
-  const R=bkRows(),bc=bkCfg(),d=canWrite?"":" disabled";const pers=R.reduce((s,x)=>s+(x.r.personen===2?2:1),0);
-  let nm=0,veg=0;for(const {r} of R){(r.menu1==="Vegetarisch"?veg++:nm++);if(r.personen===2)(r.menu2==="Vegetarisch"?veg++:nm++)}
-  const due=R.reduce((s,x)=>s+x.due,0),paid=R.reduce((s,x)=>s+Math.min(x.p.bedrag||0,x.due),0),open=R.filter(x=>!x.p.ok).length;
-  const F=UI.bkF||"alle";const sm=s=>`<small style="font-size:14px;color:var(--muted);font-weight:500">${s}</small>`;
-  return `<div class="tiles"><div class="tile hero"><span class="lbl">Personen</span><span class="val">${pers}</span><span class="hint">${R.length} inschrijvingen</span></div>
-   <div class="tile"><span class="lbl">Menu's</span><span class="val">${nm} ${sm("normaal")} · ${veg} ${sm("veggie")}</span></div>
-   <div class="tile"><span class="lbl">Te ontvangen</span><span class="val">${eur(due)}</span><span class="hint">${eur(bc.prijs)} per persoon</span></div>
-   <div class="tile"><span class="lbl">Betaald</span><span class="val in">${eur(paid)}</span><span class="hint">${open?open+" nog open":"alles ontvangen"}</span></div></div>
-  <div class="panel"><div class="panel-h"><h2>Inschrijfpagina</h2>${bc.open?'<span class="pill ok">Open</span>':'<span class="pill nok">Afgesloten</span>'}</div><div class="panel-b" style="display:flex;flex-direction:column;gap:10px"><span style="font-size:14px;color:var(--muted)">Deel deze link met de leden. Iedereen kan zich inschrijven zonder aan te melden: het lid kiest zijn naam uit de actieve ledenlijst van ${JAAR}, ziet meteen het bedrag en kan betalen. De inschrijving komt rechtstreeks in deze lijst. Betalingen worden herkend via Bancontact of via de transacties met categorie Banket (of "banket" in de mededeling) en de naam.</span>
-   <div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(bkLink())}" aria-label="Link naar de inschrijfpagina voor het banket" onclick="this.select()"><button class="btn" data-act="kopieerLink" data-v="${esc(bkLink())}">${ic("copy")}Kopiëren</button><a class="btn" href="/banket" target="_blank" rel="noopener">Openen</a></div></div></div>
-  <div class="bar"><div class="search">${ic("search")}<input id="bkQ" data-live data-input="bkQ" placeholder="Zoek op naam of opmerking" value="${esc(UI.bkQ||"")}"></div>
-   <div class="seg">${[["alle","Alle"],["open","Open"],["ok","Betaald"],["veg","Vegetarisch"]].map(([v,l])=>`<button type="button" data-act="bkF" data-v="${v}" class="${F===v?"on":""}">${l}</button>`).join("")}</div></div>
-  <div class="panel" id="bkList">${bkTable()}</div>
-  <form class="panel" id="fBk"><div class="panel-h"><h2>Instellingen banket</h2></div><div class="panel-b"><div class="form">
-   ${fld("bkDat","Datum (zonder jaar)",inp("bkDat",bc.datum,'name="datum"'+d))}${fld("bkUur","Uur",inp("bkUur",bc.uur,'name="uur"'+d))}
-   ${fld("bkLoc","Locatie",inp("bkLoc",bc.locatie,'name="locatie"'+d),"full")}
-   ${fld("bkP","Prijs per persoon (€)",inp("bkP",bc.prijs,'name="prijs" inputmode="decimal"'+d))}${fld("bkD","Betalen voor",inp("bkD",bc.deadline,'name="deadline"'+d))}
-   <div class="fld full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="open" value="1"${bc.open?" checked":""}${d} style="width:16px;height:16px;accent-color:var(--accent)">Inschrijvingen open</label><span class="help">Zet dit uit om de inschrijfpagina af te sluiten.</span></div>
-   <div class="full bar" data-w><button class="btn primary" type="submit">Bewaren</button></div></div></div></form>`}});
-function bkForm(r,id){
-  const p=id?bkBetaling(r,ctx()):null;const due=bkDue(r);const L=bkLedenActief();
-  const lidSel=id?inp("biN",r.naam,'name="naam" disabled'):`<select id="biN" name="lidId"><option value="">Kies een lid…</option>${L.filter(l=>!S.banket.has(JAAR+"_"+l.id)).map(l=>`<option value="${esc(l.id)}">${esc(l.naam)}</option>`).join("")}</select>`;
-  modal(id?r.naam:"Nieuwe inschrijving",`<form id="fBkI" class="form">
-   ${fld("biN","Lid *",lidSel,"full")}
-   ${fld("biP","Formule",`<select id="biP" name="personen">${selOpts([["1","Alleen (1 persoon)"],["2","Met partner (2 personen)"]],r.personen===2?"2":"1")}</select>`)}
-   ${fld("biB","Betaling",`<select id="biB" name="betaald">${selOpts([["","Automatisch"],["OK","Betaald (manueel)"],["NOK","Niet betaald (manueel)"]],r.betaald||"")}</select>`)}
-   ${fld("biM1","Menu lid",`<select id="biM1" name="menu1">${selOpts(["Normaal","Vegetarisch"],r.menu1||"Normaal")}</select>`)}
-   ${fld("biM2","Menu partner",`<select id="biM2" name="menu2">${selOpts([["","—"],"Normaal","Vegetarisch"],r.menu2||"")}</select>`)}
-   ${fld("biO","Allergieën / opmerkingen",`<textarea id="biO" name="opmerking" style="min-height:80px">${esc(r.opmerking||"")}</textarea>`,"full")}<div class="err full" id="biErr"></div></form>
-   ${id?`<div class="note info"><b>${eur(due)}</b> · mededeling <b>${esc(r.naam)} Banket ${r.jaar}</b><br><span class="muted small">${p.ok?"Betaald: "+esc(p.bron):p.deel?"Deels betaald ("+eur(p.bedrag)+"): "+esc(p.bron):"Nog geen betaling gevonden."}${r.ingediend?" · ingeschreven op "+esc(bkDag(r.ingediend))+(r.bron==="formulier"?" via de inschrijfpagina":""):""}</span></div>`:""}`,
-   `${id?'<button class="btn ghost danger" data-w id="biDel">Verwijderen</button><span class="grow"></span>':""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="biOk">Bewaren</button>`);
-  if(!canWrite)$$("#fBkI input,#fBkI select,#fBkI textarea").forEach(i=>i.disabled=true);
-  $("#biOk").onclick=async()=>{const f=formData($("#fBkI"));const pers=f.personen==="2"?2:1;let key=id,base;
-    if(id)base=stripId(r);else{const l=L.find(x=>x.id===f.lidId);if(!l){$("#biErr").textContent="Kies een lid.";return}key=JAAR+"_"+l.id;base={jaar:JAAR,lidId:l.id,naam:l.naam,bron:"manueel",ingediend:new Date().toISOString()}}
-    const betaald=f.betaald||null;const d={...base,personen:pers,menu1:f.menu1,menu2:pers===2?(f.menu2||"Normaal"):"",opmerking:f.opmerking.trim(),bedrag:r2(pers*num(bkCfg().prijs)),betaald,betaaldBron:betaald==="OK"?(base.betaald==="OK"&&base.betaaldBron?base.betaaldBron:"Manueel op betaald gezet"):null};
-    closeModal();await write("banket",key,d);toast("Inschrijving bewaard.")};
-  if(id)$("#biDel").onclick=()=>confirmBox("Inschrijving van <b>"+esc(r.naam)+"</b> verwijderen?","Verwijderen",async()=>{await write("banket",id,null,{del:true});toast("Inschrijving verwijderd.")});
-}
-function bkSheet(){return bkRows().map(x=>({Naam:x.r.naam,Formule:x.r.personen===2?"Met partner":"Alleen",Personen:x.r.personen===2?2:1,"Menu lid":x.r.menu1,"Menu partner":x.r.personen===2?x.r.menu2:"",Opmerking:x.r.opmerking||"",Bedrag:x.due,Betaald:x.p.ok?"Ja":x.p.deel?"Deels ("+x.p.bedrag+")":"Nee",Ingeschreven:bkDag(x.r.ingediend)}))}
-function bkExport(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bkSheet()),"Banket "+JAAR);save("VBHA_Banket_"+JAAR+".xlsx",XLSX.write(wb,{type:"array",bookType:"xlsx"}))}
-
 /* ---------- historiek ---------- */
 function alleJaren(){
   const out=new Map();
@@ -1001,7 +927,7 @@ function closeModal(){$("#modal").innerHTML="";if(MODAL_CLOSE){const f=MODAL_CLO
 function confirmBox(text,label,fn){modal("Bevestigen",`<p style="margin:0">${text}</p>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="cfOk">${esc(label)}</button>`);$("#cfOk").onclick=()=>{closeModal();fn()}}
 function toast(msg,bad){const t=$("#toast");t.className="toast"+(bad?" bad":"");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true},bad?5000:2600)}
 const fld=(id,label,input,cls="")=>`<div class="fld ${cls}"><label for="${id}">${label}</label>${input}</div>`;
-const inp=(id,val,attrs="")=>`<input id="${id}" name="${id}" value="${esc(val??"")}" ${attrs}>`;
+const inp=(id,val,attrs="")=>`<input id="${id}"${/(^|\s)name=/.test(attrs)?"":` name="${id}"`} value="${esc(val??"")}" ${attrs}>`;
 const selOpts=(arr,cur)=>arr.map(o=>{const [v,l]=Array.isArray(o)?o:[o,o];return `<option value="${esc(v)}"${String(cur)===String(v)?" selected":""}>${esc(l)}</option>`}).join("");
 const formData=f=>Object.fromEntries(new FormData(f).entries());
 
@@ -1228,7 +1154,6 @@ function exportXlsx(){
     ...C.boek.map(b=>({Nr:b.nr,Datum:fmtDate(b.datum),Categorie:b.categorie,Mededeling:b.mededeling,"Betaald aan/Ontvangen van":b.partij,"Rekening/Kas":b.rekening,Bedrag:b.bedrag,"IN/UIT":b.richting,"Cumul kas":b._kas,"Cumul rekening":b._rek,SALDO:r2(b._kas+b._rek)}))]),"Boekhouding");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(kalStats(C).rows.map(j=>({Persoon:kalNaam(j),Opgehaald:j.kalOpgehaald||0,Uitgevoerd:j.kalUitgevoerd||0,Punten:(j.kalUitgevoerd||0)*C.c.gewichten.kalenders}))),"Kalenders");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([...S.sponsors.values()].map(s=>({Bedrijf:s.bedrijf,Naam:s.naam,Voornaam:s.voornaam,Adres:s.adres,Email:s.email,Telefoon:s.telefoon,"KBO nr.":s.kbo,Bedrag:num(s.bedrag)}))),"Sponsorbeheer");
-  if(bkLijst().length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bkSheet()),"Banket");
   save("VBHA_"+JAAR+".xlsx",XLSX.write(wb,{type:"array",bookType:"xlsx"}));
 }
 function exportJson(){const o={};for(const c of COLS)o[c]=[...S[c].values()];save("VBHA_backup_"+todayISO()+".json",JSON.stringify(o,null,1))}
@@ -1412,10 +1337,6 @@ document.addEventListener("click",async e=>{
     case"importBank":importBank();break;
     case"nieuweSponsor":sponsorForm({},null);break;
     case"toonSponsor":sponsorForm(S.sponsors.get(id),id);break;
-    case"bkNieuw":bkForm({personen:1,menu1:"Normaal"},null);break;
-    case"bkToon":{const r=S.banket.get(id);if(r)bkForm(r,id);break}
-    case"bkExport":bkExport();break;
-    case"bkF":UI.bkF=t.dataset.v;saveUI();$$(".seg button[data-act=bkF]").forEach(b=>b.classList.toggle("on",b===t));$("#bkList").innerHTML=bkTable();break;
     case"kalToevoegen":kalToevoegen();break;
     case"kalOphalen":{const j=S.jaarleden.get(id);if(j){await setJLid(id,{kalOpgehaald:(j.kalOpgehaald||0)+1});renderBody()}break}
     case"kalKlaar":{const j=S.jaarleden.get(id);if(j&&(j.kalOpgehaald||0)>0){await setJLid(id,{kalOpgehaald:j.kalOpgehaald-1,kalUitgevoerd:(j.kalUitgevoerd||0)+1});renderBody()}break}
@@ -1442,7 +1363,7 @@ document.addEventListener("click",async e=>{
 document.addEventListener("input",e=>{
   const t=e.target;
   if(t.dataset.input){UI[t.dataset.input]=t.value;const m={ledenQ:["#ledenList",ledenTable],boekQ:["#boekList",()=>{UI.boekPage=0;return journal()}],puntQ:["#puntList",puntTable],kalQ:["#kalList",kalTable],histQ:["#histList",()=>{const L=alleJaren();return histDetail(L,L.find(j=>j.jaar===UI.histJaar)||L[L.length-1])}]}[t.dataset.input];
-    if(m){const el=$(m[0]);if(el)el.innerHTML=m[1]()}else if(t.dataset.input==="bkQ"){const el=$("#bkList");if(el)el.innerHTML=bkTable()}else if(t.dataset.input==="spQ"){clearTimeout(input.t);input.t=setTimeout(()=>{renderBody();const i=$("#spQ");if(i){i.focus();i.selectionStart=i.selectionEnd=i.value.length}},250)}}
+    if(m){const el=$(m[0]);if(el)el.innerHTML=m[1]()}else if(t.dataset.input==="spQ"){clearTimeout(input.t);input.t=setTimeout(()=>{renderBody();const i=$("#spQ");if(i){i.focus();i.selectionStart=i.selectionEnd=i.value.length}},250)}}
   if(t.dataset.mail){MAIL[t.dataset.mail]=t.value;MAIL.touched=true;mailPreview()}
   if(t.dataset.rf!==undefined)regelPreview();
 });
@@ -1485,9 +1406,192 @@ document.addEventListener("submit",async e=>{
   if(f.id==="fLogin"){doLogin(f);return}
   if(f.id==="fPw"){doSetPassword(f);return}
   if(f.id==="fJaar"){await saveJaar(formData(f));return}
-  if(f.id==="fBk"){const d=formData(f);await write("config","banket",{...stripId(S.config.get("banket")),datum:String(d.datum||"").trim(),uur:String(d.uur||"").trim(),locatie:String(d.locatie||"").trim(),prijs:num(d.prijs)||65,deadline:String(d.deadline||"").trim(),open:d.open==="1"});toast("Instellingen banket bewaard.");return}
   if(f.id==="fCfg"){const d=formData(f);const lines=s=>String(s).split("\n").map(x=>x.trim()).filter(Boolean);
     await write("config","algemeen",{...stripId(S.config.get("algemeen")),vereniging:d.vereniging.trim(),rekeningnummer:d.rekeningnummer.trim(),boekCategorieen:lines(d.boekCategorieen),ledenCategorieen:lines(d.ledenCategorieen)});toast("Instellingen bewaard.");}
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#modal").innerHTML)closeModal()});
 document.addEventListener("focusout",e=>{const t=e.target;if(t.dataset&&(t.dataset.kal||t.dataset.jl)){setTimeout(()=>{const ae=document.activeElement;if(!(ae&&ae.dataset&&(ae.dataset.kal||ae.dataset.jl))&&pending){pending=false;if(PTR)DEFER=true;else renderBody()}},0)}});
+
+/* ============ Kinderfeest (Administratie › Kinderfeest) ============ */
+{const st=document.createElement("style");st.textContent=`/* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
+.kf-kids{display:flex;flex-direction:column;gap:10px}
+.kf-kid{display:grid;grid-template-columns:64px minmax(0,1fr) 170px 36px;gap:8px;align-items:center}
+.kf-kid .kf-n{font-size:13px;font-weight:600;color:var(--muted)}
+.kf-kid input{padding:9px 11px;border:1px solid var(--line-strong);border-radius:var(--r);background:var(--surface);width:100%;min-width:0}
+.kf-kid input:focus{border-color:var(--info);outline:none;box-shadow:0 0 0 3px var(--info-soft)}
+.kf-del{width:36px;height:36px;border:0;background:none;color:var(--muted);border-radius:8px;cursor:pointer;display:grid;place-items:center;padding:0}
+.kf-del:hover{background:var(--bad-soft);color:var(--bad)}
+.kf-del svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.kf-del[disabled]{visibility:hidden}
+.kf-add{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;border:1.5px dashed var(--line-strong);background:none;border-radius:var(--r);padding:8px 14px;font-weight:600;color:var(--accent);cursor:pointer}
+.kf-add:hover{border-color:var(--accent);background:var(--accent-soft)}
+.kf-add svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
+.kf-kl{display:flex;flex-wrap:wrap;gap:4px}
+.kf-k{display:inline-flex;gap:4px;align-items:baseline;padding:2px 8px;border-radius:6px;background:var(--sunken);font-size:13px;white-space:nowrap}
+.kf-k span{color:var(--muted);font-size:12px}
+.kf-k.oud{opacity:.6}
+.kf-ages{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}
+.kf-age{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px 8px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.kf-age b{font:600 20px/1 var(--f-display)}
+.kf-age span{font-size:12px;color:var(--muted)}
+.kf-age.zero b{color:var(--line-strong)}
+.kf-age i{display:block;width:100%;height:4px;border-radius:2px;background:var(--sunken);overflow:hidden}
+.kf-age i em{display:block;height:100%;background:var(--accent)}
+.kf-info{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:14px;color:var(--muted)}
+.kf-info b{color:var(--ink);font-weight:600}
+@media (max-width:640px){
+  .kf-kid{grid-template-columns:minmax(0,1fr) 36px;grid-template-areas:"n d" "naam d" "geb d";row-gap:6px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .kf-kid .kf-n{grid-area:n}.kf-kid .kf-naam{grid-area:naam}.kf-kid .kf-geb{grid-area:geb}.kf-kid .kf-del{grid-area:d;align-self:start}
+}`;document.head.appendChild(st);}
+/* ============ Kinderfeest ============
+   Inschrijvingen staan in de tabel "kinderfeest": {jaar, lid, lidId, email, opmerking, kinderen:[{naam,geb}], bron, nieuw, aangemeld, gfKey}
+   Openbare inschrijfpagina: /kinderfeest (public/kinderfeest.html) -> /api/kinderfeest
+   Instellingen per boekjaar in config "kf_<jaar>": {datum, tijd, locatie, leeftijd, open} */
+ICON.kinderfeest='<path d="M4 11h16v10H4zM2.5 7.5h19V11h-19zM12 7.5V21"/><path d="M12 7.5C10.5 4 7 3.5 7 5.8 7 7.5 12 7.5 12 7.5zM12 7.5c1.5-3.5 5-4 5-1.7 0 1.7-5 1.7-5 1.7z"/>';
+{const adm=NAV.find(n=>n.id==="administratie");if(adm&&!adm.items.some(i=>i[0]==="kinderfeest"))adm.items.push(["kinderfeest","Kinderfeest"]);}
+if(!ROUTES.some(r=>r[0]==="kinderfeest"))ROUTES.push(["kinderfeest","Kinderfeest"]);
+const KF_PUBLIEK=location.origin+"/kinderfeest";
+const KF_FORM="https://docs.google.com/forms/d/1nSPBTS3L0th1wRGPxII_8p30y5pv4ZaSZ8lQMhA2-TM/edit#responses";
+const kfCfg=()=>Object.assign({datum:JAAR+"-12-19",tijd:"14u30",locatie:"VTI - Sinte Annalaan 99b, Aalst",leeftijd:12,open:true},S.config.get("kf_"+JAAR)||{});
+let KFQ="";
+function kfLeeftijd(geb,op){if(!geb||!/^\d{4}-\d{2}-\d{2}$/.test(geb))return null;const [y,m,d]=geb.split("-").map(Number);const [Y,M,D]=op.split("-").map(Number);let a=Y-y;if(M<m||(M===m&&D<d))a--;return a}
+function kfLidVan(naam){const n=norm(naam);if(!n)return null;for(const l of S.leden.values()){const a=norm((l.voornaam||"")+" "+(l.naam||"")),b=norm((l.naam||"")+" "+(l.voornaam||""));if(n===a||n===b)return l}return null}
+function kfLijst(){return [...S.kinderfeest.values()].filter(r=>r.jaar===JAAR).sort((a,b)=>String(b.aangemeld||"").localeCompare(String(a.aangemeld||"")))}
+function kfStats(){const c=kfCfg(),L=kfLijst();const per=new Map();let kids=0,cadeau=0,ouder=0,onbekend=0;
+  for(const r of L)for(const k of (r.kinderen||[])){kids++;const a=kfLeeftijd(k.geb,c.datum);if(a==null){onbekend++;cadeau++;continue}if(a>c.leeftijd){ouder++;continue}cadeau++;const x=Math.max(0,a);per.set(x,(per.get(x)||0)+1)}
+  return {c,L,kids,cadeau,ouder,onbekend,per}}
+function kfDubbel(L){const m={};for(const r of L){const e=norm(r.email);if(e)m[e]=(m[e]||0)+1}return m}
+
+VIEWS.kinderfeest=()=>({title:"Kinderfeest",sub:"Inschrijvingen kinderfeest",
+  actions:`<a class="btn" href="/kinderfeest" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden">${ic("communicatie")}Inschrijfpagina</a><button class="btn" data-w data-act="kfImport">${ic("upload")}Google Forms importeren</button><button class="btn" data-act="kfExport">${ic("download")}Excel</button><button class="btn iconbtn" data-w data-act="kfInst" title="Instellingen kinderfeest" aria-label="Instellingen kinderfeest">${ic("instellingen")}</button><button class="btn primary" data-w data-act="kfNieuw">${ic("plus")}Nieuwe inschrijving</button>`,
+  body(){const st=kfStats(),c=st.c;const q=norm(KFQ);const dub=kfDubbel(st.L);
+    const list=q?st.L.filter(r=>norm([r.lid,r.email,r.opmerking,...(r.kinderen||[]).map(k=>k.naam)].join(" ")).includes(q)):st.L;
+    const max=Math.max(1,...st.per.values());const ages=[];for(let a=0;a<=c.leeftijd;a++)ages.push(a);
+    const nw=st.L.filter(r=>r.nieuw);
+    return `${nw.length?`<div class="nmeld" role="status"><div class="nm-h"><span class="nm-ic">${ic("kinderfeest")}</span><div class="grow"><b>${nw.length===1?"1 nieuwe inschrijving":nw.length+" nieuwe inschrijvingen"} via de inschrijfpagina</b><span>Kijk de gegevens na. Klik op een naam om ze te openen.</span></div><button class="btn sm" data-w data-act="kfGezien">Alles gezien</button></div><div class="nm-l">${nw.slice(0,8).map(r=>`<button type="button" class="nm-i" data-act="kfToon" data-id="${esc(r.id)}"><b>${esc(r.lid)}</b><span>${(r.kinderen||[]).length} ${(r.kinderen||[]).length===1?"kind":"kinderen"}</span></button>`).join("")}${nw.length>8?`<span class="nm-more">+${nw.length-8} meer</span>`:""}</div></div>`:""}
+    ${c.open===false?'<div class="note">De inschrijvingen zijn afgesloten. De inschrijfpagina neemt geen nieuwe inschrijvingen meer aan (aanpassen via het tandwiel).</div>':""}
+    <div class="kf-info"><span>Feest: <b>${c.datum?esc(new Date(c.datum+"T12:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})):"datum niet ingesteld"}</b>${c.tijd?" · "+esc(c.tijd):""}</span>${c.locatie?`<span>${esc(c.locatie)}</span>`:""}<span>Cadeau t.e.m. <b>${c.leeftijd} jaar</b></span></div>
+    <div class="tiles"><div class="tile hero"><span class="lbl">Ingeschreven kinderen</span><span class="val">${st.kids}</span><span class="hint">${st.L.length} ${st.L.length===1?"inschrijving":"inschrijvingen"}</span></div>
+      <div class="tile"><span class="lbl">Cadeautjes nodig</span><span class="val">${st.cadeau}</span><span class="hint">t.e.m. ${c.leeftijd} jaar op de feestdag${st.onbekend?" (incl. "+st.onbekend+" zonder geboortedatum)":""}</span></div>
+      <div class="tile"><span class="lbl">Ouder dan ${c.leeftijd}</span><span class="val">${st.ouder}</span><span class="hint">geen cadeautje</span></div>
+      <div class="tile"><span class="lbl">Gezinnen</span><span class="val">${st.L.length}</span><span class="hint">${(()=>{const n=st.L.filter(r=>!kfLidVan(r.lid)).length;return n?n+" niet gevonden in ledenlijst":"allemaal gekend als lid"})()}</span></div></div>
+    <div class="panel"><div class="panel-h"><h2>Cadeautjes per leeftijd</h2><span class="grow"></span><span class="muted small">leeftijd op ${esc(fmtDate(c.datum))}</span></div><div class="panel-b"><div class="kf-ages">
+      ${ages.map(a=>{const n=st.per.get(a)||0;return `<div class="kf-age${n?"":" zero"}"><b>${n}</b><i><em style="width:${Math.round(n/max*100)}%"></em></i><span>${a===0?"&lt; 1 jaar":a+" jaar"}</span></div>`}).join("")}
+      ${st.onbekend?`<div class="kf-age"><b>${st.onbekend}</b><i><em style="width:0"></em></i><span>onbekend</span></div>`:""}
+    </div></div></div>
+    <div class="bar"><div class="search">${ic("search")}<input id="kfQ" data-kfq data-live placeholder="Zoek op lid, kind of e-mail" value="${esc(KFQ)}"></div></div>
+    <div class="panel"><div class="tw" id="kfList">${kfTable(list,dub,c)}</div></div>
+    <div class="panel"><div class="panel-h"><h2>Inschrijfpagina voor het kinderfeest</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:10px"><span style="font-size:14px;color:var(--muted)">Deel deze link met de leden. Iedereen kan ze invullen, zonder aan te melden. Inschrijvingen komen meteen in de lijst hierboven.</span>
+    <div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(KF_PUBLIEK)}" aria-label="Link naar de inschrijfpagina" onclick="this.select()"><button class="btn" data-act="kopieerLink" data-v="${esc(KF_PUBLIEK)}">${ic("copy")}Kopiëren</button><a class="btn" href="/kinderfeest" target="_blank" rel="noopener">Openen</a></div></div></div>`}});
+
+function kfTable(list,dub,c){
+  return `<table class="rcards"><thead><tr><th>Lid</th><th>E-mail</th><th>Kinderen</th><th class="num">Aantal</th><th>Ingeschreven</th><th>Bron</th></tr></thead><tbody>
+  ${list.map(r=>{const l=kfLidVan(r.lid);const kids=r.kinderen||[];
+    return `<tr class="click" data-act="kfToon" data-id="${esc(r.id)}"><td><b>${esc(r.lid)}</b>${l?"":' <span class="pill warn">niet in ledenlijst</span>'}${dub[norm(r.email)]>1?' <span class="pill warn">mogelijk dubbel</span>':""}${r.opmerking?`<div class="muted small">${esc(r.opmerking)}</div>`:""}</td>
+    <td class="trunc">${esc(r.email)}</td>
+    <td><div class="kf-kl">${kids.map(k=>{const a=kfLeeftijd(k.geb,c.datum);return `<span class="kf-k${a!=null&&a>c.leeftijd?" oud":""}">${esc(k.naam)}<span>${a==null?"?":a+" j"}</span></span>`}).join("")}</div></td>
+    <td class="num">${kids.length}</td><td class="nowrap">${r.aangemeld?esc(fmtDate(String(r.aangemeld).slice(0,10))):""}</td>
+    <td>${r.bron==="formulier"?'<span class="pill info">'+(r.gfKey?"Google Forms":"Inschrijfpagina")+'</span>':'<span class="pill neutral">Manueel</span>'}${r.nieuw?' <span class="pill warn">nieuw</span>':""}</td></tr>`}).join("")||`<tr><td colspan="6" class="empty">${KFQ?"Geen inschrijvingen gevonden.":"Nog geen inschrijvingen voor "+JAAR+". Deel de inschrijfpagina hieronder, voeg er zelf een toe of importeer antwoorden van het oude Google-formulier."}</td></tr>`}
+  </tbody></table>`}
+
+/* ---------- formulier met kinderen (+ kind toevoegen) ---------- */
+function kfKidRow(k,i){return `<div class="kf-kid"><span class="kf-n">Kind ${i+1}</span><input class="kf-naam" data-kfk="naam" placeholder="Naam kind" aria-label="Naam kind ${i+1}" value="${esc(k.naam||"")}"><input class="kf-geb" data-kfk="geb" type="date" aria-label="Geboortedatum kind ${i+1}" value="${esc(k.geb||"")}"><button type="button" class="kf-del" data-kfdel title="Kind verwijderen" aria-label="Kind ${i+1} verwijderen">${ic("x")}</button></div>`}
+function kfKidsRead(){return $$("#kfKids .kf-kid").map(el=>({naam:el.querySelector('[data-kfk=naam]').value.trim(),geb:el.querySelector('[data-kfk=geb]').value}))}
+function kfKidsDraw(kids){const box=$("#kfKids");box.innerHTML=kids.map(kfKidRow).join("");const dels=$$("#kfKids .kf-del");if(dels.length===1)dels[0].disabled=true;if(!canWrite)$$("#kfKids input,#kfKids button").forEach(x=>x.disabled=true)}
+function kfForm(r,id){
+  const leden=[...S.leden.values()].map(naamVol).map(s=>s.trim()).filter(Boolean).sort((a,b)=>a.localeCompare(b,"nl"));
+  modal(id?r.lid:"Nieuwe inschrijving kinderfeest",`<form id="fKf" class="form" autocomplete="off">
+    ${fld("kfL","Naam lid *",inp("kfL",r.lid,'name="lid" list="kfLeden"'))}${fld("kfE","E-mailadres",inp("kfE",r.email,'name="email" type="email"'))}
+    <datalist id="kfLeden">${leden.map(n=>`<option value="${esc(n)}">`).join("")}</datalist>
+    <div class="fld full"><label>Kinderen *</label><div class="kf-kids" id="kfKids"></div>${canWrite?`<button type="button" class="kf-add" data-kfadd>${ic("plus")}Kind toevoegen</button>`:""}</div>
+    ${fld("kfO","Opmerking",inp("kfO",r.opmerking,'name="opmerking"'),"full")}
+    <div class="err full" id="kfErr"></div></form>`,
+    `${id?'<button class="btn ghost danger" data-w id="kfDel">Verwijderen</button><span class="grow"></span>':""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="kfOk">Bewaren</button>`);
+  kfKidsDraw((r.kinderen&&r.kinderen.length)?r.kinderen:[{naam:"",geb:""}]);
+  if(!canWrite)$$("#fKf input").forEach(i=>i.disabled=true);
+  $("#kfOk").onclick=async()=>{const f={lid:$("#kfL").value,email:$("#kfE").value,opmerking:$("#kfO").value};const kids=kfKidsRead().filter(k=>k.naam||k.geb);
+    if(!f.lid.trim()){$("#kfErr").textContent="Vul de naam van het lid in.";$("#kfL").focus();return}
+    if(!kids.length){$("#kfErr").textContent="Voeg minstens één kind toe.";return}
+    if(kids.some(k=>!k.naam)){$("#kfErr").textContent="Elk kind heeft een naam nodig.";return}
+    const l=kfLidVan(f.lid);
+    const d={...stripId(r),jaar:r.jaar||JAAR,lid:f.lid.trim(),lidId:l?l.id:null,email:f.email.trim()||(l&&l.email)||"",opmerking:f.opmerking.trim(),kinderen:kids,bron:r.bron||"manueel",aangemeld:r.aangemeld||new Date().toISOString(),nieuw:false};
+    closeModal();await write("kinderfeest",id||newId("kinderfeest"),d);toast("Inschrijving bewaard.")};
+  if(id)$("#kfDel").onclick=()=>confirmBox("Inschrijving van <b>"+esc(r.lid)+"</b> verwijderen?","Verwijderen",async()=>{await write("kinderfeest",id,null,{del:true});toast("Inschrijving verwijderd.")});
+}
+function kfInst(){const c=kfCfg();
+  modal("Kinderfeest "+JAAR,`<form id="fKfI" class="form">
+    ${fld("kiD","Datum feest",inp("kiD",c.datum,'name="datum" type="date"'))}${fld("kiT","Uur",inp("kiT",c.tijd,'name="tijd"'))}
+    ${fld("kiL","Locatie",inp("kiL",c.locatie,'name="locatie"'),"full")}
+    ${fld("kiA","Cadeautje tot en met leeftijd",inp("kiA",c.leeftijd,'name="leeftijd" type="number" min="0" max="18"'))}
+    <div class="fld"><label>&nbsp;</label><span class="help">De leeftijd wordt berekend op de dag van het feest.</span></div>
+    <label class="full" style="display:flex;gap:10px;align-items:center;font-size:14px"><input type="checkbox" id="kiO" ${c.open!==false?"checked":""} style="width:18px;height:18px;accent-color:var(--accent)">Inschrijvingen via de inschrijfpagina zijn open</label></form>`,
+    `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="kiOk">Bewaren</button>`);
+  $("#kiOk").onclick=async()=>{const f={datum:$("#kiD").value,tijd:$("#kiT").value,locatie:$("#kiL").value,leeftijd:$("#kiA").value,open:$("#kiO").checked};closeModal();await write("config","kf_"+JAAR,{datum:f.datum,tijd:f.tijd.trim(),locatie:f.locatie.trim(),leeftijd:Math.max(0,Math.round(num(f.leeftijd)))||12,open:f.open});toast("Instellingen kinderfeest bewaard.")}}
+
+/* ---------- import uit Google Forms (antwoordenblad als .xlsx of .csv) ---------- */
+let KFIMP=null;
+function kfDatum(v){if(v==null||v==="")return "";
+  if(v instanceof Date&&!isNaN(v))return v.getFullYear()+"-"+String(v.getMonth()+1).padStart(2,"0")+"-"+String(v.getDate()).padStart(2,"0");
+  if(typeof v==="number"){const p=XLSX.SSF.parse_date_code(v);return p?p.y+"-"+String(p.m).padStart(2,"0")+"-"+String(p.d).padStart(2,"0"):""}
+  const s=String(v).trim();let m=s.match(/^(\d{4})[\-\/.](\d{1,2})[\-\/.](\d{1,2})/);if(m)return m[1]+"-"+m[2].padStart(2,"0")+"-"+m[3].padStart(2,"0");
+  m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/);if(m){const y=m[3].length===2?"20"+m[3]:m[3];return y+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0")}return ""}
+function kfTijd(v){const d=kfDatum(v);if(!d)return "";if(v instanceof Date)return v.toISOString();const m=String(v).match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);return d+"T"+(m?m[1].padStart(2,"0")+":"+m[2]+":"+(m[3]||"00"):"12:00:00")}
+function kfParse(rows){if(!rows.length)throw new Error("Het bestand is leeg.");
+  const H=rows[0].map(h=>norm(h));const fi=re=>H.findIndex(h=>re.test(h));
+  const iT=fi(/tijdstempel|timestamp/),iL=fi(/naam lid|^lid$|naam van het lid/),iE=fi(/e-?mail/);
+  if(iL<0)throw new Error("Kolom 'Naam lid' niet gevonden. Gebruik het antwoordenblad van het formulier Kinderfeest.");
+  const pairs=[];H.forEach((h,i)=>{if(i!==iL&&/^naam/.test(h)&&!/lid/.test(h)){let g=-1;for(let j=i+1;j<Math.min(H.length,i+3);j++)if(/geboorte/.test(H[j])){g=j;break}pairs.push([i,g])}});
+  const out=[];
+  for(const row of rows.slice(1)){const lid=String(row[iL]??"").trim();if(!lid)continue;
+    const kids=pairs.map(([n,g])=>({naam:String(row[n]??"").trim(),geb:g>=0?kfDatum(row[g]):""})).filter(k=>k.naam);
+    const ts=iT>=0?kfTijd(row[iT]):"";const email=iE>=0?String(row[iE]??"").trim():"";
+    const key="gf-"+slug(email||lid)+"-"+(ts.replace(/\D/g,"").slice(0,14)||slug(kids.map(k=>k.naam).join("-")));
+    out.push({key,lid,email,kinderen:kids,aangemeld:ts||new Date().toISOString()})}
+  return out}
+function kfImport(){KFIMP=null;
+  modal("Google Forms importeren",`<p style="margin:0">Open het <a href="${KF_FORM}" target="_blank" rel="noopener">Google-formulier</a>, ga naar <b>Antwoorden</b> › <b>⋮</b> › <b>Antwoorden downloaden (.csv)</b> en kies hier het gedownloade bestand (.zip, .csv of .xlsx). Inschrijvingen die al geïmporteerd zijn, worden bijgewerkt in plaats van dubbel toegevoegd.</p>
+    <div><label class="btn primary" for="kfFile" style="cursor:pointer">${ic("upload")}Bestand kiezen</label><input type="file" id="kfFile" accept=".zip,.csv,.xlsx,.xls" hidden></div><div id="kfImpArea"></div>`,"",{wide:true});}
+async function kfReadFile(file){if(/\.zip$/i.test(file.name)){try{const z=await JSZip.loadAsync(await file.arrayBuffer());const f=Object.values(z.files).find(x=>/\.csv$/i.test(x.name));if(!f)throw new Error("Geen .csv gevonden in het zip-bestand.");kfRows(XLSX.read(await f.async("string"),{type:"string",raw:true}))}catch(e){$("#kfImpArea").innerHTML=`<div class="note">${esc(e.message||"Dit bestand kon niet gelezen worden.")}</div>`}return}
+  const rd=new FileReader();const isCsv=/\.csv$/i.test(file.name);
+  rd.onload=()=>{try{kfRows(isCsv?XLSX.read(String(rd.result),{type:"string",raw:true}):XLSX.read(new Uint8Array(rd.result),{type:"array",cellDates:true}))}
+    catch(e){$("#kfImpArea").innerHTML=`<div class="note">${esc(e.message||"Dit bestand kon niet gelezen worden.")}</div>`}};
+  isCsv?rd.readAsText(file):rd.readAsArrayBuffer(file)}
+function kfRows(wb){const ws=wb.Sheets[wb.SheetNames[0]];const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:""});
+  const items=kfParse(rows);const bestaand=new Map([...S.kinderfeest.values()].filter(r=>r.gfKey).map(r=>[r.gfKey,r]));
+  KFIMP=items.map(x=>({...x,bestaat:bestaand.get(x.key)||null}));kfImpDraw()}
+function kfImpDraw(){const L=KFIMP||[];const nieuw=L.filter(x=>!x.bestaat).length;const c=kfCfg();
+  $("#kfImpArea").innerHTML=L.length?`<div class="sumbar boxed"><span><b>${L.length}</b> inschrijvingen</span><span><b>${L.reduce((s,x)=>s+x.kinderen.length,0)}</b> kinderen</span><span><b class="in">${nieuw}</b> nieuw</span><span><b>${L.length-nieuw}</b> al geïmporteerd (wordt bijgewerkt)</span><span>Boekjaar <b>${JAAR}</b></span></div>
+    <div class="tw" style="max-height:340px"><table><thead><tr><th>Lid</th><th>E-mail</th><th>Kinderen</th><th>Ingeschreven</th><th></th></tr></thead><tbody>${L.map(x=>`<tr><td><b>${esc(x.lid)}</b></td><td class="trunc">${esc(x.email)}</td><td><div class="kf-kl">${x.kinderen.map(k=>{const a=kfLeeftijd(k.geb,c.datum);return `<span class="kf-k">${esc(k.naam)}<span>${a==null?"?":a+" j"}</span></span>`}).join("")}</div></td><td class="nowrap">${esc(fmtDate(x.aangemeld.slice(0,10)))}</td><td>${x.bestaat?'<span class="pill neutral">bestaat</span>':'<span class="pill ok">nieuw</span>'}</td></tr>`).join("")}</tbody></table></div>
+    <div style="display:flex;justify-content:flex-end"><button class="btn primary" data-w id="kfImpGo">${L.length} inschrijvingen importeren</button></div>`:'<div class="note">Geen inschrijvingen gevonden in dit bestand.</div>';
+  const b=$("#kfImpGo");if(b)b.onclick=async()=>{b.disabled=true;IMPORTING=true;
+    const ops=L.map(x=>{const old=x.bestaat;const l=kfLidVan(x.lid);return ["kinderfeest",old?old.id:x.key,{...(old?stripId(old):{}),jaar:old?old.jaar:JAAR,lid:x.lid,lidId:l?l.id:null,email:x.email,kinderen:x.kinderen,opmerking:old?old.opmerking||"":"",bron:"formulier",aangemeld:x.aangemeld,gfKey:x.key}]});
+    try{await writeMany(ops,()=>{})}catch(e){IMPORTING=false;handleWriteError(e);render();return}
+    IMPORTING=false;closeModal();toast(L.length+" inschrijvingen geïmporteerd.");render(true)}}
+
+/* ---------- export ---------- */
+async function kfExport(){const st=kfStats(),c=st.c;const wb=XLSX.utils.book_new();
+  const kids=[];for(const r of st.L)for(const k of (r.kinderen||[])){const a=kfLeeftijd(k.geb,c.datum);kids.push({Kind:k.naam,Geboortedatum:fmtDate(k.geb),"Leeftijd op feest":a??"",Cadeautje:a==null||a<=c.leeftijd?"ja":"nee",Lid:r.lid,"E-mail":r.email})}
+  kids.sort((a,b)=>(a["Leeftijd op feest"]===""?99:a["Leeftijd op feest"])-(b["Leeftijd op feest"]===""?99:b["Leeftijd op feest"])||String(a.Kind).localeCompare(String(b.Kind),"nl"));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(kids),"Kinderen");
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(st.L.map(r=>({Lid:r.lid,"E-mail":r.email,"Aantal kinderen":(r.kinderen||[]).length,Kinderen:(r.kinderen||[]).map(k=>k.naam).join(", "),Ingeschreven:fmtDate(String(r.aangemeld||"").slice(0,10)),Bron:r.bron==="formulier"?"Formulier":"Manueel",Opmerking:r.opmerking||""}))),"Inschrijvingen");
+  const ages=[];for(let a=0;a<=c.leeftijd;a++)ages.push({Leeftijd:a,"Aantal cadeautjes":st.per.get(a)||0});if(st.onbekend)ages.push({Leeftijd:"onbekend","Aantal cadeautjes":st.onbekend});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(ages),"Cadeautjes");
+  const out=XLSX.write(wb,{bookType:"xlsx",type:"array"});await save("Kinderfeest "+JAAR+".xlsx",new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}))}
+
+/* ---------- events ---------- */
+document.addEventListener("click",e=>{
+  if(e.target.closest("[data-kfadd]")){const kids=kfKidsRead();kids.push({naam:"",geb:""});kfKidsDraw(kids);const ins=$$("#kfKids [data-kfk=naam]");ins[ins.length-1].focus();return}
+  const del=e.target.closest("[data-kfdel]");if(del){const rows=$$("#kfKids .kf-kid");const i=rows.indexOf(del.closest(".kf-kid"));const kids=kfKidsRead();kids.splice(i,1);kfKidsDraw(kids.length?kids:[{naam:"",geb:""}]);return}
+  const t=e.target.closest("[data-act]");if(!t)return;
+  switch(t.dataset.act){
+    case"kfNieuw":kfForm({},null);break;
+    case"kfToon":{const r=S.kinderfeest.get(t.dataset.id);if(r)kfForm(r,r.id);break}
+    case"kfInst":kfInst();break;
+    case"kfImport":kfImport();break;
+    case"kfExport":kfExport();break;
+    case"kfGezien":(async()=>{const L=kfLijst().filter(r=>r.nieuw);try{await writeMany(L.map(r=>["kinderfeest",r.id,{...stripId(r),nieuw:false}]),()=>{});toast(L.length===1?"Melding afgevinkt.":L.length+" meldingen afgevinkt.")}catch(e){handleWriteError(e)}})();break;
+  }
+});
+document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.kfq!==undefined){KFQ=e.target.value;const st=kfStats();const q=norm(KFQ);
+  const list=q?st.L.filter(r=>norm([r.lid,r.email,r.opmerking,...(r.kinderen||[]).map(k=>k.naam)].join(" ")).includes(q)):st.L;const el=$("#kfList");if(el)el.innerHTML=kfTable(list,kfDubbel(st.L),st.c)}});
+document.addEventListener("change",e=>{if(e.target.id==="kfFile"&&e.target.files[0])kfReadFile(e.target.files[0])});
