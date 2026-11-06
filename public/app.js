@@ -189,8 +189,7 @@ function showLogin(msg){
   authCard(`<h1>Aanmelden</h1><p class="muted" style="margin:0">Beheer van de ${esc(DEF_CONFIG.vereniging)}. Alleen voor uitgenodigde bestuursleden.</p>
   <form id="fLogin" class="stack"><div class="fld"><label for="lEmail">E-mailadres</label><input id="lEmail" name="email" type="email" autocomplete="username" required></div>
   <div class="fld"><label for="lPw">Wachtwoord</label><input id="lPw" name="pw" type="password" autocomplete="current-password" required></div>
-  <div class="err" id="lErr">${esc(msg||"")}</div><div class="muted small" id="lMsg"></div><button class="btn solid" type="submit">Aanmelden</button></form>
-  <button type="button" class="btn ghost sm" data-act="pwVergeten" style="align-self:flex-start">Wachtwoord vergeten?</button>`);
+  <div class="err" id="lErr">${esc(msg||"")}</div><div class="muted small" id="lMsg"></div><button class="btn solid" type="submit">Aanmelden</button></form>`);
   setTimeout(()=>{const i=$("#lEmail");i&&i.focus()},30);
 }
 function showSetPassword(kind){
@@ -214,7 +213,7 @@ async function doSetPassword(f){const d=formData(f);const e=$("#pwErr");if(d.pw1
   if(hp.get("access_token")||authErr)history.replaceState(null,"",location.pathname+"#dashboard");
   SB.auth.onAuthStateChange(ev=>{if(ev==="PASSWORD_RECOVERY")showSetPassword("recovery")});
   if(session&&(authType==="invite"||authType==="recovery"))return showSetPassword(authType);
-  if(!session)return showLogin(authErr?"De link is verlopen of al gebruikt. Vraag een nieuwe uitnodiging of kies 'Wachtwoord vergeten'.":"");
+  if(!session)return showLogin(authErr?"De link is verlopen of al gebruikt. Vraag een nieuwe uitnodiging aan een bestuurslid.":"");
   startApp(session);
 })();
 let STARTED=false;
