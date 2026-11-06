@@ -2115,13 +2115,14 @@ function agendaSectie(){const t=todayISO(),R=agItems().filter(x=>x.datum>=t).sli
 function agDashRefresh(){const el=$("#agDash");if(!el)return;const L=agItems();el.innerHTML=agMaand(L)+`<div class="ag-list" id="agList">${agBinnenkort(L)}</div>`}
 
 /* ---------- pagina Kalender (Activiteiten › Kalender) ---------- */
-VIEWS.agenda=()=>({title:"Kalender",actions:'<button class="btn" data-w data-act="vgNieuw">'+ic("verslagen")+'Vergadering</button><button class="btn primary" data-w data-act="agNieuw">'+ic("plus")+'Activiteit</button>',body(){
+VIEWS.agenda=()=>({title:"Kalender",actions:'<button class="btn primary" data-w data-act="agNieuw">'+ic("plus")+'Toevoegen</button>',body(){
   const t=todayISO(),L=agItems(),R=AG.oud?L.filter(x=>x.datum<t).reverse():L.filter(x=>x.datum>=t);
   const groups=new Map();for(const x of R){const k=x.datum.slice(0,7);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x)}
-  return `<div class="bar"><div class="seg"><button type="button" data-act="agOud" data-v="0" class="${AG.oud?"":"on"}">Komend</button><button type="button" data-act="agOud" data-v="1" class="${AG.oud?"on":""}">Voorbij</button></div><span class="grow"></span><span class="muted small">Banket en kinderfeest komen er vanzelf bij, met de datum uit hun instellingen.</span></div>
+  return `<div class="bar"><div class="seg"><button type="button" data-act="agOud" data-v="0" class="${AG.oud?"":"on"}">Komend</button><button type="button" data-act="agOud" data-v="1" class="${AG.oud?"on":""}">Voorbij</button></div></div>
   ${groups.size?[...groups].map(([k,xs])=>`<div class="panel"><div class="panel-h"><h2 style="text-transform:capitalize">${agD(k+"-01").toLocaleDateString("nl-BE",{month:"long",year:"numeric"})}</h2><span class="grow"></span><span class="muted small">${xs.length} ${xs.length===1?"item":"items"}</span></div><div class="ag-list big">${xs.map(x=>{const [c,l]=agSoort(x);return agRij(x).replace('</a>',`<span class="pill ${c==="verg"?"info":"warn"}">${esc(l)}</span></a>`)}).join("")}</div></div>`).join(""):`<div class="panel"><div class="empty">${AG.oud?"Nog geen voorbije activiteiten.":"Er staat nog niets gepland."}${canWrite&&!AG.oud?`<div style="margin-top:12px"><button class="btn primary" data-act="agNieuw">${ic("plus")}Activiteit toevoegen</button></div>`:""}</div></div>`}`}});
+const agTypeSel=t=>`<div class="fld full"><span class="lbl">Wat voeg je toe?</span><div class="seg ag-type"><button type="button" data-act="agType" data-v="act" class="${t==="act"?"on":""}">Activiteit</button><button type="button" data-act="agType" data-v="verg" class="${t==="verg"?"on":""}">Vergadering</button></div></div>`;
 function agForm(a,id){const d=canWrite?"":" disabled";a=a||{};
-  modal(id?"Activiteit wijzigen":"Nieuwe activiteit",`<form id="fAg" class="form">
+  modal(id?"Activiteit wijzigen":"Toevoegen aan de kalender",`<form id="fAg" class="form">${id?"":agTypeSel("act")}
    ${fld("agT","Wat",inp("agT",a.titel,'maxlength="120" placeholder="bv. Jaarmarkt, Paasmaandagwandeling"'+d),"full")}
    ${fld("agD","Datum",`<input id="agD" type="date" value="${esc(a.datum||AG.dag||todayISO())}"${d}>`)}${fld("agU","Uur",inp("agU",a.uur,'maxlength="20" placeholder="bv. 14u00"'+d))}
    ${fld("agL","Waar",inp("agL",a.locatie,'maxlength="160"'+d),"full")}
@@ -2146,7 +2147,7 @@ VIEWS.verslagen=()=>({title:"Verslagen vergaderingen",actions:'<button class="bt
   <div class="panel"><div class="panel-h"><h2>Voorbije vergaderingen</h2><span class="grow"></span><span class="muted small">${voorbij.length}</span></div><div class="ag-list big">${voorbij.map(rij).join("")||`<div class="empty">${q?"Niets gevonden.":"Nog geen vergaderingen."}</div>`}</div></div></div>`}});
 function vgForm(v,id){const d=canWrite?"":" disabled";v=v||{soort:"Bestuursvergadering",datum:AG.dag||todayISO(),uur:"20u00"};
   const ta=(k,l,ph,h)=>fld("vg_"+k,l,`<textarea id="vg_${k}" style="min-height:${h}px" placeholder="${ph}"${d}>${esc(v[k]||"")}</textarea>`,"full");
-  modal(id?(v.titel||v.soort||"Vergadering")+" · "+fmtDate(v.datum):"Nieuwe vergadering",`<form id="fVg" class="form">
+  modal(id?(v.titel||v.soort||"Vergadering")+" · "+fmtDate(v.datum):(AG.fromKal?"Toevoegen aan de kalender":"Nieuwe vergadering"),`<form id="fVg" class="form">${id||!AG.fromKal?"":agTypeSel("verg")}
    ${fld("vg_soort","Soort",`<select id="vg_soort" class="sel"${d}>${selOpts(VG_SOORT,v.soort||"Bestuursvergadering")}</select>`)}${fld("vg_titel","Titel (optioneel)",inp("vg_titel",v.titel,'maxlength="120" placeholder="bv. Voorbereiding banket"'+d))}
    ${fld("vg_datum","Datum",`<input id="vg_datum" type="date" value="${esc(v.datum||"")}"${d}>`)}${fld("vg_uur","Uur",inp("vg_uur",v.uur,'maxlength="20" placeholder="bv. 20u00"'+d))}
    ${fld("vg_locatie","Waar",inp("vg_locatie",v.locatie,'maxlength="160" placeholder="bv. Kazerne, refter"'+d),"full")}
@@ -2172,9 +2173,12 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(
     case"agMaand":{e.preventDefault();const b=(AG.m||todayISO().slice(0,7)).split("-").map(Number);const d=new Date(b[0],b[1]-1+Number(t.dataset.v),1);AG.m=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");AG.dag=null;agDashRefresh();break}
     case"agDag":e.preventDefault();AG.dag=t.dataset.v&&AG.dag!==t.dataset.v?t.dataset.v:null;agDashRefresh();break;
     case"agOud":AG.oud=t.dataset.v==="1";render(true);break;
-    case"agNieuw":agForm(null,null);break;
+    case"agNieuw":AG.fromKal=true;agForm(null,null);break;
+    case"agType":{e.preventDefault();const g=x=>{const el=$("#"+x);return el?el.value:""};
+      if(t.dataset.v==="verg"&&$("#fAg")){const v={soort:"Bestuursvergadering",titel:g("agT"),datum:g("agD"),uur:g("agU")||"20u00",locatie:g("agL"),agenda:g("agI")};AG.fromKal=true;vgForm(v,null)}
+      else if(t.dataset.v==="act"&&$("#fVg")){agForm({titel:g("vg_titel"),datum:g("vg_datum"),uur:g("vg_uur"),locatie:g("vg_locatie"),info:g("vg_agenda")},null)}break}
     case"agToon":{e.preventDefault();const a=S.activiteiten.get(t.dataset.id);if(a)agForm(a,a.id);break}
-    case"vgNieuw":vgForm(null,null);break;
+    case"vgNieuw":AG.fromKal=false;vgForm(null,null);break;
     case"vgToon":{e.preventDefault();const v=S.vergaderingen.get(t.dataset.id);if(v)vgForm(v,v.id);break}
   }});
 document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.vgq!==undefined){AG.q=e.target.value;const pos=e.target.selectionStart;render(true);const i=$("#vgQ");if(i){i.focus();try{i.setSelectionRange(pos,pos)}catch(x){}}}});
