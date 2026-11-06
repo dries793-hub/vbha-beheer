@@ -86,7 +86,7 @@ export async function gebruikers(req, res) {
       if (error) throw error;
       id = data.user.id;
     }
-    const { error: e2 } = await sb.from("bestuur").insert({ user_id: id, email, naam: naam || null, rol });
+    const { error: e2 } = await sb.from("bestuur").upsert({ user_id: id, email, naam: naam || null, rol }, { onConflict: "user_id" });
     if (e2) throw e2;
     const gemaild = await mailen(welkomMail({ naam, email, rol, wachtwoord: ww, url }));
     return res.status(200).json({ id, wachtwoord: ww, gemaild });
