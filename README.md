@@ -110,6 +110,18 @@ Op `https://jouw-site.vercel.app/inschrijven` staat een openbaar formulier. Iede
 
 De link staat ook bij Instellingen, met een knop om ze te kopiëren.
 
+## Inschrijven voor het banket
+
+Op `https://jouw-site.vercel.app/banket` staat de openbare inschrijfpagina voor het banket. Iedereen met de link kan ze invullen, zonder aan te melden.
+
+- Het lid kiest zijn naam uit de **actieve ledenlijst** van het actieve boekjaar (lid sinds ≤ jaar, lid tot leeg of ≥ jaar), duidt aan of hij alleen of met partner komt, kiest de menu's en vult eventuele allergieën in.
+- De inschrijving komt rechtstreeks in de tabel `banket` en verschijnt meteen in de app onder **Administratie › Banket**. Per lid kan je maar één keer inschrijven per jaar.
+- Na het inschrijven ziet het lid het juiste bedrag (prijs × aantal personen), de betaal-QR en de mededeling `Naam Voornaam Banket JAAR`. Staat `BANCONTACT_API_KEY` ingesteld, dan krijgt het lid ook de knop **Betaal met Bancontact**; een gelukte betaling zet de inschrijving automatisch op betaald.
+- Overschrijvingen worden herkend in de transacties van dat jaar met categorie **Banket** (of "banket" in de mededeling) en de naam van het lid.
+- Datum, uur, locatie, prijs, betaaldatum en of de inschrijvingen open zijn, stel je in onder **Administratie › Banket › Instellingen banket**.
+
+Bestaande installatie: voer `supabase/schema.sql` opnieuw uit (of enkel de regel met `'banket'`), zodat de tabel `banket` bestaat.
+
 ### Online betalen met Bancontact Pay
 
 Staat de sleutel ingesteld, dan krijgt een nieuw lid na het inschrijven de knop **Betaal met Bancontact**. Op de gsm opent die de bank- of Bancontact-app. Op een computer staat er een QR-code om met de gsm te scannen. Zodra de betaling gelukt is, staat het lidgeld van dat lid automatisch op **betaald**. Het lid ziet dat ook meteen op het scherm.
@@ -121,19 +133,6 @@ Staat de sleutel ingesteld, dan krijgt een nieuw lid na het inschrijven de knop 
 Zonder sleutel blijft het formulier werken zoals vroeger, met de betaal-QR en de overschrijvingsgegevens.
 
 Boekhouding: Bancontact stort de betalingen gebundeld door op de rekening. Die doorstorting komt via de bankimport binnen; zet ze op categorie **Lidgeld**. De leden zelf staan al op betaald.
-
-## Kinderfeest
-
-Onder **Administratie › Kinderfeest** staat het overzicht van de inschrijvingen: aantal kinderen, hoeveel cadeautjes nodig zijn (per leeftijd op de dag van het feest), welke inschrijvingen niet in de ledenlijst gevonden worden en mogelijke dubbels. Exporteren naar Excel kan met één klik.
-
-Op `https://jouw-site.vercel.app/kinderfeest` staat een openbare inschrijfpagina (geen aanmelden nodig). Ouders vullen hun naam en e-mail in, beginnen met één kind en voegen met **+ Nog een kind toevoegen** extra kinderen toe. Het vervangt het Google-formulier.
-
-- Een inschrijving komt meteen in het overzicht, met het label **nieuw**. Klik **Alles gezien** om de melding weg te halen.
-- Datum, uur, locatie, leeftijdsgrens voor een cadeautje en of de inschrijvingen open zijn: via het tandwiel op de pagina Kinderfeest (per boekjaar).
-- Antwoorden die nog in het oude Google-formulier staan, lees je in met **Google Forms importeren** (Antwoorden › ⋮ › Antwoorden downloaden (.csv)).
-- Dezelfde spambescherming als bij het ledenformulier: verborgen veld, minimale invultijd, maximaal 30 inschrijvingen per uur.
-
-**Eenmalig nodig:** voer `supabase/schema.sql` opnieuw uit in Supabase (SQL Editor). Dat maakt de tabel `kinderfeest` aan; de rest blijft ongewijzigd.
 
 ## Beveiliging
 
