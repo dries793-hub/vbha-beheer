@@ -117,6 +117,26 @@ input[type=date]{width:100%;font:inherit;font-size:16px;padding:10px 12px;border
 .lp-i b{font-weight:700}
 .lp-leeg{padding:11px 14px;font-size:14px;color:var(--muted)}
 .lp input.lp-ok{border-color:var(--good);background:var(--good-soft)}
+.bevestig{text-align:center;padding:34px 24px}
+.bevestig .ic{width:72px;height:72px;border-radius:50%;background:var(--good-soft);color:var(--good);display:grid;place-items:center;margin:0 auto 16px}
+.bevestig .ic svg{width:36px;height:36px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.bevestig h2{margin:0 0 8px;font-size:24px}
+.bevestig .lead2{margin:0 auto;max-width:440px;color:var(--muted);font-size:15.5px}
+.bevestig .sam{margin:22px auto 0;max-width:420px;border:1px solid var(--line);border-radius:12px;text-align:left;overflow:hidden}
+.bevestig .sam div{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;font-size:14.5px}
+.bevestig .sam div+div{border-top:1px solid var(--line)}
+.bevestig .sam span{color:var(--muted)}
+.bevestig .sam b{text-align:right}
+.bevestig .tot{margin:22px 0 0;font-size:18px;font-weight:700}
+.lp{position:relative}
+.lp-l{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:20;overflow:hidden;max-height:280px;overflow-y:auto}
+.lp-l[hidden]{display:none}
+.lp-i{display:block;width:100%;text-align:left;border:0;background:none;padding:11px 14px;font:inherit;font-size:15px;color:var(--ink);cursor:pointer}
+.lp-i+.lp-i{border-top:1px solid var(--line)}
+.lp-i:hover,.lp-i.on{background:var(--sunken)}
+.lp-i b{font-weight:700}
+.lp-leeg{padding:11px 14px;font-size:14px;color:var(--muted)}
+.lp input.lp-ok{border-color:var(--good);background:var(--good-soft)}
 </style>
 </head>
 <body>
@@ -147,11 +167,13 @@ const eur=n=>"€"+Number(n).toLocaleString("nl-BE",{minimumFractionDigits:0,max
 document.addEventListener("click",async e=>{const b=e.target.closest(".cp");if(!b)return;try{await navigator.clipboard.writeText(b.dataset.cp);const t=b.textContent;b.textContent="Gekopieerd";b.classList.add("ok");setTimeout(()=>{b.textContent=t;b.classList.remove("ok")},1600)}catch(x){}});
 
 let CFG={datum:"2026-12-19",leeftijd:12,max:8},KIDS=[{naam:"",geb:""}];
+function gesloten(wat,j){$("#box").innerHTML=`<div class="card bevestig"><div class="ic" style="background:var(--sunken);color:var(--muted)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+  <h2>De inschrijvingen zijn afgesloten</h2><p class="lead2">${j.gesloten==="verlopen"&&j.totTekst?"Inschrijven voor "+wat+" kon tot en met "+esc(j.totTekst)+".":"Je kan je op dit moment niet inschrijven voor "+wat+"."} Neem voor vragen contact op met iemand van het bestuur.</p></div>`}
 fetch("/api/kinderfeest").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;CFG={...CFG,...j};
   $("#h1").textContent="Kinderfeest "+j.jaar;document.title="Kinderfeest "+j.jaar+" · VBHA";
   const d=new Date(j.datum+"T12:00");if(!isNaN(d))$("#kWan").textContent=d.toLocaleDateString("nl-BE",{weekday:"short",day:"numeric",month:"long",year:"numeric"});
   if(j.tijd)$("#kUur").textContent="om "+j.tijd;if(j.locatie){const p=j.locatie.split(" - ");$("#kWaar").textContent=p[0];$("#kAdr").textContent=p.slice(1).join(" - ")}
-  $("#kLft").textContent="cadeautje t.e.m. "+j.leeftijd+" jaar";draw()}).catch(()=>{});
+  $("#kLft").textContent="cadeautje t.e.m. "+j.leeftijd+" jaar";draw();if(j.totTekst){const l=$(".lead");if(l&&!l.dataset.tot){l.dataset.tot=1;l.insertAdjacentHTML("beforeend"," Inschrijven kan tot en met <b>"+esc(j.totTekst)+"</b>.")}}if(j.open===false)gesloten("het kinderfeest",j)}).catch(()=>{});
 function lft(g){if(!/^\d{4}-\d{2}-\d{2}$/.test(g))return null;const [y,m,d]=g.split("-").map(Number),[Y,M,D]=CFG.datum.split("-").map(Number);let a=Y-y;if(M<m||(M===m&&D<d))a--;return a}
 function ageTxt(g){const a=lft(g);if(a==null)return "";if(a<0)return "Deze datum ligt na het feest.";return (a===0?"Jonger dan 1 jaar":a+" jaar")+" op het feest"+(a>CFG.leeftijd?" (geen cadeautje meer)":"")}
 function read(){KIDS=$$("#kids .kid").map(el=>({naam:el.querySelector(".kn").value,geb:el.querySelector(".kg").value}))}

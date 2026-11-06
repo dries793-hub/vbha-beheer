@@ -137,7 +137,7 @@ input[type=date]{width:100%;font:inherit;font-size:16px;padding:10px 12px;border
   <p class="lead">Geniet samen met je partner van een uitgebreid diner, gevolgd door een dansfeest met DJ tot in de vroege uurtjes. Schrijf je hier in en betaal meteen online.</p>
   <div class="facts" id="facts"><div class="fact"><span>Wanneer</span><b>Za 12 december 2026</b><small>vanaf 19u00</small></div>
     <div class="fact"><span>Waar</span><b>Feestzaal De Snip</b><small>Beugemstraat 9, Moorsel</small></div>
-    <div class="fact"><span>Prijs</span><b id="fPrijs">€65 per persoon</b><small id="fDead">betalen voor 1 december</small></div></div></section>
+    <div class="fact"><span>Prijs</span><b id="fPrijs">€65 per persoon</b><small id="fDead">inschrijven t.e.m. 1 december</small></div></div></section>
   <div id="box"><form class="card" id="f" novalidate>
     <div class="grid">
       <div class="full"><label for="naam">Naam van het lid</label><input type="text" id="naam" name="naam" placeholder="Begin je naam te typen…" maxlength="100"></div>
@@ -205,7 +205,9 @@ document.addEventListener("click",async e=>{if(e.target.id!=="bcNieuw")return;e.
     const blok=$("#online");if(blok)blok.outerHTML=onlineBlok({...o,id:BET.id,token:BET.token},o.bedrag);volgN=0;volg()}catch(x){e.target.disabled=false;e.target.textContent="Opnieuw proberen"}});
 
 let INFO={prijs:65};
-fetch("/api/banket").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;upd();$("#h1").textContent="Banket "+j.jaar;document.title="Banket "+j.jaar+" · VBHA";$("#fPrijs").textContent=eur(j.prijs)+" per persoon";if(j.deadline)$("#fDead").textContent="betalen voor "+j.deadline}).catch(()=>{});
+function gesloten(wat,j){$("#box").innerHTML=`<div class="card bevestig"><div class="ic" style="background:var(--sunken);color:var(--muted)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+  <h2>De inschrijvingen zijn afgesloten</h2><p class="lead2">${j.gesloten==="verlopen"&&j.totTekst?"Inschrijven voor "+wat+" kon tot en met "+esc(j.totTekst)+".":"Je kan je op dit moment niet inschrijven voor "+wat+"."} Neem voor vragen contact op met iemand van het bestuur.</p></div>`}
+fetch("/api/banket").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;upd();$("#h1").textContent="Banket "+j.jaar;document.title="Banket "+j.jaar+" · VBHA";$("#fPrijs").textContent=eur(j.prijs)+" per persoon";if(j.totTekst)$("#fDead").textContent=(j.open===false?"inschrijven was mogelijk t.e.m. ":"inschrijven t.e.m. ")+j.totTekst;if(j.open===false)gesloten("het banket",j)}).catch(()=>{});
 function val(n){const c=document.querySelector('input[name="'+n+'"]:checked');return c?c.value:""}
 function upd(){$$("[data-pr]").forEach(e=>e.textContent=eur(+e.dataset.pr*INFO.prijs));const p=+val("personen");$("#m2").hidden=p!==2;
   const pay=$("#pay");if(p){pay.hidden=false;pay.innerHTML=`Te betalen: <b>${eur(p*INFO.prijs)}</b>. ${INFO.online?"Na het inschrijven betaal je meteen met Bancontact of met een overschrijving.":"Na het inschrijven zie je hoe je overschrijft."}`}else pay.hidden=true}

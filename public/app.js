@@ -1094,7 +1094,7 @@ function bkTable(){
     return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b>${x.lid?"":'<div class="small muted">niet gevonden in ledenlijst</div>'}</td><td class="nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td><td class="muted nowrap">${esc(r.ingediend||"")}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
   </tbody>${R.length?`<tfoot><tr><td>${R.length} inschrijvingen</td><td>${pers} personen</td><td></td><td></td><td class="num">${eur(R.reduce((s,x)=>s+x.due,0))}</td><td></td><td></td></tr></tfoot>`:""}</table></div>`}
 VIEWS.banket=()=>({title:"Banket "+JAAR,sub:"Inschrijvingen en betalingen",
-  actions:`<a class="btn" href="${BK_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden">${ic("deel")}Inschrijfpagina</a><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-act="bkInst" aria-label="Instellingen banket" title="Instellingen banket">${ic("instellingen")}</button>`,
+  actions:`<a class="btn" href="${BK_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden (${esc(insStatus(bkCfg(),JAAR+"-12-01").label)})">${ic("deel")}Inschrijfpagina${insPill(insStatus(bkCfg(),JAAR+"-12-01"))}</a><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-act="bkInst" aria-label="Instellingen banket" title="Instellingen banket">${ic("instellingen")}</button>`,
   body(){
   const R=bkRows(),bc=bkCfg();const pers=R.reduce((s,x)=>s+(x.r.personen===2?2:1),0);
   let norm_=0,veg=0;for(const {r} of R){(r.menu1==="Vegetarisch"?veg++:norm_++);if(r.personen===2)(r.menu2==="Vegetarisch"?veg++:norm_++)}
@@ -1109,13 +1109,21 @@ VIEWS.banket=()=>({title:"Banket "+JAAR,sub:"Inschrijvingen en betalingen",
   <div class="bar"><div class="search">${ic("search")}<input id="bkQ" data-live data-input="bkQ" placeholder="Zoek op naam of opmerking" value="${esc(UI.bkQ||"")}"></div>
    <div class="seg">${[["alle","Alle"],["open","Open"],["ok","Betaald"],["veg","Vegetarisch"]].map(([v,l])=>`<button type="button" data-act="bkF" data-v="${v}" class="${F===v?"on":""}">${l}</button>`).join("")}</div></div>
   <div class="panel" id="bkList">${bkTable()}</div>`}});
+const INS_MAAND=["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
+const insTot=(c,def)=>/^\d{4}-\d{2}-\d{2}$/.test(String(c.inschrijvenTot||""))?c.inschrijvenTot:def;
+const insTekst=iso=>{const [y,m,d]=iso.split("-").map(Number);return d+" "+INS_MAAND[m-1]};
+function insStatus(c,def){const tot=insTot(c,def);const open=c.open!==false&&todayISO()<=tot;return{open,tot,label:open?"open t.e.m. "+insTekst(tot):c.open===false?"gesloten":"afgesloten sinds "+insTekst(tot)}}
+const insPill=st=>`<span class="ins-st ${st.open?"ok":"nok"}" title="Inschrijvingen ${st.label}"></span>`;
+function insVelden(c,def,d){const st=insStatus(c,def);return `${fld("insTot","Inschrijven tot en met",`<input id="insTot" type="date" value="${esc(insTot(c,def))}"${d}>`)}
+  <div class="fld"><span class="lbl">Inschrijvingen</span><label class="sp-nat" style="padding:9px 12px"><input type="checkbox" id="insOpen"${c.open!==false?" checked":""}${d}><span><b>Open</b><small>${st.open?"Nu open":"Nu gesloten"}${c.open!==false&&!st.open?" (datum voorbij)":""}</small></span></label></div>`}
+const insLees=()=>({inschrijvenTot:$("#insTot").value,open:$("#insOpen").checked});
 function bkInst(){const bc=bkCfg(),d=canWrite?"":" disabled";const ontv=ctx().boek.filter(b=>b.categorie==="Banket"&&b.richting!=="uit").reduce((s,b)=>s+b.bedrag,0);
   modal("Instellingen banket",`<form id="fBkI2" class="form">${fld("bkP","Prijs per persoon (€)",inp("bkP",bc.prijs,'inputmode="decimal"'+d))}${fld("bkDt","Datum banket",`<input id="bkDt" type="date" value="${esc(bc.datum||"")}"${d}>`)}
-   ${fld("bkD","Uiterste betaaldatum",inp("bkD",bc.deadline,'placeholder="bv. 1 december"'+d))}<p class="pi-note full" style="margin:0">Ontvangen met categorie Banket in ${JAAR}: <b>${eur(ontv)}</b></p></form>`,
+   ${insVelden(bc,JAAR+"-12-01",d)}<p class="pi-note full" style="margin:0">Ontvangen met categorie Banket in ${JAAR}: <b>${eur(ontv)}</b></p></form>`,
    `<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="bkIOk">Bewaren</button>':""}`);
   const ok=$("#bkIOk");if(!ok)return;
-  ok.onclick=async()=>{const r={prijs:num($("#bkP").value)||65,deadline:$("#bkD").value.trim(),datum:$("#bkDt").value};closeModal();
-    await write("config","banket",{...stripId(S.config.get("banket")||{}),prijs:r.prijs,deadline:r.deadline,...(/^\d{4}-\d{2}-\d{2}$/.test(r.datum)?{datum:r.datum}:{})});toast("Instellingen banket bewaard.")}}
+  ok.onclick=async()=>{const ins=insLees();const r={prijs:num($("#bkP").value)||65,deadline:/^\d{4}-\d{2}-\d{2}$/.test(ins.inschrijvenTot)?insTekst(ins.inschrijvenTot):bc.deadline,datum:$("#bkDt").value};closeModal();
+    await write("config","banket",{...stripId(S.config.get("banket")||{}),prijs:r.prijs,deadline:r.deadline,open:ins.open,...(/^\d{4}-\d{2}-\d{2}$/.test(ins.inschrijvenTot)?{inschrijvenTot:ins.inschrijvenTot}:{}),...(/^\d{4}-\d{2}-\d{2}$/.test(r.datum)?{datum:r.datum}:{})});toast("Instellingen banket bewaard.")}}
 function bkForm(r,id){
   const p=id?bkBetaling(r,ctx()):null;const due=bkDue(r);const E=id?bkEpc(r.naam,due):null;
   modal(id?r.naam:"Nieuwe inschrijving",`<form id="fBkI" class="form">
@@ -1951,7 +1959,7 @@ function kfStats(){const c=kfCfg(),L=kfLijst();const per=new Map();let kids=0,ca
 function kfDubbel(L){const m={};for(const r of L){const e=norm(r.email);if(e)m[e]=(m[e]||0)+1}return m}
 
 VIEWS.kinderfeest=()=>({title:"Kinderfeest",sub:"Inschrijvingen kinderfeest",
-  actions:`<a class="btn" href="${KF_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden">${ic("deel")}Inschrijfpagina</a><button class="btn primary" data-w data-act="kfNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-w data-act="kfInst" title="Instellingen kinderfeest" aria-label="Instellingen kinderfeest">${ic("instellingen")}</button>`,
+  actions:`<a class="btn" href="${KF_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden (${esc(insStatus(kfCfg(),JAAR+"-12-07").label)})">${ic("deel")}Inschrijfpagina${insPill(insStatus(kfCfg(),JAAR+"-12-07"))}</a><button class="btn primary" data-w data-act="kfNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-w data-act="kfInst" title="Instellingen kinderfeest" aria-label="Instellingen kinderfeest">${ic("instellingen")}</button>`,
   body(){const st=kfStats(),c=st.c;const q=norm(KFQ);const dub=kfDubbel(st.L);
     const list=q?st.L.filter(r=>norm([r.lid,r.email,r.opmerking,...(r.kinderen||[]).map(k=>k.naam)].join(" ")).includes(q)):st.L;
     const max=Math.max(1,...st.per.values());const ages=[];for(let a=0;a<=c.leeftijd;a++)ages.push(a);
@@ -2005,9 +2013,10 @@ function kfInst(){const c=kfCfg();
     ${fld("kiL","Locatie",inp("kiL",c.locatie,'name="locatie"'),"full")}
     ${fld("kiA","Cadeautje tot en met leeftijd",inp("kiA",c.leeftijd,'name="leeftijd" type="number" min="0" max="18"'))}
     <div class="fld"><label>&nbsp;</label><span class="help">De leeftijd wordt berekend op de dag van het feest.</span></div>
+    ${insVelden(c,JAAR+"-12-07","")}
 </form>`,
     `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="kiOk">Bewaren</button>`);
-  $("#kiOk").onclick=async()=>{const f={datum:$("#kiD").value,tijd:$("#kiT").value,locatie:$("#kiL").value,leeftijd:$("#kiA").value};closeModal();await write("config","kf_"+JAAR,{datum:f.datum,tijd:f.tijd.trim(),locatie:f.locatie.trim(),leeftijd:Math.max(0,Math.round(num(f.leeftijd)))||12});toast("Instellingen kinderfeest bewaard.")}}
+  $("#kiOk").onclick=async()=>{const f={datum:$("#kiD").value,tijd:$("#kiT").value,locatie:$("#kiL").value,leeftijd:$("#kiA").value},ins=insLees();closeModal();await write("config","kf_"+JAAR,{...stripId(S.config.get("kf_"+JAAR)||{}),open:ins.open,...(/^\d{4}-\d{2}-\d{2}$/.test(ins.inschrijvenTot)?{inschrijvenTot:ins.inschrijvenTot}:{}),datum:f.datum,tijd:f.tijd.trim(),locatie:f.locatie.trim(),leeftijd:Math.max(0,Math.round(num(f.leeftijd)))||12});toast("Instellingen kinderfeest bewaard.")}}
 
 /* ---------- import uit Google Forms (antwoordenblad als .xlsx of .csv) ---------- */
 let KFIMP=null;

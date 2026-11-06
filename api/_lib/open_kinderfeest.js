@@ -1,11 +1,12 @@
 import { admin, sendError, httpErr } from "./sb.js";
-import { clean, body, nieuwId, algemeen, configDoc, spamCheck, actieveLeden } from "./publiek.js";
+import { clean, body, nieuwId, algemeen, configDoc, spamCheck, actieveLeden, inschrijving } from "./publiek.js";
 
 // Openbare inschrijving kinderfeest: komt rechtstreeks in Administratie › Kinderfeest.
 async function info(sb) {
   const A = await algemeen(sb);
   const c = await configDoc(sb, "kf_" + A.jaar);
-  return { jaar: A.jaar, datum: c.datum || A.jaar + "-12-19", tijd: c.tijd || "14u30", locatie: c.locatie || "VTI - Sinte Annalaan 99b, Aalst", leeftijd: Number(c.leeftijd) || 12 };
+  const ins = inschrijving(c, A.jaar + "-12-07");
+  return { open: ins.open, tot: ins.tot, totTekst: ins.totTekst, gesloten: ins.gesloten, jaar: A.jaar, datum: c.datum || A.jaar + "-12-19", tijd: c.tijd || "14u30", locatie: c.locatie || "VTI - Sinte Annalaan 99b, Aalst", leeftijd: Number(c.leeftijd) || 12 };
 }
 
 export default async function handler(req, res) {
@@ -17,6 +18,7 @@ export default async function handler(req, res) {
     const b = body(req);
     if (await spamCheck(sb, "kinderfeest", b, httpErr)) return res.status(200).json({ ok: true });
     const I = await info(sb);
+    if (!I.open) throw httpErr(403, "De inschrijvingen voor het kinderfeest zijn afgesloten.");
     const lidRij = (await actieveLeden(sb, I.jaar)).find(l => l.id === String(b.lidId || ""));
     if (!lidRij) throw httpErr(400, "Kies de naam van het lid uit de lijst.");
     const lid = lidRij.naam, email = clean(b.email, 120).toLowerCase();

@@ -3,13 +3,14 @@ import { admin, sendError, httpErr } from "./sb.js";
 import { epcPayload, qrSvg } from "./epc.js";
 import { onlineConfigured as bcConfigured } from "./betaalprovider.js";
 import { startBetaling } from "./betaal.js";
-import { clean, body, nieuwId, vandaag, algemeen, configDoc, spamCheck, actieveLeden } from "./publiek.js";
+import { clean, body, nieuwId, vandaag, algemeen, configDoc, spamCheck, actieveLeden, inschrijving } from "./publiek.js";
 
 // Openbare banketinschrijving: komt rechtstreeks in Administratie › Banket, met online betaling.
 async function info(sb) {
   const A = await algemeen(sb);
   const c = await configDoc(sb, "banket");
-  return { ...A, prijs: Number(c.prijs) || 65, deadline: c.deadline || "1 december", online: bcConfigured() };
+  const ins = inschrijving(c, A.jaar + "-12-01");
+  return { ...A, prijs: Number(c.prijs) || 65, deadline: ins.totTekst.replace(/ \d{4}$/, ""), online: bcConfigured(), open: ins.open, tot: ins.tot, totTekst: ins.totTekst, gesloten: ins.gesloten };
 }
 const menu = v => /veg/i.test(String(v || "")) ? "Vegetarisch" : "Normaal";
 
@@ -22,6 +23,7 @@ export default async function handler(req, res) {
     const b = body(req);
     if (await spamCheck(sb, "banket", b, httpErr)) return res.status(200).json({ ok: true });
     const I = await info(sb);
+    if (!I.open) throw httpErr(403, "De inschrijvingen voor het banket zijn afgesloten.");
     const lidRij = (await actieveLeden(sb, I.jaar)).find(l => l.id === String(b.lidId || ""));
     if (!lidRij) throw httpErr(400, "Kies je naam uit de lijst van leden.");
     const naam = lidRij.naam, personen = Number(b.personen) === 2 ? 2 : 1;

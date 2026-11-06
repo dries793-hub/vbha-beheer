@@ -72,3 +72,13 @@ export function zoekLeden(L, q) {
   if (!t.length || norm(q).replace(/\s/g, "").length < 2) return [];
   return L.filter(l => { const n = norm(l.naam); return t.every(x => n.split(/[\s'-]+/).some(w => w.startsWith(x)) || n.includes(x)); }).slice(0, 8).map(l => ({ id: l.id, naam: l.naam }));
 }
+
+// Inschrijvingen open of gesloten: manueel (open:false) of na de laatste dag (tot en met "tot", Belgische tijd).
+export const vandaagISO = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+export const datumTekst = iso => { const [y, m, d] = String(iso).split("-").map(Number); return d + " " + ["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"][m - 1] + (y ? " " + y : ""); };
+export function inschrijving(c, defTot) {
+  const tot = /^\d{4}-\d{2}-\d{2}$/.test(String(c.inschrijvenTot || "")) ? c.inschrijvenTot : defTot;
+  const manueel = c.open === false;
+  const open = !manueel && vandaagISO() <= tot;
+  return { open, tot, totTekst: datumTekst(tot), gesloten: open ? null : manueel ? "manueel" : "verlopen" };
+}
