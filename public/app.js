@@ -1161,7 +1161,7 @@ function alleJaren(){
   list.forEach((j,i)=>{const p=list[i-1];j.gat=p&&p.jaar===j.jaar-1?r2((j.beginKas+j.beginRekening)-(p.eindKas+p.eindRek)):0;j.gatKas=p&&p.jaar===j.jaar-1?r2(j.beginKas-p.eindKas):0;j.gatRek=p&&p.jaar===j.jaar-1?r2(j.beginRekening-p.eindRek):0});
   return list;
 }
-VIEWS.historiek=()=>({title:"Historiek",sub:"Boekhouding over alle jaren",actions:'<button class="btn" data-act="exportHist">'+ic("download")+'Exporteren als Excel</button>',body(){
+VIEWS.historiek=()=>({title:"Historiek",sub:"Boekhouding over alle jaren",actions:'<button class="btn" data-act="exportHist">'+ic("download")+'Exporteren</button>',body(){
   const L=alleJaren();if(!L.length)return '<div class="panel"><div class="empty">Nog geen boekjaren.</div></div>';
   const sel=L.find(j=>j.jaar===UI.histJaar)||L[L.length-1];
   const tot=L.reduce((s,j)=>s+j.rows.length,0);
