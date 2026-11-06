@@ -1161,16 +1161,16 @@ function alleJaren(){
   list.forEach((j,i)=>{const p=list[i-1];j.gat=p&&p.jaar===j.jaar-1?r2((j.beginKas+j.beginRekening)-(p.eindKas+p.eindRek)):0;j.gatKas=p&&p.jaar===j.jaar-1?r2(j.beginKas-p.eindKas):0;j.gatRek=p&&p.jaar===j.jaar-1?r2(j.beginRekening-p.eindRek):0});
   return list;
 }
-VIEWS.historiek=()=>({title:"Historiek",sub:"Boekhouding over alle jaren",actions:'<button class="btn" data-act="exportHist">'+ic("download")+'Historiek als Excel</button>',body(){
+VIEWS.historiek=()=>({title:"Historiek",sub:"Boekhouding over alle jaren",actions:'<button class="btn" data-act="exportHist">'+ic("download")+'Exporteren als Excel</button>',body(){
   const L=alleJaren();if(!L.length)return '<div class="panel"><div class="empty">Nog geen boekjaren.</div></div>';
   const sel=L.find(j=>j.jaar===UI.histJaar)||L[L.length-1];
   const tot=L.reduce((s,j)=>s+j.rows.length,0);
-  return boekTabs("historiek")+`<div class="panel"><div class="panel-h"><h2>Saldo op 31 december</h2><span class="grow"></span><span style="font-size:13px;color:var(--muted)">${L[0].jaar}–${L[L.length-1].jaar} · ${tot.toLocaleString("nl-BE")} transacties</span></div><div class="panel-b">${histChart(L)}</div></div>
+  return boekTabs("historiek")+`<div class="bar"><div class="search">${ic("search")}<input id="histQ" data-live data-input="histQ" placeholder="Zoek in alle jaren, bv. een naam, banket of een leverancier" value="${esc(UI.histQ)}"></div></div>
+  <div class="panel"><div class="panel-h"><h2>Saldo op 31 december</h2><span class="grow"></span><span style="font-size:13px;color:var(--muted)">${L[0].jaar}–${L[L.length-1].jaar} · ${tot.toLocaleString("nl-BE")} transacties</span></div><div class="panel-b">${histChart(L)}</div></div>
   <div class="panel"><div class="panel-h"><h2>Overzicht per jaar</h2></div><div class="tw"><table class="rcards"><thead><tr><th>Jaar</th><th class="num">Begin totaal</th><th class="num">Inkomsten</th><th class="num">Uitgaven</th><th class="num">Resultaat</th><th class="num">Eind kas</th><th class="num">Eind rekening</th><th class="num">Eind totaal</th><th class="num">Transacties</th></tr></thead><tbody>
   ${L.slice().reverse().map(j=>{const res=j.tin-j.tuit;return `<tr class="click" data-act="histJaar" data-v="${j.jaar}"${j.jaar===sel.jaar?' style="outline:2px solid var(--accent);outline-offset:-2px"':""}><td style="white-space:nowrap"><b>${j.jaar}</b></td><td class="num">${eur(j.beginKas+j.beginRekening)}</td><td class="num in">${eur(j.tin)}</td><td class="num out">${eur(j.tuit)}</td><td class="num ${res>=0?"in":"out"}"><b>${res>=0?"+":"−"}${eur(Math.abs(res))}</b></td><td class="num">${eur(j.eindKas)}</td><td class="num">${eur(j.eindRek)}</td><td class="num"><b>${eur(j.eindKas+j.eindRek)}</b></td><td class="num">${j.rows.length}</td>
 </tr>`}).join("")}
   </tbody></table></div></div>
-  <div class="bar"><div class="search">${ic("search")}<input id="histQ" data-live data-input="histQ" placeholder="Zoek in alle jaren, bv. een naam, banket of een leverancier" value="${esc(UI.histQ)}"></div></div>
   <div id="histList">${histDetail(L,sel)}</div>`}});
 function histDetail(L,sel){
   const q=norm(UI.histQ);
@@ -1196,16 +1196,19 @@ function histRows(rows,metJaar){
   <td class="num in nowrap">${b.richting!=="uit"?eur(b.bedrag):""}</td><td class="num out nowrap">${b.richting==="uit"?eur(b.bedrag):""}</td>${metJaar?"":`<td class="num nowrap${b.rekening==="Kas"?" hsel":" muted"}">${eur(b._kas)}</td><td class="num nowrap${b.rekening!=="Kas"?" hsel":" muted"}">${eur(b._rek)}</td>`}</tr>`).join("")||`<tr><td colspan="${cols.length}" class="empty">Geen transacties gevonden.</td></tr>`}</tbody></table></div>`;
 }
 function histChart(L){
-  const W=900,H=220,P=46,B=26,n=L.length;const vals=L.map(j=>j.eindKas+j.eindRek);const hi=Math.max(1,...vals)*1.1;
-  const step=(W-P-10)/n,bw=Math.min(46,step*.62),y=v=>10+(hi-v)/hi*(H-B-10);
-  const ticks=[0,hi/2/1.1,hi/1.1].map(v=>Math.round(v/1000)*1000);
-  return `<div class="tw"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="Eindsaldo per jaar">
+  const W=900,H=230,P=46,B=26,n=L.length;const vals=L.map(j=>j.eindKas+j.eindRek);const hi=Math.max(1,...vals)*1.12;
+  const step=(W-P-10)/n,bw=Math.min(46,step*.62),y=v=>12+(hi-v)/hi*(H-B-12);
+  const ticks=[0,hi/2/1.12,hi/1.12].map(v=>Math.round(v/1000)*1000);
+  const k1=v=>(Math.round(v/100)/10).toLocaleString("nl-BE")+"k";
+  return `<div class="tw"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="Saldo op 31 december per jaar, kas en rekening">
   ${ticks.map(v=>`<line x1="${P}" x2="${W-6}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${P-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${Math.round(v/1000)}k</text>`).join("")}
-  ${L.map((j,i)=>{const x=P+i*step+(step-bw)/2,v=vals[i],k=j.eindKas;const on=j.jaar===UI.histJaar||(!UI.histJaar&&i===n-1);
-    return `<g data-act="histJaar" data-v="${j.jaar}" style="cursor:pointer"><rect x="${x}" y="${y(v)}" width="${bw}" height="${Math.max(1,y(0)-y(v))}" fill="var(--accent)" fill-opacity="${on?1:.55}" rx="2"/><rect x="${x}" y="${y(k)}" width="${bw}" height="${Math.max(0,y(0)-y(k))}" fill="var(--ink)" fill-opacity=".18"/>
-    <text x="${x+bw/2}" y="${H-8}" text-anchor="middle" font-size="11.5" fill="var(--muted)" font-weight="${on?700:400}">${j.jaar}</text>
-    <text x="${x+bw/2}" y="${y(v)-5}" text-anchor="middle" font-size="10.5" fill="var(--ink)">${Math.round(v/100)/10}k</text></g>`}).join("")}
-  </svg></div><div style="display:flex;gap:16px;font-size:13px;color:var(--muted);margin-top:6px"><span><i style="display:inline-block;width:10px;height:10px;background:var(--accent);border-radius:2px"></i> totaal (kas + rekening)</span><span><i style="display:inline-block;width:10px;height:10px;background:var(--ink);opacity:.25;border-radius:2px"></i> waarvan kas</span><span>Klik op een jaar voor de details.</span></div>`;
+  ${L.map((j,i)=>{const x=P+i*step+(step-bw)/2,v=vals[i],k=Math.max(0,j.eindKas),r=Math.max(0,j.eindRek);const on=j.jaar===UI.histJaar||(!UI.histJaar&&i===n-1);const o=on?1:.5;
+    return `<g data-act="histJaar" data-v="${j.jaar}" style="cursor:pointer"><title>${j.jaar}: kas ${eur(j.eindKas)}, rekening ${eur(j.eindRek)}, totaal ${eur(v)}</title>
+    <rect x="${x}" y="${y(k)}" width="${bw}" height="${Math.max(0,y(0)-y(k))}" fill="var(--hk-kas)" fill-opacity="${o}"/>
+    <rect x="${x}" y="${y(k+r)}" width="${bw}" height="${Math.max(1,y(k)-y(k+r))}" fill="var(--accent)" fill-opacity="${o}"/>
+    <text x="${x+bw/2}" y="${H-8}" text-anchor="middle" font-size="11.5" fill="${on?"var(--ink)":"var(--muted)"}" font-weight="${on?700:400}">${j.jaar}</text>
+    <text x="${x+bw/2}" y="${y(v)-6}" text-anchor="middle" font-size="10.5" fill="var(--ink)" font-weight="${on?700:400}">${k1(v)}</text></g>`}).join("")}
+  </svg></div><div class="hk-leg"><span><i style="background:var(--accent)"></i>Rekening</span><span><i style="background:var(--hk-kas)"></i>Kas</span><span class="muted">Het getal boven elke staaf is het totaal. Klik op een jaar voor de details.</span></div>`;
 }
 function exportHist(){
   const L=alleJaren(),wb=XLSX.utils.book_new();
