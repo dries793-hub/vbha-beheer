@@ -44,7 +44,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['leden','jaarleden','boekingen','ronde','banket','kinderfeest'] loop
+  foreach t in array array['leden','jaarleden','boekingen','ronde','banket','kinderfeest','activiteiten','vergaderingen'] loop
     execute format('drop trigger if exists log_wijziging on public.%I', t);
     execute format('create trigger log_wijziging after insert or update or delete on public.%I for each row execute function public.log_wijziging()', t);
   end loop;

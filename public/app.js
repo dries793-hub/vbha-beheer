@@ -48,8 +48,8 @@ const DEF_JAAR={beginKas:0,beginRekening:0,gewichten:{kaarten:1,kalenders:25,shi
 const JUBILEA=[10,20,25,30,40,50,60];
 
 /* ============ toestand ============ */
-const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","ronde","banket","kinderfeest"];
-const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),ronde:new Map(),banket:new Map(),kinderfeest:new Map()};
+const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","ronde","banket","kinderfeest","activiteiten","vergaderingen"];
+const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),ronde:new Map(),banket:new Map(),kinderfeest:new Map(),activiteiten:new Map(),vergaderingen:new Map()};
 const loaded=new Set();
 let db=null,canWrite=true,JAAR=ls.get("jaar",null);
 const UI=Object.assign({ledenQ:"",ledenCat:"",ledenF:"alle",oudLeden:false,boekQ:"",boekCat:"",boekRek:"",puntQ:"",puntSort:"naam",kalQ:"",spQ:"",mailGroep:"alle",mailTpl:"",histJaar:null,histQ:"",boekDir:"",boekMaand:"",boekSort:{k:"datum",d:-1},boekPage:0},ls.get("ui",{}));
@@ -120,9 +120,10 @@ function logOnderwerp(e){const o=e.nieuw||e.oud||{};
   if(e.tabel==="jaarleden"){const lid=o.lidId||String(e.doc_id).replace(/^\d{4}_/,"");const l=S.leden.get(lid);const y=o.jaar||String(e.doc_id).slice(0,4);return esc(l?naamVol(l):(o.naam||lid.replace(/^x-/,"").replace(/-/g," ")))+` <span class="muted">· ${esc(String(y))}</span>`}
   if(e.tabel==="boekingen"){const b=S.boekingen.get(e.doc_id)||{};const nr=o.nr??b.nr,p=o.partij||b.partij||o.mededeling||b.mededeling||"";return (nr!=null?"#"+esc(String(nr))+" ":"")+esc(p.slice(0,40))+(o.bedrag!=null||b.bedrag!=null?` <span class="muted">· ${eur(o.bedrag??b.bedrag)}</span>`:"")}
   if(e.tabel==="banket"||e.tabel==="kinderfeest"){const r=(S[e.tabel]&&S[e.tabel].get(e.doc_id))||{};return esc(o.naam||o.lid||r.naam||r.lid||e.doc_id)}
+  if(e.tabel==="activiteiten"||e.tabel==="vergaderingen"){const r=(S[e.tabel]&&S[e.tabel].get(e.doc_id))||{};const t=o.titel||r.titel||o.soort||r.soort||"";const d=o.datum||r.datum||"";return esc(t)+(d?` <span class="muted">· ${fmtDate(d)}</span>`:"")}
   if(e.tabel==="ronde"){const st=String(o.straat||String(e.doc_id).replace(/^\d{4}_/,""));const x=typeof KR!=="undefined"&&KR.byId&&KR.byId.get(st);return esc(x?x.n:st.replace(/--/g," · ").replace(/-/g," "))}
   return esc(e.info||e.doc_id||"")}
-const LOG_TYPE={leden:"Lid",jaarleden:"Punten",boekingen:"Transactie",ronde:"Kalenderronde",banket:"Banket",kinderfeest:"Kinderfeest"};
+const LOG_TYPE={leden:"Lid",jaarleden:"Punten",boekingen:"Transactie",ronde:"Kalenderronde",banket:"Banket",kinderfeest:"Kinderfeest",activiteiten:"Activiteit",vergaderingen:"Vergadering"};
 function logRegels(e){if(e.actie==="bulk")return esc(e.info||"");const a=e.oud||{},b=e.nieuw||{};
   let ks=logDiff(a,b);if(e.actie==="nieuw")ks=ks.filter(k=>b[k]!=null&&b[k]!==""&&b[k]!==0&&b[k]!==false);
   if(e.tabel==="jaarleden"&&ks.includes("extraTekst")&&ks.includes("extraPunten")){}
@@ -274,7 +275,7 @@ window.addEventListener("resize",closeNavMenu);window.addEventListener("scroll",
 
 
 /* ============ mobiel: onderbalk, keuzeblad en kaarttabellen ============ */
-const KORT={boekhouding:"Financiën",administratie:"Activiteiten",communicatie:"Mails"};
+const KORT={boekhouding:"Financiën",administratie:"Activiteiten",communicatie:"Berichten"};
 function navGroups(){return [{id:"dashboard",label:"Home",items:[["dashboard","Dashboard"]]},...NAV.map(n=>Array.isArray(n)?{id:n[0],label:n[1],items:[n]}:n)]}
 function renderTabbar(r){const tb=$("#tabbar");if(!tb)return;
   tb.innerHTML=navGroups().map(g=>{const on=g.items.some(i=>i[0]===r);const single=g.items.length===1;
@@ -341,7 +342,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   const recent=C.boek.slice(-6).reverse();
   const sgn=v=>(v>=0?"+":"−")+eur(Math.abs(v));
   const sec=(icon,titel,link,label)=>`<div class="dsec-h"><span class="dsec-ic">${ic(icon)}</span><h2>${titel}</h2><span class="grow"></span><a class="btn sm ghost" href="#${link}">${label} ›</a></div>`;
-  return nieuwMelding()+inschrMelding()+`<section class="dsec" aria-label="Leden">${sec("leden","Leden","leden","Naar ledenlijst")}
+  return nieuwMelding()+inschrMelding()+agendaSectie()+`<section class="dsec" aria-label="Leden">${sec("leden","Leden","leden","Naar ledenlijst")}
   <div class="tiles two">
     <a class="tile" href="#leden" data-act="toonAlleLeden"><span class="lbl">Leden in orde</span><span class="val">${ok}<small style="font-size:16px;color:var(--muted)"> / ${cur.length}</small></span></a>
     <a class="tile" href="#leden" data-act="toonNietBetaald"><span class="lbl">Niet betaald</span><span class="val" style="color:${nok?"var(--bad)":"var(--good)"}">${nok}</span></a>
@@ -1046,7 +1047,7 @@ VIEWS.sponsors=()=>({title:"Sponsors",sub:"Sponsorbeheer",actions:'<button class
 /* ---------- banket ---------- */
 const BK_PUBLIEK="/banket";
 const BK_FORM="https://docs.google.com/forms/d/1L-eZqLg67w6InWQzEeV6x0EhRRF8_Ro-pPCKOS8CTyo/edit#responses";
-const bkCfg=()=>Object.assign({prijs:65,deadline:"1 december"},S.config.get("banket")||{});
+const bkCfg=()=>Object.assign({prijs:65,deadline:"1 december",datum:JAAR+"-12-12",uur:"19u00",locatie:"Feestzaal De Snip, Beugemstraat 9, Moorsel"},S.config.get("banket")||{});
 const bkMenu=m=>norm(m).includes("veg")?"Vegetarisch":"Normaal";
 const bkDue=r=>r2((r.personen===2?2:1)*num(bkCfg().prijs));
 const bkToks=s=>norm(s).split(/[^a-z0-9]+/).filter(t=>t.length>=3);
@@ -1097,7 +1098,7 @@ VIEWS.banket=()=>({title:"Banket "+JAAR,sub:"Inschrijvingen en betalingen",
    <div class="seg">${[["alle","Alle"],["open","Open"],["ok","Betaald"],["veg","Vegetarisch"]].map(([v,l])=>`<button type="button" data-act="bkF" data-v="${v}" class="${F===v?"on":""}">${l}</button>`).join("")}</div></div>
   <div class="panel" id="bkList">${bkTable()}</div>
   <div class="panel"><div class="panel-h"><h2>Instellingen banket</h2></div><div class="panel-b"><form id="fBk" class="form">
-   ${fld("bkP","Prijs per persoon (€)",inp("bkP",bc.prijs,'name="prijs" inputmode="decimal"'+(canWrite?"":" disabled")))}${fld("bkD","Uiterste betaaldatum",inp("bkD",bc.deadline,'name="deadline"'+(canWrite?"":" disabled")))}
+   ${fld("bkP","Prijs per persoon (€)",inp("bkP",bc.prijs,'name="prijs" inputmode="decimal"'+(canWrite?"":" disabled")))}${fld("bkDt","Datum banket",`<input id="bkDt" name="datum" type="date" value="${esc(bc.datum||"")}"${canWrite?"":" disabled"}>`)}${fld("bkD","Uiterste betaaldatum",inp("bkD",bc.deadline,'name="deadline"'+(canWrite?"":" disabled")))}
    <div class="full bar" style="justify-content:space-between"><span class="small muted">Ontvangen met categorie Banket in ${JAAR}: <b>${eur(ontv)}</b></span><button class="btn primary" data-w type="submit">Bewaren</button></div></form></div></div>`}});
 function bkForm(r,id){
   const p=id?bkBetaling(r,ctx()):null;const due=bkDue(r);const E=id?bkEpc(r.naam,due):null;
@@ -1899,7 +1900,7 @@ document.addEventListener("submit",async e=>{
   if(f.id==="fLogin"){doLogin(f);return}
   if(f.id==="fPw"){doSetPassword(f);return}
   if(f.id==="fJaar"){await saveJaar(formData(f));return}
-  if(f.id==="fBk"){const d=formData(f);await write("config","banket",{...stripId(S.config.get("banket")),prijs:num(d.prijs)||65,deadline:String(d.deadline||"").trim()});toast("Instellingen banket bewaard.");return}
+  if(f.id==="fBk"){const d=formData(f);await write("config","banket",{...stripId(S.config.get("banket")),prijs:num(d.prijs)||65,deadline:String(d.deadline||"").trim(),...(/^\d{4}-\d{2}-\d{2}$/.test(d.datum||"")?{datum:d.datum}:{})});toast("Instellingen banket bewaard.");return}
   if(f.id==="fCfg"){const d=formData(f);const lines=s=>String(s).split("\n").map(x=>x.trim()).filter(Boolean);
     await write("config","algemeen",{...stripId(S.config.get("algemeen")),vereniging:d.vereniging.trim()});toast("Instellingen bewaard.");}
 });
@@ -2054,3 +2055,126 @@ document.addEventListener("click",e=>{
 document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.kfq!==undefined){KFQ=e.target.value;const st=kfStats();const q=norm(KFQ);
   const list=q?st.L.filter(r=>norm([r.lid,r.email,r.opmerking,...(r.kinderen||[]).map(k=>k.naam)].join(" ")).includes(q)):st.L;const el=$("#kfList");if(el)el.innerHTML=kfTable(list,kfDubbel(st.L),st.c)}});
 document.addEventListener("change",e=>{if(e.target.id==="kfFile"&&e.target.files[0])kfReadFile(e.target.files[0])});
+
+/* ============ Agenda: activiteitenkalender en vergaderingen (verslagen) ============
+   Collecties: "activiteiten" {titel, datum (yyyy-mm-dd), uur, locatie, info}
+               "vergaderingen" {soort, titel, datum, uur, locatie, agenda, aanwezig, verontschuldigd, verslag}
+   Banket en kinderfeest komen automatisch in de kalender (datum uit hun instellingen). */
+{const c=NAV.find(n=>n.id==="communicatie");if(c&&!c.items.some(i=>i[0]==="verslagen"))c.items.push(["verslagen","Verslagen vergaderingen"]);
+ const a=NAV.find(n=>n.id==="administratie");if(a&&!a.items.some(i=>i[0]==="agenda"))a.items.unshift(["agenda","Kalender"]);}
+if(!ROUTES.some(r=>r[0]==="agenda"))ROUTES.push(["agenda","Kalender"]);
+if(!ROUTES.some(r=>r[0]==="verslagen"))ROUTES.push(["verslagen","Verslagen"]);
+ICON.verslagen='<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9.5 12.5h6M9.5 16.5h6"/>';
+ICON.agenda='<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M7.5 14h2M11 14h2M14.5 14h2M7.5 17.5h2M11 17.5h2"/>';
+const VG_SOORT=["Bestuursvergadering","Algemene vergadering","Werkgroep","Andere"];
+const AG={m:null,dag:null,oud:false,q:""};
+const agId=p=>p+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,6);
+const agD=iso=>{const [y,m,d]=String(iso||"").split("-").map(Number);return new Date(y,(m||1)-1,d||1,12)};
+const agLang=iso=>agD(iso).toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+const agKort=iso=>agD(iso).toLocaleDateString("nl-BE",{weekday:"short",day:"numeric",month:"short"});
+const agDagen=iso=>Math.round((agD(iso)-agD(todayISO()))/864e5);
+const agWanneer=iso=>{const n=agDagen(iso);return n===0?"vandaag":n===1?"morgen":n===-1?"gisteren":n>1&&n<=13?"over "+n+" dagen":n>13&&n<70?"over "+Math.round(n/7)+" weken":n<0?Math.abs(n)+" dagen geleden":""};
+function agItems(){const out=[];
+  for(const a of S.activiteiten.values())if(a.datum)out.push({id:a.id,t:"act",datum:a.datum,uur:a.uur||"",titel:a.titel||"Activiteit",locatie:a.locatie||"",info:a.info||""});
+  for(const v of S.vergaderingen.values())if(v.datum)out.push({id:v.id,t:"verg",datum:v.datum,uur:v.uur||"",titel:v.titel||v.soort||"Vergadering",locatie:v.locatie||""});
+  try{const k=kfCfg();if(k.datum)out.push({id:"kf",t:"auto",href:"kinderfeest",datum:k.datum,uur:k.tijd||"",titel:"Kinderfeest",locatie:k.locatie||""})}catch(e){}
+  const b=bkCfg();if(b.datum)out.push({id:"bk",t:"auto",href:"banket",datum:b.datum,uur:b.uur||"",titel:"Banket",locatie:b.locatie||""});
+  return out.sort((x,y)=>(x.datum+x.uur).localeCompare(y.datum+y.uur))}
+const agSoort=x=>x.t==="verg"?["verg","Vergadering"]:["act","Activiteit"];
+const agAttr=x=>x.t==="auto"?`href="#${x.href}"`:`data-act="${x.t==="verg"?"vgToon":"agToon"}" data-id="${esc(x.id)}"`;
+function agRij(x){const d=agD(x.datum),[c,l]=agSoort(x);const w=agWanneer(x.datum);
+  return `<a class="ag-r" ${agAttr(x)}><span class="ag-dt ${c}"><b>${d.getDate()}</b><span>${d.toLocaleDateString("nl-BE",{month:"short"}).replace(".","")}</span></span>
+  <span class="ag-m"><b class="trunc">${esc(x.titel)}</b><span class="trunc">${esc([agKort(x.datum),x.uur,x.locatie].filter(Boolean).join(" · "))}</span></span>${w&&agDagen(x.datum)>=0?`<span class="ag-w">${w}</span>`:""}</a>`}
+
+/* ---------- dashboard: mini-kalender en volgende vergadering ---------- */
+function agMaand(L){const t=todayISO();const m=AG.m||t.slice(0,7);const [Y,M]=m.split("-").map(Number);
+  const first=new Date(Y,M-1,1),start=(first.getDay()+6)%7,dim=new Date(Y,M,0).getDate();
+  const per={};for(const x of L){if(x.datum.slice(0,7)===m)(per[x.datum]=per[x.datum]||[]).push(x)}
+  let cells="";for(let i=0;i<start;i++)cells+="<span></span>";
+  for(let d=1;d<=dim;d++){const iso=m+"-"+String(d).padStart(2,"0"),ev=per[iso]||[];
+    cells+=`<button type="button" class="agc-d${iso===t?" nu":""}${ev.length?" ev":""}${AG.dag===iso?" sel":""}" data-act="agDag" data-v="${iso}" aria-label="${esc(agLang(iso))}${ev.length?": "+esc(ev.map(x=>x.titel).join(", ")):""}">${d}${ev.length?`<i>${ev.slice(0,3).map(x=>`<em class="${agSoort(x)[0]}"></em>`).join("")}</i>`:""}</button>`}
+  const titel=first.toLocaleDateString("nl-BE",{month:"long",year:"numeric"});
+  return `<div class="agc"><div class="agc-h"><button type="button" class="btn sm ghost" data-act="agMaand" data-v="-1" aria-label="Vorige maand">‹</button><b>${titel}</b><button type="button" class="btn sm ghost" data-act="agMaand" data-v="1" aria-label="Volgende maand">›</button></div>
+  <div class="agc-g">${["ma","di","wo","do","vr","za","zo"].map(x=>`<span class="agc-w">${x}</span>`).join("")}${cells}</div></div>`}
+function agBinnenkort(L){const t=todayISO();let R;
+  if(AG.dag){R=L.filter(x=>x.datum===AG.dag);return `<div class="ag-sub"><span>${esc(agLang(AG.dag))}</span><button type="button" class="btn sm ghost" data-act="agDag" data-v="">Binnenkort tonen</button></div>`+(R.length?R.map(agRij).join(""):'<div class="empty" style="padding:10px 0">Niets gepland op deze dag.</div>')}
+  R=L.filter(x=>x.datum>=t).slice(0,4);
+  return `<div class="ag-sub"><span>Binnenkort</span></div>`+(R.length?R.map(agRij).join(""):'<div class="empty" style="padding:10px 0">Er staat niets gepland.</div>')}
+function agVolgende(){const t=todayISO();const V=[...S.vergaderingen.values()].filter(v=>v.datum>=t).sort((a,b)=>(a.datum+(a.uur||"")).localeCompare(b.datum+(b.uur||"")));const v=V[0];
+  const laatste=[...S.vergaderingen.values()].filter(x=>x.datum<t&&String(x.verslag||"").trim()).sort((a,b)=>b.datum.localeCompare(a.datum))[0];
+  const lv=laatste?`<a class="vg-last" data-act="vgToon" data-id="${esc(laatste.id)}">${ic("verslagen")}<span>Laatste verslag: <b>${esc(laatste.titel||laatste.soort||"Vergadering")}</b> van ${esc(agKort(laatste.datum))}</span></a>`:"";
+  if(!v)return `<div class="empty" style="padding:22px 0 18px">Er is nog geen volgende vergadering gepland.${canWrite?`<div style="margin-top:12px"><button class="btn" data-act="vgNieuw">${ic("plus")}Vergadering plannen</button></div>`:""}</div>${lv}`;
+  const d=agD(v.datum),w=agWanneer(v.datum);
+  return `<a class="vg-next" data-act="vgToon" data-id="${esc(v.id)}"><span class="vg-cal"><span>${d.toLocaleDateString("nl-BE",{month:"short"}).replace(".","")}</span><b>${d.getDate()}</b><span>${d.toLocaleDateString("nl-BE",{weekday:"short"})}</span></span>
+   <span class="vg-i"><b>${esc(v.titel||v.soort||"Vergadering")}</b>${v.titel&&v.soort?`<span class="muted">${esc(v.soort)}</span>`:""}<span>${esc([agLang(v.datum),v.uur].filter(Boolean).join(" om "))}</span>${v.locatie?`<span class="muted">${esc(v.locatie)}</span>`:""}${w?`<span class="pill info" style="align-self:flex-start;margin-top:4px">${w}</span>`:""}</span></a>
+   ${String(v.agenda||"").trim()?`<div class="vg-ag"><span class="lbl">Agenda</span><div>${esc(v.agenda)}</div></div>`:""}${lv}`}
+function agendaSectie(){const L=agItems();
+  return `<section class="dsec" aria-label="Agenda"><div class="dsec-h"><span class="dsec-ic">${ic("agenda")}</span><h2>Agenda</h2><span class="grow"></span><a class="btn sm ghost" href="#agenda">Naar kalender ›</a></div>
+  <div class="grid g2 eq"><div class="panel"><div class="panel-h"><h2>Activiteitenkalender</h2><span class="grow"></span><span class="legend ag-leg"><i class="act"></i>activiteit <i class="verg"></i>vergadering</span></div><div class="panel-b ag-dash ag-top" id="agDash">${agMaand(L)}<div class="ag-list" id="agList">${agBinnenkort(L)}</div></div></div>
+  <div class="panel"><div class="panel-h"><h2>Volgende vergadering</h2><span class="grow"></span><a class="btn sm ghost" href="#verslagen">Verslagen ›</a></div><div class="panel-b ag-top">${agVolgende()}</div></div></div></section>`}
+function agDashRefresh(){const el=$("#agDash");if(!el)return;const L=agItems();el.innerHTML=agMaand(L)+`<div class="ag-list" id="agList">${agBinnenkort(L)}</div>`}
+
+/* ---------- pagina Kalender (Activiteiten › Kalender) ---------- */
+VIEWS.agenda=()=>({title:"Kalender",actions:'<button class="btn" data-w data-act="vgNieuw">'+ic("verslagen")+'Vergadering</button><button class="btn primary" data-w data-act="agNieuw">'+ic("plus")+'Activiteit</button>',body(){
+  const t=todayISO(),L=agItems(),R=AG.oud?L.filter(x=>x.datum<t).reverse():L.filter(x=>x.datum>=t);
+  const groups=new Map();for(const x of R){const k=x.datum.slice(0,7);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x)}
+  return `<div class="bar"><div class="seg"><button type="button" data-act="agOud" data-v="0" class="${AG.oud?"":"on"}">Komend</button><button type="button" data-act="agOud" data-v="1" class="${AG.oud?"on":""}">Voorbij</button></div><span class="grow"></span><span class="muted small">Banket en kinderfeest komen er vanzelf bij, met de datum uit hun instellingen.</span></div>
+  ${groups.size?[...groups].map(([k,xs])=>`<div class="panel"><div class="panel-h"><h2 style="text-transform:capitalize">${agD(k+"-01").toLocaleDateString("nl-BE",{month:"long",year:"numeric"})}</h2><span class="grow"></span><span class="muted small">${xs.length} ${xs.length===1?"item":"items"}</span></div><div class="ag-list big">${xs.map(x=>{const [c,l]=agSoort(x);return agRij(x).replace('</a>',`<span class="pill ${c==="verg"?"info":"warn"}">${esc(l)}</span></a>`)}).join("")}</div></div>`).join(""):`<div class="panel"><div class="empty">${AG.oud?"Nog geen voorbije activiteiten.":"Er staat nog niets gepland."}${canWrite&&!AG.oud?`<div style="margin-top:12px"><button class="btn primary" data-act="agNieuw">${ic("plus")}Activiteit toevoegen</button></div>`:""}</div></div>`}`}});
+function agForm(a,id){const d=canWrite?"":" disabled";a=a||{};
+  modal(id?"Activiteit wijzigen":"Nieuwe activiteit",`<form id="fAg" class="form">
+   ${fld("agT","Wat",inp("agT",a.titel,'maxlength="120" placeholder="bv. Jaarmarkt, Paasmaandagwandeling"'+d),"full")}
+   ${fld("agD","Datum",`<input id="agD" type="date" value="${esc(a.datum||AG.dag||todayISO())}"${d}>`)}${fld("agU","Uur",inp("agU",a.uur,'maxlength="20" placeholder="bv. 14u00"'+d))}
+   ${fld("agL","Waar",inp("agL",a.locatie,'maxlength="160"'+d),"full")}
+   ${fld("agI","Meer info",`<textarea id="agI" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}<div class="err full" id="agErr"></div></form>`,
+   `${id&&canWrite?'<button class="btn danger" id="agDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="agOk">Bewaren</button>':""}`);
+  if(!canWrite)return;
+  $("#agOk").onclick=async()=>{const r={titel:$("#agT").value.trim(),datum:$("#agD").value,uur:$("#agU").value.trim(),locatie:$("#agL").value.trim(),info:$("#agI").value.trim()};
+    if(!r.titel){$("#agErr").textContent="Vul in wat er te doen is.";return}if(!/^\d{4}-\d{2}-\d{2}$/.test(r.datum)){$("#agErr").textContent="Kies een datum.";return}
+    closeModal();await write("activiteiten",id||agId("act"),{...(id?stripId(S.activiteiten.get(id)||{}):{}),...r});toast("Activiteit bewaard.")};
+  const del=$("#agDel");if(del)del.onclick=()=>confirmBox(`<b>${esc(a.titel||"Deze activiteit")}</b> verwijderen?`,"Verwijderen",async()=>{await write("activiteiten",id,null,{del:true});toast("Activiteit verwijderd.")})}
+
+/* ---------- pagina Verslagen vergaderingen (Communicatie) ---------- */
+VIEWS.verslagen=()=>({title:"Verslagen vergaderingen",actions:'<button class="btn primary" data-w data-act="vgNieuw">'+ic("plus")+'Nieuwe vergadering</button>',body(){
+  const t=todayISO(),q=norm(AG.q);let L=[...S.vergaderingen.values()].filter(v=>v.datum);
+  if(q)L=L.filter(v=>norm([v.titel,v.soort,v.locatie,v.agenda,v.verslag,v.aanwezig].join(" ")).includes(q));
+  const komend=L.filter(v=>v.datum>=t).sort((a,b)=>a.datum.localeCompare(b.datum)),voorbij=L.filter(v=>v.datum<t).sort((a,b)=>b.datum.localeCompare(a.datum));
+  const rij=v=>{const has=String(v.verslag||"").trim();const d=agD(v.datum);return `<a class="ag-r" data-act="vgToon" data-id="${esc(v.id)}"><span class="ag-dt verg"><b>${d.getDate()}</b><span>${d.toLocaleDateString("nl-BE",{month:"short"}).replace(".","")}</span></span>
+    <span class="ag-m"><b class="trunc">${esc(v.titel||v.soort||"Vergadering")}</b><span class="trunc">${esc([agLang(v.datum),v.uur,v.locatie].filter(Boolean).join(" · "))}</span></span>
+    ${v.datum>=t?`<span class="pill info">gepland</span>`:has?`<span class="pill ok">verslag</span>`:`<span class="pill warn">nog geen verslag</span>`}</a>`};
+  return `<div class="bar"><div class="search">${ic("search")}<input id="vgQ" data-vgq placeholder="Zoek in agenda's en verslagen" value="${esc(AG.q)}"></div></div><div id="vgList">
+  ${komend.length?`<div class="panel"><div class="panel-h"><h2>Gepland</h2></div><div class="ag-list big">${komend.map(rij).join("")}</div></div>`:""}
+  <div class="panel"><div class="panel-h"><h2>Voorbije vergaderingen</h2><span class="grow"></span><span class="muted small">${voorbij.length}</span></div><div class="ag-list big">${voorbij.map(rij).join("")||`<div class="empty">${q?"Niets gevonden.":"Nog geen vergaderingen."}</div>`}</div></div></div>`}});
+function vgForm(v,id){const d=canWrite?"":" disabled";v=v||{soort:"Bestuursvergadering",datum:AG.dag||todayISO(),uur:"20u00"};
+  const ta=(k,l,ph,h)=>fld("vg_"+k,l,`<textarea id="vg_${k}" style="min-height:${h}px" placeholder="${ph}"${d}>${esc(v[k]||"")}</textarea>`,"full");
+  modal(id?(v.titel||v.soort||"Vergadering")+" · "+fmtDate(v.datum):"Nieuwe vergadering",`<form id="fVg" class="form">
+   ${fld("vg_soort","Soort",`<select id="vg_soort" class="sel"${d}>${selOpts(VG_SOORT,v.soort||"Bestuursvergadering")}</select>`)}${fld("vg_titel","Titel (optioneel)",inp("vg_titel",v.titel,'maxlength="120" placeholder="bv. Voorbereiding banket"'+d))}
+   ${fld("vg_datum","Datum",`<input id="vg_datum" type="date" value="${esc(v.datum||"")}"${d}>`)}${fld("vg_uur","Uur",inp("vg_uur",v.uur,'maxlength="20" placeholder="bv. 20u00"'+d))}
+   ${fld("vg_locatie","Waar",inp("vg_locatie",v.locatie,'maxlength="160" placeholder="bv. Kazerne, refter"'+d),"full")}
+   ${ta("agenda","Agenda","Eén punt per regel",110)}
+   ${ta("aanwezig","Aanwezig","Namen, gescheiden door komma's",56)}${ta("verontschuldigd","Verontschuldigd","",44)}
+   ${ta("verslag","Verslag","Het verslag van de vergadering. Je kan het ook later aanvullen.",220)}<div class="err full" id="vgErr"></div></form>`,
+   `${id&&canWrite?'<button class="btn danger" id="vgDel" style="margin-right:auto">Verwijderen</button>':""}${id?`<button class="btn" id="vgPrint">${ic("download")}Afdrukken / PDF</button>`:""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="vgOk">Bewaren</button>':""}`,{wide:true});
+  const pr=$("#vgPrint");if(pr)pr.onclick=()=>vgPrint(S.vergaderingen.get(id)||v);
+  if(!canWrite)return;
+  $("#vgOk").onclick=async()=>{const g=k=>$("#vg_"+k).value.trim();const r={soort:$("#vg_soort").value,titel:g("titel"),datum:$("#vg_datum").value,uur:g("uur"),locatie:g("locatie"),agenda:g("agenda"),aanwezig:g("aanwezig"),verontschuldigd:g("verontschuldigd"),verslag:g("verslag")};
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(r.datum)){$("#vgErr").textContent="Kies een datum.";return}
+    closeModal();await write("vergaderingen",id||agId("verg"),{...(id?stripId(S.vergaderingen.get(id)||{}):{}),...r});toast("Vergadering bewaard.")};
+  const del=$("#vgDel");if(del)del.onclick=()=>confirmBox(`De vergadering van <b>${esc(fmtDate(v.datum))}</b> en het verslag verwijderen?`,"Verwijderen",async()=>{await write("vergaderingen",id,null,{del:true});toast("Vergadering verwijderd.")})}
+function vgPrint(v){const w=window.open("","_blank");if(!w){toast("Je browser blokkeerde het afdrukvenster.",true);return}
+  const blok=(t,x)=>String(x||"").trim()?`<h2>${t}</h2><div class="t">${esc(x)}</div>`:"";
+  w.document.write(`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>${esc((v.titel||v.soort||"Vergadering")+" "+fmtDate(v.datum))}</title><style>body{font:14px/1.55 system-ui,sans-serif;max-width:720px;margin:32px auto;padding:0 20px;color:#111}h1{font-size:22px;margin:0 0 4px}.m{color:#555;margin:0 0 22px}h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:#555;margin:22px 0 6px;border-bottom:1px solid #ddd;padding-bottom:4px}.t{white-space:pre-wrap}.v{color:#777;font-size:12px;margin-bottom:6px}</style></head><body>
+  <div class="v">${esc(cfg().vereniging||"")}</div><h1>${esc(v.titel||v.soort||"Vergadering")}</h1><p class="m">${esc([v.titel?v.soort:"",agLang(v.datum),v.uur,v.locatie].filter(Boolean).join(" · "))}</p>
+  ${blok("Aanwezig",v.aanwezig)}${blok("Verontschuldigd",v.verontschuldigd)}${blok("Agenda",v.agenda)}${blok("Verslag",v.verslag)}<script>setTimeout(()=>print(),300)<\/script></body></html>`);w.document.close()}
+
+/* ---------- events ---------- */
+document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;
+  switch(t.dataset.act){
+    case"agMaand":{e.preventDefault();const b=(AG.m||todayISO().slice(0,7)).split("-").map(Number);const d=new Date(b[0],b[1]-1+Number(t.dataset.v),1);AG.m=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");AG.dag=null;agDashRefresh();break}
+    case"agDag":e.preventDefault();AG.dag=t.dataset.v&&AG.dag!==t.dataset.v?t.dataset.v:null;agDashRefresh();break;
+    case"agOud":AG.oud=t.dataset.v==="1";render(true);break;
+    case"agNieuw":agForm(null,null);break;
+    case"agToon":{e.preventDefault();const a=S.activiteiten.get(t.dataset.id);if(a)agForm(a,a.id);break}
+    case"vgNieuw":vgForm(null,null);break;
+    case"vgToon":{e.preventDefault();const v=S.vergaderingen.get(t.dataset.id);if(v)vgForm(v,v.id);break}
+  }});
+document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.vgq!==undefined){AG.q=e.target.value;const pos=e.target.selectionStart;render(true);const i=$("#vgQ");if(i){i.focus();try{i.setSelectionRange(pos,pos)}catch(x){}}}});

@@ -47,7 +47,7 @@ language plpgsql as $$ begin new.updated_at = now(); new.updated_by = auth.uid()
 do $$
 declare t text;
 begin
-  foreach t in array array['leden','boekingen','jaarleden','sponsors','jaren','templates','config','archief','regels','imports','ronde','banket','kinderfeest'] loop
+  foreach t in array array['leden','boekingen','jaarleden','sponsors','jaren','templates','config','archief','regels','imports','ronde','banket','kinderfeest','activiteiten','vergaderingen'] loop
     execute format('create table if not exists public.%I (
         id text primary key,
         data jsonb not null default ''{}''::jsonb,
