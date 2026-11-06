@@ -2109,7 +2109,7 @@ function agVolgende(){const t=todayISO();const V=[...S.vergaderingen.values()].f
    <span class="vg-i"><b>${esc(v.titel||v.soort||"Vergadering")}</b>${v.titel&&v.soort?`<span class="muted">${esc(v.soort)}</span>`:""}<span>${esc([agLang(v.datum),v.uur].filter(Boolean).join(" om "))}</span>${v.locatie?`<span class="muted">${esc(v.locatie)}</span>`:""}${w?`<span class="pill info" style="align-self:flex-start;margin-top:4px">${w}</span>`:""}</span></a>
    ${String(v.agenda||"").trim()?`<div class="vg-ag"><span class="lbl">Agenda</span><div>${esc(v.agenda)}</div></div>`:""}${lv}`}
 function agendaSectie(){const t=todayISO(),R=agItems().filter(x=>x.datum>=t).slice(0,6);
-  return `<section class="dsec" aria-label="Activiteiten"><div class="dsec-h"><span class="dsec-ic">${ic("agenda")}</span><h2>Binnenkort</h2><span class="grow"></span><a class="btn sm ghost" href="#agenda">Naar kalender ›</a></div>
+  return `<section class="dsec" aria-label="Activiteiten"><div class="dsec-h"><span class="dsec-ic">${ic("agenda")}</span><h2>Agenda</h2><span class="grow"></span><a class="btn sm ghost" href="#agenda">Naar kalender ›</a></div>
   <div class="panel"><div class="ag-list big">${R.length?R.map(x=>{const [c,l]=agSoort(x);return agRij(x).replace('</a>',`<span class="pill ${c==="verg"?"info":"warn"}">${esc(l)}</span></a>`)}).join(""):`<div class="empty">Er staat niets gepland.${canWrite?` <a href="#agenda">Activiteit toevoegen</a>`:""}</div>`}</div></div></section>`}
 function agDashRefresh(){const el=$("#agDash");if(!el)return;const L=agItems();el.innerHTML=agMaand(L)+`<div class="ag-list" id="agList">${agBinnenkort(L)}</div>`}
 
