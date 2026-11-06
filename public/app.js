@@ -1177,12 +1177,15 @@ function histDetail(L,sel){
   if(q){const hits=[];for(const j of L)for(const b of j.rows)if(norm(b.mededeling+" "+b.partij+" "+b.categorie).includes(q))hits.push(b);
     const tin=hits.reduce((s,b)=>s+(b.richting!=="uit"?b.bedrag:0),0),tuit=hits.reduce((s,b)=>s+(b.richting==="uit"?b.bedrag:0),0);
     return `<div class="panel"><div class="panel-h"><h2>Zoekresultaat</h2><span class="grow"></span><span style="font-size:13px;color:var(--muted)">${hits.length} transacties · in ${eur(tin)} · uit ${eur(tuit)}</span></div>${histRows(hits.slice().reverse().slice(0,500),true)}${hits.length>500?'<div class="empty">Eerste 500 getoond. Verfijn je zoekopdracht.</div>':""}</div>`}
-  const cats=Object.entries(sel.perCat).sort((a,b)=>(b[1].in+b[1].uit)-(a[1].in+a[1].uit));const max=Math.max(1,...cats.map(([,v])=>Math.max(v.in,v.uit)));
-  return `<div class="grid g2" style="align-items:start"><div class="panel"><div class="panel-h"><h2>Categorieën ${sel.jaar}</h2></div><div class="panel-b">
-    ${cats.map(([k,v])=>`<div class="catbar"><span class="trunc" title="${esc(k)}">${esc(k)}</span><div class="track"><span style="width:${v.in/max*50}%;background:var(--good)"></span><span style="width:${v.uit/max*50}%;background:var(--bad)"></span></div><b class="${v.in-v.uit>=0?"in":"out"}">${eur(v.in-v.uit)}</b></div>`).join("")||'<div class="empty">Geen transacties.</div>'}</div></div>
-  <div class="panel"><div class="panel-h"><h2>Kerncijfers ${sel.jaar}</h2>${sel.jaar===JAAR?`<span class="grow"></span><button class="btn sm" data-act="naarBoekjaar" data-v="${sel.jaar}">Open in Boekhouding</button>`:""}</div><div class="panel-b"><dl class="kv">
-    <dt>Beginsaldo kas</dt><dd>${eur(sel.beginKas)}</dd><dt>Beginsaldo rekening</dt><dd>${eur(sel.beginRekening)}</dd><dt>Inkomsten</dt><dd class="in">${eur(sel.tin)}</dd><dt>Uitgaven</dt><dd class="out">${eur(sel.tuit)}</dd>
-    <dt>Eindsaldo kas</dt><dd><b>${eur(sel.eindKas)}</b></dd><dt>Eindsaldo rekening</dt><dd><b>${eur(sel.eindRek)}</b></dd></dl></div></div></div>
+  const cats=Object.entries(sel.perCat).sort((a,b)=>Math.abs(b[1].in-b[1].uit)-Math.abs(a[1].in-a[1].uit));const max=Math.max(1,...cats.map(([,v])=>Math.max(v.in,v.uit)));
+  const sg=v=>(v>=0?"+":"−")+eur(Math.abs(v)),res=sel.tin-sel.tuit;
+  return `<div class="grid g2 hgrid"><div class="panel"><div class="panel-h"><h2>Categorieën ${sel.jaar}</h2><span class="grow"></span><span class="hleg"><i class="o"></i>uit<i class="g"></i>in</span></div><div class="panel-b hcats">
+    ${cats.map(([k,v])=>`<div class="hcat" title="${esc(k)}: in ${eur(v.in)}, uit ${eur(v.uit)}"><span class="hcat-n">${esc(k)}</span><div class="hcat-b"><span class="l"><i style="width:${(v.uit/max*100).toFixed(1)}%"></i></span><span class="r"><i style="width:${(v.in/max*100).toFixed(1)}%"></i></span></div><b class="hcat-v ${v.in-v.uit>=0?"in":"out"}">${sg(v.in-v.uit)}</b></div>`).join("")||'<div class="empty">Geen transacties.</div>'}</div></div>
+  <div class="panel"><div class="panel-h"><h2>Kerncijfers ${sel.jaar}</h2>${sel.jaar===JAAR?`<span class="grow"></span><button class="btn sm" data-act="naarBoekjaar" data-v="${sel.jaar}">Open in Boekhouding</button>`:""}</div><div class="panel-b">
+    <div class="hkc"><div><span>Inkomsten</span><b class="in">${eur(sel.tin)}</b></div><div><span>Uitgaven</span><b class="out">${eur(sel.tuit)}</b></div><div><span>Resultaat</span><b class="${res>=0?"in":"out"}">${sg(res)}</b></div></div>
+    <table class="hsal"><thead><tr><th></th><th>Kas</th><th>Rekening</th><th>Totaal</th></tr></thead><tbody>
+    <tr><th>Begin</th><td>${eur(sel.beginKas)}</td><td>${eur(sel.beginRekening)}</td><td>${eur(sel.beginKas+sel.beginRekening)}</td></tr>
+    <tr><th>Einde</th><td>${eur(sel.eindKas)}</td><td>${eur(sel.eindRek)}</td><td><b>${eur(sel.eindKas+sel.eindRek)}</b></td></tr></tbody></table></div></div></div>
   <div class="panel"><div class="panel-h"><h2>Transacties ${sel.jaar}</h2><span class="grow"></span><span style="font-size:13px;color:var(--muted)">${sel.rows.length} transacties</span></div>${histRows(sel.rows.slice().reverse(),false)}</div>`;
 }
 function histRows(rows,metJaar){
