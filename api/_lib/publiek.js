@@ -26,22 +26,41 @@ export async function spamCheck(sb, tabel, b, httpErr) {
   return null;
 }
 
-// Leden van het actieve jaar (lid sinds ≤ jaar, lid tot leeg of ≥ jaar), voor de naamkeuze op de inschrijfpagina's.
+// Actieve leden van het jaar: lid in dat jaar (lid sinds ≤ jaar, lid tot leeg of ≥ jaar) én in orde met het lidgeld,
+// met dezelfde regels als de app: ere-voorzitter, manueel OK/NOK in jaarleden, of een lidgeldbetaling in de transacties.
+async function alleRijen(sb, tabel, jaar) {
+  const out = [];
+  for (let from = 0; ; from += 1000) {
+    let q = sb.from(tabel).select("id,data");
+    if (jaar != null) q = q.eq("data->>jaar", String(jaar));
+    const { data, error } = await q.range(from, from + 999);
+    if (error) throw error;
+    out.push(...data);
+    if (data.length < 1000) break;
+  }
+  return out;
+}
 let LEDEN_CACHE = null;
 export async function actieveLeden(sb, jaar) {
   if (LEDEN_CACHE && LEDEN_CACHE.jaar === jaar && Date.now() - LEDEN_CACHE.t < 60000) return LEDEN_CACHE.L;
+  const [leden, jl, boek] = await Promise.all([alleRijen(sb, "leden"), alleRijen(sb, "jaarleden", jaar), alleRijen(sb, "boekingen", jaar)]);
+  const JL = new Map(jl.map(r => [r.id, r.data || {}]));
+  const nm = x => norm(x).replace(/\s+/g, " ");
+  const lidBoek = boek.map(r => r.data || {}).map(b => ({ lidId: b.lidId, m: nm(b.mededeling) })).filter(b => b.lidId || b.m.includes("lidgeld"));
   const L = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await sb.from("leden").select("id,data").range(from, from + 999);
-    if (error) throw error;
-    for (const r of data) {
-      const l = r.data || {};
-      if (!l.naam || l.dubbelVan) continue;
-      if (l.lidSinds && Number(l.lidSinds) > jaar) continue;
-      if (l.lidTot && Number(l.lidTot) < jaar) continue;
-      L.push({ id: r.id, naam: `${l.naam} ${l.voornaam || ""}`.replace(/\s+/g, " ").trim(), voornaam: String(l.voornaam || "").trim() });
-    }
-    if (data.length < 1000) break;
+  for (const r of leden) {
+    const l = r.data || {};
+    if (!l.naam || l.dubbelVan) continue;
+    if (l.lidSinds && Number(l.lidSinds) > jaar) continue;
+    if (l.lidTot && Number(l.lidTot) < jaar) continue;
+    const j = JL.get(jaar + "_" + r.id) || {};
+    let ok;
+    if (nm(l.info).includes("ere-voorzitter")) ok = true;
+    else if (j.lidgeld === "OK") ok = true;
+    else if (j.lidgeld === "NOK") ok = false;
+    else { const n1 = nm(l.naam), n2 = nm(l.voornaam); ok = lidBoek.some(b => b.lidId === r.id || (n1 && n2 && b.m.includes("lidgeld") && b.m.includes(n1) && b.m.includes(n2))); }
+    if (!ok) continue;
+    L.push({ id: r.id, naam: `${l.naam} ${l.voornaam || ""}`.replace(/\s+/g, " ").trim(), voornaam: String(l.voornaam || "").trim() });
   }
   L.sort((a, b) => a.naam.localeCompare(b.naam, "nl"));
   LEDEN_CACHE = { jaar, t: Date.now(), L };
