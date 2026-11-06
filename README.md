@@ -134,6 +134,19 @@ Zonder sleutel blijft het formulier werken zoals vroeger, met de betaal-QR en de
 
 Boekhouding: Bancontact stort de betalingen gebundeld door op de rekening. Die doorstorting komt via de bankimport binnen; zet ze op categorie **Lidgeld**. De leden zelf staan al op betaald.
 
+## Kinderfeest
+
+Onder **Administratie › Kinderfeest** staat het overzicht van de inschrijvingen: aantal kinderen, hoeveel cadeautjes nodig zijn (per leeftijd op de dag van het feest), welke inschrijvingen niet in de ledenlijst gevonden worden en mogelijke dubbels. Exporteren naar Excel kan met één klik.
+
+Op `https://jouw-site.vercel.app/kinderfeest` staat een openbare inschrijfpagina (geen aanmelden nodig). Ouders vullen hun naam en e-mail in, beginnen met één kind en voegen met **+ Nog een kind toevoegen** extra kinderen toe. Het vervangt het Google-formulier.
+
+- Een inschrijving komt meteen in het overzicht, met het label **nieuw**. Klik **Alles gezien** om de melding weg te halen.
+- Datum, uur, locatie, leeftijdsgrens voor een cadeautje en of de inschrijvingen open zijn: via het tandwiel op de pagina Kinderfeest (per boekjaar).
+- Antwoorden die nog in het oude Google-formulier staan, lees je in met **Google Forms importeren** (Antwoorden › ⋮ › Antwoorden downloaden (.csv)).
+- Dezelfde spambescherming als bij het ledenformulier: verborgen veld, minimale invultijd, maximaal 30 inschrijvingen per uur.
+
+De tabel `kinderfeest` staat in `supabase/schema.sql` (al uitgevoerd op 6/11/2026).
+
 ## Beveiliging
 
 - Alle tabellen staan achter **Row Level Security**: alleen aangemelde gebruikers die in `bestuur` staan, kunnen lezen; alleen de rol `bewerker` kan schrijven.
