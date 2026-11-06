@@ -37,7 +37,7 @@ const ICON={
   communicatie:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/>',deel:'<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'
 };
 const ic=n=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+ICON[n]+'</svg>';
-const NAV=[{id:"leden",label:"Leden",items:[["leden","Ledenlijst"],["punten","Puntensysteem"]]},{id:"boekhouding",label:"Boekhouding",items:[["boekhouding","Overzicht"],["boekingen","Transacties"],["verwerken","Te verwerken"],["historiek","Historiek"]]},{id:"administratie",label:"Activiteiten",items:[["kalenders","Kalenders"],["sponsors","Sponsors"],["banket","Banket"]]},{id:"communicatie",label:"Administratie",items:[["mails","Mails"]]}];
+const NAV=[{id:"leden",label:"Leden",items:[["leden","Ledenlijst"],["punten","Puntensysteem"]]},{id:"boekhouding",label:"Boekhouding",items:[["boekhouding","Overzicht"],["boekingen","Transacties"],["verwerken","Te verwerken"],["historiek","Historiek"]]},{id:"administratie",label:"Activiteiten",items:[["kalenders","Kalenders"],["banket","Banket"]]},{id:"communicatie",label:"Administratie",items:[["sponsors","Sponsors"],["mails","Mails"]]}];
 const ROUTES=[["logboek","Logboek"],["boekingen","Transacties"],["verwerken","Te verwerken"],["regels","Regels"],["bank","Bankimport"],["dashboard","Dashboard"],["leden","Leden"],["boekhouding","Boekhouding"],["punten","Puntensysteem"],["kalenders","Kalenders"],["ronde","Kalenderronde"],["sponsors","Sponsors"],["banket","Banket"],["historiek","Historiek"],["mails","Mails"],["instellingen","Instellingen"]];
 
 /* ============ standaardwaarden ============ */
