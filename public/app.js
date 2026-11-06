@@ -1957,10 +1957,8 @@ VIEWS.kinderfeest=()=>({title:"Kinderfeest",sub:"Inschrijvingen kinderfeest",
     const max=Math.max(1,...st.per.values());const ages=[];for(let a=0;a<=c.leeftijd;a++)ages.push(a);
     return `
     <div class="tiles"><div class="tile hero"><span class="lbl">Ingeschreven kinderen</span><span class="val">${st.kids}</span><span class="hint">${st.L.length} ${st.L.length===1?"inschrijving":"inschrijvingen"}</span></div>
-      <div class="tile"><span class="lbl">Cadeautjes nodig</span><span class="val">${st.cadeau}</span><span class="hint">t.e.m. ${c.leeftijd} jaar op de feestdag${st.onbekend?" (incl. "+st.onbekend+" zonder geboortedatum)":""}</span></div>
-      <div class="tile"><span class="lbl">Ouder dan ${c.leeftijd}</span><span class="val">${st.ouder}</span><span class="hint">geen cadeautje</span></div>
-      <div class="tile"><span class="lbl">Gezinnen</span><span class="val">${st.L.length}</span><span class="hint">${(()=>{const n=st.L.filter(r=>!kfLidVan(r.lid)).length;return n?n+" niet gevonden in ledenlijst":"allemaal gekend als lid"})()}</span></div></div>
-    <div class="panel"><div class="panel-h"><h2>Cadeautjes per leeftijd</h2><span class="grow"></span><span class="muted small">leeftijd op ${esc(fmtDate(c.datum))}</span></div><div class="panel-b"><div class="kf-ages">
+      </div>
+    <div class="panel"><div class="panel-h"><h2>Cadeautjes per leeftijd</h2></div><div class="panel-b"><div class="kf-ages">
       ${ages.map(a=>{const n=st.per.get(a)||0;return `<div class="kf-age${n?"":" zero"}"><b>${n}</b><i><em style="width:${Math.round(n/max*100)}%"></em></i><span>${a===0?"&lt; 1 jaar":a+" jaar"}</span></div>`}).join("")}
       ${st.onbekend?`<div class="kf-age"><b>${st.onbekend}</b><i><em style="width:0"></em></i><span>onbekend</span></div>`:""}
     </div></div></div>
@@ -1974,7 +1972,7 @@ function kfTable(list,dub,c){
     <td class="trunc">${esc(r.email)}</td>
     <td><div class="kf-kl">${kids.map(k=>{const a=kfLeeftijd(k.geb,c.datum);return `<span class="kf-k${a!=null&&a>c.leeftijd?" oud":""}">${esc(k.naam)}<span>${a==null?"?":a+" j"}</span></span>`}).join("")}</div></td>
     <td class="num">${kids.length}</td><td class="nowrap">${r.aangemeld?esc(fmtDate(String(r.aangemeld).slice(0,10))):""}</td>
-    <td>${r.bron==="formulier"?'<span class="pill info">Formulier</span>':'<span class="pill neutral">Manueel</span>'}</td></tr>`}).join("")||`<tr><td colspan="6" class="empty">${KFQ?"Geen inschrijvingen gevonden.":"Nog geen inschrijvingen voor "+JAAR+". Voeg er een toe of importeer de antwoorden van het Google-formulier."}</td></tr>`}
+    <td>${r.bron==="formulier"?'<span class="pill info">Formulier</span>':'<span class="pill neutral">Manueel</span>'}</td></tr>`}).join("")||`<tr><td colspan="6" class="empty">${KFQ?"Geen inschrijvingen gevonden.":"Nog geen inschrijvingen voor "+JAAR+"."}</td></tr>`}
   </tbody></table>`}
 
 /* ---------- formulier met kinderen (+ kind toevoegen) ---------- */
