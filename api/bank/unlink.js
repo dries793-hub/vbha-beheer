@@ -4,7 +4,7 @@ import { eb } from "../_lib/enable.js";
 export default async function handler(req, res) {
   try {
     if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
-    const { sb } = await requireUser(req, { write: true });
+    const { sb } = await requireUser(req, { boek: true });
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
     const id = String(body.id || "");
     if (!id) throw httpErr(400, "Geen koppeling opgegeven");

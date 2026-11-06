@@ -43,6 +43,10 @@
     {
       "source": "/api/leden",
       "destination": "/api/openbaar?f=leden"
+    },
+    {
+      "source": "/api/gebruikers",
+      "destination": "/api/config?f=gebruikers"
     }
   ]
 }
