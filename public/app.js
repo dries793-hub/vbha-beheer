@@ -2368,7 +2368,7 @@ let ML_RANGE=null,ML_LAST="";
 function groepen(){
   const C=ctx();const cur=C.leden.map(l=>C.rows.get(l.id));
   const lidR=r=>({email:r.lid.email,voornaam:r.lid.voornaam,naam:naamVol(r.lid),bedrag:r.bedrag,mededeling:`${r.lid.naam} ${r.lid.voornaam} lidgeld ${JAAR}`,label:naamVol(r.lid)});
-  const G=[];const add=(sect,id,label,list)=>{const seen=new Set();G.push({sect,id,label,list:list.filter(r=>{const k=String(r.email||"").toLowerCase();if(!k)return true;if(seen.has(k))return false;seen.add(k);return true})})};
+  const B=mlGeblok();const G=[];const add=(sect,id,label,list)=>{const seen=new Set(),geblokt=[];G.push({sect,id,label,geblokt,list:list.filter(r=>{const k=String(r.email||"").trim().toLowerCase();if(!k)return true;if(seen.has(k))return false;seen.add(k);if(B[k]){geblokt.push(r);return false}return true})})};
   add("Leden","alle","Alle leden",cur.map(lidR));
   add("Leden","lidgeld","Uitnodiging lidgeld (zonder ere-voorzitters)",cur.filter(r=>!isEreVoorzitter(r.lid)).map(lidR));
   add("Leden","herinnering","Lidgeld nog niet betaald",cur.filter(r=>!r.lg.ok&&!isEreVoorzitter(r.lid)).map(lidR));
@@ -2389,6 +2389,9 @@ function groepen(){
   add("Andere","los","Losse e-mailadressen",mlLos().map(e=>({email:e,voornaam:"",naam:"",bedrag:"",mededeling:"",label:e})));
   return G;
 }
+const mlGeblok=()=>(S.config.get("mail")||{}).geblokkeerd||{};
+async function mlGeblokZet(adressen,reden,weg){const B={...mlGeblok()};for(const a of adressen){const k=String(a).trim().toLowerCase();if(!k)continue;if(weg)delete B[k];else B[k]={reden:reden||"",datum:todayISO()}}
+  await write("config","mail",{...stripId(S.config.get("mail")||{}),geblokkeerd:B})}
 function mlLos(){return [...new Set(String(UI.mailLos||"").split(/[\s,;]+/).map(x=>x.trim().toLowerCase()).filter(x=>/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x)))]}
 function mlGroep(){const G=groepen();return G.find(x=>x.id===UI.mailGroep)||G[0]}
 function mailRecips(){const M=mailState();const uit=M.uit||new Set();return mlGroep().list.filter(r=>r.email&&!uit.has(String(r.email).toLowerCase()))}
@@ -2438,15 +2441,16 @@ function mlStijl(inner){
   st("ul,ol","margin:0 0 15px 0;padding-left:22px;");st("li","margin:0 0 6px 0;");
   return R.innerHTML;
 }
-function mlKader(inner){const c=cfg();const ver=esc(c.vereniging||"Vriendenkring Brandweer Hoofdpost Aalst");
-  return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${ver}</title></head><body style="margin:0;padding:0;background:#f7f7f7">
+function mlKader(inner){const c=cfg();const ver=esc(c.vereniging||"Vriendenkring Brandweer Hoofdpost Aalst");const afm=esc((MAILSMTP&&MAILSMTP.van&&MAILSMTP.van.email)||"dries@vbha.be");
+  const pre=esc(new DOMParser().parseFromString(inner.replace(/^\s*<p[^>]*>[^<]{0,60}<\/p>/i,"").replace(/<\/(p|h2|h3|li|td)>/gi,"$& "),"text/html").body.textContent.replace(/\s+/g," ").trim().slice(0,140));
+  return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${ver}</title></head><body style="margin:0;padding:0;background:#f7f7f7"><div data-pre style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f7f7f7;opacity:0">${pre}</div>
 <table role="presentation" border="0" width="100%" cellspacing="0" cellpadding="0" bgcolor="#f7f7f7" style="margin:0;padding:0"><tr><td align="center" valign="top" style="padding:25px 10px">
 <table role="presentation" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="width:100%;max-width:680px;border-collapse:collapse">
 <tr><td align="center" bgcolor="#f7f7f7" style="padding:20px"><img src="${ML_LOGO}" alt="${ver}" width="220" height="84" style="display:block;width:220px;height:84px;border:0;outline:none;text-decoration:none"></td></tr>
 <tr><td bgcolor="#b30000" style="font-size:1px;line-height:1px;height:8px">&nbsp;</td></tr>
 <tr><td bgcolor="#ffffff" style="${ML_FONT}font-size:15px;color:#222222;line-height:1.5;padding:28px 40px 22px">${inner}</td></tr>
 <tr><td bgcolor="#b30000" style="font-size:1px;line-height:1px;height:8px">&nbsp;</td></tr>
-<tr><td align="center" bgcolor="#f7f7f7" style="${ML_FONT}font-size:12px;color:#888888;line-height:1.5;padding:14px 20px">${ver} &middot; <a href="https://www.vbha.be" style="color:#888888;text-decoration:underline">www.vbha.be</a></td></tr>
+<tr><td align="center" bgcolor="#f7f7f7" style="${ML_FONT}font-size:12px;color:#888888;line-height:1.5;padding:14px 20px">${ver} &middot; <a href="https://www.vbha.be" style="color:#888888;text-decoration:underline">www.vbha.be</a><br>Liever geen mails meer van ons? <a href="mailto:${afm}?subject=Afmelden%20mails%20VBHA" style="color:#888888;text-decoration:underline">Meld je af</a>.</td></tr>
 </table></td></tr></table></body></html>`}
 function mailHtml(r,M){
   if(M.opmaak==="huisstijl")return mlKader(mlStijl(vul(M.body,r,true)));
@@ -2495,6 +2499,7 @@ VIEWS.mails=()=>({title:"Mails",actions:'<button class="btn" data-w data-act="ml
     ${tg&&tg.id!==g.id?`<div class="ml-tip">Dit sjabloon is bedoeld voor <b>${esc(tg.label)}</b>. <button class="linkbtn" data-act="mlGroepTpl">Kiezen</button></div>`:""}
     <div class="muted small">${actief.length} ${actief.length===1?"ontvanger":"ontvangers"}${uit.size&&met.length>actief.length?` (${met.length-actief.length} uitgezonderd)`:""}${zonder.length?` · ${zonder.length} zonder e-mailadres`:""}</div>
     ${met.length?`<details class="ml-lijst"><summary>Ontvangers bekijken of uitzonderen</summary><div class="ml-rl">${met.map(r=>{const k=String(r.email).toLowerCase();return `<label><input type="checkbox" data-mluit="${esc(k)}"${uit.has(k)?"":" checked"}><span class="trunc"><b>${esc(r.label)}</b> ${esc(r.email)}</span></label>`}).join("")}</div></details>`:""}
+    ${mlBlokUI(g)}
     ${zonder.length?`<details class="ml-lijst"><summary>Zonder e-mailadres (${zonder.length})</summary><div class="ml-rl muted">${zonder.map(r=>`<div>${esc(r.label)}</div>`).join("")}</div></details>`:""}
   </div></div>
   <div class="panel"><div class="panel-h"><h2>Voorbeeld</h2><span class="grow"></span>
@@ -2503,8 +2508,8 @@ VIEWS.mails=()=>({title:"Mails",actions:'<button class="btn" data-w data-act="ml
   <div class="panel"><div class="panel-h"><h2>Versturen</h2></div><div class="panel-b stack" style="gap:10px">
     ${MAILSMTP===null?(mailSmtpLaad(),'<div class="muted small">Verzendinstellingen laden…</div>'):MAILSMTP.ingesteld?`
     <button class="btn primary" data-act="mlSend"${actief.length&&canWrite?"":" disabled"}>${ic("mails")}${actief.length} ${actief.length===1?"mail":"mails"} versturen</button>
-    <button class="btn" data-act="mlTest"${actief.length&&canWrite?"":" disabled"}>Testmail naar mezelf</button>
-    <div class="muted small">Elke ontvanger krijgt een eigen mail met de juiste naam en het juiste bedrag, vanaf <b>${esc(MAILSMTP.van.email)}</b>. De testmail gebruikt de gegevens uit het voorbeeld.</div><div id="mailProg">${ML_LAST}</div>`
+    <div class="ml-test"><input id="mlTestAan" type="email" value="${esc(UI.mlTestAan||(ME?ME.email:""))}" aria-label="Testmail naar"><button class="btn" data-act="mlTest"${actief.length&&canWrite?"":" disabled"}>Testmail</button></div>
+    <div class="muted small">Elke ontvanger krijgt een eigen mail met de juiste naam en het juiste bedrag, vanaf <b>${esc(MAILSMTP.van.email)}</b>. De testmail gebruikt de gegevens uit het voorbeeld. Tip: stuur een testmail naar het adres op <a href="https://www.mail-tester.com" target="_blank" rel="noopener">mail-tester.com</a> voor een spamscore.</div><div id="mailProg">${ML_LAST}</div>`
     :`<div class="note">Rechtstreeks versturen is nog niet ingesteld (SMTP-gegevens in Vercel).</div>`}
     <details><summary style="cursor:pointer;font-weight:600;font-size:14px">Andere manieren</summary><div class="stack" style="gap:8px;margin-top:10px">
       <button class="btn" data-act="mailZip"${actief.length?"":" disabled"}>${ic("download")}Concepten downloaden (.zip)</button>
@@ -2512,6 +2517,11 @@ VIEWS.mails=()=>({title:"Mails",actions:'<button class="btn" data-w data-act="ml
   </div></div>
   ${mlHistoriek()}
   </div></div>`}});
+function mlBlokUI(g){const B=mlGeblok(),keys=Object.keys(B).sort();const hier=new Set(g.geblokt.map(r=>String(r.email).toLowerCase()));
+  return `<details class="ml-lijst"><summary>Geen mails meer sturen (${keys.length})${hier.size?` · ${hier.size} in deze groep`:""}</summary><div class="ml-rl">
+    <div class="muted small" style="margin:2px 0 6px">Afgemelde of foute adressen krijgen nooit meer een mail, in geen enkele groep. Zo blijft je afzender betrouwbaar voor spamfilters.</div>
+    ${keys.map(k=>`<div class="ml-bl"><span class="trunc"><b>${esc(k)}</b> ${esc(B[k].reden||"")}${B[k].datum?" · "+esc(fmtDate(B[k].datum)):""}</span>${canWrite?`<button class="btn sm ghost" data-act="mlDeblok" data-v="${esc(k)}">Terugzetten</button>`:""}</div>`).join("")||'<div class="muted small">Nog geen adressen.</div>'}
+    ${canWrite?`<div class="ml-bladd"><input id="mlBlokIn" placeholder="e-mailadres dat zich afmeldde"><button class="btn sm" data-act="mlBlokAdd">Toevoegen</button></div>`:""}</div></details>`}
 function mlEditor(M){const d=!canWrite;const b=(act,t,lab,extra="")=>`<button type="button" class="ml-tb-b" data-mltb="${act}" title="${esc(lab)}" aria-label="${esc(lab)}"${extra}${d?" disabled":""}>${t}</button>`;
   return `<div class="ml-tb" role="toolbar" aria-label="Opmaak">
     ${b("bold","<b>B</b>","Vet")}${b("italic","<i>I</i>","Cursief")}${b("h3","Kop","Tussentitel")}${b("ul","&bull; Lijst","Opsomming")}${b("link","Link","Link")}<span class="ml-sep"></span>
@@ -2550,7 +2560,6 @@ function mlInsBlok(html){const ed=$("#mlEd");mlRestore();let n=getSelection().an
   if(!n)nodes.forEach(x=>ed.appendChild(x));else{let ref=n;for(const x of nodes){ref.after(x);ref=x}if(leeg)n.remove()}
   const last=nodes[nodes.length-1];if(!last.nextSibling){const p=document.createElement("p");p.innerHTML="<br>";last.after(p)}
   const r=document.createRange();r.selectNodeContents(last.nextSibling);r.collapse(true);const s=getSelection();s.removeAllRanges();s.addRange(r);mlSync()}
-function mlBlok(){const s=getSelection();let n=s.anchorNode;const ed=$("#mlEd");while(n&&n!==ed){if(n.nodeType===1&&n.dataset&&n.dataset.blok)return n;n=n.parentNode}return null}
 function mlTb(act){const ed=$("#mlEd");
   if(act==="bron"){if(!MAIL.bron&&ed)MAIL.body=ed.innerHTML;MAIL.bron=!MAIL.bron;renderBody();return}
   if(!ed)return;
@@ -2590,7 +2599,10 @@ document.addEventListener("click",e=>{
       M.body=mlLegacy(b.replace(/\s(style|class|bgcolor|align|width|height)="[^"]*"/g,"").replace(/<!--.*?-->/gs,""));M.opmaak="huisstijl";M.isHtml=true;mlDirty();renderBody()},
     mlSave:()=>mlBewaar(false),mlKopie:()=>mlBewaar(true),
     mlDel:()=>confirmBox("Sjabloon <b>"+esc(MAIL.naam)+"</b> verwijderen?","Verwijderen",async()=>{await write("templates",MAIL.tplId,null,{del:true});MAIL=null;UI.mailTpl="";saveUI();render(true)}),
-    mlTest:()=>mlTest(),mlSend:()=>mlSend()})[a]?.();
+    mlTest:()=>mlTest(),
+    mlDeblok:()=>mlGeblokZet([t.dataset.v],"",true).then(()=>toast("Adres teruggezet.")),
+    mlBlokAdd:()=>{const v=String(($("#mlBlokIn")||{}).value||"").trim().toLowerCase();if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(v)){toast("Vul een geldig e-mailadres in.",true);return}mlGeblokZet([v],"afgemeld").then(()=>toast(v+" krijgt geen mails meer."))},
+    mlFoutBlok:()=>{const v=ML_FOUT.filter(x=>/SMTP: 5\d\d/.test(x.fout));mlGeblokZet(v.map(x=>x.aan),"geweigerd door de server").then(()=>{ML_LAST="";toast(v.length+" adressen worden niet meer gemaild.")})},mlSend:()=>mlSend()})[a]?.();
 });
 document.addEventListener("input",e=>{const t=e.target;if(!MAIL)return;
   if(t.id==="mlEd"){mlSync();return}
@@ -2613,22 +2625,39 @@ async function mlBewaar(kopie){const M=MAIL;const ed=$("#mlEd");if(ed)M.body=ed.
   M.tplId=id;M.naam=naam;M.groep=UI.mailGroep||M.groep;M.dirty=false;M.nieuw=false;UI.mailTpl=id;saveUI();toast(kopie?"Kopie gemaakt.":"Sjabloon bewaard.");render(true)}
 
 /* ---------- versturen ---------- */
-async function mailVerstuur(lijst,label){if(MAILBUSY)return{ok:0,fout:["bezig"]};MAILBUSY=true;const prog=()=>$("#mailProg");let ok=0;const fout=[];
-  try{for(let i=0;i<lijst.length;i+=10){const deel=lijst.slice(i,i+10);const p=prog();
-      if(p)p.innerHTML=`<div class="ml-prog"><div style="width:${Math.round(i/lijst.length*100)}%"></div></div><div class="muted small">Bezig: ${i} van ${lijst.length} verstuurd…</div>`;
-      try{const j=await api("/api/mail",{method:"POST",body:JSON.stringify({berichten:deel})});for(const x of j.resultaten||[])x.ok?ok++:fout.push(x.aan+" ("+(x.fout||"mislukt")+")")}
-      catch(e){deel.forEach(m=>fout.push(m.aan+" ("+e.message+")"))}}}
+// Verzendtempo: one.com laat 250 ontvangers per 5 minuten en 1500 per uur toe. We sturen in pakjes van 10 met een pauze ertussen,
+// zodat we ruim onder die grens blijven en ontvangende servers geen plotse piek zien. Tijdelijke weigeringen (4xx) krijgen na een minuut een tweede kans.
+const mlWacht=ms=>new Promise(r=>setTimeout(r,ms));
+let ML_FOUT=[];
+async function mailVerstuur(lijst,label){if(MAILBUSY)return{ok:0,fout:["bezig"]};MAILBUSY=true;const prog=()=>$("#mailProg");let ok=0;const F=[];
+  const pauze=lijst.length>200?13000:lijst.length>10?4000:0,t0=Date.now();
+  const toon=(i,extra)=>{const p=prog();if(!p)return;const rest=Math.max(0,Math.ceil((lijst.length-i)/10)*pauze/1000);
+    p.innerHTML=`<div class="ml-prog"><div style="width:${Math.round(i/lijst.length*100)}%"></div></div><div class="muted small">${extra||`Bezig: ${i} van ${lijst.length} verstuurd${rest>20?` · nog ongeveer ${Math.ceil(rest/60)} min`:""}…`} Laat dit venster open.</div>`};
+  const stuur=async deel=>{try{const j=await api("/api/mail",{method:"POST",body:JSON.stringify({berichten:deel})});return deel.map((m,k)=>{const x=(j.resultaten||[])[k]||{};return{m,ok:!!x.ok,fout:x.fout||"mislukt"}})}
+    catch(e){return deel.map(m=>({m,ok:false,fout:e.message,net:true}))}};
+  const tijdelijk=x=>x.net||/SMTP: 4\d\d|time-out|ECONN|socket/i.test(x.fout);
+  try{const opnieuw=[];
+    for(let i=0;i<lijst.length;i+=10){const t=Date.now();toon(i);
+      for(const x of await stuur(lijst.slice(i,i+10)))x.ok?ok++:tijdelijk(x)?opnieuw.push(x.m):F.push({aan:x.m.aan,fout:x.fout});
+      if(i+10<lijst.length)await mlWacht(Math.max(0,pauze-(Date.now()-t)))}
+    if(opnieuw.length){toon(lijst.length-opnieuw.length,`${opnieuw.length} ${opnieuw.length===1?"mail werd":"mails werden"} tijdelijk geweigerd, nieuwe poging over een minuut…`);await mlWacht(60000);
+      for(let i=0;i<opnieuw.length;i+=10){for(const x of await stuur(opnieuw.slice(i,i+10)))x.ok?ok++:F.push({aan:x.m.aan,fout:x.fout});if(i+10<opnieuw.length)await mlWacht(pauze||4000)}}}
   finally{MAILBUSY=false}
-  ML_LAST=`<div class="note ${fout.length?"":"info"}"><b>${ok}</b> ${ok===1?"mail":"mails"} verstuurd${label?" ("+esc(label)+")":""}.${fout.length?`<br>Niet gelukt (${fout.length}): ${fout.map(esc).join(", ")}`:""}</div>`;
-  const p=prog();if(p)p.innerHTML=`<div class="note ${fout.length?"":"info"}"><b>${ok}</b> ${ok===1?"mail":"mails"} verstuurd${label?" ("+esc(label)+")":""}.${fout.length?`<br>Niet gelukt (${fout.length}): ${fout.map(esc).join(", ")}`:""}</div>`;
-  toast(fout.length?ok+" verstuurd, "+fout.length+" niet gelukt.":ok+" "+(ok===1?"mail":"mails")+" verstuurd.",!!fout.length);return{ok,fout}}
+  ML_FOUT=F;const vast=F.filter(x=>/SMTP: 5\d\d/.test(x.fout));
+  ML_LAST=`<div class="note ${F.length?"":"info"}"><b>${ok}</b> ${ok===1?"mail":"mails"} verstuurd${label?" ("+esc(label)+")":""}.${F.length?`<br>Niet gelukt (${F.length}): ${F.map(x=>esc(x.aan+" ("+x.fout.replace(/^SMTP:\s*/,"")+")")).join(", ")}`:""}
+    ${vast.length&&canWrite?`<div style="margin-top:8px"><button class="btn sm" data-act="mlFoutBlok">${vast.length} ${vast.length===1?"fout adres":"foute adressen"} niet meer mailen</button></div>`:""}</div>`;
+  const p=prog();if(p)p.innerHTML=ML_LAST;
+  toast(F.length?ok+" verstuurd, "+F.length+" niet gelukt.":ok+" "+(ok===1?"mail":"mails")+" verstuurd.",!!F.length);return{ok,fout:F.map(x=>x.aan+" ("+x.fout+")")}}
 function mailBericht(r,M,aan){return{aan:aan||r.email,aanNaam:r.label||"",onderwerp:vul(M.onderwerp,r),html:mailHtml(r,M)}}
-async function mlTest(){const list=mailRecips();if(!list.length||!ME)return;const r=list[Math.min(MAIL.idx||0,list.length-1)];
-  await mailVerstuur([{...mailBericht(r,MAIL,ME.email),aanNaam:"",onderwerp:"[TEST] "+vul(MAIL.onderwerp,r)}],"testmail naar "+ME.email+" met de gegevens van "+r.label)}
+async function mlTest(){const list=mailRecips();if(!list.length)return;const r=list[Math.min(MAIL.idx||0,list.length-1)];
+  const aan=String(($("#mlTestAan")||{}).value||(ME&&ME.email)||"").trim();if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(aan)){toast("Vul een geldig e-mailadres in voor de testmail.",true);return}
+  UI.mlTestAan=aan===(ME&&ME.email)?"":aan;saveUI();
+  await mailVerstuur([{...mailBericht(r,MAIL,aan),aanNaam:"",onderwerp:"[TEST] "+vul(MAIL.onderwerp,r)}],"testmail naar "+aan+" met de gegevens van "+r.label)}
 function mlSend(){const list=mailRecips();if(!list.length)return;const n=list.length,w=n===1?"mail":"mails",g=mlGroep(),M=MAIL;
   if(/\{\w+\}/.test(vul(M.onderwerp,list[0])+mlStijl(vul(M.body,list[0],true)).replace(/<[^>]+>/g,""))){toast("Er staat nog een onbekend veld tussen accolades in het bericht.",true)}
   modal("Mails versturen",`<div class="stack" style="gap:12px"><p style="margin:0">Je staat op het punt om <b>${n} ${w}</b> te versturen. Dit kan niet ongedaan gemaakt worden.</p>
     <dl class="kv"><dt>Van</dt><dd>${esc((MAILSMTP&&MAILSMTP.van.naam?MAILSMTP.van.naam+" ":"")+"<"+(MAILSMTP&&MAILSMTP.van.email||"")+">")}</dd><dt>Aan</dt><dd>${esc(g.label)} (${n})</dd><dt>Onderwerp</dt><dd>${esc(vul(M.onderwerp,list[0]))}</dd></dl>
+    ${n>200?`<div class="note info">Om binnen de verzendlimiet van one.com te blijven duurt dit ongeveer ${Math.ceil(n/10*13/60)} minuten. Laat de pagina open tot alles verstuurd is.</div>`:""}
     ${M.dirty?'<div class="note">Het sjabloon heeft niet-bewaarde wijzigingen. Die worden wel zo verstuurd.</div>':""}
     <label class="sp-nat"><input type="checkbox" id="msOk"><span><b>Ja, verstuur ${n} ${w}</b><small>Stuur bij twijfel eerst een testmail naar jezelf.</small></span></label></div>`,
     `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="msGo" disabled>Versturen</button>`);
