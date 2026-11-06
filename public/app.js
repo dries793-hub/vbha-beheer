@@ -2085,7 +2085,7 @@ const agSoort=x=>x.t==="verg"?["verg","Vergadering"]:["act","Activiteit"];
 const agAttr=x=>x.t==="auto"?`href="#${x.href}"`:`data-act="${x.t==="verg"?"vgToon":"agToon"}" data-id="${esc(x.id)}"`;
 function agRij(x){const d=agD(x.datum),[c,l]=agSoort(x);const w=agWanneer(x.datum);
   return `<a class="ag-r" ${agAttr(x)}><span class="ag-dt ${c}"><b>${d.getDate()}</b><span>${d.toLocaleDateString("nl-BE",{month:"short"}).replace(".","")}</span></span>
-  <span class="ag-m"><b class="trunc">${esc(x.titel)}</b><span class="trunc">${esc([agKort(x.datum),x.uur,x.locatie].filter(Boolean).join(" · "))}</span></span>${w&&agDagen(x.datum)>=0?`<span class="ag-w">${w}</span>`:""}</a>`}
+  <span class="ag-m"><b class="trunc">${esc(x.titel)}</b><span class="trunc">${esc([agKort(x.datum),x.uur,x.locatie].filter(Boolean).join(" · "))}</span></span></a>`}
 
 /* ---------- dashboard: mini-kalender en volgende vergadering ---------- */
 function agMaand(L){const t=todayISO();const m=AG.m||t.slice(0,7);const [Y,M]=m.split("-").map(Number);
