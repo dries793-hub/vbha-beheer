@@ -638,6 +638,12 @@ a.nm-i{text-decoration:none;color:inherit}
 .cat-add .cat-in{flex:1;min-width:0}
 .fld .lbl{font-weight:600;font-size:14px}
 @media (max-width:760px){.top:has(>.btn.iconbtn)>.btn:not(.iconbtn){flex:1 1 0;min-width:0;padding-inline:10px}}
+.htw{max-height:70vh;overflow:auto}
+table.htab{table-layout:fixed;width:100%}
+table.htab thead th{position:sticky;top:0;z-index:1;background:var(--sunken,#f3f4f6)}
+table.htab td.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table.htab td.hsel{font-weight:600}
+@media (max-width:760px){.htw{max-height:none}table.htab{table-layout:auto}table.htab colgroup{display:none}table.htab td.ell{white-space:normal}}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
