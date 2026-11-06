@@ -1,7 +1,7 @@
 import { admin, sendError, httpErr } from "./_lib/sb.js";
 import { epcPayload, qrSvg } from "./_lib/epc.js";
 import crypto from "node:crypto";
-import { bcConfigured } from "./_lib/bancontact.js";
+import { onlineConfigured as bcConfigured } from "./_lib/betaalprovider.js";
 import { startBetaling } from "./_lib/betaal.js";
 
 // Openbaar inschrijfformulier voor nieuwe leden (geen login nodig).
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
     if (token) {
       try {
         const bt = await startBetaling(sb, req, "leden", { id, data: lid }, { bedrag, jaar: I.jaar });
-        online = { id, token, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp };
+        online = { id, token, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp, provider: bt.provider || null };
       } catch (e) { console.error("Bancontact", e); }
     }
     res.status(200).json({ ok: true, jaar: I.jaar, bedrag, rekeningnummer: I.rekeningnummer, begunstigde: I.vereniging, mededeling, qr, online });
