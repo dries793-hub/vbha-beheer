@@ -3,7 +3,7 @@
 do $$
 declare t text;
 begin
-  foreach t in array array['ronde','banket','kinderfeest','activiteiten','vergaderingen'] loop
+  foreach t in array array['ronde','banket','kinderfeest','activiteiten','vergaderingen','documenten','fotoalbums'] loop
     execute format('create table if not exists public.%I (
         id text primary key,
         data jsonb not null default ''{}''::jsonb,

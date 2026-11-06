@@ -48,8 +48,8 @@ const DEF_JAAR={beginKas:0,beginRekening:0,gewichten:{kaarten:1,kalenders:25,shi
 const JUBILEA=[10,20,25,30,40,50,60];
 
 /* ============ toestand ============ */
-const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","ronde","banket","kinderfeest","activiteiten","vergaderingen","documenten"];
-const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),ronde:new Map(),banket:new Map(),kinderfeest:new Map(),activiteiten:new Map(),vergaderingen:new Map(),documenten:new Map()};
+const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","ronde","banket","kinderfeest","activiteiten","vergaderingen","documenten","fotoalbums"];
+const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),ronde:new Map(),banket:new Map(),kinderfeest:new Map(),activiteiten:new Map(),vergaderingen:new Map(),documenten:new Map(),fotoalbums:new Map()};
 const loaded=new Set();
 let db=null,canWrite=true,JAAR=ls.get("jaar",null);
 const UI=Object.assign({ledenQ:"",ledenCat:"",ledenF:"alle",oudLeden:false,boekQ:"",boekCat:"",boekRek:"",puntQ:"",puntSort:"naam",kalQ:"",spQ:"",mailGroep:"alle",mailTpl:"",histJaar:null,histQ:"",boekDir:"",boekMaand:"",boekSort:{k:"datum",d:-1},boekPage:0},ls.get("ui",{}));
@@ -120,11 +120,12 @@ function logOnderwerp(e){const o=e.nieuw||e.oud||{};
   if(e.tabel==="jaarleden"){const lid=o.lidId||String(e.doc_id).replace(/^\d{4}_/,"");const l=S.leden.get(lid);const y=o.jaar||String(e.doc_id).slice(0,4);return esc(l?naamVol(l):(o.naam||lid.replace(/^x-/,"").replace(/-/g," ")))+` <span class="muted">· ${esc(String(y))}</span>`}
   if(e.tabel==="boekingen"){const b=S.boekingen.get(e.doc_id)||{};const nr=o.nr??b.nr,p=o.partij||b.partij||o.mededeling||b.mededeling||"";return (nr!=null?"#"+esc(String(nr))+" ":"")+esc(p.slice(0,40))+(o.bedrag!=null||b.bedrag!=null?` <span class="muted">· ${eur(o.bedrag??b.bedrag)}</span>`:"")}
   if(e.tabel==="banket"||e.tabel==="kinderfeest"){const r=(S[e.tabel]&&S[e.tabel].get(e.doc_id))||{};return esc(o.naam||o.lid||r.naam||r.lid||e.doc_id)}
+  if(e.tabel==="fotoalbums"){const r=S.fotoalbums.get(e.doc_id)||{};return esc(o.titel||r.titel||e.doc_id)}
   if(e.tabel==="documenten"){const r=S.documenten.get(e.doc_id)||{};return esc(o.naam||r.naam||e.doc_id)}
   if(e.tabel==="activiteiten"||e.tabel==="vergaderingen"){const r=(S[e.tabel]&&S[e.tabel].get(e.doc_id))||{};const t=o.titel||r.titel||o.soort||r.soort||"";const d=o.datum||r.datum||"";return esc(t)+(d?` <span class="muted">· ${fmtDate(d)}</span>`:"")}
   if(e.tabel==="ronde"){const st=String(o.straat||String(e.doc_id).replace(/^\d{4}_/,""));const x=typeof KR!=="undefined"&&KR.byId&&KR.byId.get(st);return esc(x?x.n:st.replace(/--/g," · ").replace(/-/g," "))}
   return esc(e.info||e.doc_id||"")}
-const LOG_TYPE={leden:"Lid",jaarleden:"Punten",boekingen:"Transactie",ronde:"Kalenderronde",banket:"Banket",kinderfeest:"Kinderfeest",activiteiten:"Activiteit",vergaderingen:"Vergadering",documenten:"Document"};
+const LOG_TYPE={leden:"Lid",jaarleden:"Punten",boekingen:"Transactie",ronde:"Kalenderronde",banket:"Banket",kinderfeest:"Kinderfeest",activiteiten:"Activiteit",vergaderingen:"Vergadering",documenten:"Document",fotoalbums:"Fotoalbum"};
 function logRegels(e){if(e.actie==="bulk")return esc(e.info||"");const a=e.oud||{},b=e.nieuw||{};
   let ks=logDiff(a,b);if(e.actie==="nieuw")ks=ks.filter(k=>b[k]!=null&&b[k]!==""&&b[k]!==0&&b[k]!==false);
   if(e.tabel==="jaarleden"&&ks.includes("extraTekst")&&ks.includes("extraPunten")){}
@@ -2255,3 +2256,40 @@ document.addEventListener("change",e=>{if(e.target.id==="docFile"){docUpload([..
 document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.docq!==undefined){DOC.q=e.target.value;const el=$("#docList");if(el)el.innerHTML=docTabel()}});
 ["dragenter","dragover"].forEach(ev=>document.addEventListener(ev,e=>{const z=e.target.closest&&e.target.closest("#docDrop");if(!z)return;e.preventDefault();z.classList.add("on")}));
 ["dragleave","drop"].forEach(ev=>document.addEventListener(ev,e=>{const z=e.target.closest&&e.target.closest("#docDrop");if(!z)return;e.preventDefault();z.classList.remove("on");if(ev==="drop"&&e.dataTransfer&&e.dataTransfer.files.length)docUpload([...e.dataTransfer.files])}));
+
+/* ============ Foto's (Activiteiten › Foto's) ============
+   Collectie "fotoalbums": {titel, jaar, datum, link, fotograaf, omschrijving, cover} — een album is een link naar een externe galerij (bv. Pixieset). */
+{const a=NAV.find(n=>n.id==="administratie");if(a&&!a.items.some(i=>i[0]==="fotos"))a.items.push(["fotos","Foto's"]);}
+if(!ROUTES.some(r=>r[0]==="fotos"))ROUTES.push(["fotos","Foto's"]);
+ICON.fotos='<rect x="3" y="6" width="18" height="14" rx="2.5"/><path d="M8.5 6l1.5-2h4l1.5 2"/><circle cx="12" cy="13" r="3.6"/>';
+const FT={q:""};
+const ftLink=u=>/^https?:\/\//i.test(String(u||"").trim())?String(u).trim():"";
+const ftHost=u=>{try{return new URL(u).hostname.replace(/^www\./,"")}catch(e){return""}};
+function ftLijst(){const q=norm(FT.q);let L=[...S.fotoalbums.values()];if(q)L=L.filter(a=>norm([a.titel,a.jaar,a.fotograaf,a.omschrijving].join(" ")).includes(q));
+  return L.sort((a,b)=>String(b.datum||b.jaar||"").localeCompare(String(a.datum||a.jaar||""))||String(a.titel||"").localeCompare(String(b.titel||""),"nl"))}
+function ftKaarten(){const L=ftLijst();
+  if(!L.length)return `<div class="panel"><div class="empty">${FT.q?"Geen albums gevonden.":"Nog geen fotoalbums."}${canWrite&&!FT.q?`<div style="margin-top:12px"><button class="btn primary" data-act="ftNieuw">${ic("plus")}Album toevoegen</button></div>`:""}</div></div>`;
+  return `<div class="ft-grid">${L.map(a=>{const u=ftLink(a.link),c=ftLink(a.cover);const sub=[a.datum?fmtDate(a.datum):a.jaar,a.fotograaf].filter(Boolean).join(" · ");
+    return `<div class="ft-card"><a class="ft-img${c?"":" leeg"}" ${u?`href="${esc(u)}" target="_blank" rel="noopener"`:""} title="Album openen">${c?`<img src="${esc(c)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:`<span>${ic("fotos")}</span>`}</a>
+      <div class="ft-b"><div class="ft-t"><b>${esc(a.titel||"Album")}</b>${sub?`<span>${esc(sub)}</span>`:""}${a.omschrijving?`<span class="ft-o">${esc(a.omschrijving)}</span>`:""}</div>
+      <div class="ft-a">${u?`<a class="btn sm" href="${esc(u)}" target="_blank" rel="noopener">Album openen ›</a>`:""}${canWrite?`<button type="button" class="btn sm iconbtn" data-act="ftEdit" data-id="${esc(a.id)}" aria-label="Album wijzigen" title="Wijzigen">${ic("instellingen")}</button>`:""}</div>
+      ${u?`<div class="ft-h">${esc(ftHost(u))}</div>`:""}</div></div>`}).join("")}</div>`}
+VIEWS.fotos=()=>({title:"Foto's",actions:'<button class="btn primary" data-w data-act="ftNieuw">'+ic("plus")+'Album toevoegen</button>',body(){
+  return `<div class="bar"><div class="search">${ic("search")}<input id="ftQ" data-ftq placeholder="Zoek album, jaar of fotograaf" value="${esc(FT.q)}"></div></div><div id="ftList">${ftKaarten()}</div>`}});
+function ftForm(a,id){a=a||{jaar:JAAR};
+  modal(id?"Album wijzigen":"Fotoalbum toevoegen",`<form id="fFt" class="form">
+   ${fld("ftT","Titel",inp("ftT",a.titel,'maxlength="120" placeholder="bv. Banket 2025"'),"full")}
+   ${fld("ftL","Link naar het album",inp("ftL",a.link,'type="url" maxlength="400" placeholder="https://…"'),"full")}
+   ${fld("ftJ","Jaar",inp("ftJ",a.jaar,'inputmode="numeric" maxlength="4"'))}${fld("ftD","Datum (optioneel)",`<input id="ftD" type="date" value="${esc(a.datum||"")}">`)}
+   ${fld("ftF","Fotograaf",inp("ftF",a.fotograaf,'maxlength="120"'),"full")}
+   ${fld("ftC","Coverfoto (link naar een afbeelding, optioneel)",inp("ftC",a.cover,'type="url" maxlength="600" placeholder="Rechtermuisklik op een foto › Afbeeldingsadres kopiëren"'),"full")}
+   ${fld("ftO","Omschrijving",`<textarea id="ftO" maxlength="400">${esc(a.omschrijving||"")}</textarea>`,"full")}<div class="err full" id="ftErr"></div></form>`,
+   `${id?'<button class="btn danger" id="ftDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="ftOk">Bewaren</button>`);
+  $("#ftOk").onclick=async()=>{const r={titel:$("#ftT").value.trim(),link:$("#ftL").value.trim(),jaar:parseInt($("#ftJ").value,10)||null,datum:$("#ftD").value,fotograaf:$("#ftF").value.trim(),cover:$("#ftC").value.trim(),omschrijving:$("#ftO").value.trim()};
+    if(!r.titel){$("#ftErr").textContent="Geef het album een titel.";return}if(!ftLink(r.link)){$("#ftErr").textContent="Vul de link naar het album in (begint met https://).";return}
+    if(r.datum&&!r.jaar)r.jaar=Number(r.datum.slice(0,4));closeModal();await write("fotoalbums",id||agId("album"),{...(id?stripId(S.fotoalbums.get(id)||{}):{}),...r});toast("Album bewaard.")};
+  const del=$("#ftDel");if(del)del.onclick=()=>confirmBox(`Album <b>${esc(a.titel||"")}</b> verwijderen? De foto's zelf blijven gewoon in de externe galerij staan.`,"Verwijderen",async()=>{await write("fotoalbums",id,null,{del:true});toast("Album verwijderd.")})}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;
+  if(t.dataset.act==="ftNieuw")ftForm(null,null);
+  else if(t.dataset.act==="ftEdit"){const a=S.fotoalbums.get(t.dataset.id);if(a)ftForm(a,a.id)}});
+document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.ftq!==undefined){FT.q=e.target.value;const el=$("#ftList");if(el)el.innerHTML=ftKaarten()}});
