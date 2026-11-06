@@ -1040,7 +1040,7 @@ VIEWS.sponsors=()=>({title:"Sponsors",sub:"Sponsorbeheer",actions:'<button class
   return `<div class="tiles"><div class="tile"><span class="lbl">Sponsors</span><span class="val">${S.sponsors.size}</span></div><div class="tile"><span class="lbl">Afgesproken bedragen</span><span class="val">${eur(totaal)}</span></div><div class="tile"><span class="lbl">Ontvangen in ${JAAR}</span><span class="val in">${eur(ontv)}</span></div></div>
   <div class="bar"><div class="search">${ic("search")}<input id="spQ" data-live data-input="spQ" placeholder="Zoek sponsor" value="${esc(UI.spQ)}"></div></div>
   <div class="panel"><div class="tw"><table class="rcards"><thead><tr><th>Bedrijf</th><th>Contactpersoon</th><th>E-mail</th><th>Telefoon</th><th>KBO-nr.</th><th class="num">Bedrag</th><th>Ontvangen ${JAAR}</th></tr></thead><tbody>
-  ${list.map(s=>{const o=sponsorOntvangen(s,C);return `<tr class="click" data-act="toonSponsor" data-id="${esc(s.id)}"><td><b>${esc(s.bedrijf)}</b><div style="color:var(--muted);font-size:13px">${esc(s.adres)}</div></td><td>${esc(s.voornaam)} ${esc(s.naam)}</td><td class="trunc">${esc(s.email)}</td><td style="white-space:nowrap">${esc(s.telefoon)}</td><td class="muted">${esc(s.kbo)}</td><td class="num">${eur(num(s.bedrag))}</td><td>${o?'<span class="pill ok">'+eur(o)+'</span>':'<span class="pill neutral">nog niets gevonden</span>'}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Geen sponsors.</td></tr>'}
+  ${list.map(s=>{const o=sponsorOntvangen(s,C);return `<tr class="click" data-act="toonSponsor" data-id="${esc(s.id)}"><td><b>${esc(s.bedrijf)}</b><div style="color:var(--muted);font-size:13px">${esc(s.adres)}</div></td><td>${esc(s.voornaam)} ${esc(s.naam)}</td><td class="trunc">${esc(s.email)}</td><td style="white-space:nowrap">${esc(s.telefoon)}</td><td class="muted">${esc(s.kbo)}</td><td class="num">${eur(num(s.bedrag))}</td><td>${(s.naturaJaren||[]).includes(JAAR)?'<span class="pill ok">Voldaan (in natura)</span>'+(o?' <span class="pill ok">'+eur(o)+'</span>':''):o?'<span class="pill ok">'+eur(o)+'</span>':'<span class="pill neutral">nog niets gevonden</span>'}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Geen sponsors.</td></tr>'}
   </tbody></table></div></div>`}});
 
 /* ---------- banket ---------- */
@@ -1576,11 +1576,14 @@ function sponsorForm(s,id){
   modal(id?s.bedrijf:"Nieuwe sponsor",`<form id="fSp" class="form">
    ${fld("sB","Bedrijf *",inp("sB",s.bedrijf,'name="bedrijf"'),"full")}${fld("sV","Voornaam contact",inp("sV",s.voornaam,'name="voornaam"'))}${fld("sN","Naam contact",inp("sN",s.naam,'name="naam"'))}
    ${fld("sA","Adres",inp("sA",s.adres,'name="adres"'),"full")}${fld("sE","E-mail",inp("sE",s.email,'name="email" type="email"'))}${fld("sT","Telefoon",inp("sT",s.telefoon,'name="telefoon"'))}
-   ${fld("sK","KBO-nummer",inp("sK",s.kbo,'name="kbo"'))}${fld("sBd","Bedrag (€)",inp("sBd",s.bedrag,'name="bedrag" inputmode="decimal"'))}<div class="err full" id="spErr"></div></form>`,
+   ${fld("sK","KBO-nummer",inp("sK",s.kbo,'name="kbo"'))}${fld("sBd","Bedrag (€)",inp("sBd",s.bedrag,'name="bedrag" inputmode="decimal"'))}
+   <label class="full sp-nat"><input type="checkbox" id="sNat"${(s.naturaJaren||[]).includes(JAAR)?" checked":""}><span><b>Voldaan in ${JAAR}</b><small>Sponsoring in natura, of op een andere manier in orde zonder betaling</small></span></label><div class="err full" id="spErr"></div></form>`,
    `${id?'<button class="btn ghost danger" data-w id="spDel">Verwijderen</button><span class="grow"></span>':""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="spOk">Bewaren</button>`);
   if(!canWrite)$$("#fSp input").forEach(i=>i.disabled=true);
+  if(!s)s={};
   $("#spOk").onclick=async()=>{const f=formData($("#fSp"));if(!f.bedrijf.trim()){$("#spErr").textContent="Vul de naam van het bedrijf in.";return}
-    const d={...f,bedrijf:f.bedrijf.trim(),bedrag:num(f.bedrag)};closeModal();await write("sponsors",id||newId("sponsors"),d);toast("Sponsor bewaard.")};
+    const nj=new Set((s.naturaJaren||[]).map(Number));if($("#sNat").checked)nj.add(JAAR);else nj.delete(JAAR);
+    const d={...f,bedrijf:f.bedrijf.trim(),bedrag:num(f.bedrag),naturaJaren:[...nj].sort()};closeModal();await write("sponsors",id||newId("sponsors"),d);toast("Sponsor bewaard.")};
   if(id)$("#spDel").onclick=()=>confirmBox("Sponsor <b>"+esc(s.bedrijf)+"</b> verwijderen?","Verwijderen",async()=>{await write("sponsors",id,null,{del:true});toast("Sponsor verwijderd.")});
 }
 
