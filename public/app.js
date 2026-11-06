@@ -1337,15 +1337,29 @@ VIEWS.mails=()=>({title:"Mails aan leden",sub:"Gepersonaliseerde mails voor een 
   <div class="panel"><div class="panel-h"><h2>Voorbeeld</h2><span class="grow"></span><button class="btn sm" data-act="mailPrev" aria-label="Vorige">‹</button><span id="mIdx" style="font-size:13px;color:var(--muted)"></span><button class="btn sm" data-act="mailNext" aria-label="Volgende">›</button></div>
     <div class="panel-b" style="display:flex;flex-direction:column;gap:10px"><div class="mailhead" id="mHead"></div><div class="preview" id="mPrev"></div></div></div>
   <div class="panel"><div class="panel-h"><h2>3 · Versturen</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:12px">
-    <button class="btn primary" data-act="mailZip"${met.length?"":" disabled"}>${ic("download")}${met.length} mails downloaden als concepten (.zip)</button>
+    ${MAILSMTP===null?(mailSmtpLaad(),'<div class="muted small">Verzendinstellingen laden…</div>'):MAILSMTP.ingesteld?`<button class="btn primary" data-w data-act="mailSend"${met.length?"":" disabled"}>${ic("mails")}${met.length} ${met.length===1?"mail":"mails"} versturen</button>
+    <button class="btn" data-w data-act="mailTest"${met.length?"":" disabled"}>Testmail naar mezelf (${esc(ME?ME.email:"")})</button>
+    <div style="font-size:13.5px;color:var(--muted)">Elke ontvanger krijgt een eigen mail met de juiste naam en het juiste bedrag, verstuurd vanaf <b>${esc(MAILSMTP.van.email)}</b>.</div><div id="mailProg"></div>`:`<div class="note">Rechtstreeks versturen is nog niet ingesteld. Vul in Vercel <span class="kbd">SMTP_HOST</span>, <span class="kbd">SMTP_PORT</span>, <span class="kbd">SMTP_USER</span> en <span class="kbd">SMTP_PASS</span> in.</div>`}
+    <details><summary style="cursor:pointer;font-weight:600">Andere manieren</summary><div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+    <button class="btn" data-act="mailZip"${met.length?"":" disabled"}>${ic("download")}${met.length} mails downloaden als concepten (.zip)</button>
     <div style="font-size:13.5px;color:var(--muted)">Pak het zip-bestand uit en dubbelklik een mail: ze opent in Outlook als klaar-te-versturen concept, met de juiste naam en het juiste bedrag.</div>
     <button class="btn" data-act="mailCopy"${met.length?"":" disabled"}>${ic("copy")}Alle adressen kopiëren (voor BCC)</button>
     <div style="font-size:13.5px;color:var(--muted)">Voor één algemene mail: plak de adressen in het BCC-veld. Velden zoals {voornaam} worden dan niet ingevuld.</div>
     <details><summary style="cursor:pointer;font-weight:600">Eén voor één openen in je mailprogramma</summary><div class="list" style="margin-top:6px;max-height:320px;overflow:auto">
       ${met.map((r,i)=>`<div class="li"><span class="grow trunc">${esc(r.label)} <span style="color:var(--muted)">${esc(r.email)}</span></span><a class="btn sm" href="${esc(mailto(r,M))}" target="_blank" rel="noopener">Open</a></div>`).join("")}
-    </div></details>
+    </div></details></div></details>
   </div></div></div></div>`},});
 VIEWS.mails.after=()=>{mailPreview()};
+let MAILSMTP=null,MAILBUSY=false;
+async function mailSmtpLaad(){try{MAILSMTP=await api("/api/mail")}catch(e){MAILSMTP={ingesteld:false,van:{}}}if(route()==="mails")render(true)}
+function mailBericht(r,M,aan){return{aan:aan||r.email,aanNaam:r.label||"",onderwerp:vul(M.onderwerp,r),html:mailHtml(r,M)}}
+async function mailVerstuur(lijst,label){if(MAILBUSY)return;MAILBUSY=true;const prog=()=>$("#mailProg");let ok=0;const fout=[];
+  try{for(let i=0;i<lijst.length;i+=10){const deel=lijst.slice(i,i+10);const p=prog();if(p)p.innerHTML=`<div class="note info">Bezig met versturen: ${i} van ${lijst.length}…</div>`;
+      try{const j=await api("/api/mail",{method:"POST",body:JSON.stringify({berichten:deel})});for(const x of j.resultaten||[])x.ok?ok++:fout.push(x.aan+" ("+(x.fout||"mislukt")+")")}
+      catch(e){deel.forEach(m=>fout.push(m.aan+" ("+e.message+")"))}}}
+  finally{MAILBUSY=false}
+  const p=prog();if(p)p.innerHTML=`<div class="note ${fout.length?"":"info"}"><b>${ok}</b> ${ok===1?"mail":"mails"} verstuurd${label?" ("+esc(label)+")":""}.${fout.length?`<br>Niet gelukt (${fout.length}): ${fout.map(esc).join(", ")}`:""}</div>`;
+  toast(fout.length?ok+" verstuurd, "+fout.length+" niet gelukt.":ok+" "+(ok===1?"mail":"mails")+" verstuurd.",!!fout.length)}
 function mailRecips(){const G=groepen();const g=G.find(x=>x.id===UI.mailGroep)||G[0];return g.list.filter(r=>r.email)}
 function mailHtml(r,M){return M.isHtml?vul(M.body,r):textToHtml(vul(M.body,r))}
 function mailto(r,M){const text=M.isHtml?htmlToText(vul(M.body,r)):vul(M.body,r);let u="mailto:"+encodeURIComponent(r.email)+"?subject="+encodeURIComponent(vul(M.onderwerp,r))+"&body="+encodeURIComponent(text);return u.length>1900?"mailto:"+encodeURIComponent(r.email)+"?subject="+encodeURIComponent(vul(M.onderwerp,r)):u}
@@ -1870,6 +1884,8 @@ document.addEventListener("click",async e=>{
       const tid=M.tplId||newId("templates");await write("templates",tid,{naam:M.naam.trim(),onderwerp:M.onderwerp,body:M.body,isHtml:M.isHtml,groep:UI.mailGroep});M.tplId=tid;UI.mailTpl=tid;saveUI();toast("Sjabloon bewaard.");break}
     case"mailDel":confirmBox("Sjabloon <b>"+esc(MAIL.naam)+"</b> verwijderen?","Verwijderen",async()=>{await write("templates",MAIL.tplId,null,{del:true});MAIL=null;UI.mailTpl="";saveUI();render()});break;
     case"mailCopy":{const list=mailRecips().map(r=>r.email).join("; ");try{await navigator.clipboard.writeText(list);toast(mailRecips().length+" adressen gekopieerd.")}catch(err){modal("Adressen",`<textarea style="width:100%;min-height:200px" readonly id="adrTa">${esc(list)}</textarea><span style="color:var(--muted)">Selecteer alles en kopieer.</span>`,"");setTimeout(()=>{const ta=$("#adrTa");ta&&ta.select()},50)}break}
+    case"mailTest":{const list=mailRecips();if(!list.length||!ME)break;await mailVerstuur([{...mailBericht(list[0],MAIL,ME.email),onderwerp:"[TEST] "+vul(MAIL.onderwerp,list[0])}],"testmail naar "+ME.email);break}
+    case"mailSend":{const list=mailRecips();if(!list.length)break;confirmBox(`<b>${list.length}</b> ${list.length===1?"mail":"mails"} versturen vanaf <b>${esc(MAILSMTP&&MAILSMTP.van.email||"")}</b>?<br><span class="muted small">Onderwerp: ${esc(vul(MAIL.onderwerp,list[0]))}</span>`,"Versturen",()=>mailVerstuur(list.map(r=>mailBericht(r,MAIL))));break}
     case"mailZip":{const list=mailRecips();const zip=new JSZip();list.forEach((r,i)=>zip.file(String(i+1).padStart(3,"0")+" "+(r.label||r.email).replace(/[\\/:*?"<>|]/g,"")+".eml",eml(r,MAIL)));
       const blob=await zip.generateAsync({type:"blob"});await save("VBHA mails "+slug(MAIL.naam||MAIL.onderwerp||"bericht")+".zip",blob);break}
     case"nieuwJaar":nieuwJaar();break;
