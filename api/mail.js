@@ -1,6 +1,7 @@
 import { requireUser, sendError, httpErr } from "./_lib/sb.js";
 import { smtpConfigured, afzender, verstuur } from "./_lib/smtp.js";
 import { ondertekenLinks } from "./_lib/lidlink.js";
+import { herinneringen } from "./_lib/herinnering.js";
 
 // Mails versturen vanuit Communicatie › Mails (enkel voor bewerkers).
 // GET  -> {ingesteld, van}
@@ -10,6 +11,7 @@ export const config = { maxDuration: 60 };
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
+    if (req.query && req.query.f === "herinnering") return await herinneringen(req, res); // geplande taak (Supabase pg_cron)
     if (req.method === "GET") { await requireUser(req); return res.status(200).json({ ingesteld: smtpConfigured(), van: afzender() }); }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
     await requireUser(req, { write: true });
