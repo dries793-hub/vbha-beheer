@@ -1951,11 +1951,11 @@ function kfStats(){const c=kfCfg(),L=kfLijst();const per=new Map();let kids=0,ca
 function kfDubbel(L){const m={};for(const r of L){const e=norm(r.email);if(e)m[e]=(m[e]||0)+1}return m}
 
 VIEWS.kinderfeest=()=>({title:"Kinderfeest",sub:"Inschrijvingen kinderfeest",
-  actions:`<a class="btn" href="${KF_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden">${ic("deel")}Inschrijfpagina</a><button class="btn" data-act="kfExport">${ic("download")}Excel</button><button class="btn iconbtn" data-w data-act="kfInst" title="Instellingen kinderfeest" aria-label="Instellingen kinderfeest">${ic("instellingen")}</button><button class="btn primary" data-w data-act="kfNieuw">${ic("plus")}Nieuwe inschrijving</button>`,
+  actions:`<a class="btn" href="${KF_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden">${ic("deel")}Inschrijfpagina</a><button class="btn primary" data-w data-act="kfNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-w data-act="kfInst" title="Instellingen kinderfeest" aria-label="Instellingen kinderfeest">${ic("instellingen")}</button>`,
   body(){const st=kfStats(),c=st.c;const q=norm(KFQ);const dub=kfDubbel(st.L);
     const list=q?st.L.filter(r=>norm([r.lid,r.email,r.opmerking,...(r.kinderen||[]).map(k=>k.naam)].join(" ")).includes(q)):st.L;
     const max=Math.max(1,...st.per.values());const ages=[];for(let a=0;a<=c.leeftijd;a++)ages.push(a);
-    return `<div class="kf-info"><span>Feest: <b>${c.datum?esc(new Date(c.datum+"T12:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})):"datum niet ingesteld"}</b>${c.tijd?" · "+esc(c.tijd):""}</span>${c.locatie?`<span>${esc(c.locatie)}</span>`:""}<span>Cadeau t.e.m. <b>${c.leeftijd} jaar</b></span></div>
+    return `
     <div class="tiles"><div class="tile hero"><span class="lbl">Ingeschreven kinderen</span><span class="val">${st.kids}</span><span class="hint">${st.L.length} ${st.L.length===1?"inschrijving":"inschrijvingen"}</span></div>
       <div class="tile"><span class="lbl">Cadeautjes nodig</span><span class="val">${st.cadeau}</span><span class="hint">t.e.m. ${c.leeftijd} jaar op de feestdag${st.onbekend?" (incl. "+st.onbekend+" zonder geboortedatum)":""}</span></div>
       <div class="tile"><span class="lbl">Ouder dan ${c.leeftijd}</span><span class="val">${st.ouder}</span><span class="hint">geen cadeautje</span></div>
