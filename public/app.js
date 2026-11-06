@@ -27,14 +27,14 @@ const ICON={
   x:'<path d="M6 6l12 12M18 6L6 18"/>',
   historiek:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
   banket:'<path d="M7 3v7a3 3 0 0 0 3 3v8M7 3v4M10 3v4M4 3v4a3 3 0 0 0 3 3"/><path d="M17 21V3c-2 1.5-3 4-3 7v4h3"/>',
-  administratie:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/>',
+  administratie:'<path d="M4 6.5h16v3.25a2.25 2.25 0 0 0 0 4.5v3.25H4v-3.25a2.25 2.25 0 0 0 0-4.5z"/><path d="M14.5 6.5v2M14.5 11v2M14.5 15.5v2"/>',
   boekingen:'<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
   verwerken:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/>',
   regels:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
   bank:'<path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/>',
   reglement:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
   kaart:'<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
-  communicatie:'<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'
+  communicatie:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/>',deel:'<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'
 };
 const ic=n=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+ICON[n]+'</svg>';
 const NAV=[{id:"leden",label:"Leden",items:[["leden","Ledenlijst"],["punten","Puntensysteem"]]},{id:"boekhouding",label:"Boekhouding",items:[["boekhouding","Overzicht"],["boekingen","Transacties"],["verwerken","Te verwerken"],["historiek","Historiek"]]},{id:"administratie",label:"Activiteiten",items:[["kalenders","Kalenders"],["sponsors","Sponsors"],["banket","Banket"]]},{id:"communicatie",label:"Communicatie",items:[["mails","Mails"]]}];
@@ -321,7 +321,7 @@ const EMBLEM='<img class="emblem emblem-l" alt="" width="47" height="52" src="da
 function nieuweInschr(){return [...S.banket.values(),...S.kinderfeest.values()].filter(r=>r.nieuw&&Number(r.jaar)===JAAR)}
 function inschrMelding(){const L=nieuweInschr();if(!L.length)return"";const b=L.filter(r=>S.banket.has(r.id)).length,k=L.filter(r=>S.kinderfeest.has(r.id)).length;
   const it=(v,n,t)=>n?`<a class="nm-i" href="#${v}"><b>${t}</b><span>${n} ${n===1?"nieuwe inschrijving":"nieuwe inschrijvingen"}</span></a>`:"";
-  return `<div class="nmeld" role="status"><span class="nm-ic">${ic("communicatie")}</span><div class="nm-body"><b>${L.length===1?"Er is een nieuwe inschrijving":L.length+" nieuwe inschrijvingen"} binnengekomen</b>
+  return `<div class="nmeld" role="status"><span class="nm-ic">${ic("deel")}</span><div class="nm-body"><b>${L.length===1?"Er is een nieuwe inschrijving":L.length+" nieuwe inschrijvingen"} binnengekomen</b>
   <div class="nm-l">${it("banket",b,"Banket")}${it("kinderfeest",k,"Kinderfeest")}</div></div>${canWrite?`<button type="button" class="nm-x" data-act="inschrGezien" aria-label="Melding sluiten" title="Melding sluiten">${ic("x")}</button>`:""}</div>`}
 function nieuweLeden(){return [...S.leden.values()].filter(l=>l.nieuw).sort((a,b)=>String(b.aangemeld||"").localeCompare(String(a.aangemeld||"")))}
 function nieuwMelding(){const L=nieuweLeden();if(!L.length)return"";
@@ -449,7 +449,7 @@ function sparkline(C){
 
 /* ---------- leden ---------- */
 VIEWS.leden=()=>({title:"Leden",sub:"Ledenadministratie en lidgeld "+JAAR,
-  actions:'<a class="btn" href="/inschrijven" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met nieuwe leden">'+ic("communicatie")+'Inschrijfpagina</a><button class="btn primary" data-w data-act="nieuwLid">'+ic("plus")+'Nieuw lid</button><button class="btn iconbtn" data-act="ledenInst" aria-label="Instellingen ledenlijst" title="Instellingen ledenlijst">'+ic("instellingen")+'</button>',
+  actions:'<a class="btn" href="/inschrijven" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met nieuwe leden">'+ic("deel")+'Inschrijfpagina</a><button class="btn primary" data-w data-act="nieuwLid">'+ic("plus")+'Nieuw lid</button><button class="btn iconbtn" data-act="ledenInst" aria-label="Instellingen ledenlijst" title="Instellingen ledenlijst">'+ic("instellingen")+'</button>',
   body(){const C=ctx();const c=cfg();
   return `<div class="bar"><div class="search">${ic("search")}<input id="ledenQ" data-live data-input="ledenQ" placeholder="Zoek op naam, adres, e-mail of telefoon" value="${esc(UI.ledenQ)}"></div>
     <select class="sel" id="ledenCat" data-change="ledenCat"><option value="">Alle categorieën</option>${c.ledenCategorieen.map(k=>`<option${UI.ledenCat===k?" selected":""}>${esc(k)}</option>`).join("")}</select>
@@ -1081,7 +1081,7 @@ function bkTable(){
     return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b>${x.lid?"":'<div class="small muted">niet gevonden in ledenlijst</div>'}</td><td class="nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td><td class="muted nowrap">${esc(r.ingediend||"")}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
   </tbody>${R.length?`<tfoot><tr><td>${R.length} inschrijvingen</td><td>${pers} personen</td><td></td><td></td><td class="num">${eur(R.reduce((s,x)=>s+x.due,0))}</td><td></td><td></td></tr></tfoot>`:""}</table></div>`}
 VIEWS.banket=()=>({title:"Banket "+JAAR,sub:"Inschrijvingen en betalingen",
-  actions:`<a class="btn" href="${BK_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden">${ic("communicatie")}Inschrijfpagina</a><button class="btn" data-act="bkExport">${ic("download")}Exporteren</button><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button>`,
+  actions:`<a class="btn" href="${BK_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden">${ic("deel")}Inschrijfpagina</a><button class="btn" data-act="bkExport">${ic("download")}Exporteren</button><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button>`,
   body(){
   const R=bkRows(),bc=bkCfg();const pers=R.reduce((s,x)=>s+(x.r.personen===2?2:1),0);
   let norm_=0,veg=0;for(const {r} of R){(r.menu1==="Vegetarisch"?veg++:norm_++);if(r.personen===2)(r.menu2==="Vegetarisch"?veg++:norm_++)}
@@ -1928,7 +1928,7 @@ function kfStats(){const c=kfCfg(),L=kfLijst();const per=new Map();let kids=0,ca
 function kfDubbel(L){const m={};for(const r of L){const e=norm(r.email);if(e)m[e]=(m[e]||0)+1}return m}
 
 VIEWS.kinderfeest=()=>({title:"Kinderfeest",sub:"Inschrijvingen kinderfeest",
-  actions:`<a class="btn" href="${KF_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden">${ic("communicatie")}Inschrijfpagina</a><button class="btn" data-act="kfExport">${ic("download")}Excel</button><button class="btn iconbtn" data-w data-act="kfInst" title="Instellingen kinderfeest" aria-label="Instellingen kinderfeest">${ic("instellingen")}</button><button class="btn primary" data-w data-act="kfNieuw">${ic("plus")}Nieuwe inschrijving</button>`,
+  actions:`<a class="btn" href="${KF_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden">${ic("deel")}Inschrijfpagina</a><button class="btn" data-act="kfExport">${ic("download")}Excel</button><button class="btn iconbtn" data-w data-act="kfInst" title="Instellingen kinderfeest" aria-label="Instellingen kinderfeest">${ic("instellingen")}</button><button class="btn primary" data-w data-act="kfNieuw">${ic("plus")}Nieuwe inschrijving</button>`,
   body(){const st=kfStats(),c=st.c;const q=norm(KFQ);const dub=kfDubbel(st.L);
     const list=q?st.L.filter(r=>norm([r.lid,r.email,r.opmerking,...(r.kinderen||[]).map(k=>k.naam)].join(" ")).includes(q)):st.L;
     const max=Math.max(1,...st.per.values());const ages=[];for(let a=0;a<=c.leeftijd;a++)ages.push(a);
