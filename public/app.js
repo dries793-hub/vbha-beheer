@@ -2125,17 +2125,20 @@ const agLang=iso=>agD(iso).toLocaleDateString("nl-BE",{weekday:"long",day:"numer
 const agKort=iso=>agD(iso).toLocaleDateString("nl-BE",{weekday:"short",day:"numeric",month:"short"});
 const agDagen=iso=>Math.round((agD(iso)-agD(todayISO()))/864e5);
 const agWanneer=iso=>{const n=agDagen(iso);return n===0?"vandaag":n===1?"morgen":n===-1?"gisteren":n>1&&n<=13?"over "+n+" dagen":n>13&&n<70?"over "+Math.round(n/7)+" weken":n<0?Math.abs(n)+" dagen geleden":""};
+// Komt het item in de activiteitenmail ({agenda})? Activiteiten, banket en kinderfeest standaard wel; vergaderingen enkel de algemene.
+const vgInMail=v=>typeof v.inMail==="boolean"?v.inMail:/algemene/i.test(v.soort||"");
+const agMailVink=(id,aan)=>`<label class="sp-nat full" for="${id}"><input type="checkbox" id="${id}"${aan?" checked":""}${canWrite?"":" disabled"}><span><b>Opnemen in de activiteitenmail</b><small>Verschijnt als kader in mails met het blok {agenda}.</small></span></label>`;
 function agItems(){const out=[];
-  for(const a of S.activiteiten.values())if(a.datum)out.push({id:a.id,t:"act",datum:a.datum,uur:a.uur||"",titel:a.titel||"Activiteit",locatie:a.locatie||"",info:a.info||""});
-  for(const v of S.vergaderingen.values())if(v.datum)out.push({id:v.id,t:"verg",datum:v.datum,uur:v.uur||"",titel:v.titel||v.soort||"Vergadering",locatie:v.locatie||""});
-  try{const k=kfCfg();if(k.datum)out.push({id:"kf",t:"auto",href:"kinderfeest",datum:k.datum,uur:k.tijd||"",titel:"Kinderfeest",locatie:k.locatie||""})}catch(e){}
-  const b=bkCfg();if(b.datum)out.push({id:"bk",t:"auto",href:"banket",datum:b.datum,uur:b.uur||"",titel:"Banket",locatie:b.locatie||""});
+  for(const a of S.activiteiten.values())if(a.datum)out.push({id:a.id,t:"act",datum:a.datum,uur:a.uur||"",titel:a.titel||"Activiteit",locatie:a.locatie||"",info:a.info||"",inMail:a.inMail!==false});
+  for(const v of S.vergaderingen.values())if(v.datum)out.push({id:v.id,t:"verg",datum:v.datum,uur:v.uur||"",titel:v.titel||v.soort||"Vergadering",locatie:v.locatie||"",inMail:vgInMail(v)});
+  try{const k=kfCfg();if(k.datum)out.push({id:"kf",t:"auto",href:"kinderfeest",datum:k.datum,uur:k.tijd||"",titel:"Kinderfeest",locatie:k.locatie||"",info:k.info||"",inMail:k.inMail!==false})}catch(e){}
+  const b=bkCfg();if(b.datum)out.push({id:"bk",t:"auto",href:"banket",datum:b.datum,uur:b.uur||"",titel:"Banket",locatie:b.locatie||"",info:b.info||"",inMail:b.inMail!==false});
   return out.sort((x,y)=>(x.datum+x.uur).localeCompare(y.datum+y.uur))}
 const agSoort=x=>x.t==="verg"?["verg","Vergadering"]:["act","Activiteit"];
-const agAttr=x=>x.t==="auto"?`href="#${x.href}"`:`data-act="${x.t==="verg"?"vgToon":"agToon"}" data-id="${esc(x.id)}"`;
+const agAttr=x=>`data-act="${x.t==="verg"?"vgToon":x.t==="auto"?"agAuto":"agToon"}" data-id="${esc(x.id)}"`;
 function agRij(x){const d=agD(x.datum),[c,l]=agSoort(x);const w=agWanneer(x.datum);
   return `<a class="ag-r" ${agAttr(x)}><span class="ag-dt ${c}"><b>${d.getDate()}</b><span>${d.toLocaleDateString("nl-BE",{month:"short"}).replace(".","")}</span></span>
-  <span class="ag-m"><b class="trunc">${esc(x.titel)}</b><span class="trunc">${esc([agKort(x.datum),x.uur,x.locatie].filter(Boolean).join(" · "))}</span></span></a>`}
+  <span class="ag-m"><b class="trunc">${esc(x.titel)}${x.inMail?`<span class="ag-mail" title="Komt in de activiteitenmail" aria-label="Komt in de activiteitenmail">${ic("mails")}</span>`:""}</b><span class="trunc">${esc([agKort(x.datum),x.uur,x.locatie].filter(Boolean).join(" · "))}</span></span></a>`}
 
 /* ---------- dashboard: mini-kalender en volgende vergadering ---------- */
 function agMaand(L){const t=todayISO();const m=AG.m||t.slice(0,7);const [Y,M]=m.split("-").map(Number);
@@ -2176,13 +2179,28 @@ function agForm(a,id){const d=canWrite?"":" disabled";a=a||{};
    ${fld("agT","Wat",inp("agT",a.titel,'maxlength="120" placeholder="bv. Jaarmarkt, Paasmaandagwandeling"'+d),"full")}
    ${fld("agD","Datum",`<input id="agD" type="date" value="${esc(a.datum||AG.dag||todayISO())}"${d}>`)}${fld("agU","Uur",inp("agU",a.uur,'maxlength="20" placeholder="bv. 14u00"'+d))}
    ${fld("agL","Waar",inp("agL",a.locatie,'maxlength="160"'+d),"full")}
-   ${fld("agI","Meer info",`<textarea id="agI" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}<div class="err full" id="agErr"></div></form>`,
+   ${fld("agI","Meer info",`<textarea id="agI" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false)}<div class="err full" id="agErr"></div></form>`,
    `${id&&canWrite?'<button class="btn danger" id="agDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="agOk">Bewaren</button>':""}`);
   if(!canWrite)return;
-  $("#agOk").onclick=async()=>{const r={titel:$("#agT").value.trim(),datum:$("#agD").value,uur:$("#agU").value.trim(),locatie:$("#agL").value.trim(),info:$("#agI").value.trim()};
+  $("#agOk").onclick=async()=>{const r={titel:$("#agT").value.trim(),datum:$("#agD").value,uur:$("#agU").value.trim(),locatie:$("#agL").value.trim(),info:$("#agI").value.trim(),inMail:$("#agM").checked};
     if(!r.titel){$("#agErr").textContent="Vul in wat er te doen is.";return}if(!/^\d{4}-\d{2}-\d{2}$/.test(r.datum)){$("#agErr").textContent="Kies een datum.";return}
     closeModal();await write("activiteiten",id||agId("act"),{...(id?stripId(S.activiteiten.get(id)||{}):{}),...r});toast("Activiteit bewaard.")};
   const del=$("#agDel");if(del)del.onclick=()=>confirmBox(`<b>${esc(a.titel||"Deze activiteit")}</b> verwijderen?`,"Verwijderen",async()=>{await write("activiteiten",id,null,{del:true});toast("Activiteit verwijderd.")})}
+
+/* ---------- banket en kinderfeest als agenda-item: zelfde eigenschappenscherm, bewaart in hun instellingen ---------- */
+function agAutoForm(id){const bk=id==="bk",c=bk?bkCfg():kfCfg(),d=canWrite?"":" disabled",naam=bk?"Banket":"Kinderfeest";
+  modal(naam,`<form id="fAa" class="form">
+   ${fld("aaD","Datum",`<input id="aaD" type="date" value="${esc(c.datum||"")}"${d}>`)}${fld("aaU","Uur",inp("aaU",bk?c.uur:c.tijd,'maxlength="20" placeholder="bv. 19u00"'+d))}
+   ${fld("aaL","Waar",inp("aaL",c.locatie,'maxlength="160"'+d),"full")}
+   ${fld("aaI","Meer info",`<textarea id="aaI" maxlength="2000" placeholder="Komt in de activiteitenmail onder datum, uur en plaats"${d}>${esc(c.info||"")}</textarea>`,"full")}
+   ${agMailVink("aaM",c.inMail!==false)}
+   <div class="muted small full">Zolang de inschrijvingen open zijn, krijgt het kader in de mail ook een knop naar de inschrijfpagina. Prijs en inschrijvingen stel je in op de pagina ${naam.toLowerCase()}.</div>
+   <div class="err full" id="aaErr"></div></form>`,
+   `<a class="btn" href="#${bk?"banket":"kinderfeest"}" data-act="closeModal" style="margin-right:auto">Naar ${naam.toLowerCase()} ›</a><button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="aaOk">Bewaren</button>':""}`);
+  if(!canWrite)return;
+  $("#aaOk").onclick=async()=>{const r={datum:$("#aaD").value,locatie:$("#aaL").value.trim(),info:$("#aaI").value.trim(),inMail:$("#aaM").checked};const u=$("#aaU").value.trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(r.datum)){$("#aaErr").textContent="Kies een datum.";return}
+    const k=bk?"banket":"kf_"+JAAR;closeModal();await write("config",k,{...stripId(S.config.get(k)||{}),...r,...(bk?{uur:u}:{tijd:u})});toast(naam+" bewaard.")}}
 
 /* ---------- pagina Verslagen vergaderingen (Communicatie) ---------- */
 VIEWS.verslagen=()=>({title:"Verslagen vergaderingen",actions:'<button class="btn primary" data-w data-act="vgNieuw">'+ic("plus")+'Nieuwe vergadering</button>',body(){
@@ -2202,11 +2220,12 @@ function vgForm(v,id){const d=canWrite?"":" disabled";v=v||{soort:"Bestuursverga
    ${fld("vg_datum","Datum",`<input id="vg_datum" type="date" value="${esc(v.datum||"")}"${d}>`)}${fld("vg_uur","Uur",inp("vg_uur",v.uur,'maxlength="20" placeholder="bv. 20u00"'+d))}
    ${fld("vg_locatie","Waar",inp("vg_locatie",v.locatie,'maxlength="160" placeholder="bv. Kazerne, refter"'+d),"full")}
    ${ta("agenda","Agenda","Eén punt per regel",110)}
+   ${agMailVink("vg_mail",vgInMail(v))}
 <div class="err full" id="vgErr"></div></form>`,
    `${id&&canWrite?'<button class="btn danger" id="vgDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="vgOk">Bewaren</button>':""}`,{});
   const pr=$("#vgPrint");if(pr)pr.onclick=()=>vgPrint(S.vergaderingen.get(id)||v);
   if(!canWrite)return;
-  $("#vgOk").onclick=async()=>{const g=k=>$("#vg_"+k).value.trim();const r={soort:$("#vg_soort").value,titel:g("titel"),datum:$("#vg_datum").value,uur:g("uur"),locatie:g("locatie"),agenda:g("agenda")};
+  $("#vgOk").onclick=async()=>{const g=k=>$("#vg_"+k).value.trim();const r={soort:$("#vg_soort").value,titel:g("titel"),datum:$("#vg_datum").value,uur:g("uur"),locatie:g("locatie"),agenda:g("agenda"),inMail:$("#vg_mail").checked};
     if(!/^\d{4}-\d{2}-\d{2}$/.test(r.datum)){$("#vgErr").textContent="Kies een datum.";return}
     closeModal();await write("vergaderingen",id||agId("verg"),{...(id?stripId(S.vergaderingen.get(id)||{}):{}),...r});toast("Vergadering bewaard.")};
   const del=$("#vgDel");if(del)del.onclick=()=>confirmBox(`De vergadering van <b>${esc(fmtDate(v.datum))}</b> en het verslag verwijderen?`,"Verwijderen",async()=>{await write("vergaderingen",id,null,{del:true});toast("Vergadering verwijderd.")})}
@@ -2226,6 +2245,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(
     case"agType":{e.preventDefault();const g=x=>{const el=$("#"+x);return el?el.value:""};
       if(t.dataset.v==="verg"&&$("#fAg")){const v={soort:"Bestuursvergadering",titel:g("agT"),datum:g("agD"),uur:g("agU")||"20u00",locatie:g("agL"),agenda:g("agI")};AG.fromKal=true;vgForm(v,null)}
       else if(t.dataset.v==="act"&&$("#fVg")){agForm({titel:g("vg_titel"),datum:g("vg_datum"),uur:g("vg_uur"),locatie:g("vg_locatie"),info:g("vg_agenda")},null)}break}
+    case"agAuto":e.preventDefault();agAutoForm(t.dataset.id);break;
     case"agToon":{e.preventDefault();const a=S.activiteiten.get(t.dataset.id);if(a)agForm(a,a.id);break}
     case"vgNieuw":AG.fromKal=false;vgForm(null,null);break;
     case"vgToon":{e.preventDefault();const v=S.vergaderingen.get(t.dataset.id);if(v)vgForm(v,v.id);break}
@@ -2414,10 +2434,10 @@ function vul(t,r,html){
   return s.replace(/Beste\s+,/g,"Beste,")
 }
 function mlAgendaItems(){const nu=todayISO();
-  return agItems().filter(x=>x.datum>=nu).filter(x=>{if(x.t!=="verg")return true;const v=S.vergaderingen.get(x.id);return v&&/algemene/i.test(v.soort||v.titel||"")})}
+  return agItems().filter(x=>x.datum>=nu&&x.inMail)}
 function mlAgendaHtml(){const L=mlAgendaItems();if(!L.length)return"<p><em>Er staan momenteel geen activiteiten gepland.</em></p>";
   return L.map(x=>{const rij=[`&bull; <strong>Datum:</strong> ${esc(mlLang(x.datum))}`];if(x.uur)rij.push(`&bull; <strong>Tijd:</strong> ${esc(x.uur)}`);if(x.locatie)rij.push(`&bull; <strong>Locatie:</strong> ${esc(x.locatie)}`);
-    let extra="";const a=x.t==="act"&&S.activiteiten.get(x.id);if(a&&a.info)extra+=`<p>${esc(a.info)}</p>`;
+    let extra=x.info?`<p>${esc(x.info).replace(/\n/g,"<br>")}</p>`:"";
     if(x.id==="bk"||x.id==="kf"){const c=x.id==="bk"?bkCfg():kfCfg();const st=insStatus(c,JAAR+(x.id==="bk"?"-12-01":"-12-07"));
       if(st.open)extra+=`<p>Inschrijven kan tot en met ${esc(mlKort(st.tot))}.</p><p data-blok="knop"><a href="${location.origin}/${x.id==="bk"?"banket":"kinderfeest"}">Inschrijven ${x.id==="bk"?"banket":"kinderfeest"}</a></p>`}
     return `<div data-blok="kader"><h2>${esc(x.titel)}</h2>${rij.map(p=>"<p>"+p+"</p>").join("")}${extra}</div>`}).join("")}
@@ -2529,7 +2549,7 @@ function mlEditor(M){const d=!canWrite;const b=(act,t,lab,extra="")=>`<button ty
     <span class="ml-dd">${b("velden","Veld &#9662;","Veld invoegen",' aria-haspopup="true"')}<div class="ml-ddm" id="mlDdm" hidden>${ML_VELDEN.map(([s,L])=>`<div class="ml-dds">${esc(s)}</div>`+L.map(([k,l])=>`<button type="button" data-mlveld="${k}"><span>${esc(l)}</span><code>{${k}}</code></button>`).join("")).join("")}</div></span>
     <span class="grow"></span>${b("bron",M.bron?"Opmaak":"HTML",M.bron?"Terug naar opmaak":"HTML-code bekijken")}</div>
   ${M.bron?`<textarea id="mlRaw" data-mlv="body" class="ml-raw" spellcheck="false"${d?" disabled":""}>${esc(M.body)}</textarea>`:`<div id="mlEd" class="ml-ed" contenteditable="${d?"false":"true"}" spellcheck="true">${M.body}</div>`}
-  <span class="help">Velden zoals <span class="kbd">{voornaam}</span> worden per ontvanger ingevuld. <span class="kbd">{agenda}</span> wordt de lijst met komende activiteiten. Logo, rode balken en lettertype komen er bij het versturen vanzelf bij.</span>`}
+  <span class="help">Velden zoals <span class="kbd">{voornaam}</span> worden per ontvanger ingevuld. <span class="kbd">{agenda}</span> wordt de lijst met komende activiteiten die in de agenda aangevinkt staan voor de mail. Logo, rode balken en lettertype komen er bij het versturen vanzelf bij.</span>`}
 function mlHistoriek(){const L=[...(S.mailings||new Map()).values()].sort((a,b)=>String(b.datum||"").localeCompare(String(a.datum||"")));if(!L.length)return"";
   const N=UI.mlHistN||5;const dt=s=>{const x=new Date(s);return isNaN(x)?"":x.toLocaleDateString("nl-BE",{day:"numeric",month:"short",year:"numeric"})+" "+x.toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})};
   return `<div class="panel"><div class="panel-h"><h2>Verzonden</h2></div><div class="list">${L.slice(0,N).map(m=>`<div class="li ml-h"><div class="grow" style="min-width:0"><div class="trunc"><b>${esc(m.onderwerp||"")}</b></div>
