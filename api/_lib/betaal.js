@@ -45,3 +45,37 @@ async function zetLidgeldBetaald(sb, lidId, jaar, p) {
   const { error } = await sb.from("jaarleden").upsert({ id, data: nieuw });
   if (error) throw error;
 }
+
+/* ---------- banket ---------- */
+async function bewaarBanket(sb, id, data) {
+  const { error } = await sb.from("banket").update({ data }).eq("id", id);
+  if (error) throw error;
+}
+
+// Nieuwe Bancontact-betaling voor een banketinschrijving (of de lopende hergebruiken).
+export async function startBanketBetaling(sb, req, row) {
+  const d = row.data, cur = d.betaling;
+  if (cur && cur.status === "SUCCEEDED") return cur;
+  if (cur && !EIND.has(cur.status) && cur.verlooptOp && Date.parse(cur.verlooptOp) - Date.now() > 20000) return cur;
+  const bedrag = Number(d.bedrag) || 0;
+  const b = await maakBetaling({ bedrag, omschrijving: `${d.naam} Banket ${d.jaar}`, referentie: "VBHA Banket " + d.jaar + " " + String(d.lidId || row.id).slice(0, 14), callbackUrl: siteUrl(req) + "/api/bancontact/callback" });
+  const betaling = { ...b, bedrag, jaar: d.jaar, gestart: new Date().toISOString() };
+  await bewaarBanket(sb, row.id, { ...d, betaling });
+  return betaling;
+}
+
+// Vraagt de status op bij Bancontact en zet de inschrijving op betaald als de betaling gelukt is.
+export async function controleerBanketBetaling(sb, row) {
+  const d = row.data, cur = d.betaling;
+  if (!cur?.id) return null;
+  if (cur.status === "SUCCEEDED") return cur;
+  const p = await haalBetaling(cur.id);
+  const betaling = { ...cur, status: p.status, betaaldOp: p.betaaldOp || cur.betaaldOp || null };
+  let nieuw = { ...d, betaling };
+  if (p.status === "SUCCEEDED") {
+    const dag = new Date(p.betaaldOp || Date.now()).toLocaleDateString("nl-BE", { timeZone: "Europe/Brussels" });
+    nieuw = { ...nieuw, betaald: "OK", betaaldBron: `Betaald met Bancontact Pay op ${dag} (€${p.bedrag.toFixed(2).replace(".", ",")})` };
+  }
+  if (p.status !== cur.status) await bewaarBanket(sb, row.id, nieuw);
+  return betaling;
+}
