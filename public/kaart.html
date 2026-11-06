@@ -703,6 +703,35 @@ let PER_DOOS=100;
 /* Stand van de aanduidingen uit VBHA Beheer (status en datum), bijgewerkt op 6/11/2026 12:10. d = gedaan, r = gereserveerd. */
 let KR_STAND={},KR_DOOR={},KR_OP={},KR_STAND_OP="";
 const KR={ss:new Set(),map:null,lines:new Map(),labels:null,labelAt:null,sel:null,byId:new Map(KR_STREETS.map(s=>[s.id,s]))};
+/* Straatdelen: een straat wordt opgedeeld van kruispunt tot kruispunt. Een kruispunt is een punt dat de straat deelt met een andere straat.
+   Punten van eenzelfde straat die minder dan 40 m van elkaar liggen tellen als één kruispunt, zodat de twee rijrichtingen van een
+   gescheiden rijbaan samen één stuk vormen. Stukken korter dan 50 m worden bij een aangrenzend stuk gevoegd.
+   Id van een deel: <straat-id>~<volgnummer>. Zelfde code in de app en op de openbare kaart, zodat de ids overal gelijk zijn. */
+function krMaakDelen(streets){const key=p=>p[0].toFixed(5)+","+p[1].toFixed(5),cnt=new Map();
+  for(const s of streets){const seen=new Set();for(const part of s.g)for(const p of part){const k=key(p);if(!seen.has(k)){seen.add(k);cnt.set(k,(cnt.get(k)||0)+1)}}}
+  const dist=(a,b)=>{const dy=(a[0]-b[0])*111320,dx=(a[1]-b[1])*111320*Math.cos(a[0]*Math.PI/180);return Math.hypot(dx,dy)};
+  const lengte=g=>{let t=0;for(let i=1;i<g.length;i++)t+=dist(g[i-1],g[i]);return t};
+  const out=new Map();
+  for(const s of streets){const stuk=[];
+    for(const part of s.g){let cur=[part[0]];for(let i=1;i<part.length;i++){cur.push(part[i]);if(i<part.length-1&&cnt.get(key(part[i]))>1){stuk.push(cur);cur=[part[i]]}}if(cur.length>1)stuk.push(cur)}
+    // eindpunten van de stukken groeperen tot kruispunten (binnen 40 m)
+    const kp=[];const kpVan=p=>{for(let i=0;i<kp.length;i++)if(dist(kp[i],p)<40)return i;kp.push(p);return kp.length-1};
+    let groepen=[];const per=new Map();
+    for(const g of stuk){const a=kpVan(g[0]),b=kpVan(g[g.length-1]),k=Math.min(a,b)+"-"+Math.max(a,b);
+      if(!per.has(k)){const gr={a:Math.min(a,b),b:Math.max(a,b),g:[]};per.set(k,gr);groepen.push(gr)}per.get(k).g.push(g)}
+    const glen=gr=>Math.max(...gr.g.map(lengte));
+    for(let t=0;t<groepen.length&&groepen.length>1;){const gr=groepen[t];
+      if(gr.a===gr.b||glen(gr)<50){const h=groepen.find(x=>x!==gr&&(x.a===gr.a||x.b===gr.a||x.a===gr.b||x.b===gr.b))||groepen.find(x=>x!==gr);
+        h.g.push(...gr.g);groepen.splice(t,1);t=0;continue}t++}
+    // nummeren in de richting van de straat (van het ene uiteinde naar het andere)
+    const alle=s.g.flat(),p0=alle[0],ver=alle.reduce((b,p)=>dist(p0,p)>dist(p0,b)?p:b,p0),ax=[ver[0]-p0[0],ver[1]-p0[1]];
+    const proj=gr=>{const pts=gr.g.flat(),m=pts[Math.floor(pts.length/2)];return (m[0]-p0[0])*ax[0]+(m[1]-p0[1])*ax[1]};
+    groepen=groepen.map(gr=>({gr,v:proj(gr)})).sort((x,y)=>x.v-y.v).map(x=>x.gr);
+    const len=groepen.map(gr=>gr.g.reduce((x,g)=>x+lengte(g),0)),L=len.reduce((a,b)=>a+b,0)||1;
+    out.set(s.id,groepen.map((gr,i)=>({id:s.id+"~"+i,sid:s.id,nr:i+1,g:gr.g,k:[kp[gr.a],kp[gr.b]],len:len[i],a:Math.max(groepen.length>1?1:0,Math.round(s.a*len[i]/L))})))}
+  return out}
+const KR_DELEN=krMaakDelen(KR_STREETS),KR_DEEL=new Map([...KR_DELEN.values()].flat().map(d=>[d.id,d]));
+const krDeelStand=sid=>{const L=KR_DELEN.get(sid)||[];let d=0,r=0;for(const x of L){if(KR_STAND[x.id]==="d")d++;else if(KR_STAND[x.id]==="r")r++}return{n:L.length,d,r}};
 
 const krVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const krAdr=n=>n===1?"adres":"adressen";
@@ -748,12 +777,17 @@ function krStyleAll(){const todo=krVar("--kr-todo"),sel=krVar("--accent");const 
   const dn=krVar("--good"),rs=krVar("--info");
   for(const [id,line] of KR.lines){const s=KR.ss.has(id),m=KR_STAND[id];line.setStyle({color:s?sel:m==="d"?dn:m==="r"?rs:todo,weight:s?w[2]:m?w[1]:w[0],opacity:1})}
   for(const id in KR_STAND){const l=KR.lines.get(id);if(l)l.bringToFront()}
-  for(const id of KR.ss){const l=KR.lines.get(id);if(l)l.bringToFront()}}
+  for(const id of KR.ss){const l=KR.lines.get(id);if(l)l.bringToFront()}
+  /* delen van een straat (tot een kruispunt) */
+  if(!KR.segLayer)KR.segLayer=L.layerGroup().addTo(KR.map);KR.segLayer.clearLayers();
+  for(const id in KR_STAND){const x=KR_DEEL.get(id);if(!x||KR_STAND[x.sid]||KR.ss.has(x.sid))continue;
+    L.polyline(x.g,{interactive:false,weight:w[1],color:KR_STAND[id]==="r"?rs:dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}}
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const krDeelTekst=sid=>{const t=krDeelStand(sid);return t.d||t.r?"deels: "+[t.d?t.d+" van "+t.n+" stukken bedeeld":"",t.r?t.r+" gereserveerd":""].filter(Boolean).join(", "):""};
 const krWie=id=>(KR_STAND[id]==="d"?"al bedeeld":"gereserveerd")+(KR_OP[id]?" · "+KR_OP[id]:"");
 function krCard(){const c=$("#krCard"),ids=[...KR.ss].filter(id=>KR.byId.has(id));if(!ids.length){c.hidden=true;return}c.hidden=false;
   const one=ids.length===1;$("#krOne").hidden=!one;$("#krMulti").hidden=one;c.classList.toggle("multi",!one);
-  if(one){const s=KR.byId.get(ids[0]);$("#krCardT").textContent=s.n;$("#krCardM").textContent=[s.w==="Centrum"?"":s.w,KR_STAND[s.id]?krWie(s.id):"","tik nog een straat aan om op te tellen"].filter(Boolean).join(" · ");$("#krCardA").textContent=krNum(s.a);$("#krCardAl").textContent=krAdr(s.a);return}
+  if(one){const s=KR.byId.get(ids[0]);$("#krCardT").textContent=s.n;$("#krCardM").textContent=[s.w==="Centrum"?"":s.w,KR_STAND[s.id]?krWie(s.id):krDeelTekst(s.id),"tik nog een straat aan om op te tellen"].filter(Boolean).join(" · ");$("#krCardA").textContent=krNum(s.a);$("#krCardAl").textContent=krAdr(s.a);return}
   const L=ids.map(id=>KR.byId.get(id)),tot=L.reduce((t,x)=>t+x.a,0),doz=Math.ceil(tot/PER_DOOS);
   $("#krCardT").textContent=ids.length+" straten geselecteerd";$("#krCardM").textContent="Tik een straat aan om ze toe te voegen, nog eens om ze weg te halen.";
   $("#krMulti").innerHTML=`<div class="kr-sum"><div><b>${krNum(tot)}</b><span>adressen</span></div><div><b>${krNum(doz)}</b><span>${doz===1?"doos":"dozen"} <small>(${PER_DOOS} per doos)</small></span></div></div>
