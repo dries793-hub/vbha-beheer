@@ -86,6 +86,17 @@ input:focus{outline:none;border-color:var(--info);box-shadow:0 0 0 3px var(--inf
 .paybox .hint{margin:12px 0 0;font-size:13px;color:var(--muted)}
 .foot{text-align:center;color:var(--muted);font-size:12.5px;margin-top:22px}
 @media (max-width:560px){.grid{grid-template-columns:1fr}.opts{grid-template-columns:1fr 1fr}h1{font-size:23px}.card{padding:18px}.hdr span{display:none}}
+.bevestig{text-align:center;padding:34px 24px}
+.bevestig .ic{width:72px;height:72px;border-radius:50%;background:var(--good-soft);color:var(--good);display:grid;place-items:center;margin:0 auto 16px}
+.bevestig .ic svg{width:36px;height:36px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.bevestig h2{margin:0 0 8px;font-size:24px}
+.bevestig .lead2{margin:0 auto;max-width:440px;color:var(--muted);font-size:15.5px}
+.bevestig .sam{margin:22px auto 0;max-width:420px;border:1px solid var(--line);border-radius:12px;text-align:left;overflow:hidden}
+.bevestig .sam div{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;font-size:14.5px}
+.bevestig .sam div+div{border-top:1px solid var(--line)}
+.bevestig .sam span{color:var(--muted)}
+.bevestig .sam b{text-align:right}
+.bevestig .tot{margin:22px 0 0;font-size:18px;font-weight:700}
 </style>
 </head>
 <body>
@@ -112,7 +123,7 @@ input:focus{outline:none;border-color:var(--info);box-shadow:0 0 0 3px var(--inf
   <p class="foot">Je gegevens worden enkel gebruikt voor de ledenadministratie van de vriendenkring.</p>
 </main>
 <script>
-const $=s=>document.querySelector(s);const t0=Date.now();let INFO=null;
+const $$=s=>[...document.querySelectorAll(s)];const $=s=>document.querySelector(s);const t0=Date.now();let INFO=null;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const eur=n=>"€"+Number(n).toLocaleString("nl-BE",{minimumFractionDigits:0,maximumFractionDigits:2});
 function cats(list){$("#cats").innerHTML=list.map((c,i)=>`<label class="opt"><input type="radio" name="categorie" value="${esc(c)}"${i===0?" required":""}><span>${esc(c)}</span></label>`).join("")}
@@ -137,7 +148,8 @@ function onlineBlok(o,bedrag){const href=appLink(o);
   <p class="hint c">${o.deeplink?"Je bank- of Bancontact-app opent en je bevestigt de betaling daar.":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
   ${o.qrcode?`<div class="qrwrap desk"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div><p>Op een computer? Scan deze code met de Bancontact-app of de app van je bank.</p></div>`:""}
   <p class="wacht" id="bcStatus" aria-live="polite"></p></div>`}
-function toonKlaar(j){
+let KLAAR=null;
+function toonKlaar(j){KLAAR=j;
   const o=j.online&&(j.online.deeplink||j.online.checkout)?j.online:null;
   $("#box").innerHTML=`<div class="card ok"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Bedankt, ${esc(j.voornaam)}!</h2><p>Je inschrijving is goed ontvangen.</p>
   ${j.rekeningnummer||o?`<div class="paybox" id="paybox"><h3>Betaal je lidgeld van ${eur(j.bedrag)}</h3>
@@ -146,7 +158,10 @@ function toonKlaar(j){
   </div>`:""}</div>`;
   if(o){BET={id:o.id,token:o.token};volg()}}
 let BET=null,volgT=0,volgN=0;
-function betaald(){const p=$("#paybox");if(p)p.innerHTML=`<div class="paid"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h3>Je lidgeld is betaald</h3><p>Bedankt! Je bent helemaal in orde. Welkom bij de vriendenkring.</p></div>`;try{sessionStorage.removeItem("vbha_insch")}catch(x){}}
+function betaald(){const j=KLAAR||{};
+  $("#box").innerHTML=`<div class="card bevestig"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+  <h2>Je betaling is goed ontvangen!</h2><p class="lead2">Bedankt${j.voornaam?", "+esc(j.voornaam):""}. We ontvingen je lidgeld${j.bedrag?" van <b>"+eur(j.bedrag)+"</b>":""}${j.jaar?" voor "+esc(j.jaar):""}. Je lidmaatschap is helemaal in orde.</p>
+  <p class="tot">Welkom bij de vriendenkring!</p></div>`;window.scrollTo({top:0,behavior:"smooth"});try{sessionStorage.removeItem("vbha_insch")}catch(x){}}
 async function volg(){clearTimeout(volgT);if(!BET)return;
   try{const r=await fetch(`/api/betaling?id=${encodeURIComponent(BET.id)}&token=${encodeURIComponent(BET.token)}`);const s=await r.json();
     if(s.status==="SUCCEEDED"){betaald();return}
