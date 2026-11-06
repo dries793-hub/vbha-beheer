@@ -1,5 +1,6 @@
 import { admin, sendError, httpErr } from "./_lib/sb.js";
-import { onlineConfigured } from "./_lib/betaalprovider.js";
+import { onlineConfigured, providerNaam } from "./_lib/betaalprovider.js";
+import { testSleutel } from "./_lib/bancontact.js";
 import { startBetaling, controleerBetaling, BETAALTABELLEN } from "./_lib/betaal.js";
 
 // Openbaar, maar enkel met het geheime token dat de inschrijver na het inschrijven kreeg.
@@ -8,6 +9,8 @@ import { startBetaling, controleerBetaling, BETAALTABELLEN } from "./_lib/betaal
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
+    // ?test=bancontact : controleert alleen of de Bancontact-sleutel aanvaard wordt (er wordt niets betaald of bewaard)
+    if (req.method === "GET" && req.query?.test === "bancontact") return res.status(200).json({ provider: onlineConfigured() ? providerNaam() : null, ...(await testSleutel()) });
     if (!onlineConfigured()) throw httpErr(501, "Online betalen is niet ingesteld");
     const b = req.method === "POST" ? (typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {})) : (req.query || {});
     const tabel = BETAALTABELLEN.includes(b.t) ? b.t : "leden";

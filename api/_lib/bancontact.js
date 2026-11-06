@@ -5,8 +5,27 @@
 export function bcConfigured() { return !!String(process.env.BANCONTACT_API_KEY || "").trim(); }
 
 function base() {
+  const eigen = String(process.env.BANCONTACT_API_URL || "").trim().replace(/\/+$/, "");
+  if (eigen) return eigen;
   return String(process.env.BANCONTACT_ENV || "").trim().toLowerCase() === "ext"
     ? "https://api.ext.payconiq.com/v3" : "https://api.payconiq.com/v3";
+}
+
+// Controle van de sleutel zonder iets te betalen: vraagt een onbestaande betaling op.
+// 404 = sleutel aanvaard, 401/403 = sleutel geweigerd. Probeert ook de nieuwe Bancontact Pro-hosts.
+export async function testSleutel() {
+  const key = String(process.env.BANCONTACT_API_KEY || "").trim();
+  if (!key) return { ingesteld: false };
+  const hosts = [...new Set([base(), "https://api.payconiq.com/v3", "https://api.ext.payconiq.com/v3", "https://merchant.api.bancontact.net/v3"])];
+  const out = [];
+  for (const h of hosts) {
+    try {
+      const r = await fetch(h + "/payments/vbha-sleuteltest", { headers: { Authorization: "Bearer " + key } });
+      const t = (await r.text()).slice(0, 160);
+      out.push({ host: h, status: r.status, oordeel: r.status === 404 ? "sleutel aanvaard" : r.status === 401 || r.status === 403 ? "sleutel geweigerd" : "onduidelijk", antwoord: t });
+    } catch (e) { out.push({ host: h, fout: String(e.message || e).slice(0, 120) }); }
+  }
+  return { ingesteld: true, sleutelEindigtOp: key.slice(-4), huidig: base(), resultaten: out };
 }
 
 async function call(path, { method = "GET", body } = {}) {
