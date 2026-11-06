@@ -1038,13 +1038,16 @@ function spKoppel(C){const sp=[...S.sponsors.values()].map(s=>({s,t:spToks(s)}))
   return{per,los}}
 function sponsorOntvangen(s,C){const k=(C._spk=C._spk||spKoppel(C)).per.get(s.id);return k?k.som:0}
 VIEWS.sponsors=()=>({title:"Sponsors",sub:"Sponsorbeheer",actions:'<button class="btn" data-act="docRol" data-v="sponsordossier" title="Sponsordossier openen (uit Documenten)">'+ic("documenten")+'Sponsordossier</button><button class="btn primary" data-w data-act="nieuweSponsor">'+ic("plus")+'Nieuwe sponsor</button>',body(){
-  const C=ctx();const q=norm(UI.spQ);let list=[...S.sponsors.values()].sort((a,b)=>(a.bedrijf||"").localeCompare(b.bedrijf||"","nl"));
+  const C=ctx();C._spk=spKoppel(C);const q=norm(UI.spQ);const ss=UI.spSort||{k:"bedrijf",d:1};
+  const ont=x=>(x.naturaJaren||[]).includes(JAAR)?Math.max(sponsorOntvangen(x,C),num(x.bedrag))+0.001:sponsorOntvangen(x,C);
+  let list=[...S.sponsors.values()].sort((a,b)=>(ss.k==="bedrag"?(num(a.bedrag)-num(b.bedrag)):ss.k==="ontv"?(ont(a)-ont(b)):0)*ss.d||(ss.k==="bedrijf"?ss.d:1)*(a.bedrijf||"").localeCompare(b.bedrijf||"","nl"));
+  const sth=(k,l,cls="")=>`<th class="${cls} sortable${ss.k===k?" sorted":""}" data-act="spSort" data-v="${k}" aria-sort="${ss.k===k?(ss.d>0?"ascending":"descending"):"none"}">${l}<span class="arr">${ss.k===k?(ss.d>0?"▲":"▼"):""}</span></th>`;
   if(q)list=list.filter(s=>norm(Object.values(s).join(" ")).includes(q));
   const totaal=[...S.sponsors.values()].reduce((s,x)=>s+num(x.bedrag),0);const K=C._spk=spKoppel(C);const ontv=[...K.per.values()].reduce((a,x)=>a+x.som,0);const losT=K.los.reduce((a,b)=>a+b.bedrag,0);
   const open=[...S.sponsors.values()].filter(x=>!K.per.has(x.id)&&!(x.naturaJaren||[]).includes(JAAR));const openT=open.reduce((a,x)=>a+num(x.bedrag),0);
-  return `<div class="tiles"><div class="tile"><span class="lbl">Sponsors</span><span class="val">${S.sponsors.size}</span></div><div class="tile"><span class="lbl">Afgesproken bedragen</span><span class="val">${eur(totaal)}</span></div><div class="tile"><span class="lbl">Ontvangen in ${JAAR}</span><span class="val in">${eur(ontv)}</span></div><div class="tile"><span class="lbl">Nog niets van</span><span class="val${open.length?" out":""}">${open.length}</span><span class="hint">${eur(openT)} afgesproken</span></div></div>
+  return `<div class="tiles"><div class="tile"><span class="lbl">Sponsors</span><span class="val">${S.sponsors.size}</span></div><div class="tile"><span class="lbl">Afgesproken bedragen</span><span class="val">${eur(totaal)}</span></div><div class="tile"><span class="lbl">Ontvangen</span><span class="val in">${eur(ontv)}</span></div><div class="tile"><span class="lbl">Nog niets van</span><span class="val${open.length?" out":""}">${open.length}</span><span class="hint">${eur(openT)} afgesproken</span></div></div>
   <div class="bar"><div class="search">${ic("search")}<input id="spQ" data-live data-input="spQ" placeholder="Zoek sponsor" value="${esc(UI.spQ)}"></div></div>
-  <div class="panel"><div class="tw"><table class="rcards"><thead><tr><th>Bedrijf</th><th>Contactpersoon</th><th>E-mail</th><th>Telefoon</th><th>KBO-nr.</th><th class="num">Bedrag</th><th>Ontvangen ${JAAR}</th></tr></thead><tbody>
+  <div class="panel"><div class="tw"><table class="rcards"><thead><tr>${sth("bedrijf","Bedrijf")}<th>Contactpersoon</th><th>E-mail</th><th>Telefoon</th><th>KBO-nr.</th>${sth("bedrag","Bedrag","num")}${sth("ontv","Ontvangen")}</tr></thead><tbody>
   ${list.map(s=>{const o=sponsorOntvangen(s,C);return `<tr class="click" data-act="toonSponsor" data-id="${esc(s.id)}"><td><b>${esc(s.bedrijf)}</b></td><td>${esc(s.voornaam)} ${esc(s.naam)}</td><td class="trunc">${esc(s.email)}</td><td style="white-space:nowrap">${esc(s.telefoon)}</td><td class="muted">${esc(s.kbo)}</td><td class="num">${eur(num(s.bedrag))}</td><td>${(s.naturaJaren||[]).includes(JAAR)?'<span class="pill ok">Voldaan (in natura)</span>'+(o?' <span class="pill ok">'+eur(o)+'</span>':''):o?'<span class="pill ok">'+eur(o)+'</span>':'<span class="pill neutral">nog niets gevonden</span>'}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Geen sponsors.</td></tr>'}
   </tbody></table></div></div>
   ${K.los.length?`<div class="panel"><div class="panel-h"><h2>Sponsorbetalingen zonder sponsor in de lijst</h2><span class="grow"></span><span class="muted small">${K.los.length} · ${eur(losT)}</span></div>
@@ -1831,6 +1834,7 @@ document.addEventListener("click",async e=>{
     case"importBank":importBank();break;
     case"nieuweSponsor":sponsorForm({},null);break;
     case"spVanBoeking":{const b=S.boekingen.get(id);if(b){const nm=String(b.partij||"").replace(/\b(bv|bvba|nv|vzw|sprl|srl)\b\.?/gi,"").replace(/\s+/g," ").trim();sponsorForm({bedrijf:nm.toLowerCase().replace(/(^|[\s'(-])\p{L}/gu,m=>m.toUpperCase()),bedrag:b.bedrag},null)}break}
+    case"spSort":{const k=t.dataset.v;const c=UI.spSort||{k:"bedrijf",d:1};UI.spSort=c.k===k?{k,d:-c.d}:{k,d:k==="bedrijf"?1:-1};render(true);break}
     case"toonSponsor":sponsorForm(S.sponsors.get(id),id);break;
     case"bkNieuw":bkForm({personen:1,menu1:"Normaal"},null);break;
     case"bkToon":{const r=S.banket.get(id);if(r)bkForm(r,id);break}
