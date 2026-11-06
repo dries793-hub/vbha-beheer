@@ -1094,7 +1094,7 @@ function bkTable(){
     return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b>${x.lid?"":'<div class="small muted">niet gevonden in ledenlijst</div>'}</td><td class="nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td><td class="muted nowrap">${esc(r.ingediend||"")}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
   </tbody>${R.length?`<tfoot><tr><td>${R.length} inschrijvingen</td><td>${pers} personen</td><td></td><td></td><td class="num">${eur(R.reduce((s,x)=>s+x.due,0))}</td><td></td><td></td></tr></tfoot>`:""}</table></div>`}
 VIEWS.banket=()=>({title:"Banket "+JAAR,sub:"Inschrijvingen en betalingen",
-  actions:`<a class="btn" href="${BK_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden">${ic("deel")}Inschrijfpagina</a><button class="btn" data-act="bkExport">${ic("download")}Exporteren</button><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-act="bkInst" aria-label="Instellingen banket" title="Instellingen banket">${ic("instellingen")}</button>`,
+  actions:`<a class="btn" href="${BK_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden">${ic("deel")}Inschrijfpagina</a><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-act="bkInst" aria-label="Instellingen banket" title="Instellingen banket">${ic("instellingen")}</button>`,
   body(){
   const R=bkRows(),bc=bkCfg();const pers=R.reduce((s,x)=>s+(x.r.personen===2?2:1),0);
   let norm_=0,veg=0;for(const {r} of R){(r.menu1==="Vegetarisch"?veg++:norm_++);if(r.personen===2)(r.menu2==="Vegetarisch"?veg++:norm_++)}
@@ -1105,7 +1105,7 @@ VIEWS.banket=()=>({title:"Banket "+JAAR,sub:"Inschrijvingen en betalingen",
    <div class="tile"><span class="lbl">Menu's</span><span class="val">${norm_} <small style="font-size:14px;color:var(--muted);font-weight:500">normaal</small> · ${veg} <small style="font-size:14px;color:var(--muted);font-weight:500">veggie</small></span></div>
    <div class="tile"><span class="lbl">Te ontvangen</span><span class="val">${eur(due)}</span><span class="hint">${eur(bc.prijs)} per persoon</span></div>
    <div class="tile"><span class="lbl">Betaald</span><span class="val in">${eur(paid)}</span><span class="hint">${open?open+" nog open":"alles ontvangen"}</span></div></div>
-  <div class="note info">Leden schrijven zich in via de <a href="${BK_PUBLIEK}" target="_blank" rel="noopener">openbare inschrijfpagina</a> en betalen meteen met Bancontact of met een overschrijving. Inschrijvingen komen hier vanzelf binnen. Online betalingen staan meteen op betaald; overschrijvingen worden herkend in de transacties van ${JAAR} met categorie Banket (of "banket" in de mededeling) en de naam van het lid.</div>
+  
   <div class="bar"><div class="search">${ic("search")}<input id="bkQ" data-live data-input="bkQ" placeholder="Zoek op naam of opmerking" value="${esc(UI.bkQ||"")}"></div>
    <div class="seg">${[["alle","Alle"],["open","Open"],["ok","Betaald"],["veg","Vegetarisch"]].map(([v,l])=>`<button type="button" data-act="bkF" data-v="${v}" class="${F===v?"on":""}">${l}</button>`).join("")}</div></div>
   <div class="panel" id="bkList">${bkTable()}</div>`}});
