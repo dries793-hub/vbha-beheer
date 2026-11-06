@@ -2061,10 +2061,10 @@ document.addEventListener("change",e=>{if(e.target.id==="kfFile"&&e.target.files
    Collecties: "activiteiten" {titel, datum (yyyy-mm-dd), uur, locatie, info}
                "vergaderingen" {soort, titel, datum, uur, locatie, agenda, aanwezig, verontschuldigd, verslag}
    Banket en kinderfeest komen automatisch in de kalender (datum uit hun instellingen). */
-{const c=NAV.find(n=>n.id==="communicatie");if(c&&!c.items.some(i=>i[0]==="verslagen"))c.items.unshift(["verslagen","Verslagen vergaderingen"]);
+{const c=NAV.find(n=>n.id==="communicatie");
  if(c&&!c.items.some(i=>i[0]==="agenda"))c.items.unshift(["agenda","Kalender"]);}
 if(!ROUTES.some(r=>r[0]==="agenda"))ROUTES.push(["agenda","Kalender"]);
-if(!ROUTES.some(r=>r[0]==="verslagen"))ROUTES.push(["verslagen","Verslagen"]);
+
 ICON.verslagen='<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9.5 12.5h6M9.5 16.5h6"/>';
 ICON.agenda='<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M7.5 14h2M11 14h2M14.5 14h2M7.5 17.5h2M11 17.5h2"/>';
 const VG_SOORT=["Bestuursvergadering","Algemene vergadering","Werkgroep","Andere"];
@@ -2152,12 +2152,11 @@ function vgForm(v,id){const d=canWrite?"":" disabled";v=v||{soort:"Bestuursverga
    ${fld("vg_datum","Datum",`<input id="vg_datum" type="date" value="${esc(v.datum||"")}"${d}>`)}${fld("vg_uur","Uur",inp("vg_uur",v.uur,'maxlength="20" placeholder="bv. 20u00"'+d))}
    ${fld("vg_locatie","Waar",inp("vg_locatie",v.locatie,'maxlength="160" placeholder="bv. Kazerne, refter"'+d),"full")}
    ${ta("agenda","Agenda","Eén punt per regel",110)}
-   ${ta("aanwezig","Aanwezig","Namen, gescheiden door komma's",56)}${ta("verontschuldigd","Verontschuldigd","",44)}
-   ${ta("verslag","Verslag","Het verslag van de vergadering. Je kan het ook later aanvullen.",220)}<div class="err full" id="vgErr"></div></form>`,
-   `${id&&canWrite?'<button class="btn danger" id="vgDel" style="margin-right:auto">Verwijderen</button>':""}${id?`<button class="btn" id="vgPrint">${ic("download")}Afdrukken / PDF</button>`:""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="vgOk">Bewaren</button>':""}`,{wide:true});
+<div class="err full" id="vgErr"></div></form>`,
+   `${id&&canWrite?'<button class="btn danger" id="vgDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="vgOk">Bewaren</button>':""}`,{});
   const pr=$("#vgPrint");if(pr)pr.onclick=()=>vgPrint(S.vergaderingen.get(id)||v);
   if(!canWrite)return;
-  $("#vgOk").onclick=async()=>{const g=k=>$("#vg_"+k).value.trim();const r={soort:$("#vg_soort").value,titel:g("titel"),datum:$("#vg_datum").value,uur:g("uur"),locatie:g("locatie"),agenda:g("agenda"),aanwezig:g("aanwezig"),verontschuldigd:g("verontschuldigd"),verslag:g("verslag")};
+  $("#vgOk").onclick=async()=>{const g=k=>$("#vg_"+k).value.trim();const r={soort:$("#vg_soort").value,titel:g("titel"),datum:$("#vg_datum").value,uur:g("uur"),locatie:g("locatie"),agenda:g("agenda")};
     if(!/^\d{4}-\d{2}-\d{2}$/.test(r.datum)){$("#vgErr").textContent="Kies een datum.";return}
     closeModal();await write("vergaderingen",id||agId("verg"),{...(id?stripId(S.vergaderingen.get(id)||{}):{}),...r});toast("Vergadering bewaard.")};
   const del=$("#vgDel");if(del)del.onclick=()=>confirmBox(`De vergadering van <b>${esc(fmtDate(v.datum))}</b> en het verslag verwijderen?`,"Verwijderen",async()=>{await write("vergaderingen",id,null,{del:true});toast("Vergadering verwijderd.")})}
