@@ -48,8 +48,8 @@ const DEF_JAAR={beginKas:0,beginRekening:0,gewichten:{kaarten:1,kalenders:25,shi
 const JUBILEA=[10,20,25,30,40,50,60];
 
 /* ============ toestand ============ */
-const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","ronde","banket","kinderfeest","activiteiten","vergaderingen","documenten","fotoalbums"];
-const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),ronde:new Map(),banket:new Map(),kinderfeest:new Map(),activiteiten:new Map(),vergaderingen:new Map(),documenten:new Map(),fotoalbums:new Map()};
+const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","ronde","banket","kinderfeest","activiteiten","vergaderingen","documenten","fotoalbums","mailings"];
+const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),ronde:new Map(),banket:new Map(),kinderfeest:new Map(),activiteiten:new Map(),vergaderingen:new Map(),documenten:new Map(),fotoalbums:new Map(),mailings:new Map()};
 const loaded=new Set();
 let db=null,canWrite=true,JAAR=ls.get("jaar",null);
 const UI=Object.assign({ledenQ:"",ledenCat:"",ledenF:"alle",oudLeden:false,boekQ:"",boekCat:"",boekRek:"",puntQ:"",puntSort:"naam",kalQ:"",spQ:"",mailGroep:"alle",mailTpl:"",histJaar:null,histQ:"",boekDir:"",boekMaand:"",boekSort:{k:"datum",d:-1},boekPage:0},ls.get("ui",{}));
@@ -1282,7 +1282,7 @@ async function bankSync(btn){btn.disabled=true;btn.textContent="Bezig…";
 function bankOntkoppel(id){confirmBox("De koppeling met de bank verwijderen? De transacties die al opgehaald zijn, blijven staan.","Ontkoppelen",async()=>{try{await api("/api/bank/unlink",{method:"POST",body:JSON.stringify({id})});toast("Koppeling verwijderd.");await loadBank(true)}catch(e){toast(e.message,true)}})}
 
 /* ---------- mails ---------- */
-function groepen(){
+function _oud_groepen(){
   const C=ctx();const cur=C.leden.map(l=>C.rows.get(l.id));
   const lidR=r=>({email:r.lid.email,voornaam:r.lid.voornaam,naam:r.lid.naam,bedrag:r.bedrag,mededeling:`${r.lid.naam} ${r.lid.voornaam} lidgeld ${JAAR}`,label:naamVol(r.lid)});
   const g=[
@@ -1297,7 +1297,7 @@ function groepen(){
   g.push({id:"sponsors",label:"Alle sponsors",list:[...S.sponsors.values()].map(s=>({email:s.email,voornaam:s.voornaam,naam:s.naam,bedrijf:s.bedrijf,bedrag:num(s.bedrag),mededeling:"",label:s.bedrijf}))});
   return g;
 }
-function vul(t,r){
+function _oud_vul(t,r){
   const c=cfg();
   let s=String(t||"");
   s=s.split("Beste xnaamx,").join("Beste "+r.voornaam+",").split(/xnaamx xvoornaamx lidgeld \d{4}/).join(r.mededeling).split("xx euro").join(r.bedrag+" euro").split("xnaamx").join(r.voornaam||"");
@@ -1307,7 +1307,7 @@ function vul(t,r){
 const textToHtml=t=>'<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#111">'+String(t).split(/\n{2,}/).map(p=>"<p>"+esc(p).replace(/\n/g,"<br>")+"</p>").join("")+"</div>";
 const htmlToText=h=>{const d=new DOMParser().parseFromString(h,"text/html");d.querySelectorAll("br").forEach(b=>b.replaceWith("\n"));d.querySelectorAll("p,div,tr,h1,h2,h3,li").forEach(p=>p.append("\n"));return (d.body.textContent||"").replace(/\n{3,}/g,"\n\n").trim()};
 let MAIL=null;
-function mailState(){
+function _oud_mailState(){
   if(MAIL&&!MAIL.touched&&!MAIL.tplId&&S.templates.size)MAIL=null;
   if(!MAIL){const t=S.templates.get(UI.mailTpl)||[...S.templates.values()][0]||null;MAIL={tplId:t?t.id:"",naam:t?t.naam:"",onderwerp:t?t.onderwerp:"VBHA - Nieuws van de vriendenkring",body:t?t.body:"Beste {voornaam},\n\n",isHtml:!!(t&&t.isHtml),idx:0,dirty:false};if(t&&t.groep&&!UI.mailGroep)UI.mailGroep=t.groep}
   return MAIL;
@@ -1352,18 +1352,18 @@ VIEWS.mails=()=>({title:"Mails aan leden",sub:"Gepersonaliseerde mails voor een 
 VIEWS.mails.after=()=>{mailPreview()};
 let MAILSMTP=null,MAILBUSY=false;
 async function mailSmtpLaad(){try{MAILSMTP=await api("/api/mail")}catch(e){MAILSMTP={ingesteld:false,van:{}}}if(route()==="mails")render(true)}
-function mailBericht(r,M,aan){return{aan:aan||r.email,aanNaam:r.label||"",onderwerp:vul(M.onderwerp,r),html:mailHtml(r,M)}}
-async function mailVerstuur(lijst,label){if(MAILBUSY)return;MAILBUSY=true;const prog=()=>$("#mailProg");let ok=0;const fout=[];
+function _oud_mailBericht(r,M,aan){return{aan:aan||r.email,aanNaam:r.label||"",onderwerp:vul(M.onderwerp,r),html:mailHtml(r,M)}}
+async function _oud_mailVerstuur(lijst,label){if(MAILBUSY)return;MAILBUSY=true;const prog=()=>$("#mailProg");let ok=0;const fout=[];
   try{for(let i=0;i<lijst.length;i+=10){const deel=lijst.slice(i,i+10);const p=prog();if(p)p.innerHTML=`<div class="note info">Bezig met versturen: ${i} van ${lijst.length}…</div>`;
       try{const j=await api("/api/mail",{method:"POST",body:JSON.stringify({berichten:deel})});for(const x of j.resultaten||[])x.ok?ok++:fout.push(x.aan+" ("+(x.fout||"mislukt")+")")}
       catch(e){deel.forEach(m=>fout.push(m.aan+" ("+e.message+")"))}}}
   finally{MAILBUSY=false}
   const p=prog();if(p)p.innerHTML=`<div class="note ${fout.length?"":"info"}"><b>${ok}</b> ${ok===1?"mail":"mails"} verstuurd${label?" ("+esc(label)+")":""}.${fout.length?`<br>Niet gelukt (${fout.length}): ${fout.map(esc).join(", ")}`:""}</div>`;
   toast(fout.length?ok+" verstuurd, "+fout.length+" niet gelukt.":ok+" "+(ok===1?"mail":"mails")+" verstuurd.",!!fout.length)}
-function mailRecips(){const G=groepen();const g=G.find(x=>x.id===UI.mailGroep)||G[0];return g.list.filter(r=>r.email)}
-function mailHtml(r,M){return M.isHtml?vul(M.body,r):textToHtml(vul(M.body,r))}
+function _oud_mailRecips(){const G=groepen();const g=G.find(x=>x.id===UI.mailGroep)||G[0];return g.list.filter(r=>r.email)}
+function _oud_mailHtml(r,M){return M.isHtml?vul(M.body,r):textToHtml(vul(M.body,r))}
 function mailto(r,M){const text=M.isHtml?htmlToText(vul(M.body,r)):vul(M.body,r);let u="mailto:"+encodeURIComponent(r.email)+"?subject="+encodeURIComponent(vul(M.onderwerp,r))+"&body="+encodeURIComponent(text);return u.length>1900?"mailto:"+encodeURIComponent(r.email)+"?subject="+encodeURIComponent(vul(M.onderwerp,r)):u}
-function mailPreview(){
+function _oud_mailPreview(){
   const M=mailState(),list=mailRecips();const el=$("#mPrev");if(!el)return;
   if(!list.length){$("#mHead").innerHTML="";el.textContent="Geen ontvangers in deze doelgroep.";$("#mIdx").textContent="";return}
   M.idx=Math.max(0,Math.min(M.idx,list.length-1));const r=list[M.idx];
@@ -2341,3 +2341,297 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(
   if(t.dataset.act==="ftNieuw")ftForm(null,null);
   else if(t.dataset.act==="ftEdit"){const a=S.fotoalbums.get(t.dataset.id);if(a)ftForm(a,a.id)}});
 document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.ftq!==undefined){FT.q=e.target.value;const el=$("#ftList");if(el)el.innerHTML=ftKaarten()}});
+
+/* ============ Mails: sjablonen in huisstijl, doelgroepen, voorbeeld en verzendgeschiedenis ============
+   Sjabloon (collectie "templates"): {naam, categorie, groep, onderwerp, body, opmaak:"huisstijl", isHtml:true}
+     body = inhoud in eenvoudige HTML (p, h3, strong, em, a, ul/li, <div data-blok="kader">, <p data-blok="knop">);
+     bij verzenden wordt die in de huisstijl gezet (logo, rode balken, kaders met gouden rand) met inline stijlen.
+   Oudere sjablonen: isHtml zonder opmaak = volledige HTML zoals opgeladen; zonder isHtml = gewone tekst.
+   Verzendgeschiedenis: collectie "mailings" {datum, onderwerp, sjabloon, groep, aantal, ok, fout[], door}. */
+const ML_CATS=["Lidgeld","Activiteiten","Kalenders","Banket","Kinderfeest","Algemeen"];
+const ML_LOGO="https://impro.usercontent.one/appid/oneComWsb/domain/vbha.be/media/vbha.be/onewebmedia/logo%20VBHA%201.png";
+const ML_FONT="font-family:Helvetica,Arial,sans-serif;";
+const ML_VELDEN=[
+  ["Persoon",[["voornaam","Voornaam"],["naam","Volledige naam"],["bedrag","Bedrag"],["mededeling","Mededeling"],["bedrijf","Bedrijf (sponsors)"]]],
+  ["Vereniging",[["jaar","Jaar"],["volgend_jaar","Volgend jaar"],["rekeningnummer","Rekeningnummer"]]],
+  ["Banket",[["banket_datum","Datum"],["banket_uur","Uur"],["banket_locatie","Locatie"],["banket_prijs","Prijs per persoon"],["banket_tot","Inschrijven tot"]]],
+  ["Kinderfeest",[["kinderfeest_datum","Datum"],["kinderfeest_uur","Uur"],["kinderfeest_locatie","Locatie"],["kinderfeest_tot","Inschrijven tot"]]],
+  ["Links",[["link_banket","Inschrijven banket"],["link_kinderfeest","Inschrijven kinderfeest"],["link_inschrijven","Lid worden"],["link_kaart","Kaart kalenderronde"]]]];
+const ML_LINKS=[["{link_banket}","Inschrijfpagina banket"],["{link_kinderfeest}","Inschrijfpagina kinderfeest"],["{link_inschrijven}","Lid worden"],["{link_kaart}","Kaart kalenderronde"]];
+const ML_NIEUW='<p>Beste {voornaam},</p><p><br></p><p>Met vriendelijke groeten,<br><strong>Het bestuur</strong></p>';
+const mlId=()=>"m-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,6);
+const mlLang=iso=>{const [y,m,d]=String(iso||"").split("-").map(Number);if(!y)return"";const s=new Date(y,m-1,d,12).toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"});return s.charAt(0).toUpperCase()+s.slice(1)};
+const mlKort=iso=>{const [y,m,d]=String(iso||"").split("-").map(Number);return y?d+" "+INS_MAAND[m-1]+" "+y:""};
+let ML_RANGE=null,ML_LAST="";
+
+/* ---------- doelgroepen ---------- */
+function groepen(){
+  const C=ctx();const cur=C.leden.map(l=>C.rows.get(l.id));
+  const lidR=r=>({email:r.lid.email,voornaam:r.lid.voornaam,naam:naamVol(r.lid),bedrag:r.bedrag,mededeling:`${r.lid.naam} ${r.lid.voornaam} lidgeld ${JAAR}`,label:naamVol(r.lid)});
+  const G=[];const add=(sect,id,label,list)=>{const seen=new Set();G.push({sect,id,label,list:list.filter(r=>{const k=String(r.email||"").toLowerCase();if(!k)return true;if(seen.has(k))return false;seen.add(k);return true})})};
+  add("Leden","alle","Alle leden",cur.map(lidR));
+  add("Leden","lidgeld","Uitnodiging lidgeld (zonder ere-voorzitters)",cur.filter(r=>!isEreVoorzitter(r.lid)).map(lidR));
+  add("Leden","herinnering","Lidgeld nog niet betaald",cur.filter(r=>!r.lg.ok&&!isEreVoorzitter(r.lid)).map(lidR));
+  add("Leden","betaald","Actieve leden (lidgeld in orde)",cur.filter(r=>r.lg.ok).map(lidR));
+  add("Leden","betaald-niet-ere","Actieve leden zonder erewacht",cur.filter(r=>r.lg.ok&&r.lid.categorie!=="Erewacht").map(lidR));
+  add("Leden","erewacht","Erewacht",cur.filter(r=>r.lid.categorie==="Erewacht").map(lidR));
+  for(const k of cfg().ledenCategorieen.filter(k=>k!=="Erewacht"&&cur.some(r=>r.lid.categorie===k)))add("Leden","cat:"+k,"Categorie: "+k,cur.filter(r=>r.lid.categorie===k).map(lidR));
+  const bk=bkRows().map(x=>{const l=(x.r.lidId&&S.leden.get(x.r.lidId))||x.lid;return{...x,l}});
+  const bkR=(x,open)=>({email:x.l&&x.l.email||x.r.email||"",voornaam:x.l?x.l.voornaam:String(x.r.naam||"").split(" ").slice(1).join(" "),naam:x.r.naam||"",
+    bedrag:open?r2(Math.max(0,x.due-(x.p.bedrag||0))):x.due,mededeling:`${x.r.naam} Banket ${JAAR}`,label:x.r.naam||(x.l?naamVol(x.l):"")});
+  add("Banket","bk-alle","Ingeschreven voor het banket",bk.map(x=>bkR(x,false)));
+  add("Banket","bk-open","Ingeschreven, betaling nog niet ontvangen",bk.filter(x=>!x.p.ok).map(x=>bkR(x,true)));
+  const inBk=new Set(bk.map(x=>x.l&&x.l.id).filter(Boolean));
+  add("Banket","bk-niet","Actieve leden die nog niet ingeschreven zijn",cur.filter(r=>r.lg.ok&&!inBk.has(r.lid.id)).map(lidR));
+  if(typeof kfLijst==="function")add("Kinderfeest","kf","Ingeschreven voor het kinderfeest",kfLijst().map(r=>{const l=r.lidId&&S.leden.get(r.lidId);
+    return{email:r.email||(l&&l.email)||"",voornaam:l?l.voornaam:"",naam:l?naamVol(l):(r.lid||""),bedrag:"",mededeling:"",label:l?naamVol(l):(r.lid||r.email||"")}}));
+  add("Andere","sponsors","Alle sponsors",[...S.sponsors.values()].map(s=>({email:s.email,voornaam:s.voornaam||"",naam:s.naam||"",bedrijf:s.bedrijf,bedrag:num(s.bedrag),mededeling:"",label:s.bedrijf||s.naam||""})));
+  add("Andere","los","Losse e-mailadressen",mlLos().map(e=>({email:e,voornaam:"",naam:"",bedrag:"",mededeling:"",label:e})));
+  return G;
+}
+function mlLos(){return [...new Set(String(UI.mailLos||"").split(/[\s,;]+/).map(x=>x.trim().toLowerCase()).filter(x=>/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x)))]}
+function mlGroep(){const G=groepen();return G.find(x=>x.id===UI.mailGroep)||G[0]}
+function mailRecips(){const M=mailState();const uit=M.uit||new Set();return mlGroep().list.filter(r=>r.email&&!uit.has(String(r.email).toLowerCase()))}
+
+/* ---------- velden invullen ---------- */
+function mlMap(r){const c=cfg(),b=bkCfg();let k={};try{k=kfCfg()}catch(e){}
+  const bkTot=insTot(b,JAAR+"-12-01"),kfTot=insTot(k,JAAR+"-12-07"),O=location.origin;
+  return{voornaam:r.voornaam||"",naam:r.naam||"",bedrag:r.bedrag===""||r.bedrag==null?"":fmtBedrag(r.bedrag),jaar:String(JAAR),volgend_jaar:String(JAAR+1),mededeling:r.mededeling||"",bedrijf:r.bedrijf||"",
+    rekeningnummer:c.rekeningnummer||"BE43 9730 6810 0401",vereniging:c.vereniging||"Vriendenkring Brandweer Hoofdpost Aalst",
+    banket_datum:mlLang(b.datum),banket_uur:b.uur||"",banket_locatie:b.locatie||"",banket_prijs:fmtBedrag(num(b.prijs))+" euro",banket_tot:mlKort(bkTot),
+    kinderfeest_datum:mlLang(k.datum),kinderfeest_uur:k.tijd||"",kinderfeest_locatie:k.locatie||"",kinderfeest_tot:mlKort(kfTot),
+    link_banket:O+"/banket",link_kinderfeest:O+"/kinderfeest",link_inschrijven:O+"/inschrijven",link_kaart:O+"/kaart"}}
+const fmtBedrag=v=>{const n=Number(v);if(!isFinite(n))return String(v??"");return Number.isInteger(n)?String(n):n.toFixed(2).replace(".",",")};
+const mlLegacy=s=>String(s).split("Beste xnaamx,").join("Beste {voornaam},").split(/xnaamx xvoornaamx lidgeld \d{4}/).join("{mededeling}").split("xx euro").join("{bedrag} euro").split("xnaamx").join("{voornaam}");
+function vul(t,r,html){
+  let s=String(t||"");const m=mlMap(r);
+  s=mlLegacy(s);
+  if(html)s=s.replace(/<p>\s*\{agenda\}\s*<\/p>/g,"{agenda}").replace(/\{agenda\}/g,()=>mlAgendaHtml());
+  s=s.replace(/\{(\w+)\}/g,(x,k)=>k in m?(html?esc(m[k]):m[k]):x);
+  return s.replace(/Beste\s+,/g,"Beste,")
+}
+function mlAgendaItems(){const nu=todayISO();
+  return agItems().filter(x=>x.datum>=nu).filter(x=>{if(x.t!=="verg")return true;const v=S.vergaderingen.get(x.id);return v&&/algemene/i.test(v.soort||v.titel||"")})}
+function mlAgendaHtml(){const L=mlAgendaItems();if(!L.length)return"<p><em>Er staan momenteel geen activiteiten gepland.</em></p>";
+  return L.map(x=>{const rij=[`&bull; <strong>Datum:</strong> ${esc(mlLang(x.datum))}`];if(x.uur)rij.push(`&bull; <strong>Tijd:</strong> ${esc(x.uur)}`);if(x.locatie)rij.push(`&bull; <strong>Locatie:</strong> ${esc(x.locatie)}`);
+    let extra="";const a=x.t==="act"&&S.activiteiten.get(x.id);if(a&&a.info)extra+=`<p>${esc(a.info)}</p>`;
+    if(x.id==="bk"||x.id==="kf"){const c=x.id==="bk"?bkCfg():kfCfg();const st=insStatus(c,JAAR+(x.id==="bk"?"-12-01":"-12-07"));
+      if(st.open)extra+=`<p>Inschrijven kan tot en met ${esc(mlKort(st.tot))}.</p><p data-blok="knop"><a href="${location.origin}/${x.id==="bk"?"banket":"kinderfeest"}">Inschrijven ${x.id==="bk"?"banket":"kinderfeest"}</a></p>`}
+    return `<div data-blok="kader"><h2>${esc(x.titel)}</h2>${rij.map(p=>"<p>"+p+"</p>").join("")}${extra}</div>`}).join("")}
+
+/* ---------- huisstijl ---------- */
+function mlStijl(inner){
+  const d=new DOMParser().parseFromString("<div id=r>"+inner+"</div>","text/html");const R=d.getElementById("r");
+  R.querySelectorAll("script,style,iframe,object,embed,link,meta,form,input,button").forEach(n=>n.remove());
+  R.querySelectorAll("*").forEach(n=>{for(const a of [...n.attributes])if(/^on/i.test(a.name))n.removeAttribute(a.name)});
+  const st=(sel,css)=>R.querySelectorAll(sel).forEach(n=>n.setAttribute("style",css+(n.getAttribute("style")||"")));
+  st("a","color:#b30000;text-decoration:underline;");
+  R.querySelectorAll('[data-blok="knop"]').forEach(p=>{const a=p.querySelector("a");const href=a?a.getAttribute("href"):"#";const t=(a||p).textContent.trim();
+    const tb=d.createElement("div");tb.innerHTML=`<table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center" style="margin:8px auto 22px auto"><tr><td bgcolor="#b30000" style="border-radius:4px;padding:12px 24px;text-align:center"><a href="${esc(href)}" target="_blank" style="${ML_FONT}font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;display:block">${esc(t)}</a></td></tr></table>`;p.replaceWith(tb.firstChild)});
+  R.querySelectorAll('[data-blok="kader"]').forEach(k=>{k.querySelectorAll("h2").forEach(h=>h.setAttribute("style","color:#b30000;font-size:18px;font-weight:bold;margin:0 0 10px 0;"));
+    k.querySelectorAll("p").forEach(p=>{if(!p.closest("table"))p.setAttribute("style","margin:0 0 5px 0;")});
+    const tb=d.createElement("div");tb.innerHTML=`<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 18px 0;border-collapse:collapse"><tr><td bgcolor="#fff9f9" style="padding:18px 24px;border-left:5px solid #C1A057;background-color:#fff9f9;${ML_FONT}font-size:15px;color:#222222;line-height:1.5"></td></tr></table>`;
+    const td=tb.querySelector("td");while(k.firstChild)td.appendChild(k.firstChild);k.replaceWith(tb.firstChild)});
+  st("h3","color:#b30000;font-size:17px;font-weight:bold;margin:22px 0 10px 0;");
+  st("h2:not([style])","color:#b30000;font-size:18px;font-weight:bold;margin:22px 0 10px 0;");
+  R.querySelectorAll("p:not([style])").forEach(p=>p.setAttribute("style","margin:0 0 15px 0;"));
+  st("ul,ol","margin:0 0 15px 0;padding-left:22px;");st("li","margin:0 0 6px 0;");
+  return R.innerHTML;
+}
+function mlKader(inner){const c=cfg();const ver=esc(c.vereniging||"Vriendenkring Brandweer Hoofdpost Aalst");
+  return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${ver}</title></head><body style="margin:0;padding:0;background:#f7f7f7">
+<table role="presentation" border="0" width="100%" cellspacing="0" cellpadding="0" bgcolor="#f7f7f7" style="margin:0;padding:0"><tr><td align="center" valign="top" style="padding:25px 10px">
+<table role="presentation" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="width:100%;max-width:680px;border-collapse:collapse">
+<tr><td align="center" bgcolor="#f7f7f7" style="padding:20px"><img src="${ML_LOGO}" alt="${ver}" width="220" height="84" style="display:block;width:220px;height:84px;border:0;outline:none;text-decoration:none"></td></tr>
+<tr><td bgcolor="#b30000" style="font-size:1px;line-height:1px;height:8px">&nbsp;</td></tr>
+<tr><td bgcolor="#ffffff" style="${ML_FONT}font-size:15px;color:#222222;line-height:1.5;padding:28px 40px 22px">${inner}</td></tr>
+<tr><td bgcolor="#b30000" style="font-size:1px;line-height:1px;height:8px">&nbsp;</td></tr>
+<tr><td align="center" bgcolor="#f7f7f7" style="${ML_FONT}font-size:12px;color:#888888;line-height:1.5;padding:14px 20px">${ver} &middot; <a href="https://www.vbha.be" style="color:#888888;text-decoration:underline">www.vbha.be</a></td></tr>
+</table></td></tr></table></body></html>`}
+function mailHtml(r,M){
+  if(M.opmaak==="huisstijl")return mlKader(mlStijl(vul(M.body,r,true)));
+  if(M.isHtml)return vul(M.body,r,true);
+  return mlKader(mlStijl(String(vul(M.body,r)).split(/\n{2,}/).map(p=>"<p>"+esc(p).replace(/\n/g,"<br>")+"</p>").join("")));
+}
+
+/* ---------- toestand ---------- */
+function mlVanTpl(t){return t?{tplId:t.id,naam:t.naam||"",categorie:t.categorie||"Algemeen",groep:t.groep||"",onderwerp:t.onderwerp||"",body:t.body||"",opmaak:t.opmaak||"",isHtml:!!t.isHtml,idx:0,dirty:false,bron:false,uit:new Set()}
+  :{tplId:"",naam:"",categorie:"Algemeen",groep:"",onderwerp:"VBHA - Nieuws van de vriendenkring",body:ML_NIEUW,opmaak:"huisstijl",isHtml:true,idx:0,dirty:false,bron:false,uit:new Set(),nieuw:true}}
+function mailState(){
+  if(MAIL&&!MAIL.uit)MAIL=null;
+  if(MAIL&&!MAIL.dirty&&!MAIL.tplId&&!MAIL.nieuw&&S.templates.size)MAIL=null;
+  if(!MAIL){const t=S.templates.get(UI.mailTpl)||mlTpls()[0]||null;MAIL=mlVanTpl(t);if(t&&t.groep&&!UI.mailGroep)UI.mailGroep=t.groep}
+  return MAIL}
+function mlTpls(){const o=c=>{const i=ML_CATS.indexOf(c||"Algemeen");return i<0?99:i};
+  return [...S.templates.values()].sort((a,b)=>o(a.categorie)-o(b.categorie)||(a.naam||"").localeCompare(b.naam||"","nl"))}
+function mlKies(id){const t=S.templates.get(id);MAIL=mlVanTpl(t||null);UI.mailTpl=t?t.id:"";if(t&&t.groep&&groepen().some(g=>g.id===t.groep))UI.mailGroep=t.groep;saveUI();render(true)}
+function mlWissel(fn){if(MAIL&&MAIL.dirty)confirmBox("Je hebt niet-bewaarde wijzigingen in <b>"+esc(MAIL.naam||"dit bericht")+"</b>. Toch verdergaan?","Verdergaan",fn);else fn()}
+
+/* ---------- pagina ---------- */
+VIEWS.mails=()=>({title:"Mails",actions:'<button class="btn" data-w data-act="mlNieuw">'+ic("plus")+'Nieuw sjabloon</button>',body(){
+  const M=mailState();const G=groepen();const g=G.find(x=>x.id===UI.mailGroep)||G[0];if(g.id!==UI.mailGroep)UI.mailGroep=g.id;
+  const tpls=mlTpls();const cats=[...new Set([...ML_CATS,...tpls.map(t=>t.categorie||"Algemeen")])];
+  const uit=M.uit,met=g.list.filter(r=>r.email),zonder=g.list.filter(r=>!r.email),actief=met.filter(r=>!uit.has(String(r.email).toLowerCase()));
+  const sects=[...new Set(G.map(x=>x.sect))];
+  const tg=M.groep&&G.find(x=>x.id===M.groep);
+  const d=canWrite?"":" disabled";
+  return `<div class="ml-grid">
+  <div class="panel ml-ed-p"><div class="panel-h"><h2>Bericht</h2><span class="grow"></span>
+    <select class="sel ml-tpl" data-change="mlTpl" aria-label="Sjabloon">${M.tplId?"":`<option value="" selected>${esc(M.naam||"Nieuw sjabloon")}</option>`}${cats.filter(c=>tpls.some(t=>(t.categorie||"Algemeen")===c)).map(c=>`<optgroup label="${esc(c)}">${tpls.filter(t=>(t.categorie||"Algemeen")===c).map(t=>`<option value="${esc(t.id)}"${t.id===M.tplId?" selected":""}>${esc(t.naam||"Zonder naam")}</option>`).join("")}</optgroup>`).join("")}</select></div>
+  <div class="panel-b"><div class="form">
+    <div class="fld"><label for="mNaam">Naam sjabloon</label><input id="mNaam" data-mlv="naam" value="${esc(M.naam)}" placeholder="bv. Uitnodiging banket"${d}></div>
+    <div class="fld"><label for="mCat">Categorie</label><select id="mCat" class="sel" data-mlv="categorie"${d}>${cats.map(c=>`<option${c===M.categorie?" selected":""}>${esc(c)}</option>`).join("")}</select></div>
+    <div class="fld full"><label for="mOnd">Onderwerp</label><input id="mOnd" data-mlv="onderwerp" value="${esc(M.onderwerp)}"${d}></div>
+    <div class="fld full"><span class="lbl">Inhoud</span>${M.opmaak==="huisstijl"?mlEditor(M):`<textarea id="mlRaw" data-mlv="body" spellcheck="${M.isHtml?"false":"true"}" class="ml-raw"${d}>${esc(M.body)}</textarea>
+      <div class="note" style="margin-top:8px">${M.isHtml?"Dit is een volledig HTML-bestand.":"Dit is een sjabloon in gewone tekst."} <button class="btn sm" data-act="mlNaarHuisstijl"${d}>Omzetten naar huisstijl</button></div>`}</div>
+    <div class="full bar ml-acts">${canWrite?`<button class="btn primary" data-act="mlSave">${M.tplId?"Bewaren":"Sjabloon bewaren"}</button>${M.tplId?'<button class="btn" data-act="mlKopie">Kopie maken</button>':""}
+      <label class="btn ghost" for="mlFile" style="cursor:pointer">${ic("upload")}HTML laden</label><input type="file" id="mlFile" accept=".html,.htm,text/html" hidden>
+      <span class="grow"></span>${M.tplId?'<button class="btn ghost danger" data-act="mlDel">Verwijderen</button>':""}`:""}<span class="ml-dirty" id="mlDirty">${M.dirty?"Niet bewaard":""}</span></div>
+  </div></div></div>
+  <div class="ml-side">
+  <div class="panel"><div class="panel-h"><h2>Ontvangers</h2><span class="grow"></span><span class="pill ${actief.length?"info":"neutral"}">${actief.length}</span></div><div class="panel-b stack" style="gap:10px">
+    <select class="sel" data-change="mlGroep" aria-label="Doelgroep">${sects.map(s=>`<optgroup label="${esc(s)}">${G.filter(x=>x.sect===s).map(x=>`<option value="${esc(x.id)}"${x.id===g.id?" selected":""}>${esc(x.label)} (${x.list.filter(r=>r.email).length})</option>`).join("")}</optgroup>`).join("")}</select>
+    ${g.id==="los"?`<textarea id="mlLos" class="ml-los" placeholder="Plak hier e-mailadressen, gescheiden door een komma of een nieuwe regel">${esc(UI.mailLos||"")}</textarea>`:""}
+    ${tg&&tg.id!==g.id?`<div class="ml-tip">Dit sjabloon is bedoeld voor <b>${esc(tg.label)}</b>. <button class="linkbtn" data-act="mlGroepTpl">Kiezen</button></div>`:""}
+    <div class="muted small">${actief.length} ${actief.length===1?"ontvanger":"ontvangers"}${uit.size&&met.length>actief.length?` (${met.length-actief.length} uitgezonderd)`:""}${zonder.length?` · ${zonder.length} zonder e-mailadres`:""}</div>
+    ${met.length?`<details class="ml-lijst"><summary>Ontvangers bekijken of uitzonderen</summary><div class="ml-rl">${met.map(r=>{const k=String(r.email).toLowerCase();return `<label><input type="checkbox" data-mluit="${esc(k)}"${uit.has(k)?"":" checked"}><span class="trunc"><b>${esc(r.label)}</b> ${esc(r.email)}</span></label>`}).join("")}</div></details>`:""}
+    ${zonder.length?`<details class="ml-lijst"><summary>Zonder e-mailadres (${zonder.length})</summary><div class="ml-rl muted">${zonder.map(r=>`<div>${esc(r.label)}</div>`).join("")}</div></details>`:""}
+  </div></div>
+  <div class="panel"><div class="panel-h"><h2>Voorbeeld</h2><span class="grow"></span>
+    <div class="seg" role="group" aria-label="Weergave"><button class="${UI.mlDev==="gsm"?"":"on"}" data-act="mlDev" data-v="pc">Computer</button><button class="${UI.mlDev==="gsm"?"on":""}" data-act="mlDev" data-v="gsm">Gsm</button></div></div>
+    <div class="panel-b stack" style="gap:10px"><div class="ml-head" id="mHead"></div><div class="ml-prev${UI.mlDev==="gsm"?" gsm":""}"><iframe id="mlFrame" title="Voorbeeld van de mail" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div></div></div>
+  <div class="panel"><div class="panel-h"><h2>Versturen</h2></div><div class="panel-b stack" style="gap:10px">
+    ${MAILSMTP===null?(mailSmtpLaad(),'<div class="muted small">Verzendinstellingen laden…</div>'):MAILSMTP.ingesteld?`
+    <button class="btn primary" data-act="mlSend"${actief.length&&canWrite?"":" disabled"}>${ic("mails")}${actief.length} ${actief.length===1?"mail":"mails"} versturen</button>
+    <button class="btn" data-act="mlTest"${actief.length&&canWrite?"":" disabled"}>Testmail naar mezelf</button>
+    <div class="muted small">Elke ontvanger krijgt een eigen mail met de juiste naam en het juiste bedrag, vanaf <b>${esc(MAILSMTP.van.email)}</b>. De testmail gebruikt de gegevens uit het voorbeeld.</div><div id="mailProg">${ML_LAST}</div>`
+    :`<div class="note">Rechtstreeks versturen is nog niet ingesteld (SMTP-gegevens in Vercel).</div>`}
+    <details><summary style="cursor:pointer;font-weight:600;font-size:14px">Andere manieren</summary><div class="stack" style="gap:8px;margin-top:10px">
+      <button class="btn" data-act="mailZip"${actief.length?"":" disabled"}>${ic("download")}Concepten downloaden (.zip)</button>
+      <button class="btn" data-act="mailCopy"${actief.length?"":" disabled"}>${ic("copy")}Adressen kopiëren (voor BCC)</button></div></details>
+  </div></div>
+  ${mlHistoriek()}
+  </div></div>`}});
+function mlEditor(M){const d=!canWrite;const b=(act,t,lab,extra="")=>`<button type="button" class="ml-tb-b" data-mltb="${act}" title="${esc(lab)}" aria-label="${esc(lab)}"${extra}${d?" disabled":""}>${t}</button>`;
+  return `<div class="ml-tb" role="toolbar" aria-label="Opmaak">
+    ${b("bold","<b>B</b>","Vet")}${b("italic","<i>I</i>","Cursief")}${b("h3","Kop","Tussentitel")}${b("ul","&bull; Lijst","Opsomming")}${b("link","Link","Link")}<span class="ml-sep"></span>
+    ${b("kader","Kader","Kader in huisstijl")}${b("knop","Knop","Rode knop met link")}${b("agenda","Agenda","Komende activiteiten uit de agenda")}<span class="ml-sep"></span>
+    <span class="ml-dd">${b("velden","Veld &#9662;","Veld invoegen",' aria-haspopup="true"')}<div class="ml-ddm" id="mlDdm" hidden>${ML_VELDEN.map(([s,L])=>`<div class="ml-dds">${esc(s)}</div>`+L.map(([k,l])=>`<button type="button" data-mlveld="${k}"><span>${esc(l)}</span><code>{${k}}</code></button>`).join("")).join("")}</div></span>
+    <span class="grow"></span>${b("bron",M.bron?"Opmaak":"HTML",M.bron?"Terug naar opmaak":"HTML-code bekijken")}</div>
+  ${M.bron?`<textarea id="mlRaw" data-mlv="body" class="ml-raw" spellcheck="false"${d?" disabled":""}>${esc(M.body)}</textarea>`:`<div id="mlEd" class="ml-ed" contenteditable="${d?"false":"true"}" spellcheck="true">${M.body}</div>`}
+  <span class="help">Velden zoals <span class="kbd">{voornaam}</span> worden per ontvanger ingevuld. <span class="kbd">{agenda}</span> wordt de lijst met komende activiteiten. Logo, rode balken en lettertype komen er bij het versturen vanzelf bij.</span>`}
+function mlHistoriek(){const L=[...(S.mailings||new Map()).values()].sort((a,b)=>String(b.datum||"").localeCompare(String(a.datum||"")));if(!L.length)return"";
+  const N=UI.mlHistN||5;const dt=s=>{const x=new Date(s);return isNaN(x)?"":x.toLocaleDateString("nl-BE",{day:"numeric",month:"short",year:"numeric"})+" "+x.toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})};
+  return `<div class="panel"><div class="panel-h"><h2>Verzonden</h2></div><div class="list">${L.slice(0,N).map(m=>`<div class="li ml-h"><div class="grow" style="min-width:0"><div class="trunc"><b>${esc(m.onderwerp||"")}</b></div>
+    <div class="muted small trunc">${esc(dt(m.datum))} · ${esc(m.groep||"")}${m.door?" · "+esc(m.door):""}</div></div><span class="pill ${m.fout&&m.fout.length?"warn":"ok"}" title="${esc((m.fout||[]).join(", "))}">${m.ok||0}${m.fout&&m.fout.length?" / "+m.aantal:""}</span></div>`).join("")}</div>
+    ${L.length>N?'<div style="padding:10px 16px;border-top:1px solid var(--line)"><button class="btn sm" data-act="mlHistMeer">Meer tonen</button></div>':""}</div>`}
+VIEWS.mails.after=()=>{mailPreview();const ed=$("#mlEd");if(ed&&!ed.dataset.init){ed.dataset.init=1}};
+
+/* ---------- voorbeeld ---------- */
+let ML_T=null;
+function mailPreview(){const M=mailState(),list=mailRecips();const fr=$("#mlFrame"),hd=$("#mHead");if(!fr)return;
+  const dummy={email:"",voornaam:"Voornaam",naam:"Naam Voornaam",bedrag:30,mededeling:"Naam Voornaam "+(/^bk/.test(UI.mailGroep||"")?"Banket":"lidgeld")+" "+JAAR,label:"(geen ontvangers)"};
+  M.idx=Math.max(0,Math.min(M.idx||0,Math.max(0,list.length-1)));const r=list[M.idx]||dummy;
+  hd.innerHTML=`<div class="ml-nav"><button class="btn sm" data-act="mlPrev" aria-label="Vorige"${M.idx>0?"":" disabled"}>‹</button><span>${list.length?(M.idx+1)+" / "+list.length:"geen ontvangers"}</span><button class="btn sm" data-act="mlNext" aria-label="Volgende"${M.idx<list.length-1?"":" disabled"}>›</button></div>
+    <div class="ml-meta"><div><span>Aan</span><b class="trunc">${esc(r.label)}${r.email?` <small>&lt;${esc(r.email)}&gt;</small>`:""}</b></div><div><span>Onderwerp</span><b class="trunc">${esc(vul(M.onderwerp,r))}</b></div></div>`;
+  const h=mailHtml(r,M).replace("<head>",'<head><base target="_blank">');
+  fr.onload=()=>{try{const b=fr.contentDocument.documentElement;fr.style.height=Math.max(320,b.scrollHeight+4)+"px"}catch(e){}};
+  fr.srcdoc=h}
+const mlPrevLater=()=>{clearTimeout(ML_T);ML_T=setTimeout(mailPreview,250)};
+function mlDirty(){MAIL.dirty=true;const e=$("#mlDirty");if(e)e.textContent="Niet bewaard"}
+
+/* ---------- editor ---------- */
+function mlSaveRange(){const s=getSelection();const ed=$("#mlEd");if(ed&&s.rangeCount&&ed.contains(s.anchorNode))ML_RANGE=s.getRangeAt(0).cloneRange()}
+function mlRestore(){const ed=$("#mlEd");if(!ed)return;ed.focus();const s=getSelection();if(ML_RANGE&&ed.contains(ML_RANGE.startContainer)){s.removeAllRanges();s.addRange(ML_RANGE)}else{const r=document.createRange();r.selectNodeContents(ed);r.collapse(false);s.removeAllRanges();s.addRange(r)}}
+function mlSync(){const ed=$("#mlEd");if(!ed)return;MAIL.body=ed.innerHTML;mlDirty();mlPrevLater()}
+function mlIns(html){mlRestore();document.execCommand("insertHTML",false,html);mlSync()}
+function mlInsBlok(html){const ed=$("#mlEd");mlRestore();let n=getSelection().anchorNode;while(n&&n.parentNode!==ed)n=n.parentNode;
+  const t=document.createElement("div");t.innerHTML=html;const nodes=[...t.childNodes];const leeg=n&&n.nodeType===1&&n.tagName==="P"&&!n.textContent.trim()&&!n.dataset.blok;
+  if(!n)nodes.forEach(x=>ed.appendChild(x));else{let ref=n;for(const x of nodes){ref.after(x);ref=x}if(leeg)n.remove()}
+  const last=nodes[nodes.length-1];if(!last.nextSibling){const p=document.createElement("p");p.innerHTML="<br>";last.after(p)}
+  const r=document.createRange();r.selectNodeContents(last.nextSibling);r.collapse(true);const s=getSelection();s.removeAllRanges();s.addRange(r);mlSync()}
+function mlBlok(){const s=getSelection();let n=s.anchorNode;const ed=$("#mlEd");while(n&&n!==ed){if(n.nodeType===1&&n.dataset&&n.dataset.blok)return n;n=n.parentNode}return null}
+function mlTb(act){const ed=$("#mlEd");
+  if(act==="bron"){if(!MAIL.bron&&ed)MAIL.body=ed.innerHTML;MAIL.bron=!MAIL.bron;renderBody();return}
+  if(!ed)return;
+  if(act==="velden"){const m=$("#mlDdm");m.hidden=!m.hidden;return}
+  if(act==="bold"||act==="italic"){mlRestore();document.execCommand(act);mlSync();return}
+  if(act==="ul"){mlRestore();document.execCommand("insertUnorderedList");mlSync();return}
+  if(act==="h3"){mlRestore();const cur=document.queryCommandValue("formatBlock");document.execCommand("formatBlock",false,/h3/i.test(cur)?"p":"h3");mlSync();return}
+  if(act==="agenda"){mlInsBlok("<p>{agenda}</p>");return}
+  if(act==="kader"){mlInsBlok('<div data-blok="kader"><h2>Titel</h2><p>&bull; <strong>Datum:</strong> </p><p>&bull; <strong>Tijd:</strong> </p><p>&bull; <strong>Locatie:</strong> </p></div>');return}
+  if(act==="link"||act==="knop"){const sel=String(getSelection()).trim();const knop=act==="knop";
+    modal(knop?"Knop invoegen":"Link invoegen",`<div class="form">
+      ${fld("mlLt",knop?"Tekst op de knop":"Tekst",`<input id="mlLt" value="${esc(sel)}" placeholder="${knop?"bv. Inschrijven voor het banket":"bv. klik hier"}">`,"full")}
+      ${fld("mlLs","Waarheen",`<select id="mlLs" class="sel">${ML_LINKS.map(([v,l])=>`<option value="${v}">${esc(l)}</option>`).join("")}<option value="">Ander webadres…</option></select>`,"full")}
+      ${fld("mlLu","Webadres",`<input id="mlLu" placeholder="https://…">`,"full ml-lu")}</div>`,
+      `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="mlLok">Invoegen</button>`);
+    const sync=()=>{$(".ml-lu").style.display=$("#mlLs").value?"none":""};$("#mlLs").onchange=sync;sync();
+    $("#mlLok").onclick=()=>{const t=$("#mlLt").value.trim();let u=$("#mlLs").value||$("#mlLu").value.trim();if(!t||!u){toast("Vul een tekst en een bestemming in.",true);return}
+      if(!$("#mlLs").value&&!/^(https?:|mailto:|\{)/i.test(u))u=/@/.test(u)?"mailto:"+u:"https://"+u;closeModal();
+      knop?mlInsBlok(`<p data-blok="knop"><a href="${esc(u)}">${esc(t)}</a></p>`):mlIns(`<a href="${esc(u)}">${esc(t)}</a>&nbsp;`)};return}
+}
+document.addEventListener("mousedown",e=>{if(e.target.closest("[data-mltb],[data-mlveld]")){mlSaveRange();e.preventDefault()}});
+document.addEventListener("selectionchange",()=>{if(document.activeElement&&document.activeElement.id==="mlEd")mlSaveRange()});
+document.addEventListener("click",e=>{
+  const tb=e.target.closest("[data-mltb]");if(tb){mlTb(tb.dataset.mltb);return}
+  const v=e.target.closest("[data-mlveld]");if(v){$("#mlDdm").hidden=true;mlRestore();document.execCommand("insertText",false,"{"+v.dataset.mlveld+"}");mlSync();return}
+  if(!e.target.closest(".ml-dd")){const m=$("#mlDdm");if(m)m.hidden=true}
+  const t=e.target.closest("[data-act]");if(!t)return;const a=t.dataset.act;if(!a.startsWith("ml"))return;
+  ({mlNieuw:()=>mlWissel(()=>{MAIL=mlVanTpl(null);UI.mailTpl="";saveUI();render(true);setTimeout(()=>{const n=$("#mNaam");if(n)n.focus()},30)}),
+    mlPrev:()=>{MAIL.idx--;mailPreview()},mlNext:()=>{MAIL.idx++;mailPreview()},
+    mlDev:()=>{UI.mlDev=t.dataset.v;saveUI();renderBody()},
+    mlGroepTpl:()=>{UI.mailGroep=MAIL.groep;MAIL.uit=new Set();MAIL.idx=0;saveUI();renderBody()},
+    mlHistMeer:()=>{UI.mlHistN=(UI.mlHistN||5)+20;renderBody()},
+    mlNaarHuisstijl:()=>{const M=MAIL;let b=M.body;
+      if(M.isHtml){const d=new DOMParser().parseFromString(b,"text/html");const cel=[...d.querySelectorAll("td")].filter(x=>!x.querySelector("td")&&x.querySelector("p,h2"));
+        b=cel.length?cel.map(x=>x.querySelector("h2")?'<div data-blok="kader">'+x.innerHTML+"</div>":x.innerHTML).join(""):d.body.innerHTML}
+      else b=String(b).split(/\n{2,}/).map(p=>"<p>"+esc(p).replace(/\n/g,"<br>")+"</p>").join("");
+      M.body=mlLegacy(b.replace(/\s(style|class|bgcolor|align|width|height)="[^"]*"/g,"").replace(/<!--.*?-->/gs,""));M.opmaak="huisstijl";M.isHtml=true;mlDirty();renderBody()},
+    mlSave:()=>mlBewaar(false),mlKopie:()=>mlBewaar(true),
+    mlDel:()=>confirmBox("Sjabloon <b>"+esc(MAIL.naam)+"</b> verwijderen?","Verwijderen",async()=>{await write("templates",MAIL.tplId,null,{del:true});MAIL=null;UI.mailTpl="";saveUI();render(true)}),
+    mlTest:()=>mlTest(),mlSend:()=>mlSend()})[a]?.();
+});
+document.addEventListener("input",e=>{const t=e.target;if(!MAIL)return;
+  if(t.id==="mlEd"){mlSync();return}
+  if(t.dataset&&t.dataset.mlv){MAIL[t.dataset.mlv]=t.value;mlDirty();mlPrevLater();return}
+  if(t.id==="mlLos"){UI.mailLos=t.value;saveUI();clearTimeout(ML_T);ML_T=setTimeout(()=>{const pos=t.selectionStart;renderBody();const n=$("#mlLos");if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(x){}}},700)}});
+document.addEventListener("change",e=>{const t=e.target;
+  if(t.dataset&&t.dataset.mluit!==undefined){const k=t.dataset.mluit;t.checked?MAIL.uit.delete(k):MAIL.uit.add(k);renderBody();return}
+  if(t.dataset&&t.dataset.mlv==="categorie"){MAIL.categorie=t.value;mlDirty();return}
+  if(t.dataset&&t.dataset.change==="mlGroep"){UI.mailGroep=t.value;saveUI();MAIL.idx=0;MAIL.uit=new Set();renderBody();return}
+  if(t.dataset&&t.dataset.change==="mlTpl"){const v=t.value;t.value=MAIL.tplId||"";mlWissel(()=>mlKies(v));return}
+  if(t.id==="mlFile"&&t.files[0]){const f=t.files[0];const rd=new FileReader();rd.onload=()=>{MAIL=mlVanTpl(null);MAIL.nieuw=true;MAIL.body=String(rd.result);MAIL.opmaak="";MAIL.isHtml=true;MAIL.naam=f.name.replace(/\.html?$/i,"").replace(/[_-]+/g," ");MAIL.dirty=true;UI.mailTpl="";render(true)};rd.readAsText(f);t.value=""}});
+document.addEventListener("paste",e=>{if(e.target.closest&&e.target.closest("#mlEd")){e.preventDefault();const tx=(e.clipboardData||window.clipboardData).getData("text/plain");
+  document.execCommand("insertHTML",false,tx.split(/\r?\n\r?\n/).map(p=>esc(p).replace(/\r?\n/g,"<br>")).join("</p><p>"));mlSync()}});
+document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key==="s"&&route()==="mails"&&canWrite){e.preventDefault();mlBewaar(false)}});
+
+async function mlBewaar(kopie){const M=MAIL;const ed=$("#mlEd");if(ed)M.body=ed.innerHTML;
+  if(!M.naam.trim()){toast("Geef het sjabloon eerst een naam.",true);const n=$("#mNaam");if(n)n.focus();return}
+  const id=kopie||!M.tplId?"tpl-"+mlId():M.tplId;const naam=kopie?M.naam.trim()+" (kopie)":M.naam.trim();
+  await write("templates",id,{naam,categorie:M.categorie||"Algemeen",groep:UI.mailGroep||M.groep||"",onderwerp:M.onderwerp,body:M.body,opmaak:M.opmaak||"",isHtml:!!M.isHtml});
+  M.tplId=id;M.naam=naam;M.groep=UI.mailGroep||M.groep;M.dirty=false;M.nieuw=false;UI.mailTpl=id;saveUI();toast(kopie?"Kopie gemaakt.":"Sjabloon bewaard.");render(true)}
+
+/* ---------- versturen ---------- */
+async function mailVerstuur(lijst,label){if(MAILBUSY)return{ok:0,fout:["bezig"]};MAILBUSY=true;const prog=()=>$("#mailProg");let ok=0;const fout=[];
+  try{for(let i=0;i<lijst.length;i+=10){const deel=lijst.slice(i,i+10);const p=prog();
+      if(p)p.innerHTML=`<div class="ml-prog"><div style="width:${Math.round(i/lijst.length*100)}%"></div></div><div class="muted small">Bezig: ${i} van ${lijst.length} verstuurd…</div>`;
+      try{const j=await api("/api/mail",{method:"POST",body:JSON.stringify({berichten:deel})});for(const x of j.resultaten||[])x.ok?ok++:fout.push(x.aan+" ("+(x.fout||"mislukt")+")")}
+      catch(e){deel.forEach(m=>fout.push(m.aan+" ("+e.message+")"))}}}
+  finally{MAILBUSY=false}
+  ML_LAST=`<div class="note ${fout.length?"":"info"}"><b>${ok}</b> ${ok===1?"mail":"mails"} verstuurd${label?" ("+esc(label)+")":""}.${fout.length?`<br>Niet gelukt (${fout.length}): ${fout.map(esc).join(", ")}`:""}</div>`;
+  const p=prog();if(p)p.innerHTML=`<div class="note ${fout.length?"":"info"}"><b>${ok}</b> ${ok===1?"mail":"mails"} verstuurd${label?" ("+esc(label)+")":""}.${fout.length?`<br>Niet gelukt (${fout.length}): ${fout.map(esc).join(", ")}`:""}</div>`;
+  toast(fout.length?ok+" verstuurd, "+fout.length+" niet gelukt.":ok+" "+(ok===1?"mail":"mails")+" verstuurd.",!!fout.length);return{ok,fout}}
+function mailBericht(r,M,aan){return{aan:aan||r.email,aanNaam:r.label||"",onderwerp:vul(M.onderwerp,r),html:mailHtml(r,M)}}
+async function mlTest(){const list=mailRecips();if(!list.length||!ME)return;const r=list[Math.min(MAIL.idx||0,list.length-1)];
+  await mailVerstuur([{...mailBericht(r,MAIL,ME.email),aanNaam:"",onderwerp:"[TEST] "+vul(MAIL.onderwerp,r)}],"testmail naar "+ME.email+" met de gegevens van "+r.label)}
+function mlSend(){const list=mailRecips();if(!list.length)return;const n=list.length,w=n===1?"mail":"mails",g=mlGroep(),M=MAIL;
+  if(/\{\w+\}/.test(vul(M.onderwerp,list[0])+mlStijl(vul(M.body,list[0],true)).replace(/<[^>]+>/g,""))){toast("Er staat nog een onbekend veld tussen accolades in het bericht.",true)}
+  modal("Mails versturen",`<div class="stack" style="gap:12px"><p style="margin:0">Je staat op het punt om <b>${n} ${w}</b> te versturen. Dit kan niet ongedaan gemaakt worden.</p>
+    <dl class="kv"><dt>Van</dt><dd>${esc((MAILSMTP&&MAILSMTP.van.naam?MAILSMTP.van.naam+" ":"")+"<"+(MAILSMTP&&MAILSMTP.van.email||"")+">")}</dd><dt>Aan</dt><dd>${esc(g.label)} (${n})</dd><dt>Onderwerp</dt><dd>${esc(vul(M.onderwerp,list[0]))}</dd></dl>
+    ${M.dirty?'<div class="note">Het sjabloon heeft niet-bewaarde wijzigingen. Die worden wel zo verstuurd.</div>':""}
+    <label class="sp-nat"><input type="checkbox" id="msOk"><span><b>Ja, verstuur ${n} ${w}</b><small>Stuur bij twijfel eerst een testmail naar jezelf.</small></span></label></div>`,
+    `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="msGo" disabled>Versturen</button>`);
+  $("#msOk").onchange=e=>{$("#msGo").disabled=!e.target.checked};
+  $("#msGo").onclick=async()=>{if(!$("#msOk").checked)return;closeModal();const res=await mailVerstuur(list.map(r=>mailBericht(r,M)));
+    try{await write("mailings",mlId(),{datum:new Date().toISOString(),onderwerp:vul(M.onderwerp,{}),sjabloon:M.naam||"",sjabloonId:M.tplId||"",groep:g.label,aantal:n,ok:res.ok,fout:res.fout.slice(0,200),door:ME?ME.email:""})}catch(e){}}}
