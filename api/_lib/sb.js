@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
 export function admin() {
@@ -35,6 +36,15 @@ export async function requireUser(req, { write = false, boek = false } = {}) {
 export function isCron(req) {
   const s = process.env.CRON_SECRET;
   return !!s && req.headers.authorization === `Bearer ${s}`;
+}
+
+// Geplande taak vanuit Supabase (pg_cron, 9u/13u/17u): stuurt de sleutel uit de afgeschermde tabel cron_geheim mee.
+export async function isDbCron(req) {
+  const h = String(req.headers["x-vbha-cron"] || "");
+  if (h.length < 32) return false;
+  const { data } = await admin().from("cron_geheim").select("sleutel").eq("id", 1).maybeSingle();
+  const k = String(data?.sleutel || "");
+  return k.length === h.length && crypto.timingSafeEqual(Buffer.from(k), Buffer.from(h));
 }
 
 // Leest alle rijen van een tabel (per 1000).
