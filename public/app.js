@@ -1031,13 +1031,13 @@ function krBgStyle(){if(!KR.bg)return;const c={};
 /* ---------- sponsors ---------- */
 function sponsorOntvangen(s,C){
   const toks=norm(s.bedrijf).split(/[^a-z0-9]+/).filter(t=>t.length>=4&&!["bvba","sprl","groep","group"].includes(t));
-  return C.boek.filter(b=>b.categorie==="Sponsoring"&&b.richting!=="uit"&&toks.some(t=>(b._m+" "+b._p).includes(t))).reduce((s,b)=>s+b.bedrag,0);
+  return C.boek.filter(b=>b.categorie==="Sponsoring"&&b.richting!=="uit"&&String(b.datum||"")>=JAAR+"-06-01"&&toks.some(t=>(b._m+" "+b._p).includes(t))).reduce((s,b)=>s+b.bedrag,0);
 }
 VIEWS.sponsors=()=>({title:"Sponsors",sub:"Sponsorbeheer",actions:'<button class="btn" data-act="docRol" data-v="sponsordossier" title="Sponsordossier openen (uit Documenten)">'+ic("documenten")+'Sponsordossier</button><button class="btn primary" data-w data-act="nieuweSponsor">'+ic("plus")+'Nieuwe sponsor</button>',body(){
   const C=ctx();const q=norm(UI.spQ);let list=[...S.sponsors.values()].sort((a,b)=>(a.bedrijf||"").localeCompare(b.bedrijf||"","nl"));
   if(q)list=list.filter(s=>norm(Object.values(s).join(" ")).includes(q));
-  const totaal=[...S.sponsors.values()].reduce((s,x)=>s+num(x.bedrag),0);const ontv=C.boek.filter(b=>b.categorie==="Sponsoring"&&b.richting!=="uit").reduce((s,b)=>s+b.bedrag,0);
-  return `<div class="tiles"><div class="tile"><span class="lbl">Sponsors</span><span class="val">${S.sponsors.size}</span></div><div class="tile"><span class="lbl">Afgesproken bedragen</span><span class="val">${eur(totaal)}</span></div><div class="tile"><span class="lbl">Ontvangen in ${JAAR}</span><span class="val in">${eur(ontv)}</span><span class="hint">Transacties met categorie Sponsoring</span></div></div>
+  const totaal=[...S.sponsors.values()].reduce((s,x)=>s+num(x.bedrag),0);const ontv=C.boek.filter(b=>b.categorie==="Sponsoring"&&b.richting!=="uit"&&String(b.datum||"")>=JAAR+"-06-01").reduce((s,b)=>s+b.bedrag,0);
+  return `<div class="tiles"><div class="tile"><span class="lbl">Sponsors</span><span class="val">${S.sponsors.size}</span></div><div class="tile"><span class="lbl">Afgesproken bedragen</span><span class="val">${eur(totaal)}</span></div><div class="tile"><span class="lbl">Ontvangen in ${JAAR}</span><span class="val in">${eur(ontv)}</span></div></div>
   <div class="bar"><div class="search">${ic("search")}<input id="spQ" data-live data-input="spQ" placeholder="Zoek sponsor" value="${esc(UI.spQ)}"></div></div>
   <div class="panel"><div class="tw"><table class="rcards"><thead><tr><th>Bedrijf</th><th>Contactpersoon</th><th>E-mail</th><th>Telefoon</th><th>KBO-nr.</th><th class="num">Bedrag</th><th>Ontvangen ${JAAR}</th></tr></thead><tbody>
   ${list.map(s=>{const o=sponsorOntvangen(s,C);return `<tr class="click" data-act="toonSponsor" data-id="${esc(s.id)}"><td><b>${esc(s.bedrijf)}</b><div style="color:var(--muted);font-size:13px">${esc(s.adres)}</div></td><td>${esc(s.voornaam)} ${esc(s.naam)}</td><td class="trunc">${esc(s.email)}</td><td style="white-space:nowrap">${esc(s.telefoon)}</td><td class="muted">${esc(s.kbo)}</td><td class="num">${eur(num(s.bedrag))}</td><td>${o?'<span class="pill ok">'+eur(o)+'</span>':'<span class="pill neutral">nog niets gevonden</span>'}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Geen sponsors.</td></tr>'}
