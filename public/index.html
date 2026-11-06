@@ -830,9 +830,12 @@ textarea.ml-raw:first-child{border-radius:var(--r)}
 /* gebruikers */
 .gb-rollen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}@media (max-width:760px){.gb-rollen{grid-template-columns:1fr}}
 .gb-rol{display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
-.gb-li{gap:12px;align-items:center}.gb-av{flex:none;width:34px;height:34px;display:grid;place-items:center;font-weight:700;font-size:14px}
+.gb-li{display:flex;gap:14px;align-items:center;padding:12px 20px}.gb-li>.grow{flex:1 1 auto}.gb-li .pill{min-width:108px;justify-content:center;text-align:center}.gb-av{flex:none;width:34px;height:34px;display:grid;place-items:center;font-weight:700;font-size:14px}
 .gb-tmp{color:#9a6b00}.gb-rkeus{display:flex;flex-direction:column;gap:8px}
 code.gb-ww{font-size:17px;letter-spacing:.04em;padding:3px 8px;border-radius:6px;background:var(--sunken)}
+.gb-li .trunc{display:block;max-width:100%}
+.gb-rm{display:none}
+@media (max-width:640px){.gb-li{padding:12px 14px;gap:12px}.gb-rp{display:none}.gb-rm{display:block;margin:4px 0 3px}.gb-rm .pill{min-width:0}}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
