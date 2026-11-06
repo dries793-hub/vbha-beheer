@@ -47,6 +47,6 @@ export default async function handler(req, res) {
         online = { t: "banket", id, token, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp, provider: bt.provider || null };
       } catch (e) { console.error("Bancontact", e); }
     }
-    res.status(200).json({ ok: true, jaar: I.jaar, bedrag: teBetalen, rekeningnummer: I.rekeningnummer, begunstigde: I.vereniging, mededeling, qr, online, personen, deadline: I.deadline });
+    res.status(200).json({ ok: true, jaar: I.jaar, bedrag: teBetalen, rekeningnummer: I.rekeningnummer, begunstigde: I.vereniging, mededeling, qr, online, personen, deadline: I.deadline, naam, voornaam: lidRij.voornaam || "" });
   } catch (e) { sendError(res, e); }
 }

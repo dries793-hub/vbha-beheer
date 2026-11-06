@@ -39,7 +39,7 @@ export async function actieveLeden(sb, jaar) {
       if (!l.naam || l.dubbelVan) continue;
       if (l.lidSinds && Number(l.lidSinds) > jaar) continue;
       if (l.lidTot && Number(l.lidTot) < jaar) continue;
-      L.push({ id: r.id, naam: `${l.naam} ${l.voornaam || ""}`.replace(/\s+/g, " ").trim() });
+      L.push({ id: r.id, naam: `${l.naam} ${l.voornaam || ""}`.replace(/\s+/g, " ").trim(), voornaam: String(l.voornaam || "").trim() });
     }
     if (data.length < 1000) break;
   }
@@ -51,5 +51,5 @@ export async function actieveLeden(sb, jaar) {
 export function zoekLeden(L, q) {
   const t = norm(q).split(/\s+/).filter(Boolean);
   if (!t.length || norm(q).replace(/\s/g, "").length < 2) return [];
-  return L.filter(l => { const n = norm(l.naam); return t.every(x => n.split(/[\s'-]+/).some(w => w.startsWith(x)) || n.includes(x)); }).slice(0, 8);
+  return L.filter(l => { const n = norm(l.naam); return t.every(x => n.split(/[\s'-]+/).some(w => w.startsWith(x)) || n.includes(x)); }).slice(0, 8).map(l => ({ id: l.id, naam: l.naam }));
 }
