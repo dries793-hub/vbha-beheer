@@ -178,8 +178,8 @@ let KLAAR=null;
 function toonKlaar(j){KLAAR=j;
   const o=j.online&&(j.online.deeplink||j.online.checkout)?j.online:null;
   $("#box").innerHTML=`<div class="card ok"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Bedankt, ${esc(j.voornaam)}!</h2><p>Je inschrijving voor ${j.personen===2?"2 personen":"1 persoon"} is goed ontvangen.</p>
-  ${j.rekeningnummer||o?`<div class="paybox" id="paybox"><h3>Betaal ${eur(j.bedrag)}${j.deadline?" voor "+esc(j.deadline):""}</h3>
-  ${o?onlineBlok(o,j.bedrag)+`<details class="zelf"><summary>Liever zelf overschrijven?</summary>${handmatig(j)}</details>`
+  ${j.rekeningnummer||o?`<div class="paybox" id="paybox"><h3>Betaal ${eur(j.bedrag)}${!o&&j.deadline?" voor "+esc(j.deadline):""}</h3>
+  ${o?onlineBlok(o,j.bedrag)+`<details class="zelf"><summary>Liever zelf overschrijven?</summary>${j.deadline?`<p class="hint" style="margin:0 0 10px">Schrijf het bedrag over voor <b>${esc(j.deadline)}</b>.</p>`:""}${handmatig(j)}</details>`
      :`${j.qr?`<div class="qrwrap"><div class="qr">${j.qr}</div><p>Scan deze code met de app van je bank. Bedrag, rekeningnummer en mededeling staan dan al ingevuld.</p></div><div class="or"><span>of schrijf zelf over</span></div>`:""}${handmatig(j)}`}
   </div>`:""}</div>`;
   if(o){BET={t:o.t||"leden",id:o.id,token:o.token};volg()}}
@@ -218,7 +218,7 @@ $("#f").addEventListener("submit",async e=>{e.preventDefault();const er=$("#err"
   if(d.personen===2&&!d.menu2){er.textContent="Kies het menu voor je partner.";return}
   const b=$("#go");b.disabled=true;b.textContent="Bezig…";
   try{const r=await fetch("/api/banket",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Inschrijven lukte niet.");
-    const v={...j,naam:d.naam,menu1:d.menu1,menu2:d.menu2,personen:d.personen,voornaam:d.naam.split(" ").slice(-1)[0]||d.naam};toonKlaar(v);try{sessionStorage.setItem("vbha_banket",JSON.stringify({...v,qr:null}))}catch(x){}window.scrollTo({top:0,behavior:"smooth"})}
+    const v={...j,naam:d.naam,menu1:d.menu1,menu2:d.menu2,personen:d.personen,voornaam:j.voornaam||d.naam.split(" ").slice(-1)[0]||d.naam};toonKlaar(v);try{sessionStorage.setItem("vbha_banket",JSON.stringify({...v,qr:null}))}catch(x){}window.scrollTo({top:0,behavior:"smooth"})}
   catch(x){er.textContent=x.message;b.disabled=false;b.textContent="Inschrijven en betalen"}});
 (function(){if(!/[?&]betaling=terug/.test(location.search))return;let j=null;try{j=JSON.parse(sessionStorage.getItem("vbha_banket")||"null")}catch(x){}if(!j)return;history.replaceState(null,"",location.pathname);toonKlaar(j)})();
 /* naam van het lid kiezen: suggesties terwijl je typt */
