@@ -26,6 +26,7 @@ const ICON={
   upload:'<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>', download:'<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>', copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
   x:'<path d="M6 6l12 12M18 6L6 18"/>',
   historiek:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
+  banket:'<path d="M7 3v7a3 3 0 0 0 3 3v8M7 3v4M10 3v4M4 3v4a3 3 0 0 0 3 3"/><path d="M17 21V3c-2 1.5-3 4-3 7v4h3"/>',
   administratie:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/>',
   boekingen:'<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
   verwerken:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/>',
@@ -36,8 +37,8 @@ const ICON={
   communicatie:'<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'
 };
 const ic=n=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+ICON[n]+'</svg>';
-const NAV=[{id:"leden",label:"Leden",items:[["leden","Ledenlijst"],["punten","Puntensysteem"]]},{id:"boekhouding",label:"Boekhouding",items:[["boekhouding","Overzicht"],["boekingen","Transacties"],["verwerken","Te verwerken"],["historiek","Historiek"]]},{id:"administratie",label:"Administratie",items:[["kalenders","Kalenders"],["sponsors","Sponsors"]]},{id:"communicatie",label:"Communicatie",items:[["mails","Mails"]]}];
-const ROUTES=[["boekingen","Transacties"],["verwerken","Te verwerken"],["regels","Regels"],["bank","Bankimport"],["dashboard","Dashboard"],["leden","Leden"],["boekhouding","Boekhouding"],["punten","Puntensysteem"],["kalenders","Kalenders"],["sponsors","Sponsors"],["historiek","Historiek"],["mails","Mails"],["instellingen","Instellingen"]];
+const NAV=[{id:"leden",label:"Leden",items:[["leden","Ledenlijst"],["punten","Puntensysteem"]]},{id:"boekhouding",label:"Boekhouding",items:[["boekhouding","Overzicht"],["boekingen","Transacties"],["verwerken","Te verwerken"],["historiek","Historiek"]]},{id:"administratie",label:"Administratie",items:[["kalenders","Kalenders"],["sponsors","Sponsors"],["banket","Banket"]]},{id:"communicatie",label:"Communicatie",items:[["mails","Mails"]]}];
+const ROUTES=[["boekingen","Transacties"],["verwerken","Te verwerken"],["regels","Regels"],["bank","Bankimport"],["dashboard","Dashboard"],["leden","Leden"],["boekhouding","Boekhouding"],["punten","Puntensysteem"],["kalenders","Kalenders"],["sponsors","Sponsors"],["banket","Banket"],["historiek","Historiek"],["mails","Mails"],["instellingen","Instellingen"]];
 
 /* ============ standaardwaarden ============ */
 const DEF_CONFIG={vereniging:"Vriendenkring Brandweer Hoofdpost Aalst",rekeningnummer:"",
@@ -47,8 +48,8 @@ const DEF_JAAR={beginKas:0,beginRekening:0,gewichten:{kaarten:1,kalenders:25,shi
 const JUBILEA=[10,20,25,30,40,50,60];
 
 /* ============ toestand ============ */
-const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","kinderfeest"];
-const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),kinderfeest:new Map()};
+const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","kinderfeest","banket"];
+const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),kinderfeest:new Map(),banket:new Map()};
 const loaded=new Set();
 let db=null,canWrite=true,JAAR=ls.get("jaar",null);
 const UI=Object.assign({ledenQ:"",ledenCat:"",ledenF:"alle",oudLeden:false,boekQ:"",boekCat:"",boekRek:"",puntQ:"",puntSort:"naam",kalQ:"",spQ:"",mailGroep:"alle",mailTpl:"",histJaar:null,histQ:"",boekDir:"",boekMaand:"",boekSort:{k:"datum",d:-1},boekPage:0},ls.get("ui",{}));
@@ -688,6 +689,79 @@ VIEWS.sponsors=()=>({title:"Sponsors",sub:"Sponsorbeheer",actions:'<button class
   ${list.map(s=>{const o=sponsorOntvangen(s,C);return `<tr class="click" data-act="toonSponsor" data-id="${esc(s.id)}"><td><b>${esc(s.bedrijf)}</b><div style="color:var(--muted);font-size:13px">${esc(s.adres)}</div></td><td>${esc(s.voornaam)} ${esc(s.naam)}</td><td class="trunc">${esc(s.email)}</td><td style="white-space:nowrap">${esc(s.telefoon)}</td><td class="muted">${esc(s.kbo)}</td><td class="num">${eur(num(s.bedrag))}</td><td>${o?'<span class="pill ok">'+eur(o)+'</span>':'<span class="pill neutral">nog niets gevonden</span>'}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Geen sponsors.</td></tr>'}
   </tbody></table></div></div>`}});
 
+/* ---------- banket ---------- */
+const BK_DEF={prijs:65,deadline:"1 december",datum:"Zaterdag 12 december",uur:"19u00",locatie:"Feestzaal De Snip, Beugemstraat 9, Moorsel",open:true};
+const bkCfg=()=>Object.assign({},BK_DEF,S.config.get("banket")||{});
+const bkLink=()=>location.origin+"/banket";
+const bkDue=r=>r2((r.personen===2?2:1)*num(bkCfg().prijs));
+const bkToks=s=>norm(s).split(/[^a-z0-9]+/).filter(t=>t.length>=3);
+const bkDag=iso=>{const d=new Date(iso);return isNaN(d)?String(iso||""):d.toLocaleDateString("nl-BE",{day:"2-digit",month:"2-digit",year:"numeric"})};
+function bkLijst(){return [...S.banket.values()].filter(r=>Number(r.jaar)===JAAR)}
+function bkLedenActief(){return ctx().leden.filter(l=>l.naam&&!l.dubbelVan).map(l=>({id:l.id,naam:((l.naam||"")+" "+(l.voornaam||"")).trim()})).sort((a,b)=>a.naam.localeCompare(b.naam,"nl"))}
+function bkBetaling(r,C){
+  const due=bkDue(r);
+  if(r.betaald==="OK")return{ok:true,bedrag:due,bron:r.betaaldBron||"Manueel op betaald gezet"};
+  if(r.betaald==="NOK")return{ok:false,bedrag:0,bron:"Manueel op niet betaald gezet"};
+  const t=bkToks(r.naam);if(!t.length)return{ok:false,bedrag:0,bron:""};
+  const L=C.boek.filter(b=>b.richting!=="uit"&&(b.categorie==="Banket"||b._m.includes("banket"))&&t.every(x=>(b._m+" "+b._p).includes(x)));
+  const s=r2(L.reduce((a,b)=>a+b.bedrag,0));
+  return{ok:s>0&&s>=due-0.01,deel:s>0&&s<due-0.01,bedrag:s,bron:L.length?"Overschrijving van "+L.map(b=>fmtDate(b.datum)).join(", "):""};
+}
+function bkRows(){const C=ctx();return bkLijst().map(r=>({r,p:bkBetaling(r,C),due:bkDue(r)})).sort((a,b)=>(a.r.naam||"").localeCompare(b.r.naam||"","nl"))}
+function bkTable(){
+  const q=norm(UI.bkQ||""),F=UI.bkF||"alle";
+  let R=bkRows();if(q)R=R.filter(x=>norm([x.r.naam,x.r.opmerking].join(" ")).includes(q));
+  if(F==="open")R=R.filter(x=>!x.p.ok);else if(F==="ok")R=R.filter(x=>x.p.ok);else if(F==="veg")R=R.filter(x=>x.r.menu1==="Vegetarisch"||(x.r.personen===2&&x.r.menu2==="Vegetarisch"));
+  const pers=R.reduce((s,x)=>s+(x.r.personen===2?2:1),0);
+  return `<div class="tw"><table class="rcards"><thead><tr><th>Naam</th><th>Formule</th><th>Menu</th><th>Opmerking</th><th class="num">Bedrag</th><th>Betaling</th><th>Ingeschreven</th></tr></thead><tbody>
+  ${R.map(x=>{const r=x.r;const menu=r.personen===2?esc(r.menu1)+" + "+esc(r.menu2||"?"):esc(r.menu1);
+    const pill=x.p.ok?`<span class="pill ok" title="${esc(x.p.bron)}">Betaald</span>`:x.p.deel?`<span class="pill warn" title="${esc(x.p.bron)}">Deels: ${eur(x.p.bedrag)}</span>`:`<span class="pill nok">Open</span>`;
+    return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b></td><td style="white-space:nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td><td class="muted" style="white-space:nowrap">${esc(bkDag(r.ingediend))}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
+  </tbody>${R.length?`<tfoot><tr><td>${R.length} inschrijvingen</td><td>${pers} personen</td><td></td><td></td><td class="num">${eur(R.reduce((s,x)=>s+x.due,0))}</td><td></td><td></td></tr></tfoot>`:""}</table></div>`}
+VIEWS.banket=()=>({title:"Banket "+JAAR,sub:"Inschrijvingen en betalingen",
+  actions:`<a class="btn" href="/banket" target="_blank" rel="noopener">${ic("communicatie")}Inschrijfpagina</a><button class="btn" data-act="bkExport">${ic("download")}Exporteren</button><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button>`,
+  body(){
+  const R=bkRows(),bc=bkCfg(),d=canWrite?"":" disabled";const pers=R.reduce((s,x)=>s+(x.r.personen===2?2:1),0);
+  let nm=0,veg=0;for(const {r} of R){(r.menu1==="Vegetarisch"?veg++:nm++);if(r.personen===2)(r.menu2==="Vegetarisch"?veg++:nm++)}
+  const due=R.reduce((s,x)=>s+x.due,0),paid=R.reduce((s,x)=>s+Math.min(x.p.bedrag||0,x.due),0),open=R.filter(x=>!x.p.ok).length;
+  const F=UI.bkF||"alle";const sm=s=>`<small style="font-size:14px;color:var(--muted);font-weight:500">${s}</small>`;
+  return `<div class="tiles"><div class="tile hero"><span class="lbl">Personen</span><span class="val">${pers}</span><span class="hint">${R.length} inschrijvingen</span></div>
+   <div class="tile"><span class="lbl">Menu's</span><span class="val">${nm} ${sm("normaal")} · ${veg} ${sm("veggie")}</span></div>
+   <div class="tile"><span class="lbl">Te ontvangen</span><span class="val">${eur(due)}</span><span class="hint">${eur(bc.prijs)} per persoon</span></div>
+   <div class="tile"><span class="lbl">Betaald</span><span class="val in">${eur(paid)}</span><span class="hint">${open?open+" nog open":"alles ontvangen"}</span></div></div>
+  <div class="panel"><div class="panel-h"><h2>Inschrijfpagina</h2>${bc.open?'<span class="pill ok">Open</span>':'<span class="pill nok">Afgesloten</span>'}</div><div class="panel-b" style="display:flex;flex-direction:column;gap:10px"><span style="font-size:14px;color:var(--muted)">Deel deze link met de leden. Iedereen kan zich inschrijven zonder aan te melden: het lid kiest zijn naam uit de actieve ledenlijst van ${JAAR}, ziet meteen het bedrag en kan betalen. De inschrijving komt rechtstreeks in deze lijst. Betalingen worden herkend via Bancontact of via de transacties met categorie Banket (of "banket" in de mededeling) en de naam.</span>
+   <div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(bkLink())}" aria-label="Link naar de inschrijfpagina voor het banket" onclick="this.select()"><button class="btn" data-act="kopieerLink" data-v="${esc(bkLink())}">${ic("copy")}Kopiëren</button><a class="btn" href="/banket" target="_blank" rel="noopener">Openen</a></div></div></div>
+  <div class="bar"><div class="search">${ic("search")}<input id="bkQ" data-live data-input="bkQ" placeholder="Zoek op naam of opmerking" value="${esc(UI.bkQ||"")}"></div>
+   <div class="seg">${[["alle","Alle"],["open","Open"],["ok","Betaald"],["veg","Vegetarisch"]].map(([v,l])=>`<button type="button" data-act="bkF" data-v="${v}" class="${F===v?"on":""}">${l}</button>`).join("")}</div></div>
+  <div class="panel" id="bkList">${bkTable()}</div>
+  <form class="panel" id="fBk"><div class="panel-h"><h2>Instellingen banket</h2></div><div class="panel-b"><div class="form">
+   ${fld("bkDat","Datum (zonder jaar)",inp("bkDat",bc.datum,'name="datum"'+d))}${fld("bkUur","Uur",inp("bkUur",bc.uur,'name="uur"'+d))}
+   ${fld("bkLoc","Locatie",inp("bkLoc",bc.locatie,'name="locatie"'+d),"full")}
+   ${fld("bkP","Prijs per persoon (€)",inp("bkP",bc.prijs,'name="prijs" inputmode="decimal"'+d))}${fld("bkD","Betalen voor",inp("bkD",bc.deadline,'name="deadline"'+d))}
+   <div class="fld full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="open" value="1"${bc.open?" checked":""}${d} style="width:16px;height:16px;accent-color:var(--accent)">Inschrijvingen open</label><span class="help">Zet dit uit om de inschrijfpagina af te sluiten.</span></div>
+   <div class="full bar" data-w><button class="btn primary" type="submit">Bewaren</button></div></div></div></form>`}});
+function bkForm(r,id){
+  const p=id?bkBetaling(r,ctx()):null;const due=bkDue(r);const L=bkLedenActief();
+  const lidSel=id?inp("biN",r.naam,'name="naam" disabled'):`<select id="biN" name="lidId"><option value="">Kies een lid…</option>${L.filter(l=>!S.banket.has(JAAR+"_"+l.id)).map(l=>`<option value="${esc(l.id)}">${esc(l.naam)}</option>`).join("")}</select>`;
+  modal(id?r.naam:"Nieuwe inschrijving",`<form id="fBkI" class="form">
+   ${fld("biN","Lid *",lidSel,"full")}
+   ${fld("biP","Formule",`<select id="biP" name="personen">${selOpts([["1","Alleen (1 persoon)"],["2","Met partner (2 personen)"]],r.personen===2?"2":"1")}</select>`)}
+   ${fld("biB","Betaling",`<select id="biB" name="betaald">${selOpts([["","Automatisch"],["OK","Betaald (manueel)"],["NOK","Niet betaald (manueel)"]],r.betaald||"")}</select>`)}
+   ${fld("biM1","Menu lid",`<select id="biM1" name="menu1">${selOpts(["Normaal","Vegetarisch"],r.menu1||"Normaal")}</select>`)}
+   ${fld("biM2","Menu partner",`<select id="biM2" name="menu2">${selOpts([["","—"],"Normaal","Vegetarisch"],r.menu2||"")}</select>`)}
+   ${fld("biO","Allergieën / opmerkingen",`<textarea id="biO" name="opmerking" style="min-height:80px">${esc(r.opmerking||"")}</textarea>`,"full")}<div class="err full" id="biErr"></div></form>
+   ${id?`<div class="note info"><b>${eur(due)}</b> · mededeling <b>${esc(r.naam)} Banket ${r.jaar}</b><br><span class="muted small">${p.ok?"Betaald: "+esc(p.bron):p.deel?"Deels betaald ("+eur(p.bedrag)+"): "+esc(p.bron):"Nog geen betaling gevonden."}${r.ingediend?" · ingeschreven op "+esc(bkDag(r.ingediend))+(r.bron==="formulier"?" via de inschrijfpagina":""):""}</span></div>`:""}`,
+   `${id?'<button class="btn ghost danger" data-w id="biDel">Verwijderen</button><span class="grow"></span>':""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="biOk">Bewaren</button>`);
+  if(!canWrite)$$("#fBkI input,#fBkI select,#fBkI textarea").forEach(i=>i.disabled=true);
+  $("#biOk").onclick=async()=>{const f=formData($("#fBkI"));const pers=f.personen==="2"?2:1;let key=id,base;
+    if(id)base=stripId(r);else{const l=L.find(x=>x.id===f.lidId);if(!l){$("#biErr").textContent="Kies een lid.";return}key=JAAR+"_"+l.id;base={jaar:JAAR,lidId:l.id,naam:l.naam,bron:"manueel",ingediend:new Date().toISOString()}}
+    const betaald=f.betaald||null;const d={...base,personen:pers,menu1:f.menu1,menu2:pers===2?(f.menu2||"Normaal"):"",opmerking:f.opmerking.trim(),bedrag:r2(pers*num(bkCfg().prijs)),betaald,betaaldBron:betaald==="OK"?(base.betaald==="OK"&&base.betaaldBron?base.betaaldBron:"Manueel op betaald gezet"):null};
+    closeModal();await write("banket",key,d);toast("Inschrijving bewaard.")};
+  if(id)$("#biDel").onclick=()=>confirmBox("Inschrijving van <b>"+esc(r.naam)+"</b> verwijderen?","Verwijderen",async()=>{await write("banket",id,null,{del:true});toast("Inschrijving verwijderd.")});
+}
+function bkSheet(){return bkRows().map(x=>({Naam:x.r.naam,Formule:x.r.personen===2?"Met partner":"Alleen",Personen:x.r.personen===2?2:1,"Menu lid":x.r.menu1,"Menu partner":x.r.personen===2?x.r.menu2:"",Opmerking:x.r.opmerking||"",Bedrag:x.due,Betaald:x.p.ok?"Ja":x.p.deel?"Deels ("+x.p.bedrag+")":"Nee",Ingeschreven:bkDag(x.r.ingediend)}))}
+function bkExport(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bkSheet()),"Banket "+JAAR);save("VBHA_Banket_"+JAAR+".xlsx",XLSX.write(wb,{type:"array",bookType:"xlsx"}))}
+
 /* ---------- historiek ---------- */
 function alleJaren(){
   const out=new Map();
@@ -1154,6 +1228,7 @@ function exportXlsx(){
     ...C.boek.map(b=>({Nr:b.nr,Datum:fmtDate(b.datum),Categorie:b.categorie,Mededeling:b.mededeling,"Betaald aan/Ontvangen van":b.partij,"Rekening/Kas":b.rekening,Bedrag:b.bedrag,"IN/UIT":b.richting,"Cumul kas":b._kas,"Cumul rekening":b._rek,SALDO:r2(b._kas+b._rek)}))]),"Boekhouding");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(kalStats(C).rows.map(j=>({Persoon:kalNaam(j),Opgehaald:j.kalOpgehaald||0,Uitgevoerd:j.kalUitgevoerd||0,Punten:(j.kalUitgevoerd||0)*C.c.gewichten.kalenders}))),"Kalenders");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([...S.sponsors.values()].map(s=>({Bedrijf:s.bedrijf,Naam:s.naam,Voornaam:s.voornaam,Adres:s.adres,Email:s.email,Telefoon:s.telefoon,"KBO nr.":s.kbo,Bedrag:num(s.bedrag)}))),"Sponsorbeheer");
+  if(bkLijst().length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bkSheet()),"Banket");
   save("VBHA_"+JAAR+".xlsx",XLSX.write(wb,{type:"array",bookType:"xlsx"}));
 }
 function exportJson(){const o={};for(const c of COLS)o[c]=[...S[c].values()];save("VBHA_backup_"+todayISO()+".json",JSON.stringify(o,null,1))}
@@ -1337,6 +1412,10 @@ document.addEventListener("click",async e=>{
     case"importBank":importBank();break;
     case"nieuweSponsor":sponsorForm({},null);break;
     case"toonSponsor":sponsorForm(S.sponsors.get(id),id);break;
+    case"bkNieuw":bkForm({personen:1,menu1:"Normaal"},null);break;
+    case"bkToon":{const r=S.banket.get(id);if(r)bkForm(r,id);break}
+    case"bkExport":bkExport();break;
+    case"bkF":UI.bkF=t.dataset.v;saveUI();$$(".seg button[data-act=bkF]").forEach(b=>b.classList.toggle("on",b===t));$("#bkList").innerHTML=bkTable();break;
     case"kalToevoegen":kalToevoegen();break;
     case"kalOphalen":{const j=S.jaarleden.get(id);if(j){await setJLid(id,{kalOpgehaald:(j.kalOpgehaald||0)+1});renderBody()}break}
     case"kalKlaar":{const j=S.jaarleden.get(id);if(j&&(j.kalOpgehaald||0)>0){await setJLid(id,{kalOpgehaald:j.kalOpgehaald-1,kalUitgevoerd:(j.kalUitgevoerd||0)+1});renderBody()}break}
@@ -1363,7 +1442,7 @@ document.addEventListener("click",async e=>{
 document.addEventListener("input",e=>{
   const t=e.target;
   if(t.dataset.input){UI[t.dataset.input]=t.value;const m={ledenQ:["#ledenList",ledenTable],boekQ:["#boekList",()=>{UI.boekPage=0;return journal()}],puntQ:["#puntList",puntTable],kalQ:["#kalList",kalTable],histQ:["#histList",()=>{const L=alleJaren();return histDetail(L,L.find(j=>j.jaar===UI.histJaar)||L[L.length-1])}]}[t.dataset.input];
-    if(m){const el=$(m[0]);if(el)el.innerHTML=m[1]()}else if(t.dataset.input==="spQ"){clearTimeout(input.t);input.t=setTimeout(()=>{renderBody();const i=$("#spQ");if(i){i.focus();i.selectionStart=i.selectionEnd=i.value.length}},250)}}
+    if(m){const el=$(m[0]);if(el)el.innerHTML=m[1]()}else if(t.dataset.input==="bkQ"){const el=$("#bkList");if(el)el.innerHTML=bkTable()}else if(t.dataset.input==="spQ"){clearTimeout(input.t);input.t=setTimeout(()=>{renderBody();const i=$("#spQ");if(i){i.focus();i.selectionStart=i.selectionEnd=i.value.length}},250)}}
   if(t.dataset.mail){MAIL[t.dataset.mail]=t.value;MAIL.touched=true;mailPreview()}
   if(t.dataset.rf!==undefined)regelPreview();
 });
@@ -1406,6 +1485,7 @@ document.addEventListener("submit",async e=>{
   if(f.id==="fLogin"){doLogin(f);return}
   if(f.id==="fPw"){doSetPassword(f);return}
   if(f.id==="fJaar"){await saveJaar(formData(f));return}
+  if(f.id==="fBk"){const d=formData(f);await write("config","banket",{...stripId(S.config.get("banket")),datum:String(d.datum||"").trim(),uur:String(d.uur||"").trim(),locatie:String(d.locatie||"").trim(),prijs:num(d.prijs)||65,deadline:String(d.deadline||"").trim(),open:d.open==="1"});toast("Instellingen banket bewaard.");return}
   if(f.id==="fCfg"){const d=formData(f);const lines=s=>String(s).split("\n").map(x=>x.trim()).filter(Boolean);
     await write("config","algemeen",{...stripId(S.config.get("algemeen")),vereniging:d.vereniging.trim(),rekeningnummer:d.rekeningnummer.trim(),boekCategorieen:lines(d.boekCategorieen),ledenCategorieen:lines(d.ledenCategorieen)});toast("Instellingen bewaard.");}
 });
