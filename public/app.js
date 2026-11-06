@@ -2289,9 +2289,9 @@ function ftLijst(){const q=norm(FT.q);let L=[...S.fotoalbums.values()];if(q)L=L.
 function ftKaarten(){const L=ftLijst();
   if(!L.length)return `<div class="panel"><div class="empty">${FT.q?"Geen albums gevonden.":"Nog geen fotoalbums."}${canWrite&&!FT.q?`<div style="margin-top:12px"><button class="btn primary" data-act="ftNieuw">${ic("plus")}Album toevoegen</button></div>`:""}</div></div>`;
   return `<div class="ft-grid">${L.map(a=>{const u=ftLink(a.link),c=ftLink(a.cover);const sub=[a.datum?fmtDate(a.datum):a.jaar,a.fotograaf].filter(Boolean).join(" · ");
-    return `<div class="ft-card"><a class="ft-img${c?"":" leeg"}" ${u?`href="${esc(u)}" target="_blank" rel="noopener"`:""} title="Album openen">${c?`<img src="${esc(c)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:`<span>${ic("fotos")}</span>`}</a>
+    return `<div class="ft-card">${u?`<a class="ft-hit" href="${esc(u)}" target="_blank" rel="noopener" aria-label="${esc(a.titel||"Album")} openen"></a>`:""}<div class="ft-img${c?"":" leeg"}" >${c?`<img src="${esc(c)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:`<span>${ic("fotos")}</span>`}</div>
       <div class="ft-b"><div class="ft-t"><b>${esc(a.titel||"Album")}</b>${sub?`<span>${esc(sub)}</span>`:""}${a.omschrijving?`<span class="ft-o">${esc(a.omschrijving)}</span>`:""}</div>
-      <div class="ft-a">${u?`<a class="btn sm" href="${esc(u)}" target="_blank" rel="noopener">Album openen ›</a>`:""}${canWrite?`<button type="button" class="btn sm iconbtn" data-act="ftEdit" data-id="${esc(a.id)}" aria-label="Album wijzigen" title="Wijzigen">${ic("instellingen")}</button>`:""}</div>
+      ${canWrite?`<button type="button" class="btn sm iconbtn ft-edit" data-act="ftEdit" data-id="${esc(a.id)}" aria-label="Album wijzigen" title="Wijzigen">${ic("instellingen")}</button>`:""}
       ${u?`<div class="ft-h">${esc(ftHost(u))}</div>`:""}</div></div>`}).join("")}</div>`}
 VIEWS.fotos=()=>({title:"Foto's",actions:'<button class="btn primary" data-w data-act="ftNieuw">'+ic("plus")+'Album toevoegen</button>',body(){
   return `<div class="bar"><div class="search">${ic("search")}<input id="ftQ" data-ftq placeholder="Zoek album, jaar of fotograaf" value="${esc(FT.q)}"></div></div><div id="ftList">${ftKaarten()}</div>`}});
