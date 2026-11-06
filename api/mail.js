@@ -1,5 +1,6 @@
 import { requireUser, sendError, httpErr } from "./_lib/sb.js";
 import { smtpConfigured, afzender, verstuur } from "./_lib/smtp.js";
+import { ondertekenLinks } from "./_lib/lidlink.js";
 
 // Mails versturen vanuit Communicatie › Mails (enkel voor bewerkers).
 // GET  -> {ingesteld, van}
@@ -18,6 +19,7 @@ export default async function handler(req, res) {
       .map(m => ({ aan: String(m.aan || "").trim(), aanNaam: String(m.aanNaam || "").slice(0, 120), onderwerp: String(m.onderwerp || "").slice(0, 300), html: String(m.html || "").slice(0, 300000), antwoordAan: m.antwoordAan ? String(m.antwoordAan).trim() : "" }))
       .filter(m => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(m.aan) && m.onderwerp);
     if (!L.length) throw httpErr(400, "Geen geldige berichten.");
+    for (const m of L) m.html = ondertekenLinks(m.html); // betaallinks voor het lidgeld
     const r = await verstuur(L);
     res.status(200).json({ resultaten: L.map((m, i) => ({ aan: m.aan, ...r[i] })) });
   } catch (e) { sendError(res, e); }

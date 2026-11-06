@@ -2381,8 +2381,8 @@ const ML_VELDEN=[
   ["Vereniging",[["jaar","Jaar"],["volgend_jaar","Volgend jaar"],["rekeningnummer","Rekeningnummer"]]],
   ["Banket",[["banket_datum","Datum"],["banket_uur","Uur"],["banket_locatie","Locatie"],["banket_prijs","Prijs per persoon"],["banket_tot","Inschrijven tot"]]],
   ["Kinderfeest",[["kinderfeest_datum","Datum"],["kinderfeest_uur","Uur"],["kinderfeest_locatie","Locatie"],["kinderfeest_tot","Inschrijven tot"]]],
-  ["Links",[["link_banket","Inschrijven banket"],["link_kinderfeest","Inschrijven kinderfeest"],["link_inschrijven","Lid worden"],["link_kaart","Kaart kalenderronde"]]]];
-const ML_LINKS=[["{link_banket}","Inschrijfpagina banket"],["{link_kinderfeest}","Inschrijfpagina kinderfeest"],["{link_inschrijven}","Lid worden"],["{link_kaart}","Kaart kalenderronde"]];
+  ["Links",[["link_banket","Inschrijven banket"],["link_kinderfeest","Inschrijven kinderfeest"],["link_lidgeld","Lidgeld betalen (persoonlijk)"],["link_inschrijven","Lid worden"],["link_kaart","Kaart kalenderronde"]]]];
+const ML_LINKS=[["{link_lidgeld}","Lidgeld betalen (Bancontact of QR)"],["{link_banket}","Inschrijfpagina banket"],["{link_kinderfeest}","Inschrijfpagina kinderfeest"],["{link_inschrijven}","Lid worden"],["{link_kaart}","Kaart kalenderronde"]];
 const ML_NIEUW='<p>Beste {voornaam},</p><p><br></p><p>Met vriendelijke groeten,<br><strong>Het bestuur</strong></p>';
 const mlId=()=>"m-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,6);
 const mlLang=iso=>{const [y,m,d]=String(iso||"").split("-").map(Number);if(!y)return"";const s=new Date(y,m-1,d,12).toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"});return s.charAt(0).toUpperCase()+s.slice(1)};
@@ -2392,7 +2392,7 @@ let ML_RANGE=null,ML_LAST="";
 /* ---------- doelgroepen ---------- */
 function groepen(){
   const C=ctx();const cur=C.leden.map(l=>C.rows.get(l.id));
-  const lidR=r=>({email:r.lid.email,voornaam:r.lid.voornaam,naam:naamVol(r.lid),bedrag:r.bedrag,mededeling:`${r.lid.naam} ${r.lid.voornaam} lidgeld ${JAAR}`,label:naamVol(r.lid)});
+  const lidR=r=>({lidId:r.lid.id,email:r.lid.email,voornaam:r.lid.voornaam,naam:naamVol(r.lid),bedrag:r.bedrag,mededeling:`${r.lid.naam} ${r.lid.voornaam} lidgeld ${JAAR}`,label:naamVol(r.lid)});
   const B=mlGeblok();const G=[];const add=(sect,id,label,list)=>{const seen=new Set(),geblokt=[];G.push({sect,id,label,geblokt,list:list.filter(r=>{const k=String(r.email||"").trim().toLowerCase();if(!k)return true;if(seen.has(k))return false;seen.add(k);if(B[k]){geblokt.push(r);return false}return true})})};
   add("Leden","alle","Alle leden",cur.map(lidR));
   add("Leden","lidgeld","Uitnodiging lidgeld (zonder ere-voorzitters)",cur.filter(r=>!isEreVoorzitter(r.lid)).map(lidR));
@@ -2428,7 +2428,7 @@ function mlMap(r){const c=cfg(),b=bkCfg();let k={};try{k=kfCfg()}catch(e){}
     rekeningnummer:c.rekeningnummer||"BE43 9730 6810 0401",vereniging:c.vereniging||"Vriendenkring Brandweer Hoofdpost Aalst",
     banket_datum:mlLang(b.datum),banket_uur:b.uur||"",banket_locatie:b.locatie||"",banket_prijs:fmtBedrag(num(b.prijs))+" euro",banket_tot:mlKort(bkTot),
     kinderfeest_datum:mlLang(k.datum),kinderfeest_uur:k.tijd||"",kinderfeest_locatie:k.locatie||"",kinderfeest_tot:mlKort(kfTot),
-    link_banket:O+"/banket",link_kinderfeest:O+"/kinderfeest",link_inschrijven:O+"/inschrijven",link_kaart:O+"/kaart"}}
+    link_lidgeld:r.lidId&&Number(r.bedrag)>0?`${O}/lidgeld?l=${encodeURIComponent(r.lidId)}&j=${JAAR}&b=${Number(r.bedrag)}&t=@@SIG@@`:O+"/inschrijven",link_banket:O+"/banket",link_kinderfeest:O+"/kinderfeest",link_inschrijven:O+"/inschrijven",link_kaart:O+"/kaart"}}
 const fmtBedrag=v=>{const n=Number(v);if(!isFinite(n))return String(v??"");return Number.isInteger(n)?String(n):n.toFixed(2).replace(".",",")};
 const mlLegacy=s=>String(s).split("Beste xnaamx,").join("Beste {voornaam},").split(/xnaamx xvoornaamx lidgeld \d{4}/).join("{mededeling}").split("xx euro").join("{bedrag} euro").split("xnaamx").join("{voornaam}");
 function vul(t,r,html){
