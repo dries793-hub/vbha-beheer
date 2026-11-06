@@ -282,7 +282,7 @@ const KORT={boekhouding:"Financiën",administratie:"Activiteiten",communicatie:"
 function navGroups(){return [{id:"dashboard",label:"Home",items:[["dashboard","Dashboard"]]},...NAV.map(n=>Array.isArray(n)?{id:n[0],label:n[1],items:[n]}:n)]}
 function renderTabbar(r){const tb=$("#tabbar");if(!tb)return;
   tb.innerHTML=navGroups().map(g=>{const on=g.items.some(i=>i[0]===r);const single=g.items.length===1;
-    return single?`<a href="#${g.items[0][0]}" class="${on?"on":""}">${ic(g.id==="dashboard"?"dashboard":g.id)}<span>${esc(KORT[g.id]||g.label)}</span></a>`:`<button type="button" class="${on?"on":""}" data-act="sheetOpen" data-id="${g.id}" aria-haspopup="true" aria-label="${esc(g.label)}">${ic(g.id)}<span>${esc(KORT[g.id]||g.label)}</span></button>`}).join("")+`<a href="#instellingen" class="${INST_IDS.includes(r)?"on":""}">${ic("instellingen")}<span>Meer</span></a>`}
+    return single?`<a href="#${g.items[0][0]}" class="${on?"on":""}">${ic(g.id==="dashboard"?"dashboard":g.id)}<span>${esc(KORT[g.id]||g.label)}</span></a>`:`<button type="button" class="${on?"on":""}" data-act="sheetOpen" data-id="${g.id}" aria-haspopup="true" aria-label="${esc(g.label)}">${ic(g.id)}<span>${esc(KORT[g.id]||g.label)}</span></button>`}).join("")}
 function openSheet(id){const g=navGroups().find(x=>x.id===id);if(!g)return;const r=route();
   $("#sheetT").textContent=g.label;$("#sheetL").innerHTML=g.items.map(([k,l])=>`<a href="#${k}" class="${k===r?"on":""}">${ic(k)}<span>${esc(l)}</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>`).join("");$("#sheet").hidden=false}
 function closeSheet(){const s=$("#sheet");if(s)s.hidden=true}
