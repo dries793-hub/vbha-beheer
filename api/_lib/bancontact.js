@@ -7,8 +7,10 @@ export function bcConfigured() { return !!String(process.env.BANCONTACT_API_KEY 
 function base() {
   const eigen = String(process.env.BANCONTACT_API_URL || "").trim().replace(/\/+$/, "");
   if (eigen) return eigen;
-  return String(process.env.BANCONTACT_ENV || "").trim().toLowerCase() === "ext"
-    ? "https://api.ext.payconiq.com/v3" : "https://api.payconiq.com/v3";
+  // Bancontact Pro (2025+): merchant.api.bancontact.net; BANCONTACT_ENV=preprod voor de testomgeving.
+  // De oude Payconiq-hosts (api.payconiq.com) aanvaarden de nieuwe Bancontact Pro-sleutels niet.
+  return ["ext", "preprod", "test"].includes(String(process.env.BANCONTACT_ENV || "").trim().toLowerCase())
+    ? "https://merchant.api.preprod.bancontact.net/v3" : "https://merchant.api.bancontact.net/v3";
 }
 
 // Controle van de sleutel zonder iets te betalen: vraagt een onbestaande betaling op.
@@ -16,11 +18,11 @@ function base() {
 export async function testSleutel() {
   const key = String(process.env.BANCONTACT_API_KEY || "").trim();
   if (!key) return { ingesteld: false };
-  const hosts = [...new Set([base(), "https://api.payconiq.com/v3", "https://api.ext.payconiq.com/v3", "https://merchant.api.bancontact.net/v3"])];
+  const hosts = [...new Set([base(), "https://merchant.api.bancontact.net/v3", "https://api.payconiq.com/v3"])];
   const out = [];
   for (const h of hosts) {
     try {
-      const r = await fetch(h + "/payments/vbha-sleuteltest", { headers: { Authorization: "Bearer " + key } });
+      const r = await fetch(h + "/payments/a1b2c3d4e5f6a1b2c3d4e5f6", { headers: { Authorization: "Bearer " + key } });
       const t = (await r.text()).slice(0, 160);
       out.push({ host: h, status: r.status, oordeel: r.status === 404 ? "sleutel aanvaard" : r.status === 401 || r.status === 403 ? "sleutel geweigerd" : "onduidelijk", antwoord: t });
     } catch (e) { out.push({ host: h, fout: String(e.message || e).slice(0, 120) }); }
@@ -44,10 +46,10 @@ async function call(path, { method = "GET", body } = {}) {
 }
 
 // Maakt een betaling aan. amount in euro, wordt omgezet naar centen.
-export async function maakBetaling({ bedrag, omschrijving, referentie, callbackUrl }) {
+export async function maakBetaling({ bedrag, omschrijving, referentie, callbackUrl, redirectUrl }) {
   const p = await call("/payments", {
     method: "POST",
-    body: { amount: Math.round(Number(bedrag) * 100), currency: "EUR", description: String(omschrijving).slice(0, 140), reference: String(referentie).slice(0, 35), callbackUrl },
+    body: { amount: Math.round(Number(bedrag) * 100), currency: "EUR", description: String(omschrijving).slice(0, 140), reference: String(referentie).slice(0, 35), callbackUrl, ...(redirectUrl ? { returnUrl: redirectUrl } : {}) },
   });
   const L = p?._links || {};
   return { id: p.paymentId, status: p.status, verlooptOp: p.expiresAt || p.expireAt || null, deeplink: L.deeplink?.href || null, qrcode: L.qrcode?.href || null, checkout: L.checkout?.href || null };
@@ -58,4 +60,4 @@ export async function haalBetaling(id) {
   return { id: p.paymentId, status: p.status, bedrag: (Number(p.totalAmount ?? p.amount) || 0) / 100, betaaldOp: p.succeededAt || null, reference: p.reference || "", debiteur: p.debtor?.name || "" };
 }
 
-export const EIND = new Set(["SUCCEEDED", "FAILED", "EXPIRED", "CANCELLED", "AUTHORIZATION_FAILED"]);
+export const EIND = new Set(["SUCCEEDED", "FAILED", "EXPIRED", "CANCELLED", "AUTHORIZATION_FAILED", "VOIDED"]);
