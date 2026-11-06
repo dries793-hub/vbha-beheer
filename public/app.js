@@ -2851,12 +2851,12 @@ function kalTable(){
     return `<div class="pm${open?" open":""}" role="listitem"><button type="button" class="ml-row" data-act="kalOpen" data-id="${esc(id)}" aria-expanded="${open}"><span class="ml-rank">${i+1}</span>
       <span class="ml-m"><span class="ml-n"><b>${esc(x.n)}</b>${x.j.lidId?"":' <span class="pill neutral">geen lid</span>'}</span><span class="ml-s">${op} in handen<span class="ml-dot">·</span>${ui} afgewerkt</span></span>
       <span class="pm-tot"><b>${ui*w}</b><small>punten</small></span><span class="ml-chev" aria-hidden="true">›</span></button>
-      ${open?`<div class="pm-d">${canWrite?`<div class="pm-a">${knoppen(x.j,"")}</div>`:""}${laatst(x.j)?`<div class="muted small">Laatste: ${esc(laatst(x.j))}</div>`:""}<button type="button" class="btn ghost sm" data-act="kalLog" data-id="${esc(id)}" style="align-self:flex-start">Geschiedenis en correctie</button></div>`:""}</div>`}).join("")||'<div class="empty">Nog niemand heeft kalenders opgehaald in '+JAAR+'.</div>'}</div>`;
-  return mob+`<div class="tw dsk-only" style="max-height:72vh"><table class="rcards kal-t" data-main="1"><thead><tr><th class="num">#</th><th>Persoon</th><th class="num">In handen</th><th class="num">Afgewerkt</th><th class="num">Punten</th><th>Laatste beweging</th><th></th></tr></thead><tbody>
-  ${list.map((x,i)=>`<tr><td class="num muted">${i+1}</td><td><button type="button" class="kr-link" data-act="kalLog" data-id="${esc(x.j.id)}" title="Geschiedenis en correctie"><b>${esc(x.n)}</b></button>${x.j.lidId?"":' <span class="pill neutral">geen lid</span>'}</td>
-  <td class="num"><span class="kal-n${(x.j.kalOpgehaald||0)?" on":""}">${x.j.kalOpgehaald||0}</span></td><td class="num"><span class="kal-n">${x.j.kalUitgevoerd||0}</span></td>
-  <td class="num"><b>${(x.j.kalUitgevoerd||0)*w}</b></td><td class="muted small nowrap">${esc(laatst(x.j))}</td>
-  <td class="kal-a">${knoppen(x.j,"sm")}</td></tr>`).join("")||'<tr><td colspan="7" class="empty">Nog niemand heeft kalenders opgehaald in '+JAAR+'. Gebruik <b>Persoon toevoegen</b>.</td></tr>'}
+      ${open?`<div class="pm-d">${canWrite?`<div class="pm-a">${knoppen(x.j,"")}</div>`:""}<button type="button" class="btn ghost sm" data-act="kalLog" data-id="${esc(id)}" style="align-self:flex-start">Geschiedenis en correctie</button></div>`:""}</div>`}).join("")||'<div class="empty">Nog niemand heeft kalenders opgehaald in '+JAAR+'.</div>'}</div>`;
+  return mob+`<div class="tw dsk-only" style="max-height:72vh"><table class="rcards kal-t" data-main="1"><colgroup><col style="width:56px"><col><col style="width:130px"><col style="width:130px"><col style="width:130px"><col style="width:250px"></colgroup><thead><tr><th class="c">#</th><th>Persoon</th><th class="c">In handen</th><th class="c">Afgewerkt</th><th class="c">Punten</th><th></th></tr></thead><tbody>
+  ${list.map((x,i)=>`<tr><td class="c muted">${i+1}</td><td><button type="button" class="kr-link" data-act="kalLog" data-id="${esc(x.j.id)}" title="Geschiedenis en correctie"><b>${esc(x.n)}</b></button>${x.j.lidId?"":' <span class="pill neutral">geen lid</span>'}</td>
+  <td class="c"><span class="kal-n${(x.j.kalOpgehaald||0)?" on":""}">${x.j.kalOpgehaald||0}</span></td><td class="c"><span class="kal-n">${x.j.kalUitgevoerd||0}</span></td>
+  <td class="c"><b>${(x.j.kalUitgevoerd||0)*w}</b></td>
+  <td class="kal-a">${knoppen(x.j,"sm")}</td></tr>`).join("")||'<tr><td colspan="6" class="empty">Nog niemand heeft kalenders opgehaald in '+JAAR+'. Gebruik <b>Persoon toevoegen</b>.</td></tr>'}
   </tbody></table></div>`;
 }
 
