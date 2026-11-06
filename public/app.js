@@ -182,7 +182,7 @@ async function startApp(session){
   if(error||!rol){authCard(`<h1>Geen toegang</h1><p style="margin:0">Je bent aangemeld als <b>${esc(ME.email)}</b>, maar dit adres staat niet in de lijst van bestuursleden.</p><button class="btn" data-act="logout">Afmelden</button>`);return}
   STARTED=true;document.body.classList.remove("anon");
   canWrite=rol.rol==="bewerker";canWriteConfirmed=true;applyRO();
-  $("#acctName").textContent=ME.email;const w=$("#who");w.textContent=canWrite?"Bewerker":"Alleen lezen";w.classList.toggle("ro",!canWrite);
+  const an=$("#acctName");if(an)an.textContent=ME.email;const w=$("#who");if(w){w.textContent=canWrite?(an?"Bewerker":ME.email):(an?"Alleen lezen":ME.email+" · alleen lezen");w.classList.toggle("ro",!canWrite)}
   $("#main").innerHTML='<div class="loading" id="boot"><b>Gegevens laden…</b><span>Leden, boekhouding en punten worden opgehaald.</span></div>';
   const q=new URLSearchParams(location.search);if(q.get("bank")){const ok=q.get("bank")==="ok";setTimeout(()=>toast(ok?"De bankrekening is gekoppeld.":"Koppelen met de bank is niet gelukt"+(q.get("reden")?": "+q.get("reden"):"")+".",!ok),400);history.replaceState(null,"",location.pathname+"#bank")}
   const timer=setTimeout(()=>{if(loaded.size<COLS.length){const b=$("#boot");if(b)b.innerHTML="<b>De gegevens zijn nog niet bereikbaar.</b><span>Controleer je internetverbinding. De pagina blijft het proberen.</span>"}},10000);
