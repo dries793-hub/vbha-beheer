@@ -495,7 +495,7 @@ const RICHTING={beide:"In en uit",in:"Alleen ontvangsten",uit:"Alleen uitgaven"}
 const signed=b=>b.richting==="uit"?-b.bedrag:b.bedrag;
 const kfmt=v=>Math.abs(v)>=1000?(Math.round(v/100)/10).toString().replace(".",",")+"k":String(Math.round(v));
 function teVerwerken(C){return C.boek.filter(b=>!b.categorie||b.status==="controle")}
-function boekTabs(act){const n=teVerwerken(ctx()).length;return `<nav class="tabs" aria-label="Onderdelen boekhouding">${BOEK_TABS.map(([k,l])=>`<a href="#${k}" class="${k===act?"on":""}">${esc(l)}${k==="verwerken"&&n?`<span class="cnt">${n}</span>`:""}</a>`).join("")}</nav>`}
+function boekTabs(act){return "";const n=teVerwerken(ctx()).length;return `<nav class="tabs" aria-label="Onderdelen boekhouding">${BOEK_TABS.map(([k,l])=>`<a href="#${k}" class="${k===act?"on":""}">${esc(l)}${k==="verwerken"&&n?`<span class="cnt">${n}</span>`:""}</a>`).join("")}</nav>`}
 function catList(C){return [...new Set([...cfg().boekCategorieen,...(C?C.boek.map(b=>b.categorie).filter(Boolean):[])])]}
 function bedragCel(b){return `<span class="amt ${b.richting==="uit"?"out":"in"}">${b.richting==="uit"?"−":"+"}${eur(b.bedrag)}</span>`}
 function catCell(b){if(!b.categorie)return '<span class="pill warn">Te verwerken</span>';return `<span class="cat">${esc(b.categorie)}</span>${b.status==="controle"?' <span class="pill warn" title="Automatisch voorgesteld, nog niet bevestigd">controleren</span>':""}`}
