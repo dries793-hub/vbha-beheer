@@ -760,7 +760,7 @@ function puntTable(){
 }
 
 /* ---------- kalenders ---------- */
-function kalStats(C){const rows=[...S.jaarleden.values()].filter(j=>j.jaar===C.Y&&j.kal);const omloop=rows.reduce((s,j)=>s+(j.kalOpgehaald||0),0),uit=rows.reduce((s,j)=>s+(j.kalUitgevoerd||0),0);return{rows,omloop,uit,stock:C.c.kalenderStock-omloop-uit}}
+function kalStats(C){const rows=[...S.jaarleden.values()].filter(j=>j.jaar===C.Y&&j.kal&&((j.kalOpgehaald||0)>0||(j.kalUitgevoerd||0)>0||j.kalToegevoegd));const omloop=rows.reduce((s,j)=>s+(j.kalOpgehaald||0),0),uit=rows.reduce((s,j)=>s+(j.kalUitgevoerd||0),0);return{rows,omloop,uit,stock:C.c.kalenderStock-omloop-uit}}
 VIEWS.kalenders=()=>({title:"Kalenders "+JAAR,sub:"Verdeling en verkoop van de kalenderdozen",
   actions:'<a class="btn" href="/kaart" target="_blank" rel="noopener" title="Openbare kaart van de kalenderronde">'+ic("kaart")+'Kaart openen</a>'+'<button class="btn primary" data-w data-act="kalToevoegen">'+ic("plus")+'Persoon toevoegen</button>',body(){
   const C=ctx(),k=kalStats(C);
@@ -769,8 +769,7 @@ VIEWS.kalenders=()=>({title:"Kalenders "+JAAR,sub:"Verdeling en verkoop van de k
   return kalTabs("kalenders")+`<div class="tiles"><div class="tile"><span class="lbl">Nog in stock</span><span class="val">${k.stock}</span><span class="hint">van ${C.c.kalenderStock} dozen</span></div>
     <div class="tile"><span class="lbl">In omloop</span><span class="val">${k.omloop}</span><span class="hint">opgehaald, nog niet klaar</span></div>
     <div class="tile"><span class="lbl">Uitgevoerd</span><span class="val">${k.uit}</span><span class="hint">${k.uit*C.c.gewichten.kalenders} punten in totaal</span></div>
-    <div class="tile"><span class="lbl">Personen in lijst</span><span class="val">${k.rows.length}</span><span class="hint">${ontbreekt.length} actieve leden ontbreken</span></div></div>
-  ${ontbreekt.length?`<details class="note"><summary style="cursor:pointer;font-weight:600">${ontbreekt.length} actieve leden (geen erewacht) staan niet in de kalenderlijst</summary><div style="margin-top:6px">${ontbreekt.map(l=>esc(naamVol(l))).join(", ")}</div></details>`:""}
+    <div class="tile"><span class="lbl">Personen in lijst</span><span class="val">${k.rows.length}</span><span class="hint">met kalenders in ${JAAR}</span></div></div>
   <div class="bar"><div class="search">${ic("search")}<input id="kalQ" data-live data-input="kalQ" placeholder="Zoek persoon" value="${esc(UI.kalQ)}"></div></div>
   <div class="panel" id="kalList">${kalTable()}</div>`}});
 function kalNaam(j){if(j.lidId){const l=S.leden.get(j.lidId);return l?naamVol(l):j.lidId}return j.naam||"?"}
@@ -784,7 +783,7 @@ function kalTable(){
   <td class="num">${stepper("kal","kalOpgehaald",x.j.id,x.j.kalOpgehaald||0,"Opgehaald "+x.n)}</td>
   <td class="num">${stepper("kal","kalUitgevoerd",x.j.id,x.j.kalUitgevoerd||0,"Uitgevoerd "+x.n)}</td>
   <td class="num"><b>${(x.j.kalUitgevoerd||0)*w}</b></td>
-  <td style="white-space:nowrap;text-align:right"><button class="btn sm" data-w data-act="kalOphalen" data-id="${esc(x.j.id)}" title="Eén doos meegeven">+1 opgehaald</button> <button class="btn sm" data-w data-act="kalKlaar" data-id="${esc(x.j.id)}"${(x.j.kalOpgehaald||0)>0?"":" disabled"} title="Eén opgehaalde doos is volledig verkocht">Doos klaar</button></td></tr>`).join("")||'<tr><td colspan="6" class="empty">Nog niemand in de kalenderlijst voor '+JAAR+'.</td></tr>'}
+  <td style="white-space:nowrap;text-align:right"><button class="btn sm" data-w data-act="kalOphalen" data-id="${esc(x.j.id)}" title="Eén doos meegeven">+1 opgehaald</button> <button class="btn sm" data-w data-act="kalKlaar" data-id="${esc(x.j.id)}"${(x.j.kalOpgehaald||0)>0?"":" disabled"} title="Eén opgehaalde doos is volledig verkocht">Doos klaar</button></td></tr>`).join("")||'<tr><td colspan="6" class="empty">Nog niemand heeft kalenders opgehaald in '+JAAR+'. Gebruik <b>Persoon toevoegen</b>.</td></tr>'}
   </tbody></table></div>`;
 }
 
@@ -1596,7 +1595,7 @@ function kalToevoegen(){
   $("#kOk").onclick=async()=>{const lid=$("#kLid").value,naam=$("#kNaam").value.trim(),op=parseInt($("#kOp").value,10)||0;
     if(!lid&&!naam){$("#kErr").textContent="Kies een lid of vul een naam in.";return}
     const id=JAAR+"_"+(lid||"x-"+slug(naam));const cur=S.jaarleden.get(id)||{};closeModal();
-    await write("jaarleden",id,{...stripId(cur),jaar:JAAR,lidId:lid||null,naam:lid?"":naam,kal:true,kalOpgehaald:(cur.kalOpgehaald||0)+op,kalUitgevoerd:cur.kalUitgevoerd||0});toast("Toegevoegd aan de kalenderlijst.")};
+    await write("jaarleden",id,{...stripId(cur),jaar:JAAR,lidId:lid||null,naam:lid?"":naam,kal:true,kalToegevoegd:true,kalOpgehaald:(cur.kalOpgehaald||0)+op,kalUitgevoerd:cur.kalUitgevoerd||0});toast("Toegevoegd aan de kalenderlijst.")};
 }
 const stripId=o=>{const {id,...r}=o||{};return r};
 function setJL(lidId,patch){const id=JAAR+"_"+lidId;const prev=S.jaarleden.get(id)||null;const cur=prev||{jaar:JAAR,lidId};const d={...stripId(cur),jaar:JAAR,lidId,...patch};S.jaarleden.set(id,{...d,id});dirty=true;return write("jaarleden",id,d,{oud:prev})}
