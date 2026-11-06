@@ -449,7 +449,7 @@ function sparkline(C){
 
 /* ---------- leden ---------- */
 VIEWS.leden=()=>({title:"Leden",sub:"Ledenadministratie en lidgeld "+JAAR,
-  actions:'<a class="btn" href="/inschrijven" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met nieuwe leden">'+ic("communicatie")+'Inschrijfpagina</a><button class="btn primary" data-w data-act="nieuwLid">'+ic("plus")+'Nieuw lid</button>',
+  actions:'<a class="btn" href="/inschrijven" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met nieuwe leden">'+ic("communicatie")+'Inschrijfpagina</a><button class="btn primary" data-w data-act="nieuwLid">'+ic("plus")+'Nieuw lid</button><button class="btn iconbtn" data-act="ledenInst" aria-label="Instellingen ledenlijst" title="Instellingen ledenlijst">'+ic("instellingen")+'</button>',
   body(){const C=ctx();const c=cfg();
   return `<div class="bar"><div class="search">${ic("search")}<input id="ledenQ" data-live data-input="ledenQ" placeholder="Zoek op naam, adres, e-mail of telefoon" value="${esc(UI.ledenQ)}"></div>
     <select class="sel" id="ledenCat" data-change="ledenCat"><option value="">Alle categorieën</option>${c.ledenCategorieen.map(k=>`<option${UI.ledenCat===k?" selected":""}>${esc(k)}</option>`).join("")}</select>
@@ -696,6 +696,12 @@ function catAdd(el){const i=el.querySelector(".cat-in");const v=i.value.replace(
 document.addEventListener("click",e=>{const a=e.target.closest("[data-catadd]");if(a){e.preventDefault();catAdd(a.closest(".cated"));return}
   const x=e.target.closest("[data-catdel]");if(x){e.preventDefault();const el=x.closest(".cated");x.closest(".cat-r").remove();catSync(el)}},true);
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.classList&&e.target.classList.contains("cat-in")){e.preventDefault();catAdd(e.target.closest(".cated"))}},true);
+function ledenInst(){const c=cfg();
+  modal("Instellingen ledenlijst",`<div class="pi-sec"><h4>Categorieën leden</h4>${catEditor("liCat",c.ledenCategorieen,null,["Erewacht"])}<p class="pi-note">"Erewacht" heeft een vaste betekenis (eigen lidgeld) en kan niet verwijderd worden. Een categorie verwijderen verandert niets aan de leden die er al in staan.</p></div>`,
+  `<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="liOk">Bewaren</button>':""}`);
+  const ok=$("#liOk");if(!ok)return;
+  ok.onclick=async()=>{const cats=catVals($("#liCat"));if(!cats.length){toast("Geef minstens één categorie op.",true);return}
+    await write("config","algemeen",{...stripId(S.config.get("algemeen")||{}),ledenCategorieen:cats});closeModal();toast("Categorieën leden bewaard.")}}
 function finInst(){const j=jaarCfg(JAAR),c=cfg();const d=canWrite?"":" disabled";
   const n=(id,l,v,suf,h)=>`<div class="fld"><label for="${id}">${l}</label><div class="sfx"><input id="${id}" type="number" step="0.01" inputmode="decimal" value="${v}"${d}><span>${suf}</span></div>${h?`<span class="help">${h}</span>`:""}</div>`;
   modal("Financiële instellingen",`<div class="pi-sec"><h4>Beginsaldo boekjaar ${JAAR}</h4><div class="form">${n("fiKas","Kas",j.beginKas,"€")}${n("fiRek","Rekening",j.beginRekening,"€")}</div></div>
@@ -1370,10 +1376,9 @@ VIEWS.instellingen=()=>({title:"Instellingen",sub:"Boekjaren, puntensysteem, lij
     <button class="btn" data-w data-act="importExcel" style="align-self:flex-start">${ic("upload")}Oud VBHA Excel-bestand importeren</button>
     <span style="font-size:13px;color:var(--muted)">Maak af en toe een back-up en bewaar die op een veilige plaats.</span></div></div>
   </div></div>
-  <div class="note info" style="margin:0">Beginsaldi, lidgeld, rekeningnummer en de categorieën van de boekhouding stel je in via het tandwiel op de pagina <a href="#boekhouding">Boekhouding</a>.</div>
+  <div class="note info" style="margin:0">Beginsaldi, lidgeld, rekeningnummer en de categorieën van de boekhouding stel je in via het tandwiel op de pagina <a href="#boekhouding">Boekhouding</a>. De categorieën van de leden vind je onder het tandwiel op de <a href="#leden">Ledenlijst</a>.</div>
   <form class="panel" id="fCfg"><div class="panel-h"><h2>Algemeen</h2></div><div class="panel-b"><div class="form">
     <div class="fld"><label for="cNaam">Naam vereniging</label><input id="cNaam" name="vereniging" value="${esc(c.vereniging)}"${d}></div>
-    <div class="fld full"><span class="lbl">Categorieën leden</span>${catEditor("cLc",c.ledenCategorieen,"ledenCategorieen",["Erewacht"])}<span class="help">"Erewacht" heeft een vaste betekenis (eigen lidgeld) en kan niet verwijderd worden.</span></div>
     <div class="full bar" data-w><button class="btn primary" type="submit">Bewaren</button></div></div></div></form>
   <div class="panel"><div class="panel-h"><h2>Inschrijfformulier voor nieuwe leden</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:10px"><span style="font-size:14px;color:var(--muted)">Deel deze link met wie lid wil worden. Iedereen kan het formulier invullen zonder aan te melden. Nieuwe leden komen meteen in de ledenlijst en je krijgt een melding op het dashboard.</span><div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(location.origin+"/inschrijven")}" aria-label="Link naar het inschrijfformulier" onclick="this.select()"><button class="btn" data-act="kopieerLink" data-v="${esc(location.origin+"/inschrijven")}">${ic("copy")}Kopiëren</button><a class="btn" href="/inschrijven" target="_blank" rel="noopener">Openen</a></div></div></div>
   <div class="note info">Toegang geven: nodig een bestuurslid uit in Supabase via Authentication › Users › Invite user. Na het kiezen van een wachtwoord kan die persoon alles bekijken en bewerken. Voor alleen-lezen zet je de rol in de tabel <span class="kbd">bestuur</span> op <span class="kbd">lezer</span>. Je bent aangemeld als <b>${esc(ME?ME.email:"")}</b>.</div>`}});
@@ -1788,6 +1793,7 @@ document.addEventListener("click",async e=>{
     case"reglPrint":{const h=$("#modal .regl");if(!h)break;const wdw=window.open("","_blank");if(!wdw){toast("Je browser blokkeerde het afdrukvenster.",true);break}wdw.document.write(`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Reglement puntensysteem VBHA</title><style>body{font:14px/1.5 system-ui,sans-serif;max-width:720px;margin:32px auto;padding:0 16px;color:#111}h1{font-size:22px;text-align:center}h4{margin:20px 0 6px;font-size:15px}table{border-collapse:collapse;width:100%;margin:8px 0}th,td{border:1px solid #999;padding:4px 8px;text-align:left}th{background:#eee}.medal i{display:none}.regl-end{border:1px solid #999;background:#eee;padding:8px 10px;margin-top:20px}</style></head><body><h1>Reglement PUNTENSYSTEEM</h1>${h.innerHTML}</body></html>`);wdw.document.close();wdw.focus();setTimeout(()=>wdw.print(),200);break}
     case"puntInst":puntInst();break;
     case"finInst":finInst();break;
+    case"ledenInst":ledenInst();break;
     case"ledenSort":{const v=t.dataset.v,cur=ledenSort();let n;
       if(v==="naam")n=cur.k==="naam"?{k:"voornaam",d:1}:{k:"naam",d:1};
       else n=cur.k===v?{k:v,d:-cur.d}:{k:v,d:(v==="status"||v==="lidgeld")?-1:1};
@@ -1889,7 +1895,7 @@ document.addEventListener("submit",async e=>{
   if(f.id==="fJaar"){await saveJaar(formData(f));return}
   if(f.id==="fBk"){const d=formData(f);await write("config","banket",{...stripId(S.config.get("banket")),prijs:num(d.prijs)||65,deadline:String(d.deadline||"").trim()});toast("Instellingen banket bewaard.");return}
   if(f.id==="fCfg"){const d=formData(f);const lines=s=>String(s).split("\n").map(x=>x.trim()).filter(Boolean);
-    await write("config","algemeen",{...stripId(S.config.get("algemeen")),vereniging:d.vereniging.trim(),ledenCategorieen:lines(d.ledenCategorieen)});toast("Instellingen bewaard.");}
+    await write("config","algemeen",{...stripId(S.config.get("algemeen")),vereniging:d.vereniging.trim()});toast("Instellingen bewaard.");}
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#modal").innerHTML)closeModal()});
 document.addEventListener("focusout",e=>{const t=e.target;if(t.dataset&&(t.dataset.kal||t.dataset.jl)){setTimeout(()=>{const ae=document.activeElement;if(!(ae&&ae.dataset&&(ae.dataset.kal||ae.dataset.jl))&&pending){pending=false;if(PTR)DEFER=true;else renderBody()}},0)}});
