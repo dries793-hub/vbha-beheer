@@ -2368,6 +2368,8 @@ document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.ftq!
      bij verzenden wordt die in de huisstijl gezet (logo, rode balken, kaders met gouden rand) met inline stijlen.
    Oudere sjablonen: isHtml zonder opmaak = volledige HTML zoals opgeladen; zonder isHtml = gewone tekst.
    Verzendgeschiedenis: collectie "mailings" {datum, onderwerp, sjabloon, groep, aantal, ok, fout[], door}. */
+// Menu Administratie: Mails meteen onder Agenda.
+{const c=NAV.find(n=>n.id==="communicatie");if(c){const m=c.items.findIndex(i=>i[0]==="mails");if(m>=0){const [it]=c.items.splice(m,1);const a=c.items.findIndex(i=>i[0]==="agenda");c.items.splice(a+1,0,it)}}}
 const ML_CATS=["Lidgeld","Activiteiten","Kalenders","Banket","Kinderfeest","Algemeen"];
 const ML_LOGO="https://impro.usercontent.one/appid/oneComWsb/domain/vbha.be/media/vbha.be/onewebmedia/logo%20VBHA%201.png";
 const ML_FONT="font-family:Helvetica,Arial,sans-serif;";
