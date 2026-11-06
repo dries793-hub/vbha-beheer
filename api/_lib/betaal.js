@@ -21,15 +21,17 @@ function omschrijving(tabel, d, jaar) {
 }
 
 // Nieuwe betaling (of de lopende hergebruiken als die nog geldig is).
-export async function startBetaling(sb, req, tabel, row, { bedrag, jaar }) {
+export async function startBetaling(sb, req, tabel, row, { bedrag, jaar, terug }) {
   const d = row.data, cur = d.betaling;
-  if (cur && cur.status === "SUCCEEDED") return cur;
-  if (cur && !EIND.has(cur.status) && cur.verlooptOp && Date.parse(cur.verlooptOp) - Date.now() > 20000) return cur;
+  // Een betaling van een vorig jaar (of voor een ander bedrag) telt niet mee.
+  const zelfde = cur && String(cur.jaar) === String(jaar) && Number(cur.bedrag) === Number(bedrag);
+  if (zelfde && cur.status === "SUCCEEDED") return cur;
+  if (zelfde && !EIND.has(cur.status) && cur.verlooptOp && Date.parse(cur.verlooptOp) - Date.now() > 20000) return cur;
   const b = await maakBetaling({
     bedrag, omschrijving: omschrijving(tabel, d, jaar),
     referentie: "VBHA " + (tabel === "banket" ? "B" : "L") + jaar + " " + row.id.slice(0, 20),
     callbackUrl: siteUrl(req) + "/api/bancontact/callback",
-    redirectUrl: siteUrl(req) + (tabel === "banket" ? "/banket" : "/inschrijven") + "?betaling=terug",
+    redirectUrl: siteUrl(req) + (terug || ((tabel === "banket" ? "/banket" : "/inschrijven") + "?betaling=terug")),
   });
   const betaling = { ...b, bedrag, jaar, gestart: new Date().toISOString() };
   await bewaar(sb, tabel, row.id, { ...d, betaling });
