@@ -145,7 +145,7 @@ Op `https://jouw-site.vercel.app/kinderfeest` staat een openbare inschrijfpagina
 - Antwoorden die nog in het oude Google-formulier staan, lees je in met **Google Forms importeren** (Antwoorden › ⋮ › Antwoorden downloaden (.csv)).
 - Dezelfde spambescherming als bij het ledenformulier: verborgen veld, minimale invultijd, maximaal 30 inschrijvingen per uur.
 
-De tabel `kinderfeest` staat in `supabase/schema.sql` (al uitgevoerd op 6/11/2026).
+**Eenmalig nodig:** voer `supabase/schema.sql` opnieuw uit in Supabase (SQL Editor). Dat maakt de tabel `kinderfeest` aan; de rest blijft ongewijzigd.
 
 ## Beveiliging
 
