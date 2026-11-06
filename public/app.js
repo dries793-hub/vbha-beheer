@@ -682,16 +682,30 @@ function extraHtml(r,dis){const L0=extraLijnen(r.jl),L=L0.length?L0:[{tekst:"",p
   return `<div class="xlist">${L.map((x,i)=>{
     return `<div class="xl"><input class="cellin wide" data-live data-jl="_x" data-xf="tekst" data-xi="${i}" data-id="${id}" value="${esc(x.tekst||"")}" placeholder="Omschrijving" aria-label="Extra inspanning ${i+1} ${nm}"${dis}><input class="cellin xp" type="number" min="0" step="1" inputmode="numeric" data-live data-jl="_x" data-xf="punten" data-xi="${i}" data-id="${id}" value="${x.punten||""}" placeholder="ptn" aria-label="Punten extra inspanning ${i+1} ${nm}"${dis}>${canWrite?(i===0?`<button type="button" class="xbtn xadd" data-act="xAdd" data-id="${id}" aria-label="Lijn toevoegen" title="Lijn toevoegen">+</button>`:`<button type="button" class="xbtn xdel" data-act="xDel" data-id="${id}" data-i="${i}" aria-label="Lijn verwijderen" title="Lijn verwijderen">×</button>`):""}</div>`}).join("")}</div>`}
 function saveExtras(lidId,L){const t=L.map(x=>(x.tekst||"").trim()).filter(Boolean).join("; ");const pt=L.reduce((s,x)=>s+(+x.punten||0),0);return setJL(lidId,{extras:L,extraTekst:t,extraPunten:pt})}
+/* ---------- categorie-editor ---------- */
+function catEditor(id,list,name,fixed){const d=canWrite?"":" disabled";fixed=fixed||[];
+  return `<div class="cated" id="${id}" data-fixed="${esc(fixed.join("|"))}"><div class="cat-l">${list.map(x=>catRow(x,fixed,d)).join("")}</div>
+  ${canWrite?`<div class="cat-add"><input type="text" class="cat-in" placeholder="Nieuwe categorie" maxlength="60" aria-label="Nieuwe categorie"><button type="button" class="btn" data-catadd>${ic("plus")}Toevoegen</button></div>`:""}
+  ${name?`<input type="hidden" name="${name}" value="${esc(list.join("\n"))}">`:""}</div>`}
+function catRow(x,fixed,d){return `<span class="cat-r"><span class="cat-n">${esc(x)}</span>${fixed.includes(x)||d?"":`<button type="button" class="cat-x" data-catdel aria-label="${esc(x)} verwijderen" title="Verwijderen">${ic("x")}</button>`}</span>`}
+function catVals(el){return [...el.querySelectorAll(".cat-n")].map(s=>s.textContent)}
+function catSync(el){const h=el.querySelector('input[type=hidden]');if(h)h.value=catVals(el).join("\n")}
+function catAdd(el){const i=el.querySelector(".cat-in");const v=i.value.replace(/\s+/g," ").trim();if(!v)return;
+  if(catVals(el).some(x=>norm(x)===norm(v))){toast("Die categorie bestaat al.",true);i.select();return}
+  el.querySelector(".cat-l").insertAdjacentHTML("beforeend",catRow(v,[],""));i.value="";i.focus();catSync(el)}
+document.addEventListener("click",e=>{const a=e.target.closest("[data-catadd]");if(a){e.preventDefault();catAdd(a.closest(".cated"));return}
+  const x=e.target.closest("[data-catdel]");if(x){e.preventDefault();const el=x.closest(".cated");x.closest(".cat-r").remove();catSync(el)}},true);
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.classList&&e.target.classList.contains("cat-in")){e.preventDefault();catAdd(e.target.closest(".cated"))}},true);
 function finInst(){const j=jaarCfg(JAAR),c=cfg();const d=canWrite?"":" disabled";
   const n=(id,l,v,suf,h)=>`<div class="fld"><label for="${id}">${l}</label><div class="sfx"><input id="${id}" type="number" step="0.01" inputmode="decimal" value="${v}"${d}><span>${suf}</span></div>${h?`<span class="help">${h}</span>`:""}</div>`;
   modal("Financiële instellingen",`<div class="pi-sec"><h4>Beginsaldo boekjaar ${JAAR}</h4><div class="form">${n("fiKas","Kas",j.beginKas,"€")}${n("fiRek","Rekening",j.beginRekening,"€")}</div></div>
   <div class="pi-sec"><h4>Lidgeld ${JAAR}</h4><div class="form">${n("fiLg","Gewoon lid",j.lidgeld.gewoon,"€")}${n("fiLe","Erewacht",j.lidgeld.erewacht,"€")}</div></div>
   <div class="pi-sec"><h4>Rekening</h4><div class="form"><div class="fld full"><label for="fiIban">Rekeningnummer</label><input id="fiIban" value="${esc(c.rekeningnummer)}" placeholder="BE.. .... .... ...."${d}><span class="help">Staat op de betaal-QR's, de inschrijfpagina's en in de mails.</span></div></div></div>
-  <div class="pi-sec"><h4>Categorieën</h4><div class="form"><div class="fld full"><label for="fiCat">Categorieën boekhouding</label><textarea id="fiCat" style="min-height:180px"${d}>${esc(c.boekCategorieen.join("\n"))}</textarea><span class="help">Eén per regel.</span></div></div></div>
+  <div class="pi-sec"><h4>Categorieën</h4><div class="form"><div class="fld full"><span class="lbl">Categorieën boekhouding</span>${catEditor("fiCat",c.boekCategorieen)}<span class="help">Een categorie verwijderen verandert niets aan bestaande transacties.</span></div></div></div>
   <div class="pi-sec"><h4>Bank</h4><div class="bar" style="margin:0"><a class="btn" href="#bank" data-act="closeModal">${ic("upload")}Bankimport en koppeling</a><a class="btn" href="#regels" data-act="closeModal">Automatische regels</a></div></div>`,
   `<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="fiOk">Bewaren</button>':""}`);
   const ok=$("#fiOk");if(!ok)return;
-  ok.onclick=async()=>{const v=id=>r2(num($("#"+id).value));const cats=$("#fiCat").value.split("\n").map(x=>x.trim()).filter(Boolean);
+  ok.onclick=async()=>{const v=id=>r2(num($("#"+id).value));const cats=catVals($("#fiCat"));
     if(!cats.length){toast("Geef minstens één categorie op.",true);return}
     const cur=stripId(S.jaren.get(String(JAAR))||{jaar:JAAR});
     await write("jaren",String(JAAR),{...cur,jaar:JAAR,beginKas:v("fiKas"),beginRekening:v("fiRek"),lidgeld:{...(cur.lidgeld||{}),gewoon:v("fiLg"),erewacht:v("fiLe")}});
@@ -1359,7 +1373,7 @@ VIEWS.instellingen=()=>({title:"Instellingen",sub:"Boekjaren, puntensysteem, lij
   <div class="note info" style="margin:0">Beginsaldi, lidgeld, rekeningnummer en de categorieën van de boekhouding stel je in via het tandwiel op de pagina <a href="#boekhouding">Boekhouding</a>.</div>
   <form class="panel" id="fCfg"><div class="panel-h"><h2>Algemeen</h2></div><div class="panel-b"><div class="form">
     <div class="fld"><label for="cNaam">Naam vereniging</label><input id="cNaam" name="vereniging" value="${esc(c.vereniging)}"${d}></div>
-    <div class="fld"><label for="cLc">Categorieën leden</label><textarea id="cLc" name="ledenCategorieen" style="min-height:160px"${d}>${esc(c.ledenCategorieen.join("\n"))}</textarea><span class="help">Eén per regel. "Erewacht" heeft een vaste betekenis.</span></div>
+    <div class="fld full"><span class="lbl">Categorieën leden</span>${catEditor("cLc",c.ledenCategorieen,"ledenCategorieen",["Erewacht"])}<span class="help">"Erewacht" heeft een vaste betekenis (eigen lidgeld) en kan niet verwijderd worden.</span></div>
     <div class="full bar" data-w><button class="btn primary" type="submit">Bewaren</button></div></div></div></form>
   <div class="panel"><div class="panel-h"><h2>Inschrijfformulier voor nieuwe leden</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:10px"><span style="font-size:14px;color:var(--muted)">Deel deze link met wie lid wil worden. Iedereen kan het formulier invullen zonder aan te melden. Nieuwe leden komen meteen in de ledenlijst en je krijgt een melding op het dashboard.</span><div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(location.origin+"/inschrijven")}" aria-label="Link naar het inschrijfformulier" onclick="this.select()"><button class="btn" data-act="kopieerLink" data-v="${esc(location.origin+"/inschrijven")}">${ic("copy")}Kopiëren</button><a class="btn" href="/inschrijven" target="_blank" rel="noopener">Openen</a></div></div></div>
   <div class="note info">Toegang geven: nodig een bestuurslid uit in Supabase via Authentication › Users › Invite user. Na het kiezen van een wachtwoord kan die persoon alles bekijken en bewerken. Voor alleen-lezen zet je de rol in de tabel <span class="kbd">bestuur</span> op <span class="kbd">lezer</span>. Je bent aangemeld als <b>${esc(ME?ME.email:"")}</b>.</div>`}});
