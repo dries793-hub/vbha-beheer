@@ -13,8 +13,13 @@ export function sendError(res, e) {
   res.status(e.status || 500).json({ error: e.message || "Serverfout" });
 }
 
+// Rollen: admin (alles), boekhouder (enkel de boekhouding wijzigen), lezer (alleen lezen). "bewerker" is de oude naam voor admin.
+export const isAdminRol = r => r === "admin" || r === "bewerker";
+export const isBoekRol = r => isAdminRol(r) || r === "boekhouder";
+
 // Controleert het Supabase-token uit de Authorization-header en de rol in 'bestuur'.
-export async function requireUser(req, { write = false } = {}) {
+// write: enkel admin. boek: admin of boekhouder.
+export async function requireUser(req, { write = false, boek = false } = {}) {
   const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
   if (!token) throw httpErr(401, "Niet aangemeld");
   const sb = admin();
@@ -22,7 +27,8 @@ export async function requireUser(req, { write = false } = {}) {
   if (error || !data?.user) throw httpErr(401, "Niet aangemeld");
   const { data: rol } = await sb.from("bestuur").select("rol").eq("user_id", data.user.id).maybeSingle();
   if (!rol) throw httpErr(403, "Geen toegang");
-  if (write && rol.rol !== "bewerker") throw httpErr(403, "Je hebt alleen leesrechten");
+  if (write && !isAdminRol(rol.rol)) throw httpErr(403, "Je hebt hiervoor geen rechten");
+  if (boek && !isBoekRol(rol.rol)) throw httpErr(403, "Je hebt alleen leesrechten");
   return { user: data.user, rol: rol.rol, sb };
 }
 

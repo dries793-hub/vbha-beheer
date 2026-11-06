@@ -6,7 +6,7 @@ import { configured, eb } from "../_lib/enable.js";
 export default async function handler(req, res) {
   try {
     if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
-    const { user, sb } = await requireUser(req, { write: true });
+    const { user, sb } = await requireUser(req, { boek: true });
     if (!configured()) throw httpErr(501, "Enable Banking is nog niet ingesteld");
     const site = String(process.env.SITE_URL || "").replace(/\/+$/, "");
     if (!site) throw httpErr(500, "SITE_URL ontbreekt");

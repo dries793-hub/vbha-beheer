@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   try {
     let sb;
     if (isCron(req)) sb = admin();
-    else { if (req.method !== "POST") throw httpErr(405, "Gebruik POST"); ({ sb } = await requireUser(req, { write: true })); }
+    else { if (req.method !== "POST") throw httpErr(405, "Gebruik POST"); ({ sb } = await requireUser(req, { boek: true })); }
     if (!configured()) throw httpErr(501, "Enable Banking is nog niet ingesteld");
     const result = await syncAll(sb);
     res.status(200).json(result);

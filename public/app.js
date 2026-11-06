@@ -194,7 +194,7 @@ function showLogin(msg){
   setTimeout(()=>{const i=$("#lEmail");i&&i.focus()},30);
 }
 function showSetPassword(kind){
-  authCard(`<h1>${kind==="invite"?"Welkom! Kies je wachtwoord":"Kies een nieuw wachtwoord"}</h1><p class="muted" style="margin:0">Minstens 8 tekens. Je gebruikt het samen met je e-mailadres om aan te melden.</p>
+  authCard(`<h1>${kind==="invite"?"Welkom! Kies je wachtwoord":kind==="eerste"?"Kies je eigen wachtwoord":"Kies een nieuw wachtwoord"}</h1><p class="muted" style="margin:0">${kind==="eerste"?"Je meldde je aan met een tijdelijk wachtwoord. ":""}Minstens 8 tekens. Je gebruikt het samen met je e-mailadres om aan te melden.</p>
   <form id="fPw" class="stack"><div class="fld"><label for="pw1">Nieuw wachtwoord</label><input id="pw1" name="pw1" type="password" autocomplete="new-password" minlength="8" required></div>
   <div class="fld"><label for="pw2">Herhaal wachtwoord</label><input id="pw2" name="pw2" type="password" autocomplete="new-password" minlength="8" required></div>
   <div class="err" id="pwErr"></div><button class="btn solid" type="submit">Wachtwoord bewaren</button></form>`);
@@ -204,7 +204,7 @@ async function doLogin(f){const d=formData(f);$("#lErr").textContent="";const bt
   if(error){const m=String(error.message||"");$("#lErr").textContent=/invalid login credentials/i.test(m)?"E-mailadres of wachtwoord klopt niet.":/api key|jwt|apikey/i.test(m)?"De sleutel van Supabase klopt niet ("+m+"). Gebruik de legacy anon key in Vercel (zie README).":/not confirmed/i.test(m)?"Dit e-mailadres is nog niet bevestigd. Vink in Supabase \"Auto Confirm User\" aan of bevestig de gebruiker.":"Aanmelden lukte niet: "+m;return}
   startApp(data.session)}
 async function doSetPassword(f){const d=formData(f);const e=$("#pwErr");if(d.pw1.length<8){e.textContent="Gebruik minstens 8 tekens.";return}if(d.pw1!==d.pw2){e.textContent="De twee wachtwoorden zijn niet gelijk.";return}
-  const {data,error}=await SB.auth.updateUser({password:d.pw1});if(error){e.textContent=error.message;return}
+  const {data,error}=await SB.auth.updateUser({password:d.pw1,data:{tijdelijk:false}});if(error){e.textContent=error.message;return}PW_NIEUW=true;
   const {data:{session}}=await SB.auth.getSession();toast("Wachtwoord bewaard.");startApp(session)}
 (async function boot(){
   const hp=new URLSearchParams(location.hash.slice(1));const authType=hp.get("type");const authErr=hp.get("error_description");
@@ -217,15 +217,17 @@ async function doSetPassword(f){const d=formData(f);const e=$("#pwErr");if(d.pw1
   if(!session)return showLogin(authErr?"De link is verlopen of al gebruikt. Vraag een nieuwe uitnodiging aan een bestuurslid.":"");
   startApp(session);
 })();
-let STARTED=false;
+let STARTED=false,PW_NIEUW=false;
 async function startApp(session){
   if(STARTED||!session)return;
   ME={email:session.user.email,id:session.user.id};
   const {data:rol,error}=await SB.from("bestuur").select("rol").eq("user_id",ME.id).maybeSingle();
   if(error||!rol){authCard(`<h1>Geen toegang</h1><p style="margin:0">Je bent aangemeld als <b>${esc(ME.email)}</b>, maar dit adres staat niet in de lijst van bestuursleden.</p><button class="btn" data-act="logout">Afmelden</button>`);return}
+  ROL=rol.rol==="bewerker"?"admin":rol.rol;
+  if(session.user.user_metadata&&session.user.user_metadata.tijdelijk&&!PW_NIEUW)return showSetPassword("eerste");
   STARTED=true;document.body.classList.remove("anon");
-  canWrite=rol.rol==="bewerker";canWriteConfirmed=true;applyRO();
-  ME_NAME=ME.email;const an=$("#acctName");if(an)an.textContent=ME.email;const w=$("#who");if(w){w.textContent=canWrite?(an?"Bewerker":ME.email):(an?"Alleen lezen":ME.email+" · alleen lezen");w.classList.toggle("ro",!canWrite)}
+  canWrite=magSchrijven();canWriteConfirmed=true;applyRO();
+  ME_NAME=ME.email;const an=$("#acctName");if(an)an.textContent=ME.email;const w=$("#who");if(w){w.textContent=ROL_LBL[ROL]||"";w.classList.toggle("ro",ROL==="lezer")}gbMenu();
   $("#main").innerHTML='<div class="loading" id="boot"><b>Gegevens laden…</b><span>Leden, boekhouding en punten worden opgehaald.</span></div>';
   const q=new URLSearchParams(location.search);if(q.get("bank")){const ok=q.get("bank")==="ok";setTimeout(()=>toast(ok?"De bankrekening is gekoppeld.":"Koppelen met de bank is niet gelukt"+(q.get("reden")?": "+q.get("reden"):"")+".",!ok),400);history.replaceState(null,"",location.pathname+"#bank")}
   const timer=setTimeout(()=>{if(loaded.size<COLS.length){const b=$("#boot");if(b)b.innerHTML="<b>De gegevens zijn nog niet bereikbaar.</b><span>Controleer je internetverbinding. De pagina blijft het proberen.</span>"}},10000);
@@ -302,6 +304,7 @@ function render(force){
   if(!ys.length){JAAR=new Date().getFullYear()}
   else JAAR=ys.includes(cj)?cj:ys[ys.length-1];
   const r=route(),rn=r==="ronde"?"kalenders":r;
+  if(canWriteConfirmed){canWrite=magSchrijven(r);applyRO()}
   renderTabbar(rn);
   $("#nav").innerHTML=NAV.map(n=>Array.isArray(n)?'<a href="#'+n[0]+'" class="'+(n[0]===rn?"on":"")+'">'+ic(n[0])+esc(n[1])+'</a>':'<button type="button" class="navdd'+(n.items.some(i=>i[0]===rn)?" on":"")+'" data-act="navdd" data-id="'+n.id+'" aria-haspopup="true" aria-expanded="false">'+ic(n.id)+esc(n.label)+'<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>').join("");
   $("#brandLbl").textContent=cfg().vereniging||"";
@@ -2685,3 +2688,76 @@ function mlSend(){const list=mailRecips();if(!list.length)return;const n=list.le
   $("#msOk").onchange=e=>{$("#msGo").disabled=!e.target.checked};
   $("#msGo").onclick=async()=>{if(!$("#msOk").checked)return;closeModal();const res=await mailVerstuur(list.map(r=>mailBericht(r,M)));
     try{await write("mailings",mlId(),{datum:new Date().toISOString(),onderwerp:vul(M.onderwerp,{}),sjabloon:M.naam||"",sjabloonId:M.tplId||"",groep:g.label,aantal:n,ok:res.ok,fout:res.fout.slice(0,200),door:ME?ME.email:""})}catch(e){}}}
+
+/* ============ Rollen en gebruikersbeheer ============
+   admin      = alles, ook gebruikers beheren   (oude naam: "bewerker")
+   boekhouder = alles lezen, enkel de boekhouding wijzigen
+   lezer      = alles lezen, niets wijzigen
+   De database (RLS) dwingt dit ook af; de app toont of verbergt enkel de knoppen. */
+let ROL="lezer",GB=null;
+const ROL_LBL={admin:"Administrator",boekhouder:"Boekhouding",lezer:"Alleen lezen"};
+const ROL_UITLEG={admin:"Alles bekijken en wijzigen, ook gebruikers beheren.",boekhouder:"Alles bekijken, enkel de boekhouding wijzigen.",lezer:"Alles bekijken, niets wijzigen."};
+const BOEK_ROUTES=new Set(["boekhouding","boekingen","verwerken","historiek","bank"]);
+function magSchrijven(r){r=r||route();return ROL==="admin"||(ROL==="boekhouder"&&BOEK_ROUTES.has(r))}
+if(!ROUTES.some(r=>r[0]==="gebruikers"))ROUTES.push(["gebruikers","Gebruikers"]);
+ICON.gebruikers='<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.9-3 3-4.6 5.5-4.6s4.6 1.6 5.5 4.6"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.6c2.3-.4 4.3.9 5 3.4"/>';
+ICON.sleutel='<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>';
+
+function gbMenu(){const m=$("#acctMenu");if(!m||m.querySelector("[data-gbm]"))return;const lo=m.querySelector('[data-act="logout"]');
+  const html=(ROL==="admin"?`<a href="#gebruikers" class="acct-i" role="menuitem" data-act="acctClose" data-gbm>${ic("gebruikers")}Gebruikers</a>`:"")+`<button type="button" class="acct-i" role="menuitem" data-act="gbWw" data-gbm>${ic("sleutel")}Wachtwoord wijzigen</button>`;
+  if(lo)lo.insertAdjacentHTML("beforebegin",html);else m.insertAdjacentHTML("beforeend",html)}
+
+async function gbLaad(){try{GB=await api("/api/gebruikers")}catch(e){GB={fout:e.message,gebruikers:[]}}if(route()==="gebruikers")renderBody()}
+const gbDt=s=>{if(!s)return"nog nooit";const x=new Date(s);return x.toLocaleDateString("nl-BE",{day:"numeric",month:"short",year:"numeric"})+" "+x.toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})};
+VIEWS.gebruikers=()=>({title:"Gebruikers",actions:ROL==="admin"?'<button class="btn primary" data-act="gbNieuw">'+ic("plus")+'Gebruiker toevoegen</button>':"",body(){
+  if(ROL!=="admin")return '<div class="panel"><div class="empty">Enkel een administrator kan gebruikers beheren.</div></div>';
+  if(!GB){gbLaad();return '<div class="panel"><div class="empty">Gebruikers laden…</div></div>'}
+  if(GB.fout)return `<div class="note">${esc(GB.fout)}</div>`;
+  const L=GB.gebruikers;
+  return `<div class="gb-rollen">${["admin","boekhouder","lezer"].map(r=>`<div class="gb-rol"><span class="pill ${r==="admin"?"info":r==="boekhouder"?"ok":"neutral"}">${ROL_LBL[r]}</span><span class="muted small">${ROL_UITLEG[r]}</span></div>`).join("")}</div>
+  <div class="panel"><div class="panel-h"><h2>Wie heeft toegang</h2><span class="grow"></span><span class="muted small">${L.length}</span></div><div class="list">
+  ${L.map(u=>`<div class="li gb-li"><span class="acct-av gb-av">${esc(((u.naam||u.email)[0]||"?").toUpperCase())}</span><div class="grow" style="min-width:0">
+    <div class="trunc"><b>${esc(u.naam||u.email)}</b>${u.ik?' <span class="muted small">(jij)</span>':""}</div>
+    <div class="muted small trunc">${u.naam?esc(u.email)+" · ":""}laatst aangemeld: ${esc(gbDt(u.laatst))}${u.tijdelijk?' · <span class="gb-tmp">tijdelijk wachtwoord</span>':""}</div></div>
+    <span class="pill ${u.rol==="admin"?"info":u.rol==="boekhouder"?"ok":"neutral"}">${ROL_LBL[u.rol]||esc(u.rol)}</span>
+    <button class="btn sm" data-act="gbEdit" data-id="${esc(u.id)}">Wijzigen</button></div>`).join("")||'<div class="empty">Nog niemand.</div>'}</div></div>`}});
+
+const gbRolSel=(id,v)=>`<div class="gb-rkeus" role="radiogroup" aria-label="Rechten">${["admin","boekhouder","lezer"].map(r=>`<label class="sp-nat"><input type="radio" name="${id}" value="${r}"${r===v?" checked":""}><span><b>${ROL_LBL[r]}</b><small>${ROL_UITLEG[r]}</small></span></label>`).join("")}</div>`;
+function gbToonWw(titel,u,r){modal(titel,`<div class="stack" style="gap:12px">
+   <p style="margin:0">${r.gemaild?`De gegevens werden gemaild naar <b>${esc(u.email)}</b>.`:`Geef deze gegevens door aan <b>${esc(u.naam||u.email)}</b>.`} Bij de eerste aanmelding kiest ${esc((u.naam||"").split(" ")[0]||"de gebruiker")} meteen een eigen wachtwoord.</p>
+   <dl class="kv"><dt>Adres</dt><dd>${esc(location.origin.replace(/^https?:\/\//,""))}</dd><dt>E-mailadres</dt><dd>${esc(u.email)}</dd><dt>Tijdelijk wachtwoord</dt><dd><code class="gb-ww">${esc(r.wachtwoord)}</code></dd></dl>
+   <div class="muted small">Dit wachtwoord wordt nergens bewaard en is hier maar één keer te zien.</div></div>`,
+   `<button class="btn" id="gbCopy">${ic("copy")}Kopiëren</button><button class="btn primary" data-act="closeModal">Klaar</button>`);
+  $("#gbCopy").onclick=()=>{navigator.clipboard.writeText(`Adres: ${location.origin}\nE-mailadres: ${u.email}\nTijdelijk wachtwoord: ${r.wachtwoord}`).then(()=>toast("Gekopieerd."))}}
+function gbNieuw(){const mail=GB&&GB.mail;
+  modal("Gebruiker toevoegen",`<form id="fGb" class="form">
+   ${fld("gbN","Naam",'<input id="gbN" maxlength="80" placeholder="bv. Jojanneke Lariviere">',"full")}
+   ${fld("gbE","E-mailadres",'<input id="gbE" type="email" maxlength="160" placeholder="naam@voorbeeld.be">',"full")}
+   <div class="fld full"><span class="lbl">Rechten</span>${gbRolSel("gbR","lezer")}</div>
+   ${mail?'<label class="sp-nat full"><input type="checkbox" id="gbM" checked><span><b>Aanmeldgegevens mailen</b><small>Met het adres van de app en een tijdelijk wachtwoord.</small></span></label>':""}
+   <div class="err full" id="gbErr"></div></form>`,
+   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="gbOk">Toevoegen</button>`);
+  $("#gbOk").onclick=async()=>{const u={naam:$("#gbN").value.trim(),email:$("#gbE").value.trim().toLowerCase(),rol:($('input[name="gbR"]:checked')||{}).value};
+    if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(u.email)){$("#gbErr").textContent="Vul een geldig e-mailadres in.";return}
+    $("#gbOk").disabled=true;try{const r=await api("/api/gebruikers",{method:"POST",body:JSON.stringify({actie:"nieuw",...u,mail:!!($("#gbM")&&$("#gbM").checked)})});closeModal();gbToonWw("Gebruiker toegevoegd",u,r);gbLaad()}
+    catch(e){$("#gbErr").textContent=e.message;$("#gbOk").disabled=false}}}
+function gbEdit(id){const u=GB.gebruikers.find(x=>x.id===id);if(!u)return;const mail=GB.mail;
+  modal(u.naam||u.email,`<form id="fGb" class="form">
+   ${fld("gbN","Naam",`<input id="gbN" maxlength="80" value="${esc(u.naam)}">`,"full")}
+   <div class="fld full"><span class="lbl">E-mailadres</span><div>${esc(u.email)}</div></div>
+   <div class="fld full"><span class="lbl">Rechten</span>${gbRolSel("gbR",u.rol)}</div>
+   <div class="fld full"><span class="lbl">Wachtwoord vergeten?</span><div class="bar" style="gap:8px"><button type="button" class="btn sm" id="gbReset">${ic("sleutel")}Nieuw tijdelijk wachtwoord</button>${mail?'<label class="muted small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="gbM" checked>ook mailen</label>':""}</div></div>
+   <div class="err full" id="gbErr"></div></form>`,
+   `${u.ik?"":'<button class="btn danger" id="gbDel" style="margin-right:auto">Toegang intrekken</button>'}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="gbOk">Bewaren</button>`);
+  $("#gbOk").onclick=async()=>{const r={naam:$("#gbN").value.trim(),rol:($('input[name="gbR"]:checked')||{}).value};
+    try{await api("/api/gebruikers",{method:"POST",body:JSON.stringify({actie:"wijzig",id,...r})});closeModal();toast("Bewaard.");gbLaad()}catch(e){$("#gbErr").textContent=e.message}};
+  $("#gbReset").onclick=async()=>{try{const r=await api("/api/gebruikers",{method:"POST",body:JSON.stringify({actie:"reset",id,mail:!!($("#gbM")&&$("#gbM").checked)})});closeModal();gbToonWw("Nieuw tijdelijk wachtwoord",u,r);gbLaad()}catch(e){$("#gbErr").textContent=e.message}};
+  const d=$("#gbDel");if(d)d.onclick=()=>confirmBox(`<b>${esc(u.naam||u.email)}</b> kan daarna niet meer aanmelden. Toegang intrekken?`,"Intrekken",async()=>{try{await api("/api/gebruikers",{method:"POST",body:JSON.stringify({actie:"verwijder",id})});toast("Toegang ingetrokken.");gbLaad()}catch(e){toast(e.message,true)}})}
+function gbWw(){modal("Wachtwoord wijzigen",`<form id="fWw" class="form">
+   ${fld("ww1","Nieuw wachtwoord",'<input id="ww1" type="password" autocomplete="new-password" minlength="8">',"full")}
+   ${fld("ww2","Herhaal wachtwoord",'<input id="ww2" type="password" autocomplete="new-password" minlength="8">',"full")}<div class="err full" id="wwErr"></div></form>`,
+   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="wwOk">Bewaren</button>`);
+  $("#wwOk").onclick=async()=>{const a=$("#ww1").value,b=$("#ww2").value;if(a.length<8){$("#wwErr").textContent="Gebruik minstens 8 tekens.";return}if(a!==b){$("#wwErr").textContent="De twee wachtwoorden zijn niet gelijk.";return}
+    const {error}=await SB.auth.updateUser({password:a,data:{tijdelijk:false}});if(error){$("#wwErr").textContent=error.message;return}closeModal();toast("Wachtwoord gewijzigd.")}}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;
+  ({gbNieuw,gbEdit:()=>gbEdit(t.dataset.id),gbWw:()=>{closeAcct();gbWw()}})[t.dataset.act]?.()});
