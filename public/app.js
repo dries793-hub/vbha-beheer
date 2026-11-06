@@ -449,7 +449,7 @@ function sparkline(C){
 
 /* ---------- leden ---------- */
 VIEWS.leden=()=>({title:"Leden",sub:"Ledenadministratie en lidgeld "+JAAR,
-  actions:'<button class="btn primary" data-w data-act="nieuwLid">'+ic("plus")+'Nieuw lid</button>',
+  actions:'<a class="btn" href="/inschrijven" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met nieuwe leden">'+ic("communicatie")+'Inschrijfpagina</a><button class="btn primary" data-w data-act="nieuwLid">'+ic("plus")+'Nieuw lid</button>',
   body(){const C=ctx();const c=cfg();
   return `<div class="bar"><div class="search">${ic("search")}<input id="ledenQ" data-live data-input="ledenQ" placeholder="Zoek op naam, adres, e-mail of telefoon" value="${esc(UI.ledenQ)}"></div>
     <select class="sel" id="ledenCat" data-change="ledenCat"><option value="">Alle categorieën</option>${c.ledenCategorieen.map(k=>`<option${UI.ledenCat===k?" selected":""}>${esc(k)}</option>`).join("")}</select>
