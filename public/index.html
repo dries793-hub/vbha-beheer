@@ -867,6 +867,18 @@ code.gb-ww{font-size:17px;letter-spacing:.04em;padding:3px 8px;border-radius:6px
   .pm-x{display:flex;flex-direction:column;gap:6px}
   .pm-x .xl{display:flex;gap:8px;align-items:center}.pm-x .xl .wide{flex:1;min-width:0}.pm-x .xp{width:72px}
 }
+@media (max-width:760px){
+  .ml-s .in{color:var(--good)}.ml-s .out{color:var(--bad)}
+  .ml-amt{font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}.ml-amt.in{color:var(--good)}.ml-amt.out{color:var(--bad)}
+  .ml-bar{display:flex;gap:2px;height:4px;margin-top:5px;border-radius:2px;overflow:hidden;background:var(--sunken)}.ml-bar span{display:block;height:100%}
+  .ml-tot{cursor:default;background:var(--sunken);border-bottom:0}
+  .ml-rank{flex:none;width:22px;text-align:center;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .pm-a{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pm-a .btn{justify-content:center}
+  .kf-ms{display:flex;flex-wrap:wrap;gap:4px;white-space:normal}.kf-ms .kf-k{font-size:12px}
+  .panel-b .kf-ages{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:6px}.kf-ages .kf-age{width:auto;padding:8px 2px 6px;gap:4px}
+  .kf-ages .kf-age b{font-size:17px}.kf-ages .kf-age span{font-size:11.5px}.kf-ages .kf-age small{display:none}
+  .kf-ages .kf-age span:has(small)::after{content:" j"}
+}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */

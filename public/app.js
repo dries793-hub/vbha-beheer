@@ -551,7 +551,9 @@ VIEWS.boekhouding=()=>({title:"Boekhouding",sub:"Overzicht boekjaar "+JAAR,actio
   </div>
   <div class="panel"><div class="panel-h"><h2>Inkomsten en uitgaven per maand</h2><span class="grow"></span><span class="legend"><i style="background:var(--good)"></i>In <i style="background:var(--bad)"></i>Uit</span></div><div class="panel-b">${maandChart(C)}</div></div>
   <div class="grid g2" style="align-items:start">
-    <div class="panel"><div class="panel-h"><h2>Resultaat per categorie</h2></div><div class="tw"><table class="rcards"><thead><tr><th>Categorie</th><th class="num">In</th><th class="num">Uit</th><th class="num">Netto</th><th style="width:24%"></th></tr></thead><tbody>
+    <div class="panel"><div class="panel-h"><h2>Resultaat per categorie</h2></div><div class="mlist" role="list">${cats.map(c=>`<button type="button" class="ml-row" role="listitem" data-act="filterCat" data-v="${esc(c.k)}"><span class="ml-m"><span class="ml-n"><b>${esc(c.k)}</b></span><span class="ml-s">${c.in?`<span class="in">in ${eur(c.in)}</span>`:""}${c.in&&c.uit?'<span class="ml-dot">·</span>':""}${c.uit?`<span class="out">uit ${eur(c.uit)}</span>`:""}</span><span class="ml-bar"><span style="width:${c.in/max*100}%;background:var(--good)"></span><span style="width:${c.uit/max*100}%;background:var(--bad)"></span></span></span><span class="ml-r ml-amt ${c.net>=0?"in":"out"}">${c.net>=0?"+":"−"}${eur(Math.abs(c.net))}</span><span class="ml-chev" aria-hidden="true">›</span></button>`).join("")||'<div class="empty">Nog geen transacties in '+JAAR+'.</div>'}
+      <div class="ml-row ml-tot"><span class="ml-m"><span class="ml-n"><b>Totaal</b></span><span class="ml-s"><span class="in">in ${eur(C.tin)}</span><span class="ml-dot">·</span><span class="out">uit ${eur(C.tuit)}</span></span></span><span class="ml-r ml-amt ${res>=0?"in":"out"}">${res>=0?"+":"−"}${eur(Math.abs(res))}</span></div></div>
+      <div class="tw dsk-only"><table class="rcards"><thead><tr><th>Categorie</th><th class="num">In</th><th class="num">Uit</th><th class="num">Netto</th><th style="width:24%"></th></tr></thead><tbody>
       ${cats.map(c=>`<tr class="click" data-act="filterCat" data-v="${esc(c.k)}" title="Toon de transacties van ${esc(c.k)}"><td><span class="cat">${esc(c.k)}</span></td><td class="num in">${c.in?eur(c.in):""}</td><td class="num out">${c.uit?eur(c.uit):""}</td><td class="num"><b class="${c.net>=0?"in":"out"}">${c.net>=0?"+":"−"}${eur(Math.abs(c.net))}</b></td>
         <td><div class="track2"><span style="width:${c.in/max*100}%;background:var(--good)"></span><span style="width:${c.uit/max*100}%;background:var(--bad)"></span></div></td></tr>`).join("")||'<tr><td colspan="5" class="empty">Nog geen transacties in '+JAAR+'.</td></tr>'}
       </tbody><tfoot><tr><td>Totaal</td><td class="num in">${eur(C.tin)}</td><td class="num out">${eur(C.tuit)}</td><td class="num ${res>=0?"in":"out"}">${res>=0?"+":"−"}${eur(Math.abs(res))}</td><td></td></tr></tfoot></table></div></div>
@@ -788,12 +790,19 @@ VIEWS.kalenders=()=>({title:"Kalenders "+JAAR,sub:"Verdeling en verkoop van de k
   <div class="bar"><div class="search">${ic("search")}<input id="kalQ" data-live data-input="kalQ" placeholder="Zoek persoon" value="${esc(UI.kalQ)}"></div></div>
   <div class="panel" id="kalList">${kalTable()}</div>`}});
 function kalNaam(j){if(j.lidId){const l=S.leden.get(j.lidId);return l?naamVol(l):j.lidId}return j.naam||"?"}
+const KAL_OPEN=new Set();
 function kalTable(){
   const C=ctx(),k=kalStats(C),q=norm(UI.kalQ),w=C.c.gewichten.kalenders;
   let list=k.rows.map(j=>({j,n:kalNaam(j)}));if(q)list=list.filter(x=>norm(x.n).includes(q));
   list.sort((a,b)=>(b.j.kalUitgevoerd||0)-(a.j.kalUitgevoerd||0)||(b.j.kalOpgehaald||0)-(a.j.kalOpgehaald||0)||a.n.localeCompare(b.n,"nl"));
   const dis=canWrite?"":" disabled";
-  return `<div class="tw" style="max-height:72vh"><table class="rcards" data-main="1"><thead><tr><th class="num">#</th><th>Persoon</th><th class="num">Opgehaald (bezig)</th><th class="num">Uitgevoerd</th><th class="num">Punten</th><th></th></tr></thead><tbody>
+  const mob=`<div class="mlist" role="list">${list.map((x,i)=>{const id=x.j.id,open=KAL_OPEN.has(id),op=x.j.kalOpgehaald||0,ui=x.j.kalUitgevoerd||0;
+    return `<div class="pm${open?" open":""}" role="listitem"><button type="button" class="ml-row" data-act="kalOpen" data-id="${esc(id)}" aria-expanded="${open}"><span class="ml-rank">${i+1}</span>
+      <span class="ml-m"><span class="ml-n"><b>${esc(x.n)}</b>${x.j.lidId?"":' <span class="pill neutral">geen lid</span>'}</span><span class="ml-s">${op} bezig<span class="ml-dot">·</span>${ui} uitgevoerd</span></span>
+      <span class="pm-tot"><b>${ui*w}</b><small>punten</small></span><span class="ml-chev" aria-hidden="true">›</span></button>
+      ${open?`<div class="pm-d"><div class="pm-g"><div class="pm-c"><span>Opgehaald (bezig)</span>${stepper("kal","kalOpgehaald",id,op,"Opgehaald "+x.n)}</div><div class="pm-c"><span>Uitgevoerd</span>${stepper("kal","kalUitgevoerd",id,ui,"Uitgevoerd "+x.n)}</div></div>
+        ${canWrite?`<div class="pm-a"><button class="btn" data-act="kalOphalen" data-id="${esc(id)}">+1 opgehaald</button><button class="btn primary" data-act="kalKlaar" data-id="${esc(id)}"${op>0?"":" disabled"}>Doos klaar</button></div>`:""}</div>`:""}</div>`}).join("")||'<div class="empty">Nog niemand heeft kalenders opgehaald in '+JAAR+'.</div>'}</div>`;
+  return mob+`<div class="tw dsk-only" style="max-height:72vh"><table class="rcards" data-main="1"><thead><tr><th class="num">#</th><th>Persoon</th><th class="num">Opgehaald (bezig)</th><th class="num">Uitgevoerd</th><th class="num">Punten</th><th></th></tr></thead><tbody>
   ${list.map((x,i)=>`<tr><td class="num muted">${i+1}</td><td><b>${esc(x.n)}</b>${x.j.lidId?"":' <span class="pill neutral">geen lid</span>'}</td>
   <td class="num">${stepper("kal","kalOpgehaald",x.j.id,x.j.kalOpgehaald||0,"Opgehaald "+x.n)}</td>
   <td class="num">${stepper("kal","kalUitgevoerd",x.j.id,x.j.kalUitgevoerd||0,"Uitgevoerd "+x.n)}</td>
@@ -1062,7 +1071,10 @@ VIEWS.sponsors=()=>({title:"Sponsors",sub:"Sponsorbeheer",actions:'<button class
   const open=[...S.sponsors.values()].filter(x=>!K.per.has(x.id)&&!(x.naturaJaren||[]).includes(JAAR));const openT=open.reduce((a,x)=>a+num(x.bedrag),0);
   return `<div class="tiles"><div class="tile"><span class="lbl">Sponsors</span><span class="val">${S.sponsors.size}</span></div><div class="tile"><span class="lbl">Afgesproken bedragen</span><span class="val">${eur(totaal)}</span></div><div class="tile"><span class="lbl">Ontvangen</span><span class="val in">${eur(ontv)}</span></div></div>
   <div class="bar"><div class="search">${ic("search")}<input id="spQ" data-live data-input="spQ" placeholder="Zoek sponsor" value="${esc(UI.spQ)}"></div></div>
-  <div class="panel"><div class="tw"><table class="rcards"><thead><tr>${sth("bedrijf","Bedrijf")}<th>Contactpersoon</th><th>E-mail</th><th>Telefoon</th><th>KBO-nr.</th>${sth("bedrag","Bedrag","num")}${sth("ontv","Status")}</tr></thead><tbody>
+  <div class="panel"><div class="mlist" role="list">${list.map(s=>{const o=sponsorOntvangen(s,C),nat=(s.naturaJaren||[]).includes(JAAR);const cp=[s.voornaam,s.naam].filter(Boolean).join(" ");
+    return `<button type="button" class="ml-row" role="listitem" data-act="toonSponsor" data-id="${esc(s.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(s.bedrijf)}</b></span><span class="ml-s">${num(s.bedrag)?eur(num(s.bedrag)):"geen bedrag"}${cp?'<span class="ml-dot">·</span>'+esc(cp):""}</span></span>
+      <span class="ml-r">${nat?'<span class="pill ok">✓ In natura</span>':o&&o>=num(s.bedrag)-0.01?'<span class="pill ok">✓ Betaald</span>':o?'<span class="pill warn">Deels</span>':'<span class="pill nok">Open</span>'}</span><span class="ml-chev" aria-hidden="true">›</span></button>`}).join("")||'<div class="empty">Geen sponsors.</div>'}</div>
+  <div class="tw dsk-only"><table class="rcards"><thead><tr>${sth("bedrijf","Bedrijf")}<th>Contactpersoon</th><th>E-mail</th><th>Telefoon</th><th>KBO-nr.</th>${sth("bedrag","Bedrag","num")}${sth("ontv","Status")}</tr></thead><tbody>
   ${list.map(s=>{const o=sponsorOntvangen(s,C);return `<tr class="click" data-act="toonSponsor" data-id="${esc(s.id)}"><td><b>${esc(s.bedrijf)}</b></td><td>${esc(s.voornaam)} ${esc(s.naam)}</td><td class="trunc">${esc(s.email)}</td><td style="white-space:nowrap">${esc(s.telefoon)}</td><td class="muted">${esc(s.kbo)}</td><td class="num">${eur(num(s.bedrag))}</td><td>${(s.naturaJaren||[]).includes(JAAR)?'<span class="pill ok" title="Voldaan in natura">✓ In natura</span>':o&&o>=num(s.bedrag)-0.01?'<span class="pill ok" title="Ontvangen: '+eur(o)+'">✓ Betaald</span>':o?'<span class="pill warn" title="Ontvangen: '+eur(o)+' van '+eur(num(s.bedrag))+'">Deels</span>':'<span class="pill nok">Open</span>'}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Geen sponsors.</td></tr>'}
   </tbody></table></div></div>
   ${K.los.length?`<div class="panel"><div class="panel-h"><h2>Sponsorbetalingen zonder sponsor in de lijst</h2><span class="grow"></span><span class="muted small">${K.los.length} · ${eur(losT)}</span></div>
@@ -1869,6 +1881,7 @@ document.addEventListener("click",async e=>{
     case"puntSort":{let v=t.dataset.v;if(v==="naam"&&UI.puntSort==="naam")v="voornaam";UI.puntSort=v;saveUI();renderBody();break}
     case"nieuwLid":nieuwLid();break;
     case"toonLid":toonLid(id);break;
+    case"kalOpen":{KAL_OPEN.has(id)?KAL_OPEN.delete(id):KAL_OPEN.add(id);const el=$("#kalList");if(el)el.innerHTML=kalTable();break}
     case"ptOpen":{PT_OPEN.has(id)?PT_OPEN.delete(id):PT_OPEN.add(id);const el=$("#puntList");if(el)el.innerHTML=puntTable();break}
     case"lidgeldBetaald":closeModal();lidgeldBetaald(id);break;
     case"nieuweBoeking":boekingForm({},null);break;
@@ -2005,14 +2018,18 @@ VIEWS.kinderfeest=()=>({title:"Kinderfeest",sub:"Inschrijvingen kinderfeest",
     <div class="tiles"><div class="tile hero"><span class="lbl">Ingeschreven kinderen</span><span class="val">${st.kids}</span><span class="hint">${st.L.length} ${st.L.length===1?"inschrijving":"inschrijvingen"}</span></div>
       </div>
     <div class="panel"><div class="panel-h"><h2>Cadeautjes per leeftijd</h2></div><div class="panel-b"><div class="kf-ages">
-      ${ages.map(a=>{const n=st.per.get(a)||0;return `<div class="kf-age${n?"":" zero"}"><b>${n}</b><i><em style="width:${Math.round(n/max*100)}%"></em></i><span>${a===0?"&lt; 1 jaar":a+" jaar"}</span></div>`}).join("")}
+      ${ages.map(a=>{const n=st.per.get(a)||0;return `<div class="kf-age${n?"":" zero"}"><b>${n}</b><i><em style="width:${Math.round(n/max*100)}%"></em></i><span>${a===0?"&lt; 1":a}<small> jaar</small></span></div>`}).join("")}
       ${st.onbekend?`<div class="kf-age"><b>${st.onbekend}</b><i><em style="width:0"></em></i><span>onbekend</span></div>`:""}
     </div></div></div>
     <div class="bar"><div class="search">${ic("search")}<input id="kfQ" data-kfq data-live placeholder="Zoek op lid, kind of e-mail" value="${esc(KFQ)}"></div></div>
     <div class="panel"><div class="tw" id="kfList">${kfTable(list,dub,c)}</div></div>`}});
 
 function kfTable(list,dub,c){
-  return `<table class="rcards"><thead><tr><th>Lid</th><th>E-mail</th><th>Kinderen</th><th class="num">Aantal</th><th>Ingeschreven</th><th>Bron</th></tr></thead><tbody>
+  const mob=`<div class="mlist" role="list">${list.map(r=>{const l=kfLidVan(r.lid);const kids=r.kinderen||[];
+    return `<button type="button" class="ml-row" role="listitem" data-act="kfToon" data-id="${esc(r.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(r.lid)}</b>${l?"":' <span class="pill warn">niet in ledenlijst</span>'}${dub[norm(r.email)]>1?' <span class="pill warn">dubbel?</span>':""}</span>
+      <span class="ml-s kf-ms">${kids.map(k=>{const a=kfLeeftijd(k.geb,c.datum);return `<span class="kf-k${a!=null&&a>c.leeftijd?" oud":""}">${esc(k.naam)}<span>${a==null?"?":a+" j"}</span></span>`}).join("")||"geen kinderen"}</span></span>
+      <span class="pm-tot"><b>${kids.length}</b><small>${kids.length===1?"kind":"kinderen"}</small></span><span class="ml-chev" aria-hidden="true">›</span></button>`}).join("")||`<div class="empty">${KFQ?"Geen inschrijvingen gevonden.":"Nog geen inschrijvingen voor "+JAAR+"."}</div>`}</div>`;
+  return mob+`<table class="rcards dsk-only"><thead><tr><th>Lid</th><th>E-mail</th><th>Kinderen</th><th class="num">Aantal</th><th>Ingeschreven</th><th>Bron</th></tr></thead><tbody>
   ${list.map(r=>{const l=kfLidVan(r.lid);const kids=r.kinderen||[];
     return `<tr class="click" data-act="kfToon" data-id="${esc(r.id)}"><td><b>${esc(r.lid)}</b>${l?"":' <span class="pill warn">niet in ledenlijst</span>'}${dub[norm(r.email)]>1?' <span class="pill warn">mogelijk dubbel</span>':""}${r.opmerking?`<div class="muted small">${esc(r.opmerking)}</div>`:""}</td>
     <td class="trunc">${esc(r.email)}</td>
