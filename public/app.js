@@ -667,7 +667,7 @@ VIEWS.bank=()=>({title:"Bankimport",sub:"Rekeninguittreksels van Argenta inlezen
   </tbody></table></div></div>`}});
 
 /* ---------- punten ---------- */
-VIEWS.punten=()=>({title:"Puntensysteem",actions:'<button class="btn primary" data-act="reglement">'+ic("reglement")+'Reglement</button><button class="btn iconbtn" data-w data-act="puntInst" aria-label="Instellingen puntensysteem" title="Instellingen puntensysteem">'+ic("instellingen")+'</button>',body(){
+VIEWS.punten=()=>({title:"Puntensysteem",actions:'<button class="btn primary" data-act="docRol" data-v="reglement" title="Reglement openen (uit Documenten)">'+ic("reglement")+'Reglement</button><button class="btn iconbtn" data-w data-act="puntInst" aria-label="Instellingen puntensysteem" title="Instellingen puntensysteem">'+ic("instellingen")+'</button>',body(){
   const C=ctx(),w=C.c.gewichten;
   const it=(v,l)=>`<div class="pt-c"><span>${l}</span><b>${v}</b></div>`,dr=C.c.drempels,k=C.c.korting;
   const st=(m,van)=>`<div class="pt-c">${medal(m)}<b>${van}</b></div>`;
@@ -1033,7 +1033,7 @@ function sponsorOntvangen(s,C){
   const toks=norm(s.bedrijf).split(/[^a-z0-9]+/).filter(t=>t.length>=4&&!["bvba","sprl","groep","group"].includes(t));
   return C.boek.filter(b=>b.categorie==="Sponsoring"&&b.richting!=="uit"&&toks.some(t=>(b._m+" "+b._p).includes(t))).reduce((s,b)=>s+b.bedrag,0);
 }
-VIEWS.sponsors=()=>({title:"Sponsors",sub:"Sponsorbeheer",actions:'<button class="btn primary" data-w data-act="nieuweSponsor">'+ic("plus")+'Nieuwe sponsor</button>',body(){
+VIEWS.sponsors=()=>({title:"Sponsors",sub:"Sponsorbeheer",actions:'<button class="btn" data-act="docRol" data-v="sponsordossier" title="Sponsordossier openen (uit Documenten)">'+ic("documenten")+'Sponsordossier</button><button class="btn primary" data-w data-act="nieuweSponsor">'+ic("plus")+'Nieuwe sponsor</button>',body(){
   const C=ctx();const q=norm(UI.spQ);let list=[...S.sponsors.values()].sort((a,b)=>(a.bedrijf||"").localeCompare(b.bedrijf||"","nl"));
   if(q)list=list.filter(s=>norm(Object.values(s).join(" ")).includes(q));
   const totaal=[...S.sponsors.values()].reduce((s,x)=>s+num(x.bedrag),0);const ontv=C.boek.filter(b=>b.categorie==="Sponsoring"&&b.richting!=="uit").reduce((s,b)=>s+b.bedrag,0);
@@ -2188,6 +2188,7 @@ const DOC_MAPPEN=["Draaiboeken","Verslagen","Brieven","Reglementen","Andere"];
 const DOC={map:"",q:"",busy:false};
 {const a=NAV.find(n=>n.id==="communicatie");if(a&&!a.items.some(i=>i[0]==="documenten")){const k=a.items.findIndex(i=>i[0]==="mails");a.items.splice(k<0?a.items.length:k,0,["documenten","Documenten"])}}
 if(!ROUTES.some(r=>r[0]==="documenten"))ROUTES.push(["documenten","Documenten"]);
+ICON.link='<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>';
 ICON.documenten='<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>';
 const docKB=n=>n<1024?n+" B":n<1048576?Math.round(n/1024)+" kB":(n/1048576).toLocaleString("nl-BE",{maximumFractionDigits:1})+" MB";
 const docExt=n=>{const m=String(n||"").match(/\.([a-z0-9]{1,5})$/i);return m?m[1].toLowerCase():""};
@@ -2198,7 +2199,7 @@ function docLijst(){let L=[...S.documenten.values()];if(DOC.map)L=L.filter(d=>d.
   return L.sort((a,b)=>String(b.op||"").localeCompare(String(a.op||"")))}
 function docTabel(){const L=docLijst();const dt=s=>{const d=new Date(s);return isNaN(d)?"":d.toLocaleDateString("nl-BE",{day:"numeric",month:"short",year:"numeric"})};
   return `<div class="tw"><table class="rcards doct" data-main="0"><thead><tr><th>Naam</th><th>Map</th><th class="num">Grootte</th><th>Toegevoegd</th><th></th></tr></thead><tbody>
-  ${L.map(d=>{const e=docExt(d.naam);return `<tr><td><a class="doc-n" data-act="docOpen" data-id="${esc(d.id)}" href="#documenten"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span><span class="doc-t"><b>${esc(d.naam)}</b>${d.omschrijving?`<span>${esc(d.omschrijving)}</span>`:""}</span></a></td>
+  ${L.map(d=>{const e=docExt(d.naam);return `<tr><td><a class="doc-n" data-act="docOpen" data-id="${esc(d.id)}" href="#documenten"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span><span class="doc-t"><b>${esc(d.naam)}</b>${d.rol?`<span class="doc-rol">${ic("link")}Knop ${d.rol==="sponsordossier"?"Sponsordossier":"Reglement"}</span>`:""}${d.omschrijving?`<span>${esc(d.omschrijving)}</span>`:""}</span></a></td>
    <td><span class="pill neutral">${esc(d.map||"Andere")}</span></td><td class="num nowrap muted">${docKB(d.grootte||0)}</td><td class="nowrap muted">${dt(d.op)}${d.door?`<div class="small">${esc(d.door)}</div>`:""}</td>
    <td class="nowrap doc-a"><button type="button" class="btn sm" data-act="docDown" data-id="${esc(d.id)}" title="Downloaden" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="btn sm" data-act="docEdit" data-id="${esc(d.id)}" title="Wijzigen" aria-label="${esc(d.naam)} wijzigen">${ic("instellingen")}</button>`:""}</td></tr>`}).join("")||`<tr><td colspan="5" class="empty">${DOC.q||DOC.map?"Geen documenten gevonden.":"Nog geen documenten. Sleep bestanden hierboven of klik op Bestanden kiezen."}</td></tr>`}
   </tbody></table></div>`}
@@ -2223,13 +2224,23 @@ async function docOpen(d,download){const w=download?null:window.open("","_blank"
   try{const u=await docUrl(d,download);if(w)w.location.href=u;else{const a=document.createElement("a");a.href=u;a.rel="noopener";document.body.append(a);a.click();a.remove()}}
   catch(e){if(w)w.close();toast("Het document kon niet geopend worden"+(e&&e.message?": "+e.message:"")+".",true)}}
 function docEdit(d){
-  modal("Document",`<form id="fDoc" class="form">${fld("dcN","Naam",inp("dcN",d.naam,'maxlength="160"'),"full")}${fld("dcM","Map",`<select id="dcM" class="sel">${selOpts(DOC_MAPPEN,d.map||"Andere")}</select>`)}${fld("dcG","Grootte",`<input id="dcG" value="${esc(docKB(d.grootte||0))}" disabled>`)}
+  modal("Document",`<form id="fDoc" class="form">${fld("dcN","Naam",inp("dcN",d.naam,'maxlength="160"'),"full")}${fld("dcM","Map",`<select id="dcM" class="sel">${selOpts(DOC_MAPPEN,d.map||"Andere")}</select>`)}${fld("dcG","Grootte",`<input id="dcG" value="${esc(docKB(d.grootte||0))}" disabled>`)}${fld("dcR","Koppelen aan knop",`<select id="dcR" class="sel">${selOpts(DOC_ROLLEN,d.rol||"")}</select>`,"full")}
   ${fld("dcO","Omschrijving",`<textarea id="dcO" maxlength="400" placeholder="Optioneel, bv. voor welk jaar of welke activiteit">${esc(d.omschrijving||"")}</textarea>`,"full")}</form>`,
   `<button class="btn danger" id="dcDel" style="margin-right:auto">Verwijderen</button><button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="dcOk">Bewaren</button>`);
-  $("#dcOk").onclick=async()=>{const r={naam:$("#dcN").value.trim()||d.naam,map:$("#dcM").value,omschrijving:$("#dcO").value.trim()};closeModal();await write("documenten",d.id,{...stripId(d),...r});toast("Document bewaard.")};
+  $("#dcOk").onclick=async()=>{const r={naam:$("#dcN").value.trim()||d.naam,map:$("#dcM").value,omschrijving:$("#dcO").value.trim(),rol:$("#dcR").value};closeModal();if(r.rol)for(const o of S.documenten.values())if(o.id!==d.id&&o.rol===r.rol)await write("documenten",o.id,{...stripId(o),rol:""});await write("documenten",d.id,{...stripId(d),...r});toast("Document bewaard.")};
   $("#dcDel").onclick=()=>confirmBox(`<b>${esc(d.naam)}</b> definitief verwijderen?`,"Verwijderen",async()=>{
     try{const {error}=await SB.storage.from(DOC_BUCKET).remove([d.pad]);if(error)throw error}catch(e){toast("Het bestand kon niet verwijderd worden: "+(e&&e.message||""),true);return}
     await write("documenten",d.id,null,{del:true});toast("Document verwijderd.")})}
+
+/* gekoppelde documenten: een document kan dienen als "Sponsordossier" (knop op Sponsors) of "Reglement" (knop op Puntensysteem) */
+const DOC_ROLLEN=[["","Niet gekoppeld"],["sponsordossier","Knop Sponsordossier (Sponsors)"],["reglement","Knop Reglement (Puntensysteem)"]];
+const DOC_ROL_ZOEK={sponsordossier:/sponsor\s*dossier|sponsordossier/i,reglement:/reglement/i};
+function docVoorRol(rol){const L=[...S.documenten.values()].sort((a,b)=>String(b.op||"").localeCompare(String(a.op||"")));
+  return L.find(d=>d.rol===rol)||L.find(d=>!d.rol&&DOC_ROL_ZOEK[rol]&&DOC_ROL_ZOEK[rol].test(d.naam||""))||null}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="docRol"]');if(!t)return;const d=docVoorRol(t.dataset.v);
+  if(d){docOpen(d,false);return}
+  if(t.dataset.v==="reglement"&&typeof toonReglement==="function"){toonReglement();return}
+  toast("Er is nog geen sponsordossier. Laad het op bij Administratie › Documenten en koppel het via het tandwieltje.",true)});
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;const d=S.documenten.get(t.dataset.id);
   switch(t.dataset.act){
     case"docMapF":DOC.map=t.dataset.v;render(true);break;
