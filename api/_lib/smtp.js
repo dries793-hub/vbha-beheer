@@ -10,7 +10,15 @@ const b64 = s => Buffer.from(String(s), "utf8").toString("base64");
 const hdr = s => /^[\x20-\x7e]*$/.test(s) ? s : "=?UTF-8?B?" + b64(s) + "?=";
 const adres = (email, naam) => (naam ? hdr(naam.replace(/["\r\n]/g, "")) + " " : "") + "<" + email + ">";
 const wrap = s => s.replace(/.{1,76}/g, "$&\r\n");
-const tekstVan = html => String(html).replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div|h\d|li|tr)>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/\n{3,}/g, "\n\n").trim();
+const ENT = { nbsp: " ", amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", bull: "•", euro: "€", middot: "·", ndash: "–", mdash: "—", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", hellip: "…", euml: "ë", eacute: "é", egrave: "è", ouml: "ö", iuml: "ï" };
+// Leesbare tekstversie (spamfilters wantrouwen mails zonder of met een lege tekstversie): links blijven zichtbaar als "tekst (adres)".
+const tekstVan = html => String(html)
+  .replace(/<head[\s\S]*?<\/head>/i, "").replace(/<(style|script)[\s\S]*?<\/\1>/gi, "").replace(/<!--[\s\S]*?-->/g, "")
+  .replace(/<div[^>]*data-pre[^>]*>[\s\S]*?<\/div>/i, "")
+  .replace(/<a\s[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (m, h, t) => { const tt = t.replace(/<[^>]+>/g, "").trim(); h = h.replace(/^mailto:/i, "").split("?")[0]; return tt && tt !== h ? tt + " (" + h + ")" : h; })
+  .replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div|h\d|li|tr|table)>/gi, "\n").replace(/<li[^>]*>/gi, "- ").replace(/<[^>]+>/g, "")
+  .replace(/&#(\d+);/g, (m, n) => String.fromCodePoint(+n)).replace(/&([a-z]+);/gi, (m, n) => ENT[n] ?? m)
+  .split("\n").map(l => l.replace(/[ \t ]+/g, " ").trim()).join("\n").replace(/\n{3,}/g, "\n\n").trim();
 
 export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan }) {
   const grens = "vbha-" + crypto.randomBytes(8).toString("hex");
@@ -20,6 +28,9 @@ export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan })
     "From: " + adres(van.email, van.naam),
     "To: " + adres(aan, aanNaam),
     ...(antwoordAan ? ["Reply-To: " + antwoordAan] : []),
+    // Afmeldlink in de kop: Gmail, Outlook en Apple Mail tonen dan een nette "Afmelden"-knop in plaats van "Spam melden".
+    "List-Unsubscribe: <mailto:" + (process.env.MAIL_AFMELDEN || van.email) + "?subject=Afmelden%20mails%20VBHA>",
+    "X-Auto-Response-Suppress: OOF, AutoReply",
     "Subject: " + hdr(onderwerp),
     "Date: " + new Date().toUTCString().replace("GMT", "+0000"),
     "Message-ID: <" + crypto.randomUUID() + "@" + domein + ">",
