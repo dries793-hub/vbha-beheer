@@ -186,7 +186,7 @@ async function api(path,opt={}){
 }
 function authCard(inner){document.body.classList.add("anon");$("#nav").innerHTML="";$("#main").innerHTML=`<div class="auth"><div class="panel auth-card"><div class="panel-b stack">${EMBLEM}${inner}</div></div></div>`}
 function showLogin(msg){
-  authCard(`<h1>Aanmelden</h1><p class="muted" style="margin:0">Beheer van de ${esc(DEF_CONFIG.vereniging)}. Alleen voor uitgenodigde bestuursleden.</p>
+  authCard(`<h1>Aanmelden</h1>
   <form id="fLogin" class="stack"><div class="fld"><label for="lEmail">E-mailadres</label><input id="lEmail" name="email" type="email" autocomplete="username" required></div>
   <div class="fld"><label for="lPw">Wachtwoord</label><input id="lPw" name="pw" type="password" autocomplete="current-password" required></div>
   <div class="err" id="lErr">${esc(msg||"")}</div><div class="muted small" id="lMsg"></div><button class="btn solid" type="submit">Aanmelden</button></form>`);
