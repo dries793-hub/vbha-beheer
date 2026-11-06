@@ -1885,7 +1885,13 @@ document.addEventListener("click",async e=>{
     case"mailDel":confirmBox("Sjabloon <b>"+esc(MAIL.naam)+"</b> verwijderen?","Verwijderen",async()=>{await write("templates",MAIL.tplId,null,{del:true});MAIL=null;UI.mailTpl="";saveUI();render()});break;
     case"mailCopy":{const list=mailRecips().map(r=>r.email).join("; ");try{await navigator.clipboard.writeText(list);toast(mailRecips().length+" adressen gekopieerd.")}catch(err){modal("Adressen",`<textarea style="width:100%;min-height:200px" readonly id="adrTa">${esc(list)}</textarea><span style="color:var(--muted)">Selecteer alles en kopieer.</span>`,"");setTimeout(()=>{const ta=$("#adrTa");ta&&ta.select()},50)}break}
     case"mailTest":{const list=mailRecips();if(!list.length||!ME)break;await mailVerstuur([{...mailBericht(list[0],MAIL,ME.email),onderwerp:"[TEST] "+vul(MAIL.onderwerp,list[0])}],"testmail naar "+ME.email);break}
-    case"mailSend":{const list=mailRecips();if(!list.length)break;confirmBox(`<b>${list.length}</b> ${list.length===1?"mail":"mails"} versturen vanaf <b>${esc(MAILSMTP&&MAILSMTP.van.email||"")}</b>?<br><span class="muted small">Onderwerp: ${esc(vul(MAIL.onderwerp,list[0]))}</span>`,"Versturen",()=>mailVerstuur(list.map(r=>mailBericht(r,MAIL))));break}
+    case"mailSend":{const list=mailRecips();if(!list.length)break;const n=list.length,w=n===1?"mail":"mails";
+      modal("Mails versturen",`<div class="stack" style="gap:12px"><p style="margin:0">Je staat op het punt om <b>${n} ${w}</b> te versturen. Dit kan niet ongedaan gemaakt worden.</p>
+       <dl class="kv"><dt>Van</dt><dd>${esc((MAILSMTP&&MAILSMTP.van.naam?MAILSMTP.van.naam+" ":"")+"<"+(MAILSMTP&&MAILSMTP.van.email||"")+">")}</dd><dt>Onderwerp</dt><dd>${esc(vul(MAIL.onderwerp,list[0]))}</dd><dt>Eerste ontvangers</dt><dd>${list.slice(0,3).map(r=>esc(r.label||r.email)).join(", ")}${n>3?" en nog "+(n-3):""}</dd></dl>
+       <label class="sp-nat"><input type="checkbox" id="msOk"><span><b>Ja, verstuur ${n} ${w}</b><small>Stuur bij twijfel eerst een testmail naar jezelf.</small></span></label></div>`,
+       `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="msGo" disabled>Versturen</button>`);
+      $("#msOk").onchange=e=>{$("#msGo").disabled=!e.target.checked};
+      $("#msGo").onclick=()=>{if(!$("#msOk").checked)return;closeModal();mailVerstuur(list.map(r=>mailBericht(r,MAIL)))};break}
     case"mailZip":{const list=mailRecips();const zip=new JSZip();list.forEach((r,i)=>zip.file(String(i+1).padStart(3,"0")+" "+(r.label||r.email).replace(/[\\/:*?"<>|]/g,"")+".eml",eml(r,MAIL)));
       const blob=await zip.generateAsync({type:"blob"});await save("VBHA mails "+slug(MAIL.naam||MAIL.onderwerp||"bericht")+".zip",blob);break}
     case"nieuwJaar":nieuwJaar();break;
