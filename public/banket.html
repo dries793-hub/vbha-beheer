@@ -108,6 +108,17 @@ input[type=date]{width:100%;font:inherit;font-size:16px;padding:10px 12px;border
 .kadd:hover{border-color:var(--accent);background:var(--accent-soft)}
 .sum{margin:8px 0 0;color:var(--muted)}
 @media (max-width:560px){.facts{grid-template-columns:1fr 1fr}.facts .fact:last-child{grid-column:1/-1}.ch{grid-template-columns:1fr}.kid{grid-template-columns:1fr}}
+.bevestig{text-align:center;padding:34px 24px}
+.bevestig .ic{width:72px;height:72px;border-radius:50%;background:var(--good-soft);color:var(--good);display:grid;place-items:center;margin:0 auto 16px}
+.bevestig .ic svg{width:36px;height:36px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.bevestig h2{margin:0 0 8px;font-size:24px}
+.bevestig .lead2{margin:0 auto;max-width:440px;color:var(--muted);font-size:15.5px}
+.bevestig .sam{margin:22px auto 0;max-width:420px;border:1px solid var(--line);border-radius:12px;text-align:left;overflow:hidden}
+.bevestig .sam div{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;font-size:14.5px}
+.bevestig .sam div+div{border-top:1px solid var(--line)}
+.bevestig .sam span{color:var(--muted)}
+.bevestig .sam b{text-align:right}
+.bevestig .tot{margin:22px 0 0;font-size:18px;font-weight:700}
 </style>
 </head>
 <body>
@@ -154,7 +165,8 @@ function onlineBlok(o,bedrag){const href=appLink(o);
   <p class="hint c">${o.deeplink?"Je bank- of Bancontact-app opent en je bevestigt de betaling daar.":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
   ${o.qrcode?`<div class="qrwrap desk"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div><p>Op een computer? Scan deze code met de Bancontact-app of de app van je bank.</p></div>`:""}
   <p class="wacht" id="bcStatus" aria-live="polite"></p></div>`}
-function toonKlaar(j){
+let KLAAR=null;
+function toonKlaar(j){KLAAR=j;
   const o=j.online&&(j.online.deeplink||j.online.checkout)?j.online:null;
   $("#box").innerHTML=`<div class="card ok"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Bedankt, ${esc(j.voornaam)}!</h2><p>Je inschrijving voor ${j.personen===2?"2 personen":"1 persoon"} is goed ontvangen.</p>
   ${j.rekeningnummer||o?`<div class="paybox" id="paybox"><h3>Betaal ${eur(j.bedrag)}${j.deadline?" voor "+esc(j.deadline):""}</h3>
@@ -163,7 +175,13 @@ function toonKlaar(j){
   </div>`:""}</div>`;
   if(o){BET={t:o.t||"leden",id:o.id,token:o.token};volg()}}
 let BET=null,volgT=0,volgN=0;
-function betaald(){const p=$("#paybox");if(p)p.innerHTML=`<div class="paid"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h3>Je banket is betaald</h3><p>Bedankt! Je inschrijving is helemaal in orde. Tot op het banket!</p></div>`;try{sessionStorage.removeItem("vbha_banket")}catch(x){}}
+function betaald(){const j=KLAAR||{};const f=$$("#facts .fact");const tx=(k,sel)=>{const e=f[k]&&f[k].querySelector(sel);return e?e.textContent.trim():""};
+  const menu=j.personen===2?esc(j.menu1||"")+" + "+esc(j.menu2||""):esc(j.menu1||"");
+  $("#box").innerHTML=`<div class="card bevestig"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+  <h2>Je bent succesvol ingeschreven!</h2><p class="lead2">Bedankt${j.voornaam?", "+esc(j.voornaam):""}. Je betaling${j.bedrag?" van <b>"+eur(j.bedrag)+"</b>":""} is goed ontvangen en je inschrijving voor het banket is helemaal in orde.</p>
+  <div class="sam">${j.naam?`<div><span>Naam</span><b>${esc(j.naam)}</b></div>`:""}${j.personen?`<div><span>Aanwezig</span><b>${j.personen===2?"2 personen":"1 persoon"}</b></div>`:""}${j.menu1?`<div><span>Menu</span><b>${menu}</b></div>`:""}
+  ${tx(0,"b")?`<div><span>Wanneer</span><b>${esc(tx(0,"b"))}${tx(0,"small")?", "+esc(tx(0,"small")):""}</b></div>`:""}${tx(1,"b")?`<div><span>Waar</span><b>${esc(tx(1,"b"))}${tx(1,"small")?", "+esc(tx(1,"small")):""}</b></div>`:""}</div>
+  <p class="tot">Tot dan!</p></div>`;window.scrollTo({top:0,behavior:"smooth"});try{sessionStorage.removeItem("vbha_banket")}catch(x){}}
 async function volg(){clearTimeout(volgT);if(!BET)return;
   try{const r=await fetch(`/api/betaling?t=${encodeURIComponent(BET.t)}&id=${encodeURIComponent(BET.id)}&token=${encodeURIComponent(BET.token)}`);const s=await r.json();
     if(s.status==="SUCCEEDED"){betaald();return}
@@ -191,7 +209,7 @@ $("#f").addEventListener("submit",async e=>{e.preventDefault();const er=$("#err"
   if(d.personen===2&&!d.menu2){er.textContent="Kies het menu voor je partner.";return}
   const b=$("#go");b.disabled=true;b.textContent="Bezig…";
   try{const r=await fetch("/api/banket",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Inschrijven lukte niet.");
-    const v={...j,personen:d.personen,voornaam:d.naam.split(" ").slice(-1)[0]||d.naam};toonKlaar(v);try{sessionStorage.setItem("vbha_banket",JSON.stringify({...v,qr:null}))}catch(x){}window.scrollTo({top:0,behavior:"smooth"})}
+    const v={...j,naam:d.naam,menu1:d.menu1,menu2:d.menu2,personen:d.personen,voornaam:d.naam.split(" ").slice(-1)[0]||d.naam};toonKlaar(v);try{sessionStorage.setItem("vbha_banket",JSON.stringify({...v,qr:null}))}catch(x){}window.scrollTo({top:0,behavior:"smooth"})}
   catch(x){er.textContent=x.message;b.disabled=false;b.textContent="Inschrijven en betalen"}});
 (function(){if(!/[?&]betaling=terug/.test(location.search))return;let j=null;try{j=JSON.parse(sessionStorage.getItem("vbha_banket")||"null")}catch(x){}if(!j)return;history.replaceState(null,"",location.pathname);toonKlaar(j)})();
 upd();
