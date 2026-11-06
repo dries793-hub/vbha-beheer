@@ -227,7 +227,7 @@ async function startApp(session){
   if(session.user.user_metadata&&session.user.user_metadata.tijdelijk&&!PW_NIEUW)return showSetPassword("eerste");
   STARTED=true;document.body.classList.remove("anon");
   canWrite=magSchrijven();canWriteConfirmed=true;applyRO();
-  ME_NAME=rol.naam||ME.email;const an=$("#acctName");if(an)an.textContent=ME.email;const w=$("#who");if(w){w.textContent=ROL_LBL[ROL]||"";w.classList.toggle("ro",ROL==="lezer")}gbMenu();
+  ME_NAME=rol.naam||ME.email;const an=$("#acctName");if(an)an.textContent=ME.email;const w=$("#who");if(w){w.textContent=ROL_LBL[ROL]||"";w.classList.toggle("ro",ROL==="lezer")}ROL_ECHT=ROL;gbMenu();gbSimStart();
   $("#main").innerHTML='<div class="loading" id="boot"><b>Gegevens laden…</b><span>Leden, boekhouding en punten worden opgehaald.</span></div>';
   const q=new URLSearchParams(location.search);if(q.get("bank")){const ok=q.get("bank")==="ok";setTimeout(()=>toast(ok?"De bankrekening is gekoppeld.":"Koppelen met de bank is niet gelukt"+(q.get("reden")?": "+q.get("reden"):"")+".",!ok),400);history.replaceState(null,"",location.pathname+"#bank")}
   const timer=setTimeout(()=>{if(loaded.size<COLS.length){const b=$("#boot");if(b)b.innerHTML="<b>De gegevens zijn nog niet bereikbaar.</b><span>Controleer je internetverbinding. De pagina blijft het proberen.</span>"}},10000);
@@ -2774,7 +2774,7 @@ ICON.gebruikers='<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.9-3 3-4.6 5.5-
 ICON.sleutel='<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>';
 
 function gbMenu(){const m=$("#acctMenu");if(!m||m.querySelector("[data-gbm]"))return;const lo=m.querySelector('[data-act="logout"]');
-  const html=(ROL==="admin"?`<a href="#gebruikers" class="acct-i" role="menuitem" data-act="acctClose" data-gbm>${ic("gebruikers")}Gebruikers</a>`:"")+`<button type="button" class="acct-i" role="menuitem" data-act="gbWw" data-gbm>${ic("sleutel")}Wachtwoord wijzigen</button>`;
+  const html=(ROL==="admin"?`<a href="#gebruikers" class="acct-i" role="menuitem" data-act="acctClose" data-gbm>${ic("gebruikers")}Gebruikers</a>`:"")+(ROL_ECHT==="admin"?`<button type="button" class="acct-i" role="menuitem" data-act="gbSimKies" data-gbm>${ic("leden")}Bekijken als…</button>`:"")+`<button type="button" class="acct-i" role="menuitem" data-act="gbWw" data-gbm>${ic("sleutel")}Wachtwoord wijzigen</button>`;
   if(lo)lo.insertAdjacentHTML("beforebegin",html);else m.insertAdjacentHTML("beforeend",html)}
 
 async function gbLaad(){try{GB=await api("/api/gebruikers")}catch(e){GB={fout:e.message,gebruikers:[]}}if(route()==="gebruikers")renderBody()}
@@ -2831,6 +2831,25 @@ function gbWw(){modal("Wachtwoord wijzigen",`<form id="fWw" class="form">
     const {error}=await SB.auth.updateUser({password:a,data:{tijdelijk:false}});if(error){$("#wwErr").textContent=error.message;return}closeModal();toast("Wachtwoord gewijzigd.")}}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;
   ({gbNieuw,gbEdit:()=>gbEdit(t.dataset.id),gbWw:()=>{closeAcct();gbWw()}})[t.dataset.act]?.()});
+
+/* ---------- Bekijken als (enkel voor een administrator) ----------
+   Toont de app zoals iemand met een ander profiel ze ziet: knoppen en pagina's volgen dat profiel.
+   Het is een voorvertoning in deze browser; je blijft aangemeld als jezelf. */
+let ROL_ECHT=null;
+function gbSimStart(){if(ROL_ECHT!=="admin")return;let s=null;try{s=sessionStorage.getItem("vbhaSimRol")}catch(e){}if(s&&s!=="admin"&&ROL_LBL[s])gbSim(s,true)}
+function gbSim(rol,stil){if(ROL_ECHT!=="admin")return;ROL=rol||"admin";try{rol&&rol!=="admin"?sessionStorage.setItem("vbhaSimRol",rol):sessionStorage.removeItem("vbhaSimRol")}catch(e){}
+  canWrite=magSchrijven();applyRO();const w=$("#who");if(w){w.textContent=ROL_LBL[ROL]+(ROL!==ROL_ECHT?" (voorvertoning)":"");w.classList.toggle("ro",ROL==="lezer")}
+  const m=$("#acctMenu");if(m)m.querySelectorAll("[data-gbm]").forEach(x=>x.remove());gbMenu();gbBanner();
+  if(route()==="gebruikers"&&ROL!=="admin")location.hash="dashboard";render(true);if(!stil)toast(ROL===ROL_ECHT?"Je ziet de app terug als administrator.":"Je bekijkt de app nu als "+ROL_LBL[ROL].toLowerCase()+".")}
+function gbBanner(){let b=$("#simBar");if(ROL===ROL_ECHT||!ROL_ECHT){if(b)b.remove();document.body.classList.remove("sim");return}
+  if(!b){b=document.createElement("div");b.id="simBar";b.className="sim-bar";b.setAttribute("role","status");document.body.prepend(b)}document.body.classList.add("sim");
+  b.innerHTML=`${ic("gebruikers")}<span class="sim-t">Je bekijkt de app als <b>${esc(ROL_LBL[ROL])}</b>: ${esc(ROL_UITLEG[ROL])}</span><button type="button" class="btn sm" data-act="gbSimStop">Stoppen</button>`}
+function gbSimKies(){closeAcct();modal("Bekijken als",`<p style="margin:0 0 12px;color:var(--muted)">Zie de app zoals iemand met een ander profiel ze ziet. Je blijft aangemeld als jezelf; dit geldt enkel in dit venster.</p>
+  <div class="gb-rkeus">${["admin","boekhouder","lezer"].map(r=>`<label class="sp-nat"><input type="radio" name="simR" value="${r}"${r===ROL?" checked":""}><span><b>${ROL_LBL[r]}${r==="admin"?" (jezelf)":""}</b><small>${ROL_UITLEG[r]}</small></span></label>`).join("")}</div>`,
+  `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="simOk">Bekijken</button>`);
+  $("#simOk").onclick=()=>{const r=($('input[name="simR"]:checked')||{}).value||"admin";closeModal();gbSim(r)}}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;
+  ({gbSimKies,gbSimStop:()=>gbSim("admin")})[t.dataset.act]?.()});
 
 /* ============ Kalenders: dozen meegeven en afgewerkt melden ============
    Elke beweging gaat via een venster met een duidelijk aantal en een voorvertoning, en komt in een logboek per persoon
