@@ -782,6 +782,47 @@ button.acct-i{width:100%;border:0;background:none;font:inherit;text-align:left;c
 .ft-t{padding-right:40px}
 .kf-ages{display:flex!important;flex-wrap:wrap;justify-content:center;gap:10px}.kf-ages .kf-age{width:72px;flex:none}
 .ins-st{width:8px;height:8px;border-radius:50%;display:inline-block;margin-left:7px;background:var(--good);flex:none}.ins-st.nok{background:var(--bad)}
+/* mails */
+.ml-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+.ml-side{display:flex;flex-direction:column;gap:18px;min-width:0}
+@media (max-width:1100px){.ml-grid{grid-template-columns:minmax(0,1fr)}}
+.ml-tpl{max-width:60%}
+.ml-tb{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px;border:1px solid var(--line-strong);border-bottom:0;border-radius:var(--r) var(--r) 0 0;background:var(--sunken)}
+.ml-tb-b{border:1px solid transparent;background:transparent;color:var(--ink);border-radius:6px;padding:6px 9px;font-size:13.5px;cursor:pointer;line-height:1}
+.ml-tb-b:hover{background:var(--surface);border-color:var(--line-strong)}
+.ml-sep{width:1px;height:20px;background:var(--line-strong);margin:0 4px}
+.ml-dd{position:relative}
+.ml-ddm{position:absolute;z-index:30;top:calc(100% + 4px);left:0;min-width:270px;max-height:360px;overflow:auto;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r);box-shadow:0 10px 30px rgba(0,0,0,.15);padding:6px}
+.ml-ddm button{display:flex;justify-content:space-between;gap:12px;width:100%;border:0;background:transparent;color:var(--ink);padding:7px 9px;border-radius:6px;cursor:pointer;font-size:13.5px;text-align:left}
+.ml-ddm button:hover{background:var(--bg)}.ml-ddm code{color:var(--muted);font-size:12px}
+.ml-dds{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:8px 9px 3px;font-weight:600}
+.ml-ed{min-height:380px;max-height:640px;overflow:auto;border:1px solid var(--line-strong);border-radius:0 0 var(--r) var(--r);background:#fff;color:#222;padding:22px 26px;font:15px/1.5 Helvetica,Arial,sans-serif;outline:none}
+.ml-ed:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 15%,transparent)}
+.ml-ed p{margin:0 0 13px}.ml-ed a{color:#b30000}.ml-ed h3{color:#b30000;font-size:17px;margin:20px 0 8px}.ml-ed ul{margin:0 0 13px;padding-left:22px}
+.ml-ed [data-blok=kader]{border-left:5px solid #C1A057;background:#fff9f9;padding:14px 20px;margin:6px 0 16px}
+.ml-ed [data-blok=kader] h2{color:#b30000;font-size:18px;margin:0 0 8px}.ml-ed [data-blok=kader] p{margin:0 0 4px}
+.ml-ed [data-blok=knop]{text-align:center;margin:8px 0 18px}
+.ml-ed [data-blok=knop] a{display:inline-block;background:#b30000;color:#fff;padding:11px 22px;border-radius:4px;text-decoration:none;font-weight:bold}
+.ml-raw{width:100%;min-height:380px;font:12.5px/1.45 ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--line-strong);border-radius:0 0 var(--r) var(--r);padding:12px;background:var(--surface);color:var(--ink)}
+textarea.ml-raw:first-child{border-radius:var(--r)}
+.ml-acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ml-dirty{font-size:13px;color:var(--muted)}.ml-dirty:not(:empty)::before{content:"● ";color:#C1A057}
+.ml-los{width:100%;min-height:90px;border:1px solid var(--line-strong);border-radius:var(--r);padding:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:14px}
+.ml-tip{font-size:13.5px;background:color-mix(in srgb,#C1A057 14%,transparent);border-radius:var(--r);padding:8px 11px}
+.linkbtn{border:0;background:none;color:var(--accent);font:inherit;font-weight:600;cursor:pointer;padding:0;text-decoration:underline}
+.ml-lijst summary{cursor:pointer;font-size:14px;font-weight:600}
+.ml-rl{max-height:260px;overflow:auto;margin-top:8px;display:flex;flex-direction:column;gap:2px;font-size:13.5px}
+.ml-rl label{display:flex;gap:9px;align-items:center;padding:5px 4px;border-radius:6px;cursor:pointer;min-width:0}.ml-rl label:hover{background:var(--bg)}
+.ml-rl label b{font-weight:600;margin-right:4px}.ml-rl label span{color:var(--muted)}.ml-rl label b{color:var(--ink)}
+.ml-head{display:flex;flex-direction:column;gap:8px}
+.ml-nav{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.ml-meta{display:grid;gap:4px;font-size:13.5px;border:1px solid var(--line);border-radius:var(--r);padding:9px 12px}
+.ml-meta div{display:grid;grid-template-columns:82px minmax(0,1fr);gap:8px}.ml-meta span{color:var(--muted)}.ml-meta small{font-weight:400;color:var(--muted)}
+.ml-prev{border:1px solid var(--line);border-radius:var(--r);background:#f7f7f7;overflow:hidden;display:flex;justify-content:center}
+.ml-prev iframe{width:100%;border:0;height:520px;display:block;background:#f7f7f7}
+.ml-prev.gsm{padding:14px 0}.ml-prev.gsm iframe{width:375px;max-width:100%;border:1px solid var(--line-strong);border-radius:18px}
+.ml-prog{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-bottom:6px}.ml-prog div{height:100%;background:var(--accent);transition:width .3s}
+.ml-h .pill{flex:none}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
