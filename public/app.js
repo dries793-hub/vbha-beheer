@@ -2533,7 +2533,7 @@ VIEWS.mails=()=>({title:"Mails",actions:'<button class="btn" data-w data-act="ml
     ${MAILSMTP===null?(mailSmtpLaad(),'<div class="muted small">Verzendinstellingen laden…</div>'):MAILSMTP.ingesteld?`
     <button class="btn primary" data-act="mlSend"${actief.length&&canWrite?"":" disabled"}>${ic("mails")}${actief.length} ${actief.length===1?"mail":"mails"} versturen</button>
     <div class="ml-test"><input id="mlTestAan" type="email" value="${esc(UI.mlTestAan||(ME?ME.email:""))}" aria-label="Testmail naar"><button class="btn" data-act="mlTest"${actief.length&&canWrite?"":" disabled"}>Testmail</button></div>
-    <div class="muted small">Elke ontvanger krijgt een eigen mail met de juiste naam en het juiste bedrag, vanaf <b>${esc(MAILSMTP.van.email)}</b>. De testmail gebruikt de gegevens uit het voorbeeld. Tip: stuur een testmail naar het adres op <a href="https://www.mail-tester.com" target="_blank" rel="noopener">mail-tester.com</a> voor een spamscore.</div><div id="mailProg">${ML_LAST}</div>`
+<div id="mailProg">${ML_LAST}</div>`
     :`<div class="note">Rechtstreeks versturen is nog niet ingesteld (SMTP-gegevens in Vercel).</div>`}
     <details><summary style="cursor:pointer;font-weight:600;font-size:14px">Andere manieren</summary><div class="stack" style="gap:8px;margin-top:10px">
       <button class="btn" data-act="mailZip"${actief.length?"":" disabled"}>${ic("download")}Concepten downloaden (.zip)</button>
