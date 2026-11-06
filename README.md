@@ -27,7 +27,7 @@ vercel.json      instellingen en de dagelijkse synchronisatie (06:00/07:00 Belgi
    - *Site URL*: het adres van je site, bv. `https://vbha-beheer.vercel.app` (pas aan na stap 3 als je het adres nog niet kent)
    - *Redirect URLs*: voeg `https://vbha-beheer.vercel.app/**` toe
 5. **E-mails**: de ingebouwde mailserver van Supabase verstuurt maar een paar mails per uur en (bij nieuwe projecten) enkel naar leden van je Supabase-team. Stel voor echt gebruik een eigen SMTP-server in via **Authentication › Emails › SMTP Settings** (bv. Brevo, Resend of het mailadres van de vriendenkring).
-6. Noteer bij **Project Settings › API**: de *Project URL*, de *anon public key* en de *service_role key* (geheim!).
+6. Noteer bij **Project Settings › API Keys › Legacy API keys**: de *anon public key* en de *service_role key* (geheim!). Beide beginnen met `eyJ`. Gebruik **niet** de nieuwe sleutels die met `sb_publishable_` of `sb_secret_` beginnen. De *Project URL* staat bij **Project Settings › Data API**.
 
 ## Stap 2 — GitHub
 
@@ -96,6 +96,31 @@ Daarna:
 - Dubbele boekingen worden uitgesloten via de bankreferentie (unieke index in de database) en via datum + bedrag + tegenpartij.
 - De eerste keer begint de synchronisatie na de laatste bestaande rekeningboeking van dit jaar, zodat wat al via Excel is ingelezen niet dubbel komt. Wil je een vaste startdatum, zet dan `SYNC_VANAF=2026-11-01` in Vercel.
 - De bank vraagt periodiek (meestal na 180 dagen) om de toestemming te vernieuwen. De app toont dat vooraf; koppel dan opnieuw.
+
+## Inschrijfformulier voor nieuwe leden
+
+Op `https://jouw-site.vercel.app/inschrijven` staat een openbaar formulier. Iedereen kan het invullen, zonder aan te melden. Het vervangt het Google-formulier.
+
+- Een inschrijving komt meteen in de ledenlijst, met het label **nieuw**.
+- Op het dashboard verschijnt een melding met de nieuwe leden. Klik op een naam om het lid na te kijken. Klik op **Alles gezien** om de melding weg te halen.
+- Bestaat er al een lid met dezelfde naam, dan wordt de inschrijving toch bewaard, met het label **mogelijk al lid**. Kijk ze na en verwijder wat dubbel is.
+- Na het inschrijven ziet de persoon het bedrag, het rekeningnummer en de mededeling (`Naam Voornaam Lidgeld JAAR`). Met die mededeling wordt de betaling automatisch herkend.
+- Rekeningnummer en lidgeld komen uit Instellingen (vul daar het rekeningnummer in).
+- Er is een eenvoudige bescherming tegen spam: een verborgen veld, een minimale invultijd en maximaal 30 inschrijvingen per uur.
+
+De link staat ook bij Instellingen, met een knop om ze te kopiëren.
+
+### Online betalen met Bancontact Pay
+
+Staat de sleutel ingesteld, dan krijgt een nieuw lid na het inschrijven de knop **Betaal met Bancontact**. Op de gsm opent die de bank- of Bancontact-app. Op een computer staat er een QR-code om met de gsm te scannen. Zodra de betaling gelukt is, staat het lidgeld van dat lid automatisch op **betaald**. Het lid ziet dat ook meteen op het scherm.
+
+1. Vraag bij Bancontact Pay de **API-sleutel** op voor een betaalprofiel voor online betalingen (in het merchant-portaal of via hun support).
+2. Zet in Vercel bij Environment Variables `BANCONTACT_API_KEY` = die sleutel. Zet ook `SITE_URL` op het adres van je site, bv. `https://vbha-beheer.vercel.app`.
+3. Doe een **Redeploy**.
+
+Zonder sleutel blijft het formulier werken zoals vroeger, met de betaal-QR en de overschrijvingsgegevens.
+
+Boekhouding: Bancontact stort de betalingen gebundeld door op de rekening. Die doorstorting komt via de bankimport binnen; zet ze op categorie **Lidgeld**. De leden zelf staan al op betaald.
 
 ## Beveiliging
 
