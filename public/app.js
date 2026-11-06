@@ -500,7 +500,7 @@ function catList(C){return [...new Set([...cfg().boekCategorieen,...(C?C.boek.ma
 function bedragCel(b){return `<span class="amt ${b.richting==="uit"?"out":"in"}">${b.richting==="uit"?"−":"+"}${eur(b.bedrag)}</span>`}
 function catCell(b){if(!b.categorie)return '<span class="pill warn">Te verwerken</span>';return `<span class="cat">${esc(b.categorie)}</span>${b.status==="controle"?' <span class="pill warn" title="Automatisch voorgesteld, nog niet bevestigd">controleren</span>':""}`}
 function bronLabel(b){return b.bron==="api"?"Bankkoppeling":b.bron==="bank"?"Bankbestand":b.bron==="excel"?"Excel-import":"Manueel"}
-const boekActions=()=>'<button class="btn primary" data-w data-act="nieuweBoeking">'+ic("plus")+'Nieuwe transactie</button>';
+const boekActions=()=>'<button class="btn primary" data-w data-act="nieuweBoeking" title="Een transactie met de hand toevoegen, bv. een kasverrichting">'+ic("plus")+'Manuele transactie</button>';
 
 /* regels */
 const byVolg=(a,b)=>(a.volgorde||0)-(b.volgorde||0)||String(a.id).localeCompare(String(b.id));
