@@ -1,4 +1,5 @@
 // Gedeelde hulpjes voor de openbare formulieren (geen login nodig).
+import crypto from "node:crypto";
 export const DEF_IBAN = "BE43 9730 6810 0401";
 export const clean = (v, max) => String(v ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
 export const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
@@ -94,3 +95,11 @@ export async function alIngeschreven(sb, tabel, jaar, lidId) {
   return !!(data && data.length);
 }
 export const AL_TEKST = (wat, jaar) => `Je bent al ingeschreven voor ${wat} ${jaar}. Een lid kan zich maar één keer inschrijven. Wil je iets wijzigen? Mail dan naar info@vbha.be.`;
+
+// Beperkt het aantal aanvragen per IP-adres (bv. om de ledenlijst niet te kunnen "afschrapen"). Faalt open bij een databasefout.
+export async function rateLimit(sb, req, soort, max, sec, httpErr) {
+  const ip = String(req.headers["x-real-ip"] || req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "?";
+  const k = soort + ":" + crypto.createHash("sha256").update(ip + "|" + (process.env.SUPABASE_URL || "")).digest("base64url").slice(0, 32);
+  try { const { data, error } = await sb.rpc("rl_hit", { p_k: k, p_max: max, p_sec: sec }); if (!error && data === false) throw httpErr(429, "Te veel aanvragen. Wacht even en probeer het dan opnieuw."); }
+  catch (e) { if (e.status === 429) throw e; console.error("ratelimit", e); }
+}

@@ -1,7 +1,7 @@
 import { admin, sendError, httpErr } from "./sb.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
 import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, site } from "./bevestiging.js";
-import { algemeen, body, masker } from "./publiek.js";
+import { algemeen, body, masker, rateLimit } from "./publiek.js";
 import { kloptStatus } from "./lidlink.js";
 import { lidStatus, jaarCfg } from "./status.js";
 
@@ -20,6 +20,7 @@ export default async function handler(req, res) {
     const sb = admin();
     if (req.method === "GET" && String(req.query?.f || "") === "reglement" || /\/api\/reglement\b/.test(String(req.url || ""))) return await reglement(req, res);
     if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
+    await rateLimit(sb, req, "status", 20, 3600, httpErr);
     const b = body(req), l = String(b.l || ""), j = Number(b.j);
     if (!kloptStatus(l, j, String(b.t || ""))) throw httpErr(400, "Deze link is niet (meer) geldig. Gebruik de link uit je mail.");
     const { data: row } = await sb.from("leden").select("data").eq("id", l).maybeSingle();

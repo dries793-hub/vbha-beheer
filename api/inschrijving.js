@@ -1,4 +1,5 @@
 import { admin, sendError, httpErr } from "./_lib/sb.js";
+import { rateLimit } from "./_lib/publiek.js";
 import { epcPayload, qrSvg } from "./_lib/epc.js";
 import crypto from "node:crypto";
 import { onlineConfigured as bcConfigured } from "./_lib/betaalprovider.js";
@@ -42,6 +43,7 @@ export default async function handler(req, res) {
     const b = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
     // eenvoudige spambescherming: verborgen veld en minimale invultijd
     if (b.website) return res.status(200).json({ ok: true });
+    await rateLimit(sb, req, "post", 20, 3600, httpErr);
     if (Number(b.duur) > 0 && Number(b.duur) < 2500) throw httpErr(400, "Dat ging wel erg snel. Probeer het opnieuw.");
 
     const I = await info(sb);

@@ -3,7 +3,7 @@ import { admin, sendError, httpErr } from "./sb.js";
 import { epcPayload, qrSvg } from "./epc.js";
 import { onlineConfigured } from "./betaalprovider.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
-import { clean, body, norm, slug, algemeen, configDoc, spamCheck, vandaagISO, datumTekst, DEF_IBAN } from "./publiek.js";
+import { clean, body, norm, slug, algemeen, configDoc, spamCheck, vandaagISO, datumTekst, DEF_IBAN, rateLimit } from "./publiek.js";
 import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, site } from "./bevestiging.js";
 import { fcConfig, maakDefinitief, factuurPdf, pdfNaam, betaalLink, ogmFmt } from "./factuur.js";
 
@@ -96,6 +96,7 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const q = String(req.query?.q || "");
       if (q) { // bestaande sponsor zoeken: enkel de naam, geen contactgegevens
+        await rateLimit(sb, req, "sponsorzoek", 100, 600, httpErr);
         const t = norm(q); if (t.replace(/\s/g, "").length < 2) return res.status(200).json({ sponsors: [] });
         const L = (await alleSponsors(sb)).map(r => ({ id: r.id, naam: naamVan(r.data || {}) })).filter(x => x.naam && norm(x.naam).includes(t)).sort((a, b) => a.naam.localeCompare(b.naam, "nl")).slice(0, 8);
         return res.status(200).json({ sponsors: L });
@@ -104,6 +105,7 @@ export default async function handler(req, res) {
     }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
     const b = body(req);
+    await rateLimit(sb, req, "post", 20, 3600, httpErr);
     if (await spamCheck(sb, "sponsors", b, httpErr)) return res.status(200).json({ ok: true });
     if (!C.open) throw httpErr(403, "De inschrijvingen voor sponsoring zijn momenteel gesloten.");
     if (C.deadline && vandaagISO() > C.deadline) throw httpErr(403, `De inschrijvingen voor de brandweerkalender ${C.kalenderjaar} zijn afgesloten sinds ${datumTekst(C.deadline)}.`);

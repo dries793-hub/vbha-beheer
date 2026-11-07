@@ -1,5 +1,5 @@
 import { admin, sendError, httpErr } from "./sb.js";
-import { vandaagISO } from "./publiek.js";
+import { vandaagISO, rateLimit } from "./publiek.js";
 
 /* Openbare deellink voor een map in Documenten: /deel?t=<token>  ->  GET /api/deel?t=<token>
    Geeft de bestanden van die map (en eventueel de submappen) met tijdelijke downloadlinks (1 uur). Niets anders uit de app. */
@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     if (req.method !== "GET") throw httpErr(405, "Gebruik GET");
     const t = String(req.query?.t || "");
     if (!/^[A-Za-z0-9_-]{20,80}$/.test(t)) throw httpErr(404, "Deze link bestaat niet (meer).");
-    const sb = admin();
+    const sb = admin(); await rateLimit(sb, req, "deel", 120, 600, httpErr);
     const { data: row } = await sb.from("deellinks").select("id,data").eq("id", t).maybeSingle();
     const d = row && row.data;
     if (!d || d.ingetrokken) throw httpErr(404, "Deze link bestaat niet (meer). Vraag een nieuwe link aan wie hem deelde.");

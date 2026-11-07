@@ -11,7 +11,9 @@ export function httpErr(status, message) { const e = new Error(message); e.statu
 
 export function sendError(res, e) {
   if (!e.status || e.status >= 500) console.error(e);
-  res.status(e.status || 500).json({ error: e.message || "Serverfout" });
+  // interne foutmeldingen (database, externe diensten) niet naar buiten sturen; eigen meldingen (httpErr) wel
+  const eigen = !!e.status && e.eigen !== false;
+  res.status(e.status || 500).json({ error: eigen ? (e.message || "Serverfout") : "Er liep iets mis op de server. Probeer het later opnieuw." });
 }
 
 // Rollen: admin (alles), boekhouder (enkel de boekhouding wijzigen), lezer (alleen lezen). "bewerker" is de oude naam voor admin.

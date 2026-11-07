@@ -1,6 +1,6 @@
 import { admin, sendError, httpErr } from "./sb.js";
 import { stuurBevestiging } from "./bevestiging.js";
-import { clean, body, nieuwId, algemeen, configDoc, spamCheck, actieveLeden, inschrijving, alIngeschreven, AL_TEKST } from "./publiek.js";
+import { clean, body, nieuwId, algemeen, configDoc, spamCheck, actieveLeden, inschrijving, alIngeschreven, AL_TEKST, rateLimit } from "./publiek.js";
 
 // Openbare inschrijving kinderfeest: komt rechtstreeks in Administratie › Kinderfeest.
 async function info(sb) {
@@ -17,11 +17,13 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const I = await info(sb), lidId = String(req.query?.lid || "");
       if (!lidId) return res.status(200).json(I);
+      await rateLimit(sb, req, "lidinfo", 60, 600, httpErr);
       const al = await alIngeschreven(sb, "kinderfeest", I.jaar, lidId);
       return res.status(200).json(al ? { al: true, melding: AL_TEKST("het kinderfeest", I.jaar) } : { al: false });
     }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
     const b = body(req);
+    await rateLimit(sb, req, "post", 20, 3600, httpErr);
     if (await spamCheck(sb, "kinderfeest", b, httpErr)) return res.status(200).json({ ok: true });
     const I = await info(sb);
     if (!I.open) throw httpErr(403, "De inschrijvingen voor het kinderfeest zijn afgesloten.");
