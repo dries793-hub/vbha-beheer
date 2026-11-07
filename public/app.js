@@ -1162,7 +1162,7 @@ const BK_PUBLIEK="/banket";
 const BK_FORM="https://docs.google.com/forms/d/1L-eZqLg67w6InWQzEeV6x0EhRRF8_Ro-pPCKOS8CTyo/edit#responses";
 const bkCfg=()=>Object.assign({prijs:65,deadline:"1 december",datum:JAAR+"-12-12",uur:"19u00",locatie:"Feestzaal De Snip, Beugemstraat 9, Moorsel"},S.config.get("banket")||{});
 const bkMenu=m=>norm(m).includes("veg")?"Vegetarisch":"Normaal";
-const bkDue=r=>r2((r.personen===2?2:1)*num(bkCfg().prijs));
+const bkDue=r=>r2((r.personen===2?2:1)*(r.prijsPP!=null&&r.prijsPP!==""?num(r.prijsPP):num(bkCfg().prijs)));
 const bkToks=s=>norm(s).split(/[^a-z0-9]+/).filter(t=>t.length>=3);
 function bkLijst(){return [...S.banket.values()].filter(r=>Number(r.jaar)===JAAR)}
 function bkBetaling(r,C){
@@ -1219,7 +1219,7 @@ function insVelden(c,def,d){const tot=insTot(c,def),st=spiStatus(c.open!==false,
    <div class="spi-st-d"><label for="insTot">Open tot en met</label><input id="insTot" type="date" value="${esc(tot)}"${d}></div></div><div class="spi-st-i" id="insStI">${st.html}</div></div>`}
 const insLees=()=>({inschrijvenTot:$("#insTot").value,open:$("#insOpen").checked});
 function bkInst(){const bc=bkCfg(),d=canWrite?"":" disabled";const ontv=ctx().boek.filter(b=>b.categorie==="Banket"&&b.richting!=="uit").reduce((s,b)=>s+b.bedrag,0);
-  modal("Instellingen banket",`<form id="fBkI2" class="form">${insVelden(bc,JAAR+"-12-01",d)}${fld("bkP","Prijs per persoon (€)",inp("bkP",bc.prijs,'inputmode="decimal"'+d))}${fld("bkDt","Datum banket",`<input id="bkDt" type="date" value="${esc(bc.datum||"")}"${d}>`)}
+  modal("Instellingen banket",`<form id="fBkI2" class="form">${insVelden(bc,JAAR+"-12-01",d)}${fld("bkP","Kostprijs per persoon (€)",inp("bkP",bc.prijs,'inputmode="decimal"'+d))}${fld("bkDt","Datum banket",`<input id="bkDt" type="date" value="${esc(bc.datum||"")}"${d}>`)}
    <p class="pi-note full" style="margin:0">Ontvangen met categorie Banket in ${JAAR}: <b>${eur(ontv)}</b></p></form>`,
    `<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="bkIOk">Bewaren</button>':""}`);
   const ok=$("#bkIOk");if(!ok)return;
@@ -1240,7 +1240,7 @@ function bkForm(r,id){
   $("#biOk").onclick=async()=>{const f=formData($("#fBkI"));if(!f.naam.trim()){$("#biErr").textContent="Vul een naam in.";return}
     const pers=f.personen==="2"?2:1;
     const d={...(id?stripId(r):{jaar:JAAR,bron:"manueel",ingediend:fmtDate(todayISO())}),naam:f.naam.trim(),personen:pers,menu1:f.menu1,menu2:pers===2?(f.menu2||"Normaal"):"",opmerking:f.opmerking.trim(),betaald:f.betaald||null};
-    closeModal();await write("banket",id||newId("banket"),d);toast("Inschrijving bewaard.")};
+    closeModal();if(typeof bkKortingVoor==="function")await bkKortingVoor(d);await write("banket",id||newId("banket"),d);toast("Inschrijving bewaard.")};
   if(id)$("#biDel").onclick=()=>confirmBox("Inschrijving van <b>"+esc(r.naam)+"</b> verwijderen?","Verwijderen",async()=>{await write("banket",id,null,{del:true});toast("Inschrijving verwijderd.")});
 }
 function bkImportDialog(){
@@ -4101,6 +4101,37 @@ document.addEventListener("change",async e=>{const i=e.target.closest&&e.target.
   i.disabled=true;try{const {data,error}=await SB.rpc("kf_cadeau",{p_id:id,p_aan:aan,p_door:ME_NAME||""});if(error)throw error;S.kinderfeest.set(id,{...(data||r),id});
     toast(aan?`Cadeaus van ${r.lid} doorgegeven.`:`Vinkje bij ${r.lid} weggehaald.`)}
   catch(x){i.checked=!aan;toast("Niet gelukt: "+(x.message||x),true)}finally{i.disabled=false;renderBody()}});
+
+/* ============ Banket: korting volgens het puntensysteem ============
+   Instelling (Banket › tandwiel): kortingAan + kostprijs (= prijs). De status komt uit de punten van het vorige jaar,
+   de kortingspercentages uit Puntensysteem › instellingen van dit jaar. De server rekent de prijs per lid uit (/api/banket?lid=). */
+function bkKortingRegel(kost){const k=jaarCfg(JAAR).korting,b=num(kost)||0,f=p=>eur(Math.round(b*(100-p))/100);
+  return `<span>${medal("BRONS")} ${k.brons}% · <b>${f(k.brons)}</b></span><span>${medal("ZILVER")} ${k.zilver}% · <b>${f(k.zilver)}</b></span><span>${medal("GOUD")} ${k.goud}% · <b>${f(k.goud)}</b></span>`}
+{const _i=bkInst;bkInst=function(){_i.apply(this,arguments);const p=$("#bkP");if(!p)return;const bc=bkCfg(),d=canWrite?"":" disabled";
+  const f=p.closest(".fld");f.insertAdjacentHTML("afterend",`<label class="sp-nat full" for="bkKa"><input type="checkbox" id="bkKa"${bc.kortingAan?" checked":""}${d}><span><b>Korting volgens het puntensysteem</b><small>De kostprijs min de korting van het lid volgens zijn status (punten van ${JAAR-1}; erewacht = goud). Elke persoon op de inschrijving krijgt dezelfde prijs.</small></span></label>
+   <div class="full bk-kr" id="bkKr"${bc.kortingAan?"":" hidden"}>${bkKortingRegel(bc.prijs)}<a href="#punten" data-act="closeModal" class="small">Kortingen aanpassen in het reglement</a></div>`);
+  const ok=$("#bkIOk");if(!ok||!ok.onclick)return;const _o=ok.onclick,oud={aan:!!bc.kortingAan,prijs:num(bc.prijs)};
+  ok.onclick=async function(ev){const aan=$("#bkKa").checked,prijs=num($("#bkP").value)||65,cur=S.config.get("banket")||{};S.config.set("banket",{...cur,id:"banket",kortingAan:aan});
+    await _o.call(this,ev);
+    if(aan!==oud.aan||prijs!==oud.prijs){const L=bkOpen();if(L.length)confirmBox(`De prijs is gewijzigd. De <b>${L.length}</b> ${L.length===1?"inschrijving die nog niet betaald is":"inschrijvingen die nog niet betaald zijn"} herberekenen volgens de nieuwe instelling?`,"Herberekenen",()=>bkHerbereken(L))}}}}
+document.addEventListener("change",e=>{if(e.target.id==="bkKa"&&$("#bkKr"))$("#bkKr").hidden=!e.target.checked});
+document.addEventListener("input",e=>{if(e.target.id==="bkP"&&$("#bkKr"))$("#bkKr").innerHTML=bkKortingRegel(e.target.value)+'<a href="#punten" data-act="closeModal" class="small">Kortingen aanpassen in het reglement</a>'});
+const bkOpen=()=>{const C=ctx();return bkLijst().filter(r=>r.betaald!=="OK"&&!bkBetaling(r,C).ok)};
+async function bkPrijsVan(lidId){if(!lidId)return null;try{const r=await fetch("/api/banket?lid="+encodeURIComponent(lidId),{cache:"no-store"});return r.ok?await r.json():null}catch(e){return null}}
+// nieuwe of gewijzigde inschrijving in de app: prijs per persoon bepalen
+async function bkKortingVoor(d){const bc=bkCfg();
+  if(!bc.kortingAan){if(d.prijsPP==null)return;return}
+  if(d.prijsPP!=null&&d.prijsPP!=="")return; // al bepaald (bv. via de website)
+  const lid=d.lidId||((bkLid(d)||{}).id);const j=await bkPrijsVan(lid);
+  if(j){d.prijsPP=j.prijs;d.status=j.status||"";d.korting=j.korting||0}else{d.prijsPP=num(bc.prijs);delete d.status;d.korting=0}
+  d.teBetalen=Math.round((d.personen===2?2:1)*d.prijsPP*100)/100}
+async function bkHerbereken(L){const bc=bkCfg();let n=0;
+  for(const r of L){const d={...stripId(r)};delete d.prijsPP;
+    if(bc.kortingAan)await bkKortingVoor(d);else{d.prijsPP=num(bc.prijs);delete d.status;d.korting=0;d.teBetalen=Math.round((d.personen===2?2:1)*d.prijsPP*100)/100}
+    if(d.prijsPP!==r.prijsPP||d.teBetalen!==r.teBetalen){await write("banket",r.id,d);n++}}
+  toast(n?`${n} ${n===1?"inschrijving":"inschrijvingen"} herberekend.`:"Alle prijzen waren al juist.")}
+// prijs en korting tonen bij een inschrijving
+{const _f=bkForm;bkForm=function(r,id){_f(r,id);if(!id||!r||!r.korting)return;const e=$("#biErr");if(e)e.insertAdjacentHTML("beforebegin",`<div class="full bk-kr">${medal(r.status||"BRONS")}<span>${r.korting}% korting · <b>${eur(r.prijsPP)}</b> per persoon</span></div>`)}}
 
 /* ============ Instellingen enkel voor de administrator ============
    Andere profielen zien geen tandwieltjes of instellingenpagina's. Wat iedereen wel kan: "Meldingen op dit toestel" (eigen pagina).

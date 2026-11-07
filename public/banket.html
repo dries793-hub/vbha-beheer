@@ -134,6 +134,11 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 html,body{overflow-x:hidden}
 @media (max-width:760px){*{scrollbar-width:none}*::-webkit-scrollbar{display:none;width:0;height:0}}
 .kid>*{min-width:0}
+.lp-prijs{display:flex;align-items:center;gap:10px;margin-top:8px;padding:10px 12px;border-radius:10px;background:#f3f8f4;border:1px solid #cfe7d6;font-size:14.5px}
+.lp-prijs small{color:var(--muted)}.lp-prijs[hidden]{display:none}
+.lp-st{flex:none;font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px;color:#fff;background:#a5703f}
+.lp-st.zilver{background:#8d959e}.lp-st.goud{background:#c19a2e}
+.fk{display:block;font-size:12.5px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -146,7 +151,7 @@ html,body{overflow-x:hidden}
     <div class="fact"><span>Prijs</span><b id="fPrijs">€65 per persoon</b><small id="fDead">inschrijven t.e.m. 1 december</small></div></div></section>
   <div id="box"><form class="card" id="f" novalidate>
     <div class="grid">
-      <div class="full"><label for="naam">Naam van het lid</label><input type="text" id="naam" name="naam" placeholder="Begin je naam te typen…" maxlength="100"></div>
+      <div class="full"><label for="naam">Naam van het lid</label><input type="text" id="naam" name="naam" placeholder="Begin je naam te typen…" maxlength="100"><div class="lp-prijs" id="lpPrijs" hidden></div></div>
       <fieldset class="full" style="border:0;margin:0;padding:0"><legend class="lbl">Aanwezigheid</legend><div class="ch">
         <label><input type="radio" name="personen" value="1"><b>Ik kom alleen</b><span>1 persoon</span><span class="pr" data-pr="1"></span></label>
         <label><input type="radio" name="personen" value="2"><b>Ik kom met partner</b><span>2 personen</span><span class="pr" data-pr="2"></span></label></div></fieldset>
@@ -166,7 +171,7 @@ html,body{overflow-x:hidden}
 <script>
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const t0=Date.now();
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const eur=n=>"€"+Number(n).toLocaleString("nl-BE",{minimumFractionDigits:0,maximumFractionDigits:2});
+const eur=n=>{const x=Number(n)||0;return "€"+x.toLocaleString("nl-BE",{minimumFractionDigits:Number.isInteger(x)?0:2,maximumFractionDigits:2})};
 document.addEventListener("click",async e=>{const b=e.target.closest(".cp");if(!b)return;try{await navigator.clipboard.writeText(b.dataset.cp);const t=b.textContent;b.textContent="Gekopieerd";b.classList.add("ok");setTimeout(()=>{b.textContent=t;b.classList.remove("ok")},1600)}catch(x){}});
 const BC_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M10 18.5h4"/></svg>';
 function handmatig(j){return `<dl class="pd"><div><dt>Bedrag</dt><dd><b>${eur(j.bedrag)}</b></dd></div>
@@ -213,7 +218,13 @@ document.addEventListener("click",async e=>{if(e.target.id!=="bcNieuw")return;e.
 let INFO={prijs:65};
 function gesloten(wat,j){$("#box").innerHTML=`<div class="card bevestig"><div class="ic" style="background:var(--sunken);color:var(--muted)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
   <h2>De inschrijvingen zijn afgesloten</h2><p class="lead2">${j.gesloten==="verlopen"&&j.totTekst?"Inschrijven voor "+wat+" kon tot en met "+esc(j.totTekst)+".":"Je kan je op dit moment niet inschrijven voor "+wat+"."} Neem voor vragen contact op met iemand van het bestuur.</p></div>`}
-fetch("/api/banket").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;upd();$("#h1").textContent="Banket "+j.jaar;document.title="Banket "+j.jaar+" · VBHA";$("#fPrijs").textContent=eur(j.prijs)+" per persoon";if(j.totTekst)$("#fDead").textContent=(j.open===false?"inschrijven was mogelijk t.e.m. ":"inschrijven t.e.m. ")+j.totTekst;if(j.open===false)gesloten("het banket",j)}).catch(()=>{});
+fetch("/api/banket").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;upd();$("#h1").textContent="Banket "+j.jaar;document.title="Banket "+j.jaar+" · VBHA";INFO.basis=j.prijs;$("#fPrijs").textContent=(j.kortingAan?"vanaf ":"")+eur(j.prijs)+" per persoon";if(j.kortingAan){const f=$("#fPrijs");f.textContent=eur(j.prijs)+" per persoon";const s=document.createElement("small");s.className="fk";s.textContent="korting volgens je status (brons, zilver, goud)";f.after(s)}if(j.totTekst)$("#fDead").textContent=(j.open===false?"inschrijven was mogelijk t.e.m. ":"inschrijven t.e.m. ")+j.totTekst;if(j.open===false)gesloten("het banket",j)}).catch(()=>{});
+/* persoonlijke prijs (korting volgens de status van het lid) */
+let LP=0;async function lidPrijs(id){const el=$("#lpPrijs"),n=++LP;
+  if(!id||!INFO.kortingAan){INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
+  try{const r=await fetch("/api/banket?lid="+encodeURIComponent(id));const j=await r.json();if(n!==LP)return;if(!r.ok)throw 0;INFO.prijs=j.prijs;
+    if(el){el.hidden=false;el.innerHTML=j.korting?`<span class="lp-st ${esc(String(j.status).toLowerCase())}">${esc(j.status.charAt(0)+j.status.slice(1).toLowerCase())}</span><span>Jouw prijs: <b>${eur(j.prijs)}</b> per persoon <small>(${j.korting}% korting op ${eur(j.basis)})</small></span>`:`<span>Jouw prijs: <b>${eur(j.prijs)}</b> per persoon</span>`}}
+  catch(x){if(n!==LP)return;INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true}upd()}
 function val(n){const c=document.querySelector('input[name="'+n+'"]:checked');return c?c.value:""}
 function upd(){$$("[data-pr]").forEach(e=>e.textContent=eur(+e.dataset.pr*INFO.prijs));const p=+val("personen");$("#m2").hidden=p!==2;
   const pay=$("#pay");if(p){pay.hidden=false;pay.innerHTML=`Te betalen: <b>${eur(p*INFO.prijs)}</b>. ${INFO.online?"Na het inschrijven betaal je meteen met Bancontact of met een overschrijving.":"Na het inschrijven zie je hoe je overschrijft."}`}else pay.hidden=true}
@@ -235,8 +246,8 @@ function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");co
   const mark=(n,q)=>{const t=q.trim().split(/\s+/).filter(Boolean);let h=esc(n);for(const x of t){const re=new RegExp("("+x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i");h=h.replace(re,"<b>$1</b>")}return h};
   const teken=q=>{if(!L.length){box.innerHTML=q.trim().length>=2?'<div class="lp-leeg">Geen lid gevonden met deze naam.</div>':"";box.hidden=q.trim().length<2;return}
     box.innerHTML=L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${mark(l.naam,q)}</button>`).join("");box.hidden=false};
-  const kies=l=>{inp.value=l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.naam};
-  inp.addEventListener("input",()=>{delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;
+  const kies=l=>{inp.value=l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.naam;lidPrijs(l.id)};
+  inp.addEventListener("input",()=>{if(inp.dataset.id)lidPrijs(null);delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;
     if(q.trim().length<2){L=[];box.hidden=true;return}
     T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[];}catch(e){L=[]}if(inp.value===q)teken(q)},160)});
   inp.addEventListener("keydown",e=>{if(box.hidden||!L.length)return;
