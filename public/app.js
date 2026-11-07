@@ -2607,6 +2607,8 @@ const mlLegacy=s=>String(s).split("Beste xnaamx,").join("Beste {voornaam},").spl
 function vul(t,r,html){
   let s=String(t||"");const m=mlMap(r);
   s=mlLegacy(s);
+  // erewacht heeft altijd goud: het stukje "status opvragen" weglaten
+  {const lid=r&&r.lidId&&S.leden.get(r.lidId);if(lid&&lid.categorie==="Erewacht")s=html?s.replace(/<p\b[^>]*>(?:(?!<\/p>)[\s\S])*\{link_status\}[\s\S]*?<\/p>/g,""):s.split(/\n/).filter(l=>!l.includes("{link_status}")).join("\n")}
   if(html)s=s.replace(/<p>\s*\{agenda\}\s*<\/p>/g,"{agenda}").replace(/\{agenda\}/g,()=>mlAgendaHtml());
   s=s.replace(/\{(\w+)\}/g,(x,k)=>k in m?(html?esc(m[k]):m[k]):x);
   return s.replace(/Beste\s+,/g,"Beste,")
@@ -3842,7 +3844,7 @@ function inkHerteken(){const el=$("#inkL");if(!el)return renderBody();const tmp=
 function inkUitleg(){const s=INK.srv;
   if(!s)return `<div class="panel"><div class="panel-b muted small">Laden…</div></div>`;
   const wanneer=s.laatsteKeer?new Date(s.laatsteKeer).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
-  if(s.ingesteld)return `<div class="note info ink-u"><div>${ic("inkomend")}</div><div><b>Stuur facturen door naar <span class="mono">${esc(s.adres)}</span></b><div class="small">Gewoon de mail met de PDF doorsturen. Elke 10 minuten komen nieuwe facturen hier en in Documenten › ${INK_MAP}. De mailbox zelf blijft onaangeroerd (mails blijven ongelezen).${wanneer?` Laatst gekeken: ${esc(wanneer)}.`:""}${s.fout?` <span class="out">Laatste fout: ${esc(s.fout)}</span>`:""}</div></div>${inkMag()?`<button type="button" class="btn sm" data-ink="haal">Nu ophalen</button>`:""}</div>`;
+  if(s.ingesteld)return `<div class="note info ink-u"><div>${ic("inkomend")}</div><div><b>Stuur facturen door naar <span class="mono">${esc(s.adres)}</span></b><div class="small">Gewoon de mail met de PDF doorsturen. Elke 10 minuten komen nieuwe facturen hier en in Documenten › ${INK_MAP}.${s.fout?` <span class="out">Laatste fout: ${esc(s.fout)}</span>`:""}</div></div>${inkMag()?`<button type="button" class="btn sm" data-ink="haal">Nu ophalen</button>`:""}</div>`;
   return `<div class="note ink-u"><div>${ic("inkomend")}</div><div><b>Mailbox voor facturen: ${esc(s.adres||"nog niet gekozen")}</b><div class="small">${s.wachtwoordGezet?"":"Vul het wachtwoord van de mailbox in via het tandwiel rechtsboven. "}Tot dan kan je facturen hier opladen.</div></div>${inkMag()?`<button type="button" class="btn sm" data-ink="instel">Instellen</button>`:""}</div>`}
 function inkInstel(){const s=INK.srv||{},F=s.filter||{aan:true,woorden:"",afzenders:""};
   modal("Instellingen inkomende facturen",`<form id="fInk" class="form" autocomplete="off">
