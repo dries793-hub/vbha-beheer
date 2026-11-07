@@ -4390,6 +4390,47 @@ function bhMelding(){if(!(ROL==="admin"||ROL==="boekhouder"))return"";const c=S.
 document.addEventListener("click",async e=>{const t=e.target.closest('[data-bh="gezien"]');if(!t)return;t.disabled=true;
   try{const c=stripId(S.config.get("betaalherinnering")||{});await write("config","betaalherinnering",{...c,gezienTot:new Date().toISOString()});renderBody()}catch(x){toast(x.message,true);t.disabled=false}});
 
+/* ============ Bankimport: overzichtelijkere koppeling + dashboardmelding bij (bijna) verlopen toestemming ============ */
+const bkIban=s=>String(s||"").replace(/\s+/g,"").replace(/(.{4})/g,"$1 ").trim();
+const bkDagen=k=>k&&k.valid_until?Math.floor((new Date(k.valid_until)-Date.now())/864e5):null;
+function bankKoppelForm(K,open){return `<details class="bnk-new"${open?" open":""}><summary>${K.length?"Andere rekening koppelen":"Rekening koppelen"}</summary>
+  <div class="form" data-w><div class="fld"><label for="ebBank">Bank</label><select id="ebBank"><option value="">Banken laden…</option></select></div>
+  <div class="fld"><label for="ebType">Soort rekening</label><select id="ebType"><option value="business">Zakelijk (vzw)</option><option value="personal">Particulier</option></select></div>
+  <div class="full"><button class="btn primary" data-act="bankKoppel">${ic("bank")}Koppelen bij de bank</button></div></div>
+  <p class="muted small" style="margin:8px 0 0">Je wordt doorgestuurd naar je bank om toestemming te geven (via Enable Banking, een erkende PSD2-dienst). Daarna haalt de app automatisch de nieuwe verrichtingen op.</p></details>`}
+bankHtml=function(B){setTimeout(fillBanks,0);
+  const head=pill=>`<div class="panel-h"><h2>Koppeling met de bank</h2><span class="grow"></span>${pill}</div>`;
+  if(B.fout)return head('<span class="pill nok">Niet bereikbaar</span>')+`<div class="panel-b"><p style="margin:0">De status kon niet opgehaald worden: ${esc(B.fout)}</p></div>`;
+  if(!B.configured)return head('<span class="pill neutral">Nog niet ingesteld</span>')+`<div class="panel-b"><p style="margin:0">De koppeling loopt via Enable Banking (PSD2). Vul bij Vercel <span class="kbd">ENABLE_BANKING_APP_ID</span> en <span class="kbd">ENABLE_BANKING_PRIVATE_KEY</span> in en publiceer opnieuw.</p></div>`;
+  const K=B.koppelingen||[],verl=K.filter(k=>{const d=bkDagen(k);return d!=null&&d<0});
+  const pill=!K.length?'<span class="pill neutral">Niet gekoppeld</span>':verl.length?'<span class="pill nok">Verlopen</span>':K.some(k=>{const d=bkDagen(k);return d!=null&&d<21})?'<span class="pill warn">Vernieuwen</span>':'<span class="pill ok">Gekoppeld</span>';
+  const kaart=k=>{const d=bkDagen(k),weg=d!=null&&d<0,bijna=d!=null&&d>=0&&d<21,ls=k.laatste_sync;
+    return `<div class="bnk-k${weg?" weg":""}">
+      <div class="bnk-top"><span class="bnk-logo" aria-hidden="true">${esc(String(k.aspsp||"B").slice(0,1).toUpperCase())}</span>
+        <div class="bnk-id"><b>${esc(k.aspsp||"Bank")}</b>${(k.accounts||[]).map(a=>`<span>${esc(a.naam||"Rekening")}</span><span class="bnk-iban">${esc(bkIban(a.iban))}</span>`).join("")}</div></div>
+      ${weg?`<div class="note warn" style="margin:0"><b>De toestemming is verlopen</b> sinds ${fmtDate(k.valid_until.slice(0,10))}. Er worden geen verrichtingen meer opgehaald tot je opnieuw koppelt.</div>`:""}
+      <dl class="bnk-st"><div><dt>Toestemming tot</dt><dd>${k.valid_until?fmtDate(k.valid_until.slice(0,10)):"?"}${d!=null&&!weg?` <small class="${bijna?"bnk-w":"muted"}">nog ${d} ${d===1?"dag":"dagen"}</small>`:""}</dd></div>
+        <div><dt>Laatst opgehaald</dt><dd>${ls?fmtDate(ls.slice(0,10))+" om "+new Date(ls).toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"}):"nog nooit"}</dd></div>
+        <div><dt>Automatisch ophalen</dt><dd>9u · 13u · 17u</dd></div></dl>
+      <div class="bnk-act" data-w>${weg||bijna?`<button class="btn primary sm" data-act="bankHerkoppel" data-bank="${esc(k.aspsp||"")}">${ic("bank")}Opnieuw koppelen</button>`:""}${weg?"":`<button class="btn${weg||bijna?"":" primary"} sm" data-act="bankSync">${ic("download")}Nu ophalen</button>`}<span class="grow"></span><button class="btn sm ghost danger" data-act="bankOntkoppel" data-id="${esc(k.id)}">Ontkoppelen</button></div></div>`};
+  return head(pill)+`<div class="panel-b stack">${K.length?K.map(kaart).join("")+`<p class="muted small" style="margin:0">Opgehaalde verrichtingen lopen langs de <a href="#regels">automatische regels</a>; wat geen regel heeft, komt bij <a href="#verwerken">Te verwerken</a>. De bank vraagt om de zoveel maanden de toestemming te vernieuwen.</p>`:""}
+    ${bankKoppelForm(K,!K.length)}</div>`};
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="bankHerkoppel"]');if(!t)return;e.preventDefault();e.stopPropagation();
+  const det=$(".bnk-new");if(det)det.open=true;const sel=$("#ebBank"),b=t.dataset.bank;
+  const kies=()=>{if(sel&&b){const o=[...sel.options].find(o=>o.value===b);if(o){sel.value=b;bankKoppel();return true}}return false};
+  if(!kies()){fillBanks().then(()=>{if(!kies()&&det)det.scrollIntoView({behavior:"smooth",block:"center"})})}},true);
+{const _v=VIEWS.bank;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){return String(b.apply(this,arguments)).replace('<div class="grid g2" style="align-items:start">','<div class="grid g2 bnk-g" style="align-items:stretch">').replace("<h2>Bestand importeren</h2>","<h2>Bankbestand importeren</h2>")};return v};Object.assign(n,_v);VIEWS.bank=n}
+
+/* ---- dashboard: koppeling verlopen of bijna verlopen ---- */
+let BANK_DASH=0;
+function bankMelding(){if(!(ROL==="admin"||ROL==="boekhouder"))return"";
+  if(!BANK&&!BANK_DASH){BANK_DASH=1;api("/api/bank/status").then(r=>{BANK=r;if(route()==="dashboard")renderBody()}).catch(()=>{})}
+  const K=(BANK&&BANK.koppelingen)||[];const L=K.map(k=>({k,d:bkDagen(k)})).filter(x=>x.d!=null&&x.d<14);if(!L.length)return"";
+  const weg=L.some(x=>x.d<0);
+  return `<div class="nmeld ${weg?"dm-r":"dm-v"}" role="alert"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>${weg?"De koppeling met de bank is verlopen":"De koppeling met de bank verloopt binnenkort"}</b>
+   <div class="nm-l">${L.map(({k,d})=>`<a class="nm-i" href="#bank"><b>${esc(k.aspsp||"Bank")}</b><span>${d<0?"Verlopen op "+fmtDate(k.valid_until.slice(0,10))+" · er worden geen verrichtingen meer opgehaald":"Nog "+d+" "+(d===1?"dag":"dagen")+" geldig (tot "+fmtDate(k.valid_until.slice(0,10))+")"} · opnieuw koppelen</span></a>`).join("")}</div></div></div>`}
+{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return bankMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+
 /* ============ Kalenders › Controle ============
    Louter ter controle: per persoon de dozen uit de verdeling (meegegeven / afgewerkt / in handen) naast wat op de kaart
    van de kalenderronde op zijn naam staat (bedeelde en gereserveerde adressen, omgerekend naar dozen). Er wordt niets gewijzigd. */
