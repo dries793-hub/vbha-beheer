@@ -6,9 +6,22 @@ export async function osmTmp(req, res) {
   const B = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
   res.setHeader("Cache-Control", "no-store");
   if (B.url) { // verkennen: enkel geo.api.vlaanderen.be
-    const u = new URL(B.url); if (u.hostname !== "geo.api.vlaanderen.be") throw httpErr(400, "host");
+    const u = new URL(B.url); if (!["geo.api.vlaanderen.be", "api.basisregisters.vlaanderen.be"].includes(u.hostname)) throw httpErr(400, "host");
     const r = await fetch(u, { headers: { "User-Agent": "vbha-beheer" } }); const t = await r.text();
     return res.status(200).json({ status: r.status, len: t.length, tekst: t.slice(B.van || 0, (B.van || 0) + (B.max || 20000)) });
+  }
+  if (B.straten) { // per straatnaam het aantal adressen in de gemeente (adressenregister, status inGebruik)
+    const uit = {}, L = B.straten.slice(0, 400); let i = 0, fouten = 0;
+    const een = async n => { let tot = 0; const nrs = new Set(); let off = 0;
+      for (let pag = 0; pag < 6; pag++) {
+        const u = new URL("https://api.basisregisters.vlaanderen.be/v2/adressen"); u.searchParams.set("gemeentenaam", B.gemeente || "Aalst"); u.searchParams.set("straatnaam", n); u.searchParams.set("status", "inGebruik"); u.searchParams.set("limit", "500"); u.searchParams.set("offset", String(off));
+        const r = await fetch(u, { headers: { Accept: "application/ld+json", "User-Agent": "vbha-beheer" } }); if (!r.ok) { fouten++; uit[n] = { fout: r.status }; return; }
+        const j = await r.json(), A = j.adressen || []; for (const a of A) { tot++; nrs.add(String(a.huisnummer || "").toLowerCase()); }
+        if (A.length < 500) break; off += 500; }
+      uit[n] = { tot, uniek: nrs.size }; };
+    const werker = async () => { while (i < L.length) { const n = L[i++]; try { await een(n); } catch (e) { uit[n] = { fout: String(e.message || e).slice(0, 80) }; } } };
+    await Promise.all([werker(), werker(), werker(), werker(), werker(), werker()]);
+    return res.status(200).json({ uit, fouten });
   }
   if (B.adressen) { // alle adrespunten in de bbox ophalen (WFS, per 10000) en tellen per straat en per gebied (ringen in B.ringen)
     const ringen = B.ringen || {}, inRing = (p, r) => { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [yi, xi] = r[i], [yj, xj] = r[j]; if (((yi > p[0]) !== (yj > p[0])) && (p[1] < (xj - xi) * (p[0] - yi) / (yj - yi) + xi)) c = !c; } return c; };
