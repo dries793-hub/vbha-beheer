@@ -910,7 +910,7 @@ function krStyleAll(){const todo=krVar("--kr-todo"),sel=krVar("--accent");const 
   /* delen van een straat (tot een kruispunt) */
   if(!KR.segLayer)KR.segLayer=L.layerGroup().addTo(KR.map);KR.segLayer.clearLayers();
   for(const id in KR_STAND){const x=KR_DEEL.get(id);if(!x||KR_STAND[x.sid]||KR.ss.has(x.sid))continue;
-    L.polyline(x.g,{interactive:false,weight:w[1],color:KR_STAND[id]==="r"?rs:dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}}
+    L.polyline(x.g,{renderer:KR.renderer,interactive:false,weight:w[1],color:KR_STAND[id]==="r"?rs:dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}}
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const krDeelTekst=sid=>{const t=krDeelStand(sid);return t.d||t.r?"deels: "+[t.d?t.d+" van "+t.n+" stukken bedeeld":"",t.r?t.r+" gereserveerd":""].filter(Boolean).join(", "):""};
 const krWie=id=>(KR_STAND[id]==="d"?"al bedeeld":"gereserveerd")+(KR_OP[id]?" · "+KR_OP[id]:"");
@@ -926,7 +926,7 @@ function krToggle(id){if(KR.ss.has(id))KR.ss.delete(id);else KR.ss.add(id);KR.se
 function krZoomTo(id){const l=KR.lines.get(id);if(l&&KR.map)KR.map.fitBounds(l.getBounds(),{maxZoom:17,paddingTopLeft:[40,80],paddingBottomRight:[70,200]})}
 function krInit(){if(!window.L){$("#krMap").innerHTML='<div class="empty">De kaart kon niet laden. Controleer je internetverbinding en herlaad de pagina.</div>';return}
   const map=L.map($("#krMap"),{zoomControl:false,preferCanvas:true,minZoom:12,maxZoom:19});KR.map=map;
-  const renderer=L.canvas({tolerance:10});
+  const renderer=L.canvas({tolerance:10});KR.renderer=renderer;
   KR.bounds=L.latLngBounds(KR_STREETS.flatMap(s=>s.g.flat()));
   map.setView(KR_START.at,KR_START.zoom);map.setMaxBounds(KR.bounds.pad(.3));
   map.on("zoomend",()=>krStyleAll());
