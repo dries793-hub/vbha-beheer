@@ -1224,6 +1224,23 @@ html.kr-vol-aan,html.kr-vol-aan body{overflow:hidden}
 .mp-dg{flex-wrap:wrap}
 .hr-soorten input[type=checkbox],.hr-soorten input[type=radio]{width:20px!important;height:20px;min-width:20px;flex:none;margin:0;padding:0}
 @media (max-width:640px){.hr-soorten{display:grid;grid-template-columns:1fr;gap:10px}.mp-dg{grid-template-columns:1fr 1fr}.hr-soorten label{white-space:normal!important}}
+.ka-dot{background:#d0021b;border:3px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:pointer}
+.ka-dot.ok{background:#8a8f98;border-width:2px;opacity:.85}
+.ka-popup .leaflet-popup-content{margin:12px 14px;font-size:14px;line-height:1.4}
+.ka-pop{display:flex;flex-direction:column;gap:4px}.ka-pop b{font-size:15px}.ka-opm{font-style:italic;color:var(--muted)}.ka-meta{font-size:12.5px;color:var(--muted);margin-bottom:4px}.ka-pop .btn{align-self:flex-start}
+.ka-mini{display:inline-block;width:10px;height:10px;border-radius:50%;background:#d0021b;margin-right:7px;vertical-align:1px;flex:none}.ka-mini.ok{background:#8a8f98}
+.ka-link{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line)}.ka-link input{flex:1;min-width:180px;font-size:13px}
+.ka-g td,.ka-g .ml-n b{color:var(--muted)}.ka-sw{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.ka-mr{display:flex;align-items:center;gap:8px;padding-right:12px}.ka-mr .kr-mn{flex:1;min-width:0}
+/* Leaflet-popups (de app laadt de standaard-CSS van Leaflet niet) */
+.leaflet-popup{position:absolute;text-align:center;margin-bottom:22px}
+.leaflet-popup-content-wrapper{background:var(--surface,#fff);color:var(--text,#1c1c1c);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.22);text-align:left;padding:1px}
+.leaflet-popup-content{margin:12px 14px;min-width:180px}
+.leaflet-popup-tip-container{width:40px;height:20px;position:absolute;left:50%;margin-left:-20px;overflow:hidden;pointer-events:none}
+.leaflet-popup-tip{width:17px;height:17px;padding:1px;margin:-10px auto 0;transform:rotate(45deg);background:var(--surface,#fff);box-shadow:0 3px 14px rgba(0,0,0,.2)}
+.leaflet-popup-close-button{position:absolute;top:4px;right:6px;width:24px;height:24px;font:18px/24px system-ui;color:var(--muted,#777);text-decoration:none;text-align:center;border:0;background:none;cursor:pointer}
+.leaflet-popup-close-button:hover{color:var(--text,#000)}
+.leaflet-popup-pane{z-index:900!important}.leaflet-marker-pane{z-index:640!important}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */

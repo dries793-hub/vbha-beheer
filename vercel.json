@@ -73,6 +73,10 @@
     {
       "source": "/api/adres",
       "destination": "/api/openbaar?f=adres"
+    },
+    {
+      "source": "/api/kalender",
+      "destination": "/api/openbaar?f=kalender"
     }
   ]
 }

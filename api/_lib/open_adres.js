@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     const [A, B] = await Promise.all([metPlaats ? [] : haal(q + " Aalst"), haal(q)]);
     const gezien = new Set(), L = [];
     for (const x of [...A.filter(x => x.Municipality === "Aalst"), ...B]) {
-      const o = { s: x.Thoroughfarename || "", n: x.Housenumber || "", p: x.Zipcode || "", g: x.Municipality || "", t: x.LocationType || "", l: x.FormattedAddress || "" };
+      const o = { s: x.Thoroughfarename || "", n: x.Housenumber || "", p: x.Zipcode || "", g: x.Municipality || "", t: x.LocationType || "", l: x.FormattedAddress || "", la: x.Location ? x.Location.Lat_WGS84 : null, lo: x.Location ? x.Location.Lon_WGS84 : null };
       const k = [o.s, o.n, o.p].join("|"); if (!o.s || gezien.has(k)) continue; gezien.add(k); L.push(o);
     }
     L.splice(6);

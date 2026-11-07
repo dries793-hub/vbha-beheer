@@ -4403,6 +4403,56 @@ function bhMelding(){if(!(ROL==="admin"||ROL==="boekhouder"))return"";const c=S.
 document.addEventListener("click",async e=>{const t=e.target.closest('[data-bh="gezien"]');if(!t)return;t.disabled=true;
   try{const c=stripId(S.config.get("betaalherinnering")||{});await write("config","betaalherinnering",{...c,gezienTot:new Date().toISOString()});renderBody()}catch(x){toast(x.message,true);t.disabled=false}});
 
+/* ============ Kalender aan huis: aanvragen via /kalender ============
+   Tabel kalenderaanvragen (data: jaar, adres, naam, email, opmerking, lat, lng, gevonden, status open|gedaan, nieuw).
+   Rode stip per open aanvraag op de kalenderkaart (klik = adres), lijst onder de kaart in Kalenders › Kalenderronde. */
+if(!COLS.includes("kalenderaanvragen")){COLS.push("kalenderaanvragen");S.kalenderaanvragen=new Map()}
+const KA={laag:null,toon:true};
+const kaLijst=()=>[...(S.kalenderaanvragen||new Map()).values()].filter(a=>Number(a.jaar)===JAAR).sort((a,b)=>(a.status==="gedaan")-(b.status==="gedaan")||String(b.aangemeld||"").localeCompare(String(a.aangemeld||"")));
+const kaDT=iso=>{const t=new Date(iso);return isNaN(t)?"":t.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})+" "+t.toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})};
+function kaPopup(a){return `<div class="ka-pop"><b>${esc(a.adres)}</b>${a.naam?`<div>${esc(a.naam)}</div>`:""}${a.opmerking?`<div class="ka-opm">“${esc(a.opmerking)}”</div>`:""}
+  <div class="ka-meta">Gevraagd op ${esc(kaDT(a.aangemeld))}${a.status==="gedaan"?" · ✓ kalender gebust":""}</div>
+  ${canWrite?`<button type="button" class="btn sm${a.status==="gedaan"?"":" primary"}" data-ka="status" data-id="${esc(a.id)}">${a.status==="gedaan"?"Terug op open":"✓ Kalender gebust"}</button>`:""}</div>`}
+function kaTeken(){if(!KR.map||!window.L)return;if(!KA.laag)KA.laag=L.layerGroup().addTo(KR.map);KA.laag.clearLayers();if(!KA.toon)return;
+  for(const a of kaLijst()){if(a.lat==null||a.lng==null)continue;const gedaan=a.status==="gedaan";
+    const m=L.marker([a.lat,a.lng],{icon:L.divIcon({className:"ka-dot"+(gedaan?" ok":""),iconSize:[18,18],iconAnchor:[9,9]}),title:a.adres,keyboard:true,zIndexOffset:gedaan?0:1000,riseOnHover:true});
+    m.bindPopup(()=>kaPopup(S.kalenderaanvragen.get(a.id)||a),{className:"ka-popup",maxWidth:280,offset:[0,-4]});m.on("click",e=>L.DomEvent.stopPropagation(e));m.on("popupopen",e=>{const el=e.popup.getElement(),b=el&&el.querySelector('[data-ka="status"]');if(b)b.onclick=ev=>{ev.preventDefault();ev.stopPropagation();KR.map.closePopup();kaStatus(b.dataset.id)}});m._kaId=a.id;KA.laag.addLayer(m)}}
+function kaToon(id){const a=S.kalenderaanvragen.get(id);if(!a||a.lat==null||!KR.map)return;$("#krSlot")&&$("#krSlot").scrollIntoView({block:"center",behavior:"smooth"});
+  KR.map.setView([a.lat,a.lng],Math.max(KR.map.getZoom(),17));setTimeout(()=>{KA.laag&&KA.laag.eachLayer(m=>{if(m._kaId===id)m.openPopup()})},350)}
+async function kaStatus(id){const a=S.kalenderaanvragen.get(id);if(!a||!canWrite)return;const {id:_i,...d}=a;
+  const n={...d,status:a.status==="gedaan"?"open":"gedaan",nieuw:false,...(a.status==="gedaan"?{gedaanOp:null,gedaanDoor:null}:{gedaanOp:new Date().toISOString(),gedaanDoor:ME_NAME||""})};
+  S.kalenderaanvragen.set(id,{...n,id});dirty=true;kaTeken();try{await write("kalenderaanvragen",id,n)}catch(e){}renderBody()}
+function kaPanel(){const L0=kaLijst(),open=L0.filter(a=>a.status!=="gedaan").length,url=location.origin+"/kalender";
+  const rij=a=>{const g=a.status==="gedaan";return `<tr class="${g?"ka-g":""}"><td><button type="button" class="kr-link" data-ka="toon" data-id="${esc(a.id)}"${a.lat==null?" disabled":""} title="${a.lat==null?"Adres niet gevonden op de kaart":"Toon op de kaart"}"><span class="ka-mini${g?" ok":""}"></span>${esc(a.adres)}</button>${a.lat==null?' <span class="pill warn">niet op kaart</span>':""}${a.nieuw?' <span class="pill info">nieuw</span>':""}</td>
+    <td>${esc(a.naam||"")}${a.email?`<div class="small muted">${esc(a.email)}</div>`:""}</td><td class="small">${esc(a.opmerking||"")}</td><td class="nowrap small muted">${esc(kaDT(a.aangemeld))}</td>
+    <td class="nowrap">${canWrite?`<button type="button" class="btn sm${g?"":" primary"}" data-ka="status" data-id="${esc(a.id)}">${g?"✓ Gebust":"Gebust?"}</button> <button type="button" class="iconbtn2" data-ka="wis" data-id="${esc(a.id)}" aria-label="Verwijderen" title="Verwijderen">${ic("x")}</button>`:g?'<span class="pill ok">Gebust</span>':'<span class="pill nok">Open</span>'}</td></tr>`};
+  const mob=a=>{const g=a.status==="gedaan";return `<div class="ml-row ka-mr${g?" ka-g":""}" role="listitem"><button type="button" class="kr-mn" data-ka="toon" data-id="${esc(a.id)}"><span class="ml-m"><span class="ml-n"><span class="ka-mini${g?" ok":""}"></span><b>${esc(a.adres)}</b></span><span class="ml-s">${esc([a.naam,a.opmerking].filter(Boolean).join(" · "))||"&nbsp;"}</span><span class="ml-s">${esc(kaDT(a.aangemeld))}${a.lat==null?" · niet op kaart":""}</span></span></button>
+    ${canWrite?`<button type="button" class="btn sm${g?"":" primary"}" data-ka="status" data-id="${esc(a.id)}">${g?"✓":"Gebust?"}</button>`:""}</div>`};
+  return `<div class="panel ka-panel"><div class="panel-h"><h2>Kalender aan huis gevraagd</h2>${L0.length?`<span class="cnt">${L0.length}</span>`:""}${open?`<span class="pill nok">${open} open</span>`:""}<span class="grow"></span>
+    <label class="ka-sw small"><input type="checkbox" data-ka="laag"${KA.toon?" checked":""}> Stippen op de kaart</label></div>
+    <div class="panel-b ka-link"><span class="muted small">Mensen geven hun adres door via</span><input class="sel" readonly value="${esc(url)}" onclick="this.select()" aria-label="Link naar de aanvraagpagina"><button type="button" class="btn sm" data-act="kopieerLink" data-v="${esc(url)}">${ic("copy")}Kopiëren</button><a class="btn sm" href="/kalender" target="_blank" rel="noopener">Openen</a>${canWrite?`<button type="button" class="btn sm" data-ka="nieuw">${ic("plus")}Adres toevoegen</button>`:""}</div>
+    ${L0.length?`<div class="mlist" role="list">${L0.map(mob).join("")}</div><div class="tw dsk-only" style="max-height:440px"><table class="rcards"><thead><tr><th>Adres</th><th>Naam</th><th>Opmerking</th><th>Gevraagd</th><th></th></tr></thead><tbody>${L0.map(rij).join("")}</tbody></table></div>`
+      :`<div class="empty">Nog niemand vroeg dit jaar een kalender aan huis. Deel de link hierboven, bv. op Facebook of de website.</div>`}</div>`}
+function kaNieuw(){modal("Adres toevoegen",`<form id="fKa" class="form" onsubmit="return false">${fld("kaA","Adres *",'<input id="kaA" data-adres placeholder="Begin te typen: straat en nummer" maxlength="160">',"full")}${fld("kaN","Naam",inp("kaN","",'maxlength="80"'))}${fld("kaO","Opmerking",inp("kaO","",'maxlength="300"'))}<div class="err full" id="kaErr"></div></form>`,
+  `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kaOk">Toevoegen</button>`);
+  $("#kaOk").onclick=async()=>{const adres=$("#kaA").value.trim();if(!/\d/.test(adres)){$("#kaErr").textContent="Vul het volledige adres in, met huisnummer.";return}
+    const b=$("#kaOk");b.disabled=true;let P=null;try{const r=await fetch("/api/adres?q="+encodeURIComponent(adres));const j=r.ok?await r.json():[];P=(j||[]).find(x=>x.n&&x.la!=null)||null}catch(e){}
+    const d={jaar:JAAR,adres:P?`${P.s} ${P.n}, ${P.p} ${P.g}`:adres,naam:$("#kaN").value.trim(),opmerking:$("#kaO").value.trim(),lat:P?P.la:null,lng:P?P.lo:null,gevonden:!!P,bron:"manueel",aangemeld:new Date().toISOString(),status:"open",door:ME_NAME||""};
+    closeModal();await write("kalenderaanvragen",newId("kalenderaanvragen"),d);toast(P?"Adres toegevoegd op de kaart.":"Adres toegevoegd, maar niet gevonden op de kaart.")}}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-ka]");if(!t)return;const k=t.dataset.ka,id=t.dataset.id;
+  if(k==="toon"){e.preventDefault();kaToon(id)}else if(k==="status"){e.preventDefault();kaStatus(id)}else if(k==="nieuw"){e.preventDefault();kaNieuw()}
+  else if(k==="wis"){e.preventDefault();const a=S.kalenderaanvragen.get(id);confirmBox(`Aanvraag voor <b>${esc(a?a.adres:"")}</b> verwijderen?`,"Verwijderen",async()=>{await write("kalenderaanvragen",id,null,{del:true});toast("Aanvraag verwijderd.")})}});
+document.addEventListener("change",e=>{if(e.target.matches('[data-ka="laag"]')){KA.toon=e.target.checked;kaTeken()}});
+{const _v=VIEWS.ronde;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){return String(b.apply(this,arguments)).replace('<div class="panel"><div class="kr-slot" id="krSlot"></div></div>',m=>m+kaPanel())};return v};Object.assign(n,_v);n.after=function(){_v.after&&_v.after.apply(this,arguments);kaTeken();
+  // "nieuw" wegnemen zodra de lijst bekeken is
+  if(canWrite)for(const a of kaLijst())if(a.nieuw){const {id,...d}=a;write("kalenderaanvragen",id,{...d,nieuw:false}).catch(()=>{})}};VIEWS.ronde=n}
+
+/* ---- dashboard: nieuwe aanvragen ---- */
+function kaMelding(){const L0=kaLijst().filter(a=>a.nieuw);if(!L0.length)return"";
+  return `<div class="nmeld" role="status"><span class="nm-ic">${ic("kaart")}</span><div class="nm-body"><b>${L0.length===1?"Iemand vroeg":L0.length+" mensen vroegen"} een kalender aan huis</b>
+   <div class="nm-l">${L0.slice(0,6).map(a=>`<a class="nm-i" href="#ronde"><b>${esc(a.adres)}</b><span>${esc(a.naam||"")}${a.naam?" · ":""}${esc(kaDT(a.aangemeld))}</span></a>`).join("")}${L0.length>6?`<a class="nm-i" href="#ronde"><b>+ ${L0.length-6} anderen</b><span>Bekijk de lijst</span></a>`:""}</div></div></div>`}
+{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return kaMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+
 /* ============ Bankimport: overzichtelijkere koppeling + dashboardmelding bij (bijna) verlopen toestemming ============ */
 const bkIban=s=>String(s||"").replace(/\s+/g,"").replace(/(.{4})/g,"$1 ").trim();
 const bkDagen=k=>k&&k.valid_until?Math.floor((new Date(k.valid_until)-Date.now())/864e5):null;
