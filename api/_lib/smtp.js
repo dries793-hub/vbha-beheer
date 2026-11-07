@@ -21,7 +21,7 @@ const tekstVan = html => String(html)
   .split("\n").map(l => l.replace(/[ \t ]+/g, " ").trim()).join("\n").replace(/\n{3,}/g, "\n\n").trim();
 
 // bijlagen: [{naam, type, data: Buffer}] -> multipart/mixed met daarin de tekst- en html-versie.
-export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan, bijlagen }) {
+export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan, bijlagen, cc }) {
   const grens = "vbha-" + crypto.randomBytes(8).toString("hex");
   const buiten = "vbhm-" + crypto.randomBytes(8).toString("hex");
   const mixed = Array.isArray(bijlagen) && bijlagen.length > 0;
@@ -30,6 +30,7 @@ export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan, b
   return [
     "From: " + adres(van.email, van.naam),
     "To: " + adres(aan, aanNaam),
+    ...(Array.isArray(cc) && cc.length ? ["Cc: " + cc.join(", ")] : []),
     ...(antwoordAan ? ["Reply-To: " + antwoordAan] : []),
     // Afmeldlink in de kop: Gmail, Outlook en Apple Mail tonen dan een nette "Afmelden"-knop in plaats van "Spam melden".
     "List-Unsubscribe: <mailto:" + (process.env.MAIL_AFMELDEN || van.email) + "?subject=Afmelden%20mails%20VBHA>",
@@ -84,6 +85,7 @@ export async function verstuur(berichten) {
       try {
         await cmd(`MAIL FROM:<${van.email}>`, 250);
         await cmd(`RCPT TO:<${m.aan}>`, 25);
+        for (const c of (Array.isArray(m.cc) ? m.cc : [])) { try { await cmd(`RCPT TO:<${c}>`, 25); } catch (e) { console.error("cc geweigerd", c, e.message); } }
         await cmd("DATA", 354);
         const data = bouwBericht({ van, ...m }).replace(/^\./gm, "..");
         await cmd(data + "\r\n.", 250);
