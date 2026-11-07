@@ -4298,6 +4298,47 @@ document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement
 {const _h=krHost;krHost=function(){const h=_h.apply(this,arguments);krVolKnop(h);return h}}
 window.addEventListener("hashchange",()=>{const h=KR.host;if(h&&h.classList.contains("kr-vol")&&route()!=="ronde")krVol(h,false)});
 
+/* ============ Sponsorbevestiging (bewijsstuk voor de boekhouding van de sponsor) ============
+   Knop in de eigenschappen van een sponsor: PDF maken (voorbeeld / definitief met nummer) en mailen naar de sponsor. */
+{const _sf=sponsorForm;sponsorForm=function(s,id){_sf(s,id);if(id&&fcMag()){const ok=$("#spOk");if(ok)ok.insertAdjacentHTML("beforebegin",`<button type="button" class="btn" data-sbv="${esc(id)}">${ic("documenten")}Sponsorbevestiging</button>`)}}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-sbv]");if(b){e.preventDefault();sbvOpen(b.dataset.sbv)}});
+function sbvLaatste(){let L=null;for(const s of S.sponsors.values())for(const x of s.bevestigingen||[])if(!L||String(x.op)>String(L.op))L=x;return L||{}}
+function sbvOpen(id){const s=S.sponsors.get(id);if(!s)return;const V=sbvLaatste(),hist=(s.bevestigingen||[]).slice().reverse();
+  const natura=(s.naturaJaren||[]).includes(JAAR)||!(num(s.bedrag)>0);
+  modal("Sponsorbevestiging · "+spNaam(s),`<form id="fSbv" class="form" onsubmit="return false">
+   <p class="muted small full" style="margin:0">Een bewijsstuk voor de boekhouding van de sponsor: wat de vereniging ontving, de waarde en de tegenprestatie (reclame). De sponsor boekt dit als reclamekost. Het is geen fiscaal attest voor giften.</p>
+   ${fld("sbS","Soort",`<select id="sbS" class="sel"><option value="natura"${natura?" selected":""}>In natura (goederen, diensten)</option><option value="geld"${natura?"":" selected"}>In geld</option></select>`)}
+   ${fld("sbW","Waarde / bedrag (€) *",inp("sbW",natura?"":String(s.bedrag||"").replace(".",","),'inputmode="decimal" placeholder="bv. 50"'))}
+   ${fld("sbO","Omschrijving *",inp("sbO",natura?"":"Sponsoring "+JAAR,'maxlength="300" placeholder="bv. Biermand voor de tombola van het banket"'),"full")}
+   ${fld("sbD","Ontvangen op",`<input id="sbD" type="date" value="${todayISO()}">`)}
+   ${fld("sbE","Mailen naar",inp("sbE",s.email||"",'type="email" placeholder="e-mailadres van de sponsor"'))}
+   ${fld("sbT","Tegenprestatie",inp("sbT",V.tegenprestatie||"",'maxlength="400" placeholder="bv. op de sponsorlijst van het banket '+JAAR+'"'),"full")}
+   ${fld("sbN","Ondertekend door",inp("sbN",V.ondertekenaar||ME_NAME||"",'maxlength="80"'))}${fld("sbF","Functie",inp("sbF",V.functie||"",'maxlength="60" placeholder="bv. penningmeester"'))}
+   ${hist.length?`<div class="full sbv-h"><b>Eerder opgemaakt</b>${hist.map(x=>`<div><span>${esc(x.nr)}</span><span>${esc(fmtDate(String(x.op||"").slice(0,10)))}</span><span>${esc(x.omschrijving)} · ${eur(x.waarde)}</span><span class="muted">${x.aan?(x.ok?"gemaild naar "+esc(x.aan):'<span class="nok">mail mislukt</span>'):"gedownload"}</span></div>`).join("")}</div>`:""}
+   <div class="err full" id="sbErr"></div></form>`,
+   `<button class="btn" data-act="closeModal">Sluiten</button><span class="grow"></span><button class="btn" id="sbVb">Voorbeeld</button><button class="btn" id="sbDl">${ic("download")}Downloaden</button><button class="btn primary" id="sbMl">Mailen naar sponsor</button>`,{wide:true});
+  const lees=()=>({sponsorId:id,soort:$("#sbS").value,waarde:num($("#sbW").value),omschrijving:$("#sbO").value.trim(),datum:$("#sbD").value,tegenprestatie:$("#sbT").value.trim(),ondertekenaar:$("#sbN").value.trim(),functie:$("#sbF").value.trim(),aan:$("#sbE").value.trim()});
+  $("#sbS").onchange=()=>{const g=$("#sbS").value==="geld";if(g&&!$("#sbO").value.trim())$("#sbO").value="Sponsoring "+JAAR;if(g&&!$("#sbW").value.trim()&&num(s.bedrag)>0)$("#sbW").value=String(s.bedrag).replace(".",",")};
+  const W={};
+  const check=d=>{const e=$("#sbErr");e.textContent="";if(!(d.waarde>0)){e.textContent="Vul de waarde of het bedrag in.";return false}if(!d.omschrijving){e.textContent="Vul in wat je ontvangen hebt.";return false}if(!d.tegenprestatie&&!W.tp){W.tp=1;e.textContent="Er is geen tegenprestatie ingevuld. Zonder vermelding als sponsor is het fiscaal geen reclame. Klik nogmaals om toch door te gaan.";return false}return true};
+  const doe=async(actie,btn)=>{const d=lees();if(!check(d))return;
+    if(actie==="mail"&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(d.aan)){$("#sbErr").textContent="Vul een geldig e-mailadres in.";return}
+    $$("#sbVb,#sbDl,#sbMl").forEach(b=>b.disabled=true);const oud=btn.innerHTML;btn.textContent="Bezig…";
+    try{const j=await api("/api/mail?f=sponsorbev",{method:"POST",body:JSON.stringify({...d,actie})});
+      if(actie!=="mail")sbvPdf(j.pdf,j.naam);
+      if(actie!=="voorbeeld"){const cur=S.sponsors.get(id);if(cur&&j.log){S.sponsors.set(id,{...cur,bevestigingen:[...(cur.bevestigingen||[]),j.log]});dirty=true}
+        closeModal();toast(actie==="mail"?`Sponsorbevestiging ${j.nr} gemaild naar ${d.aan}.`:`Sponsorbevestiging ${j.nr} gemaakt.`)}}
+    catch(x){$("#sbErr").textContent=x.message}finally{if($("#sbVb")){$$("#sbVb,#sbDl,#sbMl").forEach(b=>b.disabled=false);btn.innerHTML=oud}}};
+  $("#sbVb").onclick=e=>doe("voorbeeld",e.currentTarget);$("#sbDl").onclick=e=>doe("pdf",e.currentTarget);
+  $("#sbMl").onclick=e=>{const d=lees();if(!check(d))return;confirmBox(`Sponsorbevestiging van <b>${eur(d.waarde)}</b> mailen naar <b>${esc(d.aan||"?")}</b>?`,"Mailen",()=>sbvOpenMail(id,d))}}
+function sbvPdf(b64,naam){const bin=atob(b64),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
+  const url=URL.createObjectURL(new Blob([a],{type:"application/pdf"})),l=document.createElement("a");l.href=url;l.download=naam;
+  if(!/iPhone|iPad|Android/i.test(navigator.userAgent))l.target="_blank";document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
+async function sbvOpenMail(id,d){toast("Bezig met versturen…");
+  try{const j=await api("/api/mail?f=sponsorbev",{method:"POST",body:JSON.stringify({...d,actie:"mail"})});
+    const cur=S.sponsors.get(id);if(cur&&j.log){S.sponsors.set(id,{...cur,bevestigingen:[...(cur.bevestigingen||[]),j.log]});dirty=true}
+    toast(`Sponsorbevestiging ${j.nr} gemaild naar ${d.aan}.`)}catch(x){toast(x.message,true)}}
+
 /* ============ Kalenders › Controle ============
    Louter ter controle: per persoon de dozen uit de verdeling (meegegeven / afgewerkt / in handen) naast wat op de kaart
    van de kalenderronde op zijn naam staat (bedeelde en gereserveerde adressen, omgerekend naar dozen). Er wordt niets gewijzigd. */
