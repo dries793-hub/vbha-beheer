@@ -281,10 +281,10 @@ window.addEventListener("resize",closeNavMenu);window.addEventListener("scroll",
 const KORT={boekhouding:"Financiën",administratie:"Activiteiten",communicatie:"Admin"};
 function navGroups(){return [{id:"dashboard",label:"Dashboard",items:[["dashboard","Dashboard"]]},...NAV.map(n=>Array.isArray(n)?{id:n[0],label:n[1],items:[n]}:n)]}
 function renderTabbar(r){const tb=$("#tabbar");if(!tb)return;
-  tb.innerHTML=navGroups().map(g=>{const on=g.items.some(i=>i[0]===r);const single=g.items.length===1;
+  tb.innerHTML=navGroups().map(g=>{const on=g.items.some(i=>i[0]===((typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS[r])||r));const single=g.items.length===1;
     return single?`<a href="#${g.items[0][0]}" class="${on?"on":""}">${ic(g.id==="dashboard"?"dashboard":g.id)}<span>${esc(KORT[g.id]||g.label)}</span></a>`:`<button type="button" class="${on?"on":""}" data-act="sheetOpen" data-id="${g.id}" aria-haspopup="true" aria-label="${esc(g.label)}">${ic(g.id)}<span>${esc(KORT[g.id]||g.label)}</span></button>`}).join("")}
 function openSheet(id){const g=navGroups().find(x=>x.id===id);if(!g)return;const r=route();
-  $("#sheetT").textContent=g.label;$("#sheetL").innerHTML=g.items.map(([k,l])=>`<a href="#${k}" class="${k===r?"on":""}">${ic(k)}<span>${esc(l)}</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>`).join("");$("#sheet").hidden=false}
+  $("#sheetT").textContent=g.label;$("#sheetL").innerHTML=g.items.map(([k,l])=>`<a href="#${k}" class="${k===r||(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS[r]===k)?"on":""}">${ic(k)}<span>${esc(l)}</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>`).join("");$("#sheet").hidden=false}
 function closeSheet(){const s=$("#sheet");if(s)s.hidden=true}
 function labelTables(root){for(const t of (root||document).querySelectorAll("table.rcards:not([data-lab])")){const heads=[...t.querySelectorAll("thead th")].map(th=>th.textContent.replace(/[▲▼]/g,"").trim());const main=+(t.dataset.main||0);
   for(const tr of t.querySelectorAll("tbody tr")){[...tr.children].forEach((td,i)=>{if(td.colSpan>1){td.classList.add("c-full");return}td.dataset.label=heads[i]||"";if(i===main)td.classList.add("c-main")})}t.dataset.lab="1"}}
@@ -306,7 +306,7 @@ function render(force){
   const r=route(),rn=r==="ronde"?"kalenders":r;
   if(canWriteConfirmed){canWrite=magSchrijven(r);applyRO()}
   renderTabbar(rn);
-  $("#nav").innerHTML=NAV.map(n=>Array.isArray(n)?'<a href="#'+n[0]+'" class="'+(n[0]===rn?"on":"")+'">'+ic(n[0])+esc(n[1])+'</a>':'<button type="button" class="navdd'+(n.items.some(i=>i[0]===rn)?" on":"")+'" data-act="navdd" data-id="'+n.id+'" aria-haspopup="true" aria-expanded="false">'+ic(n.id)+esc(n.label)+'<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>').join("");
+  $("#nav").innerHTML=NAV.map(n=>Array.isArray(n)?'<a href="#'+n[0]+'" class="'+(n[0]===rn?"on":"")+'">'+ic(n[0])+esc(n[1])+'</a>':'<button type="button" class="navdd'+(n.items.some(i=>i[0]===((typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS[rn])||rn))?" on":"")+'" data-act="navdd" data-id="'+n.id+'" aria-haspopup="true" aria-expanded="false">'+ic(n.id)+esc(n.label)+'<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>').join("");
   $("#brandLbl").textContent=cfg().vereniging||"";
   const g=$("#gear");if(g)g.classList.toggle("on",INST_IDS.includes(r));
   const sy=window.scrollY;const tws=[...document.querySelectorAll("#body .tw")].map(e=>e.scrollTop);
@@ -3691,7 +3691,13 @@ document.addEventListener("click",async e=>{const t=e.target.closest('[data-va="
 const INK_MAP="Inkomende facturen";
 if(!DOC_MAPPEN.includes(INK_MAP))DOC_MAPPEN.splice(Math.max(0,DOC_MAPPEN.indexOf("Andere")),0,INK_MAP);
 if(!ROUTES.some(r=>r[0]==="inkomend"))ROUTES.push(["inkomend","Inkomende facturen"]);
-{const b=NAV.find(n=>n.id==="boekhouding");if(b&&!b.items.some(i=>i[0]==="inkomend")){const k=b.items.findIndex(i=>i[0]==="facturen");b.items.splice(k<0?b.items.length:k+1,0,["inkomend","Inkomende facturen"])}}
+// geen eigen menu-item: "Facturen" heeft twee tabbladen (uitgaand / inkomend)
+var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.inkomend="facturen";
+{const b=NAV.find(n=>n.id==="boekhouding");if(b)b.items=b.items.filter(i=>i[0]!=="inkomend")}
+function fcOpenTeller(){try{return S.facturen?[...S.facturen.values()].filter(f=>["open","deels","vervallen"].includes(fcStatus(f))).length:0}catch(e){return 0}}
+function fcTabs(act){const nU=typeof fcOpenTeller==="function"?fcOpenTeller():0,nI=inkMag()?inkDocs().filter(d=>!inkBoekVan(d.id).length).length:0;
+  return `<nav class="tabs fc-tabs" aria-label="Soort facturen"><a href="#facturen" class="${act==="facturen"?"on":""}"${act==="facturen"?' aria-current="page"':""}>${ic("verslagen")}Uitgaande facturen${nU?`<span class="cnt">${nU}</span>`:""}</a><a href="#inkomend" class="${act==="inkomend"?"on":""}"${act==="inkomend"?' aria-current="page"':""}>${ic("inkomend")}Inkomende facturen${nI?`<span class="cnt">${nI}</span>`:""}</a></nav>`}
+{const _f=VIEWS.facturen;const n=function(){const v=_f.apply(this,arguments);const b=v.body;v.sub="Onze facturen en creditnota's, met automatische opvolging van de betalingen";v.body=function(){return fcTabs("facturen")+b.apply(this,arguments)};return v};Object.assign(n,_f);VIEWS.facturen=n}
 if(typeof BOEK_ROUTES!=="undefined")BOEK_ROUTES.add("inkomend");
 ICON.inkomend='<path d="M4 13h4l2 3h4l2-3h4"/><path d="M4 13l2.5-7h11L20 13v6H4z"/><path d="M12 3v7m-3-3l3 3 3-3"/>';
 const INK={f:"open",srv:null,txt:new Map(),bezig:new Set()};
@@ -3760,10 +3766,11 @@ function inkInstel(){const s=INK.srv||{},F=s.filter||{aan:true,woorden:"",afzend
 function inkLeesForm(){return{adres:$("#ikA").value.trim(),wachtwoord:$("#ikP").value,host:$("#ikH").value.trim(),port:Number($("#ikPo").value)||993,map:$("#ikM").value.trim()||"INBOX",filter:{aan:$("#ikF").checked,woorden:$("#ikW").value.trim(),afzenders:$("#ikV").value.trim()}}}
 const INK_HOSTS={"telenet.be":"imap.telenet.be","vbha.be":"imap.one.com","gmail.com":"imap.gmail.com","outlook.com":"outlook.office365.com","hotmail.com":"outlook.office365.com","skynet.be":"imap.proximus.be","proximus.be":"imap.proximus.be"};
 async function inkSrv(){try{INK.srv=await api("/api/mail?f=inkomend")}catch(e){INK.srv={ingesteld:false}}if(route()==="inkomend")renderBody()}
-VIEWS.inkomend=()=>({title:"Inkomende facturen",sub:"Facturen van leveranciers, gekoppeld aan de transacties",
+VIEWS.inkomend=()=>({title:"Facturen",sub:"Facturen van leveranciers, gekoppeld aan de transacties",
   actions:inkMag()?`<input type="file" id="inkFile" accept="application/pdf,.pdf,image/*" multiple hidden><label for="inkFile" class="btn">${ic("upload")}Factuur opladen</label><button class="btn iconbtn" data-ink="instel" title="Instellingen inkomende facturen" aria-label="Instellingen inkomende facturen">${ic("instellingen")}</button>`:"",
-  body(){if(!INK.srv&&!INK.srvBezig){INK.srvBezig=true;inkSrv().finally(()=>{INK.srvBezig=false})}
-    return inkUitleg()+inkLijst()}});
+  body(){return fcTabs("inkomend")+inkBody()}});
+function inkBody(){{if(!INK.srv&&!INK.srvBezig){INK.srvBezig=true;inkSrv().finally(()=>{INK.srvBezig=false})}
+    return inkUitleg()+inkLijst()}}
 async function inkKoppel(did,bid){const b=S.boekingen.get(bid),d=S.documenten.get(did);if(!b||!d)return;
   const nb={...stripId(b),documentId:did};S.boekingen.set(bid,{...nb,id:bid});dirty=true;await write("boekingen",bid,nb);
   if(d.inkomend&&d.inkomend.nieuw){try{await write("documenten",did,{...stripId(d),inkomend:{...d.inkomend,nieuw:false}})}catch(e){}}
