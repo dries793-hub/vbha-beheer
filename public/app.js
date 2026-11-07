@@ -1215,12 +1215,12 @@ const insTot=(c,def)=>/^\d{4}-\d{2}-\d{2}$/.test(String(c.inschrijvenTot||""))?c
 const insTekst=iso=>{const [y,m,d]=iso.split("-").map(Number);return d+" "+INS_MAAND[m-1]};
 function insStatus(c,def){const tot=insTot(c,def);const open=c.open!==false&&todayISO()<=tot;return{open,tot,label:open?"open t.e.m. "+insTekst(tot):c.open===false?"gesloten":"afgesloten sinds "+insTekst(tot)}}
 const insPill=st=>{const k=st.open?"open":/^gesloten/.test(st.label)?"dicht":"verlopen";return `<span class="spi-dot ${k}" title="Inschrijvingen ${st.label}">${k==="open"?"Open":k==="dicht"?"Gesloten":"Afgelopen"}</span>`};
-function insVelden(c,def,d){const st=insStatus(c,def);return `${fld("insTot","Inschrijven tot en met",`<input id="insTot" type="date" value="${esc(insTot(c,def))}"${d}>`)}
-  <div class="fld"><span class="lbl">Inschrijvingen</span><label class="sp-nat" style="padding:9px 12px"><input type="checkbox" id="insOpen"${c.open!==false?" checked":""}${d}><span><b>Open</b><small>${st.open?"Nu open":"Nu gesloten"}${c.open!==false&&!st.open?" (datum voorbij)":""}</small></span></label></div>`}
+function insVelden(c,def,d){const tot=insTot(c,def),st=spiStatus(c.open!==false,tot,"Leden");return `<div class="full spi-st" id="insSt" data-k="${st.k}"><div class="spi-st-r"><label class="spi-sw" for="insOpen"><input type="checkbox" id="insOpen" role="switch"${c.open!==false?" checked":""}${d}><span class="spi-sw-t" aria-hidden="true"></span><b>Inschrijfpagina open</b></label>
+   <div class="spi-st-d"><label for="insTot">Open tot en met</label><input id="insTot" type="date" value="${esc(tot)}"${d}></div></div><div class="spi-st-i" id="insStI">${st.html}</div></div>`}
 const insLees=()=>({inschrijvenTot:$("#insTot").value,open:$("#insOpen").checked});
 function bkInst(){const bc=bkCfg(),d=canWrite?"":" disabled";const ontv=ctx().boek.filter(b=>b.categorie==="Banket"&&b.richting!=="uit").reduce((s,b)=>s+b.bedrag,0);
-  modal("Instellingen banket",`<form id="fBkI2" class="form">${fld("bkP","Prijs per persoon (€)",inp("bkP",bc.prijs,'inputmode="decimal"'+d))}${fld("bkDt","Datum banket",`<input id="bkDt" type="date" value="${esc(bc.datum||"")}"${d}>`)}
-   ${insVelden(bc,JAAR+"-12-01",d)}<p class="pi-note full" style="margin:0">Ontvangen met categorie Banket in ${JAAR}: <b>${eur(ontv)}</b></p></form>`,
+  modal("Instellingen banket",`<form id="fBkI2" class="form">${insVelden(bc,JAAR+"-12-01",d)}${fld("bkP","Prijs per persoon (€)",inp("bkP",bc.prijs,'inputmode="decimal"'+d))}${fld("bkDt","Datum banket",`<input id="bkDt" type="date" value="${esc(bc.datum||"")}"${d}>`)}
+   <p class="pi-note full" style="margin:0">Ontvangen met categorie Banket in ${JAAR}: <b>${eur(ontv)}</b></p></form>`,
    `<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="bkIOk">Bewaren</button>':""}`);
   const ok=$("#bkIOk");if(!ok)return;
   ok.onclick=async()=>{const ins=insLees();const r={prijs:num($("#bkP").value)||65,deadline:/^\d{4}-\d{2}-\d{2}$/.test(ins.inschrijvenTot)?insTekst(ins.inschrijvenTot):bc.deadline,datum:$("#bkDt").value};closeModal();
@@ -2078,7 +2078,7 @@ function kfStats(){const c=kfCfg(),L=kfLijst();const per=new Map();let kids=0,ca
 function kfDubbel(L){const m={};for(const r of L){const e=norm(r.email);if(e)m[e]=(m[e]||0)+1}return m}
 
 VIEWS.kinderfeest=()=>({title:"Kinderfeest",sub:"Inschrijvingen kinderfeest",
-  actions:`<a class="btn" href="${KF_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden (${esc(insStatus(kfCfg(),JAAR+"-12-07").label)})">${ic("deel")}Inschrijfpagina${insPill(insStatus(kfCfg(),JAAR+"-12-07"))}</a><button class="btn primary" data-w data-act="kfNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-w data-act="kfInst" title="Instellingen kinderfeest" aria-label="Instellingen kinderfeest">${ic("instellingen")}</button>`,
+  actions:`<a class="btn" href="${KF_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden (${esc(insStatus(kfCfg(),JAAR+"-12-07").label)})">${ic("link")}Inschrijfpagina${insPill(insStatus(kfCfg(),JAAR+"-12-07"))}</a><button class="btn primary" data-w data-act="kfNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-w data-act="kfInst" title="Instellingen kinderfeest" aria-label="Instellingen kinderfeest">${ic("instellingen")}</button>`,
   body(){const st=kfStats(),c=st.c;const q=norm(KFQ);const dub=kfDubbel(st.L);
     const list=q?st.L.filter(r=>norm([r.lid,r.email,r.opmerking,...(r.kinderen||[]).map(k=>k.naam)].join(" ")).includes(q)):st.L;
     const max=Math.max(1,...st.per.values());const ages=[];for(let a=0;a<=c.leeftijd;a++)ages.push(a);
@@ -2131,12 +2131,11 @@ function kfForm(r,id){
   if(id)$("#kfDel").onclick=()=>confirmBox("Inschrijving van <b>"+esc(r.lid)+"</b> verwijderen?","Verwijderen",async()=>{await write("kinderfeest",id,null,{del:true});toast("Inschrijving verwijderd.")});
 }
 function kfInst(){const c=kfCfg();
-  modal("Kinderfeest "+JAAR,`<form id="fKfI" class="form">
+  modal("Kinderfeest "+JAAR,`<form id="fKfI" class="form">${insVelden(c,JAAR+"-12-07","")}
     ${fld("kiD","Datum feest",inp("kiD",c.datum,'name="datum" type="date"'))}${fld("kiT","Uur",inp("kiT",c.tijd,'name="tijd"'))}
     ${fld("kiL","Locatie",inp("kiL",c.locatie,'name="locatie"'),"full")}
     ${fld("kiA","Cadeautje tot en met leeftijd",inp("kiA",c.leeftijd,'name="leeftijd" type="number" min="0" max="18"'))}
     <div class="fld"><label>&nbsp;</label><span class="help">De leeftijd wordt berekend op de dag van het feest.</span></div>
-    ${insVelden(c,JAAR+"-12-07","")}
 </form>`,
     `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="kiOk">Bewaren</button>`);
   $("#kiOk").onclick=async()=>{const f={datum:$("#kiD").value,tijd:$("#kiT").value,locatie:$("#kiL").value,leeftijd:$("#kiA").value},ins=insLees();closeModal();await write("config","kf_"+JAAR,{...stripId(S.config.get("kf_"+JAAR)||{}),open:ins.open,...(/^\d{4}-\d{2}-\d{2}$/.test(ins.inschrijvenTot)?{inschrijvenTot:ins.inschrijvenTot}:{}),datum:f.datum,tijd:f.tijd.trim(),locatie:f.locatie.trim(),leeftijd:Math.max(0,Math.round(num(f.leeftijd)))||12});toast("Instellingen kinderfeest bewaard.")}}
@@ -3427,10 +3426,13 @@ function spiQr(txt,cell){if(!window.qrcode)return null;const q=qrcode(0,"M");q.a
 function spiFormRij(f,i){return `<div class="spi-f" data-i="${i}"><input class="spi-n" value="${esc(f.naam||"")}" placeholder="Naam" aria-label="Naam formule"><span class="spi-e"><span>€</span><input class="spi-b" inputmode="decimal" value="${esc(String(f.bedrag??"").replace(".",","))}" aria-label="Bedrag"></span>
   <input class="spi-o" value="${esc(f.omschrijving||"")}" placeholder="bv. Dubbel vak · elke maand" aria-label="Omschrijving"><button type="button" class="btn sm ghost" data-spi="weg" aria-label="Formule verwijderen">${ic("x")}</button></div>`}
 /* status van de inschrijfpagina: open, manueel dicht of automatisch dicht na de datum */
-function spiStatus(open,dl){const vd=todayISO(),dagen=dl?Math.round((new Date(dl+"T12:00")-new Date(vd+"T12:00"))/864e5):null;
+function spiStatus(open,dl,wie="Sponsors"){const vd=todayISO(),dagen=dl?Math.round((new Date(dl+"T12:00")-new Date(vd+"T12:00"))/864e5):null;
   if(!open)return{k:"dicht",kort:"Gesloten",html:`<span class="pill neutral">Gesloten</span> De pagina toont dat de inschrijvingen gesloten zijn. Zet de schakelaar aan om ze te openen.`};
   if(dl&&dl<vd)return{k:"verlopen",kort:"Afgelopen",html:`<span class="pill warn">Automatisch gesloten</span> De uiterste datum (${fmtDate(dl)}) is voorbij. Kies een latere datum om opnieuw te openen.`};
-  return{k:"open",kort:"Open",html:`<span class="pill ok">Open</span> Sponsors kunnen inschrijven${dl?` tot en met <b>${fmtDate(dl)}</b> (${dagen===0?"laatste dag vandaag":dagen===1?"nog 1 dag":"nog "+dagen+" dagen"}). Daarna sluit de pagina vanzelf.`:"."}`}}
+  return{k:"open",kort:"Open",html:`<span class="pill ok">Open</span> ${wie} kunnen inschrijven${dl?` tot en met <b>${fmtDate(dl)}</b> (${dagen===0?"laatste dag vandaag":dagen===1?"nog 1 dag":"nog "+dagen+" dagen"}). Daarna sluit de pagina vanzelf.`:"."}`}}
+const insStUpd=()=>{const el=$("#insStI"),o=$("#insOpen"),d=$("#insTot");if(el&&o&&d&&(!d.value||/^\d{4}-\d{2}-\d{2}$/.test(d.value))){const st=spiStatus(o.checked,d.value,"Leden");el.innerHTML=st.html;$("#insSt").dataset.k=st.k}};
+document.addEventListener("change",e=>{if(e.target.id==="insOpen"||e.target.id==="insTot")insStUpd()});
+document.addEventListener("input",e=>{if(e.target.id==="insTot"||(e.target.closest&&e.target.closest("#insSt .dt-w")))insStUpd()});
 document.addEventListener("change",e=>{if(e.target.id==="spiOpen"||e.target.id==="spiDl"){const el=$("#spiStI"),o=$("#spiOpen"),d=$("#spiDl");if(el&&o&&d){const st=spiStatus(o.checked,d.value);el.innerHTML=st.html;$("#spiSt").dataset.k=st.k}}});
 document.addEventListener("input",e=>{if(e.target.id==="spiDl"||(e.target.closest&&e.target.closest("#spiSt .dt-w"))){const el=$("#spiStI"),o=$("#spiOpen"),d=$("#spiDl");if(el&&o&&d&&(!d.value||/^\d{4}-\d{2}-\d{2}$/.test(d.value))){const st=spiStatus(o.checked,d.value);el.innerHTML=st.html;$("#spiSt").dataset.k=st.k}}});
 function spiInstel(){const c=spiCfg(),url=spiUrl(),q=spiQr(url),svg=q?q.createSvgTag({cellSize:4,margin:2,scalable:true}):"";
@@ -4039,6 +4041,36 @@ function dtUpg(el){if(el._dt||el.closest(".dt-w"))return;el._dt=true;
 function dtScan(root){(root.querySelectorAll?root:document).querySelectorAll('input[type="date"]:not(.dt-nat)').forEach(dtUpg)}
 new MutationObserver(L=>{for(const m of L)for(const n of m.addedNodes)if(n.nodeType===1){if(n.matches&&n.matches('input[type="date"]:not(.dt-nat)'))dtUpg(n);else if(n.querySelector&&n.querySelector('input[type="date"]'))dtScan(n)}}).observe(document.documentElement,{childList:true,subtree:true});
 dtScan(document);
+
+/* ============ Kinderfeest: bevestigingsmail (cadeau-info) ============
+   Instellingen in Kinderfeest › tandwiel; bewaard in config kf_<jaar>.mail. De server stuurt de mail na elke inschrijving via de website
+   naar het adres van het lid of het adres dat de inschrijver opgaf. */
+function kfMailDef(datum){const Y=Number(String(datum||"").slice(0,4))||JAAR,d=agD(datum||Y+"-12-19");d.setDate(d.getDate()-10);
+  return{cadeau:true,sites:"www.dreamland.be, www.bol.com",tot:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"),contact:"jojanneke.lariviere@zonezuidoost.be",
+    groepen:`${Y-11}: cadeau voorzien door VBHA\n${Y-10}-${Y-6}: 50,00 EUR per kind\n${Y-5}-${Y}: 35,00 EUR per kind`}}
+function kfMailCfg(){const c=kfCfg();return{...kfMailDef(c.datum),...(c.mail||{})}}
+function kfMailHtml(){const M=kfMailCfg(),d=canWrite?"":" disabled";
+  return `<div class="fc-sec full"><h4>Bevestigingsmail</h4></div>
+  <p class="full muted small" style="margin:-6px 0 0">Na elke inschrijving via de website krijgt de inschrijver meteen een bevestiging, naar het adres van het lid of naar het adres dat hij opgaf.</p>
+  <label class="sp-nat full" for="kmC"><input type="checkbox" id="kmC"${M.cadeau?" checked":""}${d}><span><b>Cadeau zelf kiezen</b><small>De uitleg hieronder komt in de bevestigingsmail.</small></span></label>
+  <div class="full km-velden" id="kmV"${M.cadeau?"":" hidden"}><div class="form" style="padding:0">
+   ${fld("kmS","Websites",inp("kmS",M.sites,'placeholder="www.dreamland.be, www.bol.com"'+d))}${fld("kmT","Cadeau doorgeven vóór",`<input id="kmT" type="date" value="${esc(M.tot)}"${d}>`)}
+   ${fld("kmM","Doorsturen naar",inp("kmM",M.contact,'type="email" placeholder="e-mailadres"'+d),"full")}
+   <div class="fld full"><label for="kmG">Waarde per geboortejaar</label><textarea id="kmG" style="height:86px;min-height:0;font-family:inherit"${d}>${esc(M.groepen)}</textarea><span class="help">Eén regel per groep, bv. <b>2016-2020: 50,00 EUR per kind</b> of <b>2015: cadeau voorzien door VBHA</b>.</span></div>
+  </div></div>
+  <div class="full bar" style="margin:0"><button type="button" class="btn sm" data-km="voorbeeld">${ic("mails")}Voorbeeld van de mail</button><button type="button" class="btn sm ghost" data-km="standaard"${d}>Standaardtekst</button></div>`}
+const kmLees=()=>({cadeau:$("#kmC").checked,sites:$("#kmS").value.trim(),tot:$("#kmT").value,contact:$("#kmM").value.trim(),groepen:$("#kmG").value.trim()});
+{const _k=kfInst;kfInst=function(){_k.apply(this,arguments);const f=$("#fKfI");if(!f)return;f.insertAdjacentHTML("beforeend",kfMailHtml());
+  const ok=$("#kiOk");if(!ok||!ok.onclick)return;const _o=ok.onclick;
+  ok.onclick=async function(ev){const M=kmLees();if(M.contact&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(M.contact)){toast("Het adres om het cadeau door te sturen klopt niet.",true);return}
+    const k="kf_"+JAAR,cur=S.config.get(k)||{};S.config.set(k,{...cur,id:k,mail:M});return _o.call(this,ev)}}}
+document.addEventListener("change",e=>{if(e.target.id==="kmC"&&$("#kmV"))$("#kmV").hidden=!e.target.checked});
+document.addEventListener("click",async e=>{const t=e.target.closest("[data-km]");if(!t)return;
+  if(t.dataset.km==="standaard"){const D=kfMailDef(($("#kiD")||{}).value||kfCfg().datum);$("#kmS").value=D.sites;$("#kmT").value=D.tot;$("#kmM").value=D.contact;$("#kmG").value=D.groepen;return}
+  const w=window.open("","_blank");t.disabled=true;
+  try{const j=await api("/api/mail?f=kf-voorbeeld",{method:"POST",body:JSON.stringify({jaar:JAAR,cfg:{datum:($("#kiD")||{}).value||undefined,tijd:($("#kiT")||{}).value||undefined,locatie:($("#kiL")||{}).value||undefined,mail:kmLees()}})});
+    const u=URL.createObjectURL(new Blob([j.html],{type:"text/html"}));if(w)w.location.href=u;else window.open(u,"_blank")}
+  catch(x){if(w)w.close();toast("Voorbeeld lukte niet: "+(x.message||x),true)}finally{t.disabled=false}});
 
 /* ============ Instellingen enkel voor de administrator ============
    Andere profielen zien geen tandwieltjes of instellingenpagina's. Wat iedereen wel kan: "Meldingen op dit toestel" (eigen pagina).

@@ -2,7 +2,7 @@ import { requireUser, sendError, httpErr } from "./_lib/sb.js";
 import { smtpConfigured, afzender, verstuur } from "./_lib/smtp.js";
 import { ondertekenLinks } from "./_lib/lidlink.js";
 import { herinneringen, herinneringTest, vergaderingAfgerond } from "./_lib/herinnering.js";
-import { bevestigingenCron } from "./_lib/bevestiging.js";
+import { bevestigingenCron, kfVoorbeeld } from "./_lib/bevestiging.js";
 import { factuurActie } from "./_lib/factuur.js";
 import { pushApi } from "./_lib/push.js";
 import { inkomendApi } from "./_lib/inkomend.js";
@@ -21,6 +21,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "inkomend") return await inkomendApi(req, res); // inkomende facturen uit de mailbox
     if (req.query && req.query.f === "push") return await pushApi(req, res); // pushmeldingen: toestel aan- of afmelden, testmelding
     if (req.query && req.query.f === "factuur") return await factuurActie(req, res); // facturatie: PDF, definitief maken, versturen, herinnering
+    if (req.query && req.query.f === "kf-voorbeeld") return await kfVoorbeeld(req, res); // voorbeeld bevestigingsmail kinderfeest
     if (req.query && req.query.f === "bevestigingen") return await bevestigingenCron(req, res); // geplande taak: bevestigingen na 20 min zonder online betaling
     if (req.method === "GET") { await requireUser(req); return res.status(200).json({ ingesteld: smtpConfigured(), van: afzender() }); }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
