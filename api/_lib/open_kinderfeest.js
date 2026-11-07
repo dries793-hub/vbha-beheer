@@ -1,6 +1,7 @@
 import { admin, sendError, httpErr } from "./sb.js";
 import { stuurBevestiging } from "./bevestiging.js";
 import { clean, body, nieuwId, algemeen, configDoc, spamCheck, actieveLeden, inschrijving, alIngeschreven, AL_TEKST, rateLimit } from "./publiek.js";
+import { meldPush } from "./push.js";
 
 // Openbare inschrijving kinderfeest: komt rechtstreeks in Administratie › Kinderfeest.
 async function info(sb) {
@@ -43,6 +44,7 @@ export default async function handler(req, res) {
     const kid = nieuwId("web");
     const { error } = await sb.from("kinderfeest").insert({ id: kid, data: d });
     if (error) throw error;
+    await meldPush(sb, "iedereen", { titel: "Nieuwe inschrijving kinderfeest", tekst: `${lid} · ${kinderen.length} ${kinderen.length === 1 ? "kind" : "kinderen"}`, url: "/#kinderfeest", tag: "ins-kf-" + kid });
     try { await stuurBevestiging(sb, "kinderfeest", kid); } catch (e) { console.error("bevestiging", e); }
     res.status(200).json({ ok: true, ...I, kinderen });
   } catch (e) { sendError(res, e); }

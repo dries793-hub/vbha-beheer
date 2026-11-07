@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { onlineConfigured as bcConfigured } from "./_lib/betaalprovider.js";
 import { startBetaling } from "./_lib/betaal.js";
 import { wachtOpBetaling, stuurBevestiging } from "./_lib/bevestiging.js";
+import { meldPush } from "./_lib/push.js";
 
 // Openbaar inschrijfformulier voor nieuwe leden (geen login nodig).
 // GET  -> gegevens voor het formulier (categorieën, lidgeld, rekeningnummer)
@@ -83,6 +84,7 @@ export default async function handler(req, res) {
         online = { id, token, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp, provider: bt.provider || null };
       } catch (e) { console.error("Bancontact", e); }
     }
+    await meldPush(sb, "iedereen", { titel: "Nieuw lid ingeschreven", tekst: `${[lid.voornaam, lid.naam].filter(Boolean).join(" ")}${lid.categorie ? " · " + lid.categorie : ""}`, url: "/#dashboard", tag: "lid-" + id });
     // bevestigingsmail: bij online betalen wachten op de uitkomst, anders meteen (met de gegevens om over te schrijven)
     try { if (online) await wachtOpBetaling(sb, "leden", id); else await stuurBevestiging(sb, "leden", id); } catch (e) { console.error("bevestiging", e); }
     res.status(200).json({ ok: true, jaar: I.jaar, bedrag, rekeningnummer: I.rekeningnummer, begunstigde: I.vereniging, mededeling, qr, online });

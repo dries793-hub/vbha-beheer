@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { admin, requireUser, isCron, isDbCron, sendError, selectAll, httpErr } from "../_lib/sb.js";
 import { configured, eb, mapTransaction } from "../_lib/enable.js";
 import { norm, suggest, partijIndex, findLid } from "../_lib/regels.js";
+import { meldPush } from "../_lib/push.js";
 
 const slug = s => norm(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "x";
 const r2 = n => Math.round(n * 100) / 100;
@@ -63,7 +64,19 @@ export async function syncAll(sb) {
   if (totaal.nieuw || totaal.fouten.length) {
     await sb.from("imports").insert({ id: crypto.randomUUID(), data: { tijd: nu.toISOString(), bestand: "Enable Banking", bron: "api", jaar: nu.getFullYear(), nieuw: totaal.nieuw, dubbel: totaal.dubbel, open: totaal.open, fouten: totaal.fouten } });
   }
+  try { await bankPush(sb, kops, totaal, nu); } catch (e) { console.error("bankPush", e); }
   return totaal;
+}
+// pushmeldingen: nieuwe transacties te verwerken, en (één keer per dag) een verlopen of bijna verlopen toestemming
+async function bankPush(sb, kops, totaal, nu) {
+  if (totaal.open) await meldPush(sb, "boek", { titel: totaal.open === 1 ? "1 transactie te verwerken" : totaal.open + " transacties te verwerken", tekst: `${totaal.nieuw} nieuwe verrichting${totaal.nieuw === 1 ? "" : "en"} opgehaald van de bank`, url: "/#verwerken", tag: "verwerken" });
+  const dag = nu.toISOString().slice(0, 10), L = kops.map(k => k.data || {}).filter(d => d.valid_until).map(d => ({ d, n: Math.floor((new Date(d.valid_until) - nu) / 864e5) })).filter(x => x.n < 7);
+  if (!L.length) return;
+  const { data: c } = await sb.from("config").select("data").eq("id", "bankmelding").maybeSingle();
+  if (c && c.data && c.data.dag === dag) return;
+  await sb.from("config").upsert({ id: "bankmelding", data: { dag } });
+  const weg = L.some(x => x.n < 0), x = L[0];
+  await meldPush(sb, "boek", { titel: weg ? "Koppeling met de bank verlopen" : "Koppeling met de bank verloopt binnenkort", tekst: weg ? `${x.d.aspsp || "Bank"}: er worden geen verrichtingen meer opgehaald. Koppel opnieuw.` : `${x.d.aspsp || "Bank"}: nog ${x.n} ${x.n === 1 ? "dag" : "dagen"} geldig. Koppel opnieuw om de toestemming te vernieuwen.`, url: "/#bank", tag: "bank" });
 }
 
 export async function boekTransacties(sb, txs, { regels, leden }) {

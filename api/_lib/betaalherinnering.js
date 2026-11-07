@@ -3,6 +3,7 @@ import { smtpConfigured } from "./smtp.js";
 import { algemeen, configDoc, norm, DEF_IBAN } from "./publiek.js";
 import { teken } from "./lidlink.js";
 import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, lang, plusDagen, site } from "./bevestiging.js";
+import { meldPush } from "./push.js";
 
 /* ============ Automatische betalingsherinneringen: banket en lidgeld ============
    Config "betaalherinnering": {banket:{aan,dagenNaVerval,interval,max}, lidgeld:{aan,jaar,vervaldatum,dagenNaVerval,interval,max}, uur,
@@ -183,5 +184,6 @@ export async function betaalHerinneringCron(sb) {
   const { data: c2 } = await sb.from("config").select("data").eq("id", "betaalherinnering").maybeSingle();
   const d2 = (c2 && c2.data) || {};
   await sb.from("config").upsert({ id: "betaalherinnering", data: { ...d2, laatsteDag: nu, laatsteRonde: { op: new Date().toISOString(), banket: P.banket.nu.length, lidgeld: P.lidgeld.nu.length }, log: [...log, ...(d2.log || [])].slice(0, 300) } });
+  if (log.length) await meldPush(sb, "boek", { titel: log.length === 1 ? "Betalingsherinnering verstuurd" : log.length + " betalingsherinneringen verstuurd", tekst: [P.banket.nu.length ? P.banket.nu.length + " banket" : "", P.lidgeld.nu.length ? P.lidgeld.nu.length + " lidgeld" : ""].filter(Boolean).join(" · ") + (log.length <= 3 ? ": " + log.map(x => x.naam).join(", ") : ""), url: "/#dashboard", tag: "betaalherinnering" });
   return { banket: P.banket.nu.length, lidgeld: P.lidgeld.nu.length };
 }
