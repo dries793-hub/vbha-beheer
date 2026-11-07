@@ -4105,7 +4105,7 @@ function mpPanel(){const c=mpCfg(),d=canWrite?"":" disabled";
   <form class="panel" id="fMp"><div class="panel-h"><h2>Pushmeldingen</h2></div><div class="panel-b"><div class="form">
    <label class="sp-nat full" for="mpAan"><input type="checkbox" id="mpAan"${c.aan?" checked":""}${d}><span><b>Pushmeldingen versturen</b><small>Herinneringen vóór vergaderingen en activiteiten, en meteen een melding bij nieuwe meldingen op het dashboard. Uitzetten stopt alle pushmeldingen voor iedereen.</small></span></label>
    ${canWrite?`<div class="full bar"><button class="btn primary" type="button" id="mpOk">Bewaren</button></div>`:""}
-   <p class="full muted small" style="margin:0">Enkel wie meldingen aanzette op zijn eigen toestel krijgt ze. Iedereen kiest zelf, hiernaast, om welk uur en hoeveel op voorhand.</p>
+   <p class="full muted small" style="margin:0">Enkel wie meldingen aanzette op zijn eigen toestel krijgt ze. Iedereen kiest zelf, bij "Dit toestel", om welk uur en hoeveel op voorhand.</p>
   </div></div></form>
   <div class="panel"><div class="panel-h"><h2>Dit toestel</h2></div><div class="panel-b" id="mpToestel">${mpToestelHtml()}</div></div></div>`}
 {const _h=VIEWS.herinneringen;const n=function(){const v=_h.apply(this,arguments),b=v.body;v.body=function(){if(!MP.srv&&!MP.bezig){MP.bezig=true;setTimeout(()=>mpLaad().finally(()=>{MP.bezig=false}),0)}return b.apply(this,arguments)+mpPanel()};return v};Object.assign(n,_h);VIEWS.herinneringen=n}
