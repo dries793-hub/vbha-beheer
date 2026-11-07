@@ -2396,7 +2396,7 @@ function docLijst(){const q=norm(DOC.q);let L=[...S.documenten.values()];
 function docMapGrid(){const K=docKind(DOC.map);if(!K.length)return "";
   return `<div class="doc-fold-g">${K.map(m=>{const n=docIn(m,true).length,sub=docKind(m).length,eigen=!DOC_MAPPEN.includes(m)&&!DOC_VAST.some(v=>v===m||v.startsWith(m+"/"));
     return `<div class="doc-fold" data-map="${esc(m)}"><button type="button" class="doc-fold-b" data-act="docMapF" data-v="${esc(m)}">${ic("documenten")}<span><b>${esc(docNaamVan(m))}</b><small>${n?n+" document"+(n===1?"":"en"):"leeg"}${sub?" · "+sub+" map"+(sub===1?"":"pen"):""}</small></span></button>
-    ${canWrite&&eigen?`<button type="button" class="doc-fold-e" data-act="docMapEdit" data-v="${esc(m)}" aria-label="Map ${esc(docNaamVan(m))} wijzigen" title="Map wijzigen">${ic("instellingen")}</button>`:""}</div>`}).join("")}</div>`}
+    ${canWrite&&eigen?`<button type="button" class="doc-fold-e" data-act="docMapEdit" data-v="${esc(m)}" aria-label="Map ${esc(docNaamVan(m))} wijzigen" title="Map wijzigen">${ic("potlood")}</button>`:""}</div>`}).join("")}</div>`}
 function docKruim(){const p=DOC.map?DOC.map.split("/"):[];
   return `<nav class="doc-kr" aria-label="Map">${p.length?`<button type="button" data-act="docMapF" data-v="">Alle mappen</button>`:`<b>Alle mappen</b>`}${p.map((x,i)=>{const v=p.slice(0,i+1).join("/");return `<span class="muted">›</span>${i===p.length-1?`<b>${esc(x)}</b>`:`<button type="button" data-act="docMapF" data-v="${esc(v)}">${esc(x)}</button>`}`}).join("")}</nav>`}
 function docTabel(){const L=docLijst(),metMap=!!DOC.q;const dt=s=>{const d=new Date(s);return isNaN(d)?"":d.toLocaleDateString("nl-BE",{day:"numeric",month:"short",year:"numeric"})};
@@ -2405,11 +2405,11 @@ function docTabel(){const L=docLijst(),metMap=!!DOC.q;const dt=s=>{const d=new D
   if(!L.length)return leeg?`<div class="panel"><div class="empty">${leeg}</div></div>`:"";
   const mob=`<div class="mlist" role="list">${L.map(d=>{const e=docExt(d.naam);return `<div class="ml-row doc-mr" role="listitem"><a class="doc-n" data-act="docOpen" data-id="${esc(d.id)}" href="#documenten"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span>
     <span class="ml-m"><span class="ml-n"><b>${esc(d.naam)}</b></span><span class="ml-s">${metMap?esc(docLabel(docPad(d)))+'<span class="ml-dot">·</span>':""}${docKB(d.grootte||0)}<span class="ml-dot">·</span>${dt(d.op)}</span>${d.rol?`<span class="doc-rol">${ic("link")}Knop ${d.rol==="sponsordossier"?"Sponsordossier":"Reglement"}</span>`:""}${d.omschrijving&&!docVgLink(d)?`<span class="ml-s">${esc(d.omschrijving)}</span>`:""}${docVgLink(d)}</span></a>
-    <span class="doc-ma"><button type="button" class="iconbtn2" data-act="docDown" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="iconbtn2" data-act="docEdit" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} wijzigen">${ic("instellingen")}</button>`:""}</span></div>`}).join("")}</div>`;
+    <span class="doc-ma"><button type="button" class="iconbtn2" data-act="docDown" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="iconbtn2" data-act="docEdit" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} wijzigen">${ic("potlood")}</button>`:""}</span></div>`}).join("")}</div>`;
   return `<div class="panel">`+mob+`<div class="tw dsk-only"><table class="rcards doct" data-main="0"><thead><tr><th>Naam</th>${metMap?"<th>Map</th>":""}<th class="num">Grootte</th><th>Toegevoegd</th><th></th></tr></thead><tbody>
   ${L.map(d=>{const e=docExt(d.naam);return `<tr><td><a class="doc-n" data-act="docOpen" data-id="${esc(d.id)}" href="#documenten"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span><span class="doc-t"><b>${esc(d.naam)}</b>${d.rol?`<span class="doc-rol">${ic("link")}Knop ${d.rol==="sponsordossier"?"Sponsordossier":"Reglement"}</span>`:""}${d.omschrijving&&!docVgLink(d)?`<span>${esc(d.omschrijving)}</span>`:""}${docVgLink(d)}</span></a></td>
    ${metMap?`<td><button type="button" class="pill neutral doc-pm" data-act="docMapF" data-v="${esc(docPad(d))}">${esc(docLabel(docPad(d)))}</button></td>`:""}<td class="num nowrap muted">${docKB(d.grootte||0)}</td><td class="nowrap muted">${dt(d.op)}${d.door?`<div class="small">${esc(d.door)}</div>`:""}</td>
-   <td class="nowrap doc-a"><button type="button" class="btn sm" data-act="docDown" data-id="${esc(d.id)}" title="Downloaden" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="btn sm" data-act="docEdit" data-id="${esc(d.id)}" title="Wijzigen" aria-label="${esc(d.naam)} wijzigen">${ic("instellingen")}</button>`:""}</td></tr>`}).join("")}
+   <td class="nowrap doc-a"><button type="button" class="btn sm" data-act="docDown" data-id="${esc(d.id)}" title="Downloaden" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="btn sm" data-act="docEdit" data-id="${esc(d.id)}" title="Wijzigen" aria-label="${esc(d.naam)} wijzigen">${ic("potlood")}</button>`:""}</td></tr>`}).join("")}
   </tbody></table></div></div>`}
 function docInhoud(){return DOC.q?docTabel():docMapGrid()+docTabel()}
 // verslag van een vergadering: knop naar die vergadering in de agenda
@@ -2517,7 +2517,7 @@ function ftKaarten(){const L=ftLijst();
   return `<div class="ft-grid">${L.map(a=>{const u=ftLink(a.link),c=ftLink(a.cover);const sub=[a.datum?fmtDate(a.datum):a.jaar,a.fotograaf].filter(Boolean).join(" · ");
     return `<div class="ft-card">${u?`<a class="ft-hit" href="${esc(u)}" target="_blank" rel="noopener" aria-label="${esc(a.titel||"Album")} openen"></a>`:""}<div class="ft-img${c?"":" leeg"}" >${c?`<img src="${esc(c)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:`<span>${ic("fotos")}</span>`}</div>
       <div class="ft-b"><div class="ft-t"><b>${esc(a.titel||"Album")}</b>${sub?`<span>${esc(sub)}</span>`:""}${a.omschrijving?`<span class="ft-o">${esc(a.omschrijving)}</span>`:""}</div>
-      ${canWrite?`<button type="button" class="btn sm iconbtn ft-edit" data-act="ftEdit" data-id="${esc(a.id)}" aria-label="Album wijzigen" title="Wijzigen">${ic("instellingen")}</button>`:""}
+      ${canWrite?`<button type="button" class="btn sm iconbtn ft-edit" data-act="ftEdit" data-id="${esc(a.id)}" aria-label="Album wijzigen" title="Wijzigen">${ic("potlood")}</button>`:""}
       ${u?`<div class="ft-h">${esc(ftHost(u))}</div>`:""}</div></div>`}).join("")}</div>`}
 VIEWS.fotos=()=>({title:"Foto's",actions:'<button class="btn primary" data-w data-act="ftNieuw">'+ic("plus")+'Album toevoegen</button>',body(){
   return `<div class="bar"><div class="search">${ic("search")}<input id="ftQ" data-ftq placeholder="Zoek album, jaar of fotograaf" value="${esc(FT.q)}"></div></div><div id="ftList">${ftKaarten()}</div>`}});
@@ -3965,7 +3965,7 @@ const mpU8=s=>{const b=atob(s.replace(/-/g,"+").replace(/_/g,"/")+"===".slice((s
 const mpToestel=()=>{const u=navigator.userAgent;return (/iPhone/.test(u)?"iPhone":/iPad/.test(u)?"iPad":/Android/.test(u)?"Android":/Mac/.test(u)?"Mac":/Windows/.test(u)?"Windows":"Toestel")+" · "+(/Edg\//.test(u)?"Edge":/Chrome\//.test(u)?"Chrome":/Firefox\//.test(u)?"Firefox":/Safari\//.test(u)?"Safari":"browser")};
 let MP_REG=null;
 function mpReg(){if(!mpKan())return Promise.resolve(null);if(!MP_REG)MP_REG=navigator.serviceWorker.register("/sw.js").then(()=>navigator.serviceWorker.ready).catch(e=>{console.warn("sw",e);MP_REG=null;return null});return MP_REG}
-async function mpLaad(){try{const r=await mpReg();MP.sub=r?await r.pushManager.getSubscription():null;MP.srv=await api("/api/mail?f=push")}catch(e){MP.srv={fout:e.message}}if(route()==="herinneringen"){const el=$("#mpToestel");if(el)el.innerHTML=mpToestelHtml()}}
+async function mpLaad(){try{const r=await mpReg();MP.sub=r?await r.pushManager.getSubscription():null;MP.srv=await api("/api/mail?f=push")}catch(e){MP.srv={fout:e.message}}if(["herinneringen","meldingen"].includes(route())){const el=$("#mpToestel");if(el)el.innerHTML=mpToestelHtml()}}
 function mpToestelHtml(){
   if(!mpKan()){return mpIOS()&&!mpThuis()?`<div class="note info">Op een iPhone of iPad werken meldingen enkel als de app op je beginscherm staat: tik in Safari op <b>Deel</b> en dan <b>Zet op beginscherm</b>, open de app van daaruit en kom hier terug.</div>`:`<div class="muted small">Deze browser ondersteunt geen pushmeldingen.</div>`}
   if(Notification.permission==="denied")return `<div class="note">Meldingen zijn geblokkeerd voor deze site. Zet ze terug aan in de instellingen van je browser of toestel (Meldingen › VBHA) en herlaad de app.</div>`;
@@ -4000,7 +4000,7 @@ async function mpBewaar(){const vg=$("#mpVg").checked,ac=$("#mpAc").checked;if($
   await write("config","herinneringen",{...stripId(S.config.get("herinneringen")||{}),push:{aan:$("#mpAan").checked,uur:Number($("#mpUur").value),vergaderingen:vg,activiteiten:ac}});toast("Pushmeldingen bewaard.")}
 // menu onder het profiel: snel naar de meldingen
 {const _m=gbMenu;gbMenu=function(){_m.apply(this,arguments);const m=$("#acctMenu");if(!m||m.querySelector("[data-mpm]"))return;const lo=m.querySelector('[data-act="logout"]');
-  const h=`<a href="#herinneringen" class="acct-i" role="menuitem" data-act="acctClose" data-mpm>${ic("bel")}Meldingen op dit toestel</a>`;if(lo)lo.insertAdjacentHTML("beforebegin",h);else m.insertAdjacentHTML("beforeend",h)}}
+  const h=`<a href="#meldingen" class="acct-i" role="menuitem" data-act="acctClose" data-mpm>${ic("bel")}Meldingen op dit toestel</a>`;if(lo)lo.insertAdjacentHTML("beforebegin",h);else m.insertAdjacentHTML("beforeend",h)}}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-mp],#mpOk");if(!t)return;if(t.id==="mpOk")return mpBewaar();
   ({aan:mpAan,uit:mpUit,test:mpTest})[t.dataset.mp](t)});
 mpReg();
@@ -4039,3 +4039,25 @@ function dtUpg(el){if(el._dt||el.closest(".dt-w"))return;el._dt=true;
 function dtScan(root){(root.querySelectorAll?root:document).querySelectorAll('input[type="date"]:not(.dt-nat)').forEach(dtUpg)}
 new MutationObserver(L=>{for(const m of L)for(const n of m.addedNodes)if(n.nodeType===1){if(n.matches&&n.matches('input[type="date"]:not(.dt-nat)'))dtUpg(n);else if(n.querySelector&&n.querySelector('input[type="date"]'))dtScan(n)}}).observe(document.documentElement,{childList:true,subtree:true});
 dtScan(document);
+
+/* ============ Instellingen enkel voor de administrator ============
+   Andere profielen zien geen tandwieltjes of instellingenpagina's. Wat iedereen wel kan: "Meldingen op dit toestel" (eigen pagina).
+   Bij "Bekijken als…" geldt het bekeken profiel (ROL). */
+const ADM=()=>ROL==="admin";
+ICON.potlood='<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-4-4L4 16z"/><path d="M14 6l4 4"/>';
+const ADM_ROUTES=[...INST_IDS,"gebruikers"];
+if(!ROUTES.some(r=>r[0]==="meldingen"))ROUTES.push(["meldingen","Meldingen op dit toestel"]);
+VIEWS.meldingen=()=>({title:"Meldingen op dit toestel",sub:"Een melding op je gsm of computer op de dag van een vergadering of activiteit",
+  body(){if(!MP.srv&&!MP.bezig){MP.bezig=true;setTimeout(()=>mpLaad().finally(()=>{MP.bezig=false}),0)}const c=mpCfg();
+    return `<div class="panel mp-eigen"><div class="panel-h"><h2>Dit toestel</h2></div><div class="panel-b" id="mpToestel">${mpToestelHtml()}</div></div>
+    <p class="muted small mp-uitleg">${c.aan?`Staan de meldingen aan, dan krijg je om ${Number(c.uur)||9}u een melding op de dag van ${[c.vergaderingen?"een vergadering":"",c.activiteiten?"een activiteit":""].filter(Boolean).join(" of ")||"een activiteit"}. Je zet ze per toestel aan: doe dit dus op elke gsm of computer waarop je ze wilt krijgen.`:"De vereniging verstuurt momenteel geen pushmeldingen."}</p>`}});
+// instellingenpagina's afschermen
+for(const k of ADM_ROUTES){const o=VIEWS[k];if(!o)continue;const n=function(){if(ADM())return o.apply(this,arguments);
+    return{title:"Instellingen",body(){return `<div class="panel"><div class="panel-b"><p style="margin:0 0 12px">De instellingen zijn enkel toegankelijk voor de administrator.</p><a class="btn" href="#meldingen">${ic("bel")}Meldingen op dit toestel</a></div></div>`}}};
+  Object.assign(n,o);if(o.after)n.after=function(){if(ADM())return o.after.apply(this,arguments)};VIEWS[k]=n}
+// tandwieltjes en het menu-item Instellingen verbergen (via een klasse op body, bij elke weergave bijgewerkt)
+{const _r=render;render=function(){document.body.classList.toggle("niet-admin",!ADM());return _r.apply(this,arguments)}}
+{const _b=renderBody;renderBody=function(){document.body.classList.toggle("niet-admin",!ADM());return _b.apply(this,arguments)}}
+// toetsen die toch een instellingenvenster openen: enkel voor de administrator
+document.addEventListener("click",e=>{if(ADM())return;const t=e.target.closest('[data-act="finInst"],[data-act="puntInst"],[data-act="bkInst"],[data-act="kfInst"],[data-fc="instel"],[data-spi="open"],[data-ink="instel"],a[href="#instellingen"]');
+  if(t){e.preventDefault();e.stopImmediatePropagation();toast("De instellingen zijn enkel toegankelijk voor de administrator.",true)}},true);
