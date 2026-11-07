@@ -181,13 +181,14 @@ export function factuurPdf(f, cfg, { status } = {}) {
       regel("Begunstigde", cfg.vereniging);
       regel("Mededeling", f.ogm ? ogmFmt(f.ogm) : f.nr || "volgt bij het versturen", !!(f.ogm || f.nr));
       if (f.vervaldatum) regel("Uiterlijk op", dmy(f.vervaldatum));
-      if (f.nr) {
+      {
+        // ook in het concept (voorbeeld): dan nog zonder mededeling, die volgt bij het versturen
         try {
-          const q = qrMatrix(epcPayload({ naam: cfg.vereniging, iban: cfg.iban, bedrag: te, mededeling: f.ogm ? ogmFmt(f.ogm) : f.nr }));
+          const q = qrMatrix(epcPayload({ naam: cfg.vereniging, iban: cfg.iban, bedrag: te, mededeling: f.ogm ? ogmFmt(f.ogm) : f.nr || "" }));
           const qm = 84, qx = R - qm - 14;
           pdf.vlak(qx - 4, y + 10, qm + 8, qm + 8, "#ffffff");
           pdf.qr(qx, y + 14, qm, q.n, q.donker);
-          pdf.tekst(qx + qm / 2, y + bh - 10 + 2, "Scan met je bankapp", { size: 7, kleur: GRIJS, align: "center" });
+          pdf.tekst(qx + qm / 2, y + bh - 10 + 2, f.nr ? "Scan met je bankapp" : "Voorbeeld", { size: 7, kleur: GRIJS, align: "center" });
         } catch (e) { console.error("QR in PDF", e); }
       }
     }
