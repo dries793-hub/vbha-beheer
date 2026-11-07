@@ -1201,10 +1201,10 @@ function bkTable(){
   let R=bkRows();if(q)R=R.filter(x=>norm([x.r.naam,x.r.opmerking,x.r.menu1,x.r.menu2].join(" ")).includes(q));
   if(F==="open")R=R.filter(x=>!x.p.ok);else if(F==="ok")R=R.filter(x=>x.p.ok);else if(F==="veg")R=R.filter(x=>x.r.menu1==="Vegetarisch"||(x.r.personen===2&&x.r.menu2==="Vegetarisch"));
   const pers=R.reduce((s,x)=>s+(x.r.personen===2?2:1),0);
-  return `<div class="tw"><table class="rcards"><thead><tr><th>Naam</th><th>Formule</th><th>Menu</th><th>Opmerking</th><th class="num">Bedrag</th><th>Betaling</th><th>Ingeschreven</th></tr></thead><tbody>
+  return `<div class="tw"><table class="rcards"><thead><tr><th>Naam</th><th>Formule</th><th>Menu</th><th>Opmerking</th><th class="num">Bedrag</th><th>Betaling</th></tr></thead><tbody>
   ${R.map(x=>{const r=x.r;const menu=r.personen===2?esc(r.menu1)+" + "+esc(r.menu2||"?"):esc(r.menu1);
     const pill=x.p.ok?`<span class="pill ok" title="${esc(x.p.bron)}">Betaald</span>`:x.p.deel?`<span class="pill warn" title="${esc(x.p.bron)}">Deels: ${eur(x.p.bedrag)}</span>`:`<span class="pill nok">Open</span>`;
-    return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b>${x.lid?"":'<div class="small muted">niet gevonden in ledenlijst</div>'}</td><td class="nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td><td class="muted nowrap">${esc(inschrOp(r))}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
+    return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b>${x.lid?"":'<div class="small muted">niet gevonden in ledenlijst</div>'}</td><td class="nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td></tr>`}).join("")||'<tr><td colspan="6" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
   </tbody>${R.length?`<tfoot><tr><td>${R.length} inschrijvingen</td><td>${pers} personen</td><td></td><td></td><td class="num">${eur(R.reduce((s,x)=>s+x.due,0))}</td><td></td><td></td></tr></tfoot>`:""}</table></div>`}
 VIEWS.banket=()=>({title:"Banket "+JAAR,sub:"Inschrijvingen en betalingen",
   actions:`<a class="btn" href="${BK_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden (${esc(insStatus(bkCfg(),JAAR+"-12-01").label)})">${ic("link")}Inschrijfpagina${insPill(insStatus(bkCfg(),JAAR+"-12-01"))}</a><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-act="bkInst" aria-label="Instellingen banket" title="Instellingen banket">${ic("instellingen")}</button>`,
@@ -4184,11 +4184,11 @@ kfTable=function(list,dub,c){list=KFC.f==="nog"?list.filter(r=>!kfcAan(r)):KFC.f
   const mob=`<div class="mlist" role="list">${list.map(r=>{const l=kfLidVan(r.lid);const kids=r.kinderen||[];
     return `<div class="ml-row kfc-row" role="listitem"><button type="button" class="kfc-open" data-act="kfToon" data-id="${esc(r.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(r.lid)}</b>${l?"":' <span class="pill warn">niet in ledenlijst</span>'}${dub[norm(r.email)]>1?' <span class="pill warn">dubbel?</span>':""}</span>
       <span class="ml-s kf-ms">${kidsH(r)||"geen kinderen"}</span></span><span class="pm-tot"><b>${kids.length}</b><small>${kids.length===1?"kind":"kinderen"}</small></span></button>${kfcVink(r)}</div>`}).join("")||`<div class="empty">${leeg}</div>`}</div>`;
-  return mob+`<table class="rcards dsk-only"><thead><tr><th>Lid</th><th>E-mail</th><th>Kinderen</th><th class="num">Aantal</th><th>Ingeschreven</th><th>Bron</th><th>Cadeaus</th></tr></thead><tbody>
+  return mob+`<table class="rcards dsk-only"><thead><tr><th>Lid</th><th>E-mail</th><th>Kinderen</th><th class="num">Aantal</th><th>Bron</th><th>Cadeaus</th></tr></thead><tbody>
   ${list.map(r=>{const l=kfLidVan(r.lid);const kids=r.kinderen||[];
     return `<tr class="click" data-act="kfToon" data-id="${esc(r.id)}"><td><b>${esc(r.lid)}</b>${l?"":' <span class="pill warn">niet in ledenlijst</span>'}${dub[norm(r.email)]>1?' <span class="pill warn">mogelijk dubbel</span>':""}${r.opmerking?`<div class="muted small">${esc(r.opmerking)}</div>`:""}</td>
     <td class="trunc">${esc(r.email)}</td><td><div class="kf-kl">${kidsH(r)}</div></td>
-    <td class="num">${kids.length}</td><td class="nowrap">${esc(inschrOp(r))}</td>
+    <td class="num">${kids.length}</td>
     <td>${r.bron==="formulier"?'<span class="pill info">Formulier</span>':'<span class="pill neutral">Manueel</span>'}</td><td class="nowrap">${kfcVink(r)}</td></tr>`}).join("")||`<tr><td colspan="7" class="empty">${leeg}</td></tr>`}
   </tbody></table>`};
 {const _v=VIEWS.kinderfeest;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=b.apply(this,arguments);const L=kfLijst(),ok=L.filter(kfcAan).length;
