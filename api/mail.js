@@ -1,7 +1,7 @@
 import { requireUser, sendError, httpErr } from "./_lib/sb.js";
 import { smtpConfigured, afzender, verstuur } from "./_lib/smtp.js";
 import { ondertekenLinks } from "./_lib/lidlink.js";
-import { herinneringen, herinneringTest } from "./_lib/herinnering.js";
+import { herinneringen, herinneringTest, vergaderingAfgerond } from "./_lib/herinnering.js";
 import { bevestigingenCron } from "./_lib/bevestiging.js";
 import { factuurActie } from "./_lib/factuur.js";
 
@@ -15,6 +15,7 @@ export default async function handler(req, res) {
   try {
     if (req.query && req.query.f === "herinnering") return await herinneringen(req, res); // geplande taak (Supabase pg_cron)
     if (req.query && req.query.f === "herinnering-test") return await herinneringTest(req, res); // voorbeeld naar de administrator
+    if (req.query && req.query.f === "vergadering-afgerond") return await vergaderingAfgerond(req, res); // verslag + volgende vergadering naar het bestuur
     if (req.query && req.query.f === "factuur") return await factuurActie(req, res); // facturatie: PDF, definitief maken, versturen, herinnering
     if (req.query && req.query.f === "bevestigingen") return await bevestigingenCron(req, res); // geplande taak: bevestigingen na 20 min zonder online betaling
     if (req.method === "GET") { await requireUser(req); return res.status(200).json({ ingesteld: smtpConfigured(), van: afzender() }); }
