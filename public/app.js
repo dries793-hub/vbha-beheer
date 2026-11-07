@@ -2428,7 +2428,7 @@ function docVgLink(d){const v=d.vergaderingId&&S.vergaderingen.get(d.vergadering
   return `<span class="doc-rol doc-vg" role="link" tabindex="0" data-va="agenda" data-id="${esc(v.id)}">${ic("agenda")}Bekijk in de agenda</span>`}
 VIEWS.documenten=()=>({title:"Documenten",body(){if(DOC.map&&!docMappen().includes(DOC.map))DOC.map="";
   return `${canWrite?`<div class="doc-up"><div class="doc-drop" id="docDrop"><span class="doc-drop-ic">${ic("upload")}</span><span class="doc-drop-t"><span><b>Sleep bestanden hierheen</b> of <label for="docFile" class="doc-lnk">kies bestanden</label></span><small>Daarna kies je in welke map ze komen · tot 50 MB per bestand</small></span></div><input type="file" id="docFile" multiple hidden><label for="docFile" class="btn primary doc-mup">${ic("upload")}Bestand opladen</label><div id="docProg"></div></div>`:""}
-  <div class="bar doc-bar">${docKruim()}<div class="search">${ic("search")}<input id="docQ" data-docq placeholder="Zoek in alle mappen" value="${esc(DOC.q)}"></div>${canWrite?`<button type="button" class="btn" data-act="docMapNieuw">${ic("plus")}Nieuwe map</button>`:""}</div>
+  <div class="bar doc-bar">${docKruim()}<div class="search">${ic("search")}<input id="docQ" data-docq placeholder="Zoek in alle mappen" value="${esc(DOC.q)}"></div>${canWrite&&DOC.map?`<button type="button" class="btn" data-act="docDeel">${ic("delen")}Delen</button>`:""}${canWrite?`<button type="button" class="btn" data-act="docMapNieuw">${ic("plus")}Nieuwe map</button>`:""}</div>
   <div id="docList">${docInhoud()}</div>`}});
 /* opladen: eerst bestanden kiezen of slepen, dan de map kiezen */
 function docMapOpties(sel){return docMappen().map(m=>{const d=m.split("/").length-1;return `<label class="doc-kr-o${m===sel?" on":""}" style="--d:${d}"><input type="radio" name="dkM" value="${esc(m)}"${m===sel?" checked":""}>${ic("documenten")}<span>${esc(docNaamVan(m))}</span><small class="muted">${docIn(m,false).length||""}</small></label>`}).join("")}
@@ -2507,11 +2507,42 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(
     case"docEdit":if(d)docEdit(d);break;
     case"docMapNieuw":docMapNieuw();break;
     case"docMapEdit":docMapEdit(t.dataset.v);break;
+    case"docDeel":docDeel(DOC.map);break;
   }});
 document.addEventListener("change",e=>{if(e.target.id==="docFile"){const f=[...e.target.files];e.target.value="";docKiesMap(f)}});
 document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.docq!==undefined){DOC.q=e.target.value;const el=$("#docList");if(el)el.innerHTML=docInhoud()}});
 ["dragenter","dragover"].forEach(ev=>document.addEventListener(ev,e=>{const z=e.target.closest&&e.target.closest("#docDrop,.doc-fold");if(!z||!canWrite)return;e.preventDefault();z.classList.add("on")}));
 ["dragleave","drop"].forEach(ev=>document.addEventListener(ev,e=>{const z=e.target.closest&&e.target.closest("#docDrop,.doc-fold");if(!z)return;e.preventDefault();if(ev==="dragleave"&&z.contains(e.relatedTarget))return;z.classList.remove("on");if(ev==="drop"&&e.dataTransfer&&e.dataTransfer.files.length)docKiesMap([...e.dataTransfer.files],z.dataset.map||"")}));
+
+/* ---- Deellinks: een map delen met een externe ---- */
+const deelToken=()=>{const b=new Uint8Array(24);crypto.getRandomValues(b);return btoa(String.fromCharCode(...b)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")};
+const deelUrl=t=>location.origin+"/deel?t="+t;
+const deelDag=iso=>{const [y,m,d]=String(iso||"").split("-");return d?d+"/"+m+"/"+y:""};
+const deelPlus=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString("sv-SE")};
+async function deelLijst(m){const {data,error}=await SB.from("deellinks").select("id,data").eq("data->>map",m);if(error)throw sbErr(error);
+  const nu=new Date().toLocaleDateString("sv-SE");return (data||[]).map(r=>({id:r.id,...r.data,verlopen:!!(r.data.tot&&nu>r.data.tot)})).filter(x=>!x.ingetrokken).sort((a,b)=>String(b.op||"").localeCompare(String(a.op||"")))}
+async function docDeel(m){if(!canWrite||!m)return;
+  modal("Map delen",`<div class="dd-w"><p class="muted small" style="margin:0 0 12px">Iedereen met de link kan de bestanden in <b>${esc(docLabel(m))}</b> bekijken en downloaden, zonder aan te melden. Andere mappen en de rest van de app blijven afgeschermd. Je kan een link op elk moment intrekken.</p>
+   <div id="ddL"><p class="muted small">Laden…</p></div>
+   <form id="fDd" class="form dd-n"><div class="full"><b>Nieuwe link</b></div>
+    ${fld("ddV","Voor wie (optioneel)",inp("ddV","",'maxlength="80" placeholder="bv. drukkerij De Peer"'))}
+    ${fld("ddT","Geldig tot",`<select id="ddT" class="sel"><option value="7">1 week</option><option value="30" selected>1 maand</option><option value="90">3 maanden</option><option value="365">1 jaar</option><option value="0">Geen einddatum</option></select>`)}
+    <label class="full dd-c"><input type="checkbox" id="ddS" checked> Ook de submappen delen</label>
+    <div class="err full" id="ddErr"></div></form></div>`,
+  `<button class="btn" data-act="closeModal">Sluiten</button><button class="btn primary" id="ddOk">${ic("delen")}Link maken</button>`);
+  const toon=async(nieuw)=>{const el=$("#ddL");if(!el)return;try{const L=await deelLijst(m);
+    el.innerHTML=L.length?`<div class="dd-l">${L.map(x=>`<div class="dd-i${x.id===nieuw?" nw":""}${x.verlopen?" vl":""}"><div class="dd-t"><b>${esc(x.voor||"Deellink")}</b><small class="muted">${x.verlopen?"Verlopen op "+deelDag(x.tot):x.tot?"Geldig t.e.m. "+deelDag(x.tot):"Geen einddatum"}${x.submappen?" · met submappen":""} · ${x.geopend?x.geopend+"× geopend":"nog niet geopend"}</small></div>
+      <div class="dd-r"><input class="sel" readonly value="${esc(deelUrl(x.id))}" onclick="this.select()" aria-label="Deellink"><button type="button" class="btn sm" data-act="kopieerLink" data-v="${esc(deelUrl(x.id))}">${ic("copy")}Kopiëren</button><button type="button" class="btn sm danger" data-dd-in="${esc(x.id)}">Intrekken</button></div></div>`).join("")}</div>`:`<p class="muted small" style="margin:0 0 4px">Deze map is nog niet gedeeld.</p>`;
+    el.querySelectorAll("[data-dd-in]").forEach(b=>b.onclick=()=>confirmBox("Deze link intrekken? Wie hem heeft, kan de map daarna niet meer openen.","Intrekken",async()=>{
+      const id=b.dataset.ddIn,{data:r}=await SB.from("deellinks").select("data").eq("id",id).maybeSingle();const {error}=await SB.from("deellinks").update({data:{...(r&&r.data||{}),ingetrokken:true,ingetrokkenOp:new Date().toISOString()}}).eq("id",id);
+      if(error){toast(sbErr(error).message,true);return}toast("Link ingetrokken.");if($("#ddL"))toon()}))}catch(e){el.innerHTML=`<p class="err">${esc(e.message)}</p>`}};
+  toon();
+  const ok=async e=>{e&&e.preventDefault();const b=$("#ddOk");b.disabled=true;$("#ddErr").textContent="";
+    try{const n=+$("#ddT").value,id=deelToken(),data={map:m,submappen:$("#ddS").checked,tot:n?deelPlus(n):"",voor:$("#ddV").value.trim(),door:(ME&&ME.email)||"",op:new Date().toISOString(),geopend:0};
+      const {error}=await SB.from("deellinks").insert({id,data});if(error)throw sbErr(error);
+      try{await navigator.clipboard.writeText(deelUrl(id));toast("Link gemaakt en gekopieerd.")}catch(_){toast("Link gemaakt.")}
+      $("#ddV").value="";await toon(id)}catch(x){$("#ddErr").textContent=x.message}finally{b.disabled=false}};
+  $("#ddOk").onclick=ok;$("#fDd").onsubmit=ok}
 
 /* ============ Foto's (Activiteiten › Foto's) ============
    Collectie "fotoalbums": {titel, jaar, datum, link, fotograaf, omschrijving, cover} — een album is een link naar een externe galerij (bv. Pixieset). */
