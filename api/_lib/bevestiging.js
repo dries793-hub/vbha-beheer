@@ -1,4 +1,4 @@
-import { admin, isDbCron, httpErr } from "./sb.js";
+import { admin, isDbCron, httpErr, requireUser } from "./sb.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
 import { algemeen, configDoc, inschrijving, DEF_IBAN } from "./publiek.js";
 import { controleerBetaling } from "./betaal.js";
@@ -74,17 +74,45 @@ async function mailNieuwLid(sb, row) {
     + p("Kloppen je gegevens niet? Antwoord dan gewoon op deze mail.", "margin:0 0 15px;font-size:13.5px;color:#666666");
   return { aan, aanNaam: d.voornaam + " " + d.naam, onderwerp: `VBHA - Bevestiging van je inschrijving als lid`, html: huisstijl(html, A.vereniging), betaald };
 }
+/* kinderfeest: cadeau-info in de bevestiging (instelbaar in Kinderfeest › tandwiel; config kf_<jaar>.mail) */
+export function kfMailDef(jaar, datum) {
+  const Y = Number(String(datum || "").slice(0, 4)) || Number(jaar), d = new Date((datum || Y + "-12-19") + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() - 10);
+  return { cadeau: true, sites: "www.dreamland.be, www.bol.com", tot: d.toISOString().slice(0, 10), contact: "jojanneke.lariviere@zonezuidoost.be",
+    groepen: `${Y - 11}: cadeau voorzien door VBHA\n${Y - 10}-${Y - 6}: 50,00 EUR per kind\n${Y - 5}-${Y}: 35,00 EUR per kind` };
+}
+export function kfGroepen(t) {
+  return String(t || "").split(/\n+/).map(l => l.match(/^\s*(\d{4})(?:\s*[-–]\s*(\d{4}))?\s*[:=]\s*(.+?)\s*$/)).filter(Boolean)
+    .map(m => ({ van: Math.min(+m[1], +(m[2] || m[1])), tot: Math.max(+m[1], +(m[2] || m[1])), tekst: m[3] }));
+}
+const jarenTekst = (a, b) => { const L = []; for (let y = a; y <= b; y++) L.push(y); return L.length < 2 ? String(L[0]) : L.slice(0, -1).join(", ") + " en " + L[L.length - 1]; };
+const linkSite = s => { const u = String(s).trim(); if (!u) return ""; const h = /^https?:\/\//i.test(u) ? u : "https://" + u; return `<a href="${esc(h)}" style="color:#a3211a">${esc(u.replace(/^https?:\/\//i, ""))}</a>`; };
+export async function kfMailHtml(sb, d, { A, c, jaar }) {
+  const datum = c.datum || jaar + "-12-19", tijd = c.tijd || "14u30", locatie = c.locatie || "VTI - Sinte Annalaan 99b, Aalst";
+  const M = { ...kfMailDef(jaar, datum), ...(c.mail || {}) }, G = kfGroepen(M.groepen);
+  const lft = geb => { if (!geb) return ""; const [y, m, dd] = geb.split("-").map(Number), [Y, Mo, D] = datum.split("-").map(Number); let a = Y - y; if (Mo < m || (Mo === m && D < dd)) a--; return a < 1 ? "< 1 jaar" : a + " jaar"; };
+  const groep = geb => { const y = Number(String(geb || "").slice(0, 4)); return G.find(g => y >= g.van && y <= g.tot); };
+  const kids = (d.kinderen || []).map(k => { const g = M.cadeau ? groep(k.geb) : null; return `<b>${esc(k.naam)}</b>${k.geb ? ` <span style="color:#666666">(${lft(k.geb)}${g ? " · " + esc(g.tekst.replace(/ per kind$/i, "")) : ""})</span>` : ""}`; }).join("<br>");
+  let vn = d.voornaam || "";
+  if (!vn && d.lidId) { const { data: lid } = await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle(); vn = (lid && lid.data && lid.data.voornaam) || ""; }
+  const sites = String(M.sites || "").split(/[,;\s]+/).filter(Boolean).map(linkSite);
+  const sitesT = sites.length < 2 ? sites.join("") : sites.slice(0, -1).join(", ") + " of " + sites[sites.length - 1];
+  const totL = M.tot ? lang(M.tot).replace(/^\S+\s/, "") : "";
+  let html = p(vn ? `Beste ${esc(vn)},` : "Beste,") + p(`Je bent ingeschreven voor het kinderfeest op <b>${esc(lang(datum).replace(/^\S+\s/, ""))}</b>. Super!`);
+  if (M.cadeau) {
+    html += p("Dit jaar kan je zoals vorig jaar zelf het cadeau voor je kind(eren) kiezen.")
+      + (sitesT ? p(`Ga hiervoor naar de website ${sitesT} en kies 1 of meerdere cadeaus volgens de waarde die hieronder vermeld staat (per geboortejaar).`) : "")
+      + p(`Stuur ons ${totL ? `<b>voor ${esc(totL)}</b> ` : ""}per kind de omschrijving en het artikelnummer door${M.contact ? ` via <a href="mailto:${esc(M.contact)}" style="color:#a3211a">${esc(M.contact)}</a>` : ""}.`)
+      + p(`Gelieve ook te letten op de beschikbaarheid en levertijden van de producten.<br>Indien we ${totL ? "op " + esc(totL) + " " : ""}niets van jou hebben ontvangen, zal er een waardebon van bol.com worden voorzien t.w.v. onderstaand bedrag.`)
+      + (G.length ? p(G.map(g => `<b>Kinderen geboren in ${jarenTekst(g.van, g.tot)}:</b> ${esc(g.tekst)}`).join("<br>")) : "");
+  }
+  html += kaderBlok("Je inschrijving", tabel([rij("Wanneer", esc(lang(datum)) + (tijd ? " om " + esc(tijd) : "")), rij("Waar", esc(locatie)), rij("Lid", esc(d.lid)), rij("Kinderen", kids || "–"), d.opmerking ? rij("Opmerking", esc(d.opmerking)) : ""]))
+    + p("Tot dan!");
+  return html;
+}
 async function mailKinderfeest(sb, row) {
   const d = row.data, A = await algemeen(sb), jaar = d.jaar || A.jaar, c = await configDoc(sb, "kf_" + jaar), aan = String(d.email || "").trim();
   if (!aan) return null;
-  const datum = c.datum || jaar + "-12-19", tijd = c.tijd || "14u30", locatie = c.locatie || "VTI - Sinte Annalaan 99b, Aalst";
-  const lft = geb => { if (!geb) return ""; const [y, m, dd] = geb.split("-").map(Number), [Y, M, D] = datum.split("-").map(Number); let a = Y - y; if (M < m || (M === m && D < dd)) a--; return a < 1 ? "< 1 jaar" : a + " jaar"; };
-  const kids = (d.kinderen || []).map(k => `${esc(k.naam)}${k.geb ? ` <span style="color:#666666">(${lft(k.geb)})</span>` : ""}`).join("<br>");
-  const { data: lid } = d.lidId ? await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle() : { data: null };
-  const vn = lid && lid.data && lid.data.voornaam;
-  const html = p(vn ? `Beste ${esc(vn)},` : "Beste,") + p(`Bedankt voor de inschrijving voor het kinderfeest. Hieronder vind je nog eens alle gegevens.`)
-    + kaderBlok("Kinderfeest " + jaar, tabel([rij("Wanneer", esc(lang(datum)) + (tijd ? " om " + esc(tijd) : "")), rij("Waar", esc(locatie)), rij("Lid", esc(d.lid)), rij("Kinderen", kids || "–"), rij("Opmerking", esc(d.opmerking || ""))]))
-    + p("De kerstman verrast alle kinderen met een cadeautje, en voor groot en klein zijn er drankjes en pannenkoeken. Tot dan!");
+  const html = await kfMailHtml(sb, d, { A, c, jaar });
   return { aan, aanNaam: d.lid || "", onderwerp: `VBHA - Bevestiging inschrijving kinderfeest ${jaar}`, html: huisstijl(html, A.vereniging), betaald: true };
 }
 async function mailBetaald(sb, tabel, row) {
@@ -144,3 +172,15 @@ export async function bevestigingenCron(req, res) {
 }
 // gedeeld met de facturatie (api/_lib/factuur.js)
 export { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, kort, lang, vandaag, plusDagen, site };
+
+/* voorbeeld van de bevestigingsmail kinderfeest (app: Kinderfeest › tandwiel › Voorbeeld) */
+export async function kfVoorbeeld(req, res) {
+  const { sb } = await requireUser(req);
+  const b = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+  const A = await algemeen(sb), jaar = Number(b.jaar) || A.jaar, c0 = await configDoc(sb, "kf_" + jaar), c = { ...c0, ...(b.cfg || {}), mail: { ...(c0.mail || {}), ...((b.cfg && b.cfg.mail) || {}) } };
+  const Y = Number(String(c.datum || jaar + "-12-19").slice(0, 4));
+  const d = { jaar, lid: "Peeters Jan", voornaam: "Jan", kinderen: [{ naam: "Lotte", geb: (Y - 8) + "-04-02" }, { naam: "Mats", geb: (Y - 3) + "-09-15" }] };
+  const html = huisstijl(await kfMailHtml(sb, d, { A, c, jaar }), A.vereniging);
+  res.setHeader("Cache-Control", "no-store");
+  return res.status(200).json({ html, standaard: kfMailDef(jaar, c.datum || jaar + "-12-19") });
+}
