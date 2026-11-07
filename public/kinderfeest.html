@@ -138,6 +138,12 @@ input[type=date]{width:100%;font:inherit;font-size:16px;padding:10px 12px;border
 .lp-i b{font-weight:700}
 .lp-leeg{padding:11px 14px;font-size:14px;color:var(--muted)}
 .lp input.lp-ok{border-color:var(--good);background:var(--good-soft)}
+/* iPhone: datumvelden niet breder dan hun vak, geen schuifbalken */
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;width:100%;display:block;box-sizing:border-box;min-height:44px}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
+html,body{overflow-x:hidden}
+@media (max-width:760px){*{scrollbar-width:none}*::-webkit-scrollbar{display:none;width:0;height:0}}
+.kid>*{min-width:0}
 </style>
 </head>
 <body>
