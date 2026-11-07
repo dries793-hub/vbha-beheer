@@ -1195,7 +1195,7 @@ function bkTable(){
     return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b>${x.lid?"":'<div class="small muted">niet gevonden in ledenlijst</div>'}</td><td class="nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td><td class="muted nowrap">${esc(r.ingediend||"")}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
   </tbody>${R.length?`<tfoot><tr><td>${R.length} inschrijvingen</td><td>${pers} personen</td><td></td><td></td><td class="num">${eur(R.reduce((s,x)=>s+x.due,0))}</td><td></td><td></td></tr></tfoot>`:""}</table></div>`}
 VIEWS.banket=()=>({title:"Banket "+JAAR,sub:"Inschrijvingen en betalingen",
-  actions:`<a class="btn" href="${BK_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden (${esc(insStatus(bkCfg(),JAAR+"-12-01").label)})">${ic("deel")}Inschrijfpagina${insPill(insStatus(bkCfg(),JAAR+"-12-01"))}</a><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-act="bkInst" aria-label="Instellingen banket" title="Instellingen banket">${ic("instellingen")}</button>`,
+  actions:`<a class="btn" href="${BK_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden (${esc(insStatus(bkCfg(),JAAR+"-12-01").label)})">${ic("link")}Inschrijfpagina${insPill(insStatus(bkCfg(),JAAR+"-12-01"))}</a><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-act="bkInst" aria-label="Instellingen banket" title="Instellingen banket">${ic("instellingen")}</button>`,
   body(){
   const R=bkRows(),bc=bkCfg();const pers=R.reduce((s,x)=>s+(x.r.personen===2?2:1),0);
   let norm_=0,veg=0;for(const {r} of R){(r.menu1==="Vegetarisch"?veg++:norm_++);if(r.personen===2)(r.menu2==="Vegetarisch"?veg++:norm_++)}
@@ -1214,7 +1214,7 @@ const INS_MAAND=["januari","februari","maart","april","mei","juni","juli","augus
 const insTot=(c,def)=>/^\d{4}-\d{2}-\d{2}$/.test(String(c.inschrijvenTot||""))?c.inschrijvenTot:def;
 const insTekst=iso=>{const [y,m,d]=iso.split("-").map(Number);return d+" "+INS_MAAND[m-1]};
 function insStatus(c,def){const tot=insTot(c,def);const open=c.open!==false&&todayISO()<=tot;return{open,tot,label:open?"open t.e.m. "+insTekst(tot):c.open===false?"gesloten":"afgesloten sinds "+insTekst(tot)}}
-const insPill=st=>`<span class="ins-st ${st.open?"ok":"nok"}" title="Inschrijvingen ${st.label}"></span>`;
+const insPill=st=>{const k=st.open?"open":/^gesloten/.test(st.label)?"dicht":"verlopen";return `<span class="spi-dot ${k}" title="Inschrijvingen ${st.label}">${k==="open"?"Open":k==="dicht"?"Gesloten":"Afgelopen"}</span>`};
 function insVelden(c,def,d){const st=insStatus(c,def);return `${fld("insTot","Inschrijven tot en met",`<input id="insTot" type="date" value="${esc(insTot(c,def))}"${d}>`)}
   <div class="fld"><span class="lbl">Inschrijvingen</span><label class="sp-nat" style="padding:9px 12px"><input type="checkbox" id="insOpen"${c.open!==false?" checked":""}${d}><span><b>Open</b><small>${st.open?"Nu open":"Nu gesloten"}${c.open!==false&&!st.open?" (datum voorbij)":""}</small></span></label></div>`}
 const insLees=()=>({inschrijvenTot:$("#insTot").value,open:$("#insOpen").checked});
@@ -2227,7 +2227,8 @@ const agKort=iso=>agD(iso).toLocaleDateString("nl-BE",{weekday:"short",day:"nume
 const agDagen=iso=>Math.round((agD(iso)-agD(todayISO()))/864e5);
 const agWanneer=iso=>{const n=agDagen(iso);return n===0?"vandaag":n===1?"morgen":n===-1?"gisteren":n>1&&n<=13?"over "+n+" dagen":n>13&&n<70?"over "+Math.round(n/7)+" weken":n<0?Math.abs(n)+" dagen geleden":""};
 // Komt het item in de activiteitenmail ({agenda})? Activiteiten, banket en kinderfeest standaard wel; vergaderingen enkel de algemene.
-const vgInMail=v=>typeof v.inMail==="boolean"?v.inMail:/algemene/i.test(v.soort||"");
+const vgBestuur=v=>/bestuur/i.test((v&&v.soort)||"");
+const vgInMail=v=>vgBestuur(v)?false:typeof v.inMail==="boolean"?v.inMail:/algemene/i.test(v.soort||"");
 const agMailVink=(id,aan)=>`<label class="sp-nat full" for="${id}"><input type="checkbox" id="${id}"${aan?" checked":""}${canWrite?"":" disabled"}><span><b>Opnemen in de activiteitenmail</b><small>Verschijnt als kader in mails met het blok {agenda}.</small></span></label>`;
 function agItems(){const out=[];
   for(const a of S.activiteiten.values())if(a.datum)out.push({id:a.id,t:"act",datum:a.datum,uur:a.uur||"",titel:a.titel||"Activiteit",locatie:a.locatie||"",info:a.info||"",inMail:a.inMail!==false});
@@ -2324,12 +2325,12 @@ function vgForm(v,id){const d=canWrite?"":" disabled";v=v||{soort:"Bestuursverga
    ${fld("vg_datum","Datum",`<input id="vg_datum" type="date" value="${esc(v.datum||"")}"${d}>`)}${fld("vg_uur","Uur",inp("vg_uur",v.uur,'maxlength="20" placeholder="bv. 20u00"'+d))}
    ${fld("vg_locatie","Waar",inp("vg_locatie",v.locatie,'maxlength="160" placeholder="bv. Kazerne, refter"'+d),"full")}
    ${ta("agenda","Agenda","Eén punt per regel",110)}
-   ${agMailVink("vg_mail",vgInMail(v))}
+   <div class="full" id="vgMailW"${vgBestuur(v.soort?v:{soort:VG_SOORT[0]})?" hidden":""}>${agMailVink("vg_mail",vgInMail(v))}</div>
 <div class="err full" id="vgErr"></div></form>`,
    `${id&&canWrite?'<button class="btn danger" id="vgDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="vgOk">Bewaren</button>':""}`,{});
   const pr=$("#vgPrint");if(pr)pr.onclick=()=>vgPrint(S.vergaderingen.get(id)||v);
   if(!canWrite)return;
-  $("#vgOk").onclick=async()=>{const g=k=>$("#vg_"+k).value.trim();const r={soort:$("#vg_soort").value,titel:g("titel"),datum:$("#vg_datum").value,uur:g("uur"),locatie:g("locatie"),agenda:g("agenda"),inMail:$("#vg_mail").checked};
+  $("#vgOk").onclick=async()=>{const g=k=>$("#vg_"+k).value.trim();const r={soort:$("#vg_soort").value,titel:g("titel"),datum:$("#vg_datum").value,uur:g("uur"),locatie:g("locatie"),agenda:g("agenda"),inMail:$("#vg_mail").checked};if(vgBestuur(r))r.inMail=false;
     if(!/^\d{4}-\d{2}-\d{2}$/.test(r.datum)){$("#vgErr").textContent="Kies een datum.";return}
     closeModal();await write("vergaderingen",id||agId("verg"),{...(id?stripId(S.vergaderingen.get(id)||{}):{}),...r});toast("Vergadering bewaard.")};
   const del=$("#vgDel");if(del)del.onclick=()=>confirmBox(`De vergadering van <b>${esc(fmtDate(v.datum))}</b> en het verslag verwijderen?`,"Verwijderen",async()=>{await write("vergaderingen",id,null,{del:true});toast("Vergadering verwijderd.")})}
@@ -2355,6 +2356,9 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(
     case"vgToon":{e.preventDefault();const v=S.vergaderingen.get(t.dataset.id);if(v)vgForm(v,v.id);break}
   }});
 document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.vgq!==undefined){AG.q=e.target.value;const pos=e.target.selectionStart;render(true);const i=$("#vgQ");if(i){i.focus();try{i.setSelectionRange(pos,pos)}catch(x){}}}});
+
+// bestuursvergaderingen komen nooit in de activiteitenkalender/mail
+document.addEventListener("change",e=>{if(e.target.id!=="vg_soort")return;const w=$("#vgMailW");if(!w)return;const b=vgBestuur({soort:e.target.value});w.hidden=b;if(b&&$("#vg_mail"))$("#vg_mail").checked=false});
 
 /* ============ Documenten (Administratie › Documenten) ============
    Bestanden in Supabase Storage (bucket "documenten", privé), gegevens in de tabel "documenten":
