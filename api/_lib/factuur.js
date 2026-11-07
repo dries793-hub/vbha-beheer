@@ -184,7 +184,8 @@ export function factuurPdf(f, cfg, { status } = {}) {
     if (st && st.betaald) {
       pdf.vlak(L, y, Wb, 46, "#f1faf4"); pdf.vlak(L, y, 4, 46, "#1a7f45");
       pdf.tekst(L + 16, y + 10, "BETAALD", { size: 13, bold: true, kleur: "#1a7f45" });
-      pdf.tekst(L + 16, y + 28, st.laatst ? "Ontvangen op " + dmy(st.laatst) + ". Bedankt!" : "Bedankt voor je betaling.", { size: 9.5, kleur: GRIJS });
+      const bc = f.betaling && f.betaling.status === "SUCCEEDED";
+      pdf.tekst(L + 16, y + 28, bc ? `Online betaald met Bancontact${f.betaling.betaaldOp ? " op " + dmy(String(f.betaling.betaaldOp).slice(0, 10)) : ""} (${geld(f.betaling.bedrag || st.ontvangen)}). Bedankt!` : st.laatst ? "Ontvangen op " + dmy(st.laatst) + ". Bedankt!" : "Bedankt voor je betaling.", { size: 9.5, kleur: GRIJS });
     } else {
       const te = st ? st.open : T.totaal;
       pdf.vlak(L, y, Wb, bh, LICHT); pdf.vlak(L, y, 4, bh, GOUD);
@@ -405,7 +406,10 @@ export async function factuurOnlineBetaald(sb, id) {
     const cfg = await fcConfig(sb);
     const html = p(`Beste ${esc((f.klant && (f.klant.contact || f.klant.naam)) || "")},`.replace(" ,", ","))
       + kaderBlok("&#10003; Betaling ontvangen", p(`We ontvingen je betaling van <b>${eur(b.bedrag)}</b> voor factuur <b>${esc(f.nr)}</b> via Bancontact. Hartelijk dank!`, "margin:0"), "#1a7f45", "#f1faf4");
-    await verstuur([{ aan, aanNaam: (f.klant && f.klant.naam) || "", onderwerp: `Betaling ontvangen voor factuur ${f.nr}`, html: huisstijl(html, cfg.vereniging), van: afzender() }]);
+    // de factuur met de vermelding "BETAALD (Bancontact)" mee in bijlage
+    let bijlagen;
+    try { const st = await statusVan(sb, row); bijlagen = [{ naam: pdfNaam(f), type: "application/pdf", data: factuurPdf({ ...f, id }, cfg, { status: st }) }]; } catch (e) { console.error("pdf betaald", e); }
+    await verstuur([{ aan, aanNaam: (f.klant && f.klant.naam) || "", onderwerp: `Betaling ontvangen voor factuur ${f.nr}`, html: huisstijl(html + (bijlagen ? p("In bijlage vind je de factuur, met de vermelding dat ze betaald is.") : ""), cfg.vereniging), van: afzender(), ...(bijlagen ? { bijlagen } : {}) }]);
   }
   const vers = await haal(sb, id);
   await bewaar(sb, id, { ...vers.data, betaling: { ...vers.data.betaling, bevestigd: true } });
