@@ -1551,20 +1551,21 @@ function lidForm(l={}){const c=cfg();return `<form id="fLid" class="form">
   ${fld("lidSinds","Lid sinds (jaar)",inp("lidSinds",l.lidSinds??JAAR,'inputmode="numeric"'))}
   ${fld("info","Info",inp("info",l.info,'placeholder="bv. Ere-voorzitter, via William"'))}
   ${fld("lidTot","Lid tot en met (jaar)",inp("lidTot",l.lidTot,'inputmode="numeric" placeholder="leeg = nog lid"'))}
+  <label class="sp-nat full" for="bestuurLid"><input type="checkbox" id="bestuurLid"${l.bestuur?" checked":""}><span><b>Bestuurslid</b><small>Aanwezigheid op vergaderingen wordt uit de verslagen gehaald en geeft punten in het puntensysteem.</small></span></label>
   <label class="sp-nat full" for="geenLid"><input type="checkbox" id="geenLid"${l.geenLid?" checked":""}><span><b>Geen lid</b><small>Verdwijnt uit de ledenlijst, de mails en de inschrijfpagina's. Je vindt de persoon nog terug via de zoekbalk.</small></span></label>
   <div class="err full" id="lidErr"></div></form>`}
 function readLid(){const f=formData($("#fLid"));const e=$("#lidErr");
   if(!f.naam.trim()||!f.voornaam.trim()){e.textContent="Vul naam en voornaam in.";return null}
   if(!f.categorie){e.textContent="Kies een categorie.";return null}
   const ls_=parseInt(f.lidSinds,10),lt=parseInt(f.lidTot,10);
-  return{naam:f.naam.trim(),voornaam:f.voornaam.trim(),adres:f.adres.trim(),email:f.email.trim(),telefoon:f.telefoon.trim(),categorie:f.categorie,lidSinds:isNaN(ls_)?null:ls_,info:f.info.trim(),lidTot:isNaN(lt)?null:lt,geenLid:!!($("#geenLid")&&$("#geenLid").checked)}}
+  return{naam:f.naam.trim(),voornaam:f.voornaam.trim(),adres:f.adres.trim(),email:f.email.trim(),telefoon:f.telefoon.trim(),categorie:f.categorie,lidSinds:isNaN(ls_)?null:ls_,info:f.info.trim(),lidTot:isNaN(lt)?null:lt,geenLid:!!($("#geenLid")&&$("#geenLid").checked),bestuur:!!($("#bestuurLid")&&$("#bestuurLid").checked)}}
 function nieuwLid(){modal("Nieuw lid",lidForm(),`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="lidOk">Lid toevoegen</button>`);
   $("#lidOk").onclick=async()=>{const d=readLid();if(!d)return;let id=slug(d.naam+"-"+d.voornaam);if(S.leden.has(id)){$("#lidErr").textContent="Er bestaat al een lid met deze naam.";return}
     closeModal();await write("leden",id,d);toast(naamVol(d)+" is toegevoegd.")}}
 function toonLid(id){
   const C=ctx(),r=C.rows.get(id);if(!r)return;const l=r.lid;
   const b=r.lg.boeking;
-  const body=`<div class="grid g2"><dl class="kv"><dt>Adres</dt><dd>${esc(l.adres)||"–"}</dd><dt>E-mail</dt><dd>${esc(l.email)||"–"}</dd><dt>Telefoon</dt><dd>${esc(l.telefoon)||"–"}</dd><dt>Categorie</dt><dd>${esc(l.categorie)}</dd><dt>Lid sinds</dt><dd>${esc(l.lidSinds||"–")}${r.jaren!=null?" ("+r.jaren+" jaar)":""}</dd>${l.info?`<dt>Info</dt><dd>${esc(l.info)}</dd>`:""}${l.lidTot?`<dt>Lid tot</dt><dd>${l.lidTot}</dd>`:""}${l.geenLid?`<dt>Status</dt><dd><span class="pill neutral">Geen lid</span></dd>`:""}</dl>
+  const body=`<div class="grid g2"><dl class="kv"><dt>Adres</dt><dd>${esc(l.adres)||"–"}</dd><dt>E-mail</dt><dd>${esc(l.email)||"–"}</dd><dt>Telefoon</dt><dd>${esc(l.telefoon)||"–"}</dd><dt>Categorie</dt><dd>${esc(l.categorie)}</dd><dt>Lid sinds</dt><dd>${esc(l.lidSinds||"–")}${r.jaren!=null?" ("+r.jaren+" jaar)":""}</dd>${l.info?`<dt>Info</dt><dd>${esc(l.info)}</dd>`:""}${l.lidTot?`<dt>Lid tot</dt><dd>${l.lidTot}</dd>`:""}${l.bestuur?`<dt>Rol</dt><dd><span class="pill info">Bestuurslid</span></dd>`:""}${l.geenLid?`<dt>Status</dt><dd><span class="pill neutral">Geen lid</span></dd>`:""}</dl>
    <div style="display:flex;flex-direction:column;gap:10px"><div><b>Lidgeld ${JAAR}</b> &nbsp;${lgPill(r)} <span style="color:var(--muted)">${eur(r.bedrag)}</span></div>
    <div style="font-size:13.5px;color:var(--muted)">${b?`Gevonden in transactie ${b.nr??""} van ${fmtDate(b.datum)}: “${esc(b.mededeling)}”`:esc(r.lg.bron)||"Geen betaling gevonden met naam, voornaam en het woord lidgeld in de mededeling."}</div>
    <div class="fld" data-w><label for="lgOv">Lidgeldstatus</label><select id="lgOv" data-lgov="${esc(id)}">${selOpts([["","Automatisch (uit de boekhouding)"],["OK","Manueel: betaald"],["NOK","Manueel: niet betaald"]],r.jl.lidgeld||"")}</select></div>
@@ -3459,6 +3460,7 @@ async function vaBulkOk(btn){const err=$("#vaBulkErr");if(VA_BULK.some(x=>!x.dat
   for(const [i,x] of VA_BULK.entries()){btn.textContent=`Bezig… ${i+1}/${VA_BULK.length}`;
     try{let v=vaVanDag(x.datum),vid=v&&v.id;
       if(!v){vid=agId("verg");v={soort:"Bestuursvergadering",titel:"",datum:x.datum,uur:"",locatie:"",agenda:"",inMail:false};await write("vergaderingen",vid,v)}
+      x.vid=vid;
       let pdf;try{pdf=await vaHuisstijl(x.file,v)}catch(e){console.warn(e);pdf=new File([x.file],vaBestand(v),{type:"application/pdf"});fout.push(x.file.name+": huisstijl niet gelukt, opgeladen zoals het is")}
       const did=agId("doc"),pad=`Verslagen/${did}-${docVeilig(pdf.name)}`;
       const {error}=await SB.storage.from(DOC_BUCKET).upload(pad,pdf,{contentType:"application/pdf",upsert:false});if(error)throw error;
@@ -3472,6 +3474,56 @@ document.addEventListener("change",e=>{const t=e.target;
   if(t.classList&&t.classList.contains("va-bd")){VA_BULK[+t.dataset.i].datum=t.value;vaBulkLijst()}});
 document.addEventListener("click",e=>{const t=e.target.closest("[data-va]");if(!t)return;
   if(t.dataset.va==="bulk")vaBulk();else if(t.dataset.va==="bulkOk")vaBulkOk(t);else if(t.dataset.va==="bulkWeg"){VA_BULK.splice(+t.dataset.i,1);vaBulkLijst()}});
+
+/* ---------- aanwezigheid bestuursleden -> punten (puntensysteem: jaarleden.vergaderingen) ----------
+   De namen worden uit het verslag gehaald (regel "Aanwezig: …", via pdf.js op de eigen site) en gekoppeld aan de leden
+   die als bestuurslid aangeduid zijn. vergadering.puntenIds = wie voor die vergadering een punt kreeg, zodat wijzigen
+   of opnieuw opladen nooit dubbel telt. */
+const vaBestuur=()=>[...S.leden.values()].filter(l=>l.bestuur&&!l.geenLid).sort((a,b)=>String(a.voornaam).localeCompare(String(b.voornaam),"nl"));
+let VA_PDFJS=null;
+async function vaTekst(file){if(!VA_PDFJS)VA_PDFJS=import("/pdfjs/pdf.min.mjs").then(m=>{m.GlobalWorkerOptions.workerSrc="/pdfjs/pdf.worker.min.mjs";return m});
+  const L=await VA_PDFJS,doc=await L.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;let t="";
+  for(let i=1;i<=Math.min(doc.numPages,2);i++){const c=await (await doc.getPage(i)).getTextContent();t+=c.items.map(x=>x.str+(x.hasEOL?"\n":"")).join("")+"\n"}
+  return t}
+function vaAanwUitTekst(t){const m=String(t||"").match(/aanwezig(?:en)?\s*[:\-–]\s*([\s\S]*?)(?:\n\s*\n|verontschuldigd|afwezig|\n\s*\d+[.)]\s|$)/i);if(!m)return null;
+  const woorden=norm(m[1]).split(/[^a-z0-9]+/).filter(Boolean),B=vaBestuur(),ids=[];
+  for(const l of B){const vn=norm(l.voornaam).split(/\s+/)[0],an=norm(l.naam).split(/\s+/).pop();if(vn&&woorden.includes(vn)||an&&an.length>3&&woorden.includes(an))ids.push(l.id)}
+  return ids}
+async function vaAanwVanBestand(file){try{return vaAanwUitTekst(await vaTekst(file))}catch(e){console.warn("tekst uit pdf",e);return null}}
+function vaAanwHtml(ids,bron){const B=vaBestuur();
+  if(!B.length)return `<span class="lbl">Aanwezig (punten)</span><div class="muted small">Duid eerst de bestuursleden aan in de ledenlijst (eigenschappen van een lid › Bestuurslid).</div>`;
+  return `<span class="lbl">Aanwezig (punten in het puntensysteem)</span>${bron?`<span class="help" style="margin:0 0 6px">${esc(bron)}</span>`:""}<div class="hr-soorten va-aw">${B.map(l=>`<label><input type="checkbox" name="vaA" value="${esc(l.id)}"${(ids||[]).includes(l.id)?" checked":""}>${esc(l.voornaam)} ${esc(l.naam)}</label>`).join("")}</div>`}
+const vaGekozen=root=>[...(root||document).querySelectorAll('input[name="vaA"]:checked')].map(i=>i.value);
+// één of meer vergaderingen tegelijk: eerst alle verschillen per lid optellen, dan één schrijfactie per lid (geen dubbele of verloren punten)
+async function vaPuntenBatch(L){const delta=new Map(),meet=[];
+  // wacht tot de net afgeronde vergaderingen binnen zijn (anders zou de aanwezigheid een oudere versie overschrijven)
+  for(let n=0;n<40&&L.some(x=>{const v=S.vergaderingen.get(x.vid);return !v||!v.afgerond});n++)await new Promise(r=>setTimeout(r,100));
+  for(const {vid,ids} of L){const v=S.vergaderingen.get(vid);if(!v)continue;const jaar=Number(String(v.datum).slice(0,4)),oud=new Set(v.puntenIds||[]),nieuw=new Set(ids);meet.push([vid,[...nieuw]]);
+    for(const lid of new Set([...oud,...nieuw])){const d=(nieuw.has(lid)?1:0)-(oud.has(lid)?1:0);if(d){const k=jaar+"_"+lid;delta.set(k,(delta.get(k)||0)+d)}}}
+  for(const [jid,d] of delta){if(!d)continue;const [jaar,...r]=jid.split("_"),lid=r.join("_"),cur=S.jaarleden.get(jid),data={...(cur?stripId(cur):{jaar:+jaar,lidId:lid}),jaar:+jaar,lidId:lid};
+    data.vergaderingen=Math.max(0,(Number(data.vergaderingen)||0)+d);S.jaarleden.set(jid,{...data,id:jid});dirty=true;await write("jaarleden",jid,data,{oud:cur||null})}
+  for(const [vid,ids] of meet){const cur=S.vergaderingen.get(vid);await write("vergaderingen",vid,{...stripId(cur),aanwezigIds:ids,puntenIds:ids})}}
+const vaPuntenZet=(vid,ids)=>vaPuntenBatch([{vid,ids}]);
+// afronden: aanwezigheid onder het verslag
+{const _d=vaDialoog;vaDialoog=function(id){_d(id);const f=$("#fVa .fc-sec");if(f)f.insertAdjacentHTML("beforebegin",`<div class="fld full" id="vaAanw">${vaAanwHtml((S.vergaderingen.get(id)||{}).aanwezigIds||[],"")}</div>`)}}
+document.addEventListener("change",async e=>{if(e.target.id!=="vaFile")return;const f=e.target.files[0],box=$("#vaAanw");if(!f||!box)return;
+  box.innerHTML=vaAanwHtml([],"Namen worden uit het verslag gehaald…");const ids=await vaAanwVanBestand(f);if(!$("#vaAanw"))return;
+  box.innerHTML=vaAanwHtml(ids||[],ids==null?"Geen regel \"Aanwezig:\" gevonden in het verslag; vink de aanwezigen zelf aan.":`Uit het verslag gehaald (${ids.length}). Controleer en pas aan waar nodig.`)});
+{const _o=vaOk;vaOk=async function(btn){const id=btn.dataset.id,ids=vaGekozen($("#fVa"));await _o(btn);if($("#fVa"))return; // niet gelukt: het venster staat nog open
+  if(ids.length||((S.vergaderingen.get(id)||{}).puntenIds||[]).length){try{await vaPuntenZet(id,ids)}catch(x){toast("Punten niet bijgewerkt: "+(x.message||x),true)}}}}
+// bulk: aanwezigheid per verslag
+{const _l=vaBulkLijst;vaBulkLijst=function(){_l();const B=new Map(vaBestuur().map(l=>[l.id,l]));
+  VA_BULK.forEach((x,i)=>{if(x.aanw===undefined){x.aanw=null;x.aanwP=vaAanwVanBestand(x.file).then(ids=>{x.aanw=ids||[];x.aanwKlaar=true;vaBulkLijst()})}
+    const r=$$("#vaBulkL .va-br")[i];if(!r)return;const t=document.createElement("div");t.className="va-baw small";
+    t.textContent=!x.aanwKlaar?"Aanwezigen zoeken…":x.aanw.length?"Aanwezig: "+x.aanw.map(id=>(B.get(id)||{}).voornaam).join(", "):"Geen aanwezigen herkend";r.appendChild(t)})}}
+{const _b=vaBulkOk;vaBulkOk=async function(btn){btn.disabled=true;btn.textContent="Aanwezigen zoeken…";await Promise.all(VA_BULK.map(x=>x.aanwP).filter(Boolean));btn.disabled=false;const L=VA_BULK.slice();await _b(btn);
+  const B=L.filter(x=>x.vid&&(x.aanw||[]).length).map(x=>({vid:x.vid,ids:x.aanw}));
+  try{await vaPuntenBatch(B)}catch(e){toast("Punten niet bijgewerkt: "+(e.message||e),true)}render(true)}}
+// afgeronde vergadering: aanwezigheid nakijken en aanpassen
+{const _v=vgForm;vgForm=function(v,id){_v(v,id);if(!id||!v||!v.afgerond)return;const ok=$(".va-ok");if(!ok)return;
+  ok.insertAdjacentHTML("beforeend",`<div class="va-awb">${vaAanwHtml(v.aanwezigIds||[],"")}${canWrite?`<div><button type="button" class="btn sm" data-va="aanwOk" data-id="${esc(id)}">Aanwezigheid bewaren</button></div>`:""}</div>`);if(!canWrite)ok.querySelectorAll('input[name="vaA"]').forEach(i=>i.disabled=true)}}
+document.addEventListener("click",async e=>{const t=e.target.closest('[data-va="aanwOk"]');if(!t)return;t.disabled=true;
+  try{await vaPuntenZet(t.dataset.id,vaGekozen(t.closest(".va-awb")));toast("Aanwezigheid en punten bijgewerkt.")}catch(x){toast(x.message,true)}finally{t.disabled=false}});
 
 /* ============ Dashboard: meldingen voor de boekhouding ============
    - transacties die nog verwerkt moeten worden (na het inladen van de bankgegevens)
