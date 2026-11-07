@@ -953,6 +953,55 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 .sp-hoe.automatisch{color:var(--muted)}.sp-hoe.manueel{color:var(--info)}
 .sp-bet-add{display:flex;gap:8px}.sp-bet-add select{flex:1;min-width:0}
 .hr-soorten{display:flex;flex-wrap:wrap;gap:10px 20px}.form .hr-soorten label,.hr-soorten label{display:inline-flex!important;align-items:center;gap:7px;font-size:14.5px;font-weight:500;white-space:nowrap;width:auto;margin:0}
+
+/* ---------- facturen ---------- */
+.fc-chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.fc-chip{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;font:500 13px var(--f);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.fc-chip span{color:var(--muted);font-variant-numeric:tabular-nums}
+.fc-chip.on{background:var(--ink);border-color:var(--ink);color:var(--surface)}.fc-chip.on span{color:inherit;opacity:.75}
+.fc-bar .sel{max-width:150px}
+.fc-tab td{vertical-align:top}.fc-tab .mono,.fc-det .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+.fc-form .fc-zoek{background:var(--sunken);border-radius:var(--r);padding:12px}
+.fc-form textarea{width:100%;font:inherit;padding:9px 11px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);resize:vertical}
+.fc-lh,.fc-l{display:grid;grid-template-columns:minmax(0,1fr) 64px 96px 72px 92px 34px;gap:8px;align-items:start}
+.fc-lh{font-size:12px;color:var(--muted);padding:0 0 4px}
+.fc-l{padding:6px 0;border-top:1px solid var(--line)}
+.fc-l textarea{min-height:38px;resize:none;overflow:hidden}
+.fc-l input,.fc-l select{min-width:0;width:100%}
+.fc-l .fc-aa,.fc-l .fc-pr{text-align:right}
+.fc-lt{padding-top:9px;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.fc-tot{margin:12px 0 0 auto;max-width:300px;font-size:14px}
+.fc-tot div{display:flex;justify-content:space-between;gap:16px;padding:3px 0}.fc-tot span{color:var(--muted)}
+.fc-tot .fc-tt{border-top:2px solid var(--ink);margin-top:4px;padding-top:7px;font-size:16px}.fc-tot .fc-tt span{color:var(--ink);font-weight:600}
+.fc-det{display:flex;flex-direction:column;gap:16px}
+.fc-dh{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.fc-dk{font-size:17px;font-weight:700}
+.fc-lijnen{border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.fc-lijnen div{display:flex;justify-content:space-between;gap:12px;padding:8px 12px;font-size:14px}.fc-lijnen div+div{border-top:1px solid var(--line)}
+.fc-lijnen b{white-space:nowrap;font-variant-numeric:tabular-nums}
+.fc-sec h4{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.form .fc-sec{margin-top:6px}
+.fc-bl,.fc-log{display:flex;flex-direction:column;gap:6px;font-size:14px}
+.fc-bl>div{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:7px 10px;background:var(--sunken);border-radius:8px}
+.fc-log>div{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center}.fc-log .muted{grid-column:2}
+.fc-meer{position:relative}
+.fc-menu{position:absolute;bottom:calc(100% + 6px);left:0;min-width:250px;background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:6px;z-index:5;display:flex;flex-direction:column}
+.fc-menu[hidden]{display:none}
+.fc-menu button{border:0;background:none;color:var(--ink);font:inherit;font-size:14px;text-align:left;padding:9px 10px;border-radius:6px;cursor:pointer}
+.fc-menu button:hover{background:var(--sunken)}
+.fc-nr{display:flex;align-items:center;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;background:var(--surface)}
+.fc-nr span{padding:0 4px 0 11px;color:var(--muted);font-variant-numeric:tabular-nums}.fc-nr input{border:0!important;box-shadow:none!important;padding-left:0;min-width:0;flex:1}
+@media (max-width:760px){
+  .fc-hl{display:none}
+  .fc-lh{display:none}
+  .fc-l{grid-template-columns:1fr 1fr 1fr 34px;grid-template-areas:"om om om weg" "aa pr btw btw" "lt lt lt lt";padding:10px 0}
+  .fc-l .fc-om{grid-area:om}.fc-l .fc-aa{grid-area:aa}.fc-l .fc-pr{grid-area:pr}.fc-l .fc-btw{grid-area:btw}.fc-l .fc-lt{grid-area:lt;text-align:right;padding-top:0}.fc-l>.btn{grid-area:weg}
+  .fc-tot{max-width:none}
+  .fc-menu{left:auto;right:auto;min-width:230px}
+}
+.fc-form [data-fc="lijn"]{width:auto;align-self:flex-start;display:inline-flex}
+.fc-form textarea,#fFcI textarea{min-height:0;height:68px;line-height:1.45}
+.fc-form .fc-l textarea{height:auto;min-height:38px}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
