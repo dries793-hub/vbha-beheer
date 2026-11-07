@@ -4325,7 +4325,8 @@ function sbvOpen(id){const s=S.sponsors.get(id);if(!s)return;const V=sbvLaatste(
    ${fld("sbD","Ontvangen op",`<input id="sbD" type="date" value="${todayISO()}">`)}
    ${fld("sbE","Mailen naar",inp("sbE",s.email||"",'type="email" placeholder="e-mailadres van de sponsor"'))}
    ${fld("sbT","Tegenprestatie",inp("sbT",V.tegenprestatie||"",'maxlength="400" placeholder="bv. op de sponsorlijst van het banket '+JAAR+'"'),"full")}
-   ${fld("sbN","Ondertekend door",inp("sbN",V.ondertekenaar||ME_NAME||"",'maxlength="80"'))}${fld("sbF","Functie",inp("sbF",V.functie||"",'maxlength="60" placeholder="bv. penningmeester"'))}
+   ${fld("sbN","Ondertekend door",inp("sbN",V.ondertekenaar||"Dries Uyttersprot",'maxlength="80"'))}${fld("sbF","Functie",inp("sbF",V.functie||"Secretaris VBHA",'maxlength="60" placeholder="bv. secretaris VBHA"'))}
+   <p class="muted small full" style="margin:-6px 0 0">Ondertekend door Dries Uyttersprot: de bevestiging krijgt automatisch zijn handtekening.</p>
    ${hist.length?`<div class="full sbv-h"><b>Eerder opgemaakt</b>${hist.map(x=>`<div><span>${esc(x.nr)}</span><span>${esc(fmtDate(String(x.op||"").slice(0,10)))}</span><span>${esc(x.omschrijving)} · ${eur(x.waarde)}</span><span class="muted">${x.aan?(x.ok?"gemaild naar "+esc(x.aan):'<span class="nok">mail mislukt</span>'):"gedownload"}</span></div>`).join("")}</div>`:""}
    <div class="err full" id="sbErr"></div></form>`,
    `<button class="btn" data-act="closeModal">Sluiten</button><span class="grow"></span><button class="btn" id="sbVb">Voorbeeld</button><button class="btn" id="sbDl">${ic("download")}Downloaden</button><button class="btn primary" id="sbMl">Mailen naar sponsor</button>`,{wide:true});
