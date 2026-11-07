@@ -1,6 +1,7 @@
 import { admin, isDbCron, httpErr, requireUser } from "./sb.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
 import { vandaagISO, configDoc } from "./publiek.js";
+import { pushVanDaag } from "./push.js";
 
 // Herinneringsmail vóór een vergadering uit de agenda (collectie "vergaderingen").
 // Instellingen in config "herinneringen" (app: Instellingen › Herinneringen): aan, ontvangers, dagen vooraf, uur, soorten.
@@ -46,10 +47,13 @@ const site = () => String(process.env.SITE_URL || "https://vbha-beheer.vercel.ap
 export async function herinneringen(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (!(await isDbCron(req))) throw httpErr(403, "Geen toegang");
-  if (!smtpConfigured()) throw httpErr(501, "Versturen is niet ingesteld");
   const sb = admin(), cfg = await instellingen(sb), nu = vandaagISO();
-  if (!cfg.aan) return res.status(200).json({ uit: true });
-  if (uurNu() !== Number(cfg.uur)) return res.status(200).json({ wacht: true, uur: cfg.uur });
+  // pushmeldingen op de dag zelf (eigen aan/uit en eigen uur)
+  let push = null;
+  try { push = await pushVanDaag(sb, cfg, nu, uurNu()); } catch (e) { console.error("push", e); push = { fout: e.message }; }
+  if (!smtpConfigured()) return res.status(200).json({ push, mail: "niet ingesteld" });
+  if (!cfg.aan) return res.status(200).json({ uit: true, push });
+  if (uurNu() !== Number(cfg.uur)) return res.status(200).json({ wacht: true, uur: cfg.uur, push });
   const aan = ontvangers(cfg); if (!aan.length) return res.status(200).json({ geenOntvangers: true });
   const tot = plusDagen(nu, Number(cfg.dagen) || 5);
   const { data, error } = await sb.from("vergaderingen").select("id,data").gte("data->>datum", nu).lte("data->>datum", tot);
@@ -66,7 +70,7 @@ export async function herinneringen(req, res) {
       verstuurd.push(r.id);
     }
   }
-  res.status(200).json({ vandaag: nu, verstuurd });
+  res.status(200).json({ vandaag: nu, verstuurd, push });
 }
 
 // Voorbeeld van de herinnering naar de aangemelde administrator (knop in Instellingen › Herinneringen)
