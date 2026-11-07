@@ -138,7 +138,9 @@ export async function bevestigingenCron(req, res) {
   }
   let facturen = [];
   try { facturen = await (await import("./factuur.js")).factuurCron(sb); } catch (e) { console.error("facturen", e); }
-  res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen });
+  let inkomend = null;
+  try { inkomend = await (await import("./inkomend.js")).inkomendCron(sb); } catch (e) { console.error("inkomend", e); inkomend = { fout: e.message }; }
+  res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend });
 }
 // gedeeld met de facturatie (api/_lib/factuur.js)
 export { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, kort, lang, vandaag, plusDagen, site };
