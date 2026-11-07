@@ -4340,55 +4340,51 @@ async function sbvOpenMail(id,d){toast("Bezig met versturen…");
     toast(`Sponsorbevestiging ${j.nr} gemaild naar ${d.aan}.`)}catch(x){toast(x.message,true)}}
 
 /* ============ Automatische betalingsherinneringen (banket en lidgeld) ============
-   Instellingen › Herinneringen: aan/uit en termijnen (config "betaalherinnering"); de server (api/_lib/betaalherinnering.js)
+   Tandwiel Banket en tandwiel Ledenlijst: aan/uit en termijnen (config "betaalherinnering"); de server (api/_lib/betaalherinnering.js)
    verstuurt één ronde per dag via de mailwachtrij. Dashboard: melding zodra er herinneringen verstuurd zijn. */
 const BH_DEF={uur:10,banket:{aan:true,dagenNaVerval:3,interval:7,max:2},lidgeld:{aan:true,jaar:null,vervaldatum:"",dagenNaVerval:7,interval:14,max:2}};
 function bhCfg(){const c=S.config.get("betaalherinnering")||{},nu=todayISO(),Y=+nu.slice(0,4),M=+nu.slice(5,7);
   const lg={...BH_DEF.lidgeld,...(c.lidgeld||{})};if(!lg.jaar)lg.jaar=M>=10?Y+1:Y;if(!lg.vervaldatum)lg.vervaldatum=lg.jaar+"-01-31";
   return{...BH_DEF,...c,banket:{...BH_DEF.banket,...(c.banket||{})},lidgeld:lg}}
-const BH={vb:null,bezig:false};
-function bhPanel(){const c=bhCfg(),d=canWrite?"":" disabled",B=c.banket,L=c.lidgeld,bk=bkCfg?bkCfg():{};
-  const sel=(id,v,opts,suf)=>`<select id="${id}" class="sel"${d}>${opts.map(n=>`<option value="${n}"${n===Number(v)?" selected":""}>${suf(n)}</option>`).join("")}</select>`;
-  const dg=n=>n+" "+(n===1?"dag":"dagen");
-  const vb=BH.vb;
-  const lijst=(x,R)=>!x?"":x.nu.length?`<div class="bh-l">${x.nu.slice(0,30).map(y=>`<div><b>${esc(y.naam)}</b><span class="muted">${esc(y.aan)}</span><span>${eur(y.bedrag)}${y.n?` · ${y.n+1}e herinnering`:""}</span></div>`).join("")}${x.nu.length>30?`<div class="muted">+ ${x.nu.length-30} anderen</div>`:""}</div>`:`<p class="muted small" style="margin:4px 0 0">Bij de volgende ronde krijgt niemand een herinnering${x.open?` (${x.open} nog niet betaald${x.zonderMail?", waarvan "+x.zonderMail+" zonder e-mailadres":""}).`:"."}</p>`;
-  return `<form class="panel bh-p" id="fBh" onsubmit="return false"><div class="panel-h"><h2>Betalingsherinneringen</h2></div><div class="panel-b"><div class="form">
-    <p class="muted small full" style="margin:0">Wie na de betalingstermijn nog niet betaald heeft, krijgt automatisch een herinnering met de betaalgegevens. Betaald wordt herkend zoals in de app (online betaling, overschrijving met de juiste mededeling, of manueel op betaald gezet). De server verstuurt één ronde per dag; op het dashboard zie je wie een herinnering kreeg.</p>
-    <div class="fc-sec full"><h4>Banket</h4></div>
-    <label class="sp-nat full" for="bhBa"><input type="checkbox" id="bhBa"${B.aan?" checked":""}${d}><span><b>Herinnering voor het banket</b><small>Termijn: de inschrijvingsdeadline${bk.inschrijvenTot?" ("+esc(fmtDate(bk.inschrijvenTot))+")":""}. Vanaf de dag van het banket worden geen herinneringen meer verstuurd.</small></span></label>
-    ${fld("bhBd","Eerste herinnering",sel("bhBd",B.dagenNaVerval,[1,2,3,5,7,10],n=>dg(n)+" na de termijn"))}
-    ${fld("bhBi","Daarna",sel("bhBi",B.interval,[3,4,5,7,10,14],n=>"om de "+dg(n)))}
-    ${fld("bhBm","Maximum aantal",sel("bhBm",B.max,[1,2,3],n=>n+" herinnering"+(n===1?"":"en")))}
-    <div class="full">${vb?lijst(vb.banket):""}</div>
-    <div class="fc-sec full"><h4>Lidgeld</h4></div>
-    <label class="sp-nat full" for="bhLa"><input type="checkbox" id="bhLa"${L.aan?" checked":""}${d}><span><b>Herinnering voor het lidgeld</b><small>Voor leden die het lidgeld van het gekozen werkjaar nog niet betaalden (ere-voorzitter en wie "geen lid" is, worden overgeslagen). Nieuwe leden krijgen 14 dagen na hun inschrijving.</small></span></label>
-    ${fld("bhLj","Werkjaar",sel("bhLj",L.jaar,[JAAR-1,JAAR,JAAR+1,JAAR+2].filter((v,i,a)=>a.indexOf(v)===i),n=>"Lidgeld "+n))}
-    ${fld("bhLv","Te betalen vóór",`<input id="bhLv" type="date" value="${esc(L.vervaldatum)}"${d}>`)}
-    ${fld("bhLd","Eerste herinnering",sel("bhLd",L.dagenNaVerval,[1,3,5,7,10,14,21,30],n=>dg(n)+" na de termijn"))}
-    ${fld("bhLi","Daarna",sel("bhLi",L.interval,[7,10,14,21,30],n=>"om de "+dg(n)))}
-    ${fld("bhLm","Maximum aantal",sel("bhLm",L.max,[1,2,3],n=>n+" herinnering"+(n===1?"":"en")))}
-    <div class="full">${vb?lijst(vb.lidgeld):""}</div>
-    <div class="fc-sec full"><h4>Algemeen</h4></div>
-    ${fld("bhU","Versturen vanaf",sel("bhU",c.uur,[7,8,9,10,11,12,13,14,15,16,17,18,19,20],n=>n+"u00"))}
-    <div class="fld"><span class="lbl">Laatste ronde</span><span class="muted small" style="padding-top:8px">${c.laatsteRonde?esc(new Date(c.laatsteRonde.op).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))+` · ${c.laatsteRonde.banket} banket, ${c.laatsteRonde.lidgeld} lidgeld`:"nog geen"}</span></div>
-    ${canWrite?`<div class="full bar"><button class="btn primary" type="button" id="bhOk">Bewaren</button><button class="btn" type="button" id="bhVb">${BH.bezig?"Bezig…":"Wie krijgt een herinnering?"}</button></div>`:""}
-  </div></div></form>`}
-{const _h=VIEWS.herinneringen;const n=function(){const v=_h.apply(this,arguments),b=v.body;v.body=function(){return b.apply(this,arguments)+bhPanel()};return v};Object.assign(n,_h);VIEWS.herinneringen=n}
-async function bhBewaar(){const v=s=>Number($(s).value);if(!$("#bhLv").value){toast("Vul de betalingstermijn voor het lidgeld in.",true);return}
-  const cur=stripId(S.config.get("betaalherinnering")||{});
-  await write("config","betaalherinnering",{...cur,uur:v("#bhU"),banket:{aan:$("#bhBa").checked,dagenNaVerval:v("#bhBd"),interval:v("#bhBi"),max:v("#bhBm")},
-    lidgeld:{aan:$("#bhLa").checked,jaar:v("#bhLj"),vervaldatum:$("#bhLv").value,dagenNaVerval:v("#bhLd"),interval:v("#bhLi"),max:v("#bhLm")}});
-  BH.vb=null;toast("Betalingsherinneringen bewaard.")}
-async function bhVoorbeeld(){BH.bezig=true;renderBody();try{BH.vb=await api("/api/mail?f=betaalherinnering");}catch(x){toast(x.message,true)}finally{BH.bezig=false;renderBody()}}
-document.addEventListener("change",e=>{if(e.target.closest("#fBh")&&e.target.id==="bhLj"){const y=e.target.value,v=$("#bhLv");if(v&&(!v.value||v.value.slice(0,4)!==y))v.value=y+"-01-31"}});
-document.addEventListener("click",e=>{const t=e.target.closest("#bhOk,#bhVb");if(!t)return;if(t.id==="bhOk")bhBewaar();else bhVoorbeeld()});
+/* ---- instellingen: banket (tandwiel Banket) en lidgeld (tandwiel Ledenlijst) ---- */
+const bhSel=(id,v,opts,suf,d)=>`<select id="${id}" class="sel"${d}>${opts.map(n=>`<option value="${n}"${n===Number(v)?" selected":""}>${suf(n)}</option>`).join("")}</select>`;
+const bhDg=n=>n+" "+(n===1?"dag":"dagen");
+function bhSec(soort){const c=bhCfg(),d=canWrite?"":" disabled",B=c.banket,L=c.lidgeld,R=soort==="banket"?B:L,k=soort==="banket"?"B":"L";
+  const uitleg=soort==="banket"?`Wie na de inschrijvingsdeadline nog niet betaald heeft, krijgt automatisch een herinnering met de betaalgegevens. Vanaf de dag van het banket worden geen herinneringen meer verstuurd.`
+    :`Leden die het lidgeld van het gekozen werkjaar na de vervaldatum nog niet betaalden, krijgen automatisch een herinnering met een betaalknop. Nieuwe leden: 14 dagen na hun inschrijving. De ere-voorzitter en wie "geen lid" is, worden overgeslagen.`;
+  return `<div class="pi-sec bh-sec" data-bhs="${soort}"><h4>Betalingsherinnering</h4><div class="form">
+    <label class="sp-nat full" for="bh${k}a"><input type="checkbox" id="bh${k}a"${R.aan?" checked":""}${d}><span><b>Automatisch een herinnering mailen</b><small>${uitleg} Betaald wordt herkend zoals in de app. Op het dashboard zie je wie een herinnering kreeg.</small></span></label>
+    ${soort==="lidgeld"?fld("bhLj","Werkjaar",bhSel("bhLj",L.jaar,[JAAR-1,JAAR,JAAR+1,JAAR+2].filter((v,i,a)=>a.indexOf(v)===i),n=>"Lidgeld "+n,d))+fld("bhLv","Te betalen vóór",`<input id="bhLv" type="date" value="${esc(L.vervaldatum)}"${d}>`):""}
+    ${fld("bh"+k+"d","Eerste herinnering",bhSel("bh"+k+"d",R.dagenNaVerval,soort==="banket"?[1,2,3,5,7,10]:[1,3,5,7,10,14,21,30],n=>bhDg(n)+" na de termijn",d))}
+    ${fld("bh"+k+"i","Daarna",bhSel("bh"+k+"i",R.interval,soort==="banket"?[3,4,5,7,10,14]:[7,10,14,21,30],n=>"om de "+bhDg(n),d))}
+    ${fld("bh"+k+"m","Maximum aantal",bhSel("bh"+k+"m",R.max,[1,2,3],n=>n+" herinnering"+(n===1?"":"en"),d))}
+    ${fld("bh"+k+"u","Versturen vanaf",bhSel("bh"+k+"u",c.uur,[7,8,9,10,11,12,13,14,15,16,17,18,19,20],n=>n+"u00",d))}
+    <div class="full bh-vb"><button type="button" class="btn sm" data-bhvb="${soort}">Wie krijgt een herinnering?</button><div class="bh-res"></div></div>
+  </div></div>`}
+async function bhBewaarSec(soort){const v=s=>Number($(s).value),k=soort==="banket"?"B":"L";if(!$("#bh"+k+"a"))return;
+  if(soort==="lidgeld"&&!$("#bhLv").value)throw new Error("Vul de betalingstermijn voor het lidgeld in.");
+  const cur=stripId(S.config.get("betaalherinnering")||{}),R={aan:$("#bh"+k+"a").checked,dagenNaVerval:v("#bh"+k+"d"),interval:v("#bh"+k+"i"),max:v("#bh"+k+"m")};
+  if(soort==="lidgeld"){R.jaar=v("#bhLj");R.vervaldatum=$("#bhLv").value}
+  await write("config","betaalherinnering",{...cur,uur:v("#bh"+k+"u"),[soort]:{...((cur[soort])||{}),...R}})}
+// in de bestaande instellingenvensters plaatsen en mee bewaren
+function bhHaak(knopId,soort,plaats){const ok=$("#"+knopId);if(!ok)return;plaats.insertAdjacentHTML("beforeend",bhSec(soort));
+  const oud=ok.onclick;ok.onclick=async function(e){try{await bhBewaarSec(soort)}catch(x){toast(x.message,true);return}return oud&&oud.call(this,e)}}
+{const _i=bkInst;bkInst=function(){_i.apply(this,arguments);const f=$("#fBkI2");if(f)bhHaak("bkIOk","banket",f.parentElement)}}
+{const _i=ledenInst;ledenInst=function(){_i.apply(this,arguments);const f=$("#liCat");const body=f&&f.closest(".pi-sec")&&f.closest(".pi-sec").parentElement;if(body)bhHaak("liOk","lidgeld",body)}}
+async function bhVoorbeeld(b){const soort=b.dataset.bhvb,res=b.parentElement.querySelector(".bh-res");b.disabled=true;res.innerHTML='<p class="muted small">Bezig…</p>';
+  try{const j=await api("/api/mail?f=betaalherinnering"),x=j[soort];
+    res.innerHTML=x.nu.length?`<div class="bh-l">${x.nu.slice(0,40).map(y=>`<div><b>${esc(y.naam)}</b><span class="muted">${esc(y.aan)}</span><span>${eur(y.bedrag)}${y.n?` · ${y.n+1}e herinnering`:""}</span></div>`).join("")}${x.nu.length>40?`<div class="muted">+ ${x.nu.length-40} anderen</div>`:""}</div><p class="muted small" style="margin:4px 0 0">Bij de volgende ronde (met de instellingen zoals ze nu bewaard zijn).</p>`
+      :`<p class="muted small" style="margin:4px 0 0">Bij de volgende ronde krijgt niemand een herinnering${x.open?`: ${x.open} nog niet betaald${x.zonderMail?" (waarvan "+x.zonderMail+" zonder e-mailadres)":""}, maar de termijn${soort==="lidgeld"?" ("+esc(fmtDate(x.verval))+")":" ("+esc(fmtDate(x.verval))+")"} plus de wachttijd is nog niet voorbij`:""}.</p>`}
+  catch(x){res.innerHTML=`<p class="err">${esc(x.message)}</p>`}finally{b.disabled=false}}
+document.addEventListener("change",e=>{if(e.target.id==="bhLj"){const y=e.target.value,v=$("#bhLv");if(v&&(!v.value||v.value.slice(0,4)!==y))v.value=y+"-01-31"}});
+document.addEventListener("click",e=>{const t=e.target.closest("[data-bhvb]");if(t){e.preventDefault();bhVoorbeeld(t)}});
 
 /* ---- dashboard: verstuurde herinneringen ---- */
 function bhMelding(){if(!(ROL==="admin"||ROL==="boekhouder"))return"";const c=S.config.get("betaalherinnering")||{};const grens=new Date(Date.now()-21*864e5).toISOString(),gz=c.gezienTot||"";
   const L=(c.log||[]).filter(x=>x.op>gz&&x.op>=grens);if(!L.length)return"";
   const bk=L.filter(x=>x.soort==="banket").length,lg=L.length-bk;
   return `<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("mail")}</span><div class="nm-body"><b>${L.length===1?"Er werd 1 betalingsherinnering":"Er werden "+L.length+" betalingsherinneringen"} verstuurd</b>
-   <div class="nm-l">${L.slice(0,6).map(x=>`<a class="nm-i" href="#${x.soort==="banket"?"banket":"leden"}"><b>${esc(x.naam)}</b><span>${x.soort==="banket"?"Banket":"Lidgeld"} ${esc(String(x.jaar||""))} · ${eur(x.bedrag)}${x.n>1?" · "+x.n+"e herinnering":""} · ${esc(fmtDate(String(x.op).slice(0,10)))}</span></a>`).join("")}${L.length>6?`<a class="nm-i" href="#herinneringen"><b>+ ${L.length-6} anderen</b><span>${[bk?bk+" banket":"",lg?lg+" lidgeld":""].filter(Boolean).join(" · ")}</span></a>`:""}</div></div>
+   <div class="nm-l">${L.slice(0,6).map(x=>`<a class="nm-i" href="#${x.soort==="banket"?"banket":"leden"}"><b>${esc(x.naam)}</b><span>${x.soort==="banket"?"Banket":"Lidgeld"} ${esc(String(x.jaar||""))} · ${eur(x.bedrag)}${x.n>1?" · "+x.n+"e herinnering":""} · ${esc(fmtDate(String(x.op).slice(0,10)))}</span></a>`).join("")}${L.length>6?`<a class="nm-i" href="#dashboard"><b>+ ${L.length-6} anderen</b><span>${[bk?bk+" banket":"",lg?lg+" lidgeld":""].filter(Boolean).join(" · ")}</span></a>`:""}</div></div>
    <button type="button" class="nm-x" data-bh="gezien" aria-label="Melding sluiten" title="Gezien">${ic("x")}</button></div>`}
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return bhMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 document.addEventListener("click",async e=>{const t=e.target.closest('[data-bh="gezien"]');if(!t)return;t.disabled=true;
