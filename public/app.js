@@ -4317,8 +4317,7 @@ VIEWS.kalcontrole=()=>({title:"Kalenders "+JAAR,sub:"Controle: dozen naast de aa
   actions:'<a class="btn" href="/kaart" target="_blank" rel="noopener" title="Openbare kaart van de kalenderronde">'+ic("kaart")+'Kaart openen</a>',
   body(){const {L,pd}=kcData(),af=L.filter(p=>KC_ST[p.st][0]==="warn").length;
     const T=k=>L.reduce((t,p)=>t+p[k],0);
-    return kalTabs("kalcontrole")+`<div class="note info">Louter ter controle. Per persoon zie je de afgewerkte dozen uit <a href="#kalenders">Verdeling</a> naast de adressen die op de <a href="#ronde">kaart</a> op zijn of haar naam als bedeeld staan, omgerekend aan ${pd} kalenders per doos. Wie nog dozen in handen heeft, kan al een deel bedeeld hebben; een verschil tot 1 doos geldt als normaal. Hier wordt niets gewijzigd.</div>
-    <div class="tiles"><div class="tile"><span class="lbl">Afgewerkte dozen</span><span class="val">${T("uit")}</span><span class="hint">volgens de verdeling</span></div>
+    return kalTabs("kalcontrole")+`<div class="tiles"><div class="tile"><span class="lbl">Afgewerkte dozen</span><span class="val">${T("uit")}</span><span class="hint">volgens de verdeling</span></div>
     <div class="tile"><span class="lbl">Bedeeld op de kaart</span><span class="val">${krNum(T("dA"))}</span><span class="hint">adressen · ≈ ${kcN(T("dA")/pd)} dozen</span></div>
     <div class="tile"><span class="lbl">Dozen in handen</span><span class="val">${T("hand")}</span><span class="hint">${krNum(T("rA"))} adressen gereserveerd</span></div>
     <div class="tile"><span class="lbl">Na te kijken</span><span class="val">${af}</span><span class="hint">${af===1?"persoon":"personen"} met een verschil</span></div></div>
