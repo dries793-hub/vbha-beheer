@@ -1106,17 +1106,37 @@ function krBgStyle(){if(!KR.bg)return;const c={};
   if(KR.bg.mask)KR.bg.mask.setStyle({fillColor:krVar("--kr-out")});if(KR.bg.grens)KR.bg.grens.setStyle({color:krVar("--kr-grens")})}
 
 /* ---------- sponsors ---------- */
-function spToks(s){const stop=["bvba","sprl","groep","group","cafe","bierhuis","brouwerij","services","kantoor"];
-  const t=norm(s.bedrijf).split(/[^a-z0-9]+/).filter(x=>x.length>=4&&!stop.includes(x));const n=norm(s.naam||"");if(n.length>=4)t.push(n.replace(/[^a-z0-9]+/g," ").trim());return t}
-function spKoppel(C){const sp=[...S.sponsors.values()].map(s=>({s,t:spToks(s)}));const per=new Map(),los=[];
-  for(const b of C.boek){if(b.categorie!=="Sponsoring"||b.richting==="uit"||String(b.datum||"")<JAAR+"-06-01")continue;const hay=b._m+" "+b._p;
-    const hit=sp.find(x=>x.t.some(t=>hay.includes(t)));if(hit){const a=per.get(hit.s.id)||{som:0,L:[]};a.som+=b.bedrag;a.L.push(b);per.set(hit.s.id,a)}else los.push(b)}
+/* Koppelen van betalingen aan sponsors.
+   1. Manueel: transactie.sponsorId = id van de sponsor ("-" = bewust geen sponsorbetaling). Geldt voor elke categorie en datum in het boekjaar.
+   2. Automatisch: inkomende transacties met categorie Sponsoring vanaf 1 juni. Per sponsor wordt een score berekend op hele woorden
+      (bedrijfsnaam, weergavenaam, contactpersoon, domein van het e-mailadres) en een bonus als het bedrag gelijk is. De hoogste score wint;
+      bij gelijke score zonder verschil in bedrag blijft de betaling onverdeeld. */
+const SP_STOP=new Set(["bvba","sprl","groep","group","cafe","bierhuis","brouwerij","services","kantoor","renovatie","renovaties","advocaat","advocatenkantoor","hotel","aalst","sponsoring","sponsering","kalender","brandweer","boomkwekerijen","zakenkantoor","dakwerken","onderdelen","auto"]);
+const SP_DOM=new Set(["gmail","hotmail","outlook","live","telenet","skynet","yahoo","icloud","proximus","zonezuidoost","msn","scarlet"]);
+const spNaam=s=>(s&&(s.weergave||s.bedrijf))||"";
+function spToks(s){const T=[];const w=x=>norm(x).replace(/[^a-z0-9]+/g," ").trim();
+  for(const v of [s.bedrijf,s.weergave])for(const t of w(v).split(" "))if(t.length>=4&&!SP_STOP.has(t))T.push({t,g:t.length});
+  for(const v of [s.bedrijf,s.weergave]){const z=w(v).replace(/\b(bv|nv|bvba|vzw|comm\.?v)\b/g,"").trim();if(z.split(" ").length>1&&z.length>=6)T.push({t:z,g:z.length+4})}
+  const cp=w((s.voornaam||"")+" "+(s.naam||""));if(cp.split(" ").length>1)T.push({t:cp,g:cp.length+4});const nm=w(s.naam);if(nm.length>=4&&nm.split(" ").length>1)T.push({t:nm,g:nm.length});
+  const dm=(/@([^.@\s]+)\./.exec(String(s.email||""))||[])[1];if(dm&&dm.length>=5&&!SP_DOM.has(dm.toLowerCase()))T.push({t:dm.toLowerCase(),g:dm.length,dom:true});
+  return T}
+function spScore(T,hay,hayW,hayZ){let sc=0;for(const x of T){if(x.dom){if(hayZ.includes(x.t))sc+=x.g;continue}
+    if(x.t.includes(" ")?(" "+hay+" ").includes(" "+x.t+" "):hayW.some(w=>w===x.t||(x.t.length>=6&&w.startsWith(x.t))))sc+=x.g}return sc}
+function spKoppel(C){const sp=[...S.sponsors.values()].map(s=>({s,T:spToks(s)}));const per=new Map(),los=[];
+  const add=(s,b,hoe)=>{const a=per.get(s.id)||{som:0,L:[]};a.som+=b.bedrag;a.L.push({...b,_hoe:hoe});per.set(s.id,a)};
+  for(const b of C.boek){
+    if(b.sponsorId){if(b.sponsorId!=="-"&&S.sponsors.has(b.sponsorId)&&b.richting!=="uit")add(S.sponsors.get(b.sponsorId),b,"manueel");continue}
+    if(b.categorie!=="Sponsoring"||b.richting==="uit"||String(b.datum||"")<JAAR+"-06-01")continue;
+    const hay=(b._m+" "+b._p).replace(/[^a-z0-9]+/g," ").trim(),hayW=hay.split(" "),hayZ=hay.replace(/ /g,"");
+    let best=null,bs=0,tie=false;for(const x of sp){let sc=spScore(x.T,hay,hayW,hayZ);if(!sc)continue;if(Math.abs(num(x.s.bedrag)-b.bedrag)<0.01)sc+=3;
+      if(sc>bs){best=x;bs=sc;tie=false}else if(sc===bs)tie=true}
+    if(best&&!tie)add(best.s,b,"automatisch");else los.push(b)}
   return{per,los}}
 function sponsorOntvangen(s,C){const k=(C._spk=C._spk||spKoppel(C)).per.get(s.id);return k?k.som:0}
 VIEWS.sponsors=()=>({title:"Sponsors",sub:"Sponsorbeheer",actions:'<button class="btn" data-act="docRol" data-v="sponsordossier" title="Sponsordossier openen (uit Documenten)">'+ic("documenten")+'Sponsordossier</button><button class="btn primary" data-w data-act="nieuweSponsor">'+ic("plus")+'Nieuwe sponsor</button>',body(){
   const C=ctx();C._spk=spKoppel(C);const q=norm(UI.spQ);const ss=UI.spSort||{k:"bedrijf",d:1};
   const ont=x=>(x.naturaJaren||[]).includes(JAAR)?Math.max(sponsorOntvangen(x,C),num(x.bedrag))+0.001:sponsorOntvangen(x,C);
-  let list=[...S.sponsors.values()].sort((a,b)=>(ss.k==="bedrag"?(num(a.bedrag)-num(b.bedrag)):ss.k==="ontv"?(ont(a)-ont(b)):0)*ss.d||(ss.k==="bedrijf"?ss.d:1)*(a.bedrijf||"").localeCompare(b.bedrijf||"","nl"));
+  let list=[...S.sponsors.values()].sort((a,b)=>(ss.k==="bedrag"?(num(a.bedrag)-num(b.bedrag)):ss.k==="ontv"?(ont(a)-ont(b)):0)*ss.d||(ss.k==="bedrijf"?ss.d:1)*spNaam(a).localeCompare(spNaam(b),"nl"));
   const sth=(k,l,cls="")=>`<th class="${cls} sortable${ss.k===k?" sorted":""}" data-act="spSort" data-v="${k}" aria-sort="${ss.k===k?(ss.d>0?"ascending":"descending"):"none"}">${l}<span class="arr">${ss.k===k?(ss.d>0?"▲":"▼"):""}</span></th>`;
   if(q)list=list.filter(s=>norm(Object.values(s).join(" ")).includes(q));
   const totaal=[...S.sponsors.values()].reduce((s,x)=>s+num(x.bedrag),0);const K=C._spk=spKoppel(C);const ontv=[...K.per.values()].reduce((a,x)=>a+x.som,0);const losT=K.los.reduce((a,b)=>a+b.bedrag,0);
@@ -1124,16 +1144,16 @@ VIEWS.sponsors=()=>({title:"Sponsors",sub:"Sponsorbeheer",actions:'<button class
   return `<div class="tiles"><div class="tile"><span class="lbl">Sponsors</span><span class="val">${S.sponsors.size}</span></div><div class="tile"><span class="lbl">Afgesproken bedragen</span><span class="val">${eur(totaal)}</span></div><div class="tile"><span class="lbl">Ontvangen</span><span class="val in">${eur(ontv)}</span></div></div>
   <div class="bar"><div class="search">${ic("search")}<input id="spQ" data-live data-input="spQ" placeholder="Zoek sponsor" value="${esc(UI.spQ)}"></div></div>
   <div class="panel"><div class="mlist" role="list">${list.map(s=>{const o=sponsorOntvangen(s,C),nat=(s.naturaJaren||[]).includes(JAAR);const cp=[s.voornaam,s.naam].filter(Boolean).join(" ");
-    return `<button type="button" class="ml-row" role="listitem" data-act="toonSponsor" data-id="${esc(s.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(s.bedrijf)}</b></span><span class="ml-s">${num(s.bedrag)?eur(num(s.bedrag)):"geen bedrag"}${cp?'<span class="ml-dot">·</span>'+esc(cp):""}</span></span>
+    return `<button type="button" class="ml-row" role="listitem" data-act="toonSponsor" data-id="${esc(s.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(spNaam(s))}</b></span><span class="ml-s">${num(s.bedrag)?eur(num(s.bedrag)):"geen bedrag"}${cp?'<span class="ml-dot">·</span>'+esc(cp):""}</span></span>
       <span class="ml-r">${nat?'<span class="pill ok">✓ In natura</span>':o&&o>=num(s.bedrag)-0.01?'<span class="pill ok">✓ Betaald</span>':o?'<span class="pill warn">Deels</span>':'<span class="pill nok">Open</span>'}</span><span class="ml-chev" aria-hidden="true">›</span></button>`}).join("")||'<div class="empty">Geen sponsors.</div>'}</div>
   <div class="tw dsk-only"><table class="rcards"><thead><tr>${sth("bedrijf","Bedrijf")}<th>Contactpersoon</th><th>E-mail</th><th>Telefoon</th><th>KBO-nr.</th>${sth("bedrag","Bedrag","num")}${sth("ontv","Status")}</tr></thead><tbody>
-  ${list.map(s=>{const o=sponsorOntvangen(s,C);return `<tr class="click" data-act="toonSponsor" data-id="${esc(s.id)}"><td><b>${esc(s.bedrijf)}</b></td><td>${esc(s.voornaam)} ${esc(s.naam)}</td><td class="trunc">${esc(s.email)}</td><td style="white-space:nowrap">${esc(s.telefoon)}</td><td class="muted">${esc(s.kbo)}</td><td class="num">${eur(num(s.bedrag))}</td><td>${(s.naturaJaren||[]).includes(JAAR)?'<span class="pill ok" title="Voldaan in natura">✓ In natura</span>':o&&o>=num(s.bedrag)-0.01?'<span class="pill ok" title="Ontvangen: '+eur(o)+'">✓ Betaald</span>':o?'<span class="pill warn" title="Ontvangen: '+eur(o)+' van '+eur(num(s.bedrag))+'">Deels</span>':'<span class="pill nok">Open</span>'}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Geen sponsors.</td></tr>'}
+  ${list.map(s=>{const o=sponsorOntvangen(s,C);return `<tr class="click" data-act="toonSponsor" data-id="${esc(s.id)}"><td><b>${esc(spNaam(s))}</b>${s.weergave&&s.bedrijf&&norm(s.weergave)!==norm(s.bedrijf)?`<div class="muted small">${esc(s.bedrijf)}</div>`:""}</td><td>${esc(s.voornaam)} ${esc(s.naam)}</td><td class="trunc">${esc(s.email)}</td><td style="white-space:nowrap">${esc(s.telefoon)}</td><td class="muted">${esc(s.kbo)}</td><td class="num">${eur(num(s.bedrag))}</td><td>${(s.naturaJaren||[]).includes(JAAR)?'<span class="pill ok" title="Voldaan in natura">✓ In natura</span>':o&&o>=num(s.bedrag)-0.01?'<span class="pill ok" title="Ontvangen: '+eur(o)+'">✓ Betaald</span>':o?'<span class="pill warn" title="Ontvangen: '+eur(o)+' van '+eur(num(s.bedrag))+'">Deels</span>':'<span class="pill nok">Open</span>'}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Geen sponsors.</td></tr>'}
   </tbody></table></div></div>
   ${K.los.length?`<div class="panel"><div class="panel-h"><h2>Sponsorbetalingen zonder sponsor in de lijst</h2><span class="grow"></span><span class="muted small">${K.los.length} · ${eur(losT)}</span></div>
-   <div class="panel-b" style="padding-bottom:0"><p class="muted small" style="margin:0">Transacties met categorie Sponsoring sinds 1 juni ${JAAR} die bij geen enkele sponsor passen. Voeg de sponsor toe, of geef de transactie een andere categorie.</p></div>
+   <div class="panel-b" style="padding-bottom:0"><p class="muted small" style="margin:0">Transacties met categorie Sponsoring sinds 1 juni ${JAAR} die niet automatisch aan een sponsor gekoppeld konden worden. Wijs ze toe aan een sponsor, voeg de sponsor toe, of duid aan dat het geen sponsorbetaling is.</p></div>
    <div class="tw"><table class="rcards" data-main="1"><thead><tr><th>Datum</th><th>Van</th><th>Mededeling</th><th class="num">Bedrag</th><th></th></tr></thead><tbody>
    ${K.los.map(b=>`<tr><td class="nowrap">${fmtDate(b.datum)}</td><td><b>${esc(b.partij||"")}</b></td><td class="trunc">${esc(b.mededeling||"")}</td><td class="num in nowrap">${eur(b.bedrag)}</td>
-    <td class="nowrap" style="text-align:right"><button class="btn sm" data-act="toonBoeking" data-id="${esc(b.id)}">Transactie</button>${canWrite?` <button class="btn sm" data-act="spVanBoeking" data-id="${esc(b.id)}">${ic("plus")}Sponsor</button>`:""}</td></tr>`).join("")}</tbody></table></div></div>`:""}`}});
+    <td class="nowrap" style="text-align:right"><button class="btn sm" data-act="toonBoeking" data-id="${esc(b.id)}">Transactie</button>${canWrite?` <button class="btn sm primary" data-act="spToewijzen" data-id="${esc(b.id)}">Toewijzen</button> <button class="btn sm" data-act="spVanBoeking" data-id="${esc(b.id)}">${ic("plus")}Sponsor</button>`:""}</td></tr>`).join("")}</tbody></table></div></div>`:""}`}});
 
 /* ---------- banket ---------- */
 const BK_PUBLIEK="/banket";
@@ -1692,18 +1712,19 @@ async function doImport(){
 
 /* ---------- sponsor ---------- */
 function sponsorForm(s,id){
-  modal(id?s.bedrijf:"Nieuwe sponsor",`<form id="fSp" class="form">
-   ${fld("sB","Bedrijf *",inp("sB",s.bedrijf,'name="bedrijf"'),"full")}${fld("sV","Voornaam contact",inp("sV",s.voornaam,'name="voornaam"'))}${fld("sN","Naam contact",inp("sN",s.naam,'name="naam"'))}
+  modal(id?spNaam(s):"Nieuwe sponsor",`<form id="fSp" class="form">
+   ${fld("sW","Weergavenaam",inp("sW",s.weergave,'name="weergave" placeholder="Zoals we de sponsor kennen, bv. Hubo"'))}${fld("sB","Bedrijfsnaam (officieel) *",inp("sB",s.bedrijf,'name="bedrijf" placeholder="bv. Jasam"'))}${fld("sV","Voornaam contact",inp("sV",s.voornaam,'name="voornaam"'))}${fld("sN","Naam contact",inp("sN",s.naam,'name="naam"'))}
    ${fld("sA","Adres",inp("sA",s.adres,'name="adres"'),"full")}${fld("sE","E-mail",inp("sE",s.email,'name="email" type="email"'))}${fld("sT","Telefoon",inp("sT",s.telefoon,'name="telefoon"'))}
    ${fld("sK","KBO-nummer",inp("sK",s.kbo,'name="kbo"'))}${fld("sBd","Bedrag (€)",inp("sBd",s.bedrag,'name="bedrag" inputmode="decimal"'))}
-   <label class="full sp-nat"><input type="checkbox" id="sNat"${(s.naturaJaren||[]).includes(JAAR)?" checked":""}><span><b>Voldaan in ${JAAR}</b><small>Sponsoring in natura, of op een andere manier in orde zonder betaling</small></span></label><div class="err full" id="spErr"></div></form>`,
+   <label class="full sp-nat"><input type="checkbox" id="sNat"${(s.naturaJaren||[]).includes(JAAR)?" checked":""}><span><b>Voldaan in ${JAAR}</b><small>Sponsoring in natura, of op een andere manier in orde zonder betaling</small></span></label>${id?spBetHtml(id):""}<div class="err full" id="spErr"></div></form>`,
    `${id?'<button class="btn ghost danger" data-w id="spDel">Verwijderen</button><span class="grow"></span>':""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="spOk">Bewaren</button>`);
   if(!canWrite)$$("#fSp input").forEach(i=>i.disabled=true);
   if(!s)s={};
   $("#spOk").onclick=async()=>{const f=formData($("#fSp"));if(!f.bedrijf.trim()){$("#spErr").textContent="Vul de naam van het bedrijf in.";return}
     const nj=new Set((s.naturaJaren||[]).map(Number));if($("#sNat").checked)nj.add(JAAR);else nj.delete(JAAR);
-    const d={...f,bedrijf:f.bedrijf.trim(),bedrag:num(f.bedrag),naturaJaren:[...nj].sort()};closeModal();await write("sponsors",id||newId("sponsors"),d);toast("Sponsor bewaard.")};
-  if(id)$("#spDel").onclick=()=>confirmBox("Sponsor <b>"+esc(s.bedrijf)+"</b> verwijderen?","Verwijderen",async()=>{await write("sponsors",id,null,{del:true});toast("Sponsor verwijderd.")});
+    const d={...stripId(s),...f,bedrijf:f.bedrijf.trim(),weergave:String(f.weergave||"").trim(),bedrag:num(f.bedrag),naturaJaren:[...nj].sort()};closeModal();await write("sponsors",id||newId("sponsors"),d);toast("Sponsor bewaard.")};
+  if(id)spBetBind(id);
+  if(id)$("#spDel").onclick=()=>confirmBox("Sponsor <b>"+esc(spNaam(s))+"</b> verwijderen?","Verwijderen",async()=>{await write("sponsors",id,null,{del:true});toast("Sponsor verwijderd.")});
 }
 
 /* ---------- kalenderlijst ---------- */
@@ -1933,6 +1954,7 @@ document.addEventListener("click",async e=>{
     case"spVanBoeking":{const b=S.boekingen.get(id);if(b){const nm=String(b.partij||"").replace(/\b(bv|bvba|nv|vzw|sprl|srl)\b\.?/gi,"").replace(/\s+/g," ").trim();sponsorForm({bedrijf:nm.toLowerCase().replace(/(^|[\s'(-])\p{L}/gu,m=>m.toUpperCase()),bedrag:b.bedrag},null)}break}
     case"spSort":{const k=t.dataset.v;const c=UI.spSort||{k:"bedrijf",d:1};UI.spSort=c.k===k?{k,d:-c.d}:{k,d:k==="bedrijf"?1:-1};render(true);break}
     case"toonSponsor":sponsorForm(S.sponsors.get(id),id);break;
+    case"spToewijzen":spToewijzen(id);break;
     case"bkNieuw":bkForm({personen:1,menu1:"Normaal"},null);break;
     case"bkToon":{const r=S.banket.get(id);if(r)bkForm(r,id);break}
     case"bkImport":bkImportDialog();break;
@@ -2485,7 +2507,7 @@ function groepen(){
   add("Banket","bk-niet","Actieve leden die nog niet ingeschreven zijn",cur.filter(r=>r.lg.ok&&!inBk.has(r.lid.id)).map(lidR));
   if(typeof kfLijst==="function")add("Kinderfeest","kf","Ingeschreven voor het kinderfeest",kfLijst().map(r=>{const l=r.lidId&&S.leden.get(r.lidId);
     return{email:r.email||(l&&l.email)||"",voornaam:l?l.voornaam:"",naam:l?naamVol(l):(r.lid||""),bedrag:"",mededeling:"",label:l?naamVol(l):(r.lid||r.email||"")}}));
-  add("Andere","sponsors","Alle sponsors",[...S.sponsors.values()].map(s=>({email:s.email,voornaam:s.voornaam||"",naam:s.naam||"",bedrijf:s.bedrijf,bedrag:num(s.bedrag),mededeling:"",label:s.bedrijf||s.naam||""})));
+  add("Andere","sponsors","Alle sponsors",[...S.sponsors.values()].map(s=>({email:s.email,voornaam:s.voornaam||"",naam:s.naam||"",bedrijf:spNaam(s),bedrag:num(s.bedrag),mededeling:"",label:spNaam(s)||s.naam||""})));
   add("Andere","los","Losse e-mailadressen",mlLos().map(e=>({email:e,voornaam:"",naam:"",bedrag:"",mededeling:"",label:e})));
   return G;
 }
@@ -2959,3 +2981,25 @@ function kalToevoegen(){
 }
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;
   ({kalLog:()=>kalLogForm(t.dataset.id),kalUndo:()=>{$("#toast").hidden=true;kalUndo(t.dataset.id)}})[t.dataset.act]?.()});
+
+/* ============ Sponsors: betalingen bekijken en manueel toewijzen ============ */
+function spBetHtml(id){const C=ctx(),K=spKoppel(C),k=K.per.get(id),s=S.sponsors.get(id)||{};const L=k?k.L:[];
+  return `<div class="full sp-bet"><div class="sp-bet-h"><b>Betalingen ${JAAR}</b><span class="muted small">${eur(k?k.som:0)} van ${eur(num(s.bedrag))}</span></div>
+  ${L.length?`<div class="sp-bet-l">${L.map(b=>`<div class="sp-bet-r"><span class="grow" style="min-width:0"><span class="trunc"><b>${eur(b.bedrag)}</b> · ${fmtDate(b.datum)} · ${esc(b.partij||"")}</span><span class="muted small trunc">${esc(b.mededeling||"")} · <span class="sp-hoe ${b._hoe}">${b._hoe==="manueel"?"manueel toegewezen":"automatisch herkend"}</span></span></span>${canWrite?`<button type="button" class="btn sm ghost" data-spweg="${esc(b.id)}" title="${b._hoe==="manueel"?"Toewijzing ongedaan maken":"Hoort niet bij deze sponsor"}">Loskoppelen</button>`:""}</div>`).join("")}</div>`:'<div class="muted small">Nog geen betaling gevonden.</div>'}
+  ${canWrite?`<div class="sp-bet-add"><select id="spBetSel" class="sel" aria-label="Transactie toewijzen"><option value="">Transactie toewijzen…</option>${spKandidaten(id).map(b=>`<option value="${esc(b.id)}">${esc(fmtDate(b.datum)+" · "+eur(b.bedrag)+" · "+(b.partij||"")+(b.mededeling?" · "+b.mededeling:"")).slice(0,110)}</option>`).join("")}</select><button type="button" class="btn sm" id="spBetOk">Toewijzen</button></div>`:""}</div>`}
+/* kandidaten: inkomende transacties van dit boekjaar die nog niet bij een sponsor horen; Sponsoring eerst, dan gelijk bedrag */
+function spKandidaten(id){const C=ctx(),K=spKoppel(C),s=S.sponsors.get(id)||{},bez=new Set();for(const k of K.per.values())k.L.forEach(b=>bez.add(b.id));
+  return C.boek.filter(b=>b.richting!=="uit"&&!bez.has(b.id)&&b.categorie!=="Lidgeld").sort((a,b)=>((b.categorie==="Sponsoring")-(a.categorie==="Sponsoring"))||((Math.abs(b.bedrag-num(s.bedrag))<0.01)-(Math.abs(a.bedrag-num(s.bedrag))<0.01))||String(b.datum).localeCompare(String(a.datum))).slice(0,150)}
+async function spZetBoeking(bid,sid){const b=S.boekingen.get(bid);if(!b)return;const d={...stripId(b),sponsorId:sid};S.boekingen.set(bid,{...d,id:bid});dirty=true;await write("boekingen",bid,d);dirty=true}
+function spBetVernieuw(id){const el=$(".sp-bet");if(!el)return;el.outerHTML=spBetHtml(id);spBetBind(id)}
+function spBetBind(id){const ok=$("#spBetOk");if(ok)ok.onclick=async()=>{const v=$("#spBetSel").value;if(!v){toast("Kies eerst een transactie.",true);return}await spZetBoeking(v,id);toast("Transactie toegewezen aan "+spNaam(S.sponsors.get(id))+".");spBetVernieuw(id)};
+  $$("[data-spweg]").forEach(btn=>btn.onclick=async()=>{const b=S.boekingen.get(btn.dataset.spweg);if(!b)return;await spZetBoeking(b.id,b.sponsorId&&b.sponsorId!=="-"?"":"-");toast("Losgekoppeld.");spBetVernieuw(id)})}
+/* betaling zonder sponsor toewijzen aan een sponsor (vanuit de lijst onderaan) */
+function spToewijzen(bid){const b=S.boekingen.get(bid);if(!b)return;const C=ctx(),hay=norm((b.mededeling||"")+" "+(b.partij||"")).replace(/[^a-z0-9]+/g," "),hw=hay.split(" "),hz=hay.replace(/ /g,"");
+  const L=[...S.sponsors.values()].map(s=>({s,sc:spScore(spToks(s),hay,hw,hz)+(Math.abs(num(s.bedrag)-b.bedrag)<0.01?3:0)})).sort((a,x)=>x.sc-a.sc||spNaam(a.s).localeCompare(spNaam(x.s),"nl"));
+  modal("Betaling toewijzen",`<div class="stack" style="gap:12px"><div class="kv-b"><b>${eur(b.bedrag)}</b> · ${fmtDate(b.datum)} · ${esc(b.partij||"")}<div class="muted small">${esc(b.mededeling||"")}</div></div>
+   <div class="fld"><label for="spTw">Sponsor</label><select id="spTw" class="sel">${L.map(x=>`<option value="${esc(x.s.id)}">${esc(spNaam(x.s))}${x.s.weergave&&x.s.bedrijf?" ("+esc(x.s.bedrijf)+")":""} · ${eur(num(x.s.bedrag))}</option>`).join("")}</select></div>
+   <label class="sp-nat"><input type="checkbox" id="spGeen"><span><b>Geen sponsorbetaling</b><small>Deze transactie hoort bij geen enkele sponsor en verschijnt hier niet meer.</small></span></label></div>`,
+   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="spTwOk">Bewaren</button>`);
+  $("#spGeen").onchange=e=>{$("#spTw").disabled=e.target.checked};
+  $("#spTwOk").onclick=async()=>{const geen=$("#spGeen").checked,sid=geen?"-":$("#spTw").value;closeModal();await spZetBoeking(bid,sid);toast(geen?"Aangeduid als geen sponsorbetaling.":"Toegewezen aan "+spNaam(S.sponsors.get(sid))+".")}}
