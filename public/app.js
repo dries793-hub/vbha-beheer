@@ -3401,3 +3401,25 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-va]"
 // vanuit Documenten: naar de vergadering in de agenda (vóór de klik op het document zelf)
 document.addEventListener("click",e=>{const t=e.target.closest('[data-va="agenda"]');if(!t)return;e.preventDefault();e.stopPropagation();
   const v=S.vergaderingen.get(t.dataset.id);if(!v)return;location.hash="#agenda";setTimeout(()=>vgForm(S.vergaderingen.get(v.id),v.id),150)},true);
+
+/* ============ Dashboard: meldingen voor de boekhouding ============
+   - transacties die nog verwerkt moeten worden (na het inladen van de bankgegevens)
+   - facturen die (automatisch herkend) betaald werden; wegklikken zet factuur.betaaldGezien */
+const dmBoek=()=>ROL==="admin"||ROL==="boekhouder";
+function dmVerwerken(){if(!dmBoek())return"";const L=teVerwerken(ctx());if(!L.length)return"";
+  const imp=[...S.imports.values()].sort((a,b)=>String(b.tijd||"").localeCompare(String(a.tijd||"")))[0];
+  const nieuwst=L.map(b=>b.datum).sort().pop();
+  const zonder=L.filter(b=>!b.categorie).length,ctrl=L.length-zonder;
+  return `<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("verwerken")}</span><div class="nm-body"><b>${L.length===1?"Er is 1 transactie":"Er zijn "+L.length+" transacties"} te verwerken</b>
+   <div class="nm-l"><a class="nm-i" href="#verwerken"><b>Te verwerken</b><span>${[zonder?zonder+" zonder categorie":"",ctrl?ctrl+" voorstel"+(ctrl===1?"":"len")+" te bevestigen":""].filter(Boolean).join(" · ")}${nieuwst?" · laatste van "+fmtDate(nieuwst):""}</span></a></div>
+   ${imp&&imp.tijd?`<span class="small" style="opacity:.8">Laatste bankimport: ${new Date(imp.tijd).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span>`:""}</div></div>`}
+function dmBetaald(){if(!dmBoek()||!S.facturen)return"";const grens=vaPlus(todayISO(),-60);
+  const L=[...S.facturen.values()].filter(f=>f.nr&&f.type!=="credit"&&!f.betaaldGezien&&f.status!=="gecrediteerd"&&fcStatus(f)==="betaald").map(f=>({f,b:fcBetaal(f)})).filter(x=>!x.b.laatst||x.b.laatst>=grens).sort((a,b)=>String(b.b.laatst).localeCompare(String(a.b.laatst)));
+  if(!L.length)return"";
+  return `<div class="nmeld dm-b" role="status"><span class="nm-ic">${ic("facturen")}</span><div class="nm-body"><b>${L.length===1?"Een factuur werd betaald":L.length+" facturen werden betaald"}</b>
+   <div class="nm-l">${L.slice(0,6).map(({f,b})=>`<a class="nm-i" href="#facturen" data-dm="open" data-id="${esc(f.id)}"><b>${esc(f.nr)} · ${esc(fcNaam(f))}</b><span>${eur(b.ontvangen||b.totaal)}${b.laatst?" ontvangen op "+fmtDate(b.laatst):""}${f.betaaldManueel?" (manueel)":""}</span></a>`).join("")}${L.length>6?`<a class="nm-i" href="#facturen"><b>+ ${L.length-6} andere</b><span>Bekijk alle facturen</span></a>`:""}</div></div>
+   <button type="button" class="nm-x" data-dm="gezien" data-ids="${esc(L.map(x=>x.f.id).join(","))}" aria-label="Melding sluiten" title="Gezien">${ic("x")}</button></div>`}
+{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){if(typeof fcSync==='function')fcSync();return dmVerwerken()+dmBetaald()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+document.addEventListener("click",async e=>{const t=e.target.closest("[data-dm]");if(!t)return;
+  if(t.dataset.dm==="open"){e.preventDefault();const id=t.dataset.id;location.hash="#facturen";setTimeout(()=>fcDetail(id),150);return}
+  if(t.dataset.dm==="gezien"){t.disabled=true;for(const id of t.dataset.ids.split(",")){const f=S.facturen.get(id);if(f&&!f.betaaldGezien){try{await fcZet(id,{betaaldGezien:new Date().toISOString()})}catch(x){toast(x.message,true);break}}}renderBody()}});
