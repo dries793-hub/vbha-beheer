@@ -77,7 +77,7 @@ async function mailNieuwLid(sb, row) {
 /* kinderfeest: cadeau-info in de bevestiging (instelbaar in Kinderfeest › tandwiel; config kf_<jaar>.mail) */
 export function kfMailDef(jaar, datum) {
   const Y = Number(String(datum || "").slice(0, 4)) || Number(jaar), d = new Date((datum || Y + "-12-19") + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() - 10);
-  return { cadeau: true, sites: "www.dreamland.be, www.bol.com", tot: d.toISOString().slice(0, 10), contact: "jojanneke.lariviere@zonezuidoost.be",
+  return { cadeau: true, sites: "www.dreamland.be, www.bol.com", tot: d.toISOString().slice(0, 10), contact: "jojanneke.lariviere@zonezuidoost.be", kopie: "jojanneke.lariviere@zonezuidoost.be",
     groepen: `${Y - 11}: cadeau voorzien door VBHA\n${Y - 10}-${Y - 6}: 50,00 EUR per kind\n${Y - 5}-${Y}: 35,00 EUR per kind` };
 }
 export function kfGroepen(t) {
@@ -116,7 +116,8 @@ async function mailKinderfeest(sb, row) {
   const d = row.data, A = await algemeen(sb), jaar = d.jaar || A.jaar, c = await configDoc(sb, "kf_" + jaar), aan = String(d.email || "").trim();
   if (!aan) return null;
   const html = await kfMailHtml(sb, d, { A, c, jaar });
-  return { aan, aanNaam: d.lid || "", onderwerp: `VBHA - Bevestiging inschrijving kinderfeest ${jaar}`, html: huisstijl(html, A.vereniging), betaald: true };
+  const M = { ...kfMailDef(jaar, c.datum || jaar + "-12-19"), ...(c.mail || {}) }, cc = String(M.kopie || "").split(/[,;\s]+/).map(x => x.trim().toLowerCase()).filter(x => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x)).slice(0, 5);
+  return { aan, aanNaam: d.lid || "", cc, onderwerp: `VBHA - Bevestiging inschrijving kinderfeest ${jaar}`, html: huisstijl(html, A.vereniging), betaald: true };
 }
 async function mailBetaald(sb, tabel, row) {
   const d = row.data, A = await algemeen(sb), b = d.betaling || {};
@@ -132,7 +133,7 @@ async function mailBetaald(sb, tabel, row) {
 /* ---------- versturen ---------- */
 async function haal(sb, tabel, id) { const { data } = await sb.from(tabel).select("id,data").eq("id", id).maybeSingle(); return data; }
 async function zet(sb, tabel, id, patch) { const r = await haal(sb, tabel, id); if (!r) return; const { error } = await sb.from(tabel).update({ data: { ...r.data, ...patch } }).eq("id", id); if (error) throw error; }
-async function stuur(m) { if (!m || !smtpConfigured()) return false; const [r] = await verstuur([{ aan: m.aan, aanNaam: m.aanNaam, onderwerp: m.onderwerp, html: m.html, van: afzender() }]); return !!(r && r.ok); }
+async function stuur(m) { if (!m || !smtpConfigured()) return false; const cc = (m.cc || []).filter(c => c && c.toLowerCase() !== String(m.aan).toLowerCase()); const [r] = await verstuur([{ aan: m.aan, aanNaam: m.aanNaam, onderwerp: m.onderwerp, html: m.html, van: afzender(), ...(cc.length ? { cc } : {}) }]); return !!(r && r.ok); }
 const MAKER = { banket: mailBanket, leden: mailNieuwLid, kinderfeest: mailKinderfeest };
 
 export async function wachtOpBetaling(sb, tabel, id) { await zet(sb, tabel, id, { bevestiging: { status: "wacht", sinds: new Date().toISOString() } }); }

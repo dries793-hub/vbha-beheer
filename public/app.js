@@ -4104,12 +4104,13 @@ dtScan(document);
    Instellingen in Kinderfeest › tandwiel; bewaard in config kf_<jaar>.mail. De server stuurt de mail na elke inschrijving via de website
    naar het adres van het lid of het adres dat de inschrijver opgaf. */
 function kfMailDef(datum){const Y=Number(String(datum||"").slice(0,4))||JAAR,d=agD(datum||Y+"-12-19");d.setDate(d.getDate()-10);
-  return{cadeau:true,sites:"www.dreamland.be, www.bol.com",tot:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"),contact:"jojanneke.lariviere@zonezuidoost.be",
+  return{cadeau:true,sites:"www.dreamland.be, www.bol.com",tot:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"),contact:"jojanneke.lariviere@zonezuidoost.be",kopie:"jojanneke.lariviere@zonezuidoost.be",
     groepen:`${Y-11}: cadeau voorzien door VBHA\n${Y-10}-${Y-6}: 50,00 EUR per kind\n${Y-5}-${Y}: 35,00 EUR per kind`}}
 function kfMailCfg(){const c=kfCfg();return{...kfMailDef(c.datum),...(c.mail||{})}}
 function kfMailHtml(){const M=kfMailCfg(),d=canWrite?"":" disabled";
   return `<div class="fc-sec full"><h4>Bevestigingsmail</h4></div>
   <p class="full muted small" style="margin:-6px 0 0">Na elke inschrijving via de website krijgt de inschrijver meteen een bevestiging, naar het adres van het lid of naar het adres dat hij opgaf.</p>
+  ${fld("kmK","Kopie van elke bevestiging naar",inp("kmK",M.kopie??"",'placeholder="e-mailadres (leeg = geen kopie)"'+d),"full")}
   <label class="sp-nat full" for="kmC"><input type="checkbox" id="kmC"${M.cadeau?" checked":""}${d}><span><b>Cadeau zelf kiezen</b><small>De uitleg hieronder komt in de bevestigingsmail.</small></span></label>
   <div class="full km-velden" id="kmV"${M.cadeau?"":" hidden"}><div class="form" style="padding:0">
    ${fld("kmS","Websites",inp("kmS",M.sites,'placeholder="www.dreamland.be, www.bol.com"'+d))}${fld("kmT","Cadeau doorgeven vóór",`<input id="kmT" type="date" value="${esc(M.tot)}"${d}>`)}
@@ -4117,10 +4118,10 @@ function kfMailHtml(){const M=kfMailCfg(),d=canWrite?"":" disabled";
    <div class="fld full"><label for="kmG">Waarde per geboortejaar</label><textarea id="kmG" style="height:86px;min-height:0;font-family:inherit"${d}>${esc(M.groepen)}</textarea><span class="help">Eén regel per groep, bv. <b>2016-2020: 50,00 EUR per kind</b> of <b>2015: cadeau voorzien door VBHA</b>.</span></div>
   </div></div>
   <div class="full bar" style="margin:0"><button type="button" class="btn sm" data-km="voorbeeld">${ic("mails")}Voorbeeld van de mail</button><button type="button" class="btn sm ghost" data-km="standaard"${d}>Standaardtekst</button></div>`}
-const kmLees=()=>({cadeau:$("#kmC").checked,sites:$("#kmS").value.trim(),tot:$("#kmT").value,contact:$("#kmM").value.trim(),groepen:$("#kmG").value.trim()});
+const kmLees=()=>({kopie:$("#kmK").value.trim(),cadeau:$("#kmC").checked,sites:$("#kmS").value.trim(),tot:$("#kmT").value,contact:$("#kmM").value.trim(),groepen:$("#kmG").value.trim()});
 {const _k=kfInst;kfInst=function(){_k.apply(this,arguments);const f=$("#fKfI");if(!f)return;f.insertAdjacentHTML("beforeend",kfMailHtml());
   const ok=$("#kiOk");if(!ok||!ok.onclick)return;const _o=ok.onclick;
-  ok.onclick=async function(ev){const M=kmLees();if(M.contact&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(M.contact)){toast("Het adres om het cadeau door te sturen klopt niet.",true);return}
+  ok.onclick=async function(ev){const M=kmLees();if(M.kopie&&M.kopie.split(/[,;\s]+/).filter(Boolean).some(x=>!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x))){toast("Het adres voor de kopie klopt niet.",true);return}if(M.contact&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(M.contact)){toast("Het adres om het cadeau door te sturen klopt niet.",true);return}
     const k="kf_"+JAAR,cur=S.config.get(k)||{};S.config.set(k,{...cur,id:k,mail:M});return _o.call(this,ev)}}}
 document.addEventListener("change",e=>{if(e.target.id==="kmC"&&$("#kmV"))$("#kmV").hidden=!e.target.checked});
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-km]");if(!t)return;
