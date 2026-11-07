@@ -3454,6 +3454,60 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-dm]"
   if(t.dataset.dm==="open"){e.preventDefault();const id=t.dataset.id;location.hash="#facturen";setTimeout(()=>fcDetail(id),150);return}
   if(t.dataset.dm==="gezien"){t.disabled=true;for(const id of t.dataset.ids.split(",")){const f=S.facturen.get(id);if(f&&!f.betaaldGezien){try{await fcZet(id,{betaaldGezien:new Date().toISOString()})}catch(x){toast(x.message,true);break}}}renderBody()}});
 
+/* ============ Pushmeldingen ============
+   Instellingen › Herinneringen: pushmeldingen voor de vereniging aan/uit (uur, activiteiten, vergaderingen)
+   en per toestel aan- of afmelden (+ testmelding). Service worker: /sw.js. Server: /api/mail?f=push. */
+{const t=INST_TABS.find(x=>x[0]==="herinneringen");if(t)t[1]="Herinneringen en meldingen"}
+ICON.bel='<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>';
+const MP={srv:null,sub:null,bezig:false};
+const mpKan=()=>"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
+const mpIOS=()=>/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const mpThuis=()=>window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const mpCfg=()=>({aan:true,uur:9,activiteiten:true,vergaderingen:true,...((S.config.get("herinneringen")||{}).push||{})});
+const mpU8=s=>{const b=atob(s.replace(/-/g,"+").replace(/_/g,"/")+"===".slice((s.length+3)%4));return Uint8Array.from(b,c=>c.charCodeAt(0))};
+const mpToestel=()=>{const u=navigator.userAgent;return (/iPhone/.test(u)?"iPhone":/iPad/.test(u)?"iPad":/Android/.test(u)?"Android":/Mac/.test(u)?"Mac":/Windows/.test(u)?"Windows":"Toestel")+" · "+(/Edg\//.test(u)?"Edge":/Chrome\//.test(u)?"Chrome":/Firefox\//.test(u)?"Firefox":/Safari\//.test(u)?"Safari":"browser")};
+let MP_REG=null;
+function mpReg(){if(!mpKan())return Promise.resolve(null);if(!MP_REG)MP_REG=navigator.serviceWorker.register("/sw.js").then(()=>navigator.serviceWorker.ready).catch(e=>{console.warn("sw",e);MP_REG=null;return null});return MP_REG}
+async function mpLaad(){try{const r=await mpReg();MP.sub=r?await r.pushManager.getSubscription():null;MP.srv=await api("/api/mail?f=push")}catch(e){MP.srv={fout:e.message}}if(route()==="herinneringen"){const el=$("#mpToestel");if(el)el.innerHTML=mpToestelHtml()}}
+function mpToestelHtml(){
+  if(!mpKan()){return mpIOS()&&!mpThuis()?`<div class="note info">Op een iPhone of iPad werken meldingen enkel als de app op je beginscherm staat: tik in Safari op <b>Deel</b> en dan <b>Zet op beginscherm</b>, open de app van daaruit en kom hier terug.</div>`:`<div class="muted small">Deze browser ondersteunt geen pushmeldingen.</div>`}
+  if(Notification.permission==="denied")return `<div class="note">Meldingen zijn geblokkeerd voor deze site. Zet ze terug aan in de instellingen van je browser of toestel (Meldingen › VBHA) en herlaad de app.</div>`;
+  if(!MP.srv)return `<div class="muted small">Laden…</div>`;
+  const aan=!!MP.sub&&Notification.permission==="granted",n=MP.srv.toestellen||0;
+  return `<div class="mp-st"><span class="mp-dot${aan?" on":""}"></span><div><b>${aan?"Meldingen staan aan op dit toestel":"Meldingen staan uit op dit toestel"}</b><div class="muted small">${esc(mpToestel())}${n?` · ${n} ${n===1?"toestel":"toestellen"} aangemeld op jouw naam`:""}</div></div></div>
+   <div class="bar" style="margin:10px 0 0">${aan?`<button class="btn" type="button" data-mp="uit">Uitzetten op dit toestel</button><button class="btn" type="button" data-mp="test">${ic("bel")}Testmelding</button>`:`<button class="btn primary" type="button" data-mp="aan">${ic("bel")}Meldingen aanzetten op dit toestel</button>`}</div>`}
+async function mpAan(b){b.disabled=true;try{
+    const p=await Notification.requestPermission();if(p!=="granted"){toast("Je gaf geen toestemming voor meldingen.",true);return}
+    const r=await mpReg();if(!r)throw new Error("De service worker kon niet starten.");
+    if(!MP.srv||!MP.srv.sleutel)MP.srv=await api("/api/mail?f=push");
+    let s=await r.pushManager.getSubscription();
+    if(!s)s=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:mpU8(MP.srv.sleutel)});
+    await api("/api/mail?f=push",{method:"POST",body:JSON.stringify({actie:"abonneer",abonnement:s.toJSON(),toestel:mpToestel()})});
+    MP.sub=s;toast("Meldingen staan aan op dit toestel.")}
+  catch(x){toast("Aanzetten lukte niet: "+(x.message||x),true)}finally{b.disabled=false;mpLaad()}}
+async function mpUit(b){b.disabled=true;try{const s=MP.sub;if(s){await api("/api/mail?f=push",{method:"POST",body:JSON.stringify({actie:"stop",endpoint:s.endpoint})}).catch(()=>{});await s.unsubscribe()}MP.sub=null;toast("Meldingen staan uit op dit toestel.")}
+  catch(x){toast(x.message,true)}finally{b.disabled=false;mpLaad()}}
+async function mpTest(b){b.disabled=true;try{const j=await api("/api/mail?f=push",{method:"POST",body:JSON.stringify({actie:"test"})});toast(`Testmelding verstuurd naar ${j.ok} ${j.ok===1?"toestel":"toestellen"}.`)}catch(x){toast(x.message,true)}finally{b.disabled=false}}
+function mpPanel(){const c=mpCfg(),d=canWrite?"":" disabled";
+  return `<div class="grid g2" style="align-items:start;margin-top:16px">
+  <form class="panel" id="fMp"><div class="panel-h"><h2>Pushmeldingen</h2></div><div class="panel-b"><div class="form">
+   <label class="sp-nat full" for="mpAan"><input type="checkbox" id="mpAan"${c.aan?" checked":""}${d}><span><b>Pushmeldingen versturen</b><small>Op de dag van een activiteit of vergadering een melding op de gsm, bv. "Bestuursvergadering VBHA om 19u30 · Kazerne Aalst".</small></span></label>
+   ${fld("mpUur","Op welk uur",`<select id="mpUur" class="sel"${d}>${[6,7,8,9,10,11,12,13,14].map(n=>`<option value="${n}"${n===Number(c.uur)?" selected":""}>${n}u00</option>`).join("")}</select>`)}
+   <div class="fld"><span class="lbl">Voor</span><div class="hr-soorten"><label><input type="checkbox" id="mpVg"${c.vergaderingen?" checked":""}${d}>Vergaderingen</label><label><input type="checkbox" id="mpAc"${c.activiteiten?" checked":""}${d}>Activiteiten, banket en kinderfeest</label></div></div>
+   ${canWrite?`<div class="full bar"><button class="btn primary" type="button" id="mpOk">Bewaren</button></div>`:""}
+   <p class="full muted small" style="margin:0">Enkel wie meldingen aanzette op zijn eigen toestel krijgt ze. Iedereen doet dat zelf, hiernaast.</p>
+  </div></div></form>
+  <div class="panel"><div class="panel-h"><h2>Dit toestel</h2></div><div class="panel-b" id="mpToestel">${mpToestelHtml()}</div></div></div>`}
+{const _h=VIEWS.herinneringen;const n=function(){const v=_h.apply(this,arguments),b=v.body;v.body=function(){if(!MP.srv&&!MP.bezig){MP.bezig=true;setTimeout(()=>mpLaad().finally(()=>{MP.bezig=false}),0)}return b.apply(this,arguments)+mpPanel()};return v};Object.assign(n,_h);VIEWS.herinneringen=n}
+async function mpBewaar(){const vg=$("#mpVg").checked,ac=$("#mpAc").checked;if($("#mpAan").checked&&!vg&&!ac){toast("Kies vergaderingen en/of activiteiten.",true);return}
+  await write("config","herinneringen",{...stripId(S.config.get("herinneringen")||{}),push:{aan:$("#mpAan").checked,uur:Number($("#mpUur").value),vergaderingen:vg,activiteiten:ac}});toast("Pushmeldingen bewaard.")}
+// menu onder het profiel: snel naar de meldingen
+{const _m=gbMenu;gbMenu=function(){_m.apply(this,arguments);const m=$("#acctMenu");if(!m||m.querySelector("[data-mpm]"))return;const lo=m.querySelector('[data-act="logout"]');
+  const h=`<a href="#herinneringen" class="acct-i" role="menuitem" data-act="acctClose" data-mpm>${ic("bel")}Meldingen op dit toestel</a>`;if(lo)lo.insertAdjacentHTML("beforebegin",h);else m.insertAdjacentHTML("beforeend",h)}}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-mp],#mpOk");if(!t)return;if(t.id==="mpOk")return mpBewaar();
+  ({aan:mpAan,uit:mpUit,test:mpTest})[t.dataset.mp](t)});
+mpReg();
+
 /* ============ Datumvelden altijd als DD/MM/JJJJ ============
    Browsers tonen <input type="date"> in het formaat van hun eigen taal (bv. MM/DD/YYYY in een Engelse browser).
    Elk datumveld wordt daarom een tekstveld dat DD/MM/JJJJ toont, met een kalenderknop (de kalender van de browser).
