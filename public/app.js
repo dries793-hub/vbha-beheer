@@ -3049,6 +3049,7 @@ ICON.tandwiel='<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3
 
 const FC={f:"alle",q:"",jaar:"alle"};
 const FC_DEF={voorvoegsel:"F",creditVoorvoegsel:"C",start:{},vervaldagen:30,bic:"ARSPBE22",adres:"",kbo:"",email:"",telefoon:"",website:"vbha.be",voettekst:"",kopie:"",mailOnderwerp:"",mailTekst:"",herinnering:{aan:false,dagenNaVerval:7,interval:14,max:2}};
+const FC_VW="Betaalbaar binnen {termijn} dagen na factuurdatum, door overschrijving met de vermelde gestructureerde mededeling. Bij niet-betaling op de vervaldag is van rechtswege en zonder voorafgaande ingebrekestelling een verwijlintrest verschuldigd volgens de wet van 2 augustus 2002 betreffende de bestrijding van de betalingsachterstand bij handelstransacties, vermeerderd met een forfaitaire schadevergoeding van € 40. Klachten over deze factuur worden schriftelijk gemeld binnen 8 dagen na ontvangst.";
 const fcCfg=()=>{const c=S.config.get("facturen")||{};return{...FC_DEF,...c,herinnering:{...FC_DEF.herinnering,...(c.herinnering||{})}}};
 const fcMag=()=>ROL==="admin"||ROL==="boekhouder";
 const fcOgm=d=>d&&d.length===12?`+++${d.slice(0,3)}/${d.slice(3,7)}/${d.slice(7)}+++`:"";
@@ -3221,10 +3222,12 @@ function fcInstel(){const c=fcCfg(),H=c.herinnering,j=new Date().getFullYear(),p
   modal("Instellingen facturatie",`<form id="fFcI" class="form">
    <div class="fc-sec full"><h4>Gegevens van de vereniging op de factuur</h4><p class="muted small" style="margin:0">De naam van de vereniging en het rekeningnummer komen uit Instellingen › Algemeen.</p></div>
    <div class="fld full"><label for="fiAd">Adres</label><textarea id="fiAd" rows="2" placeholder="Straat en nummer&#10;Postcode en gemeente">${esc(c.adres)}</textarea></div>
+   ${fld("fiRv","Rechtsvorm",inp("fiRv",c.rechtsvorm??"vzw",'placeholder="vzw"'))}${fld("fiRpr","RPR (rechtbank)",inp("fiRpr",c.rpr??"RPR Gent, afdeling Dendermonde"))}
    ${fld("fiKbo","Ondernemingsnummer",inp("fiKbo",c.kbo,'placeholder="0123.456.789"'))}${fld("fiBic","BIC van de bank",inp("fiBic",c.bic))}
    ${fld("fiMail","E-mail (antwoorden komen hier)",inp("fiMail",c.email,'type="email" placeholder="penningmeester@vbha.be"'))}${fld("fiTel","Telefoon",inp("fiTel",c.telefoon))}
    ${fld("fiWeb","Website",inp("fiWeb",c.website))}${fld("fiVd","Betaaltermijn",`<select id="fiVd" class="sel">${[8,10,14,15,21,30,45,60].map(n=>`<option value="${n}"${n===num(c.vervaldagen)?" selected":""}>${n} dagen</option>`).join("")}</select>`)}
    <div class="fld full"><label for="fiVt">Voettekst (bv. btw-vermelding)</label><textarea id="fiVt" rows="2" placeholder="bv. Vereniging niet onderworpen aan btw.">${esc(c.voettekst)}</textarea></div>
+   <div class="fld full"><label for="fiVw">Betalingsvoorwaarden (onderaan elke factuur)</label><textarea id="fiVw" rows="4" style="height:96px">${esc(c.voorwaarden??FC_VW)}</textarea><span class="help">{termijn} wordt de betaaltermijn hierboven. Laat leeg om geen voorwaarden af te drukken.</span></div>
    <div class="fc-sec full"><h4>Klantenlijst</h4>${fcVaste().length?`<div class="fc-kl">${fcVaste().map(v=>`<div><span class="grow" style="min-width:0"><b>${esc(v.naam)}</b><span class="muted small trunc"> ${[v.contact,v.email].filter(Boolean).map(esc).join(" · ")}</span></span><button type="button" class="btn sm ghost" data-fc="klantWeg" data-id="${esc(v.id)}">Verwijderen</button></div>`).join("")}</div>`:'<p class="muted small" style="margin:0">Nog geen klanten opgeslagen. Dat doe je bij het maken van een factuur met <b>Opslaan als nieuwe klant</b>.</p>'}</div>
    <div class="fc-sec full"><h4>Nummering</h4></div>
    ${fld("fiNr","Volgend factuurnummer "+j,`<div class="fc-nr"><span>${esc(pre)}${j}</span><input id="fiNr" inputmode="numeric" value="${String(volgend).padStart(3,"0")}"></div>`)}
@@ -3243,7 +3246,7 @@ async function fcInstelBewaar(volgend){const c=fcCfg(),j=new Date().getFullYear(
   const nr=parseInt(g("#fiNr"),10);if(!(nr>=1)){$("#fiErr").textContent="Vul een geldig volgnummer in.";return}
   const kop=g("#fiKop").split(/[,;\s]+/).filter(Boolean);if(kop.some(x=>!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x))){$("#fiErr").textContent="Het kopie-adres klopt niet.";return}
   const start={...(c.start||{})};if(nr!==volgend)start[pre+j]=nr;
-  const d={...stripId(S.config.get("facturen")||{}),adres:$("#fiAd").value.trim(),kbo:g("#fiKbo"),bic:g("#fiBic"),email:g("#fiMail"),telefoon:g("#fiTel"),website:g("#fiWeb"),vervaldagen:num($("#fiVd").value),voettekst:$("#fiVt").value.trim(),
+  const d={...stripId(S.config.get("facturen")||{}),adres:$("#fiAd").value.trim(),kbo:g("#fiKbo"),bic:g("#fiBic"),email:g("#fiMail"),telefoon:g("#fiTel"),website:g("#fiWeb"),vervaldagen:num($("#fiVd").value),voettekst:$("#fiVt").value.trim(),rechtsvorm:g("#fiRv"),rpr:g("#fiRpr"),voorwaarden:$("#fiVw").value.trim(),
     start,mailOnderwerp:g("#fiOnd"),mailTekst:$("#fiTxt").value.trim(),kopie:kop.join(", "),herinnering:{aan:$("#fiHa").checked,dagenNaVerval:num($("#fiHd").value),interval:num($("#fiHi").value),max:num($("#fiHm").value)}};
   try{await write("config","facturen",d);closeModal();toast("Instellingen bewaard.")}catch(x){$("#fiErr").textContent="Bewaren lukte niet: "+(x.message||"")}}
 

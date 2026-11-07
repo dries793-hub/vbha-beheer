@@ -18,13 +18,19 @@ import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, lang, kort, vandaa
 export const FC_DEF = {
   voorvoegsel: "F", creditVoorvoegsel: "C", start: {}, vervaldagen: 30, bic: "ARSPBE22",
   adres: "", kbo: "", email: "", telefoon: "", website: "vbha.be",
-  voettekst: "", kopie: "", mailOnderwerp: "", mailTekst: "",
+  voettekst: "", kopie: "", mailOnderwerp: "", mailTekst: "", rechtsvorm: "vzw", rpr: "RPR Gent, afdeling Dendermonde",
   herinnering: { aan: false, dagenNaVerval: 7, interval: 14, max: 2 },
 };
 export async function fcConfig(sb) {
   const c = await configDoc(sb, "facturen"), A = await algemeen(sb);
-  return { ...FC_DEF, ...c, herinnering: { ...FC_DEF.herinnering, ...(c.herinnering || {}) }, vereniging: A.vereniging, iban: A.rekeningnummer || DEF_IBAN };
+  const r = { ...FC_DEF, ...c, herinnering: { ...FC_DEF.herinnering, ...(c.herinnering || {}) }, vereniging: A.vereniging, iban: A.rekeningnummer || DEF_IBAN };
+  // juridische naam op de factuur (Wetboek van vennootschappen en verenigingen: naam + rechtsvorm, zetel, ondernemingsnummer, RPR)
+  const rv = String(r.rechtsvorm || "").trim();
+  r.naamJuridisch = rv && !new RegExp("\\b" + rv.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i").test(r.vereniging) ? r.vereniging + " " + rv : r.vereniging;
+  if (r.voorwaarden == null) r.voorwaarden = VOORWAARDEN_DEF;
+  return r;
 }
+export const VOORWAARDEN_DEF = "Betaalbaar binnen {termijn} dagen na factuurdatum, door overschrijving met de vermelde gestructureerde mededeling. Bij niet-betaling op de vervaldag is van rechtswege en zonder voorafgaande ingebrekestelling een verwijlintrest verschuldigd volgens de wet van 2 augustus 2002 betreffende de bestrijding van de betalingsachterstand bij handelstransacties, vermeerderd met een forfaitaire schadevergoeding van € 40. Klachten over deze factuur worden schriftelijk gemeld binnen 8 dagen na ontvangst.";
 
 /* ---------- nummers en mededeling ---------- */
 export function ogmVan(jaar, seq) {
@@ -93,8 +99,8 @@ export function factuurPdf(f, cfg, { status } = {}) {
     pdf.vlak(0, 0, 595, 6, ROOD);
     pdf.beeld(L, 30, 46, 46 * LOGO.h / LOGO.w, LOGO);
     let y = 32;
-    pdf.tekst(L + 58, y, cfg.vereniging, { size: 12, bold: true }); y += 16;
-    for (const r of [...String(cfg.adres || "").split(/\r?\n/).filter(Boolean), cfg.kbo ? "Ondernemingsnr. " + cfg.kbo : "", [cfg.email, cfg.telefoon].filter(Boolean).join("  ·  "), cfg.website].filter(Boolean)) { pdf.tekst(L + 58, y, r, { size: 8.5, kleur: GRIJS }); y += 11; }
+    pdf.tekst(L + 58, y, cfg.naamJuridisch || cfg.vereniging, { size: 12, bold: true }); y += 16;
+    for (const r of [...String(cfg.adres || "").split(/\r?\n/).filter(Boolean), [cfg.kbo ? "Ondernemingsnr. " + cfg.kbo : "", cfg.rpr].filter(Boolean).join("  ·  "), [cfg.email, cfg.telefoon].filter(Boolean).join("  ·  "), cfg.website].filter(Boolean)) { pdf.tekst(L + 58, y, r, { size: 8.5, kleur: GRIJS }); y += 11; }
     pdf.tekst(R, 32, titel, { size: concept ? 16 : 22, bold: true, kleur: ROOD, align: "right" });
     if (!eerste) pdf.tekst(R, 58, (credit ? "Creditnota " : "Factuur ") + (f.nr || ""), { size: 9, kleur: GRIJS, align: "right" });
     return Math.max(y, 88) + 14;
@@ -164,7 +170,15 @@ export function factuurPdf(f, cfg, { status } = {}) {
   const st = status || null;
   if (!credit && T.totaal > 0) {
     const bh = st && st.betaald ? 46 : 112;
-    if (y + bh > ONDER) { pdf.nieuwePagina(); y = kop(false); }
+    // betalingsvoorwaarden net boven het betaalblok
+    const vw = String(cfg.voorwaarden || "").replace(/\{termijn\}/g, String(Number(cfg.vervaldagen) || 30)).trim();
+    const vr = vw ? afbreken(vw, 7.5, false, Wb) : [], vh = vr.length ? vr.length * 9.5 + 16 : 0;
+    if (y + vh + bh + 6 > ONDER) { pdf.nieuwePagina(); y = kop(false); }
+    if (vr.length) {
+      const vy = ONDER - bh - 8 - vh;
+      pdf.tekst(L, vy, "BETALINGSVOORWAARDEN", { size: 6.5, bold: true, kleur: GRIJS });
+      vr.forEach((r, i) => pdf.tekst(L, vy + 11 + i * 9.5, r, { size: 7.5, kleur: GRIJS }));
+    }
     y = ONDER - bh; // altijd onderaan de pagina, net boven de voettekst
     if (st && st.betaald) {
       pdf.vlak(L, y, Wb, 46, "#f1faf4"); pdf.vlak(L, y, 4, 46, "#1a7f45");
@@ -196,7 +210,7 @@ export function factuurPdf(f, cfg, { status } = {}) {
 
   // watermerk (VBHA-woordmerk) en voettekst op elke pagina
   const wmW = 400, wmH = wmW * WATERMERK.h / WATERMERK.w;
-  const voet = [cfg.voettekst || "", `${cfg.vereniging}${cfg.kbo ? " · " + cfg.kbo : ""} · ${String(cfg.iban).replace(/\s+/g, "")}`].filter(Boolean);
+  const voet = [cfg.voettekst || "", `${cfg.naamJuridisch || cfg.vereniging}${cfg.kbo ? " · " + cfg.kbo : ""}${cfg.rpr ? " · " + cfg.rpr : ""} · ${String(cfg.iban).replace(/\s+/g, "")}`].filter(Boolean);
   pdf.paginas.forEach((ops, i) => {
     pdf.ops = ops;
     pdf.achtergrond((595 - wmW) / 2, (842 - wmH) / 2 + 30, wmW, wmH, WATERMERK);
