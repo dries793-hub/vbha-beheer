@@ -46,7 +46,7 @@ export async function wachtrijCron(req, res) {
   if (ruimte <= 0) return res.status(200).json({ wacht: true, n5, n60 });
   const { data: recent } = await sb.from("mail_wachtrij").select("data").eq("status", "ok").gte("verstuurd", iso(5 * 60000)).limit(50);
   const perDom = new Map(); for (const r of recent || []) { const d = dom(r.data.aan); perDom.set(d, (perDom.get(d) || 0) + 1); }
-  const { data: kand } = await sb.from("mail_wachtrij").select("id,data,poging").eq("status", "wacht").lte("volgende", new Date().toISOString()).order("id").limit(60);
+  const { data: kand } = await sb.from("mail_wachtrij").select("id,batch,data,poging").eq("status", "wacht").lte("volgende", new Date().toISOString()).order("id").limit(60);
   const pak = [];
   for (const r of kand || []) { if (pak.length >= ruimte) break; const d = dom(r.data.aan); if (isTraag(d) && (perDom.get(d) || 0) >= TRAAG_5) continue; perDom.set(d, (perDom.get(d) || 0) + 1); pak.push(r); }
   if (!pak.length) return res.status(200).json({ niets: true });
@@ -66,5 +66,16 @@ export async function wachtrijCron(req, res) {
     else await sb.from("mail_wachtrij").update({ status: "fout", poging: p, fout: f.slice(0, 300) }).eq("id", r.id);
   }
   if (limiet) await zetPauze(sb, 6 * 60000, "one.com: te veel mails");
+  for (const batch of new Set(pak.map(r => r.batch))) { try { await batchKlaar(sb, batch); } catch (e) { console.error("batch klaar", e); } }
   return res.status(200).json({ verstuurd: R.filter(x => x && x.ok).length, van: pak.length, limiet });
+}
+
+// is een bulkmail helemaal afgewerkt? Dan de regel in "Verzonden" (tabel mailings) bijwerken.
+async function batchKlaar(sb, batch) {
+  const { count } = await sb.from("mail_wachtrij").select("id", { count: "exact", head: true }).eq("batch", batch).in("status", ["wacht", "bezig"]);
+  if (count) return;
+  const { data: rows } = await sb.from("mail_wachtrij").select("status,fout,data").eq("batch", batch).limit(5000);
+  const ok = (rows || []).filter(r => r.status === "ok").length, F = (rows || []).filter(r => r.status === "fout").map(r => `${r.data.aan} (${r.fout || "mislukt"})`);
+  const { data: m } = await sb.from("mailings").select("id,data").eq("data->>wachtrij", batch).limit(1);
+  if (m && m[0]) await sb.from("mailings").update({ data: { ...m[0].data, ok, fout: F.slice(0, 200), bezig: false, klaar: new Date().toISOString() } }).eq("id", m[0].id);
 }
