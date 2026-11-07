@@ -4072,6 +4072,36 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-km]"
     const u=URL.createObjectURL(new Blob([j.html],{type:"text/html"}));if(w)w.location.href=u;else window.open(u,"_blank")}
   catch(x){if(w)w.close();toast("Voorbeeld lukte niet: "+(x.message||x),true)}finally{t.disabled=false}});
 
+/* ---------- cadeaus doorgegeven (vinkje per inschrijving; ook de boekhouder mag het zetten, via de functie kf_cadeau) ---------- */
+const KFC={f:"alle"};
+const kfcMag=()=>ROL==="admin"||ROL==="boekhouder";
+const kfcAan=r=>!!(r&&r.cadeau&&r.cadeau.doorgegeven);
+function kfcVink(r){const aan=kfcAan(r),t=aan?`Doorgegeven${r.cadeau.op?" op "+fmtDate(String(r.cadeau.op).slice(0,10)):""}${r.cadeau.door?" door "+r.cadeau.door:""}`:"Nog niet doorgegeven";
+  return `<label class="kfc${aan?" on":""}" title="${esc(t)}" data-kfc-w><input type="checkbox" data-kfc="${esc(r.id)}"${aan?" checked":""}${kfcMag()?"":" disabled"} aria-label="Cadeaus doorgegeven door ${esc(r.lid)}"><span class="kfc-b" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="kfc-t">${aan?"Doorgegeven":"Niet doorgegeven"}</span></label>`}
+kfTable=function(list,dub,c){list=KFC.f==="nog"?list.filter(r=>!kfcAan(r)):KFC.f==="ok"?list.filter(kfcAan):list;
+  const leeg=`${KFQ||KFC.f!=="alle"?"Geen inschrijvingen gevonden.":"Nog geen inschrijvingen voor "+JAAR+"."}`;
+  const kidsH=r=>(r.kinderen||[]).map(k=>{const a=kfLeeftijd(k.geb,c.datum);return `<span class="kf-k${a!=null&&a>c.leeftijd?" oud":""}">${esc(k.naam)}<span>${a==null?"?":a+" j"}</span></span>`}).join("");
+  const mob=`<div class="mlist" role="list">${list.map(r=>{const l=kfLidVan(r.lid);const kids=r.kinderen||[];
+    return `<div class="ml-row kfc-row" role="listitem"><button type="button" class="kfc-open" data-act="kfToon" data-id="${esc(r.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(r.lid)}</b>${l?"":' <span class="pill warn">niet in ledenlijst</span>'}${dub[norm(r.email)]>1?' <span class="pill warn">dubbel?</span>':""}</span>
+      <span class="ml-s kf-ms">${kidsH(r)||"geen kinderen"}</span></span><span class="pm-tot"><b>${kids.length}</b><small>${kids.length===1?"kind":"kinderen"}</small></span></button>${kfcVink(r)}</div>`}).join("")||`<div class="empty">${leeg}</div>`}</div>`;
+  return mob+`<table class="rcards dsk-only"><thead><tr><th>Lid</th><th>E-mail</th><th>Kinderen</th><th class="num">Aantal</th><th>Ingeschreven</th><th>Bron</th><th>Cadeaus</th></tr></thead><tbody>
+  ${list.map(r=>{const l=kfLidVan(r.lid);const kids=r.kinderen||[];
+    return `<tr class="click" data-act="kfToon" data-id="${esc(r.id)}"><td><b>${esc(r.lid)}</b>${l?"":' <span class="pill warn">niet in ledenlijst</span>'}${dub[norm(r.email)]>1?' <span class="pill warn">mogelijk dubbel</span>':""}${r.opmerking?`<div class="muted small">${esc(r.opmerking)}</div>`:""}</td>
+    <td class="trunc">${esc(r.email)}</td><td><div class="kf-kl">${kidsH(r)}</div></td>
+    <td class="num">${kids.length}</td><td class="nowrap">${r.aangemeld?esc(fmtDate(String(r.aangemeld).slice(0,10))):""}</td>
+    <td>${r.bron==="formulier"?'<span class="pill info">Formulier</span>':'<span class="pill neutral">Manueel</span>'}</td><td class="nowrap">${kfcVink(r)}</td></tr>`}).join("")||`<tr><td colspan="7" class="empty">${leeg}</td></tr>`}
+  </tbody></table>`};
+{const _v=VIEWS.kinderfeest;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=b.apply(this,arguments);const L=kfLijst(),ok=L.filter(kfcAan).length;
+    const tile=`<div class="tile"><span class="lbl">Cadeaus doorgegeven</span><span class="val">${ok}<small class="muted" style="font-size:.55em"> / ${L.length}</small></span><span class="hint">${L.length-ok?(L.length-ok)+" nog niet":"iedereen is in orde"}</span></div>`;
+    const seg=`<div class="seg" role="group" aria-label="Filter cadeaus">${[["alle","Alle"],["nog","Nog niet doorgegeven"],["ok","Doorgegeven"]].map(([k,l])=>`<button type="button" data-kfcf="${k}" class="${KFC.f===k?"on":""}">${l}</button>`).join("")}</div>`;
+    h=h.replace(/(<span class="hint">[^<]*<\/span><\/div>)(\s*<\/div>\s*<div class="panel"><div class="panel-h"><h2>Cadeautjes)/,"$1"+tile.replace(/\$/g,"$$$$")+"$2");
+    h=h.replace(/(<input id="kfQ"[^>]*><\/div>)(<\/div>)/,"$1"+seg.replace(/\$/g,"$$$$")+"$2");return h};return v};Object.assign(n,_v);VIEWS.kinderfeest=n}
+document.addEventListener("click",e=>{if(e.target.closest("[data-kfc-w]")){e.stopPropagation();return}const f=e.target.closest("[data-kfcf]");if(f){KFC.f=f.dataset.kfcf;renderBody()}},true);
+document.addEventListener("change",async e=>{const i=e.target.closest&&e.target.closest("[data-kfc]");if(!i)return;const id=i.dataset.kfc,aan=i.checked,r=S.kinderfeest.get(id);if(!r||!kfcMag()){i.checked=!aan;return}
+  i.disabled=true;try{const {data,error}=await SB.rpc("kf_cadeau",{p_id:id,p_aan:aan,p_door:ME_NAME||""});if(error)throw error;S.kinderfeest.set(id,{...(data||r),id});
+    toast(aan?`Cadeaus van ${r.lid} doorgegeven.`:`Vinkje bij ${r.lid} weggehaald.`)}
+  catch(x){i.checked=!aan;toast("Niet gelukt: "+(x.message||x),true)}finally{i.disabled=false;renderBody()}});
+
 /* ============ Instellingen enkel voor de administrator ============
    Andere profielen zien geen tandwieltjes of instellingenpagina's. Wat iedereen wel kan: "Meldingen op dit toestel" (eigen pagina).
    Bij "Bekijken als…" geldt het bekeken profiel (ROL). */

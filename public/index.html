@@ -1153,6 +1153,15 @@ body.niet-admin [data-fc="instel"],body.niet-admin [data-spi="open"],body.niet-a
 .km-velden[hidden]{display:none!important}
 body.niet-admin [data-act="ledenInst"],body.niet-admin .btn[aria-label^="Instellingen"],body.niet-admin .btn[aria-label^="Financiële instellingen"]{display:none!important}
 body[data-rol="lezer"] a[href="#mails"],body[data-rol="lezer"] a[href="#verwerken"],body[data-rol="boekhouder"] a[href="#mails"]{display:none!important}
+/* kinderfeest: cadeaus doorgegeven */
+.kfc{display:inline-flex;align-items:center;gap:7px;padding:5px 10px 5px 6px;border:1px solid var(--line-strong);border-radius:999px;cursor:pointer;background:var(--surface);font-size:13px;white-space:nowrap;user-select:none}
+.kfc input{position:absolute;opacity:0;width:1px;height:1px}
+.kfc-b{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line-strong);display:grid;place-items:center;background:var(--surface)}
+.kfc-b svg{width:12px;height:12px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.kfc.on{background:#eef8f1;border-color:#7cc596;color:#1f6b3d;font-weight:600}.kfc.on .kfc-b{background:#1f8a4c;border-color:#1f8a4c}.kfc.on .kfc-b svg{opacity:1}
+.kfc:has(input:disabled){cursor:default;opacity:.85}.kfc:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.kfc-row{display:flex;align-items:center;gap:8px;padding-right:10px}.kfc-open{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;text-align:left;font:inherit;color:inherit;cursor:pointer}
+@media (max-width:760px){.kfc-row .kfc-t{display:none}.kfc-row .kfc{padding:8px}.kfc-row .kfc-b{width:22px;height:22px}}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
