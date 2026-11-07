@@ -6,6 +6,7 @@ import { smtpConfigured, afzender, verstuur } from "./smtp.js";
 import { clean, body, norm, slug, algemeen, configDoc, spamCheck, vandaagISO, datumTekst, DEF_IBAN, rateLimit } from "./publiek.js";
 import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, site } from "./bevestiging.js";
 import { fcConfig, maakDefinitief, factuurPdf, pdfNaam, betaalLink, ogmFmt } from "./factuur.js";
+import { meldPush } from "./push.js";
 
 /* ============ Openbare sponsorinschrijving (/sponsor) ============
    Config "sponsoring" (app: Sponsors › tandwiel): {open, kalenderjaar, deadline, formules:[{id,naam,bedrag,omschrijving}], vrij:{aan,min}, melding}
@@ -179,6 +180,7 @@ export default async function handler(req, res) {
         if (sr) { const dd = sr.data; dd.inschrijvingen[kj] = { ...dd.inschrijvingen[kj], bevestigd: !!(r[0] && r[0].ok) }; await sb.from("sponsors").update({ data: dd }).eq("id", id); }
       } catch (e) { console.error("bevestiging sponsor", e); }
     }
+    await meldPush(sb, "boek", { titel: nieuw ? "Nieuwe sponsor ingeschreven" : "Sponsorinschrijving ontvangen", tekst: `${d.bedrijf}${formuleNaam ? " · " + formuleNaam : ""}${bedrag ? " · € " + Number(bedrag).toLocaleString("nl-BE") : ""}`, url: "/#sponsors", tag: "sponsor-" + id });
     let qr = null;
     try { qr = qrSvg(epcPayload({ naam: C.vereniging, iban: C.iban, bedrag, mededeling })); } catch (e) { console.error("QR", e); }
     res.status(200).json({ ok: true, nieuw, bedrijf: d.bedrijf, formule: formuleNaam, bedrag, kalenderjaar: kj, mededeling, rekeningnummer: C.iban, begunstigde: C.vereniging, qr,

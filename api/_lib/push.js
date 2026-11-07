@@ -78,7 +78,13 @@ export async function pushApi(req, res) {
   if (req.method === "GET") {
     const k = await vapid(sb);
     const { count } = await sb.from("push_abonnementen").select("id", { count: "exact", head: true }).eq("user_id", user.id);
-    return res.status(200).json({ sleutel: k.publiek, toestellen: count || 0 });
+    let voorkeur = null;
+    if (req.query && req.query.endpoint) {
+      const id = crypto.createHash("sha256").update(String(req.query.endpoint)).digest("hex").slice(0, 40);
+      const { data: a } = await sb.from("push_abonnementen").select("voorkeur").eq("id", id).eq("user_id", user.id).maybeSingle();
+      if (a) voorkeur = { ...VOORKEUR_DEF, ...(a.voorkeur || {}) };
+    }
+    return res.status(200).json({ sleutel: k.publiek, toestellen: count || 0, voorkeur, standaard: VOORKEUR_DEF });
   }
   if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
   const b = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
@@ -89,6 +95,16 @@ export async function pushApi(req, res) {
     const { error } = await sb.from("push_abonnementen").upsert({ id, user_id: user.id, endpoint: ep, p256dh: String(s.keys.p256dh), auth: String(s.keys.auth), toestel: String(b.toestel || "").slice(0, 120) });
     if (error) throw error;
     return res.status(200).json({ ok: true });
+  }
+  if (b.actie === "voorkeur") {
+    const id = crypto.createHash("sha256").update(String(b.endpoint || "")).digest("hex").slice(0, 40), v = b.voorkeur || {};
+    const dagen = [...new Set((Array.isArray(v.dagen) ? v.dagen : []).map(Number).filter(n => [0, 1, 3, 5].includes(n)))].sort((x, y) => x - y);
+    const uur = Math.round(Number(v.uur)); if (!(uur >= 6 && uur <= 22)) throw httpErr(400, "Kies een uur tussen 6u en 22u.");
+    const voorkeur = { uur, dagen, vergaderingen: v.vergaderingen !== false, activiteiten: v.activiteiten !== false, meldingen: v.meldingen !== false };
+    const { data, error } = await sb.from("push_abonnementen").update({ voorkeur }).eq("id", id).eq("user_id", user.id).select("id");
+    if (error) throw error;
+    if (!data || !data.length) throw httpErr(404, "Dit toestel is nog niet aangemeld voor meldingen.");
+    return res.status(200).json({ ok: true, voorkeur });
   }
   if (b.actie === "stop") {
     const id = crypto.createHash("sha256").update(String(b.endpoint || "")).digest("hex").slice(0, 40);
@@ -104,26 +120,58 @@ export async function pushApi(req, res) {
   throw httpErr(400, "Onbekende actie");
 }
 
-/* ---------- dagelijkse melding (vanuit de geplande taak van de herinneringen, elk uur) ---------- */
-export const PUSH_DEF = { aan: true, uur: 9, activiteiten: true, vergaderingen: true };
+/* ---------- herinneringen vóór vergaderingen en activiteiten (geplande taak, elk uur) ----------
+   Per toestel kiest de gebruiker het uur en hoeveel op voorhand (zelfde dag, 1, 3 en/of 5 dagen); config herinneringen.push.aan = hoofdschakelaar. */
+export const VOORKEUR_DEF = { uur: 9, dagen: [0], vergaderingen: true, activiteiten: true, meldingen: true };
+export const PUSH_DEF = { aan: true };
+const plusD = (iso, n) => { const [y, m, d] = iso.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
+const wanneer = n => n === 0 ? "Vandaag" : n === 1 ? "Morgen" : "Over " + n + " dagen";
+const dagKort = iso => new Date(iso + "T12:00:00Z").toLocaleDateString("nl-BE", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
 export async function pushVanDaag(sb, cfg, vandaag, uurNu) {
   const P = { ...PUSH_DEF, ...(cfg.push || {}) };
-  if (!P.aan || uurNu !== Number(P.uur) || cfg.pushDag === vandaag) return { gedaan: false };
-  const items = [];
-  if (P.vergaderingen) {
-    const { data } = await sb.from("vergaderingen").select("id,data").eq("data->>datum", vandaag);
-    for (const r of data || []) { const v = r.data || {}; items.push({ titel: (v.titel && v.titel !== v.soort ? v.titel : v.soort || "Vergadering") + " VBHA" + (v.uur ? " om " + v.uur : ""), tekst: v.locatie || "", url: "/#agenda", tag: "verg-" + r.id }); }
+  if (!P.aan) return { uit: true };
+  const { data: abo, error } = await sb.from("push_abonnementen").select("id,endpoint,p256dh,auth,user_id,voorkeur,laatste_dag");
+  if (error) throw error;
+  const nu = (abo || []).filter(a => { const v = { ...VOORKEUR_DEF, ...(a.voorkeur || {}) }; return Number(v.uur) === uurNu && a.laatste_dag !== vandaag && v.dagen.length && (v.vergaderingen || v.activiteiten); });
+  if (!nu.length) return { gedaan: false };
+  const tot = plusD(vandaag, 5);
+  const [{ data: verg }, { data: act }] = await Promise.all([
+    sb.from("vergaderingen").select("id,data").gte("data->>datum", vandaag).lte("data->>datum", tot),
+    sb.from("activiteiten").select("id,data").gte("data->>datum", vandaag).lte("data->>datum", tot)]);
+  const A = await algemeen(sb), bk = await configDoc(sb, "banket"), kf = await configDoc(sb, "kf_" + A.jaar);
+  const V = (verg || []).map(r => ({ soort: "vergaderingen", datum: r.data.datum, titel: (r.data.titel && r.data.titel !== r.data.soort ? r.data.titel : r.data.soort || "Vergadering"), uur: r.data.uur, loc: r.data.locatie, url: "/#agenda", tag: "verg-" + r.id }));
+  const C = (act || []).map(r => ({ soort: "activiteiten", datum: r.data.datum, titel: r.data.titel || "Activiteit", uur: r.data.uur, loc: r.data.locatie, url: "/#agenda", tag: "act-" + r.id }));
+  const bd = bk.datum || A.jaar + "-12-12"; if (bd >= vandaag && bd <= tot) C.push({ soort: "activiteiten", datum: bd, titel: "Banket", uur: bk.uur, loc: bk.locatie, url: "/#banket", tag: "banket" });
+  if (kf.datum && kf.datum >= vandaag && kf.datum <= tot) C.push({ soort: "activiteiten", datum: kf.datum, titel: "Kinderfeest", uur: kf.tijd, loc: kf.locatie, url: "/#kinderfeest", tag: "kinderfeest" });
+  const k = await vapid(sb), uit = [];
+  for (const a of nu) {
+    const v = { ...VOORKEUR_DEF, ...(a.voorkeur || {}) };
+    const items = [...(v.vergaderingen ? V : []), ...(v.activiteiten ? C : [])].map(x => ({ ...x, n: Math.round((Date.parse(x.datum + "T12:00:00Z") - Date.parse(vandaag + "T12:00:00Z")) / 864e5) })).filter(x => v.dagen.includes(x.n));
+    await sb.from("push_abonnementen").update({ laatste_dag: vandaag }).eq("id", a.id);
+    for (const x of items) {
+      const bericht = { titel: `${wanneer(x.n)}: ${x.titel} VBHA${x.uur ? " om " + x.uur : ""}`, tekst: [x.n > 1 ? dagKort(x.datum) : "", x.loc || ""].filter(Boolean).join(" · "), url: x.url, tag: x.tag + "-" + x.n };
+      try { uit.push(await stuurEen(sb, k, a, bericht)); } catch (e) { uit.push({ ok: false, fout: e.message }); }
+    }
   }
-  if (P.activiteiten) {
-    const { data } = await sb.from("activiteiten").select("id,data").eq("data->>datum", vandaag);
-    for (const r of data || []) { const a = r.data || {}; items.push({ titel: (a.titel || "Activiteit") + " VBHA" + (a.uur ? " om " + a.uur : ""), tekst: a.locatie || "", url: "/#agenda", tag: "act-" + r.id }); }
-    const A = await algemeen(sb), bk = await configDoc(sb, "banket"), kf = await configDoc(sb, "kf_" + A.jaar);
-    if ((bk.datum || A.jaar + "-12-12") === vandaag) items.push({ titel: "Banket VBHA" + (bk.uur ? " om " + bk.uur : ""), tekst: bk.locatie || "", url: "/#banket", tag: "banket" });
-    if (kf.datum && kf.datum === vandaag) items.push({ titel: "Kinderfeest VBHA" + (kf.tijd ? " om " + kf.tijd : ""), tekst: kf.locatie || "", url: "/#kinderfeest", tag: "kinderfeest" });
-  }
-  const { data: rij } = await sb.from("config").select("data").eq("id", "herinneringen").maybeSingle();
-  await sb.from("config").upsert({ id: "herinneringen", data: { ...((rij && rij.data) || {}), pushDag: vandaag } });
-  const uit = [];
-  for (const m of items) uit.push({ tag: m.tag, ...(await stuurPush(sb, m)) });
-  return { gedaan: true, items: uit };
+  return { gedaan: true, toestellen: nu.length, verstuurd: uit.filter(x => x.ok).length };
+}
+
+/* ---------- meteen een melding bij nieuwe dashboardmeldingen ----------
+   groep "iedereen" (alle bestuursleden) of "boek" (admin, bewerker, boekhouder). Fouten breken nooit de eigenlijke actie. */
+const GROEP = { iedereen: null, boek: ["admin", "bewerker", "boekhouder"] };
+export async function meldPush(sb, groep, bericht) {
+  try {
+    const { data: c } = await sb.from("config").select("data").eq("id", "herinneringen").maybeSingle();
+    if ((((c && c.data) || {}).push || {}).aan === false) return { uit: true };
+    let users = null;
+    if (GROEP[groep]) { const { data: b } = await sb.from("bestuur").select("user_id").in("rol", GROEP[groep]); users = (b || []).map(x => x.user_id); if (!users.length) return { niemand: true }; }
+    let q = sb.from("push_abonnementen").select("id,endpoint,p256dh,auth,user_id,voorkeur");
+    if (users) q = q.in("user_id", users);
+    const { data: abo } = await q;
+    const L = (abo || []).filter(a => !a.voorkeur || a.voorkeur.meldingen !== false);
+    if (!L.length) return { toestellen: 0 };
+    const k = await vapid(sb);
+    const uit = await Promise.all(L.map(a => stuurEen(sb, k, a, bericht).catch(e => ({ ok: false, fout: e.message }))));
+    return { toestellen: L.length, ok: uit.filter(x => x.ok).length };
+  } catch (e) { console.error("meldPush", e); return { fout: e.message }; }
 }

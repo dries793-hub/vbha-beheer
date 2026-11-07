@@ -6,6 +6,7 @@ import { onlineConfigured as bcConfigured } from "./betaalprovider.js";
 import { startBetaling } from "./betaal.js";
 import { wachtOpBetaling, stuurBevestiging } from "./bevestiging.js";
 import { clean, body, nieuwId, vandaag, algemeen, configDoc, spamCheck, actieveLeden, inschrijving, alIngeschreven, AL_TEKST, rateLimit } from "./publiek.js";
+import { meldPush } from "./push.js";
 
 // Openbare banketinschrijving: komt rechtstreeks in Administratie › Banket, met online betaling.
 async function info(sb) {
@@ -69,6 +70,7 @@ export default async function handler(req, res) {
         online = { t: "banket", id, token, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp, provider: bt.provider || null };
       } catch (e) { console.error("Bancontact", e); }
     }
+    await meldPush(sb, "iedereen", { titel: "Nieuwe inschrijving banket", tekst: `${naam} · ${d.personen === 2 ? "2 personen" : "1 persoon"}`, url: "/#banket", tag: "ins-banket-" + id });
     // bevestigingsmail: bij online betalen wachten op de uitkomst, anders meteen (met de gegevens om over te schrijven)
     try { if (online) await wachtOpBetaling(sb, "banket", id); else await stuurBevestiging(sb, "banket", id); } catch (e) { console.error("bevestiging", e); }
     res.status(200).json({ ok: true, jaar: I.jaar, bedrag: teBetalen, prijsPP: P.prijs, status: P.status, korting: P.korting, basis: P.basis, rekeningnummer: I.rekeningnummer, begunstigde: I.vereniging, mededeling, qr, online, personen, deadline: I.deadline, naam, voornaam: lidRij.voornaam || "" });

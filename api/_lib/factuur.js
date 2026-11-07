@@ -6,6 +6,7 @@ import { Pdf, afbreken, breedte } from "./pdf.js";
 import { LOGO, WATERMERK } from "./logo_pdf.js";
 import { epcPayload, qrSvg, qrMatrix } from "./epc.js";
 import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, lang, kort, vandaag, plusDagen, site } from "./bevestiging.js";
+import { meldPush } from "./push.js";
 
 /* ============ Facturatie ============
    Tabel "facturen": data = {type: factuur|credit, status: concept|open|gecrediteerd, nr, seq, jaar, ogm, datum, vervaldatum,
@@ -408,6 +409,7 @@ export async function factuurOnlineBetaald(sb, id) {
   }
   const vers = await haal(sb, id);
   await bewaar(sb, id, { ...vers.data, betaling: { ...vers.data.betaling, bevestigd: true } });
+  await meldPush(sb, "boek", { titel: `Factuur ${f.nr} betaald`, tekst: `${(f.klant && f.klant.naam) || ""} · ${eur(b.bedrag)} online ontvangen`, url: "/#facturen", tag: "fc-" + id });
 }
 
 /* ---------- geplande taak (samen met de bevestigingen, elke 10 minuten): automatische herinneringen, één keer per dag ---------- */

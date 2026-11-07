@@ -4053,8 +4053,8 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-dm]"
   if(t.dataset.dm==="gezien"){t.disabled=true;for(const id of t.dataset.ids.split(",")){const f=S.facturen.get(id);if(f&&!f.betaaldGezien){try{await fcZet(id,{betaaldGezien:new Date().toISOString()})}catch(x){toast(x.message,true);break}}}renderBody()}});
 
 /* ============ Pushmeldingen ============
-   Instellingen › Herinneringen: pushmeldingen voor de vereniging aan/uit (uur, activiteiten, vergaderingen)
-   en per toestel aan- of afmelden (+ testmelding). Service worker: /sw.js. Server: /api/mail?f=push. */
+   Instellingen › Herinneringen: pushmeldingen voor de vereniging aan/uit; per toestel aan- of afmelden (+ testmelding)
+   en eigen voorkeuren (uur, hoeveel dagen vooraf, vergaderingen/activiteiten, dashboardmeldingen). Service worker: /sw.js. Server: /api/mail?f=push. */
 {const t=INST_TABS.find(x=>x[0]==="herinneringen");if(t)t[1]="Herinneringen en meldingen"}
 ICON.bel='<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>';
 const MP={srv:null,sub:null,bezig:false};
@@ -4066,14 +4066,27 @@ const mpU8=s=>{const b=atob(s.replace(/-/g,"+").replace(/_/g,"/")+"===".slice((s
 const mpToestel=()=>{const u=navigator.userAgent;return (/iPhone/.test(u)?"iPhone":/iPad/.test(u)?"iPad":/Android/.test(u)?"Android":/Mac/.test(u)?"Mac":/Windows/.test(u)?"Windows":"Toestel")+" · "+(/Edg\//.test(u)?"Edge":/Chrome\//.test(u)?"Chrome":/Firefox\//.test(u)?"Firefox":/Safari\//.test(u)?"Safari":"browser")};
 let MP_REG=null;
 function mpReg(){if(!mpKan())return Promise.resolve(null);if(!MP_REG)MP_REG=navigator.serviceWorker.register("/sw.js").then(()=>navigator.serviceWorker.ready).catch(e=>{console.warn("sw",e);MP_REG=null;return null});return MP_REG}
-async function mpLaad(){try{const r=await mpReg();MP.sub=r?await r.pushManager.getSubscription():null;MP.srv=await api("/api/mail?f=push")}catch(e){MP.srv={fout:e.message}}if(["herinneringen","meldingen"].includes(route())){const el=$("#mpToestel");if(el)el.innerHTML=mpToestelHtml()}}
+async function mpLaad(){try{const r=await mpReg();MP.sub=r?await r.pushManager.getSubscription():null;MP.srv=await api("/api/mail?f=push"+(MP.sub?"&endpoint="+encodeURIComponent(MP.sub.endpoint):""))}catch(e){MP.srv={fout:e.message}}if(["herinneringen","meldingen"].includes(route())){const el=$("#mpToestel");if(el)el.innerHTML=mpToestelHtml()}}
 function mpToestelHtml(){
   if(!mpKan()){return mpIOS()&&!mpThuis()?`<div class="note info">Op een iPhone of iPad werken meldingen enkel als de app op je beginscherm staat: tik in Safari op <b>Deel</b> en dan <b>Zet op beginscherm</b>, open de app van daaruit en kom hier terug.</div>`:`<div class="muted small">Deze browser ondersteunt geen pushmeldingen.</div>`}
   if(Notification.permission==="denied")return `<div class="note">Meldingen zijn geblokkeerd voor deze site. Zet ze terug aan in de instellingen van je browser of toestel (Meldingen › VBHA) en herlaad de app.</div>`;
   if(!MP.srv)return `<div class="muted small">Laden…</div>`;
   const aan=!!MP.sub&&Notification.permission==="granted",n=MP.srv.toestellen||0;
   return `<div class="mp-st"><span class="mp-dot${aan?" on":""}"></span><div><b>${aan?"Meldingen staan aan op dit toestel":"Meldingen staan uit op dit toestel"}</b><div class="muted small">${esc(mpToestel())}${n?` · ${n} ${n===1?"toestel":"toestellen"} aangemeld op jouw naam`:""}</div></div></div>
-   <div class="bar" style="margin:10px 0 0">${aan?`<button class="btn" type="button" data-mp="uit">Uitzetten op dit toestel</button><button class="btn" type="button" data-mp="test">${ic("bel")}Testmelding</button>`:`<button class="btn primary" type="button" data-mp="aan">${ic("bel")}Meldingen aanzetten op dit toestel</button>`}</div>`}
+   <div class="bar" style="margin:10px 0 0">${aan?`<button class="btn" type="button" data-mp="uit">Uitzetten op dit toestel</button><button class="btn" type="button" data-mp="test">${ic("bel")}Testmelding</button>`:`<button class="btn primary" type="button" data-mp="aan">${ic("bel")}Meldingen aanzetten op dit toestel</button>`}</div>`+(aan?mpVoorkeurHtml():"")}
+function mpVoorkeurHtml(){const v={uur:9,dagen:[0],vergaderingen:true,activiteiten:true,meldingen:true,...((MP.srv&&MP.srv.voorkeur)||{})};
+  const dg=[[0,"Zelfde dag"],[1,"1 dag vooraf"],[3,"3 dagen vooraf"],[5,"5 dagen vooraf"]];
+  return `<div class="mp-vk"><h4>Wat wil je ontvangen op dit toestel?</h4><div class="form">
+   <div class="fld full"><span class="lbl">Herinnering vóór</span><div class="hr-soorten"><label><input type="checkbox" id="mpvVg"${v.vergaderingen?" checked":""}>Vergaderingen</label><label><input type="checkbox" id="mpvAc"${v.activiteiten?" checked":""}>Activiteiten, banket en kinderfeest</label></div></div>
+   <div class="fld full"><span class="lbl">Hoeveel op voorhand</span><div class="hr-soorten mp-dg">${dg.map(([n,l])=>`<label><input type="checkbox" name="mpvD" value="${n}"${v.dagen.includes(n)?" checked":""}>${l}</label>`).join("")}</div><span class="help">Je kan er meerdere kiezen, bv. 3 dagen vooraf én de dag zelf.</span></div>
+   ${fld("mpvU","Om welk uur",`<select id="mpvU" class="sel">${[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22].map(n=>`<option value="${n}"${n===Number(v.uur)?" selected":""}>${n}u00</option>`).join("")}</select>`)}
+   <label class="sp-nat full" for="mpvM"><input type="checkbox" id="mpvM"${v.meldingen?" checked":""}><span><b>Meldingen van het dashboard meteen doorsturen</b><small>Bv. een nieuwe inschrijving, een nieuw lid, een sponsor, transacties of inkomende facturen te verwerken, een betaalde factuur of een verlopen bankkoppeling. Je krijgt enkel wat je ook op je dashboard ziet.</small></span></label>
+   <div class="full bar"><button class="btn primary" type="button" data-mp="vk">Bewaren voor dit toestel</button></div></div></div>`}
+async function mpVk(b){const dagen=$$('input[name="mpvD"]').filter(i=>i.checked).map(i=>Number(i.value));
+  const vk={uur:Number($("#mpvU").value),dagen,vergaderingen:$("#mpvVg").checked,activiteiten:$("#mpvAc").checked,meldingen:$("#mpvM").checked};
+  if((vk.vergaderingen||vk.activiteiten)&&!dagen.length){toast("Kies hoeveel op voorhand je een herinnering wil.",true);return}
+  b.disabled=true;try{const j=await api("/api/mail?f=push",{method:"POST",body:JSON.stringify({actie:"voorkeur",endpoint:MP.sub&&MP.sub.endpoint,voorkeur:vk})});if(MP.srv)MP.srv.voorkeur=j.voorkeur;toast("Voorkeuren bewaard voor dit toestel.")}
+  catch(x){toast(x.message,true)}finally{b.disabled=false}}
 async function mpAan(b){b.disabled=true;try{
     const p=await Notification.requestPermission();if(p!=="granted"){toast("Je gaf geen toestemming voor meldingen.",true);return}
     const r=await mpReg();if(!r)throw new Error("De service worker kon niet starten.");
@@ -4089,21 +4102,19 @@ async function mpTest(b){b.disabled=true;try{const j=await api("/api/mail?f=push
 function mpPanel(){const c=mpCfg(),d=canWrite?"":" disabled";
   return `<div class="grid g2" style="align-items:start;margin-top:16px">
   <form class="panel" id="fMp"><div class="panel-h"><h2>Pushmeldingen</h2></div><div class="panel-b"><div class="form">
-   <label class="sp-nat full" for="mpAan"><input type="checkbox" id="mpAan"${c.aan?" checked":""}${d}><span><b>Pushmeldingen versturen</b><small>Op de dag van een activiteit of vergadering een melding op de gsm, bv. "Bestuursvergadering VBHA om 19u30 · Kazerne Aalst".</small></span></label>
-   ${fld("mpUur","Op welk uur",`<select id="mpUur" class="sel"${d}>${[6,7,8,9,10,11,12,13,14].map(n=>`<option value="${n}"${n===Number(c.uur)?" selected":""}>${n}u00</option>`).join("")}</select>`)}
-   <div class="fld"><span class="lbl">Voor</span><div class="hr-soorten"><label><input type="checkbox" id="mpVg"${c.vergaderingen?" checked":""}${d}>Vergaderingen</label><label><input type="checkbox" id="mpAc"${c.activiteiten?" checked":""}${d}>Activiteiten, banket en kinderfeest</label></div></div>
+   <label class="sp-nat full" for="mpAan"><input type="checkbox" id="mpAan"${c.aan?" checked":""}${d}><span><b>Pushmeldingen versturen</b><small>Herinneringen vóór vergaderingen en activiteiten, en meteen een melding bij nieuwe meldingen op het dashboard. Uitzetten stopt alle pushmeldingen voor iedereen.</small></span></label>
    ${canWrite?`<div class="full bar"><button class="btn primary" type="button" id="mpOk">Bewaren</button></div>`:""}
-   <p class="full muted small" style="margin:0">Enkel wie meldingen aanzette op zijn eigen toestel krijgt ze. Iedereen doet dat zelf, hiernaast.</p>
+   <p class="full muted small" style="margin:0">Enkel wie meldingen aanzette op zijn eigen toestel krijgt ze. Iedereen kiest zelf, hiernaast, om welk uur en hoeveel op voorhand.</p>
   </div></div></form>
   <div class="panel"><div class="panel-h"><h2>Dit toestel</h2></div><div class="panel-b" id="mpToestel">${mpToestelHtml()}</div></div></div>`}
 {const _h=VIEWS.herinneringen;const n=function(){const v=_h.apply(this,arguments),b=v.body;v.body=function(){if(!MP.srv&&!MP.bezig){MP.bezig=true;setTimeout(()=>mpLaad().finally(()=>{MP.bezig=false}),0)}return b.apply(this,arguments)+mpPanel()};return v};Object.assign(n,_h);VIEWS.herinneringen=n}
-async function mpBewaar(){const vg=$("#mpVg").checked,ac=$("#mpAc").checked;if($("#mpAan").checked&&!vg&&!ac){toast("Kies vergaderingen en/of activiteiten.",true);return}
-  await write("config","herinneringen",{...stripId(S.config.get("herinneringen")||{}),push:{aan:$("#mpAan").checked,uur:Number($("#mpUur").value),vergaderingen:vg,activiteiten:ac}});toast("Pushmeldingen bewaard.")}
+async function mpBewaar(){const cur=stripId(S.config.get("herinneringen")||{});
+  await write("config","herinneringen",{...cur,push:{...(cur.push||{}),aan:$("#mpAan").checked}});toast("Pushmeldingen bewaard.")}
 // menu onder het profiel: snel naar de meldingen
 {const _m=gbMenu;gbMenu=function(){_m.apply(this,arguments);const m=$("#acctMenu");if(!m||m.querySelector("[data-mpm]"))return;const lo=m.querySelector('[data-act="logout"]');
   const h=`<a href="#meldingen" class="acct-i" role="menuitem" data-act="acctClose" data-mpm>${ic("bel")}Meldingen op dit toestel</a>`;if(lo)lo.insertAdjacentHTML("beforebegin",h);else m.insertAdjacentHTML("beforeend",h)}}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-mp],#mpOk");if(!t)return;if(t.id==="mpOk")return mpBewaar();
-  ({aan:mpAan,uit:mpUit,test:mpTest})[t.dataset.mp](t)});
+  ({aan:mpAan,uit:mpUit,test:mpTest,vk:mpVk})[t.dataset.mp](t)});
 mpReg();
 
 /* ============ Datumvelden altijd als DD/MM/JJJJ ============

@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { admin, requireUser, httpErr } from "./sb.js";
 import { Imap, leesMail, kopTekst, adres, koppen } from "./imap.js";
+import { meldPush } from "./push.js";
 
 /* ============ Inkomende facturen per mail ============
    De app leest een mailbox (instelbaar in Boekhouding › Inkomende facturen › tandwiel; standaard vbha@telenet.be).
@@ -100,6 +101,7 @@ export async function inkomendOphalen(sb, { max = 25, test = false } = {}) {
     await bewaarCfg(sb, { laatsteKeer: new Date().toISOString(), fout: String(e.message || e).slice(0, 200) });
     throw e;
   } finally { await c.sluit(); }
+  if (nieuw.length) { const v = L.filter(x => /PDF bewaard/.test(x.status || "")).map(x => x.vanNaam || x.van).filter(Boolean); await meldPush(sb, "boek", { titel: nieuw.length === 1 ? "Nieuwe inkomende factuur" : nieuw.length + " nieuwe inkomende facturen", tekst: [...new Set(v)].slice(0, 3).join(", ") || "Te koppelen aan een transactie", url: "/#inkomend", tag: "inkomend" }); }
   return { ingesteld: true, nieuw: nieuw.length, bekeken: L.length };
 }
 
