@@ -273,7 +273,7 @@ async function boekingenVoor(sb, f) {
 export async function statusVan(sb, row) { const f = { ...row.data, id: row.id }; return betaalStatus(f, await boekingenVoor(sb, f)); }
 
 // Concept -> definitief: uniek nummer (F2026019), gestructureerde mededeling, datum en vervaldatum.
-async function maakDefinitief(sb, row, cfg) {
+export async function maakDefinitief(sb, row, cfg) {
   const d = row.data;
   if (d.nr) return row;
   const credit = d.type === "credit", pre = credit ? cfg.creditVoorvoegsel || "C" : cfg.voorvoegsel || "F";

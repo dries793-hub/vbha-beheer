@@ -2993,7 +2993,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(
 /* ============ Sponsors: betalingen bekijken en manueel toewijzen ============ */
 function spBetHtml(id){const C=ctx(),K=spKoppel(C),k=K.per.get(id),s=S.sponsors.get(id)||{};const L=k?k.L:[];
   return `<div class="full sp-bet"><div class="sp-bet-h"><b>Betalingen ${JAAR}</b><span class="muted small">${eur(k?k.som:0)} van ${eur(num(s.bedrag))}</span></div>
-  ${L.length?`<div class="sp-bet-l">${L.map(b=>`<div class="sp-bet-r"><span class="grow" style="min-width:0"><span class="trunc"><b>${eur(b.bedrag)}</b> · ${fmtDate(b.datum)} · ${esc(b.partij||"")}</span><span class="muted small trunc">${esc(b.mededeling||"")} · <span class="sp-hoe ${b._hoe}">${b._hoe==="manueel"?"manueel toegewezen":"automatisch herkend"}</span></span></span>${canWrite?`<button type="button" class="btn sm ghost" data-spweg="${esc(b.id)}" title="${b._hoe==="manueel"?"Toewijzing ongedaan maken":"Hoort niet bij deze sponsor"}">Loskoppelen</button>`:""}</div>`).join("")}</div>`:'<div class="muted small">Nog geen betaling gevonden.</div>'}
+  ${L.length?`<div class="sp-bet-l">${L.map(b=>`<div class="sp-bet-r"><span class="grow" style="min-width:0"><span class="trunc"><b>${eur(b.bedrag)}</b> · ${fmtDate(b.datum)} · ${esc(b.partij||"")}</span><span class="muted small trunc">${esc(b.mededeling||"")} · <span class="sp-hoe ${b._hoe}">${b._hoe==="manueel"?"manueel toegewezen":b._hoe==="online"?"via de inschrijfpagina":"automatisch herkend"}</span></span></span>${canWrite&&b._hoe!=="online"?`<button type="button" class="btn sm ghost" data-spweg="${esc(b.id)}" title="${b._hoe==="manueel"?"Toewijzing ongedaan maken":"Hoort niet bij deze sponsor"}">Loskoppelen</button>`:""}</div>`).join("")}</div>`:'<div class="muted small">Nog geen betaling gevonden.</div>'}
   ${canWrite?`<div class="sp-bet-add"><select id="spBetSel" class="sel" aria-label="Transactie toewijzen"><option value="">Transactie toewijzen…</option>${spKandidaten(id).map(b=>`<option value="${esc(b.id)}">${esc(fmtDate(b.datum)+" · "+eur(b.bedrag)+" · "+(b.partij||"")+(b.mededeling?" · "+b.mededeling:"")).slice(0,110)}</option>`).join("")}</select><button type="button" class="btn sm" id="spBetOk">Toewijzen</button></div>`:""}</div>`}
 /* kandidaten: inkomende transacties van dit boekjaar die nog niet bij een sponsor horen; Sponsoring eerst, dan gelijk bedrag */
 function spKandidaten(id){const C=ctx(),K=spKoppel(C),s=S.sponsors.get(id)||{},bez=new Set();for(const k of K.per.values())k.L.forEach(b=>bez.add(b.id));
@@ -3345,6 +3345,73 @@ document.addEventListener("change",e=>{const t=e.target;if(t.id==="fcJaar"){FC.j
 {const _sf=sponsorForm;sponsorForm=function(s,id){_sf(s,id);if(id&&fcMag()){const ok=$("#spOk");if(ok)ok.insertAdjacentHTML("beforebegin",`<button class="btn" data-fc="sponsor" data-id="${esc(id)}">${ic("facturen")}Factuur maken</button>`)}}}
 // na elke render: facturen-pagina houdt de koppeling met de transacties bij
 VIEWS.facturen.after=()=>fcSync();
+
+/* ============ Sponsors › inschrijfpagina (tandwiel) ============
+   Config "sponsoring": open, kalenderjaar, deadline, formules, vrije bijdrage, meldingsadres. De openbare pagina /sponsor leest deze
+   instellingen (api/_lib/open_sponsor.js). Hier ook: link naar de pagina, QR-code voor op het sponsordossier, nieuwe inschrijvingen. */
+const SPI_DEF=[{id:"brandweerman",naam:"Brandweerman",bedrag:150,omschrijving:"1 vak · 1 maand · Toegankelijk instappakket"},{id:"sergeant",naam:"Sergeant",bedrag:250,omschrijving:"Dubbel vak · 1 maand · Meer ruimte voor uw logo"},{id:"luitenant",naam:"Luitenant",bedrag:500,omschrijving:"Dubbel vak · om de 2 maanden · 6 vermeldingen per jaar"},{id:"kolonel",naam:"Kolonel",bedrag:1000,omschrijving:"Dubbel vak · elke maand · 12 maanden topzichtbaarheid"}];
+function spiCfg(){const c=S.config.get("sponsoring")||{},nu=new Date(),kj=Number(c.kalenderjaar)||(nu.getFullYear()+(nu.getMonth()>=8?2:1));
+  return{open:c.open!==false,kalenderjaar:kj,deadline:c.deadline||((kj-1)+"-09-01"),formules:Array.isArray(c.formules)&&c.formules.length?c.formules:SPI_DEF,vrij:{aan:true,min:50,...(c.vrij||{})},melding:c.melding??"info@vbha.be",logoMail:c.logoMail||"info@vbha.be"}}
+const spiUrl=()=>location.origin+"/sponsor";
+const spiMag=()=>ROL==="admin";
+function spiQr(txt,cell){if(!window.qrcode)return null;const q=qrcode(0,"M");q.addData(txt);q.make();return q}
+function spiFormRij(f,i){return `<div class="spi-f" data-i="${i}"><input class="spi-n" value="${esc(f.naam||"")}" placeholder="Naam" aria-label="Naam formule"><span class="spi-e"><span>€</span><input class="spi-b" inputmode="decimal" value="${esc(String(f.bedrag??"").replace(".",","))}" aria-label="Bedrag"></span>
+  <input class="spi-o" value="${esc(f.omschrijving||"")}" placeholder="bv. Dubbel vak · elke maand" aria-label="Omschrijving"><button type="button" class="btn sm ghost" data-spi="weg" aria-label="Formule verwijderen">${ic("x")}</button></div>`}
+function spiInstel(){const c=spiCfg(),url=spiUrl(),q=spiQr(url),svg=q?q.createSvgTag({cellSize:4,margin:2,scalable:true}):"";
+  modal("Sponsoring: inschrijfpagina",`<form id="fSpi" class="form">
+   <div class="full spi-link"><div class="spi-qr">${svg}</div><div style="min-width:0"><b>Inschrijfpagina voor sponsors</b><div class="muted small" style="overflow-wrap:anywhere">${esc(url)}</div>
+    <div class="bar" style="margin:8px 0 0;flex-wrap:wrap"><a class="btn sm" href="/sponsor" target="_blank" rel="noopener">${ic("link")}Pagina openen</a><button type="button" class="btn sm" data-spi="kopie">${ic("copy")}Link kopiëren</button><button type="button" class="btn sm" data-spi="png">${ic("download")}QR-code (PNG)</button><button type="button" class="btn sm" data-spi="svg">${ic("download")}QR-code (SVG)</button></div>
+    <div class="muted small" style="margin-top:6px">Zet deze QR-code naast het intekenformulier op het sponsordossier. Bestaande sponsors kunnen er hun sponsoring vernieuwen.</div></div></div>
+   <label class="sp-nat full" for="spiOpen"><input type="checkbox" id="spiOpen"${c.open?" checked":""}><span><b>Inschrijvingen open</b><small>Ook automatisch dicht na de uiterste datum.</small></span></label>
+   ${fld("spiKj","Brandweerkalender",`<input id="spiKj" inputmode="numeric" maxlength="4" value="${c.kalenderjaar}">`)}${fld("spiDl","Inschrijven en betalen tot",`<input id="spiDl" type="date" value="${esc(c.deadline)}">`)}
+   <div class="fld full"><span class="lbl">Formules en bedragen</span><div class="spi-fl" id="spiFl">${c.formules.map(spiFormRij).join("")}</div><button type="button" class="btn sm" data-spi="plus" style="align-self:flex-start;margin-top:6px">${ic("plus")}Formule toevoegen</button></div>
+   <label class="sp-nat full" for="spiVrij"><input type="checkbox" id="spiVrij"${c.vrij.aan?" checked":""}><span><b>Vrije bijdrage toelaten</b><small>De sponsor kiest zelf een bedrag.</small></span></label>
+   ${fld("spiMin","Minimum vrije bijdrage (€)",inp("spiMin",c.vrij.min,'inputmode="decimal"'))}${fld("spiLogo","Logo's sturen naar",inp("spiLogo",c.logoMail,'type="email"'))}
+   ${fld("spiMeld","Melding van elke inschrijving naar",inp("spiMeld",c.melding,'placeholder="bv. info@vbha.be (leeg = geen melding)"'),"full")}
+   <p class="full muted small" style="margin:0">Vraagt een sponsor een factuur, dan wordt die automatisch aangemaakt in Boekhouding › Facturen en met de bevestigingsmail meegestuurd (instellingen van de facturatie gelden). Zonder factuur krijgt de sponsor een betaallink met Bancontact en de gegevens om over te schrijven.</p>
+   <div class="err full" id="spiErr"></div></form>`,
+   `<button class="btn" data-act="closeModal">Annuleren</button>${spiMag()?'<button class="btn primary" data-spi="ok">Bewaren</button>':""}`,{wide:true});
+  if(!spiMag())$$("#fSpi input,#fSpi button[data-spi=plus],#fSpi button[data-spi=weg]").forEach(i=>i.disabled=true)}
+async function spiBewaar(){const err=$("#spiErr"),kj=parseInt($("#spiKj").value,10),dl=$("#spiDl").value;
+  if(!(kj>2000&&kj<2100)){err.textContent="Vul het jaar van de kalender in.";return}if(!/^\d{4}-\d{2}-\d{2}$/.test(dl)){err.textContent="Kies de uiterste datum.";return}
+  const F=$$("#spiFl .spi-f").map(r=>({naam:r.querySelector(".spi-n").value.trim(),bedrag:num(r.querySelector(".spi-b").value),omschrijving:r.querySelector(".spi-o").value.trim()})).filter(f=>f.naam);
+  if(!F.length){err.textContent="Voeg minstens één formule toe.";return}if(F.some(f=>!(f.bedrag>0))){err.textContent="Elke formule heeft een bedrag nodig.";return}
+  const ids=new Set();F.forEach(f=>{let b=norm(f.naam).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"formule",id=b,n=2;while(ids.has(id))id=b+"-"+n++;ids.add(id);f.id=id});
+  const meld=$("#spiMeld").value.split(/[,;\s]+/).filter(Boolean);if(meld.some(x=>!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x))){err.textContent="Het meldingsadres klopt niet.";return}
+  await write("config","sponsoring",{...stripId(S.config.get("sponsoring")||{}),open:$("#spiOpen").checked,kalenderjaar:kj,deadline:dl,formules:F,vrij:{aan:$("#spiVrij").checked,min:num($("#spiMin").value)||0},logoMail:$("#spiLogo").value.trim()||"info@vbha.be",melding:meld.join(", ")});
+  closeModal();toast("Instellingen sponsoring bewaard.")}
+function spiDownload(soort){const q=spiQr(spiUrl());if(!q){toast("De QR-code kon niet gemaakt worden.",true);return}
+  const naam="VBHA sponsor QR";
+  if(soort==="svg"){const svg=q.createSvgTag({cellSize:10,margin:4,scalable:false});save(naam+".svg",new Blob([svg],{type:"image/svg+xml"}));return}
+  const n=q.getModuleCount(),cel=24,m=4,cv=document.createElement("canvas");cv.width=cv.height=(n+m*2)*cel;const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,cv.height);g.fillStyle="#000";
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))g.fillRect((c+m)*cel,(r+m)*cel,cel,cel);
+  cv.toBlob(b=>{const u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=naam+".png";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000)},"image/png")}
+// knoppen op de sponsorpagina
+{const _s=VIEWS.sponsors;const n=function(){const v=_s.apply(this,arguments);v.actions=`<button class="btn" data-spi="open" title="Inschrijfpagina en bedragen">${ic("tandwiel")}<span class="fc-hl">Inschrijfpagina</span></button>`+(v.actions||"");
+  const b=v.body;v.body=function(){return spiNieuwBlok()+b.apply(this,arguments)};return v};Object.assign(n,_s);VIEWS.sponsors=n}
+// nieuwe inschrijvingen bovenaan de sponsorpagina (en op het dashboard)
+function spiNieuwe(){return [...S.sponsors.values()].filter(s=>s.nieuw&&s.inschrijvingen).map(s=>{const L=Object.values(s.inschrijvingen).sort((a,b)=>String(b.op).localeCompare(String(a.op)));return{s,i:L[0]}}).filter(x=>x.i).sort((a,b)=>String(b.i.op).localeCompare(String(a.i.op)))}
+function spiNieuwBlok(){const L=spiNieuwe();if(!L.length)return"";
+  return `<div class="nmeld dm-b" role="status"><span class="nm-ic">${ic("sponsors")}</span><div class="nm-body"><b>${L.length===1?"Nieuwe sponsorinschrijving":L.length+" nieuwe sponsorinschrijvingen"}</b>
+   <div class="nm-l">${L.slice(0,8).map(({s,i})=>`<a class="nm-i" href="#sponsors" data-spi="toon" data-id="${esc(s.id)}"><b>${esc(spNaam(s))}</b><span>${esc(i.formuleNaam)} · ${eur(i.bedrag)}${i.factuurNr?" · factuur "+esc(i.factuurNr):""}${i.nieuw?"":" · vernieuwd"}</span></a>`).join("")}</div></div>
+   ${canWrite?`<button type="button" class="nm-x" data-spi="gezien" aria-label="Melding sluiten" title="Gezien">${ic("x")}</button>`:""}</div>`}
+{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return (ROL==="admin"||ROL==="boekhouder"?spiNieuwBlok():"")+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+// online betaald (Bancontact zonder factuur) telt mee als ontvangen
+{const _k=spKoppel;spKoppel=function(C){const K=_k(C);for(const s of S.sponsors.values()){const b=s.betaling;if(!b||b.status!=="SUCCEEDED")continue;const dag=String(b.betaaldOp||b.gestart||"").slice(0,10);if(!dag||Number(dag.slice(0,4))!==JAAR&&!(dag>=(JAAR+"-06-01")))continue;
+    const a=K.per.get(s.id)||{som:0,L:[]};if(a.L.some(x=>Math.abs(x.bedrag-Number(b.bedrag))<0.01))continue;a.som+=Number(b.bedrag)||0;a.L.push({id:"online-"+s.id,bedrag:Number(b.bedrag)||0,datum:dag,partij:"Online betaald (Bancontact)",mededeling:"Sponsoring "+(b.jaar||""),_hoe:"online"});K.per.set(s.id,a)}
+  return K}}
+// inschrijving tonen in de sponsorfiche
+{const _f=sponsorForm;sponsorForm=function(s,id){_f(s,id);if(!id||!s||!s.inschrijvingen)return;const L=Object.values(s.inschrijvingen).sort((a,b)=>String(b.kj).localeCompare(String(a.kj)));
+  const h=`<div class="full spi-ins"><b>Inschrijvingen via de website</b>${L.map(i=>`<div><span>Kalender ${esc(i.kj)}: <b>${esc(i.formuleNaam)}</b> · ${eur(i.bedrag)}</span><span class="muted small">${i.op?new Date(i.op).toLocaleDateString("nl-BE"):""}${i.factuurNr?` · <a href="#facturen" data-spi="fact" data-id="${esc(i.factuurId)}">factuur ${esc(i.factuurNr)}</a>`:i.factuur?" · factuur gevraagd":""}${i.bevestigd===false?" · bevestiging niet verstuurd":""}</span></div>`).join("")}</div>`;
+  const e=$("#spErr");if(e)e.insertAdjacentHTML("beforebegin",h)}}
+document.addEventListener("click",async e=>{const t=e.target.closest("[data-spi]");if(!t)return;const a=t.dataset.spi;
+  if(a==="open")spiInstel();else if(a==="ok")spiBewaar();else if(a==="png"||a==="svg")spiDownload(a);
+  else if(a==="kopie"){try{await navigator.clipboard.writeText(spiUrl());toast("Link gekopieerd.")}catch(x){prompt("Link",spiUrl())}}
+  else if(a==="plus"){const box=$("#spiFl");box.insertAdjacentHTML("beforeend",spiFormRij({naam:"",bedrag:"",omschrijving:""},box.children.length));box.lastElementChild.querySelector(".spi-n").focus()}
+  else if(a==="weg"){t.closest(".spi-f").remove()}
+  else if(a==="toon"){e.preventDefault();const s=S.sponsors.get(t.dataset.id);if(s){if(route()!=="sponsors")location.hash="#sponsors";setTimeout(()=>sponsorForm(S.sponsors.get(s.id),s.id),route()==="sponsors"?0:150)}}
+  else if(a==="gezien"){t.disabled=true;for(const {s} of spiNieuwe()){const d={...stripId(s)};delete d.nieuw;await write("sponsors",s.id,d)}render(true)}
+  else if(a==="fact"){e.preventDefault();closeModal();location.hash="#facturen";setTimeout(()=>fcDetail(t.dataset.id),150)}});
 
 /* ============ Agenda › vergadering afronden ============
    In een vergadering: verslag (PDF) opladen + bevestigen dat de vergadering afgerond is + datum van de volgende vergadering.
