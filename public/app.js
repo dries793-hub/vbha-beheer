@@ -4088,8 +4088,15 @@ for(const k of ADM_ROUTES){const o=VIEWS[k];if(!o)continue;const n=function(){if
     return{title:"Instellingen",body(){return `<div class="panel"><div class="panel-b"><p style="margin:0 0 12px">De instellingen zijn enkel toegankelijk voor de administrator.</p><a class="btn" href="#meldingen">${ic("bel")}Meldingen op dit toestel</a></div></div>`}}};
   Object.assign(n,o);if(o.after)n.after=function(){if(ADM())return o.after.apply(this,arguments)};VIEWS[k]=n}
 // tandwieltjes en het menu-item Instellingen verbergen (via een klasse op body, bij elke weergave bijgewerkt)
-{const _r=render;render=function(){document.body.classList.toggle("niet-admin",!ADM());return _r.apply(this,arguments)}}
-{const _b=renderBody;renderBody=function(){document.body.classList.toggle("niet-admin",!ADM());return _b.apply(this,arguments)}}
+const admKlas=()=>{document.body.classList.toggle("niet-admin",!ADM());document.body.dataset.rol=ROL||""};
+{const _r=render;render=function(){admKlas();return _r.apply(this,arguments)}}
+{const _b=renderBody;renderBody=function(){admKlas();return _b.apply(this,arguments)}}
+// onderdelen die per profiel verborgen zijn (menu + pagina)
+const ROL_VERBORGEN={lezer:["mails","verwerken"],boekhouder:["mails"]};
+const rolVerbergt=k=>(ROL_VERBORGEN[ROL]||[]).includes(k);
+for(const k of ["mails","verwerken"]){const o=VIEWS[k];if(!o)continue;const n=function(){if(!rolVerbergt(k))return o.apply(this,arguments);
+    return{title:"Geen toegang",body(){return `<div class="panel"><div class="panel-b"><p style="margin:0">Dit onderdeel is niet beschikbaar voor jouw profiel.</p></div></div>`}}};
+  Object.assign(n,o);if(o.after)n.after=function(){if(!rolVerbergt(k))return o.after.apply(this,arguments)};VIEWS[k]=n}
 // toetsen die toch een instellingenvenster openen: enkel voor de administrator
-document.addEventListener("click",e=>{if(ADM())return;const t=e.target.closest('[data-act="finInst"],[data-act="puntInst"],[data-act="bkInst"],[data-act="kfInst"],[data-fc="instel"],[data-spi="open"],[data-ink="instel"],a[href="#instellingen"]');
+document.addEventListener("click",e=>{if(ADM())return;const t=e.target.closest('[data-act="finInst"],[data-act="puntInst"],[data-act="bkInst"],[data-act="kfInst"],[data-act="ledenInst"],[data-fc="instel"],[data-spi="open"],[data-ink="instel"],a[href="#instellingen"],[aria-label^="Instellingen"],[aria-label^="Financiële instellingen"]');
   if(t){e.preventDefault();e.stopImmediatePropagation();toast("De instellingen zijn enkel toegankelijk voor de administrator.",true)}},true);
