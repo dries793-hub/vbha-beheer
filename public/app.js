@@ -3129,6 +3129,7 @@ function fcDetail(id){const f=S.facturen.get(id);if(!f)return;if(!f.nr)return fc
      ${b&&!b.betaald&&s!=="gecrediteerd"?`<button type="button" data-fc="herinnering" data-id="${esc(id)}">Herinnering sturen</button><button type="button" data-fc="link" data-id="${esc(id)}">Betaallink kopiëren</button><button type="button" data-fc="betaald" data-id="${esc(id)}">Als betaald aanduiden</button>`:""}
      ${!cr&&s!=="gecrediteerd"?`<button type="button" data-fc="credit" data-id="${esc(id)}">Creditnota maken</button>`:""}
      <button type="button" data-fc="dupliceer" data-id="${esc(id)}">Kopie als nieuw concept</button>
+     ${ROL==="admin"?`<button type="button" class="fc-wegm" data-fc="wegDef" data-id="${esc(id)}">${cr?"Creditnota":"Factuur"} verwijderen</button>`:""}
      ${!cr&&b&&!b.betaald?`<button type="button" data-fc="geenher" data-id="${esc(id)}">${f.geenHerinnering?"Automatische herinneringen weer aanzetten":"Geen automatische herinneringen"}</button>`:""}</div></div>`:""}
    <span class="grow"></span><button class="btn primary" data-act="closeModal">Sluiten</button>`,{wide:true})}
 
@@ -3266,6 +3267,20 @@ async function fcMailOk(btn){const id=btn.dataset.id,soort=btn.dataset.v,aan=$("
 function fcCredit(id){const f=S.facturen.get(id);if(!f)return;const b=fcBetaal(f);
   confirmBox(`Een creditnota maken voor factuur <b>${esc(f.nr)}</b> (${eur(fcTot(f).totaal)})?${b.ontvangen>0?`<br><br><b>Let op:</b> op deze factuur werd al ${eur(b.ontvangen)} ontvangen. Die moet je zelf terugstorten.`:""}<br><span class="muted small">Je kan de lijnen nog aanpassen (bv. voor een gedeeltelijke creditering) voor je ze definitief maakt.</span>`,"Creditnota maken",()=>{
     fcEdit({type:"credit",factuurId:id,factuurNr:f.nr,klant:{...f.klant},lijnen:(f.lijnen||[]).map(l=>({...l})),datum:todayISO(),categorie:f.categorie,referentie:f.referentie,opmerking:`Creditnota voor factuur ${f.nr} van ${fmtDate(f.datum)}.`})})}
+// enkel voor de administrator: een definitieve factuur of creditnota volledig verwijderen (bv. een test)
+function fcWegDef(id){const f=S.facturen.get(id);if(!f||ROL!=="admin")return;const cr=f.type==="credit";
+  const L=[...S.boekingen.values()].filter(b=>b.factuurId===id),log=(f.verzonden||[]).filter(v=>v.ok).length;
+  confirmBox(`${cr?"Creditnota":"Factuur"} <b>${esc(f.nr)}</b> voor <b>${esc(fcNaam(f))}</b> definitief verwijderen?`
+   +(log?`<br><br><b>Let op:</b> deze ${cr?"creditnota":"factuur"} werd al ${log}× gemaild. De klant heeft ze dus al gekregen.`:"")
+   +(L.length?`<br><br>${L.length} toegewezen transactie(s) worden losgekoppeld (de transacties zelf blijven bestaan).`:"")
+   +(f.creditId?`<br><br>De bijhorende creditnota blijft bestaan.`:"")
+   +`<br><span class="muted small">${log?`Omdat ze al verstuurd werd, wordt het nummer ${esc(f.nr)} niet opnieuw gebruikt.`:`Was dit de laatste factuur, dan wordt het nummer ${esc(f.nr)} opnieuw gebruikt, zodat de nummering zonder gaten blijft.`} Gebruik dit enkel voor testen of vergissingen; voor een echte factuur maak je beter een creditnota.</span>`,"Definitief verwijderen",async()=>{
+    try{for(const b of L)await fcBoeking(b.id,{factuurId:undefined});
+      if(cr&&f.factuurId){const o=S.facturen.get(f.factuurId);if(o&&o.creditId===id)await fcZet(o.id,{status:"open",creditId:undefined,creditNr:undefined})}
+      if(log&&f.seq){const c=S.config.get("facturen")||{},pre=String(f.nr).slice(0,String(f.nr).length-String(f.seq).padStart(3,"0").length-4),k=pre+f.jaar,st={...(c.start||{})};
+        if(!(num(st[k])>f.seq)){st[k]=f.seq+1;await write("config","facturen",{...stripId(c),start:st})}}
+      await write("facturen",id,null,{del:true});S.facturen.delete(id);dirty=true;renderBody();toast(`${cr?"Creditnota":"Factuur"} ${f.nr} verwijderd.`)}
+    catch(x){toast("Verwijderen lukte niet: "+(x.message||""),true)}})}
 function fcDupliceer(id){const f=S.facturen.get(id);if(!f)return;fcEdit({type:"factuur",klant:{...f.klant},lijnen:(f.lijnen||[]).map(l=>({...l})),datum:todayISO(),categorie:f.categorie,opmerking:f.opmerking})}
 
 // betaalde facturen: transactie krijgt de categorie en (bij een sponsor) de koppeling met de sponsor
@@ -3305,6 +3320,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-fc]"
     case"toewijzen":{const v=$("#fcKand").value;if(!v){toast("Kies eerst een transactie.",true);break}await fcBoeking(v,{factuurId:id});toast("Transactie toegewezen.");fcSync();fcDetail(id);break}
     case"loskoppel":await fcBoeking(id,{factuurId:undefined});toast("Losgekoppeld.");fcDetail(t.dataset.f);break;
     case"credit":fcCredit(id);break;
+    case"wegDef":fcWegDef(id);break;
     case"dupliceer":fcDupliceer(id);break;
     case"geenher":{const f=S.facturen.get(id);await fcZet(id,{geenHerinnering:f.geenHerinnering?undefined:true});toast(f.geenHerinnering?"Automatische herinneringen staan weer aan.":"Geen automatische herinneringen voor deze factuur.");fcDetail(id);break}
     case"klantOpslaan":fcKlantOpslaan();break;
