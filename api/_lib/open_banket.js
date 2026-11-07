@@ -3,6 +3,7 @@ import { admin, sendError, httpErr } from "./sb.js";
 import { epcPayload, qrSvg } from "./epc.js";
 import { onlineConfigured as bcConfigured } from "./betaalprovider.js";
 import { startBetaling } from "./betaal.js";
+import { wachtOpBetaling, stuurBevestiging } from "./bevestiging.js";
 import { clean, body, nieuwId, vandaag, algemeen, configDoc, spamCheck, actieveLeden, inschrijving } from "./publiek.js";
 
 // Openbare banketinschrijving: komt rechtstreeks in Administratie › Banket, met online betaling.
@@ -49,6 +50,8 @@ export default async function handler(req, res) {
         online = { t: "banket", id, token, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp, provider: bt.provider || null };
       } catch (e) { console.error("Bancontact", e); }
     }
+    // bevestigingsmail: bij online betalen wachten op de uitkomst, anders meteen (met de gegevens om over te schrijven)
+    try { if (online) await wachtOpBetaling(sb, "banket", id); else await stuurBevestiging(sb, "banket", id); } catch (e) { console.error("bevestiging", e); }
     res.status(200).json({ ok: true, jaar: I.jaar, bedrag: teBetalen, rekeningnummer: I.rekeningnummer, begunstigde: I.vereniging, mededeling, qr, online, personen, deadline: I.deadline, naam, voornaam: lidRij.voornaam || "" });
   } catch (e) { sendError(res, e); }
 }
