@@ -920,7 +920,7 @@ function krHost(){if(KR.host)return KR.host;const h=document.createElement("div"
 function krInit(){const h=krHost();if(KR.map)return;
   if(!window.L){h.querySelector("#krMap").innerHTML='<div class="empty">De kaart kon niet laden. Controleer je internetverbinding en herlaad de pagina.</div>';return}
   const map=L.map(h.querySelector("#krMap"),{zoomControl:false,preferCanvas:true,minZoom:12,maxZoom:19});KR.map=map;
-  const renderer=L.canvas({tolerance:10});
+  const renderer=L.canvas({tolerance:10});KR.renderer=renderer;
   KR.bounds=L.latLngBounds(KR_STREETS.flatMap(s=>s.g.flat()));
   map.setView(KR_START.at,KR_START.zoom);map.setMaxBounds(KR.bounds.pad(.3));
   map.on("zoomend",()=>krStyleAll());
@@ -954,13 +954,13 @@ function krStyleAll(){const A=krAll();const todo=krVar("--kr-todo"),dn=krVar("--
   krSegTeken(A,{todo,dn,rs,sel,w})}
 function krSegTeken(A,c){if(!KR.map)return;if(!KR.segLayer)KR.segLayer=L.layerGroup().addTo(KR.map);KR.segLayer.clearLayers();const D=krDelen();
   for(const id in D){const x=KR_DEEL.get(id);if(KR.deel===x.sid||A[x.sid])continue;
-    L.polyline(x.g,{interactive:false,weight:c.w[1],color:D[id].status==="reserved"?c.rs:c.dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}
+    L.polyline(x.g,{renderer:KR.renderer,interactive:false,weight:c.w[1],color:D[id].status==="reserved"?c.rs:c.dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}
   if(KR.deel){const base=KR.lines.get(KR.deel);if(base)base.setStyle({opacity:.2});const full=A[KR.deel];
     for(const x of KR_DELEN.get(KR.deel)||[]){const m=full||D[x.id],on=KR.dsel.has(x.id);
-      L.polyline(x.g,{weight:16,opacity:0,interactive:true}).on("click",e=>{L.DomEvent.stopPropagation(e);KR.dsel.has(x.id)?KR.dsel.delete(x.id):KR.dsel.add(x.id);krStyleAll();krCard()}).addTo(KR.segLayer);
-      L.polyline(x.g,{interactive:false,weight:on?c.w[2]+1:c.w[1]+1,color:on?c.sel:m?(m.status==="reserved"?c.rs:c.dn):krVar("--muted"),lineCap:"butt",opacity:1}).addTo(KR.segLayer)}
+      L.polyline(x.g,{renderer:KR.renderer,weight:16,opacity:0,interactive:true}).on("click",e=>{L.DomEvent.stopPropagation(e);KR.dsel.has(x.id)?KR.dsel.delete(x.id):KR.dsel.add(x.id);krStyleAll();krCard()}).addTo(KR.segLayer);
+      L.polyline(x.g,{renderer:KR.renderer,interactive:false,weight:on?c.w[2]+1:c.w[1]+1,color:on?c.sel:m?(m.status==="reserved"?c.rs:c.dn):krVar("--muted"),lineCap:"butt",opacity:1}).addTo(KR.segLayer)}
     const ends=new Set();for(const x of KR_DELEN.get(KR.deel)||[])for(const p of x.k){const k=p.join(",");if(ends.has(k))continue;ends.add(k);
-      L.circleMarker(p,{radius:4,weight:2,color:krVar("--ink")||"#222",fillColor:"#fff",fillOpacity:1,interactive:false}).addTo(KR.segLayer)}}}
+      L.circleMarker(p,{renderer:KR.renderer,radius:4,weight:2,color:krVar("--ink")||"#222",fillColor:"#fff",fillOpacity:1,interactive:false}).addTo(KR.segLayer)}}}
 function krCard(){const c=KR.host&&KR.host.querySelector("#krCard");if(!c)return;
   const mu=c.querySelector("#krMulti");
   if(KR.ss.size>1){const A=krAll(),ids=[...KR.ss].filter(id=>KR.byId.has(id)),L=ids.map(id=>KR.byId.get(id));const tot=L.reduce((t,x)=>t+x.a,0),pd=jaarCfg(JAAR).perDoos||100,doz=Math.ceil(tot/pd);
