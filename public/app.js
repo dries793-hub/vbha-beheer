@@ -4403,6 +4403,37 @@ function bhMelding(){if(!(ROL==="admin"||ROL==="boekhouder"))return"";const c=S.
 document.addEventListener("click",async e=>{const t=e.target.closest('[data-bh="gezien"]');if(!t)return;t.disabled=true;
   try{const c=stripId(S.config.get("betaalherinnering")||{});await write("config","betaalherinnering",{...c,gezienTot:new Date().toISOString()});renderBody()}catch(x){toast(x.message,true);t.disabled=false}});
 
+/* ============ Mails: eigen mailinglijsten (bv. Persberichten) ============
+   config "maillijsten": {lijsten:[{id, naam, leden:[{naam, email}]}]} — als doelgroep te kiezen bij Mails, beheer via de knop "Mailinglijsten". */
+const mlLijsten=()=>((S.config.get("maillijsten")||{}).lijsten||[]);
+{const _g=groepen;groepen=function(){const G=_g.apply(this,arguments),B=mlGeblok(),extra=[];
+  for(const L of mlLijsten()){const seen=new Set(),geblokt=[],list=[];
+    for(const p of L.leden||[]){const k=String(p.email||"").trim().toLowerCase();if(!k||seen.has(k))continue;seen.add(k);const r={email:k,voornaam:"",naam:p.naam||"",bedrag:"",mededeling:"",label:p.naam?p.naam+" ("+k+")":k};if(B[k]){geblokt.push({...r,reden:B[k].reden});continue}list.push(r)}
+    extra.push({sect:"Mailinglijsten",id:"lijst:"+L.id,label:L.naam+` (${list.length})`,geblokt,list})}
+  const i=G.findIndex(x=>x.sect==="Andere");G.splice(i<0?G.length:i,0,...extra);return G}}
+const mlParse=t=>{const out=[];for(const part of String(t||"").split(/\n|;|,(?=(?:[^"]*"[^"]*")*[^"]*$)/)){const s=part.trim();if(!s)continue;
+  const m=s.match(/^"?([^"<]*?)"?\s*<([^>]+)>$/)||s.match(/^()([^\s]+@[^\s]+)$/);if(!m)continue;const email=m[2].trim().toLowerCase();if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(email))continue;out.push({naam:m[1].trim(),email})}
+  // ook een lange regel "a" <x@y>, "b" <z@w> of "a" <x@y> "b" <z@w>
+  if(!out.length||String(t).includes(">\"")||/>\s+"/.test(t)){const R=[...String(t).matchAll(/"([^"]*)"\s*<([^>]+)>/g)];if(R.length>out.length)return R.map(m=>({naam:m[1].trim(),email:m[2].trim().toLowerCase()}))}
+  return out};
+const mlTekst=L=>(L.leden||[]).map(p=>p.naam?`"${p.naam}" <${p.email}>`:p.email).join("\n");
+function mlLijstBeheer(){const L=mlLijsten();
+  modal("Mailinglijsten",`<p class="muted small" style="margin:0 0 12px">Eigen lijsten met e-mailadressen, bv. voor persberichten. Eén adres per regel, met of zonder naam: <span class="kbd">"Naam" &lt;adres@voorbeeld.be&gt;</span>. Je kiest ze daarna bij <b>Ontvangers</b> onder "Mailinglijsten".</p>
+   <div id="mlL">${L.map((x,i)=>`<div class="pi-sec ml-ls" data-i="${i}"><div class="form"><div class="fld"><label>Naam van de lijst</label><input class="mlN" value="${esc(x.naam)}" maxlength="60"></div><div class="fld" style="align-self:end"><button type="button" class="btn ghost danger sm" data-mll="weg">Lijst verwijderen</button></div>
+     <div class="fld full"><label>Adressen <span class="muted small mlC">(${(x.leden||[]).length})</span></label><textarea class="mlT" rows="7" style="font-size:13px">${esc(mlTekst(x))}</textarea></div></div></div>`).join("")}</div>
+   <button type="button" class="btn sm" data-mll="nieuw">${ic("plus")}Nieuwe lijst</button>`,
+   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="mlOk">Bewaren</button>`,{wide:true});
+  $("#mlOk").onclick=async()=>{const oud=mlLijsten(),N=[];
+    for(const el of $$("#mlL .ml-ls")){const naam=el.querySelector(".mlN").value.trim(),leden=mlParse(el.querySelector(".mlT").value);if(!naam&&!leden.length)continue;if(!naam){toast("Geef elke lijst een naam.",true);return}
+      const i=el.dataset.i,id=i!==""&&oud[i]?oud[i].id:(norm(naam).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"lijst")+"-"+Date.now().toString(36);N.push({id,naam,leden})}
+    await write("config","maillijsten",{...stripId(S.config.get("maillijsten")||{}),lijsten:N});closeModal();toast("Mailinglijsten bewaard.");renderBody()}}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-mll]");if(!t)return;e.preventDefault();
+  if(t.dataset.mll==="nieuw"){$("#mlL").insertAdjacentHTML("beforeend",`<div class="pi-sec ml-ls" data-i=""><div class="form"><div class="fld"><label>Naam van de lijst</label><input class="mlN" maxlength="60" placeholder="bv. Persberichten"></div><div class="fld"></div><div class="fld full"><label>Adressen</label><textarea class="mlT" rows="7" style="font-size:13px" placeholder='"Naam" <adres@voorbeeld.be>'></textarea></div></div></div>`);$("#mlL .ml-ls:last-child .mlN").focus()}
+  else if(t.dataset.mll==="weg"){t.closest(".ml-ls").remove()}});
+document.addEventListener("input",e=>{if(e.target.matches(".mlT")){const c=e.target.closest(".ml-ls").querySelector(".mlC");if(c)c.textContent="("+mlParse(e.target.value).length+")"}});
+{const _v=VIEWS.mails;const n=function(){const v=_v.apply(this,arguments);if(canWrite)v.actions=String(v.actions||"")+`<button class="btn" data-act="mlLijstBeheer" type="button">${ic("leden")}Mailinglijsten</button>`;return v};Object.assign(n,_v);VIEWS.mails=n}
+document.addEventListener("click",e=>{if(e.target.closest('[data-act="mlLijstBeheer"]')){e.preventDefault();e.stopPropagation();mlLijstBeheer()}},true);
+
 /* ============ Kalender aan huis: aanvragen via /kalender ============
    Tabel kalenderaanvragen (data: jaar, adres, naam, email, opmerking, lat, lng, gevonden, status open|gedaan, nieuw).
    Rode stip per open aanvraag op de kalenderkaart (klik = adres), lijst onder de kaart in Kalenders › Kalenderronde. */
