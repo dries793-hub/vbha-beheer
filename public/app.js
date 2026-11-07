@@ -3044,6 +3044,7 @@ if(!ROUTES.some(r=>r[0]==="facturen"))ROUTES.push(["facturen","Facturen"]);
 if(typeof BOEK_ROUTES!=="undefined")BOEK_ROUTES.add("facturen");
 LOG_TYPE.facturen="Factuur";
 ICON.facturen='<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4M10 11h6M10 14.5h6M10 18h3.5"/>';
+ICON.check=ICON.check||'<path d="M5 12.5l4.5 4.5L19 7.5"/>';
 ICON.tandwiel='<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
 
 const FC={f:"alle",q:"",jaar:"alle"};
@@ -3136,9 +3137,12 @@ const fcBtw=v=>`<select class="sel fc-btw" aria-label="Btw">${[0,6,12,21].map(t=
 const fcLijnHtml=(l,i)=>`<div class="fc-l" data-i="${i}"><textarea class="fc-om" rows="1" placeholder="Omschrijving" aria-label="Omschrijving">${esc(l.omschrijving||"")}</textarea>
   <input class="fc-aa" inputmode="decimal" value="${esc(String(l.aantal??1).replace(".",","))}" aria-label="Aantal"><input class="fc-pr" inputmode="decimal" value="${l.prijs===""||l.prijs==null?"":esc(String(l.prijs).replace(".",","))}" placeholder="0,00" aria-label="Prijs per stuk">
   ${fcBtw(l.btw)}<span class="fc-lt num">${eur(r2(num(l.aantal)*num(l.prijs)))}</span><button type="button" class="btn sm ghost" data-fc="lijnweg" aria-label="Lijn verwijderen">${ic("x")}</button></div>`;
-function fcKlanten(){const o=[];for(const s of S.sponsors.values())o.push({lbl:spNaam(s)+(s.bedrijf&&norm(s.bedrijf)!==norm(spNaam(s))?" ("+s.bedrijf+")":"")+" · sponsor",k:{naam:s.bedrijf||spNaam(s),contact:[s.voornaam,s.naam].filter(Boolean).join(" "),adres:s.adres||"",btw:s.kbo||"",email:s.email||"",sponsorId:s.id,lidId:""},bedrag:num(s.bedrag)});
+const fcVaste=()=>(fcCfg().klanten||[]).slice().sort((a,b)=>String(a.naam).localeCompare(String(b.naam),"nl"));
+function fcKlanten(){const o=[];const vast=new Set();
+  for(const v of fcVaste()){vast.add(norm(v.naam));o.push({lbl:v.naam+(v.contact?" ("+v.contact+")":"")+" · klant",k:{naam:v.naam,contact:v.contact||"",adres:v.adres||"",btw:v.btw||"",email:v.email||"",sponsorId:v.sponsorId||"",lidId:v.lidId||"",klantId:v.id}})}
+  for(const s of S.sponsors.values())o.push({lbl:spNaam(s)+(s.bedrijf&&norm(s.bedrijf)!==norm(spNaam(s))?" ("+s.bedrijf+")":"")+" · sponsor",k:{naam:s.bedrijf||spNaam(s),contact:[s.voornaam,s.naam].filter(Boolean).join(" "),adres:s.adres||"",btw:s.kbo||"",email:s.email||"",sponsorId:s.id,lidId:""},bedrag:num(s.bedrag)});
   for(const l of S.leden.values())if(!l.geenLid)o.push({lbl:[l.naam,l.voornaam].filter(Boolean).join(" ")+" · lid",k:{naam:[l.voornaam,l.naam].filter(Boolean).join(" "),contact:"",adres:l.adres||"",btw:"",email:l.email||"",sponsorId:"",lidId:l.id}});
-  const gezien=new Set();for(const f of fcLijst()){const k=f.klant||{};if(!k.naam||k.sponsorId||k.lidId||gezien.has(norm(k.naam)))continue;gezien.add(norm(k.naam));o.push({lbl:k.naam+" · eerdere klant",k:{...k}})}
+  const gezien=new Set();for(const f of fcLijst()){const k=f.klant||{};if(!k.naam||k.sponsorId||k.lidId||vast.has(norm(k.naam))||gezien.has(norm(k.naam)))continue;gezien.add(norm(k.naam));o.push({lbl:k.naam+" · eerdere klant",k:{...k}})}
   return o}
 function fcEdit(f,{nieuw=false}={}){
   const c=fcCfg(),cats=catList(ctx());
@@ -3147,10 +3151,11 @@ function fcEdit(f,{nieuw=false}={}){
   FCE={f,id:f.id||null,K:fcKlanten()};const k=f.klant||{},cr=f.type==="credit";
   const verval=f.vervaldatum||(()=>{const d=new Date((f.datum||todayISO())+"T12:00");d.setDate(d.getDate()+num(c.vervaldagen||30));return d.toISOString().slice(0,10)})();
   modal(cr?"Creditnota (concept)":f.id?"Factuur (concept)":"Nieuwe factuur",`<form id="fFc" class="form fc-form" autocomplete="off">
-   <div class="fld full fc-zoek"><label for="fcKz">Klant zoeken</label><input id="fcKz" list="fcKl" placeholder="Typ een sponsor, lid of eerdere klant"><datalist id="fcKl">${FCE.K.map(x=>`<option value="${esc(x.lbl)}"></option>`).join("")}</datalist><span class="help">Of vul de gegevens hieronder zelf in.</span></div>
+   <div class="fld full fc-zoek"><label for="fcKz">Klant zoeken</label><input id="fcKz" list="fcKl" placeholder="Typ een klant, sponsor of lid"><datalist id="fcKl">${FCE.K.map(x=>`<option value="${esc(x.lbl)}"></option>`).join("")}</datalist><span class="help">Of vul de gegevens hieronder zelf in.</span></div>
    ${fld("fcN","Naam / bedrijf *",inp("fcN",k.naam,'name="naam"'))}${fld("fcC","T.a.v.",inp("fcC",k.contact,'name="contact" placeholder="Contactpersoon"'))}
    <div class="fld full"><label for="fcA">Adres</label><textarea id="fcA" name="adres" rows="2" placeholder="Straat en nummer&#10;Postcode en gemeente">${esc(k.adres||"")}</textarea></div>
    ${fld("fcE","E-mail (voor verzending)",inp("fcE",k.email,'name="email" type="email" inputmode="email"'))}${fld("fcB","Btw- / ondernemingsnr.",inp("fcB",k.btw,'name="btw"'))}
+   <div class="full fc-kbar"><button type="button" class="btn sm" data-fc="klantOpslaan" id="fcKo">${ic("plus")}Opslaan als nieuwe klant</button><span class="muted small" id="fcKst"></span></div>
    ${fld("fcD",cr?"Datum":"Factuurdatum",inp("fcD",f.datum,'type="date"'))}${cr?"":fld("fcV","Vervaldatum",inp("fcV",verval,'type="date"'))}
    ${fld("fcR","Uw referentie",inp("fcR",f.referentie,'placeholder="bv. bestelbon (optioneel)"'))}${cr?"":fld("fcCat","Categorie in de boekhouding",`<select id="fcCat" class="sel"><option value="">—</option>${cats.map(x=>`<option${x===f.categorie?" selected":""}>${esc(x)}</option>`).join("")}</select>`)}
    <div class="fld full"><span class="lbl">Lijnen</span><div class="fc-lh"><span>Omschrijving</span><span>Aantal</span><span>Prijs</span><span>Btw</span><span class="num">Totaal</span><span></span></div>
@@ -3160,7 +3165,19 @@ function fcEdit(f,{nieuw=false}={}){
    <div class="err full" id="fcErr"></div></form>`,
    `${f.id?`<button class="btn ghost danger" data-fc="weg">Verwijderen</button>`:""}<button class="btn" data-fc="voorbeeld">${ic("download")}Voorbeeld</button><span class="grow"></span>
     <button class="btn" data-fc="bewaar">Bewaren als concept</button><button class="btn primary" data-fc="verstuur">${cr?"Definitief maken en mailen":"Definitief maken en mailen"}</button>`,{wide:true});
-  fcTotaal();$$("#fcL .fc-om").forEach(fcGroei)}
+  fcTotaal();fcKlantKnop();$$("#fcL .fc-om").forEach(fcGroei)}
+// klant in de klantenlijst (config "facturen".klanten) bewaren of bijwerken
+function fcVastVan(){const n=norm(($("#fcN")||{}).value||""),k=FCE&&FCE.f.klant||{};return fcVaste().find(v=>(k.klantId&&v.id===k.klantId&&norm(v.naam)===n)||norm(v.naam)===n)}
+function fcKlantKnop(){const b=$("#fcKo");if(!b)return;const v=fcVastVan(),n=($("#fcN").value||"").trim();b.disabled=!n;
+  b.innerHTML=v?ic("check")+"Klantgegevens bijwerken":ic("plus")+"Opslaan als nieuwe klant";const st=$("#fcKst");if(st)st.textContent=v?"Staat in je klantenlijst.":""}
+async function fcKlantOpslaan(){const g=s=>$(s).value.trim(),naam=g("#fcN");if(!naam){toast("Vul eerst de naam van de klant in.",true);return}
+  const mail=g("#fcE");if(mail&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(mail)){toast("Dit e-mailadres klopt niet.",true);return}
+  const c=S.config.get("facturen")||{},L=(c.klanten||[]).slice(),v=fcVastVan(),k=FCE.f.klant||{};
+  const rec={id:v?v.id:"kl-"+Date.now().toString(36),naam,contact:g("#fcC"),adres:$("#fcA").value.trim(),email:mail,btw:g("#fcB"),sponsorId:k.sponsorId||"",lidId:k.lidId||""};
+  const i=L.findIndex(x=>x.id===rec.id);if(i>=0)L[i]=rec;else L.push(rec);
+  try{await write("config","facturen",{...stripId(c),klanten:L});S.config.set("facturen",{...stripId(c),klanten:L,id:"facturen"});FCE.f.klant={...k,...rec,klantId:rec.id};delete FCE.f.klant.id;
+    FCE.K=fcKlanten();const dl=$("#fcKl");if(dl)dl.innerHTML=FCE.K.map(x=>`<option value="${esc(x.lbl)}"></option>`).join("");fcKlantKnop();toast(v?"Klantgegevens bijgewerkt.":naam+" staat nu in je klantenlijst.")}
+  catch(x){toast("Bewaren lukte niet: "+(x.message||""),true)}}
 function fcGroei(t){t.style.height="auto";t.style.height=Math.min(160,t.scrollHeight+2)+"px"}
 function fcLees(){const f=FCE.f,g=s=>{const e=$(s);return e?e.value.trim():""};
   f.klant={...(f.klant||{}),naam:g("#fcN"),contact:g("#fcC"),adres:$("#fcA").value.trim(),email:g("#fcE"),btw:g("#fcB")};
@@ -3195,7 +3212,7 @@ function fcKies(lbl){const x=FCE&&FCE.K.find(o=>o.lbl===lbl);if(!x)return;const 
   FCE.f.klant={...k};
   const rows=$$("#fcL .fc-l"),leeg=rows.length===1&&!rows[0].querySelector(".fc-om").value.trim()&&!rows[0].querySelector(".fc-pr").value.trim();
   if(leeg&&k.sponsorId){rows[0].querySelector(".fc-om").value="Sponsoring "+(JAAR||new Date().getFullYear());if(x.bedrag)rows[0].querySelector(".fc-pr").value=String(x.bedrag).replace(".",",");const c=$("#fcCat");if(c)c.value="Sponsoring";fcTotaal()}
-  if(!k.email)toast("Let op: voor deze klant is geen e-mailadres gekend.",true)}
+  fcKlantKnop();if(!k.email)toast("Let op: voor deze klant is geen e-mailadres gekend.",true)}
 
 /* ---------- instellingen ---------- */
 function fcInstel(){const c=fcCfg(),H=c.herinnering,j=new Date().getFullYear(),pre=c.voorvoegsel||"F";
@@ -3208,6 +3225,7 @@ function fcInstel(){const c=fcCfg(),H=c.herinnering,j=new Date().getFullYear(),p
    ${fld("fiMail","E-mail (antwoorden komen hier)",inp("fiMail",c.email,'type="email" placeholder="penningmeester@vbha.be"'))}${fld("fiTel","Telefoon",inp("fiTel",c.telefoon))}
    ${fld("fiWeb","Website",inp("fiWeb",c.website))}${fld("fiVd","Betaaltermijn",`<select id="fiVd" class="sel">${[8,10,14,15,21,30,45,60].map(n=>`<option value="${n}"${n===num(c.vervaldagen)?" selected":""}>${n} dagen</option>`).join("")}</select>`)}
    <div class="fld full"><label for="fiVt">Voettekst (bv. btw-vermelding)</label><textarea id="fiVt" rows="2" placeholder="bv. Vereniging niet onderworpen aan btw.">${esc(c.voettekst)}</textarea></div>
+   <div class="fc-sec full"><h4>Klantenlijst</h4>${fcVaste().length?`<div class="fc-kl">${fcVaste().map(v=>`<div><span class="grow" style="min-width:0"><b>${esc(v.naam)}</b><span class="muted small trunc"> ${[v.contact,v.email].filter(Boolean).map(esc).join(" · ")}</span></span><button type="button" class="btn sm ghost" data-fc="klantWeg" data-id="${esc(v.id)}">Verwijderen</button></div>`).join("")}</div>`:'<p class="muted small" style="margin:0">Nog geen klanten opgeslagen. Dat doe je bij het maken van een factuur met <b>Opslaan als nieuwe klant</b>.</p>'}</div>
    <div class="fc-sec full"><h4>Nummering</h4></div>
    ${fld("fiNr","Volgend factuurnummer "+j,`<div class="fc-nr"><span>${esc(pre)}${j}</span><input id="fiNr" inputmode="numeric" value="${String(volgend).padStart(3,"0")}"></div>`)}
    <div class="help full muted small" style="margin-top:-6px">Hoogste nummer tot nu toe: ${hoogste?esc(pre+j+String(hoogste).padStart(3,"0")):"geen"} (ook nummers in de mededeling van overschrijvingen tellen mee). Een nummer wordt nooit twee keer gebruikt.</div>
@@ -3286,11 +3304,14 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-fc]"
     case"credit":fcCredit(id);break;
     case"dupliceer":fcDupliceer(id);break;
     case"geenher":{const f=S.facturen.get(id);await fcZet(id,{geenHerinnering:f.geenHerinnering?undefined:true});toast(f.geenHerinnering?"Automatische herinneringen staan weer aan.":"Geen automatische herinneringen voor deze factuur.");fcDetail(id);break}
+    case"klantOpslaan":fcKlantOpslaan();break;
+    case"klantWeg":{const c=S.config.get("facturen")||{},L=(c.klanten||[]).filter(x=>x.id!==id);await write("config","facturen",{...stripId(c),klanten:L});S.config.set("facturen",{...stripId(c),klanten:L,id:"facturen"});t.closest("div").remove();toast("Klant verwijderd uit de lijst.");break}
     case"sponsor":{const s=S.sponsors.get(id);if(!s)break;closeModal();location.hash="#facturen";setTimeout(()=>{fcEdit(null);const x=FCE.K.find(o=>o.k.sponsorId===id);if(x)fcKies(x.lbl)},120);break}
   }});
 document.addEventListener("input",e=>{const t=e.target;
   if(t.id==="fcQ"){FC.q=t.value;clearTimeout(fcSyncT.q);fcSyncT.q=setTimeout(()=>{renderBody();const i=$("#fcQ");if(i){i.focus();i.selectionStart=i.selectionEnd=i.value.length}},250);return}
   if(t.closest&&t.closest("#fcL")){if(t.classList.contains("fc-om"))fcGroei(t);fcTotaal()}
+  if(t.id==="fcN")fcKlantKnop();
   if(t.id==="fcKz"&&FCE&&FCE.K.some(o=>o.lbl===t.value))fcKies(t.value)});
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="fcJaar"){FC.jaar=t.value;renderBody()}if(t.classList&&t.classList.contains("fc-btw"))fcTotaal();
   if(t.id==="fcD"&&$("#fcV")){const d=new Date(t.value+"T12:00");if(!isNaN(d)){d.setDate(d.getDate()+num(fcCfg().vervaldagen||30));$("#fcV").value=d.toISOString().slice(0,10)}}});
