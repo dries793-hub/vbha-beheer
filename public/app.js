@@ -4261,7 +4261,7 @@ bkExport=function(){const ws=XLSX.utils.json_to_sheet(bkSheet());const R=XLSX.ut
 function insTs(r){if(r.aangemeld){const t=Date.parse(r.aangemeld);if(!isNaN(t))return t}
   const m=/^[a-z]+-([0-9a-z]{6,9})-/.exec(String(r.id||""));if(m){const t=parseInt(m[1],36);if(t>1.5e12&&t<4e12)return t}
   const d=/^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(r.ingediend||""));if(d)return Date.UTC(+d[3],d[2]-1,+d[1],11);return 0}
-function insCmp(a,b){return insTs(a)-insTs(b)||String(a.naam||a.lid||"").localeCompare(String(b.naam||b.lid||""),"nl")}
+function insCmp(a,b){return insTs(b)-insTs(a)||String(a.naam||a.lid||"").localeCompare(String(b.naam||b.lid||""),"nl")}
 function inschrOp(r){const t=insTs(r);if(!t)return r.ingediend||"";const exact=!!r.aangemeld||/^[a-z]+-[0-9a-z]{6,9}-/.test(String(r.id||""));
   const o={timeZone:"Europe/Brussels",day:"2-digit",month:"2-digit",year:"numeric"};if(exact){o.hour="2-digit";o.minute="2-digit"}
   return new Intl.DateTimeFormat("nl-BE",o).format(new Date(t)).replace(",","")}
