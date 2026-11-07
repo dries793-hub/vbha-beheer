@@ -53,6 +53,10 @@
     {
       "source": "/api/reglement",
       "destination": "/api/openbaar?f=reglement"
+    },
+    {
+      "source": "/api/deel",
+      "destination": "/api/openbaar?f=deel"
     }
   ]
 }
