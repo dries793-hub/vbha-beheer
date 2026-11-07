@@ -4284,6 +4284,73 @@ document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement
 {const _h=krHost;krHost=function(){const h=_h.apply(this,arguments);krVolKnop(h);return h}}
 window.addEventListener("hashchange",()=>{const h=KR.host;if(h&&h.classList.contains("kr-vol")&&route()!=="ronde")krVol(h,false)});
 
+/* ============ Kalenders › Controle ============
+   Louter ter controle: per persoon de dozen uit de verdeling (meegegeven / afgewerkt / in handen) naast wat op de kaart
+   van de kalenderronde op zijn naam staat (bedeelde en gereserveerde adressen, omgerekend naar dozen). Er wordt niets gewijzigd. */
+if(!ROUTES.some(r=>r[0]==="kalcontrole"))ROUTES.push(["kalcontrole","Controle kalenders"]);
+var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.kalcontrole="kalenders";NAV_ALIAS.ronde=NAV_ALIAS.ronde||"kalenders";
+for(const n of NAV)if(n&&n.items)n.items=n.items.filter(i=>i[0]!=="kalcontrole");
+if(!KAL_TABS.some(t=>t[0]==="kalcontrole"))KAL_TABS.push(["kalcontrole","Controle"]);
+const kcSleutel=(lidId,naam)=>lidId?"l:"+lidId:"n:"+norm(naam||"").replace(/[^a-z]/g,"");
+function kcData(){const C=ctx(),pd=Number(jaarCfg(JAAR).perDoos)||100,P=new Map();
+  const pers=(lidId,naam)=>{const l=lidId&&S.leden.get(lidId);let k=kcSleutel(lidId,naam);
+    // naam zonder lidId koppelen aan een lid met dezelfde naam
+    if(!lidId){for(const [kk,p] of P)if(kcSleutel(null,p.naam)===k){k=kk;break}}
+    if(!P.has(k))P.set(k,{k,naam:l?naamVol(l):(naam||"?"),lid:!!l,mee:0,uit:0,hand:0,j:null,dA:0,dS:0,rA:0,rS:0,laatst:""});return P.get(k)};
+  for(const j of kalStats(C).rows){const p=pers(j.lidId,kalNaam(j));p.j=j;p.uit=j.kalUitgevoerd||0;p.hand=j.kalOpgehaald||0;p.mee=p.uit+p.hand}
+  const A=krAll(),D=krDelen();
+  const tel=(d,a)=>{if(!d)return;const p=pers(d.lidId,d.by||"Onbekend");if(d.status==="reserved"){p.rA+=a;p.rS++}else{p.dA+=a;p.dS++}if(String(d.at||"")>p.laatst)p.laatst=String(d.at||"")};
+  for(const s of KR_STREETS){if(A[s.id]){tel(A[s.id],s.a);continue}for(const x of KR_DELEN.get(s.id)||[])tel(D[x.id],x.a)}
+  const L=[...P.values()].map(p=>{const dz=p.dA/pd;let st,verschil=0;
+    if(!p.mee&&!p.dA)st=p.rA?"res":"ok";
+    else if(!p.mee)st="geendoos";
+    else if(!p.dA)st=p.uit?"geenkaart":"bezig";
+    else if(dz<p.uit-1){st="minder";verschil=p.uit-dz}
+    else if(dz>p.mee+1){st="meer";verschil=dz-p.mee}
+    else st=p.hand?"bezig":"ok";
+    return{...p,dz,verschil,st}});
+  L.sort((a,b)=>(KC_ST[a.st][0]!=="warn")-(KC_ST[b.st][0]!=="warn")||b.verschil-a.verschil||a.naam.localeCompare(b.naam,"nl"));
+  return{L,pd}}
+const KC_ST={ok:["ok","Klopt"],bezig:["info","Nog bezig"],res:["info","Enkel gereserveerd"],geenkaart:["warn","Afgewerkt, niets op de kaart"],geendoos:["warn","Op de kaart, geen dozen meegegeven"],minder:["warn","Minder op de kaart dan afgewerkt"],meer:["warn","Meer op de kaart dan meegegeven"]};
+const kcN=n=>Number.isInteger(n)?String(n):n.toLocaleString("nl-BE",{maximumFractionDigits:1});
+VIEWS.kalcontrole=()=>({title:"Kalenders "+JAAR,sub:"Controle: dozen naast de aanduidingen op de kaart",
+  actions:'<a class="btn" href="/kaart" target="_blank" rel="noopener" title="Openbare kaart van de kalenderronde">'+ic("kaart")+'Kaart openen</a>',
+  body(){const {L,pd}=kcData(),af=L.filter(p=>KC_ST[p.st][0]==="warn").length;
+    const T=k=>L.reduce((t,p)=>t+p[k],0);
+    return kalTabs("kalcontrole")+`<div class="note info">Louter ter controle. Per persoon zie je de afgewerkte dozen uit <a href="#kalenders">Verdeling</a> naast de adressen die op de <a href="#ronde">kaart</a> op zijn of haar naam als bedeeld staan, omgerekend aan ${pd} kalenders per doos. Wie nog dozen in handen heeft, kan al een deel bedeeld hebben; een verschil tot 1 doos geldt als normaal. Hier wordt niets gewijzigd.</div>
+    <div class="tiles"><div class="tile"><span class="lbl">Afgewerkte dozen</span><span class="val">${T("uit")}</span><span class="hint">volgens de verdeling</span></div>
+    <div class="tile"><span class="lbl">Bedeeld op de kaart</span><span class="val">${krNum(T("dA"))}</span><span class="hint">adressen · ≈ ${kcN(T("dA")/pd)} dozen</span></div>
+    <div class="tile"><span class="lbl">Dozen in handen</span><span class="val">${T("hand")}</span><span class="hint">${krNum(T("rA"))} adressen gereserveerd</span></div>
+    <div class="tile"><span class="lbl">Na te kijken</span><span class="val">${af}</span><span class="hint">${af===1?"persoon":"personen"} met een verschil</span></div></div>
+    <div class="panel"><div class="tw"><table class="rcards kc-t"><thead><tr><th>Persoon</th><th class="num">Meegegeven</th><th class="num">Afgewerkt</th><th class="num">In handen</th><th class="num">Bedeeld op kaart</th><th class="num">≈ dozen</th><th class="num">Gereserveerd</th><th>Controle</th></tr></thead><tbody>
+    ${L.map(p=>{const [c,t]=KC_ST[p.st];const vs=p.verschil?` <small class="muted">${kcN(p.verschil)} ${p.verschil<1.5?"doos":"dozen"} verschil</small>`:"";
+      return `<tr><td data-l="Persoon"><b>${esc(p.naam)}</b>${p.lid||!p.j?"":'<div class="small muted">geen lid</div>'}${!p.j&&(p.dA||p.rA)?'<div class="small muted">niet in de verdeling</div>':""}</td>
+      <td class="num" data-l="Meegegeven">${p.mee||"–"}</td><td class="num" data-l="Afgewerkt">${p.uit||"–"}</td><td class="num" data-l="In handen">${p.hand||"–"}</td>
+      <td class="num" data-l="Bedeeld op kaart">${p.dA?krNum(p.dA)+` <small class="muted">${p.dS} ${p.dS===1?"straat":"str."}</small>`:"–"}</td><td class="num" data-l="≈ dozen">${p.dA?kcN(p.dz):"–"}</td>
+      <td class="num" data-l="Gereserveerd">${p.rA?krNum(p.rA)+` <small class="muted">≈ ${kcN(p.rA/pd)} d.</small>`:"–"}</td>
+      <td data-l="Controle"><span class="pill ${c}">${t}</span>${vs}</td></tr>`}).join("")||'<tr><td colspan="8" class="empty">Nog geen dozen of aanduidingen dit jaar.</td></tr>'}
+    </tbody></table></div></div>`}});
+
+/* ---- Kalenderinstellingen (dozen dit jaar, kalenders per doos) achter het tandwiel op de pagina Kalenders ---- */
+{const _v=VIEWS.kalenders;const n=function(){const v=_v.apply(this,arguments);
+  if(typeof ADM!=="function"||ADM())v.actions=String(v.actions||"")+`<button class="btn iconbtn" data-w data-act="kalInst" aria-label="Instellingen kalenders" title="Instellingen kalenders">${ic("instellingen")}</button>`;return v};
+  Object.assign(n,_v);VIEWS.kalenders=n}
+function kalInst(){if(typeof ADM==="function"&&!ADM())return;const c=jaarCfg(JAAR);
+  const f=(id,l,v,suf,h)=>`<div class="fld"><label for="${id}">${l}</label><div class="sfx"><input id="${id}" type="number" min="1" step="1" inputmode="numeric" value="${v}"><span>${suf}</span></div>${h?`<small class="muted">${h}</small>`:""}</div>`;
+  modal("Instellingen kalenders "+JAAR,`<div class="form">${f("kiS","Kalenderdozen dit jaar",c.kalenderStock,"dozen","Totale voorraad om te verdelen.")}${f("kiP","Kalenders per doos",c.perDoos||100,"stuks","Gebruikt om adressen op de kaart om te rekenen naar dozen.")}</div>
+   <p class="pi-note">De punten per afgewerkte doos stel je in bij het puntensysteem (tandwiel op de pagina Puntensysteem).</p>`,
+  `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kiOk">Bewaren</button>`);
+  $("#kiOk").onclick=async()=>{const s=Math.round(num($("#kiS").value)),p=Math.round(num($("#kiP").value));
+    if(!(s>=0)){toast("Vul het aantal dozen in.",true);return}if(!(p>=1)){toast("Vul het aantal kalenders per doos in.",true);return}
+    const b=$("#kiOk");b.disabled=true;try{const cur=stripId(S.jaren.get(String(JAAR))||{jaar:JAAR});await write("jaren",String(JAAR),{...cur,jaar:JAAR,kalenderStock:s,perDoos:p});closeModal();toast("Kalenderinstellingen "+JAAR+" bewaard.");render(true)}
+    catch(x){toast("Niet gelukt: "+(x.message||x),true);b.disabled=false}}}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="kalInst"]');if(t)kalInst()});
+
+/* ---- Instellingen: het blok "Punten en kalenders" verdwijnt (punten → puntensysteem, kalenders → tandwiel bij Kalenders) ---- */
+{const _v=VIEWS.instellingen;const n=function(){const v=_v.apply(this,arguments),b=v.body;
+  v.body=function(){return String(b.apply(this,arguments)).replace(/<form class="panel" id="fJaar">[\s\S]*?<\/form>/,"").replace('<div class="grid g2" style="align-items:start">','<div class="grid kc-inst" style="align-items:start;max-width:760px">')};return v};
+  Object.assign(n,_v);VIEWS.instellingen=n}
+
 /* ============ Instellingen enkel voor de administrator ============
    Andere profielen zien geen tandwieltjes of instellingenpagina's. Wat iedereen wel kan: "Meldingen op dit toestel" (eigen pagina).
    Bij "Bekijken als…" geldt het bekeken profiel (ROL). */
