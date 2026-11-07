@@ -2704,7 +2704,6 @@ VIEWS.mails=()=>({title:"Mails",actions:'<button class="btn" data-w data-act="ml
     <div class="muted small">${actief.length} ${actief.length===1?"ontvanger":"ontvangers"}${uit.size&&met.length>actief.length?` (${met.length-actief.length} uitgezonderd)`:""}${zonder.length?` · ${zonder.length} zonder e-mailadres`:""}</div>
     ${met.length?`<details class="ml-lijst"><summary>Ontvangers bekijken of uitzonderen</summary><div class="ml-rl">${met.map(r=>{const k=String(r.email).toLowerCase();return `<label><input type="checkbox" data-mluit="${esc(k)}"${uit.has(k)?"":" checked"}><span class="trunc"><b>${esc(r.label)}</b> ${esc(r.email)}</span></label>`}).join("")}</div></details>`:""}
     ${mlBlokUI(g)}
-    ${zonder.length?`<details class="ml-lijst"><summary>Zonder e-mailadres (${zonder.length})</summary><div class="ml-rl muted">${zonder.map(r=>`<div>${esc(r.label)}</div>`).join("")}</div></details>`:""}
   </div></div>
   <div class="panel"><div class="panel-h"><h2>Versturen</h2></div><div class="panel-b stack" style="gap:10px">
     ${MAILSMTP===null?(mailSmtpLaad(),'<div class="muted small">Verzendinstellingen laden…</div>'):MAILSMTP.ingesteld?`
