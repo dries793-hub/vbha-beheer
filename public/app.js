@@ -4268,6 +4268,20 @@ function inschrOp(r){const t=insTs(r);if(!t)return r.ingediend||"";const exact=!
 bkLijst=function(){return [...S.banket.values()].filter(r=>Number(r.jaar)===JAAR).sort(insCmp)};
 kfLijst=function(){return [...S.kinderfeest.values()].filter(r=>r.jaar===JAAR).sort(insCmp)};
 
+/* ---- Banket: compacte lijst op gsm (naam, formule en menu op één regel, bedrag en betaling rechts) ---- */
+{const _t=bkTable;bkTable=function(){const h=String(_t.apply(this,arguments)).replace('<div class="tw"><table class="rcards">','<div class="tw dsk-only"><table class="rcards">');
+  const q=norm(UI.bkQ||""),F=UI.bkF||"alle";let R=bkRows();
+  if(q)R=R.filter(x=>norm([x.r.naam,x.r.opmerking,x.r.menu1,x.r.menu2].join(" ")).includes(q));
+  if(F==="open")R=R.filter(x=>!x.p.ok);else if(F==="ok")R=R.filter(x=>x.p.ok);else if(F==="veg")R=R.filter(x=>x.r.menu1==="Vegetarisch"||(x.r.personen===2&&x.r.menu2==="Vegetarisch"));
+  const mob=`<div class="mlist bk-ml" role="list">${R.map(x=>{const r=x.r,duo=r.personen===2;
+    const pill=x.p.ok?'<span class="pill ok">Betaald</span>':x.p.deel?`<span class="pill warn">Deels</span>`:'<span class="pill nok">Open</span>';
+    return `<button type="button" class="ml-row bk-row" role="listitem" data-act="bkToon" data-id="${esc(r.id)}"><span class="ml-m">
+      <span class="ml-n"><b>${esc(r.naam)}</b>${x.lid?"":' <span class="pill warn">niet in ledenlijst</span>'}</span>
+      <span class="ml-s">${duo?"Met partner":"Alleen"} · ${esc(r.menu1||"?")}${duo?" + "+esc(r.menu2||"?"):""}</span>
+      ${r.opmerking?`<span class="bk-opm">${esc(r.opmerking)}</span>`:""}</span>
+      <span class="ml-r bk-r"><b>${eur(x.due)}</b>${pill}</span></button>`}).join("")||'<div class="empty">Nog geen inschrijvingen.</div>'}</div>`;
+  return mob+h}}
+
 /* ============ Kalenderronde: kaart op volledig scherm ============
    Knop in de zoombalk. Het kader wordt over het hele venster gelegd (werkt ook op iPhone); waar het kan ook echt volledig scherm
    (zonder adresbalk). Escape, de knop of een andere pagina zet het terug. Zelfde code op de openbare kaart (kaart.html). */
