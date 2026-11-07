@@ -1204,7 +1204,7 @@ function bkTable(){
   return `<div class="tw"><table class="rcards"><thead><tr><th>Naam</th><th>Formule</th><th>Menu</th><th>Opmerking</th><th class="num">Bedrag</th><th>Betaling</th><th>Ingeschreven</th></tr></thead><tbody>
   ${R.map(x=>{const r=x.r;const menu=r.personen===2?esc(r.menu1)+" + "+esc(r.menu2||"?"):esc(r.menu1);
     const pill=x.p.ok?`<span class="pill ok" title="${esc(x.p.bron)}">Betaald</span>`:x.p.deel?`<span class="pill warn" title="${esc(x.p.bron)}">Deels: ${eur(x.p.bedrag)}</span>`:`<span class="pill nok">Open</span>`;
-    return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b>${x.lid?"":'<div class="small muted">niet gevonden in ledenlijst</div>'}</td><td class="nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td><td class="muted nowrap">${esc(r.ingediend||"")}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
+    return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b>${x.lid?"":'<div class="small muted">niet gevonden in ledenlijst</div>'}</td><td class="nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td><td class="muted nowrap">${esc(inschrOp(r))}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
   </tbody>${R.length?`<tfoot><tr><td>${R.length} inschrijvingen</td><td>${pers} personen</td><td></td><td></td><td class="num">${eur(R.reduce((s,x)=>s+x.due,0))}</td><td></td><td></td></tr></tfoot>`:""}</table></div>`}
 VIEWS.banket=()=>({title:"Banket "+JAAR,sub:"Inschrijvingen en betalingen",
   actions:`<a class="btn" href="${BK_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden (${esc(insStatus(bkCfg(),JAAR+"-12-01").label)})">${ic("link")}Inschrijfpagina${insPill(insStatus(bkCfg(),JAAR+"-12-01"))}</a><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-act="bkInst" aria-label="Instellingen banket" title="Instellingen banket">${ic("instellingen")}</button>`,
@@ -4188,7 +4188,7 @@ kfTable=function(list,dub,c){list=KFC.f==="nog"?list.filter(r=>!kfcAan(r)):KFC.f
   ${list.map(r=>{const l=kfLidVan(r.lid);const kids=r.kinderen||[];
     return `<tr class="click" data-act="kfToon" data-id="${esc(r.id)}"><td><b>${esc(r.lid)}</b>${l?"":' <span class="pill warn">niet in ledenlijst</span>'}${dub[norm(r.email)]>1?' <span class="pill warn">mogelijk dubbel</span>':""}${r.opmerking?`<div class="muted small">${esc(r.opmerking)}</div>`:""}</td>
     <td class="trunc">${esc(r.email)}</td><td><div class="kf-kl">${kidsH(r)}</div></td>
-    <td class="num">${kids.length}</td><td class="nowrap">${r.aangemeld?esc(fmtDate(String(r.aangemeld).slice(0,10))):""}</td>
+    <td class="num">${kids.length}</td><td class="nowrap">${esc(inschrOp(r))}</td>
     <td>${r.bron==="formulier"?'<span class="pill info">Formulier</span>':'<span class="pill neutral">Manueel</span>'}</td><td class="nowrap">${kfcVink(r)}</td></tr>`}).join("")||`<tr><td colspan="7" class="empty">${leeg}</td></tr>`}
   </tbody></table>`};
 {const _v=VIEWS.kinderfeest;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=b.apply(this,arguments);const L=kfLijst(),ok=L.filter(kfcAan).length;
@@ -4256,6 +4256,17 @@ bkExport=function(){const ws=XLSX.utils.json_to_sheet(bkSheet());const R=XLSX.ut
   for(let r=1;r<=R.e.r;r++){for(const [c,z] of [[ck,"0%"],[cp,"€ #,##0.00"],[cb,"€ #,##0.00"]]){if(c<0)continue;const a=XLSX.utils.encode_cell({r,c});if(ws[a]&&typeof ws[a].v==="number")ws[a].z=z}}
   ws["!cols"]=[{wch:26},{wch:12},{wch:9},{wch:12},{wch:12},{wch:30},{wch:9},{wch:9},{wch:15},{wch:12},{wch:10},{wch:13},{wch:10}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Banket "+JAAR);save("VBHA_Banket_"+JAAR+".xlsx",XLSX.write(wb,{type:"array",bookType:"xlsx"}))};
+
+/* ---- inschrijvingen (banket en kinderfeest) op volgorde van inschrijving: datum en tijdstip ---- */
+function insTs(r){if(r.aangemeld){const t=Date.parse(r.aangemeld);if(!isNaN(t))return t}
+  const m=/^[a-z]+-([0-9a-z]{6,9})-/.exec(String(r.id||""));if(m){const t=parseInt(m[1],36);if(t>1.5e12&&t<4e12)return t}
+  const d=/^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(r.ingediend||""));if(d)return Date.UTC(+d[3],d[2]-1,+d[1],11);return 0}
+function insCmp(a,b){return insTs(a)-insTs(b)||String(a.naam||a.lid||"").localeCompare(String(b.naam||b.lid||""),"nl")}
+function inschrOp(r){const t=insTs(r);if(!t)return r.ingediend||"";const exact=!!r.aangemeld||/^[a-z]+-[0-9a-z]{6,9}-/.test(String(r.id||""));
+  const o={timeZone:"Europe/Brussels",day:"2-digit",month:"2-digit",year:"numeric"};if(exact){o.hour="2-digit";o.minute="2-digit"}
+  return new Intl.DateTimeFormat("nl-BE",o).format(new Date(t)).replace(",","")}
+bkLijst=function(){return [...S.banket.values()].filter(r=>Number(r.jaar)===JAAR).sort(insCmp)};
+kfLijst=function(){return [...S.kinderfeest.values()].filter(r=>r.jaar===JAAR).sort(insCmp)};
 
 /* ============ Kalenderronde: kaart op volledig scherm ============
    Knop in de zoombalk. Het kader wordt over het hele venster gelegd (werkt ook op iPhone); waar het kan ook echt volledig scherm
