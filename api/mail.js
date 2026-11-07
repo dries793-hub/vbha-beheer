@@ -5,6 +5,7 @@ import { herinneringen, herinneringTest, vergaderingAfgerond } from "./_lib/heri
 import { bevestigingenCron, kfVoorbeeld } from "./_lib/bevestiging.js";
 import { factuurActie } from "./_lib/factuur.js";
 import { sponsorBevestiging } from "./_lib/sponsorbev.js";
+import { betaalHerinneringApi } from "./_lib/betaalherinnering.js";
 import { pushApi } from "./_lib/push.js";
 import { inkomendApi } from "./_lib/inkomend.js";
 import { inWachtrij, wachtrijCron } from "./_lib/wachtrij.js";
@@ -23,6 +24,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "inkomend") return await inkomendApi(req, res); // inkomende facturen uit de mailbox
     if (req.query && req.query.f === "push") return await pushApi(req, res); // pushmeldingen: toestel aan- of afmelden, testmelding
     if (req.query && req.query.f === "factuur") return await factuurActie(req, res); // facturatie: PDF, definitief maken, versturen, herinnering
+    if (req.query && req.query.f === "betaalherinnering") return await betaalHerinneringApi(req, res); // voorbeeld automatische betalingsherinneringen
     if (req.query && req.query.f === "sponsorbev") return await sponsorBevestiging(req, res); // sponsorbevestiging (PDF / mail)
     if (req.query && req.query.f === "kf-voorbeeld") return await kfVoorbeeld(req, res); // voorbeeld bevestigingsmail kinderfeest
     if (req.query && req.query.f === "wachtrij") return await wachtrijCron(req, res); // geplande taak: bulkmails uit de wachtrij versturen
