@@ -15,10 +15,17 @@ export const INK_DEF = { adres: "vbha@telenet.be", host: "imap.telenet.be", port
 const HOSTS = { "telenet.be": "imap.telenet.be", "vbha.be": "imap.one.com", "gmail.com": "imap.gmail.com", "outlook.com": "outlook.office365.com", "hotmail.com": "outlook.office365.com", "skynet.be": "imap.proximus.be", "proximus.be": "imap.proximus.be" };
 export const hostVoor = a => HOSTS[String(a || "").split("@")[1]?.toLowerCase()] || "";
 
+// Het wachtwoord van de mailbox staat versleuteld in de database (AES-256-GCM, sleutel enkel in Vercel).
+const encKey = () => crypto.createHash("sha256").update("vbha-inkomend|" + String(process.env.BETAAL_GEHEIM || process.env.SUPABASE_SERVICE_ROLE_KEY || "")).digest();
+function versleutel(t) { const iv = crypto.randomBytes(12), c = crypto.createCipheriv("aes-256-gcm", encKey(), iv); const d = Buffer.concat([c.update(String(t), "utf8"), c.final()]); return "enc:v1:" + Buffer.concat([iv, c.getAuthTag(), d]).toString("base64"); }
+function ontsleutel(v) { v = String(v || ""); if (!v.startsWith("enc:v1:")) return v; try { const b = Buffer.from(v.slice(7), "base64"), d = crypto.createDecipheriv("aes-256-gcm", encKey(), b.subarray(0, 12)); d.setAuthTag(b.subarray(12, 28)); return Buffer.concat([d.update(b.subarray(28)), d.final()]).toString("utf8"); } catch (e) { console.error("ontsleutelen mislukt"); return ""; } }
 async function instellingen(sb) {
   const { data } = await sb.from("config").select("data").eq("id", "inkomend").maybeSingle();
   const c = (data && data.data) || {};
   const { data: g } = await sb.from("inkomend_geheim").select("wachtwoord").eq("id", 1).maybeSingle();
+  // oud, onversleuteld wachtwoord meteen versleuteld terugschrijven
+  if (g && g.wachtwoord && !String(g.wachtwoord).startsWith("enc:v1:")) { try { await sb.from("inkomend_geheim").update({ wachtwoord: versleutel(g.wachtwoord) }).eq("id", 1); } catch (e) {} }
+  if (g) g.wachtwoord = ontsleutel(g.wachtwoord);
   const adresEnv = process.env.INKOMEND_IMAP_USER || "", passEnv = process.env.INKOMEND_IMAP_PASS || "";
   const r = { ...INK_DEF, ...c, filter: { ...INK_DEF.filter, ...(c.filter || {}) } };
   r.pass = (g && g.wachtwoord) || (adresEnv && adresEnv === r.adres ? passEnv : "") || (!c.adres && passEnv ? passEnv : "");
@@ -115,7 +122,7 @@ export async function inkomendApi(req, res) {
     const C = await instellingen(sb), ander = a !== C.adres || host !== C.host || map !== C.map;
     await bewaarCfg(sb, { adres: a, host, port, map, filter: { aan: b.filter?.aan !== false, woorden: String(b.filter?.woorden || "").slice(0, 300), afzenders: String(b.filter?.afzenders || "").slice(0, 500) }, ...(ander ? { lastUid: 0, uidValidity: 0 } : {}) });
     if (typeof b.wachtwoord === "string" && b.wachtwoord) {
-      const { error } = await sb.from("inkomend_geheim").upsert({ id: 1, wachtwoord: b.wachtwoord, gewijzigd: new Date().toISOString() });
+      const { error } = await sb.from("inkomend_geheim").upsert({ id: 1, wachtwoord: versleutel(b.wachtwoord), gewijzigd: new Date().toISOString() });
       if (error) throw error;
     }
     return res.status(200).json({ ok: true });
