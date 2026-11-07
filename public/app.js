@@ -2250,9 +2250,12 @@ function agMaand(L){const t=todayISO();const m=AG.m||t.slice(0,7);const [Y,M]=m.
   <div class="agc-g">${["ma","di","wo","do","vr","za","zo"].map(x=>`<span class="agc-w">${x}</span>`).join("")}${cells}</div></div>`}
 function agBinnenkort(L){const t=todayISO();let R;
   if(AG.dag){R=L.filter(x=>x.datum===AG.dag);return `<div class="ag-sub"><span>${esc(agLang(AG.dag))}</span><button type="button" class="btn sm ghost" data-act="agDag" data-v="">Binnenkort tonen</button></div>`+(R.length?R.map(agRij).join(""):'<div class="empty" style="padding:10px 0">Niets gepland op deze dag.</div>')}
-  R=L.filter(x=>x.datum>=t).slice(0,4);
+  R=L.filter(x=>agKomt(x,t)).slice(0,4);
   return `<div class="ag-sub"><span>Binnenkort</span></div>`+(R.length?R.map(agRij).join(""):'<div class="empty" style="padding:10px 0">Er staat niets gepland.</div>')}
-function agVolgende(){const t=todayISO();const V=[...S.vergaderingen.values()].filter(v=>v.datum>=t).sort((a,b)=>(a.datum+(a.uur||"")).localeCompare(b.datum+(b.uur||"")));const v=V[0];
+// een afgeronde vergadering hoort bij "Voorbij", ook als ze vandaag was
+const agAf=x=>x&&x.t==="verg"?!!((S.vergaderingen.get(x.id)||{}).afgerond):!!(x&&x.afgerond);
+const agKomt=(x,t)=>x.datum>=t&&!agAf(x);
+function agVolgende(){const t=todayISO();const V=[...S.vergaderingen.values()].filter(v=>v.datum>=t&&!v.afgerond).sort((a,b)=>(a.datum+(a.uur||"")).localeCompare(b.datum+(b.uur||"")));const v=V[0];
   const laatste=[...S.vergaderingen.values()].filter(x=>x.datum<t&&String(x.verslag||"").trim()).sort((a,b)=>b.datum.localeCompare(a.datum))[0];
   const lv=laatste?`<a class="vg-last" data-act="vgToon" data-id="${esc(laatste.id)}">${ic("verslagen")}<span>Laatste verslag: <b>${esc(laatste.titel||laatste.soort||"Vergadering")}</b> van ${esc(agKort(laatste.datum))}</span></a>`:"";
   if(!v)return `<div class="empty" style="padding:22px 0 18px">Er is nog geen volgende vergadering gepland.${canWrite?`<div style="margin-top:12px"><button class="btn" data-act="vgNieuw">${ic("plus")}Vergadering plannen</button></div>`:""}</div>${lv}`;
@@ -2260,14 +2263,14 @@ function agVolgende(){const t=todayISO();const V=[...S.vergaderingen.values()].f
   return `<a class="vg-next" data-act="vgToon" data-id="${esc(v.id)}"><span class="vg-cal"><span>${d.toLocaleDateString("nl-BE",{month:"short"}).replace(".","")}</span><b>${d.getDate()}</b><span>${d.toLocaleDateString("nl-BE",{weekday:"short"})}</span></span>
    <span class="vg-i"><b>${esc(v.titel||v.soort||"Vergadering")}</b>${v.titel&&v.soort?`<span class="muted">${esc(v.soort)}</span>`:""}<span>${esc([agLang(v.datum),v.uur].filter(Boolean).join(" om "))}</span>${v.locatie?`<span class="muted">${esc(v.locatie)}</span>`:""}${w?`<span class="pill info" style="align-self:flex-start;margin-top:4px">${w}</span>`:""}</span></a>
    ${String(v.agenda||"").trim()?`<div class="vg-ag"><span class="lbl">Agenda</span><div>${esc(v.agenda)}</div></div>`:""}${lv}`}
-function agendaSectie(){const t=todayISO(),R=agItems().filter(x=>x.datum>=t).slice(0,6);
+function agendaSectie(){const t=todayISO(),R=agItems().filter(x=>agKomt(x,t)).slice(0,6);
   return `<section class="dsec" aria-label="Activiteiten"><div class="dsec-h"><span class="dsec-ic">${ic("agenda")}</span><h2>Agenda</h2><span class="grow"></span><a class="btn sm ghost" href="#agenda">Naar agenda ›</a></div>
   <div class="panel"><div class="ag-list big">${R.length?R.map(x=>{const [c,l]=agSoort(x);return agRij(x).replace('</a>',`<span class="pill ${c==="verg"?"info":"warn"}">${esc(l)}</span></a>`)}).join(""):`<div class="empty">Er staat niets gepland.${canWrite?` <a href="#agenda">Activiteit toevoegen</a>`:""}</div>`}</div></div></section>`}
 function agDashRefresh(){const el=$("#agDash");if(!el)return;const L=agItems();el.innerHTML=agMaand(L)+`<div class="ag-list" id="agList">${agBinnenkort(L)}</div>`}
 
 /* ---------- pagina Kalender (Activiteiten › Kalender) ---------- */
 VIEWS.agenda=()=>({title:"Agenda",actions:'<button class="btn primary" data-w data-act="agNieuw">'+ic("plus")+'Toevoegen</button>',body(){
-  const t=todayISO(),L=agItems(),R=AG.oud?L.filter(x=>x.datum<t).reverse():L.filter(x=>x.datum>=t);
+  const t=todayISO(),L=agItems(),R=AG.oud?L.filter(x=>!agKomt(x,t)).reverse():L.filter(x=>agKomt(x,t));
   const groups=new Map();for(const x of R){const k=x.datum.slice(0,7);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x)}
   return `<div class="bar"><div class="seg"><button type="button" data-act="agOud" data-v="0" class="${AG.oud?"":"on"}">Komend</button><button type="button" data-act="agOud" data-v="1" class="${AG.oud?"on":""}">Voorbij</button></div></div>
   ${groups.size?[...groups].map(([k,xs])=>`<div class="panel"><div class="panel-h"><h2 style="text-transform:capitalize">${agD(k+"-01").toLocaleDateString("nl-BE",{month:"long",year:"numeric"})}</h2><span class="grow"></span><span class="muted small">${xs.length} ${xs.length===1?"item":"items"}</span></div><div class="ag-list big">${xs.map(x=>{const [c,l]=agSoort(x);return agRij(x).replace('</a>',`<span class="pill ${c==="verg"?"info":"warn"}">${esc(l)}</span></a>`)}).join("")}</div></div>`).join(""):`<div class="panel"><div class="empty">${AG.oud?"Nog geen voorbije activiteiten.":"Er staat nog niets gepland."}${canWrite&&!AG.oud?`<div style="margin-top:12px"><button class="btn primary" data-act="agNieuw">${ic("plus")}Activiteit toevoegen</button></div>`:""}</div></div>`}`}});
@@ -2304,10 +2307,10 @@ function agAutoForm(id){const bk=id==="bk",c=bk?bkCfg():kfCfg(),d=canWrite?"":" 
 VIEWS.verslagen=()=>({title:"Verslagen vergaderingen",actions:'<button class="btn primary" data-w data-act="vgNieuw">'+ic("plus")+'Nieuwe vergadering</button>',body(){
   const t=todayISO(),q=norm(AG.q);let L=[...S.vergaderingen.values()].filter(v=>v.datum);
   if(q)L=L.filter(v=>norm([v.titel,v.soort,v.locatie,v.agenda,v.verslag,v.aanwezig].join(" ")).includes(q));
-  const komend=L.filter(v=>v.datum>=t).sort((a,b)=>a.datum.localeCompare(b.datum)),voorbij=L.filter(v=>v.datum<t).sort((a,b)=>b.datum.localeCompare(a.datum));
+  const komend=L.filter(v=>v.datum>=t&&!v.afgerond).sort((a,b)=>a.datum.localeCompare(b.datum)),voorbij=L.filter(v=>v.datum<t||v.afgerond).sort((a,b)=>b.datum.localeCompare(a.datum));
   const rij=v=>{const has=String(v.verslag||"").trim();const d=agD(v.datum);return `<a class="ag-r" data-act="vgToon" data-id="${esc(v.id)}"><span class="ag-dt verg"><b>${d.getDate()}</b><span>${d.toLocaleDateString("nl-BE",{month:"short"}).replace(".","")}</span></span>
     <span class="ag-m"><b class="trunc">${esc(v.titel||v.soort||"Vergadering")}</b><span class="trunc">${esc([agLang(v.datum),v.uur,v.locatie].filter(Boolean).join(" · "))}</span></span>
-    ${v.datum>=t?`<span class="pill info">gepland</span>`:has?`<span class="pill ok">verslag</span>`:`<span class="pill warn">nog geen verslag</span>`}</a>`};
+    ${v.afgerond?`<span class="pill ok">afgerond</span>`:v.datum>=t?`<span class="pill info">gepland</span>`:has?`<span class="pill ok">verslag</span>`:`<span class="pill warn">nog geen verslag</span>`}</a>`};
   return `<div class="bar"><div class="search">${ic("search")}<input id="vgQ" data-vgq placeholder="Zoek in agenda's en verslagen" value="${esc(AG.q)}"></div></div><div id="vgList">
   ${komend.length?`<div class="panel"><div class="panel-h"><h2>Gepland</h2></div><div class="ag-list big">${komend.map(rij).join("")}</div></div>`:""}
   <div class="panel"><div class="panel-h"><h2>Voorbije vergaderingen</h2><span class="grow"></span><span class="muted small">${voorbij.length}</span></div><div class="ag-list big">${voorbij.map(rij).join("")||`<div class="empty">${q?"Niets gevonden.":"Nog geen vergaderingen."}</div>`}</div></div></div>`}});
@@ -2369,13 +2372,13 @@ function docLijst(){let L=[...S.documenten.values()];if(DOC.map)L=L.filter(d=>d.
   return L.sort((a,b)=>String(b.op||"").localeCompare(String(a.op||"")))}
 // verslag van een vergadering: knop naar die vergadering in de agenda
 function docVgLink(d){const v=d.vergaderingId&&S.vergaderingen.get(d.vergaderingId);if(!v)return "";
-  return `<span class="doc-rol doc-vg" role="link" tabindex="0" data-va="agenda" data-id="${esc(v.id)}">${ic("agenda")}${esc(v.titel||v.soort||"Vergadering")} van ${esc(fmtDate(v.datum))} in de agenda</span>`}
+  return `<span class="doc-rol doc-vg" role="link" tabindex="0" data-va="agenda" data-id="${esc(v.id)}">${ic("agenda")}Bekijk in de agenda</span>`}
 function docTabel(){const L=docLijst();const dt=s=>{const d=new Date(s);return isNaN(d)?"":d.toLocaleDateString("nl-BE",{day:"numeric",month:"short",year:"numeric"})};
   const mob=`<div class="mlist" role="list">${L.map(d=>{const e=docExt(d.naam);return `<div class="ml-row doc-mr" role="listitem"><a class="doc-n" data-act="docOpen" data-id="${esc(d.id)}" href="#documenten"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span>
-    <span class="ml-m"><span class="ml-n"><b>${esc(d.naam)}</b></span><span class="ml-s">${esc(d.map||"Andere")}<span class="ml-dot">·</span>${docKB(d.grootte||0)}<span class="ml-dot">·</span>${dt(d.op)}</span>${d.rol?`<span class="doc-rol">${ic("link")}Knop ${d.rol==="sponsordossier"?"Sponsordossier":"Reglement"}</span>`:""}${d.omschrijving?`<span class="ml-s">${esc(d.omschrijving)}</span>`:""}${docVgLink(d)}</span></a>
+    <span class="ml-m"><span class="ml-n"><b>${esc(d.naam)}</b></span><span class="ml-s">${esc(d.map||"Andere")}<span class="ml-dot">·</span>${docKB(d.grootte||0)}<span class="ml-dot">·</span>${dt(d.op)}</span>${d.rol?`<span class="doc-rol">${ic("link")}Knop ${d.rol==="sponsordossier"?"Sponsordossier":"Reglement"}</span>`:""}${d.omschrijving&&!docVgLink(d)?`<span class="ml-s">${esc(d.omschrijving)}</span>`:""}${docVgLink(d)}</span></a>
     <span class="doc-ma"><button type="button" class="iconbtn2" data-act="docDown" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="iconbtn2" data-act="docEdit" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} wijzigen">${ic("instellingen")}</button>`:""}</span></div>`}).join("")||`<div class="empty">${DOC.q||DOC.map?"Geen documenten gevonden.":"Nog geen documenten."}</div>`}</div>`;
   return mob+`<div class="tw dsk-only"><table class="rcards doct" data-main="0"><thead><tr><th>Naam</th><th>Map</th><th class="num">Grootte</th><th>Toegevoegd</th><th></th></tr></thead><tbody>
-  ${L.map(d=>{const e=docExt(d.naam);return `<tr><td><a class="doc-n" data-act="docOpen" data-id="${esc(d.id)}" href="#documenten"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span><span class="doc-t"><b>${esc(d.naam)}</b>${d.rol?`<span class="doc-rol">${ic("link")}Knop ${d.rol==="sponsordossier"?"Sponsordossier":"Reglement"}</span>`:""}${d.omschrijving?`<span>${esc(d.omschrijving)}</span>`:""}${docVgLink(d)}</span></a></td>
+  ${L.map(d=>{const e=docExt(d.naam);return `<tr><td><a class="doc-n" data-act="docOpen" data-id="${esc(d.id)}" href="#documenten"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span><span class="doc-t"><b>${esc(d.naam)}</b>${d.rol?`<span class="doc-rol">${ic("link")}Knop ${d.rol==="sponsordossier"?"Sponsordossier":"Reglement"}</span>`:""}${d.omschrijving&&!docVgLink(d)?`<span>${esc(d.omschrijving)}</span>`:""}${docVgLink(d)}</span></a></td>
    <td><span class="pill neutral">${esc(d.map||"Andere")}</span></td><td class="num nowrap muted">${docKB(d.grootte||0)}</td><td class="nowrap muted">${dt(d.op)}${d.door?`<div class="small">${esc(d.door)}</div>`:""}</td>
    <td class="nowrap doc-a"><button type="button" class="btn sm" data-act="docDown" data-id="${esc(d.id)}" title="Downloaden" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="btn sm" data-act="docEdit" data-id="${esc(d.id)}" title="Wijzigen" aria-label="${esc(d.naam)} wijzigen">${ic("instellingen")}</button>`:""}</td></tr>`}).join("")||`<tr><td colspan="5" class="empty">${DOC.q||DOC.map?"Geen documenten gevonden.":"Nog geen documenten. Sleep bestanden hierboven of klik op Bestanden kiezen."}</td></tr>`}
   </tbody></table></div>`}
