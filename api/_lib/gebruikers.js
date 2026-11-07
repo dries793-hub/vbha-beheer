@@ -51,7 +51,9 @@ function welkomMail({ naam, email, rol, wachtwoord, url, reset }) {
 export async function gebruikers(req, res) {
   res.setHeader("Cache-Control", "no-store");
   const { user, sb } = await requireUser(req, { write: true });
-  const url = "https://" + String(req.headers["x-forwarded-host"] || req.headers.host || "vbha-beheer.vercel.app").split(",")[0].trim();
+  // vaste adressen: de link in de welkomstmail mag niet afhangen van een (vervalsbare) Host-header
+  const h = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim().toLowerCase();
+  const url = "https://" + (/^(vbha-beheer\.vercel\.app|beheer\.vbha\.be)$/.test(h) ? h : "vbha-beheer.vercel.app");
   if (req.method === "GET") {
     const [{ data: rijen, error }, users] = await Promise.all([sb.from("bestuur").select("user_id,email,naam,rol,created_at"), alleGebruikers(sb)]);
     if (error) throw error;

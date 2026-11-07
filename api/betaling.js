@@ -1,4 +1,4 @@
-import { admin, sendError, httpErr } from "./_lib/sb.js";
+import { admin, sendError, httpErr, requireUser } from "./_lib/sb.js";
 import { onlineConfigured, providerNaam } from "./_lib/betaalprovider.js";
 import { testSleutel, verken } from "./_lib/bancontact.js";
 import { startBetaling, controleerBetaling, BETAALTABELLEN } from "./_lib/betaal.js";
@@ -16,6 +16,8 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
     // ?test=bancontact : controleert alleen of de Bancontact-sleutel aanvaard wordt (er wordt niets betaald of bewaard)
+    // testen van de Bancontact-koppeling: enkel voor een aangemelde administrator
+    if (req.method === "GET" && (req.query?.test === "bancontact" || req.query?.test === "verken")) await requireUser(req, { write: true });
     if (req.method === "GET" && req.query?.test === "bancontact") return res.status(200).json({ provider: onlineConfigured() ? providerNaam() : null, ...(await testSleutel()) });
     if (req.method === "GET" && req.query?.test === "verken") return res.status(200).json(await verken());
     const b = req.method === "POST" ? (typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {})) : (req.query || {});

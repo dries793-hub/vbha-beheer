@@ -5,7 +5,7 @@ import { epcPayload, qrSvg } from "./epc.js";
 import { onlineConfigured as bcConfigured } from "./betaalprovider.js";
 import { startBetaling } from "./betaal.js";
 import { wachtOpBetaling, stuurBevestiging } from "./bevestiging.js";
-import { clean, body, nieuwId, vandaag, algemeen, configDoc, spamCheck, actieveLeden, inschrijving, alIngeschreven, AL_TEKST } from "./publiek.js";
+import { clean, body, nieuwId, vandaag, algemeen, configDoc, spamCheck, actieveLeden, inschrijving, alIngeschreven, AL_TEKST, rateLimit } from "./publiek.js";
 
 // Openbare banketinschrijving: komt rechtstreeks in Administratie › Banket, met online betaling.
 async function info(sb) {
@@ -30,6 +30,7 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const I = await info(sb), lidId = String(req.query?.lid || "");
       if (!lidId) return res.status(200).json(I);
+      await rateLimit(sb, req, "lidinfo", 60, 600, httpErr);
       if (!(await actieveLeden(sb, I.jaar)).some(l => l.id === lidId)) throw httpErr(404, "Lid niet gevonden.");
       if (await alIngeschreven(sb, "banket", I.jaar, lidId)) return res.status(200).json({ al: true, melding: AL_TEKST("het banket", I.jaar) });
       const P = await banketPrijs(sb, I, lidId);
@@ -37,6 +38,7 @@ export default async function handler(req, res) {
     }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
     const b = body(req);
+    await rateLimit(sb, req, "post", 20, 3600, httpErr);
     if (await spamCheck(sb, "banket", b, httpErr)) return res.status(200).json({ ok: true });
     const I = await info(sb);
     if (!I.open) throw httpErr(403, "De inschrijvingen voor het banket zijn afgesloten.");
