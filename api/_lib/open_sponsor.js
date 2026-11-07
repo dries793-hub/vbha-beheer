@@ -106,6 +106,7 @@ export default async function handler(req, res) {
     const b = body(req);
     if (await spamCheck(sb, "sponsors", b, httpErr)) return res.status(200).json({ ok: true });
     if (!C.open) throw httpErr(403, "De inschrijvingen voor sponsoring zijn momenteel gesloten.");
+    if (C.deadline && vandaagISO() > C.deadline) throw httpErr(403, `De inschrijvingen voor de brandweerkalender ${C.kalenderjaar} zijn afgesloten sinds ${datumTekst(C.deadline)}.`);
     // formule en bedrag
     let formule = C.formules.find(f => f.id === String(b.formule || "")), bedrag, formuleNaam;
     if (formule) { bedrag = Number(formule.bedrag); formuleNaam = formule.naam; }

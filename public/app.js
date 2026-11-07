@@ -3422,13 +3422,22 @@ const spiMag=()=>ROL==="admin";
 function spiQr(txt,cell){if(!window.qrcode)return null;const q=qrcode(0,"M");q.addData(txt);q.make();return q}
 function spiFormRij(f,i){return `<div class="spi-f" data-i="${i}"><input class="spi-n" value="${esc(f.naam||"")}" placeholder="Naam" aria-label="Naam formule"><span class="spi-e"><span>€</span><input class="spi-b" inputmode="decimal" value="${esc(String(f.bedrag??"").replace(".",","))}" aria-label="Bedrag"></span>
   <input class="spi-o" value="${esc(f.omschrijving||"")}" placeholder="bv. Dubbel vak · elke maand" aria-label="Omschrijving"><button type="button" class="btn sm ghost" data-spi="weg" aria-label="Formule verwijderen">${ic("x")}</button></div>`}
+/* status van de inschrijfpagina: open, manueel dicht of automatisch dicht na de datum */
+function spiStatus(open,dl){const vd=todayISO(),dagen=dl?Math.round((new Date(dl+"T12:00")-new Date(vd+"T12:00"))/864e5):null;
+  if(!open)return{k:"dicht",kort:"Gesloten",html:`<span class="pill neutral">Gesloten</span> De pagina toont dat de inschrijvingen gesloten zijn. Zet de schakelaar aan om ze te openen.`};
+  if(dl&&dl<vd)return{k:"verlopen",kort:"Afgelopen",html:`<span class="pill warn">Automatisch gesloten</span> De uiterste datum (${fmtDate(dl)}) is voorbij. Kies een latere datum om opnieuw te openen.`};
+  return{k:"open",kort:"Open",html:`<span class="pill ok">Open</span> Sponsors kunnen inschrijven${dl?` tot en met <b>${fmtDate(dl)}</b> (${dagen===0?"laatste dag vandaag":dagen===1?"nog 1 dag":"nog "+dagen+" dagen"}). Daarna sluit de pagina vanzelf.`:"."}`}}
+document.addEventListener("change",e=>{if(e.target.id==="spiOpen"||e.target.id==="spiDl"){const el=$("#spiStI"),o=$("#spiOpen"),d=$("#spiDl");if(el&&o&&d){const st=spiStatus(o.checked,d.value);el.innerHTML=st.html;$("#spiSt").dataset.k=st.k}}});
+document.addEventListener("input",e=>{if(e.target.id==="spiDl"||(e.target.closest&&e.target.closest("#spiSt .dt-w"))){const el=$("#spiStI"),o=$("#spiOpen"),d=$("#spiDl");if(el&&o&&d&&(!d.value||/^\d{4}-\d{2}-\d{2}$/.test(d.value))){const st=spiStatus(o.checked,d.value);el.innerHTML=st.html;$("#spiSt").dataset.k=st.k}}});
 function spiInstel(){const c=spiCfg(),url=spiUrl(),q=spiQr(url),svg=q?q.createSvgTag({cellSize:4,margin:2,scalable:true}):"";
   modal("Instellingen sponsoring",`<form id="fSpi" class="form">
+   <div class="full spi-st" id="spiSt"><div class="spi-st-r"><label class="spi-sw" for="spiOpen"><input type="checkbox" id="spiOpen" role="switch"${c.open?" checked":""}><span class="spi-sw-t" aria-hidden="true"></span><b>Inschrijfpagina open</b></label>
+     <div class="spi-st-d"><label for="spiDl">Open tot en met</label><input id="spiDl" type="date" value="${esc(c.deadline)}"></div></div>
+     <div class="spi-st-i" id="spiStI">${spiStatus(c.open,c.deadline).html}</div></div>
    <div class="full spi-link"><div class="spi-qr">${svg}</div><div style="min-width:0"><b>Inschrijfpagina voor sponsors</b><div class="muted small" style="overflow-wrap:anywhere">${esc(url)}</div>
     <div class="bar" style="margin:8px 0 0;flex-wrap:wrap"><a class="btn sm" href="/sponsor" target="_blank" rel="noopener">${ic("link")}Pagina openen</a><button type="button" class="btn sm" data-spi="kopie">${ic("copy")}Link kopiëren</button><button type="button" class="btn sm" data-spi="png">${ic("download")}QR-code (PNG)</button><button type="button" class="btn sm" data-spi="svg">${ic("download")}QR-code (SVG)</button></div>
     <div class="muted small" style="margin-top:6px">Zet deze QR-code naast het intekenformulier op het sponsordossier. Bestaande sponsors kunnen er hun sponsoring vernieuwen.</div></div></div>
-   <label class="sp-nat full" for="spiOpen"><input type="checkbox" id="spiOpen"${c.open?" checked":""}><span><b>Inschrijvingen open</b><small>Ook automatisch dicht na de uiterste datum.</small></span></label>
-   ${fld("spiKj","Brandweerkalender",`<input id="spiKj" inputmode="numeric" maxlength="4" value="${c.kalenderjaar}">`)}${fld("spiDl","Inschrijven en betalen tot",`<input id="spiDl" type="date" value="${esc(c.deadline)}">`)}
+   ${fld("spiKj","Brandweerkalender",`<input id="spiKj" inputmode="numeric" maxlength="4" value="${c.kalenderjaar}">`)}
    <div class="fld full"><span class="lbl">Formules en bedragen</span><div class="spi-fl" id="spiFl">${c.formules.map(spiFormRij).join("")}</div><button type="button" class="btn sm" data-spi="plus" style="align-self:flex-start;margin-top:6px">${ic("plus")}Formule toevoegen</button></div>
    <label class="sp-nat full" for="spiVrij"><input type="checkbox" id="spiVrij"${c.vrij.aan?" checked":""}><span><b>Vrije bijdrage toelaten</b><small>De sponsor kiest zelf een bedrag.</small></span></label>
    ${fld("spiMin","Minimum vrije bijdrage (€)",inp("spiMin",c.vrij.min,'inputmode="decimal"'))}${fld("spiLogo","Logo's sturen naar",inp("spiLogo",c.logoMail,'type="email"'))}
@@ -3436,6 +3445,7 @@ function spiInstel(){const c=spiCfg(),url=spiUrl(),q=spiQr(url),svg=q?q.createSv
    <p class="full muted small" style="margin:0">Vraagt een sponsor een factuur, dan wordt die automatisch aangemaakt in Boekhouding › Facturen en met de bevestigingsmail meegestuurd (instellingen van de facturatie gelden). Zonder factuur krijgt de sponsor een betaallink met Bancontact en de gegevens om over te schrijven.</p>
    <div class="err full" id="spiErr"></div></form>`,
    `<button class="btn" data-act="closeModal">Annuleren</button>${spiMag()?'<button class="btn primary" data-spi="ok">Bewaren</button>':""}`,{wide:true});
+  {const st=spiStatus(c.open,c.deadline);$("#spiSt").dataset.k=st.k}
   if(!spiMag())$$("#fSpi input,#fSpi button[data-spi=plus],#fSpi button[data-spi=weg]").forEach(i=>i.disabled=true)}
 async function spiBewaar(){const err=$("#spiErr"),kj=parseInt($("#spiKj").value,10),dl=$("#spiDl").value;
   if(!(kj>2000&&kj<2100)){err.textContent="Vul het jaar van de kalender in.";return}if(!/^\d{4}-\d{2}-\d{2}$/.test(dl)){err.textContent="Kies de uiterste datum.";return}
@@ -3452,7 +3462,7 @@ function spiDownload(soort){const q=spiQr(spiUrl());if(!q){toast("De QR-code kon
   for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))g.fillRect((c+m)*cel,(r+m)*cel,cel,cel);
   cv.toBlob(b=>{const u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=naam+".png";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000)},"image/png")}
 // knoppen op de sponsorpagina
-{const _s=VIEWS.sponsors;const n=function(){const v=_s.apply(this,arguments);v.actions=`<a class="btn" href="/sponsor" target="_blank" rel="noopener" title="Openbare inschrijfpagina voor sponsors">${ic("link")}Inschrijfpagina</a>`+(v.actions||"")+`<button class="btn iconbtn" data-spi="open" title="Instellingen sponsoring" aria-label="Instellingen sponsoring">${ic("instellingen")}</button>`;
+{const _s=VIEWS.sponsors;const n=function(){const v=_s.apply(this,arguments);const _c=spiCfg(),_st=spiStatus(_c.open,_c.deadline);v.actions=`<a class="btn" href="/sponsor" target="_blank" rel="noopener" title="Openbare inschrijfpagina voor sponsors">${ic("link")}Inschrijfpagina<span class="spi-dot ${_st.k}" title="${esc(_st.kort)}">${esc(_st.kort)}</span></a>`+(v.actions||"")+`<button class="btn iconbtn" data-spi="open" title="Instellingen sponsoring" aria-label="Instellingen sponsoring">${ic("instellingen")}</button>`;
   const b=v.body;v.body=function(){return spiNieuwBlok()+b.apply(this,arguments)};return v};Object.assign(n,_s);VIEWS.sponsors=n}
 // nieuwe inschrijvingen bovenaan de sponsorpagina (en op het dashboard)
 function spiNieuwe(){return [...S.sponsors.values()].filter(s=>s.nieuw&&s.inschrijvingen).map(s=>{const L=Object.values(s.inschrijvingen).sort((a,b)=>String(b.op).localeCompare(String(a.op)));return{s,i:L[0]}}).filter(x=>x.i).sort((a,b)=>String(b.i.op).localeCompare(String(a.i.op)))}
