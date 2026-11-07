@@ -1125,6 +1125,26 @@ nav.fc-tabs a{display:inline-flex;align-items:center;gap:8px}
 nav.fc-tabs a svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 @media (max-width:760px){nav.fc-tabs{display:grid!important;grid-template-columns:1fr 1fr;gap:0}nav.fc-tabs a{justify-content:center;font-size:14px;padding-inline:6px}nav.fc-tabs a svg{display:none}}
 .ink-u svg,.ink-n svg{stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* vergadering afronden: aanwezigheid en oplaadzone */
+.va-aw-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.va-aw2{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
+.va-p{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line-strong);border-radius:10px;cursor:pointer;background:var(--surface);user-select:none;transition:background .12s,border-color .12s}
+.va-p input{position:absolute;opacity:0;width:1px;height:1px}
+.va-pc{flex:none;width:22px;height:22px;border-radius:6px;border:1.5px solid var(--line-strong);display:grid;place-items:center;background:var(--surface)}
+.va-pc svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.va-p:has(input:checked){background:#eef8f1;border-color:#7cc596}.va-p:has(input:checked) .va-pc{background:#1f8a4c;border-color:#1f8a4c}.va-p:has(input:checked) .va-pc svg{opacity:1}
+.va-p:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.va-sum{display:flex;flex-direction:column;gap:3px;margin-top:10px;padding:10px 12px;background:var(--sunken);border-radius:10px;font-size:13.5px;line-height:1.45}
+.va-drop{display:flex;align-items:center;gap:14px;padding:18px 18px;border:2px dashed var(--line-strong);border-radius:12px;cursor:pointer;background:var(--surface);transition:border-color .15s,background .15s}
+.va-drop:hover,.va-drop.on{border-color:var(--accent);background:var(--accent-soft,#fbe9ea)}
+.va-drop-ok{border-style:solid;cursor:default}.va-drop-ok:hover{background:var(--surface);border-color:var(--line-strong)}
+.va-drop-ic{flex:none;width:42px;height:42px;border-radius:50%;background:var(--sunken);display:grid;place-items:center}
+.va-drop-ic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.va-drop-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:14.5px}.va-drop-t b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.va-drop-t u{color:var(--accent);font-weight:600}.va-drop-t small{font-size:12.5px;color:var(--muted)}
+.va-drop-x{flex:none;border:0;background:none;color:var(--muted);font-size:22px;line-height:1;cursor:pointer;padding:4px 8px;border-radius:8px}.va-drop-x:hover{background:var(--sunken)}
+@media (max-width:760px){.va-aw2{grid-template-columns:1fr 1fr;gap:6px}.va-p{padding:9px 10px;gap:8px;font-size:14px}.va-drop{padding:14px}}
+@media (max-width:760px){.va-drop-ok label.btn{display:none}}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
