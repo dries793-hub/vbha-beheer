@@ -11,8 +11,16 @@ export function klopt(l, j, b, t) {
   const a = Buffer.from(teken(l, j, b)), c = Buffer.from(t);
   return a.length === c.length && crypto.timingSafeEqual(a, c);
 }
+// Ondertekende link "status opvragen": /status?l=<lidId>&j=<jaar>&t=<handtekening>
+export function tekenStatus(l, j) { return crypto.createHmac("sha256", sleutel()).update(`vbha-status|${l}|${j}`).digest("base64url").slice(0, 22); }
+export function kloptStatus(l, j, t) {
+  if (!sleutel() || !l || !/^\d{4}$/.test(String(j)) || typeof t !== "string") return false;
+  const a = Buffer.from(tekenStatus(l, j)), c = Buffer.from(t);
+  return a.length === c.length && crypto.timingSafeEqual(a, c);
+}
 // Vervangt in een mail elke "/lidgeld?l=..&j=..&b=..&t=@@SIG@@" door de echte handtekening.
 export function ondertekenLinks(html) {
   return String(html).replace(/\/lidgeld\?l=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?b=([\d.]+)&(amp;)?t=@@SIG@@/g,
-    (m, l, a1, j, a2, b, a3) => m.replace("@@SIG@@", teken(decodeURIComponent(l), j, b)));
+    (m, l, a1, j, a2, b, a3) => m.replace("@@SIG@@", teken(decodeURIComponent(l), j, b)))
+    .replace(/\/status\?l=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?t=@@SIG@@/g, (m, l, a1, j) => m.replace("@@SIG@@", tekenStatus(decodeURIComponent(l), j)));
 }
