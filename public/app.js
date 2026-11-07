@@ -3423,3 +3423,38 @@ function dmBetaald(){if(!dmBoek()||!S.facturen)return"";const grens=vaPlus(today
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-dm]");if(!t)return;
   if(t.dataset.dm==="open"){e.preventDefault();const id=t.dataset.id;location.hash="#facturen";setTimeout(()=>fcDetail(id),150);return}
   if(t.dataset.dm==="gezien"){t.disabled=true;for(const id of t.dataset.ids.split(",")){const f=S.facturen.get(id);if(f&&!f.betaaldGezien){try{await fcZet(id,{betaaldGezien:new Date().toISOString()})}catch(x){toast(x.message,true);break}}}renderBody()}});
+
+/* ============ Datumvelden altijd als DD/MM/JJJJ ============
+   Browsers tonen <input type="date"> in het formaat van hun eigen taal (bv. MM/DD/YYYY in een Engelse browser).
+   Elk datumveld wordt daarom een tekstveld dat DD/MM/JJJJ toont, met een kalenderknop (de kalender van de browser).
+   Voor de rest van de app blijft .value gewoon JJJJ-MM-DD; een verborgen echt datumveld draagt de naam voor formulieren. */
+const DT_D=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value");
+ICON.kalender=ICON.kalender||'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>';
+function dtParse(s){const m=String(s||"").trim().match(/^(\d{1,2})[\/.\-\s](\d{1,2})[\/.\-\s](\d{2}|\d{4})$/);if(!m)return"";
+  let [_,d,mo,y]=m;y=y.length===2?"20"+y:y;const D=new Date(+y,+mo-1,+d);
+  if(D.getFullYear()!==+y||D.getMonth()!==+mo-1||D.getDate()!==+d)return"";return y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0")}
+const dtToon=iso=>/^\d{4}-\d{2}-\d{2}$/.test(iso||"")?iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4):"";
+function dtUpg(el){if(el._dt||el.closest(".dt-w"))return;el._dt=true;
+  const nat=document.createElement("input");nat.type="date";nat.className="dt-nat";nat.tabIndex=-1;nat.setAttribute("aria-hidden","true");
+  if(el.name){nat.name=el.name;el.removeAttribute("name")}if(el.min)nat.min=el.min;if(el.max)nat.max=el.max;
+  const iso0=DT_D.get.call(el);
+  el.type="text";el.inputMode="numeric";if(!el.placeholder)el.placeholder="dd/mm/jjjj";el.maxLength=10;el.autocomplete="off";el.classList.add("dt-in");
+  Object.defineProperty(el,"value",{configurable:true,get(){return nat.value},set(v){v=String(v||"");nat.value=/^\d{4}-\d{2}-\d{2}$/.test(v)?v:(dtParse(v)||"");DT_D.set.call(el,dtToon(nat.value));el.classList.remove("dt-err")}});
+  el._nat=nat;
+  const w=document.createElement("span");w.className="dt-w";el.parentNode.insertBefore(w,el);
+  const b=document.createElement("button");b.type="button";b.className="dt-btn";b.tabIndex=-1;b.setAttribute("aria-label","Kalender openen");b.innerHTML=ic("kalender");if(el.disabled)b.disabled=true;
+  w.append(el,b,nat);el.value=iso0;
+  b.addEventListener("click",()=>{if(el.disabled||el.readOnly)return;nat.value=nat.value||"";try{nat.showPicker()}catch(x){nat.focus();nat.click()}});
+  nat.addEventListener("change",()=>{DT_D.set.call(el,dtToon(nat.value));el.classList.remove("dt-err");el.dispatchEvent(new Event("input",{bubbles:true}));el.dispatchEvent(new Event("change",{bubbles:true}))});
+  el.addEventListener("input",e=>{let raw=DT_D.get.call(el);
+    if(e.isTrusted&&e.inputType&&e.inputType.startsWith("insert")){
+      raw=raw.replace(/[.\-\s]/g,"/").replace(/\/{2,}/g,"/").replace(/^\//,"");                                  // eigen schuine streep na een automatische: geen dubbele
+      if(/^\d{3,8}$/.test(raw)){const d=raw;raw=d.slice(0,2)+"/"+d.slice(2,4)+(d.length>4?"/"+d.slice(4):"")}   // 07112026 -> 07/11/2026
+      else if(/^\d{2}$|^\d{1,2}\/\d{2}$/.test(raw))raw+="/";                                                    // 07 -> 07/  en 07/11 -> 07/11/
+      if(raw!==DT_D.get.call(el))DT_D.set.call(el,raw)}
+    nat.value=dtParse(raw)||"";el.classList.remove("dt-err")},true);
+  el.addEventListener("blur",()=>{const raw=DT_D.get.call(el).trim();if(!raw){nat.value="";return}const iso=dtParse(raw);if(iso){nat.value=iso;DT_D.set.call(el,dtToon(iso))}else{el.classList.add("dt-err");el.title="Geen geldige datum (dd/mm/jjjj)"}});
+}
+function dtScan(root){(root.querySelectorAll?root:document).querySelectorAll('input[type="date"]:not(.dt-nat)').forEach(dtUpg)}
+new MutationObserver(L=>{for(const m of L)for(const n of m.addedNodes)if(n.nodeType===1){if(n.matches&&n.matches('input[type="date"]:not(.dt-nat)'))dtUpg(n);else if(n.querySelector&&n.querySelector('input[type="date"]'))dtScan(n)}}).observe(document.documentElement,{childList:true,subtree:true});
+dtScan(document);
