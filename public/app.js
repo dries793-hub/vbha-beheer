@@ -3395,7 +3395,7 @@ function fcInstel(){const c=fcCfg(),H=c.herinnering,j=new Date().getFullYear(),p
   const hoogste=Math.max(0,...[...S.facturen.values()].filter(f=>String(f.nr||"").startsWith(pre+j)).map(f=>num(f.seq)),...[...S.boekingen.values()].map(b=>{const m=String(b.mededeling||"").replace(/\s+/g,"").toUpperCase().match(new RegExp(pre+j+"(\\d{3,6})"));return m?Number(m[1]):0}));
   const volgend=Math.max(num((c.start||{})[pre+j])||1,hoogste+1);
   modal("Instellingen facturatie",`<form id="fFcI" class="form">
-   <div class="fc-sec full"><h4>Gegevens van de vereniging op de factuur</h4><p class="muted small" style="margin:0">De naam van de vereniging en het rekeningnummer komen uit Instellingen › Algemeen.</p></div>
+   <div class="fc-sec full"><h4>Gegevens van de vereniging op de factuur</h4><p class="muted small" style="margin:0">De naam van de vereniging en het rekeningnummer stel je in via het tandwiel op de pagina Boekhouding.</p></div>
    <div class="fld full"><label for="fiAd">Adres</label><textarea id="fiAd" rows="2" placeholder="Straat en nummer&#10;Postcode en gemeente">${esc(c.adres)}</textarea></div>
    ${fld("fiRv","Rechtsvorm",inp("fiRv",c.rechtsvorm??"vzw",'placeholder="vzw"'))}${fld("fiRpr","RPR (rechtbank)",inp("fiRpr",c.rpr??"RPR Gent, afdeling Dendermonde"))}
    ${fld("fiKbo","Ondernemingsnummer",inp("fiKbo",c.kbo,'placeholder="0123.456.789"'))}${fld("fiBic","BIC van de bank",inp("fiBic",c.bic))}
@@ -4453,8 +4453,18 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="kalIn
 
 /* ---- Instellingen: het blok "Punten en kalenders" verdwijnt (punten → puntensysteem, kalenders → tandwiel bij Kalenders) ---- */
 {const _v=VIEWS.instellingen;const n=function(){const v=_v.apply(this,arguments),b=v.body;
-  v.body=function(){return String(b.apply(this,arguments)).replace(/<form class="panel" id="fJaar">[\s\S]*?<\/form>/,"").replace('<div class="grid g2" style="align-items:start">','<div class="grid kc-inst" style="align-items:start;max-width:760px">')};return v};
+  v.body=function(){return String(b.apply(this,arguments)).replace(/<form class="panel" id="fJaar">[\s\S]*?<\/form>/,"").replace(/<div class="note info" style="margin:0">Beginsaldi, lidgeld[\s\S]*?<\/div>/,"").replace(/<form class="panel" id="fCfg">[\s\S]*?<\/form>/,"").replace(/<div class="panel"><div class="panel-h"><h2>Inschrijfformulier voor nieuwe leden<\/h2>[\s\S]*?Openen<\/a><\/div><\/div><\/div>/,"").replace(/<div class="note info">Toegang geven:[\s\S]*?<\/div>/,"").replace('<div class="grid g2" style="align-items:start">','<div class="grid kc-inst" style="align-items:start;max-width:760px">')};return v};
   Object.assign(n,_v);VIEWS.instellingen=n}
+
+/* ---- naam van de vereniging: tandwiel Boekhouding (Financiële instellingen); link inschrijfformulier: tandwiel Ledenlijst ---- */
+{const _f=finInst;finInst=function(){_f.apply(this,arguments);const iban=$("#fiIban");const sec=iban&&iban.closest(".pi-sec");if(!sec)return;const d=canWrite?"":" disabled";
+  sec.insertAdjacentHTML("beforebegin",`<div class="pi-sec"><h4>Vereniging</h4><div class="form"><div class="fld full"><label for="fiNaam">Naam vereniging</label><input id="fiNaam" value="${esc(cfg().vereniging||"")}"${d}><span class="help">Staat op facturen, betaalpagina's en in alle mails.</span></div></div></div>`);
+  const ok=$("#fiOk");if(!ok||!ok.onclick)return;const _o=ok.onclick;
+  ok.onclick=async function(ev){const n=$("#fiNaam").value.trim();if(!n){toast("Vul de naam van de vereniging in.",true);return}
+    const cur=S.config.get("algemeen")||{};S.config.set("algemeen",{...cur,id:"algemeen",vereniging:n});return _o.call(this,ev)}}}
+{const _l=ledenInst;ledenInst=function(){_l.apply(this,arguments);const c=$("#liCat");const sec=c&&c.closest(".pi-sec");if(!sec)return;const u=location.origin+"/inschrijven";
+  sec.insertAdjacentHTML("afterend",`<div class="pi-sec"><h4>Inschrijfformulier voor nieuwe leden</h4><p class="pi-note" style="margin:0 0 8px">Deel deze link met wie lid wil worden. Iedereen kan het formulier invullen zonder aan te melden. Nieuwe leden komen meteen in de ledenlijst en je krijgt een melding op het dashboard.</p>
+   <div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(u)}" aria-label="Link naar het inschrijfformulier" onclick="this.select()"><button type="button" class="btn" data-act="kopieerLink" data-v="${esc(u)}">${ic("copy")}Kopiëren</button><a class="btn" href="/inschrijven" target="_blank" rel="noopener">Openen</a></div></div>`)}}
 
 /* ============ Instellingen enkel voor de administrator ============
    Andere profielen zien geen tandwieltjes of instellingenpagina's. Wat iedereen wel kan: "Meldingen op dit toestel" (eigen pagina).
