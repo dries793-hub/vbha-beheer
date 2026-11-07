@@ -3650,11 +3650,29 @@ function inkLijst(){const D=inkDocs(),open=D.filter(d=>!inkBoekVan(d.id).length)
 function inkHerteken(){const el=$("#inkL");if(!el)return renderBody();const tmp=document.createElement("div");tmp.innerHTML=inkLijst();el.replaceWith(tmp.querySelector("#inkL"))}
 function inkUitleg(){const s=INK.srv;
   if(!s)return `<div class="panel"><div class="panel-b muted small">Laden…</div></div>`;
-  if(s.ingesteld)return `<div class="note info ink-u"><div>${ic("inkomend")}</div><div><b>Stuur facturen door naar <span class="mono">${esc(s.adres)}</span></b><div class="small">Gewoon de mail doorsturen, met de PDF erbij. Elke 10 minuten komen nieuwe facturen hier en in Documenten › ${INK_MAP}. Leveranciers kunnen ook rechtstreeks naar dit adres mailen.</div></div>${inkMag()?`<button type="button" class="btn sm" data-ink="haal">Nu ophalen</button>`:""}</div>`;
-  return `<div class="note ink-u"><div>${ic("inkomend")}</div><div><b>Mailbox voor facturen nog niet ingesteld</b><div class="small">Maak bij one.com een mailbox aan (bv. <b>facturen@vbha.be</b>) en zet in Vercel › Settings › Environment Variables: <span class="mono">INKOMEND_IMAP_USER</span> (het adres) en <span class="mono">INKOMEND_IMAP_PASS</span> (het wachtwoord). Tot dan kan je facturen hier opladen.</div></div></div>`}
+  const wanneer=s.laatsteKeer?new Date(s.laatsteKeer).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
+  if(s.ingesteld)return `<div class="note info ink-u"><div>${ic("inkomend")}</div><div><b>Stuur facturen door naar <span class="mono">${esc(s.adres)}</span></b><div class="small">Gewoon de mail met de PDF doorsturen. Elke 10 minuten komen nieuwe facturen hier en in Documenten › ${INK_MAP}. De mailbox zelf blijft onaangeroerd (mails blijven ongelezen).${wanneer?` Laatst gekeken: ${esc(wanneer)}.`:""}${s.fout?` <span class="out">Laatste fout: ${esc(s.fout)}</span>`:""}</div></div>${inkMag()?`<button type="button" class="btn sm" data-ink="haal">Nu ophalen</button>`:""}</div>`;
+  return `<div class="note ink-u"><div>${ic("inkomend")}</div><div><b>Mailbox voor facturen: ${esc(s.adres||"nog niet gekozen")}</b><div class="small">${s.wachtwoordGezet?"":"Vul het wachtwoord van de mailbox in via het tandwiel rechtsboven. "}Tot dan kan je facturen hier opladen.</div></div>${inkMag()?`<button type="button" class="btn sm" data-ink="instel">Instellen</button>`:""}</div>`}
+function inkInstel(){const s=INK.srv||{},F=s.filter||{aan:true,woorden:"",afzenders:""};
+  modal("Instellingen inkomende facturen",`<form id="fInk" class="form" autocomplete="off">
+   <p class="full muted small" style="margin:0">De app kijkt elke 10 minuten in deze mailbox naar nieuwe mails met een PDF-factuur. Ze wijzigt niets in de mailbox: mails blijven ongelezen en worden niet verplaatst of verwijderd.</p>
+   ${fld("ikA","E-mailadres van de mailbox",inp("ikA",s.adres||"vbha@telenet.be",'type="email" inputmode="email"'),"full")}
+   ${fld("ikP","Wachtwoord",`<input id="ikP" type="password" autocomplete="new-password" placeholder="${s.wachtwoordGezet?"•••••••• (ongewijzigd laten)":"Wachtwoord van de mailbox"}">`,"full")}
+   <div class="help full muted small" style="margin-top:-6px">Het wachtwoord wordt afgeschermd bewaard op de server en kan nergens teruggelezen worden.</div>
+   ${fld("ikH","IMAP-server",inp("ikH",s.host||"imap.telenet.be",'placeholder="imap.telenet.be"'))}${fld("ikPo","Poort",inp("ikPo",s.port||993,'inputmode="numeric"'))}
+   ${fld("ikM","Map",inp("ikM",s.map||"INBOX",'placeholder="INBOX"'))}
+   <label class="sp-nat full" for="ikF"><input type="checkbox" id="ikF"${F.aan!==false?" checked":""}><span><b>Enkel mails die op een factuur lijken</b><small>Een PDF wordt bewaard als het onderwerp of de bestandsnaam een van deze woorden bevat, of als de mail van een vertrouwde afzender komt (bv. doorgestuurd door jou of Jojanneke).</small></span></label>
+   ${fld("ikW","Woorden",inp("ikW",F.woorden||"",'placeholder="factuur, invoice, rekening, nota"'),"full")}
+   <div class="fld full"><label for="ikV">Vertrouwde afzenders (elke PDF wordt bewaard)</label><textarea id="ikV" style="height:60px;min-height:0" placeholder="bv. dries@vbha.be, jojanneke@…">${esc(F.afzenders||"")}</textarea></div>
+   ${(s.log||[]).length?`<div class="full fc-sec"><h4>Laatst verwerkt</h4><div class="ink-log">${s.log.slice(0,8).map(x=>`<div><span class="muted small">${new Date(x.op).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span><span class="small"><b>${esc(x.onderwerp||"")}</b> · ${esc(x.van||"")} · ${esc(x.status||"")}</span></div>`).join("")}</div></div>`:""}
+   <div class="err full" id="ikErr"></div></form>`,
+   `<button class="btn" data-ink="test">Verbinding testen</button><span class="grow"></span><button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-ink="instelOk">Bewaren</button>`,{wide:true})}
+function inkLeesForm(){return{adres:$("#ikA").value.trim(),wachtwoord:$("#ikP").value,host:$("#ikH").value.trim(),port:Number($("#ikPo").value)||993,map:$("#ikM").value.trim()||"INBOX",filter:{aan:$("#ikF").checked,woorden:$("#ikW").value.trim(),afzenders:$("#ikV").value.trim()}}}
+const INK_HOSTS={"telenet.be":"imap.telenet.be","vbha.be":"imap.one.com","gmail.com":"imap.gmail.com","outlook.com":"outlook.office365.com","hotmail.com":"outlook.office365.com","skynet.be":"imap.proximus.be","proximus.be":"imap.proximus.be"};
+async function inkSrv(){try{INK.srv=await api("/api/mail?f=inkomend")}catch(e){INK.srv={ingesteld:false}}if(route()==="inkomend")renderBody()}
 VIEWS.inkomend=()=>({title:"Inkomende facturen",sub:"Facturen van leveranciers, gekoppeld aan de transacties",
-  actions:inkMag()?`<input type="file" id="inkFile" accept="application/pdf,.pdf,image/*" multiple hidden><label for="inkFile" class="btn">${ic("upload")}Factuur opladen</label>`:"",
-  body(){if(!INK.srv&&!INK.srvBezig){INK.srvBezig=true;api("/api/mail?f=inkomend").then(j=>{INK.srv=j}).catch(()=>{INK.srv={ingesteld:false}}).finally(()=>{INK.srvBezig=false;if(route()==="inkomend")renderBody()})}
+  actions:inkMag()?`<input type="file" id="inkFile" accept="application/pdf,.pdf,image/*" multiple hidden><label for="inkFile" class="btn">${ic("upload")}Factuur opladen</label><button class="btn iconbtn" data-ink="instel" title="Instellingen inkomende facturen" aria-label="Instellingen inkomende facturen">${ic("instellingen")}</button>`:"",
+  body(){if(!INK.srv&&!INK.srvBezig){INK.srvBezig=true;inkSrv().finally(()=>{INK.srvBezig=false})}
     return inkUitleg()+inkLijst()}});
 async function inkKoppel(did,bid){const b=S.boekingen.get(bid),d=S.documenten.get(did);if(!b||!d)return;
   const nb={...stripId(b),documentId:did};S.boekingen.set(bid,{...nb,id:bid});dirty=true;await write("boekingen",bid,nb);
@@ -3673,7 +3691,13 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ink]
   else if(a==="kies"){const s=document.querySelector(`[data-ink-sel="${CSS.escape(id)}"]`);if(!s||!s.value){toast("Kies eerst een transactie.",true);return}inkKoppel(id,s.value)}
   else if(a==="los")inkLos(id);
   else if(a==="weg"){const d=S.documenten.get(id);if(!d)return;confirmBox(`Factuur <b>${esc(d.naam)}</b> verwijderen?`,"Verwijderen",async()=>{try{await SB.storage.from(DOC_BUCKET).remove([d.pad])}catch(x){}await write("documenten",id,null,{del:true});toast("Verwijderd.")})}
-  else if(a==="haal"){t.disabled=true;try{const j=await api("/api/mail?f=inkomend",{method:"POST",body:"{}"});toast(j.nieuw?`${j.nieuw} nieuwe ${j.nieuw===1?"factuur":"facturen"} opgehaald.`:"Geen nieuwe facturen in de mailbox.")}catch(x){toast(x.message,true)}finally{t.disabled=false}}
+  else if(a==="instel"){if(!INK.srv)await inkSrv();inkInstel()}
+  else if(a==="instelOk"){const f=inkLeesForm(),err=$("#ikErr");if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(f.adres)){err.textContent="Vul een geldig e-mailadres in.";return}
+    t.disabled=true;try{await api("/api/mail?f=inkomend",{method:"POST",body:JSON.stringify({actie:"instellingen",...f})});closeModal();toast("Instellingen bewaard.");inkSrv()}catch(x){err.textContent=x.message}finally{t.disabled=false}}
+  else if(a==="test"){const f=inkLeesForm(),err=$("#ikErr");t.disabled=true;err.textContent="";
+    try{await api("/api/mail?f=inkomend",{method:"POST",body:JSON.stringify({actie:"instellingen",...f})});const j=await api("/api/mail?f=inkomend",{method:"POST",body:JSON.stringify({actie:"test"})});toast(`Verbinding gelukt: ${j.mails} mails in ${f.map}.`);INK.srv=null;await inkSrv();$("#ikP")&&($("#ikP").value="")}
+    catch(x){err.textContent=x.message}finally{t.disabled=false}}
+  else if(a==="haal"){t.disabled=true;try{const j=await api("/api/mail?f=inkomend",{method:"POST",body:"{}"});toast(j.nieuw?`${j.nieuw} nieuwe ${j.nieuw===1?"factuur":"facturen"} opgehaald.`:"Geen nieuwe facturen in de mailbox.")}catch(x){toast(x.message,true)}finally{t.disabled=false;inkSrv()}}
   else if(a==="boek"){const b=S.boekingen.get(id);if(b){closeModal();setTimeout(()=>boekingForm(b,id),50)}}});
 // transactie: gekoppelde factuur tonen
 {const _b=boekingForm;boekingForm=function(b,id,title){_b(b,id,title);if(!id||!b)return;const e=$("#fBoek");if(!e)return;const d=b.documentId&&S.documenten.get(b.documentId);
@@ -3684,6 +3708,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ink]
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){let x="";if(inkMag()){const L=inkDocs().filter(d=>!inkBoekVan(d.id).length&&d.inkomend&&d.inkomend.nieuw);
     if(L.length)x=`<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("inkomend")}</span><div class="nm-body"><b>${L.length===1?"Een inkomende factuur":L.length+" inkomende facturen"} te koppelen</b><div class="nm-l">${L.slice(0,5).map(d=>`<a class="nm-i" href="#inkomend"><b>${esc(inkVan(d)||d.naam)}</b><span>${fmtDate(inkDatum(d))}</span></a>`).join("")}</div></div></div>`}
     return x+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+document.addEventListener("input",e=>{if(e.target.id==="ikA"){const h=INK_HOSTS[(e.target.value.split("@")[1]||"").toLowerCase()];if(h&&$("#ikH"))$("#ikH").value=h}});
 
 /* ============ Dashboard: meldingen voor de boekhouding ============
    - transacties die nog verwerkt moeten worden (na het inladen van de bankgegevens)
