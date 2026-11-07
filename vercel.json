@@ -41,6 +41,10 @@
     {
       "source": "/api/gebruikers",
       "destination": "/api/config?f=gebruikers"
+    },
+    {
+      "source": "/api/sponsor",
+      "destination": "/api/openbaar?f=sponsor"
     }
   ]
 }
