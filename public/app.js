@@ -2834,7 +2834,7 @@ const ML_TRAAG=["zonezuidoost.be"],ML_TRAAG_MS=20000;
 const mlDom=a=>String(a||"").split("@")[1]?.toLowerCase()||"";
 const mlTraag=d=>ML_TRAAG.some(t=>d===t||d.endsWith("."+t));
 function mlDuur(lijst,pauze){const n=lijst.filter(m=>mlTraag(mlDom(m.aan||m.email))).length;return Math.max(Math.ceil((lijst.length-n)/10)*pauze,n*ML_TRAAG_MS)}
-async function mailVerstuur(lijst,label){if(MAILBUSY)return{ok:0,fout:["bezig"]};MAILBUSY=true;const prog=()=>$("#mailProg");let ok=0,klaar=0;const F=[];
+async function mailVerstuur(lijst,label,opt){if(lijst.length>3)return mlNaarWachtrij(lijst,label,opt||{});if(MAILBUSY)return{ok:0,fout:["bezig"]};MAILBUSY=true;const prog=()=>$("#mailProg");let ok=0,klaar=0;const F=[];
   const pauze=lijst.length>200?13000:lijst.length>10?4000:0,t0=Date.now(),eind=t0+mlDuur(lijst,pauze);
   const toon=extra=>{const p=prog();if(!p)return;const rest=Math.max(0,(eind-Date.now())/1000);
     p.innerHTML=`<div class="ml-prog"><div style="width:${Math.round(klaar/lijst.length*100)}%"></div></div><div class="muted small">${extra||`Bezig: ${klaar} van ${lijst.length} verstuurd${rest>20?` · nog ongeveer ${Math.ceil(rest/60)} min`:""}…`} Laat dit venster open.</div>`};
@@ -2869,13 +2869,50 @@ function mlSend(){const list=mailRecips();if(!list.length)return;const n=list.le
   if(/\{\w+\}/.test(vul(M.onderwerp,list[0])+mlStijl(vul(M.body,list[0],true)).replace(/<[^>]+>/g,""))){toast("Er staat nog een onbekend veld tussen accolades in het bericht.",true)}
   modal("Mails versturen",`<div class="stack" style="gap:12px"><p style="margin:0">Je staat op het punt om <b>${n} ${w}</b> te versturen. Dit kan niet ongedaan gemaakt worden.</p>
     <dl class="kv"><dt>Van</dt><dd>${esc((MAILSMTP&&MAILSMTP.van.naam?MAILSMTP.van.naam+" ":"")+"<"+(MAILSMTP&&MAILSMTP.van.email||"")+">")}</dd><dt>Aan</dt><dd>${esc(g.label)} (${n})</dd><dt>Onderwerp</dt><dd>${esc(vul(M.onderwerp,list[0]))}</dd></dl>
-    ${(()=>{const ms=mlDuur(list,n>200?13000:n>10?4000:0),tr=list.filter(r=>mlTraag(mlDom(r.email))).length;return ms>60000?`<div class="note info">Om de verzendlimiet van one.com te respecteren${tr?` en de ${tr} adressen van ${ML_TRAAG.join(", ")} niet allemaal tegelijk te mailen (die komen anders terug)`:""} duurt dit ongeveer <b>${Math.ceil(ms/60000)} minuten</b>. Laat de pagina open tot alles verstuurd is.</div>`:""})()}
+    ${(()=>{const mis=mlMislukt(M);return mis.length?`<label class="sp-nat"><input type="checkbox" id="msMis"><span><b>Enkel naar de ${mis.length} adressen waarvoor het vorige versturen van deze mail mislukte</b><small>Op ${esc(fmtDate(String(mis.datum).slice(0,10)))} lukte het niet voor ${mis.length} ${mis.length===1?"adres":"adressen"} (bv. omdat one.com te veel mails tegelijk weigerde). Wie de mail toen wel kreeg, krijgt ze niet opnieuw.</small></span></label>`:""})()}
+    ${n>3?`<div class="note info" id="msDuur">${mlDuurTekst(n)}</div>`:""}
     ${M.dirty?'<div class="note">Het sjabloon heeft niet-bewaarde wijzigingen. Die worden wel zo verstuurd.</div>':""}
     <label class="sp-nat"><input type="checkbox" id="msOk"><span><b>Ja, verstuur ${n} ${w}</b><small>Stuur bij twijfel eerst een testmail naar jezelf.</small></span></label></div>`,
     `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="msGo" disabled>Versturen</button>`);
   $("#msOk").onchange=e=>{$("#msGo").disabled=!e.target.checked};
-  $("#msGo").onclick=async()=>{if(!$("#msOk").checked)return;closeModal();const res=await mailVerstuur(list.map(r=>mailBericht(r,M)));
-    try{await write("mailings",mlId(),{datum:new Date().toISOString(),onderwerp:vul(M.onderwerp,{}),sjabloon:M.naam||"",sjabloonId:M.tplId||"",groep:g.label,aantal:n,ok:res.ok,fout:res.fout.slice(0,200),door:ME?ME.email:""})}catch(e){}}}
+  const mis=mlMislukt(M),kies=()=>$("#msMis")&&$("#msMis").checked?list.filter(r=>mis.includes(String(r.email||"").toLowerCase())):list;
+  if($("#msMis"))$("#msMis").onchange=()=>{const k=kies().length;$("#msOk").nextElementSibling.querySelector("b").textContent=`Ja, verstuur ${k} ${k===1?"mail":"mails"}`;const d=$("#msDuur");if(d)d.innerHTML=mlDuurTekst(k)};
+  $("#msGo").onclick=async()=>{if(!$("#msOk").checked)return;const L=kies();if(!L.length){toast("Geen adressen om te mailen.",true);return}closeModal();const mid=mlId();const res=await mailVerstuur(L.map(r=>mailBericht(r,M)),"",{mid});
+    try{await write("mailings",mid,{datum:new Date().toISOString(),onderwerp:vul(M.onderwerp,{}),sjabloon:M.naam||"",sjabloonId:M.tplId||"",groep:g.label+($("#msMis")&&L.length!==n?" (enkel mislukte)":""),aantal:L.length,ok:res.ok,fout:res.fout.slice(0,200),...(res.wachtrij?{wachtrij:res.wachtrij,bezig:true}:{}),door:ME?ME.email:""})}catch(e){}}}
+
+/* ---------- wachtrij (server verstuurt bulkmails gespreid; zie api/_lib/wachtrij.js) ---------- */
+const ML_PER_MIN=3.4; // 18 per 5 minuten (one.com: 25 per 5 min en 250 per uur)
+function mlDuurTekst(n){const m=Math.ceil(n/ML_PER_MIN);return `one.com laat maar 25 mails per 5 minuten toe. De mails gaan daarom gespreid de deur uit${m>2?`: dit duurt ongeveer <b>${m<90?m+" minuten":Math.round(m/6)/10+" uur"}</b>`:""}. <b>Je mag dit venster gerust sluiten</b>; de server verstuurt ze verder.`}
+function mlMislukt(M){const L=[...(S.mailings||new Map()).values()].filter(x=>(M.tplId&&x.sjabloonId===M.tplId)||(!M.tplId&&x.onderwerp===vul(M.onderwerp,{}))).sort((a,b)=>String(b.datum||"").localeCompare(String(a.datum||"")));
+  const x=L[0];if(!x||!(x.fout||[]).length)return Object.assign([],{datum:""});
+  const a=[...new Set(x.fout.map(f=>String(f).split(" (")[0].trim().toLowerCase()).filter(Boolean))];return Object.assign(a,{datum:x.datum})}
+let ML_VOLG=null;
+async function mlNaarWachtrij(lijst,label,opt){const batch="b-"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);let n=0;const prog=()=>$("#mailProg");
+  try{for(let i=0;i<lijst.length;i+=20){const p=prog();if(p)p.innerHTML=`<div class="ml-prog"><div style="width:${Math.round(i/lijst.length*100)}%"></div></div><div class="muted small">Mails klaarzetten: ${i} van ${lijst.length}…</div>`;
+      const j=await api("/api/mail",{method:"POST",body:JSON.stringify({wachtrij:batch,label:label||"",berichten:lijst.slice(i,i+20)})});n+=j.aantal||0}}
+  catch(e){toast("Klaarzetten lukte niet helemaal: "+(e.message||e)+(n?` (${n} staan wel in de wachtrij)`:""),true)}
+  if(n){toast(`${n} mails staan in de wachtrij en worden gespreid verstuurd. Je mag het venster sluiten.`);mlVolg(batch,opt.mid)}
+  return{ok:0,fout:[],wachtrij:n?batch:null,aantal:n}}
+async function mlVolg(batch,mid){ML_VOLG={batch,mid};clearTimeout(mlVolg.t);
+  let rows=[];try{const {data,error}=await SB.from("mail_wachtrij").select("status,fout,aan:data->>aan").eq("batch",batch).limit(2000);if(error)throw error;rows=data||[]}catch(e){mlVolg.t=setTimeout(()=>mlVolg(batch,mid),20000);return}
+  const c=k=>rows.filter(r=>r.status===k).length,tot=rows.length,ok=c("ok"),fout=c("fout"),wacht=c("wacht")+c("bezig"),stop=c("geannuleerd");
+  const F=rows.filter(r=>r.status==="fout").map(r=>({aan:r.aan,fout:r.fout||"mislukt"}));
+  if(wacht){const min=Math.ceil(wacht/ML_PER_MIN);ML_LAST=`<div class="note info ml-wr"><div class="ml-prog"><div style="width:${Math.round((ok+fout)/Math.max(1,tot)*100)}%"></div></div>
+      <div><b>${ok} van ${tot}</b> verstuurd · ${wacht} in de wachtrij${fout?` · <span class="out">${fout} mislukt</span>`:""} · nog ongeveer ${min} min. <span class="muted">Je mag dit venster sluiten; de server verstuurt de rest.</span></div>
+      <div style="margin-top:8px"><button class="btn sm" data-act="mlStop" data-b="${esc(batch)}">Rest niet meer versturen</button></div></div>`;
+    const p=$("#mailProg");if(p)p.innerHTML=ML_LAST;mlVolg.t=setTimeout(()=>mlVolg(batch,mid),15000);return}
+  ML_FOUT=F;const vast=F.filter(x=>/SMTP: 5\d\d/.test(x.fout));
+  ML_LAST=`<div class="note ${F.length?"":"info"}"><b>${ok}</b> ${ok===1?"mail":"mails"} verstuurd${stop?` · ${stop} niet meer verstuurd (gestopt)`:""}.${F.length?`<br>Niet gelukt (${F.length}): ${F.map(x=>esc(x.aan+" ("+String(x.fout).replace(/^SMTP:\s*/,"")+")")).join(", ")}`:""}
+    ${vast.length&&canWrite?`<div style="margin-top:8px"><button class="btn sm" data-act="mlFoutBlok">${vast.length} ${vast.length===1?"fout adres":"foute adressen"} niet meer mailen</button></div>`:""}</div>`;
+  const p=$("#mailProg");if(p)p.innerHTML=ML_LAST;ML_VOLG=null;
+  const mm=(mid&&S.mailings&&S.mailings.get(mid))||[...(S.mailings||new Map()).values()].find(x=>x.wachtrij===batch);
+  if(mm&&mm.bezig){try{await write("mailings",mm.id,{...stripId(mm),ok,fout:F.map(x=>x.aan+" ("+x.fout+")").slice(0,200),bezig:false})}catch(e){}}
+  toast(F.length?`Wachtrij klaar: ${ok} verstuurd, ${F.length} niet gelukt.`:`Wachtrij klaar: ${ok} mails verstuurd.`,!!F.length)}
+// bij het openen van Mails: lopende wachtrij terug opvolgen
+async function mlZoekLopend(){if(ML_VOLG||!canWrite)return;try{const {data}=await SB.from("mail_wachtrij").select("batch").in("status",["wacht","bezig"]).limit(1);if(data&&data[0]&&!ML_VOLG)mlVolg(data[0].batch)}catch(e){}}
+{const _m=VIEWS.mails;const n=function(){const v=_m.apply(this,arguments);setTimeout(mlZoekLopend,300);return v};Object.assign(n,_m);VIEWS.mails=n}
+document.addEventListener("click",async e=>{const t=e.target.closest('[data-act="mlStop"]');if(!t)return;e.stopImmediatePropagation();const b=t.dataset.b;
+  confirmBox("De mails die nog in de wachtrij staan <b>niet</b> meer versturen?","Stoppen",async()=>{try{const {error}=await SB.from("mail_wachtrij").update({status:"geannuleerd"}).eq("batch",b).eq("status","wacht");if(error)throw error;toast("Wachtrij gestopt.");mlVolg(b,ML_VOLG&&ML_VOLG.mid)}catch(x){toast(x.message,true)}})},true);
 
 /* ============ Rollen en gebruikersbeheer ============
    admin      = alles, ook gebruikers beheren   (oude naam: "bewerker")
