@@ -818,8 +818,14 @@ const KR_GRENS=(()=>{const el=document.getElementById("krGrens");if(!el)return[]
 const krInRing=(p,r)=>{let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const yi=r[i][0],xi=r[i][1],yj=r[j][0],xj=r[j][1];if(((yi>p[0])!==(yj>p[0]))&&(p[1]<(xj-xi)*(p[0]-yi)/(yj-yi)+xi))c=!c}return c};
 const krBinnen=p=>!KR_GRENS.length||KR_GRENS.some(r=>krInRing(p,r));
 const KR_STREETS=(()=>{const el=document.getElementById("krData");if(!el)return[];
-  let gen=0;return el.textContent.trim().split("\n").map(l=>{const gm=l.match(/^#gen (\d+)/);if(gm){gen=+gm[1];return null}const m=l.match(/^(.*) ([0-3]) (\d+) ([^0-9]*)$/);if(!m)return null;const n=m[1],w=KR_WIJKEN[+m[2]];
-    return{id:w==="Centrum"?krSlug(n):krSlug(n)+"--"+krSlug(w),n,w,a:+m[3],gen,g:m[4].trim().split(" ").map(krDecode).filter(part=>part.filter(krBinnen).length*2>=part.length)}}).filter(s=>s&&s.g.length)})();
+  /* regels "naam deelgemeente adressen delen"; "#gen N" = vanaf hier generatie N. Een regel met een naam die al bestaat voegt
+     stukken toe aan die straat (en adressen, meestal 0). */
+  let gen=0;const uit=[],per=new Map();
+  for(const l of el.textContent.trim().split("\n")){const gm=l.match(/^#gen (\d+)/);if(gm){gen=+gm[1];continue}const m=l.match(/^(.*) ([0-3]) (\d+) ([^0-9]*)$/);if(!m)continue;const n=m[1],w=KR_WIJKEN[+m[2]];
+    const id=w==="Centrum"?krSlug(n):krSlug(n)+"--"+krSlug(w),g=m[4].trim().split(" ").map(krDecode).filter(part=>part.filter(krBinnen).length*2>=part.length);
+    const s=per.get(id);if(s){s.g.push(...g);s.pg.push(...g.map(()=>gen));s.a+=+m[3];continue}
+    const x={id,n,w,a:+m[3],gen,g,pg:g.map(()=>gen)};per.set(id,x);uit.push(x)}
+  return uit.filter(s=>s.g.length)})();
 const KR={ss:new Set(),map:null,host:null,sp:null,lines:new Map(),labels:null,labelAt:null,sel:null,busy:false,byId:new Map(KR_STREETS.map(s=>[s.id,s]))};
 const krNaam=()=>ls.get("rondeNaam","");
 const krVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -833,31 +839,35 @@ function krRes(){const a=krAll(),m={};for(const k in a)if(a[k].status==="reserve
 /* Straatdelen: een straat wordt opgedeeld van kruispunt tot kruispunt. Een kruispunt is een punt dat de straat deelt met een andere straat.
    Punten van eenzelfde straat die minder dan 40 m van elkaar liggen tellen als één kruispunt, zodat de twee rijrichtingen van een
    gescheiden rijbaan samen één stuk vormen. Stukken korter dan 50 m worden bij een aangrenzend stuk gevoegd.
-   Id van een deel: <straat-id>~<volgnummer>. Zelfde code in de app en op de openbare kaart, zodat de ids overal gelijk zijn. */
+   Id van een deel: <straat-id>~<volgnummer>. Zelfde code in de app en op de openbare kaart, zodat de ids overal gelijk zijn.
+   Stabiele ids: elk stuk lijn heeft een generatie (#gen in krData). Lijnen worden enkel opgedeeld door lijnen van dezelfde of een
+   oudere generatie, en een straat wordt per generatie apart opgedeeld en genummerd (oudste eerst). Zo veranderen de stukken van
+   bestaande straten niet als er later straten of stukken straat bijkomen. */
 function krMaakDelen(streets){const key=p=>p[0].toFixed(5)+","+p[1].toFixed(5),cntVan=new Map();
-  /* Stabiele ids: een straat wordt enkel opgedeeld door straten van dezelfde of een oudere generatie (#gen in krData).
-     Zo veranderen de stukken van bestaande straten niet als er later straten bijkomen. */
-  const cntTot=g=>{if(!cntVan.has(g)){const c=new Map();for(const s of streets){if((s.gen||0)>g)continue;const seen=new Set();for(const part of s.g)for(const p of part){const k=key(p);if(!seen.has(k)){seen.add(k);c.set(k,(c.get(k)||0)+1)}}}cntVan.set(g,c)}return cntVan.get(g)};
+  const pgen=(s,i)=>s.pg?s.pg[i]:(s.gen||0);
+  const cntTot=g=>{if(!cntVan.has(g)){const c=new Map();for(const s of streets){const seen=new Set();s.g.forEach((part,i)=>{if(pgen(s,i)>g)return;for(const p of part){const k=key(p);if(!seen.has(k)){seen.add(k);c.set(k,(c.get(k)||0)+1)}}})}cntVan.set(g,c)}return cntVan.get(g)};
   const dist=(a,b)=>{const dy=(a[0]-b[0])*111320,dx=(a[1]-b[1])*111320*Math.cos(a[0]*Math.PI/180);return Math.hypot(dx,dy)};
   const lengte=g=>{let t=0;for(let i=1;i<g.length;i++)t+=dist(g[i-1],g[i]);return t};
   const out=new Map();
-  for(const s of streets){const stuk=[],cnt=cntTot(s.gen||0);
-    for(const part of s.g){let cur=[part[0]];for(let i=1;i<part.length;i++){cur.push(part[i]);if(i<part.length-1&&cnt.get(key(part[i]))>1){stuk.push(cur);cur=[part[i]]}}if(cur.length>1)stuk.push(cur)}
-    // eindpunten van de stukken groeperen tot kruispunten (binnen 40 m)
-    const kp=[];const kpVan=p=>{for(let i=0;i<kp.length;i++)if(dist(kp[i],p)<40)return i;kp.push(p);return kp.length-1};
-    let groepen=[];const per=new Map();
-    for(const g of stuk){const a=kpVan(g[0]),b=kpVan(g[g.length-1]),k=Math.min(a,b)+"-"+Math.max(a,b);
-      if(!per.has(k)){const gr={a:Math.min(a,b),b:Math.max(a,b),g:[]};per.set(k,gr);groepen.push(gr)}per.get(k).g.push(g)}
-    const glen=gr=>Math.max(...gr.g.map(lengte));
-    for(let t=0;t<groepen.length&&groepen.length>1;){const gr=groepen[t];
-      if(gr.a===gr.b||glen(gr)<50){const h=groepen.find(x=>x!==gr&&(x.a===gr.a||x.b===gr.a||x.a===gr.b||x.b===gr.b))||groepen.find(x=>x!==gr);
-        h.g.push(...gr.g);groepen.splice(t,1);t=0;continue}t++}
-    // nummeren in de richting van de straat (van het ene uiteinde naar het andere)
-    const alle=s.g.flat(),p0=alle[0],ver=alle.reduce((b,p)=>dist(p0,p)>dist(p0,b)?p:b,p0),ax=[ver[0]-p0[0],ver[1]-p0[1]];
-    const proj=gr=>{const pts=gr.g.flat(),m=pts[Math.floor(pts.length/2)];return (m[0]-p0[0])*ax[0]+(m[1]-p0[1])*ax[1]};
-    groepen=groepen.map(gr=>({gr,v:proj(gr)})).sort((x,y)=>x.v-y.v).map(x=>x.gr);
-    const len=groepen.map(gr=>gr.g.reduce((x,g)=>x+lengte(g),0)),L=len.reduce((a,b)=>a+b,0)||1;
-    out.set(s.id,groepen.map((gr,i)=>({id:s.id+"~"+i,sid:s.id,nr:i+1,g:gr.g,k:[kp[gr.a],kp[gr.b]],len:len[i],a:Math.max(groepen.length>1?1:0,Math.round(s.a*len[i]/L))})))}
+  for(const s of streets){const gens=[...new Set(s.g.map((_,i)=>pgen(s,i)))].sort((a,b)=>a-b),alle=[];
+    for(const ge of gens){const delen=s.g.filter((_,i)=>pgen(s,i)===ge),cnt=cntTot(ge),stuk=[];
+      for(const part of delen){let cur=[part[0]];for(let i=1;i<part.length;i++){cur.push(part[i]);if(i<part.length-1&&cnt.get(key(part[i]))>1){stuk.push(cur);cur=[part[i]]}}if(cur.length>1)stuk.push(cur)}
+      // eindpunten van de stukken groeperen tot kruispunten (binnen 40 m)
+      const kp=[];const kpVan=p=>{for(let i=0;i<kp.length;i++)if(dist(kp[i],p)<40)return i;kp.push(p);return kp.length-1};
+      let groepen=[];const per=new Map();
+      for(const g of stuk){const a=kpVan(g[0]),b=kpVan(g[g.length-1]),k=Math.min(a,b)+"-"+Math.max(a,b);
+        if(!per.has(k)){const gr={a:Math.min(a,b),b:Math.max(a,b),g:[]};per.set(k,gr);groepen.push(gr)}per.get(k).g.push(g)}
+      const glen=gr=>Math.max(...gr.g.map(lengte));
+      for(let t=0;t<groepen.length&&groepen.length>1;){const gr=groepen[t];
+        if(gr.a===gr.b||glen(gr)<50){const h=groepen.find(x=>x!==gr&&(x.a===gr.a||x.b===gr.a||x.a===gr.b||x.b===gr.b))||groepen.find(x=>x!==gr);
+          h.g.push(...gr.g);groepen.splice(t,1);t=0;continue}t++}
+      // nummeren in de richting van de straat (van het ene uiteinde naar het andere)
+      const pts0=delen.flat(),p0=pts0[0],ver=pts0.reduce((b,p)=>dist(p0,p)>dist(p0,b)?p:b,p0),ax=[ver[0]-p0[0],ver[1]-p0[1]];
+      const proj=gr=>{const pts=gr.g.flat(),m=pts[Math.floor(pts.length/2)];return (m[0]-p0[0])*ax[0]+(m[1]-p0[1])*ax[1]};
+      groepen=groepen.map(gr=>({gr,v:proj(gr)})).sort((x,y)=>x.v-y.v).map(x=>x.gr);
+      for(const gr of groepen)alle.push({g:gr.g,k:[kp[gr.a],kp[gr.b]]})}
+    const len=alle.map(gr=>gr.g.reduce((x,g)=>x+lengte(g),0)),L=len.reduce((a,b)=>a+b,0)||1;
+    out.set(s.id,alle.map((gr,i)=>({id:s.id+"~"+i,sid:s.id,nr:i+1,g:gr.g,k:gr.k,len:len[i],a:Math.max(alle.length>1?1:0,Math.round(s.a*len[i]/L))})))}
   return out}
 const KR_DELEN=krMaakDelen(KR_STREETS),KR_DEEL=new Map([...KR_DELEN.values()].flat().map(d=>[d.id,d]));
 /* krDelen: aanduidingen van straatdelen (document per deel, straat = "<straat>~<nr>", deel: true) */
