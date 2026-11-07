@@ -35,7 +35,6 @@ ${v.locatie ? `<p style="margin:0 0 5px">&bull; <b>Locatie:</b> ${esc(v.locatie)
 ${punten.length ? `<p style="margin:12px 0 5px"><b>Agenda</b></p><ol style="margin:0;padding-left:22px">${punten.map(p => `<li style="margin:0 0 4px">${esc(p)}</li>`).join("")}</ol>` : ""}
 </td></tr></table>
 <p style="margin:0 0 15px">Kan je er niet bij zijn? Laat het dan even weten.</p>
-<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 18px"><tr><td align="center"><table role="presentation" border="0" cellspacing="0" cellpadding="0"><tr><td bgcolor="#b30000" style="border-radius:4px;padding:12px 26px"><a href="${esc(url)}/#agenda" style="${F}font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none">Agenda openen</a></td></tr></table></td></tr></table>
 <p style="margin:0;color:#888888;font-size:12.5px">Deze herinnering wordt automatisch verstuurd vanuit VBHA Beheer, ${cfg.dagen} ${cfg.dagen === 1 ? "dag" : "dagen"} voor elke vergadering in de agenda.</p>
 </td></tr><tr><td style="border-top:8px solid #b30000;padding:0"></td></tr></table></td></tr></table></body></html>`;
   return { aan: "", aanNaam: "Bestuur VBHA", onderwerp: `Herinnering: ${titel} op ${lang(v.datum).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase())}${v.uur ? " om " + v.uur : ""}`, html };
