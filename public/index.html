@@ -1070,6 +1070,36 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 .ink-fb{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--sunken)}.ink-fb svg{width:18px;height:18px;flex:none}.ink-fb span{flex:1;min-width:0}
 @media (max-width:760px){.ink-b{padding-left:0}.ink-t{flex-direction:column;align-items:stretch}.ink-t .btn{align-self:flex-end}}
 .ink-log{display:flex;flex-direction:column;gap:4px}.ink-log>div{display:flex;flex-direction:column;padding:5px 8px;border-radius:6px;background:var(--sunken)}
+/* documenten: mappen */
+.doc-bar{flex-wrap:wrap;align-items:center;gap:10px}
+.doc-kr{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:15px;margin-right:auto;min-width:0}
+.doc-kr button{background:none;border:0;padding:4px 2px;color:var(--accent);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.doc-kr b{font-weight:700}
+.doc-fold-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:16px}
+.doc-fold{position:relative;display:flex;border:1px solid var(--line);border-radius:12px;background:var(--surface);transition:border-color .15s,box-shadow .15s}
+.doc-fold:hover{border-color:var(--line-strong);box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.doc-fold.on{border-color:var(--accent);background:var(--accent-soft,#fbe9ea);border-style:dashed}
+.doc-fold-b{flex:1;display:flex;align-items:center;gap:12px;padding:14px 14px;background:none;border:0;text-align:left;font:inherit;color:inherit;cursor:pointer;min-width:0}
+.doc-fold-b svg{flex:none;width:30px;height:30px;stroke:#c98a12;fill:#f6c453;stroke-width:1.4}
+.doc-fold-b span{display:flex;flex-direction:column;min-width:0}.doc-fold-b b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-fold-b small{font-size:12.5px;color:var(--muted)}
+.doc-fold-e{align-self:center;margin-right:6px}
+.doc-pm{cursor:pointer;border:0}
+.doc-up-l{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.doc-up-f{display:flex;align-items:center;gap:10px;min-width:0}.doc-up-f span:nth-child(2){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-up-f .doc-ic{width:30px;height:30px;font-size:9px;border-radius:6px}
+.doc-up-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.doc-up-nw{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}.doc-up-nw input{flex:1 1 180px}
+.doc-kr-l{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:4px}
+.doc-kr-o{display:flex;align-items:center;gap:8px;padding:8px 10px 8px calc(10px + var(--d,0) * 22px);border-radius:8px;cursor:pointer}
+.doc-kr-o:hover{background:var(--sunken)}.doc-kr-o.on{background:var(--accent-soft,#fbe9ea);font-weight:600}
+.doc-kr-o input{position:absolute;opacity:0;pointer-events:none}
+.doc-kr-o svg{width:18px;height:18px;stroke:#c98a12;fill:#f6c453;stroke-width:1.4;flex:none}.doc-kr-o span{flex:1}
+@media (max-width:760px){.doc-fold-g{grid-template-columns:1fr 1fr;gap:8px}.doc-fold-b{padding:12px 10px;gap:8px}.doc-fold-b svg{width:24px;height:24px}.doc-bar .search{flex:1 1 100%;order:3}.doc-kr{font-size:14px}}
+@media (max-width:380px){.doc-fold-g{grid-template-columns:1fr}}
+.doc-fold-e{width:36px;height:36px;display:grid;place-items:center;border:0;background:none;border-radius:8px;color:var(--muted);cursor:pointer;flex:none}
+.doc-fold-e:hover{background:var(--sunken);color:var(--ink)}
+.doc-fold-e svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
