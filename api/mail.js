@@ -7,6 +7,7 @@ import { factuurActie } from "./_lib/factuur.js";
 import { pushApi } from "./_lib/push.js";
 import { inkomendApi } from "./_lib/inkomend.js";
 import { inWachtrij, wachtrijCron } from "./_lib/wachtrij.js";
+import { osmTmp } from "./_lib/osmtmp.js";
 
 // Mails versturen vanuit Communicatie › Mails (enkel voor bewerkers).
 // GET  -> {ingesteld, van}
@@ -23,6 +24,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "push") return await pushApi(req, res); // pushmeldingen: toestel aan- of afmelden, testmelding
     if (req.query && req.query.f === "factuur") return await factuurActie(req, res); // facturatie: PDF, definitief maken, versturen, herinnering
     if (req.query && req.query.f === "kf-voorbeeld") return await kfVoorbeeld(req, res); // voorbeeld bevestigingsmail kinderfeest
+    if (req.query && req.query.f === "osmtmp") return await osmTmp(req, res); // TIJDELIJK
     if (req.query && req.query.f === "wachtrij") return await wachtrijCron(req, res); // geplande taak: bulkmails uit de wachtrij versturen
     if (req.query && req.query.f === "bevestigingen") return await bevestigingenCron(req, res); // geplande taak: bevestigingen na 20 min zonder online betaling
     if (req.method === "GET") { await requireUser(req); return res.status(200).json({ ingesteld: smtpConfigured(), van: afzender() }); }
