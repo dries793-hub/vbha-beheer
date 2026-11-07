@@ -5,7 +5,7 @@ import { epcPayload, qrSvg } from "./epc.js";
 import { onlineConfigured as bcConfigured } from "./betaalprovider.js";
 import { startBetaling } from "./betaal.js";
 import { wachtOpBetaling, stuurBevestiging } from "./bevestiging.js";
-import { clean, body, nieuwId, vandaag, algemeen, configDoc, spamCheck, actieveLeden, inschrijving } from "./publiek.js";
+import { clean, body, nieuwId, vandaag, algemeen, configDoc, spamCheck, actieveLeden, inschrijving, alIngeschreven, AL_TEKST } from "./publiek.js";
 
 // Openbare banketinschrijving: komt rechtstreeks in Administratie › Banket, met online betaling.
 async function info(sb) {
@@ -31,6 +31,7 @@ export default async function handler(req, res) {
       const I = await info(sb), lidId = String(req.query?.lid || "");
       if (!lidId) return res.status(200).json(I);
       if (!(await actieveLeden(sb, I.jaar)).some(l => l.id === lidId)) throw httpErr(404, "Lid niet gevonden.");
+      if (await alIngeschreven(sb, "banket", I.jaar, lidId)) return res.status(200).json({ al: true, melding: AL_TEKST("het banket", I.jaar) });
       const P = await banketPrijs(sb, I, lidId);
       return res.status(200).json({ prijs: P.prijs, basis: P.basis, status: P.status, korting: P.korting, puntenJaar: P.puntenJaar || null });
     }
@@ -41,6 +42,7 @@ export default async function handler(req, res) {
     if (!I.open) throw httpErr(403, "De inschrijvingen voor het banket zijn afgesloten.");
     const lidRij = (await actieveLeden(sb, I.jaar)).find(l => l.id === String(b.lidId || ""));
     if (!lidRij) throw httpErr(400, "Kies je naam uit de lijst van leden.");
+    if (await alIngeschreven(sb, "banket", I.jaar, lidRij.id)) throw httpErr(409, AL_TEKST("het banket", I.jaar));
     const naam = lidRij.naam, personen = Number(b.personen) === 2 ? 2 : 1;
     if (!b.menu1) throw httpErr(400, "Kies je menu.");
     if (personen === 2 && !b.menu2) throw httpErr(400, "Kies het menu voor je partner.");
