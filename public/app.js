@@ -2828,19 +2828,32 @@ async function mlBewaar(kopie){const M=MAIL;const ed=$("#mlEd");if(ed)M.body=ed.
 // zodat we ruim onder die grens blijven en ontvangende servers geen plotse piek zien. Tijdelijke weigeringen (4xx) krijgen na een minuut een tweede kans.
 const mlWacht=ms=>new Promise(r=>setTimeout(r,ms));
 let ML_FOUT=[];
-async function mailVerstuur(lijst,label){if(MAILBUSY)return{ok:0,fout:["bezig"]};MAILBUSY=true;const prog=()=>$("#mailProg");let ok=0;const F=[];
-  const pauze=lijst.length>200?13000:lijst.length>10?4000:0,t0=Date.now();
-  const toon=(i,extra)=>{const p=prog();if(!p)return;const rest=Math.max(0,Math.ceil((lijst.length-i)/10)*pauze/1000);
-    p.innerHTML=`<div class="ml-prog"><div style="width:${Math.round(i/lijst.length*100)}%"></div></div><div class="muted small">${extra||`Bezig: ${i} van ${lijst.length} verstuurd${rest>20?` · nog ongeveer ${Math.ceil(rest/60)} min`:""}…`} Laat dit venster open.</div>`};
+// Per domein: gewone domeinen max. 3 per pakje; "trage" domeinen (bv. zonezuidoost.be, dat mails terugstuurt als er te veel tegelijk
+// binnenkomen) krijgen er maar één per ML_TRAAG_MS. Wordt zo'n mail tijdelijk geweigerd, dan wacht dat domein langer (tot 3 pogingen).
+const ML_TRAAG=["zonezuidoost.be"],ML_TRAAG_MS=20000;
+const mlDom=a=>String(a||"").split("@")[1]?.toLowerCase()||"";
+const mlTraag=d=>ML_TRAAG.some(t=>d===t||d.endsWith("."+t));
+function mlDuur(lijst,pauze){const n=lijst.filter(m=>mlTraag(mlDom(m.aan||m.email))).length;return Math.max(Math.ceil((lijst.length-n)/10)*pauze,n*ML_TRAAG_MS)}
+async function mailVerstuur(lijst,label){if(MAILBUSY)return{ok:0,fout:["bezig"]};MAILBUSY=true;const prog=()=>$("#mailProg");let ok=0,klaar=0;const F=[];
+  const pauze=lijst.length>200?13000:lijst.length>10?4000:0,t0=Date.now(),eind=t0+mlDuur(lijst,pauze);
+  const toon=extra=>{const p=prog();if(!p)return;const rest=Math.max(0,(eind-Date.now())/1000);
+    p.innerHTML=`<div class="ml-prog"><div style="width:${Math.round(klaar/lijst.length*100)}%"></div></div><div class="muted small">${extra||`Bezig: ${klaar} van ${lijst.length} verstuurd${rest>20?` · nog ongeveer ${Math.ceil(rest/60)} min`:""}…`} Laat dit venster open.</div>`};
   const stuur=async deel=>{try{const j=await api("/api/mail",{method:"POST",body:JSON.stringify({berichten:deel})});return deel.map((m,k)=>{const x=(j.resultaten||[])[k]||{};return{m,ok:!!x.ok,fout:x.fout||"mislukt"}})}
     catch(e){return deel.map(m=>({m,ok:false,fout:e.message,net:true}))}};
   const tijdelijk=x=>x.net||/SMTP: 4\d\d|time-out|ECONN|socket/i.test(x.fout);
-  try{const opnieuw=[];
-    for(let i=0;i<lijst.length;i+=10){const t=Date.now();toon(i);
-      for(const x of await stuur(lijst.slice(i,i+10)))x.ok?ok++:tijdelijk(x)?opnieuw.push(x.m):F.push({aan:x.m.aan,fout:x.fout});
-      if(i+10<lijst.length)await mlWacht(Math.max(0,pauze-(Date.now()-t)))}
-    if(opnieuw.length){toon(lijst.length-opnieuw.length,`${opnieuw.length} ${opnieuw.length===1?"mail werd":"mails werden"} tijdelijk geweigerd, nieuwe poging over een minuut…`);await mlWacht(60000);
-      for(let i=0;i<opnieuw.length;i+=10){for(const x of await stuur(opnieuw.slice(i,i+10)))x.ok?ok++:F.push({aan:x.m.aan,fout:x.fout});if(i+10<opnieuw.length)await mlWacht(pauze||4000)}}}
+  try{let Q=lijst.map(m=>({m,d:mlDom(m.aan),poging:0}));const vrij=new Map(),traagMs=new Map();let eerste=true;
+    while(Q.length){const nu=Date.now(),per=new Map(),pak=[];
+      for(const x of Q){if(pak.length>=10)break;if((vrij.get(x.d)||0)>nu)continue;const max=mlTraag(x.d)?1:3;if((per.get(x.d)||0)>=max)continue;per.set(x.d,(per.get(x.d)||0)+1);pak.push(x)}
+      if(!pak.length){const w=Math.min(...Q.map(x=>vrij.get(x.d)||nu))-nu;toon();await mlWacht(Math.max(500,w));continue}
+      if(!eerste&&pauze)await mlWacht(pauze);eerste=false;
+      Q=Q.filter(x=>!pak.includes(x));toon();const t=Date.now();
+      for(const d of new Set(pak.map(x=>x.d)))if(mlTraag(d))vrij.set(d,t+(traagMs.get(d)||ML_TRAAG_MS));
+      const R=await stuur(pak.map(x=>x.m));
+      R.forEach((r,k)=>{const x=pak[k];if(r.ok){ok++;klaar++;return}
+        if(tijdelijk(r)&&x.poging<2){x.poging++;const tr=mlTraag(x.d);
+          if(tr){const ms=Math.min(120000,(traagMs.get(x.d)||ML_TRAAG_MS)*2);traagMs.set(x.d,ms);vrij.set(x.d,Date.now()+ms*2)}else vrij.set(x.d,Date.now()+60000*x.poging);
+          Q.push(x);toon(`Een mail naar ${esc(x.d)} werd tijdelijk geweigerd; we wachten even en proberen opnieuw…`);return}
+        klaar++;F.push({aan:x.m.aan,fout:r.fout})})}}
   finally{MAILBUSY=false}
   ML_FOUT=F;const vast=F.filter(x=>/SMTP: 5\d\d/.test(x.fout));
   ML_LAST=`<div class="note ${F.length?"":"info"}"><b>${ok}</b> ${ok===1?"mail":"mails"} verstuurd${label?" ("+esc(label)+")":""}.${F.length?`<br>Niet gelukt (${F.length}): ${F.map(x=>esc(x.aan+" ("+x.fout.replace(/^SMTP:\s*/,"")+")")).join(", ")}`:""}
@@ -2856,7 +2869,7 @@ function mlSend(){const list=mailRecips();if(!list.length)return;const n=list.le
   if(/\{\w+\}/.test(vul(M.onderwerp,list[0])+mlStijl(vul(M.body,list[0],true)).replace(/<[^>]+>/g,""))){toast("Er staat nog een onbekend veld tussen accolades in het bericht.",true)}
   modal("Mails versturen",`<div class="stack" style="gap:12px"><p style="margin:0">Je staat op het punt om <b>${n} ${w}</b> te versturen. Dit kan niet ongedaan gemaakt worden.</p>
     <dl class="kv"><dt>Van</dt><dd>${esc((MAILSMTP&&MAILSMTP.van.naam?MAILSMTP.van.naam+" ":"")+"<"+(MAILSMTP&&MAILSMTP.van.email||"")+">")}</dd><dt>Aan</dt><dd>${esc(g.label)} (${n})</dd><dt>Onderwerp</dt><dd>${esc(vul(M.onderwerp,list[0]))}</dd></dl>
-    ${n>200?`<div class="note info">Om binnen de verzendlimiet van one.com te blijven duurt dit ongeveer ${Math.ceil(n/10*13/60)} minuten. Laat de pagina open tot alles verstuurd is.</div>`:""}
+    ${(()=>{const ms=mlDuur(list,n>200?13000:n>10?4000:0),tr=list.filter(r=>mlTraag(mlDom(r.email))).length;return ms>60000?`<div class="note info">Om de verzendlimiet van one.com te respecteren${tr?` en de ${tr} adressen van ${ML_TRAAG.join(", ")} niet allemaal tegelijk te mailen (die komen anders terug)`:""} duurt dit ongeveer <b>${Math.ceil(ms/60000)} minuten</b>. Laat de pagina open tot alles verstuurd is.</div>`:""})()}
     ${M.dirty?'<div class="note">Het sjabloon heeft niet-bewaarde wijzigingen. Die worden wel zo verstuurd.</div>':""}
     <label class="sp-nat"><input type="checkbox" id="msOk"><span><b>Ja, verstuur ${n} ${w}</b><small>Stuur bij twijfel eerst een testmail naar jezelf.</small></span></label></div>`,
     `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="msGo" disabled>Versturen</button>`);
