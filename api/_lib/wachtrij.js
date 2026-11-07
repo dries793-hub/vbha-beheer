@@ -52,8 +52,14 @@ export async function wachtrijCron(req, res) {
   if (!pak.length) return res.status(200).json({ niets: true });
   // eerst "bezig" zetten, zodat een tweede aanroep dezelfde mails niet opnieuw neemt
   await sb.from("mail_wachtrij").update({ status: "bezig", volgende: new Date().toISOString() }).in("id", pak.map(r => r.id));
+  // controlekopie (Bcc) maar één keer per bulkmail: enkel de eerste mail van elke wachtrij krijgt ze
+  const metBcc = new Set();
+  for (const batch of new Set(pak.map(r => r.batch))) {
+    const { data: al } = await sb.from("mail_wachtrij").select("id").eq("batch", batch).eq("data->>bcc", "1").limit(1);
+    if (!(al && al.length)) { const eerste = pak.find(r => r.batch === batch); metBcc.add(eerste.id); await sb.from("mail_wachtrij").update({ data: { ...eerste.data, bcc: "1" } }).eq("id", eerste.id); }
+  }
   let R;
-  try { R = await verstuur(pak.map(r => r.data)); }
+  try { R = await verstuur(pak.map(r => ({ ...r.data, geenBcc: !(metBcc.has(r.id) || r.data.bcc === "1") }))); }
   catch (e) { R = pak.map(() => ({ ok: false, fout: String(e.message || e) })); }
   let limiet = false;
   for (let i = 0; i < pak.length; i++) {
