@@ -69,6 +69,10 @@
     {
       "source": "/api/deel",
       "destination": "/api/openbaar?f=deel"
+    },
+    {
+      "source": "/api/adres",
+      "destination": "/api/openbaar?f=adres"
     }
   ]
 }

@@ -273,5 +273,6 @@ document.addEventListener("click",async e=>{if(e.target.id==="bcNieuw"){e.target
   if(!CFG.open){$("#lead").textContent="";$("#box").innerHTML=`<div class="card ok"><h2>Inschrijven is gesloten</h2><p>${CFG.gesloten==="verlopen"?"De inschrijvingen voor de brandweerkalender "+esc(CFG.kalenderjaar)+" zijn afgesloten.":"De inschrijvingen zijn momenteel gesloten."} Interesse? Mail naar <a href="mailto:${esc(CFG.logoMail)}">${esc(CFG.logoMail)}</a>.</p></div>`;return}
   formulier()}catch(x){$("#lead").textContent="";$("#box").innerHTML=`<div class="card ok"><h2>Er ging iets mis</h2><p>${esc(x.message)}</p></div>`}})();
 </script>
+<script src="/adres.js" defer></script>
 </body>
 </html>
