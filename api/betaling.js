@@ -5,6 +5,7 @@ import { startBetaling, controleerBetaling, BETAALTABELLEN } from "./_lib/betaal
 import { klopt } from "./_lib/lidlink.js";
 import { algemeen } from "./_lib/publiek.js";
 import { epcPayload, qrSvg } from "./_lib/epc.js";
+import { factuurPubliek } from "./_lib/factuur.js";
 
 // Openbaar, maar enkel met het geheime token dat de inschrijver na het inschrijven kreeg.
 // GET  ?t=leden|banket&id=&token=  -> status van de betaling
@@ -17,8 +18,9 @@ export default async function handler(req, res) {
     if (req.method === "GET" && req.query?.test === "verken") return res.status(200).json(await verken());
     const b = req.method === "POST" ? (typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {})) : (req.query || {});
     if (b.l) return await lidgeldLink(req, res, b);
+    if (b.fa) return await factuurPubliek(req, res, b, { onlineConfigured, startBetaling, controleerBetaling }); // betaallink uit een factuurmail
     if (!onlineConfigured()) throw httpErr(501, "Online betalen is niet ingesteld");
-    const tabel = BETAALTABELLEN.includes(b.t) ? b.t : "leden";
+    const tabel = ["leden", "banket"].includes(b.t) ? b.t : "leden";
     const id = String(b.id || ""), token = String(b.token || "");
     if (!id || !token) throw httpErr(400, "Ontbrekende gegevens");
     const sb = admin();

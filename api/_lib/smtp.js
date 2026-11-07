@@ -20,8 +20,11 @@ const tekstVan = html => String(html)
   .replace(/&#(\d+);/g, (m, n) => String.fromCodePoint(+n)).replace(/&([a-z]+);/gi, (m, n) => ENT[n] ?? m)
   .split("\n").map(l => l.replace(/[ \t ]+/g, " ").trim()).join("\n").replace(/\n{3,}/g, "\n\n").trim();
 
-export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan }) {
+// bijlagen: [{naam, type, data: Buffer}] -> multipart/mixed met daarin de tekst- en html-versie.
+export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan, bijlagen }) {
   const grens = "vbha-" + crypto.randomBytes(8).toString("hex");
+  const buiten = "vbhm-" + crypto.randomBytes(8).toString("hex");
+  const mixed = Array.isArray(bijlagen) && bijlagen.length > 0;
   const domein = van.email.split("@")[1] || "localhost";
   const volledig = /<html/i.test(html) ? html : `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${html}</body></html>`;
   return [
@@ -36,11 +39,18 @@ export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan })
     // Gewone vorm (tijd.teller.willekeurig) i.p.v. een UUID: SpamAssassin vindt een UUID-achtige ID verdacht.
     "Message-ID: <" + new Date().toISOString().replace(/\D/g, "").slice(0, 14) + "." + crypto.randomBytes(5).toString("hex") + ".vbha@" + domein + ">",
     "MIME-Version: 1.0",
+    ...(mixed ? [`Content-Type: multipart/mixed; boundary="${buiten}"`, "", "--" + buiten] : []),
     `Content-Type: multipart/alternative; boundary="${grens}"`,
     "",
     "--" + grens, "Content-Type: text/plain; charset=utf-8", "Content-Transfer-Encoding: base64", "", wrap(b64(tekstVan(volledig))),
     "--" + grens, "Content-Type: text/html; charset=utf-8", "Content-Transfer-Encoding: base64", "", wrap(b64(volledig)),
-    "--" + grens + "--", "",
+    "--" + grens + "--",
+    ...(mixed ? bijlagen.flatMap(a => {
+      const naam = String(a.naam || "bijlage").replace(/["\r\n]/g, "");
+      const kop = /^[\x20-\x7e]*$/.test(naam) ? `"${naam}"` : `"${hdr(naam)}"`;
+      return ["", "--" + buiten, `Content-Type: ${a.type || "application/octet-stream"}; name=${kop}`, "Content-Transfer-Encoding: base64", `Content-Disposition: attachment; filename=${kop}`, "", wrap(Buffer.from(a.data).toString("base64")).replace(/\r\n$/, "")];
+    }).concat(["--" + buiten + "--"]) : []),
+    "",
   ].join("\r\n");
 }
 

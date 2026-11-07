@@ -236,7 +236,7 @@ async function startApp(session){
     db.collection(col).onSnapshot(snap=>{
       const m=new Map();for(const d of snap.docs){m.set(d.id,{...d.data(),id:d.id})}S[col]=m;
       loaded.add(col);dirty=true;if(loaded.size===COLS.length)clearTimeout(timer);schedule();
-    },err=>{loaded.add(col);clearTimeout(timer);toast("Gegevens ("+col+") konden niet geladen worden: "+(err&&err.message||""),true);schedule()});
+    },err=>{loaded.add(col);clearTimeout(timer);if(col!=="facturen")toast("Gegevens ("+col+") konden niet geladen worden: "+(err&&err.message||""),true);schedule()});
   }
 }
 async function restoreBackup(file){
@@ -3032,3 +3032,268 @@ async function hrBewaar(){const ont=$("#hrAanW").value.split(/[,;\s]+/).map(x=>x
   await write("config","herinneringen",{...stripId(S.config.get("herinneringen")||{}),aan:$("#hrAan").checked,ontvangers:ont.join(", "),dagen:Number($("#hrDagen").value),uur:Number($("#hrUur").value),soorten:aan.length===alle.length?[]:aan});toast("Herinneringen bewaard.")}
 async function hrTest(b){b.disabled=true;try{const j=await api("/api/mail?f=herinnering-test",{method:"POST",body:"{}"});toast("Voorbeeld verstuurd naar "+j.aan+".")}catch(x){toast(x.message,true)}finally{b.disabled=false}}
 document.addEventListener("click",e=>{const t=e.target.closest("#hrOk,#hrTest");if(!t)return;if(t.id==="hrOk")hrBewaar();else hrTest(t)});
+
+/* ============ Boekhouding › Facturen ============
+   Collectie "facturen" (zie api/_lib/factuur.js voor het datamodel). Concepten bewaart de app zelf; definitief maken
+   (uniek nummer + gestructureerde mededeling), de PDF en het mailen gebeuren op de server (/api/mail?f=factuur).
+   Betaald = overschrijving met de gestructureerde mededeling of het factuurnummer, online betaling, of manueel. */
+if(!COLS.includes("facturen")){COLS.push("facturen");S.facturen=new Map()}
+if(!ROUTES.some(r=>r[0]==="facturen"))ROUTES.push(["facturen","Facturen"]);
+{const b=NAV.find(n=>n.id==="boekhouding");if(b&&!b.items.some(i=>i[0]==="facturen")){const k=b.items.findIndex(i=>i[0]==="boekingen");b.items.splice(k<0?1:k+1,0,["facturen","Facturen"])}}
+if(typeof BOEK_ROUTES!=="undefined")BOEK_ROUTES.add("facturen");
+LOG_TYPE.facturen="Factuur";
+ICON.facturen='<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4M10 11h6M10 14.5h6M10 18h3.5"/>';
+ICON.tandwiel='<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
+
+const FC={f:"alle",q:"",jaar:"alle"};
+const FC_DEF={voorvoegsel:"F",creditVoorvoegsel:"C",start:{},vervaldagen:30,bic:"ARSPBE22",adres:"",kbo:"",email:"",telefoon:"",website:"vbha.be",voettekst:"",kopie:"",mailOnderwerp:"",mailTekst:"",herinnering:{aan:false,dagenNaVerval:7,interval:14,max:2}};
+const fcCfg=()=>{const c=S.config.get("facturen")||{};return{...FC_DEF,...c,herinnering:{...FC_DEF.herinnering,...(c.herinnering||{})}}};
+const fcMag=()=>ROL==="admin"||ROL==="boekhouder";
+const fcOgm=d=>d&&d.length===12?`+++${d.slice(0,3)}/${d.slice(3,7)}/${d.slice(7)}+++`:"";
+function fcTot(f){const per={};let excl=0;for(const l of f.lijnen||[]){const b=r2(num(l.aantal)*num(l.prijs)),t=num(l.btw);excl+=b;if(t)per[t]=(per[t]||0)+b*t/100}
+  const btw=Object.entries(per).map(([t,b])=>({tarief:Number(t),bedrag:r2(b)})).sort((a,b)=>a.tarief-b.tarief);excl=r2(excl);return{excl,btw,totaal:r2(excl+btw.reduce((s,b)=>s+b.bedrag,0))}}
+function fcHoort(b,f){if(!b||b.richting==="uit"||!f.nr)return false;if(b.factuurId)return b.factuurId===f.id;const m=String(b.mededeling||"");
+  if(f.ogm&&m.replace(/\D/g,"").includes(f.ogm))return true;const re=new RegExp("(^|[^A-Z0-9])"+String(f.nr).toUpperCase().replace(/[^A-Z0-9]/g,"")+"($|[^0-9])");return re.test(m.toUpperCase().replace(/\s+/g,""))||re.test(m.toUpperCase())}
+function fcBetaal(f){const T=fcTot(f).totaal,L=[...S.boekingen.values()].filter(b=>fcHoort(b,f));let o=L.reduce((s,b)=>s+num(b.bedrag),0);
+  const on=f.betaling&&f.betaling.status==="SUCCEEDED"?num(f.betaling.bedrag):0;if(on&&!L.some(b=>Math.abs(b.bedrag-on)<0.01))o+=on;o=r2(o);
+  const betaald=!!f.betaaldManueel||(T>0&&o>=T-0.005);const laatst=L.map(b=>b.datum).sort().pop()||(f.betaling&&f.betaling.betaaldOp?String(f.betaling.betaaldOp).slice(0,10):null)||(f.betaaldManueel&&f.betaaldManueel.op)||null;
+  return{totaal:T,ontvangen:o,open:r2(Math.max(0,T-o)),betaald,laatst,L,online:on}}
+// concept | open | deels | vervallen | betaald | gecrediteerd | credit
+function fcStatus(f){if(!f.nr)return"concept";if(f.type==="credit")return"credit";if(f.status==="gecrediteerd")return"gecrediteerd";const b=fcBetaal(f);if(b.betaald)return"betaald";if(f.vervaldatum&&f.vervaldatum<todayISO())return"vervallen";return b.ontvangen>0?"deels":"open"}
+const FC_ST={concept:["neutral","Concept"],open:["info","Open"],deels:["warn","Deels betaald"],vervallen:["nok","Vervallen"],betaald:["ok","✓ Betaald"],gecrediteerd:["neutral","Gecrediteerd"],credit:["neutral","Creditnota"]};
+const fcPill=st=>`<span class="pill ${FC_ST[st][0]}">${FC_ST[st][1]}</span>`;
+const fcLijst=()=>[...S.facturen.values()].sort((a,b)=>(!a.nr)-(!b.nr)||String(b.datum||"").localeCompare(String(a.datum||""))||(b.seq||0)-(a.seq||0)||String(b.aangemaakt||"").localeCompare(String(a.aangemaakt||"")));
+const fcNaam=f=>(f.klant&&f.klant.naam)||"(geen klant)";
+
+VIEWS.facturen=()=>({title:"Facturen",sub:"Facturen en creditnota's met automatische opvolging van de betalingen",
+  actions:fcMag()?`<button class="btn" data-fc="instel" title="Instellingen facturatie">${ic("tandwiel")}<span class="fc-hl">Instellingen</span></button><button class="btn primary" data-fc="nieuw">${ic("plus")}Nieuwe factuur</button>`:"",
+  body(){
+  const alle=fcLijst(),st=new Map(alle.map(f=>[f.id,fcStatus(f)]));
+  const jaren=[...new Set(alle.map(f=>String(f.datum||"").slice(0,4)).filter(Boolean))].sort().reverse();
+  const fact=alle.filter(f=>f.type!=="credit"&&f.nr&&st.get(f.id)!=="gecrediteerd");
+  const openL=fact.filter(f=>["open","deels","vervallen"].includes(st.get(f.id)));
+  const openT=openL.reduce((s,f)=>s+fcBetaal(f).open,0),verv=openL.filter(f=>st.get(f.id)==="vervallen"),vervT=verv.reduce((s,f)=>s+fcBetaal(f).open,0);
+  const dit=String(new Date().getFullYear()),gefT=fact.filter(f=>String(f.datum).startsWith(dit)).reduce((s,f)=>s+fcTot(f).totaal,0);
+  const nCon=alle.filter(f=>!f.nr).length;
+  const q=norm(FC.q);
+  let L=alle.filter(f=>{const s=st.get(f.id);
+    if(FC.f==="concept"&&s!=="concept")return false;if(FC.f==="open"&&!["open","deels","vervallen"].includes(s))return false;if(FC.f==="vervallen"&&s!=="vervallen")return false;
+    if(FC.f==="betaald"&&s!=="betaald")return false;if(FC.f==="credit"&&!(s==="credit"||s==="gecrediteerd"))return false;
+    if(FC.jaar!=="alle"&&!String(f.datum||"").startsWith(FC.jaar))return false;
+    if(q&&!norm([f.nr,fcOgm(f.ogm),f.ogm,fcNaam(f),f.klant&&f.klant.contact,f.klant&&f.klant.email,f.referentie,...(f.lijnen||[]).map(l=>l.omschrijving),String(fcTot(f).totaal)].join(" ")).includes(q))return false;return true});
+  const chip=(k,l,n)=>`<button type="button" class="fc-chip${FC.f===k?" on":""}" data-fc="filter" data-v="${k}">${l}${n!=null?` <span>${n}</span>`:""}</button>`;
+  const rij=f=>{const s=st.get(f.id),T=fcTot(f),b=f.nr&&f.type!=="credit"?fcBetaal(f):null;return{s,T,b}};
+  return `<div class="tiles"><div class="tile"><span class="lbl">Openstaand</span><span class="val">${eur(openT)}</span><span class="muted small">${openL.length} ${openL.length===1?"factuur":"facturen"}</span></div>
+   <div class="tile"><span class="lbl">Vervallen</span><span class="val${vervT>0?" out":""}">${eur(vervT)}</span><span class="muted small">${verv.length} ${verv.length===1?"factuur":"facturen"}</span></div>
+   <div class="tile"><span class="lbl">Gefactureerd ${dit}</span><span class="val">${eur(gefT)}</span></div>
+   <div class="tile"><span class="lbl">Concepten</span><span class="val">${nCon}</span></div></div>
+  <div class="bar fc-bar"><div class="search">${ic("search")}<input id="fcQ" placeholder="Zoek op nummer, klant, mededeling of bedrag" value="${esc(FC.q)}" autocomplete="off"></div>
+   ${jaren.length>1?`<select class="sel" id="fcJaar" aria-label="Jaar"><option value="alle">Alle jaren</option>${jaren.map(j=>`<option${FC.jaar===j?" selected":""}>${j}</option>`).join("")}</select>`:""}</div>
+  <div class="fc-chips" role="tablist">${chip("alle","Alle")}${chip("open","Openstaand",openL.length)}${chip("vervallen","Vervallen",verv.length)}${chip("betaald","Betaald")}${chip("concept","Concepten",nCon)}${chip("credit","Creditnota's")}</div>
+  <div class="panel">${!L.length?`<div class="empty">${alle.length?"Geen facturen gevonden.":`Nog geen facturen.${fcMag()?`<div style="margin-top:12px"><button class="btn primary" data-fc="nieuw">${ic("plus")}Eerste factuur maken</button></div>`:""}`}</div>`:`
+   <div class="mlist" role="list">${L.map(f=>{const{s,T,b}=rij(f);return `<button type="button" class="ml-row" role="listitem" data-fc="open" data-id="${esc(f.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(fcNaam(f))}</b></span>
+     <span class="ml-s">${f.nr?esc(f.nr):"concept"}<span class="ml-dot">·</span>${eur(T.totaal)}${f.datum?'<span class="ml-dot">·</span>'+fmtDate(f.datum):""}</span></span><span class="ml-r">${fcPill(s)}</span><span class="ml-chev" aria-hidden="true">›</span></button>`}).join("")}</div>
+   <div class="tw dsk-only"><table class="rcards fc-tab"><thead><tr><th>Nummer</th><th>Datum</th><th>Klant</th><th>Vervaldatum</th><th class="num">Bedrag</th><th class="num">Open</th><th>Status</th></tr></thead><tbody>
+   ${L.map(f=>{const{s,T,b}=rij(f);return `<tr class="click" data-fc="open" data-id="${esc(f.id)}"><td class="nowrap"><b>${f.nr?esc(f.nr):'<span class="muted">concept</span>'}</b>${f.ogm?`<div class="muted small mono">${esc(fcOgm(f.ogm))}</div>`:""}</td>
+     <td class="nowrap">${fmtDate(f.datum)}</td><td><b>${esc(fcNaam(f))}</b>${(f.lijnen||[])[0]?`<div class="muted small trunc">${esc(f.lijnen[0].omschrijving||"")}</div>`:""}</td>
+     <td class="nowrap${s==="vervallen"?" out":""}">${f.type==="credit"?"":fmtDate(f.vervaldatum)}</td><td class="num nowrap">${f.type==="credit"?"−":""}${eur(T.totaal)}</td><td class="num nowrap">${b&&!b.betaald&&s!=="gecrediteerd"?eur(b.open):""}</td><td>${fcPill(s)}</td></tr>`}).join("")}</tbody></table></div>`}</div>`}});
+
+/* ---------- details van een definitieve factuur ---------- */
+function fcDetail(id){const f=S.facturen.get(id);if(!f)return;if(!f.nr)return fcEdit(f);
+  const s=fcStatus(f),T=fcTot(f),b=f.type==="credit"?null:fcBetaal(f),k=f.klant||{},cr=f.type==="credit",m=fcMag();
+  const orig=cr&&f.factuurId?S.facturen.get(f.factuurId):null,cn=f.creditId?S.facturen.get(f.creditId):null;
+  const kand=b&&!b.betaald&&s!=="gecrediteerd"?[...S.boekingen.values()].filter(x=>x.richting!=="uit"&&!x.factuurId&&!b.L.includes(x)&&x.datum>=String(f.datum).slice(0,10)).sort((x,y)=>((Math.abs(y.bedrag-b.open)<0.01)-(Math.abs(x.bedrag-b.open)<0.01))||String(y.datum).localeCompare(String(x.datum))).slice(0,120):[];
+  const log=(f.verzonden||[]).slice().reverse();
+  modal((cr?"Creditnota ":"Factuur ")+f.nr,`<div class="fc-det">
+   <div class="fc-dh"><div><div class="fc-dk">${esc(k.naam||"")}</div><div class="muted small">${[k.contact,k.email].filter(Boolean).map(esc).join(" · ")}</div></div><div>${fcPill(s)}</div></div>
+   <dl class="kv fc-kv"><dt>${cr?"Datum":"Factuurdatum"}</dt><dd>${fmtDate(f.datum)}</dd>${cr?"":`<dt>Vervaldatum</dt><dd class="${s==="vervallen"?"out":""}">${fmtDate(f.vervaldatum)}</dd>`}
+    <dt>Bedrag</dt><dd><b>${eur(T.totaal)}</b>${T.btw.length?` <span class="muted small">(${eur(T.excl)} excl. btw)</span>`:""}</dd>
+    ${f.ogm?`<dt>Mededeling</dt><dd><span class="mono">${esc(fcOgm(f.ogm))}</span> <button type="button" class="btn sm ghost" data-fc="kopie" data-v="${esc(fcOgm(f.ogm))}" title="Kopiëren">${ic("copy")}</button></dd>`:""}
+    ${f.categorie?`<dt>Categorie</dt><dd>${esc(f.categorie)}</dd>`:""}${f.referentie?`<dt>Referentie</dt><dd>${esc(f.referentie)}</dd>`:""}
+    ${orig?`<dt>Betreft</dt><dd><a href="#" data-fc="open" data-id="${esc(orig.id)}">Factuur ${esc(orig.nr)}</a></dd>`:""}${cn?`<dt>Gecrediteerd</dt><dd><a href="#" data-fc="open" data-id="${esc(cn.id)}">Creditnota ${esc(cn.nr)}</a></dd>`:""}</dl>
+   <div class="fc-lijnen">${(f.lijnen||[]).map(l=>`<div><span>${esc(l.omschrijving||"")}${num(l.aantal)!==1?` <span class="muted">× ${esc(String(l.aantal).replace(".",","))}</span>`:""}</span><b>${eur(r2(num(l.aantal)*num(l.prijs)))}</b></div>`).join("")}</div>
+   ${b?`<div class="fc-sec"><h4>Betalingen</h4>${b.L.length||b.online||f.betaaldManueel?`<div class="fc-bl">${b.L.map(x=>`<div><span><b>${eur(x.bedrag)}</b> · ${fmtDate(x.datum)} · ${esc(x.partij||"")}<span class="muted small"> ${esc(x.mededeling||"")}${x.factuurId?" · manueel toegewezen":""}</span></span>${m&&x.factuurId?`<button type="button" class="btn sm ghost" data-fc="loskoppel" data-id="${esc(x.id)}" data-f="${esc(id)}">Loskoppelen</button>`:""}</div>`).join("")}
+      ${b.online&&!b.L.some(x=>Math.abs(x.bedrag-b.online)<0.01)?`<div><span><b>${eur(b.online)}</b> · online met Bancontact${f.betaling.betaaldOp?" op "+fmtDate(String(f.betaling.betaaldOp).slice(0,10)):""}</span></div>`:""}
+      ${f.betaaldManueel?`<div><span>Manueel als betaald aangeduid op ${fmtDate(f.betaaldManueel.op)}${f.betaaldManueel.opmerking?" · "+esc(f.betaaldManueel.opmerking):""}</span>${m?`<button type="button" class="btn sm ghost" data-fc="onbetaald" data-id="${esc(id)}">Ongedaan maken</button>`:""}</div>`:""}</div>`:`<div class="muted small">Nog geen betaling ontvangen. Overschrijvingen met de mededeling ${esc(fcOgm(f.ogm)||f.nr)} worden automatisch herkend bij de bankimport.</div>`}
+     ${b.ontvangen>0&&!b.betaald?`<div class="small" style="margin-top:6px">Nog open: <b>${eur(b.open)}</b></div>`:""}
+     ${m&&kand.length?`<div class="sp-bet-add" style="margin-top:10px"><select id="fcKand" class="sel" aria-label="Transactie toewijzen"><option value="">Transactie toewijzen…</option>${kand.map(x=>`<option value="${esc(x.id)}">${esc((fmtDate(x.datum)+" · "+eur(x.bedrag)+" · "+(x.partij||"")+(x.mededeling?" · "+x.mededeling:"")).slice(0,110))}</option>`).join("")}</select><button type="button" class="btn sm" data-fc="toewijzen" data-id="${esc(id)}">Toewijzen</button></div>`:""}</div>`:""}
+   <div class="fc-sec"><h4>Verzonden</h4>${log.length?`<div class="fc-log">${log.map(v=>`<div><span class="pill ${v.ok?"ok":"nok"}">${v.ok?"✓":"✗"}</span><span>${v.soort==="herinnering"?"Herinnering":v.soort==="credit"?"Creditnota":"Factuur"} naar <b>${esc(v.aan)}</b></span><span class="muted small">${new Date(v.op).toLocaleString("nl-BE",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}${v.fout?" · "+esc(v.fout):""}</span></div>`).join("")}</div>`:'<div class="muted small">Nog niet gemaild.</div>'}</div>
+   ${f.opmerking?`<div class="fc-sec"><h4>Opmerking op de factuur</h4><div class="small">${esc(f.opmerking).replace(/\n/g,"<br>")}</div></div>`:""}
+  </div>`,
+  `<button class="btn" data-fc="pdf" data-id="${esc(id)}">${ic("download")}PDF</button>
+   ${m?`<div class="fc-meer"><button class="btn" data-fc="meer" aria-haspopup="true">Meer…</button><div class="fc-menu" hidden>
+     <button type="button" data-fc="mailen" data-id="${esc(id)}">${cr?"Creditnota":"Factuur"} opnieuw mailen</button>
+     ${b&&!b.betaald&&s!=="gecrediteerd"?`<button type="button" data-fc="herinnering" data-id="${esc(id)}">Herinnering sturen</button><button type="button" data-fc="link" data-id="${esc(id)}">Betaallink kopiëren</button><button type="button" data-fc="betaald" data-id="${esc(id)}">Als betaald aanduiden</button>`:""}
+     ${!cr&&s!=="gecrediteerd"?`<button type="button" data-fc="credit" data-id="${esc(id)}">Creditnota maken</button>`:""}
+     <button type="button" data-fc="dupliceer" data-id="${esc(id)}">Kopie als nieuw concept</button>
+     ${!cr&&b&&!b.betaald?`<button type="button" data-fc="geenher" data-id="${esc(id)}">${f.geenHerinnering?"Automatische herinneringen weer aanzetten":"Geen automatische herinneringen"}</button>`:""}</div></div>`:""}
+   <span class="grow"></span><button class="btn primary" data-act="closeModal">Sluiten</button>`,{wide:true})}
+
+/* ---------- bewerken (concept) ---------- */
+let FCE=null;
+const fcBtw=v=>`<select class="sel fc-btw" aria-label="Btw">${[0,6,12,21].map(t=>`<option value="${t}"${num(v)===t?" selected":""}>${t}%</option>`).join("")}</select>`;
+const fcLijnHtml=(l,i)=>`<div class="fc-l" data-i="${i}"><textarea class="fc-om" rows="1" placeholder="Omschrijving" aria-label="Omschrijving">${esc(l.omschrijving||"")}</textarea>
+  <input class="fc-aa" inputmode="decimal" value="${esc(String(l.aantal??1).replace(".",","))}" aria-label="Aantal"><input class="fc-pr" inputmode="decimal" value="${l.prijs===""||l.prijs==null?"":esc(String(l.prijs).replace(".",","))}" placeholder="0,00" aria-label="Prijs per stuk">
+  ${fcBtw(l.btw)}<span class="fc-lt num">${eur(r2(num(l.aantal)*num(l.prijs)))}</span><button type="button" class="btn sm ghost" data-fc="lijnweg" aria-label="Lijn verwijderen">${ic("x")}</button></div>`;
+function fcKlanten(){const o=[];for(const s of S.sponsors.values())o.push({lbl:spNaam(s)+(s.bedrijf&&norm(s.bedrijf)!==norm(spNaam(s))?" ("+s.bedrijf+")":"")+" · sponsor",k:{naam:s.bedrijf||spNaam(s),contact:[s.voornaam,s.naam].filter(Boolean).join(" "),adres:s.adres||"",btw:s.kbo||"",email:s.email||"",sponsorId:s.id,lidId:""},bedrag:num(s.bedrag)});
+  for(const l of S.leden.values())if(!l.geenLid)o.push({lbl:[l.naam,l.voornaam].filter(Boolean).join(" ")+" · lid",k:{naam:[l.voornaam,l.naam].filter(Boolean).join(" "),contact:"",adres:l.adres||"",btw:"",email:l.email||"",sponsorId:"",lidId:l.id}});
+  const gezien=new Set();for(const f of fcLijst()){const k=f.klant||{};if(!k.naam||k.sponsorId||k.lidId||gezien.has(norm(k.naam)))continue;gezien.add(norm(k.naam));o.push({lbl:k.naam+" · eerdere klant",k:{...k}})}
+  return o}
+function fcEdit(f,{nieuw=false}={}){
+  const c=fcCfg(),cats=catList(ctx());
+  f=f?JSON.parse(JSON.stringify(f)):{type:"factuur",klant:{},lijnen:[{omschrijving:"",aantal:1,prijs:"",btw:0}],datum:todayISO(),categorie:"Sponsoring"};
+  if(!f.lijnen||!f.lijnen.length)f.lijnen=[{omschrijving:"",aantal:1,prijs:"",btw:0}];
+  FCE={f,id:f.id||null,K:fcKlanten()};const k=f.klant||{},cr=f.type==="credit";
+  const verval=f.vervaldatum||(()=>{const d=new Date((f.datum||todayISO())+"T12:00");d.setDate(d.getDate()+num(c.vervaldagen||30));return d.toISOString().slice(0,10)})();
+  modal(cr?"Creditnota (concept)":f.id?"Factuur (concept)":"Nieuwe factuur",`<form id="fFc" class="form fc-form" autocomplete="off">
+   <div class="fld full fc-zoek"><label for="fcKz">Klant zoeken</label><input id="fcKz" list="fcKl" placeholder="Typ een sponsor, lid of eerdere klant"><datalist id="fcKl">${FCE.K.map(x=>`<option value="${esc(x.lbl)}"></option>`).join("")}</datalist><span class="help">Of vul de gegevens hieronder zelf in.</span></div>
+   ${fld("fcN","Naam / bedrijf *",inp("fcN",k.naam,'name="naam"'))}${fld("fcC","T.a.v.",inp("fcC",k.contact,'name="contact" placeholder="Contactpersoon"'))}
+   <div class="fld full"><label for="fcA">Adres</label><textarea id="fcA" name="adres" rows="2" placeholder="Straat en nummer&#10;Postcode en gemeente">${esc(k.adres||"")}</textarea></div>
+   ${fld("fcE","E-mail (voor verzending)",inp("fcE",k.email,'name="email" type="email" inputmode="email"'))}${fld("fcB","Btw- / ondernemingsnr.",inp("fcB",k.btw,'name="btw"'))}
+   ${fld("fcD",cr?"Datum":"Factuurdatum",inp("fcD",f.datum,'type="date"'))}${cr?"":fld("fcV","Vervaldatum",inp("fcV",verval,'type="date"'))}
+   ${fld("fcR","Uw referentie",inp("fcR",f.referentie,'placeholder="bv. bestelbon (optioneel)"'))}${cr?"":fld("fcCat","Categorie in de boekhouding",`<select id="fcCat" class="sel"><option value="">—</option>${cats.map(x=>`<option${x===f.categorie?" selected":""}>${esc(x)}</option>`).join("")}</select>`)}
+   <div class="fld full"><span class="lbl">Lijnen</span><div class="fc-lh"><span>Omschrijving</span><span>Aantal</span><span>Prijs</span><span>Btw</span><span class="num">Totaal</span><span></span></div>
+    <div id="fcL">${f.lijnen.map(fcLijnHtml).join("")}</div><button type="button" class="btn sm" data-fc="lijn" style="margin-top:8px">${ic("plus")}Lijn toevoegen</button>
+    <div class="fc-tot" id="fcTot"></div></div>
+   <div class="fld full"><label for="fcO">Opmerking op de factuur</label><textarea id="fcO" rows="2" placeholder="bv. Bedankt voor je steun!">${esc(f.opmerking||"")}</textarea></div>
+   <div class="err full" id="fcErr"></div></form>`,
+   `${f.id?`<button class="btn ghost danger" data-fc="weg">Verwijderen</button>`:""}<button class="btn" data-fc="voorbeeld">${ic("download")}Voorbeeld</button><span class="grow"></span>
+    <button class="btn" data-fc="bewaar">Bewaren als concept</button><button class="btn primary" data-fc="verstuur">${cr?"Definitief maken en mailen":"Definitief maken en mailen"}</button>`,{wide:true});
+  fcTotaal();$$("#fcL .fc-om").forEach(fcGroei)}
+function fcGroei(t){t.style.height="auto";t.style.height=Math.min(160,t.scrollHeight+2)+"px"}
+function fcLees(){const f=FCE.f,g=s=>{const e=$(s);return e?e.value.trim():""};
+  f.klant={...(f.klant||{}),naam:g("#fcN"),contact:g("#fcC"),adres:$("#fcA").value.trim(),email:g("#fcE"),btw:g("#fcB")};
+  f.datum=g("#fcD")||todayISO();if($("#fcV"))f.vervaldatum=g("#fcV");f.referentie=g("#fcR");if($("#fcCat"))f.categorie=$("#fcCat").value;f.opmerking=$("#fcO").value.trim();
+  f.lijnen=$$("#fcL .fc-l").map(r=>({omschrijving:r.querySelector(".fc-om").value.trim(),aantal:num(r.querySelector(".fc-aa").value)||0,prijs:r2(num(r.querySelector(".fc-pr").value)),btw:num(r.querySelector(".fc-btw").value)})).filter(l=>l.omschrijving||l.prijs);
+  return f}
+function fcTotaal(){const L=$$("#fcL .fc-l").map(r=>{const l={aantal:num(r.querySelector(".fc-aa").value),prijs:num(r.querySelector(".fc-pr").value),btw:num(r.querySelector(".fc-btw").value)};r.querySelector(".fc-lt").textContent=eur(r2(l.aantal*l.prijs));return l});
+  const T=fcTot({lijnen:L}),el=$("#fcTot");if(!el)return;el.innerHTML=(T.btw.length?`<div><span>Totaal excl. btw</span><b>${eur(T.excl)}</b></div>${T.btw.map(b=>`<div><span>Btw ${b.tarief}%</span><b>${eur(b.bedrag)}</b></div>`).join("")}`:"")+`<div class="fc-tt"><span>Totaal</span><b>${eur(T.totaal)}</b></div>`}
+async function fcBewaarConcept(stil,f0){const f=f0||fcLees();
+  if(!f.klant.naam&&!f.lijnen.length){const e=$("#fcErr");if(e)e.textContent="Vul minstens een klant of een lijn in.";return null}
+  const id=FCE.id||("fc-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,6));
+  const d={...stripId(f),type:f.type||"factuur",status:"concept",aangemaakt:f.aangemaakt||new Date().toISOString(),door:f.door||ME_NAME,totaal:fcTot(f).totaal};
+  FCE.id=id;FCE.f={...d,id};S.facturen.set(id,{...d,id});dirty=true;await write("facturen",id,d);if(!stil)toast("Concept bewaard.");return id}
+async function fcVerstuur(){const f=fcLees();const err=$("#fcErr");
+  if(!f.klant.naam){err.textContent="Vul de naam van de klant in.";return}if(!f.lijnen.length||!f.lijnen.some(l=>l.prijs)){err.textContent="Voeg minstens één lijn met een prijs toe.";return}
+  if(f.type!=="credit"&&f.vervaldatum&&f.vervaldatum<f.datum){err.textContent="De vervaldatum ligt vóór de factuurdatum.";return}
+  const mail=f.klant.email;if(mail&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(mail)){err.textContent="Dit e-mailadres klopt niet.";return}
+  const T=fcTot(f).totaal,cr=f.type==="credit";
+  confirmBox(`${cr?"Creditnota":"Factuur"} voor <b>${esc(f.klant.naam)}</b> van <b>${eur(T)}</b> definitief maken?<br><span class="muted small">Ze krijgt een uniek nummer en kan daarna niet meer gewijzigd worden${cr?"":" (wel crediteren)"}.</span>${mail?`<br><br>De ${cr?"creditnota":"factuur"} wordt met de PDF in bijlage gemaild naar <b>${esc(mail)}</b>${cr?"":", met een knop om meteen online te betalen"}.`:`<br><br><b>Er is geen e-mailadres</b>: de ${cr?"creditnota":"factuur"} wordt enkel definitief gemaakt, je kan de PDF daarna downloaden.`}`,mail?"Definitief maken en mailen":"Definitief maken",async()=>{
+    try{const id=await fcBewaarConcept(true,f);if(!id)return;toast("Bezig…");
+      const j=await api("/api/mail?f=factuur",{method:"POST",body:JSON.stringify({actie:mail?"versturen":"definitief",id})});
+      if(j.data){S.facturen.set(id,{...j.data,id});dirty=true;renderBody()}toast(`${cr?"Creditnota":"Factuur"} ${j.nr} ${mail?"gemaild naar "+mail:"aangemaakt"}.`);if(j.data)fcDetail(id)}
+    catch(x){toast(x.message,true);const f=S.facturen.get(FCE&&FCE.id);if(f&&!f.nr)setTimeout(()=>fcEdit(f),300)}})}
+async function fcPdf(id,btn){if(btn)btn.disabled=true;
+  try{const j=await api("/api/mail?f=factuur",{method:"POST",body:JSON.stringify({actie:"pdf",id})});
+    const bin=atob(j.pdf),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
+    const url=URL.createObjectURL(new Blob([a],{type:"application/pdf"})),l=document.createElement("a");l.href=url;l.download=j.naam;
+    if(!/iPhone|iPad|Android/i.test(navigator.userAgent))l.target="_blank";document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
+  catch(x){toast(x.message,true)}finally{if(btn)btn.disabled=false}}
+function fcKies(lbl){const x=FCE&&FCE.K.find(o=>o.lbl===lbl);if(!x)return;const k=x.k;
+  $("#fcN").value=k.naam||"";$("#fcC").value=k.contact||"";$("#fcA").value=k.adres||"";$("#fcE").value=k.email||"";$("#fcB").value=k.btw||"";$("#fcKz").value="";
+  FCE.f.klant={...k};
+  const rows=$$("#fcL .fc-l"),leeg=rows.length===1&&!rows[0].querySelector(".fc-om").value.trim()&&!rows[0].querySelector(".fc-pr").value.trim();
+  if(leeg&&k.sponsorId){rows[0].querySelector(".fc-om").value="Sponsoring "+(JAAR||new Date().getFullYear());if(x.bedrag)rows[0].querySelector(".fc-pr").value=String(x.bedrag).replace(".",",");const c=$("#fcCat");if(c)c.value="Sponsoring";fcTotaal()}
+  if(!k.email)toast("Let op: voor deze klant is geen e-mailadres gekend.",true)}
+
+/* ---------- instellingen ---------- */
+function fcInstel(){const c=fcCfg(),H=c.herinnering,j=new Date().getFullYear(),pre=c.voorvoegsel||"F";
+  const hoogste=Math.max(0,...[...S.facturen.values()].filter(f=>String(f.nr||"").startsWith(pre+j)).map(f=>num(f.seq)),...[...S.boekingen.values()].map(b=>{const m=String(b.mededeling||"").replace(/\s+/g,"").toUpperCase().match(new RegExp(pre+j+"(\\d{3,6})"));return m?Number(m[1]):0}));
+  const volgend=Math.max(num((c.start||{})[pre+j])||1,hoogste+1);
+  modal("Instellingen facturatie",`<form id="fFcI" class="form">
+   <div class="fc-sec full"><h4>Gegevens van de vereniging op de factuur</h4><p class="muted small" style="margin:0">De naam van de vereniging en het rekeningnummer komen uit Instellingen › Algemeen.</p></div>
+   <div class="fld full"><label for="fiAd">Adres</label><textarea id="fiAd" rows="2" placeholder="Straat en nummer&#10;Postcode en gemeente">${esc(c.adres)}</textarea></div>
+   ${fld("fiKbo","Ondernemingsnummer",inp("fiKbo",c.kbo,'placeholder="0123.456.789"'))}${fld("fiBic","BIC van de bank",inp("fiBic",c.bic))}
+   ${fld("fiMail","E-mail (antwoorden komen hier)",inp("fiMail",c.email,'type="email" placeholder="penningmeester@vbha.be"'))}${fld("fiTel","Telefoon",inp("fiTel",c.telefoon))}
+   ${fld("fiWeb","Website",inp("fiWeb",c.website))}${fld("fiVd","Betaaltermijn",`<select id="fiVd" class="sel">${[8,10,14,15,21,30,45,60].map(n=>`<option value="${n}"${n===num(c.vervaldagen)?" selected":""}>${n} dagen</option>`).join("")}</select>`)}
+   <div class="fld full"><label for="fiVt">Voettekst (bv. btw-vermelding)</label><textarea id="fiVt" rows="2" placeholder="bv. Vereniging niet onderworpen aan btw.">${esc(c.voettekst)}</textarea></div>
+   <div class="fc-sec full"><h4>Nummering</h4></div>
+   ${fld("fiNr","Volgend factuurnummer "+j,`<div class="fc-nr"><span>${esc(pre)}${j}</span><input id="fiNr" inputmode="numeric" value="${String(volgend).padStart(3,"0")}"></div>`)}
+   <div class="help full muted small" style="margin-top:-6px">Hoogste nummer tot nu toe: ${hoogste?esc(pre+j+String(hoogste).padStart(3,"0")):"geen"} (ook nummers in de mededeling van overschrijvingen tellen mee). Een nummer wordt nooit twee keer gebruikt.</div>
+   <div class="fc-sec full"><h4>Mail</h4></div>
+   ${fld("fiOnd","Onderwerp",inp("fiOnd",c.mailOnderwerp,'placeholder="Factuur {nr} - {vereniging}"'),"full")}
+   <div class="fld full"><label for="fiTxt">Tekst boven de factuurgegevens</label><textarea id="fiTxt" rows="3" placeholder="Hartelijk dank voor je steun aan de {vereniging}. In bijlage vind je factuur {nr}.">${esc(c.mailTekst)}</textarea><span class="help">Je kan {naam}, {nr}, {bedrag}, {vervaldatum} en {vereniging} gebruiken. De betaalgegevens, de betaalknop en de PDF worden altijd toegevoegd.</span></div>
+   ${fld("fiKop","Kopie van elke mail naar",inp("fiKop",c.kopie,'placeholder="bv. penningmeester@vbha.be"'),"full")}
+   <div class="fc-sec full"><h4>Automatische herinneringen</h4></div>
+   <label class="sp-nat full" for="fiHa"><input type="checkbox" id="fiHa"${H.aan?" checked":""}><span><b>Herinnering mailen bij onbetaalde facturen</b><small>Elke ochtend controleert de server de vervallen facturen. Betaalde facturen worden overgeslagen.</small></span></label>
+   ${fld("fiHd","Eerste herinnering",`<select id="fiHd" class="sel">${[1,3,5,7,10,14,21,30].map(n=>`<option value="${n}"${n===num(H.dagenNaVerval)?" selected":""}>${n} dagen na de vervaldatum</option>`).join("")}</select>`)}
+   ${fld("fiHi","Daarna",`<select id="fiHi" class="sel">${[7,10,14,21,30].map(n=>`<option value="${n}"${n===num(H.interval)?" selected":""}>om de ${n} dagen</option>`).join("")}</select>`)}
+   ${fld("fiHm","Maximum aantal herinneringen",`<select id="fiHm" class="sel">${[1,2,3,4].map(n=>`<option value="${n}"${n===num(H.max)?" selected":""}>${n}</option>`).join("")}</select>`)}
+   <div class="err full" id="fiErr"></div></form>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-fc="instelOk" data-v="${volgend}">Bewaren</button>`,{wide:true})}
+async function fcInstelBewaar(volgend){const c=fcCfg(),j=new Date().getFullYear(),pre=c.voorvoegsel||"F",g=s=>$(s).value.trim();
+  const nr=parseInt(g("#fiNr"),10);if(!(nr>=1)){$("#fiErr").textContent="Vul een geldig volgnummer in.";return}
+  const kop=g("#fiKop").split(/[,;\s]+/).filter(Boolean);if(kop.some(x=>!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x))){$("#fiErr").textContent="Het kopie-adres klopt niet.";return}
+  const start={...(c.start||{})};if(nr!==volgend)start[pre+j]=nr;
+  const d={...stripId(S.config.get("facturen")||{}),adres:$("#fiAd").value.trim(),kbo:g("#fiKbo"),bic:g("#fiBic"),email:g("#fiMail"),telefoon:g("#fiTel"),website:g("#fiWeb"),vervaldagen:num($("#fiVd").value),voettekst:$("#fiVt").value.trim(),
+    start,mailOnderwerp:g("#fiOnd"),mailTekst:$("#fiTxt").value.trim(),kopie:kop.join(", "),herinnering:{aan:$("#fiHa").checked,dagenNaVerval:num($("#fiHd").value),interval:num($("#fiHi").value),max:num($("#fiHm").value)}};
+  try{await write("config","facturen",d);closeModal();toast("Instellingen bewaard.")}catch(x){$("#fiErr").textContent="Bewaren lukte niet: "+(x.message||"")}}
+
+/* ---------- acties ---------- */
+async function fcActie(actie,id,extra={}){try{return await api("/api/mail?f=factuur",{method:"POST",body:JSON.stringify({actie,id,...extra})})}catch(x){toast(x.message,true);return null}}
+async function fcZet(id,patch){const f=S.facturen.get(id);if(!f)return;const d={...stripId(f),...patch};for(const k in patch)if(patch[k]===undefined)delete d[k];S.facturen.set(id,{...d,id});dirty=true;await write("facturen",id,d)}
+async function fcBoeking(bid,patch){const b=S.boekingen.get(bid);if(!b)return;const d={...stripId(b),...patch};for(const k in patch)if(patch[k]===undefined)delete d[k];S.boekingen.set(bid,{...d,id:bid});dirty=true;await write("boekingen",bid,d);dirty=true}
+function fcMailVraag(id,soort){const f=S.facturen.get(id);if(!f)return;const k=f.klant||{};
+  modal(soort==="herinnering"?"Herinnering sturen":"Opnieuw mailen",`<div class="form"><p class="full" style="margin:0">${soort==="herinnering"?`Een herinnering voor factuur <b>${esc(f.nr)}</b> (nog open: <b>${eur(fcBetaal(f).open)}</b>) met de PDF en de betaalknop.`:`${f.type==="credit"?"Creditnota":"Factuur"} <b>${esc(f.nr)}</b> opnieuw mailen met de PDF in bijlage.`}</p>
+   ${fld("fcAan","Naar",inp("fcAan",k.email,'type="email"'),"full")}<div class="err full" id="fcAErr"></div></div>`,
+   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-fc="mailOk" data-id="${esc(id)}" data-v="${soort}">Versturen</button>`)}
+async function fcMailOk(btn){const id=btn.dataset.id,soort=btn.dataset.v,aan=$("#fcAan").value.trim();
+  if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(aan)){$("#fcAErr").textContent="Vul een geldig e-mailadres in.";return}
+  btn.disabled=true;const f=S.facturen.get(id);
+  if(f&&!(f.klant&&f.klant.email))await fcZet(id,{klant:{...(f.klant||{}),email:aan}});
+  const j=await fcActie(soort==="herinnering"?"herinnering":"versturen",id,{aan});btn.disabled=false;if(j){if(j.data){S.facturen.set(id,{...j.data,id});dirty=true}closeModal();toast((soort==="herinnering"?"Herinnering":"Mail")+" verstuurd naar "+aan+".");fcDetail(id)}}
+function fcCredit(id){const f=S.facturen.get(id);if(!f)return;const b=fcBetaal(f);
+  confirmBox(`Een creditnota maken voor factuur <b>${esc(f.nr)}</b> (${eur(fcTot(f).totaal)})?${b.ontvangen>0?`<br><br><b>Let op:</b> op deze factuur werd al ${eur(b.ontvangen)} ontvangen. Die moet je zelf terugstorten.`:""}<br><span class="muted small">Je kan de lijnen nog aanpassen (bv. voor een gedeeltelijke creditering) voor je ze definitief maakt.</span>`,"Creditnota maken",()=>{
+    fcEdit({type:"credit",factuurId:id,factuurNr:f.nr,klant:{...f.klant},lijnen:(f.lijnen||[]).map(l=>({...l})),datum:todayISO(),categorie:f.categorie,referentie:f.referentie,opmerking:`Creditnota voor factuur ${f.nr} van ${fmtDate(f.datum)}.`})})}
+function fcDupliceer(id){const f=S.facturen.get(id);if(!f)return;fcEdit({type:"factuur",klant:{...f.klant},lijnen:(f.lijnen||[]).map(l=>({...l})),datum:todayISO(),categorie:f.categorie,opmerking:f.opmerking})}
+
+// betaalde facturen: transactie krijgt de categorie en (bij een sponsor) de koppeling met de sponsor
+let fcSyncT=0;
+function fcSync(){clearTimeout(fcSyncT);fcSyncT=setTimeout(async()=>{if(!fcMag()||(typeof ROL_ECHT!=="undefined"&&ROL_ECHT!==ROL))return;
+  for(const f of S.facturen.values()){if(!f.nr||f.type==="credit")continue;const k=f.klant||{};
+    for(const b of [...S.boekingen.values()].filter(x=>fcHoort(x,f))){const p={};
+      if(!b.categorie&&f.categorie)p.categorie=f.categorie;if(k.sponsorId&&!b.sponsorId&&S.sponsors.has(k.sponsorId))p.sponsorId=k.sponsorId;
+      if(Object.keys(p).length)try{await fcBoeking(b.id,p)}catch(e){}}}},1500)}
+
+document.addEventListener("click",async e=>{const t=e.target.closest("[data-fc]");
+  if(!t){const m=$(".fc-menu:not([hidden])");if(m&&!e.target.closest(".fc-meer"))m.hidden=true;return}
+  const a=t.dataset.fc,id=t.dataset.id;if(t.tagName==="A")e.preventDefault();
+  switch(a){
+    case"nieuw":fcEdit(null,{nieuw:true});break;
+    case"instel":fcInstel();break;
+    case"instelOk":fcInstelBewaar(num(t.dataset.v));break;
+    case"filter":FC.f=t.dataset.v;renderBody();break;
+    case"open":fcDetail(id);break;
+    case"lijn":{const box=$("#fcL"),i=box.children.length;box.insertAdjacentHTML("beforeend",fcLijnHtml({omschrijving:"",aantal:1,prijs:"",btw:(FCE.f.lijnen.slice(-1)[0]||{}).btw||0},i));box.lastElementChild.querySelector(".fc-om").focus();fcTotaal();break}
+    case"lijnweg":{const r=t.closest(".fc-l");if($$("#fcL .fc-l").length>1)r.remove();else{r.querySelectorAll("textarea,input").forEach(i=>i.value="");r.querySelector(".fc-aa").value="1"}fcTotaal();break}
+    case"bewaar":if(await fcBewaarConcept())closeModal();break;
+    case"verstuur":fcVerstuur();break;
+    case"voorbeeld":{const i=await fcBewaarConcept(true);if(i)fcPdf(i,t);break}
+    case"weg":confirmBox("Dit concept verwijderen?","Verwijderen",async()=>{await write("facturen",FCE.id,null,{del:true});toast("Concept verwijderd.")});break;
+    case"pdf":fcPdf(id,t);break;
+    case"meer":{const m=t.nextElementSibling;m.hidden=!m.hidden;break}
+    case"mailen":fcMailVraag(id,"factuur");break;
+    case"herinnering":fcMailVraag(id,"herinnering");break;
+    case"mailOk":fcMailOk(t);break;
+    case"link":{const j=await fcActie("link",id);if(j){try{await navigator.clipboard.writeText(j.link);toast("Betaallink gekopieerd.")}catch(x){prompt("Betaallink",j.link)}}break}
+    case"kopie":try{await navigator.clipboard.writeText(t.dataset.v);toast("Gekopieerd.")}catch(x){}break;
+    case"betaald":{const f=S.facturen.get(id);modal("Als betaald aanduiden",`<div class="form"><p class="full" style="margin:0">Gebruik dit enkel als de betaling niet via de rekening binnenkwam (bv. cash) of niet automatisch herkend wordt. Een overschrijving kan je beter <b>toewijzen</b> in de details van de factuur.</p>
+       ${fld("fcBo","Betaald op",inp("fcBo",todayISO(),'type="date"'))}${fld("fcBm","Opmerking",inp("fcBm","",'placeholder="bv. cash betaald op het banket"'))}</div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-fc="betaaldOk" data-id="${esc(id)}">Als betaald aanduiden</button>`);break}
+    case"betaaldOk":await fcZet(id,{betaaldManueel:{op:$("#fcBo").value||todayISO(),opmerking:$("#fcBm").value.trim(),door:ME_NAME}});closeModal();toast("Factuur als betaald aangeduid.");fcDetail(id);break;
+    case"onbetaald":await fcZet(id,{betaaldManueel:undefined});fcDetail(id);break;
+    case"toewijzen":{const v=$("#fcKand").value;if(!v){toast("Kies eerst een transactie.",true);break}await fcBoeking(v,{factuurId:id});toast("Transactie toegewezen.");fcSync();fcDetail(id);break}
+    case"loskoppel":await fcBoeking(id,{factuurId:undefined});toast("Losgekoppeld.");fcDetail(t.dataset.f);break;
+    case"credit":fcCredit(id);break;
+    case"dupliceer":fcDupliceer(id);break;
+    case"geenher":{const f=S.facturen.get(id);await fcZet(id,{geenHerinnering:f.geenHerinnering?undefined:true});toast(f.geenHerinnering?"Automatische herinneringen staan weer aan.":"Geen automatische herinneringen voor deze factuur.");fcDetail(id);break}
+    case"sponsor":{const s=S.sponsors.get(id);if(!s)break;closeModal();location.hash="#facturen";setTimeout(()=>{fcEdit(null);const x=FCE.K.find(o=>o.k.sponsorId===id);if(x)fcKies(x.lbl)},120);break}
+  }});
+document.addEventListener("input",e=>{const t=e.target;
+  if(t.id==="fcQ"){FC.q=t.value;clearTimeout(fcSyncT.q);fcSyncT.q=setTimeout(()=>{renderBody();const i=$("#fcQ");if(i){i.focus();i.selectionStart=i.selectionEnd=i.value.length}},250);return}
+  if(t.closest&&t.closest("#fcL")){if(t.classList.contains("fc-om"))fcGroei(t);fcTotaal()}
+  if(t.id==="fcKz"&&FCE&&FCE.K.some(o=>o.lbl===t.value))fcKies(t.value)});
+document.addEventListener("change",e=>{const t=e.target;if(t.id==="fcJaar"){FC.jaar=t.value;renderBody()}if(t.classList&&t.classList.contains("fc-btw"))fcTotaal();
+  if(t.id==="fcD"&&$("#fcV")){const d=new Date(t.value+"T12:00");if(!isNaN(d)){d.setDate(d.getDate()+num(fcCfg().vervaldagen||30));$("#fcV").value=d.toISOString().slice(0,10)}}});
+// sponsorfiche: knop "Factuur maken"
+{const _sf=sponsorForm;sponsorForm=function(s,id){_sf(s,id);if(id&&fcMag()){const ok=$("#spOk");if(ok)ok.insertAdjacentHTML("beforebegin",`<button class="btn" data-fc="sponsor" data-id="${esc(id)}">${ic("facturen")}Factuur maken</button>`)}}}
+// na elke render: facturen-pagina houdt de koppeling met de transacties bij
+VIEWS.facturen.after=()=>fcSync();
