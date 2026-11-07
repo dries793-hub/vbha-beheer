@@ -10,6 +10,21 @@ export async function osmTmp(req, res) {
     const r = await fetch(u, { headers: { "User-Agent": "vbha-beheer" } }); const t = await r.text();
     return res.status(200).json({ status: r.status, len: t.length, tekst: t.slice(B.van || 0, (B.van || 0) + (B.max || 20000)) });
   }
+  if (B.posStraten) { // per straat de adrespunten (WFS) en tellen per gebied (ringen in B.ringen), uniek per huisnummer, enkel InGebruik
+    const ringen = B.ringen || {}, inRing = (p, r) => { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [yi, xi] = r[i], [yj, xj] = r[j]; if (((yi > p[0]) !== (yj > p[0])) && (p[1] < (xj - xi) * (p[0] - yi) / (yj - yi) + xi)) c = !c; } return c; };
+    const gebied = p => { for (const [n, rs] of Object.entries(ringen)) if (rs.some(r => inRing(p, r))) return n; return "buiten"; };
+    const esc = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const uit = {}, L = B.posStraten.slice(0, 300); let i = 0;
+    const een = async n => { const f = `<fes:Filter xmlns:fes="http://www.opengis.net/fes/2.0"><fes:And><fes:PropertyIsEqualTo><fes:ValueReference>Straatnaam</fes:ValueReference><fes:Literal>${esc(n)}</fes:Literal></fes:PropertyIsEqualTo><fes:PropertyIsEqualTo><fes:ValueReference>Gemeentenaam</fes:ValueReference><fes:Literal>${esc(B.gemeente || "Aalst")}</fes:Literal></fes:PropertyIsEqualTo></fes:And></fes:Filter>`;
+      const u = new URL("https://geo.api.vlaanderen.be/Adressenregister/wfs"); Object.entries({ service: "WFS", version: "2.0.0", request: "GetFeature", typeNames: "Adressenregister:Adres", outputFormat: "application/json", srsName: "EPSG:4326", count: "3000", propertyName: "Huisnummer,AdresStatus,AdresPositie", FILTER: f }).forEach(([k, v]) => u.searchParams.set(k, v));
+      const r = await fetch(u, { headers: { "User-Agent": "vbha-beheer" } }); if (!r.ok) { uit[n] = { fout: r.status }; return; }
+      const j = await r.json(), per = {};
+      for (const ft of j.features || []) { const pr = ft.properties || {}; if (pr.AdresStatus && pr.AdresStatus !== "InGebruik") continue; const c = ft.geometry && ft.geometry.coordinates; if (!c) continue; const g = gebied([c[1], c[0]]); (per[g] = per[g] || new Set()).add(String(pr.Huisnummer || "").toLowerCase()); }
+      uit[n] = Object.fromEntries(Object.entries(per).map(([g, s]) => [g, s.size])); };
+    const werker = async () => { while (i < L.length) { const n = L[i++]; try { await een(n); } catch (e) { uit[n] = { fout: String(e.message || e).slice(0, 80) }; } } };
+    await Promise.all([werker(), werker(), werker(), werker(), werker(), werker()]);
+    return res.status(200).json({ uit });
+  }
   if (B.straten) { // per straatnaam het aantal adressen in de gemeente (adressenregister, status inGebruik)
     const uit = {}, L = B.straten.slice(0, 400); let i = 0, fouten = 0;
     const een = async n => { let tot = 0; const nrs = new Set(); let off = 0;
