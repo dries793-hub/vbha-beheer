@@ -91,7 +91,9 @@ export async function kfMailHtml(sb, d, { A, c, jaar }) {
   const M = { ...kfMailDef(jaar, datum), ...(c.mail || {}) }, G = kfGroepen(M.groepen);
   const lft = geb => { if (!geb) return ""; const [y, m, dd] = geb.split("-").map(Number), [Y, Mo, D] = datum.split("-").map(Number); let a = Y - y; if (Mo < m || (Mo === m && D < dd)) a--; return a < 1 ? "< 1 jaar" : a + " jaar"; };
   const groep = geb => { const y = Number(String(geb || "").slice(0, 4)); return G.find(g => y >= g.van && y <= g.tot); };
-  const kids = (d.kinderen || []).map(k => { const g = M.cadeau ? groep(k.geb) : null; return `<b>${esc(k.naam)}</b>${k.geb ? ` <span style="color:#666666">(${lft(k.geb)}${g ? " · " + esc(g.tekst.replace(/ per kind$/i, "")) : ""})</span>` : ""}`; }).join("<br>");
+  const kids = (d.kinderen || []).map(k => `<b>${esc(k.naam)}</b>${k.geb ? ` <span style="color:#666666">(${lft(k.geb)})</span>` : ""}`).join("<br>");
+  const waarde = t => { const x = String(t || "").replace(/\s*per kind\s*$/i, "").trim(); return /^\d/.test(x) ? "cadeau ter waarde van <b>" + esc(x) + "</b>" : esc(x); };
+  const perKind = (d.kinderen || []).map(k => ({ k, g: groep(k.geb) })).filter(x => x.g);
   let vn = d.voornaam || "";
   if (!vn && d.lidId) { const { data: lid } = await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle(); vn = (lid && lid.data && lid.data.voornaam) || ""; }
   const sites = String(M.sites || "").split(/[,;\s]+/).filter(Boolean).map(linkSite);
@@ -100,10 +102,11 @@ export async function kfMailHtml(sb, d, { A, c, jaar }) {
   let html = p(vn ? `Beste ${esc(vn)},` : "Beste,") + p(`Je bent ingeschreven voor het kinderfeest op <b>${esc(lang(datum).replace(/^\S+\s/, ""))}</b>. Super!`);
   if (M.cadeau) {
     html += p("Dit jaar kan je zoals vorig jaar zelf het cadeau voor je kind(eren) kiezen.")
-      + (sitesT ? p(`Ga hiervoor naar de website ${sitesT} en kies 1 of meerdere cadeaus volgens de waarde die hieronder vermeld staat (per geboortejaar).`) : "")
+      + (sitesT ? p(`Ga hiervoor naar de website ${sitesT} en kies 1 of meerdere cadeaus volgens de waarde die hieronder per kind vermeld staat.`) : "")
+      + (perKind.length ? `<ul style="margin:0 0 15px;padding-left:22px">${perKind.map(({ k, g }) => `<li style="margin:0 0 4px"><b>${esc(k.naam)}</b>: ${waarde(g.tekst)}</li>`).join("")}</ul>` : "")
       + p(`Stuur ons ${totL ? `<b>voor ${esc(totL)}</b> ` : ""}per kind de omschrijving en het artikelnummer door${M.contact ? ` via <a href="mailto:${esc(M.contact)}" style="color:#a3211a">${esc(M.contact)}</a>` : ""}.`)
-      + p(`Gelieve ook te letten op de beschikbaarheid en levertijden van de producten.<br>Indien we ${totL ? "op " + esc(totL) + " " : ""}niets van jou hebben ontvangen, zal er een waardebon van bol.com worden voorzien t.w.v. onderstaand bedrag.`)
-      + (G.length ? p(G.map(g => `<b>Kinderen geboren in ${jarenTekst(g.van, g.tot)}:</b> ${esc(g.tekst)}`).join("<br>")) : "");
+      + p(`Gelieve ook te letten op de beschikbaarheid en levertijden van de producten.<br>Indien we ${totL ? "op " + esc(totL) + " " : ""}niets van jou hebben ontvangen, zal er een waardebon van bol.com worden voorzien t.w.v. het bedrag hierboven.`)
+      ;
   }
   html += kaderBlok("Je inschrijving", tabel([rij("Wanneer", esc(lang(datum)) + (tijd ? " om " + esc(tijd) : "")), rij("Waar", esc(locatie)), rij("Lid", esc(d.lid)), rij("Kinderen", kids || "–"), d.opmerking ? rij("Opmerking", esc(d.opmerking)) : ""]))
     + p("Tot dan!");
