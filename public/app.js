@@ -4213,6 +4213,22 @@ bkExport=function(){const ws=XLSX.utils.json_to_sheet(bkSheet());const R=XLSX.ut
   ws["!cols"]=[{wch:26},{wch:12},{wch:9},{wch:12},{wch:12},{wch:30},{wch:9},{wch:9},{wch:15},{wch:12},{wch:10},{wch:13},{wch:10}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Banket "+JAAR);save("VBHA_Banket_"+JAAR+".xlsx",XLSX.write(wb,{type:"array",bookType:"xlsx"}))};
 
+/* ============ Kalenderronde: kaart op volledig scherm ============
+   Knop in de zoombalk. Het kader wordt over het hele venster gelegd (werkt ook op iPhone); waar het kan ook echt volledig scherm
+   (zonder adresbalk). Escape, de knop of een andere pagina zet het terug. Zelfde code op de openbare kaart (kaart.html). */
+const KR_VOL_IC={aan:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',uit:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>'};
+function krVol(host,aan){if(!host)return;host.classList.toggle("kr-vol",aan);document.documentElement.classList.toggle("kr-vol-aan",aan);
+  const b=host.querySelector(".kr-vol-b");if(b){b.innerHTML=aan?KR_VOL_IC.uit:KR_VOL_IC.aan;b.setAttribute("aria-label",aan?"Volledig scherm sluiten":"Volledig scherm");b.title=b.getAttribute("aria-label");b.setAttribute("aria-pressed",String(aan))}
+  try{const d=document.documentElement;if(aan&&d.requestFullscreen&&!document.fullscreenElement)d.requestFullscreen({navigationUI:"hide"}).catch(()=>{});else if(!aan&&document.fullscreenElement)document.exitFullscreen().catch(()=>{})}catch(e){}
+  const m=typeof KR!=="undefined"&&KR.map;if(m){setTimeout(()=>m.invalidateSize({pan:false}),60);setTimeout(()=>m.invalidateSize({pan:false}),350)}}
+function krVolKnop(host){const z=host&&host.querySelector(".kr-zoom");if(!z||z.querySelector(".kr-vol-b"))return;
+  const b=document.createElement("button");b.type="button";b.className="kr-vol-b";b.innerHTML=KR_VOL_IC.aan;b.setAttribute("aria-label","Volledig scherm");b.title="Volledig scherm";b.setAttribute("aria-pressed","false");
+  b.onclick=()=>krVol(host,!host.classList.contains("kr-vol"));z.appendChild(b)}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){const h=document.querySelector(".kr-host.kr-vol");if(h&&!document.querySelector(".modal-bg,.kr-sp:not([hidden])"))krVol(h,false)}});
+document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement){const h=document.querySelector(".kr-host.kr-vol");if(h)krVol(h,false)}});
+{const _h=krHost;krHost=function(){const h=_h.apply(this,arguments);krVolKnop(h);return h}}
+window.addEventListener("hashchange",()=>{const h=KR.host;if(h&&h.classList.contains("kr-vol")&&route()!=="ronde")krVol(h,false)});
+
 /* ============ Instellingen enkel voor de administrator ============
    Andere profielen zien geen tandwieltjes of instellingenpagina's. Wat iedereen wel kan: "Meldingen op dit toestel" (eigen pagina).
    Bij "Bekijken als…" geldt het bekeken profiel (ROL). */
