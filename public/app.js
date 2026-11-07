@@ -2370,43 +2370,103 @@ const docKB=n=>n<1024?n+" B":n<1048576?Math.round(n/1024)+" kB":(n/1048576).toLo
 const docExt=n=>{const m=String(n||"").match(/\.([a-z0-9]{1,5})$/i);return m?m[1].toLowerCase():""};
 const docKleur=e=>/^(pdf)$/.test(e)?"pdf":/^(docx?|odt|rtf|txt)$/.test(e)?"doc":/^(xlsx?|xlsm|ods|csv)$/.test(e)?"xls":/^(pptx?|odp)$/.test(e)?"ppt":/^(jpe?g|png|gif|webp|heic|svg)$/.test(e)?"img":"oth";
 const docVeilig=n=>String(n).normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Za-z0-9._-]+/g,"_").replace(/_+/g,"_").slice(-90)||"bestand";
-function docLijst(){let L=[...S.documenten.values()];if(DOC.map)L=L.filter(d=>d.map===DOC.map);
-  const q=norm(DOC.q);if(q)L=L.filter(d=>norm([d.naam,d.map,d.omschrijving,d.door].join(" ")).includes(q));
+/* ---------- mappen ----------
+   Een map is een pad ("Verslagen", "Verslagen/2026"). Vaste hoofdmappen = DOC_MAPPEN; eigen mappen in config "documenten".mappen;
+   mappen waar documenten in zitten bestaan ook altijd. */
+const docPad=d=>d.map||"Andere";
+const docEigen=()=>((S.config&&S.config.get("documenten"))||{}).mappen||[];
+function docMappen(){const s=new Set(DOC_MAPPEN);for(const m of docEigen())s.add(m);for(const d of S.documenten.values())s.add(docPad(d));
+  for(const m of [...s]){const p=m.split("/");for(let i=1;i<p.length;i++)s.add(p.slice(0,i).join("/"))}return [...s].sort(docSort)}
+function docSort(a,b){const A=a.split("/"),B=b.split("/");for(let i=0;i<Math.min(A.length,B.length);i++){if(A[i]===B[i])continue;
+    if(i===0){const r=x=>x==="Andere"?999:DOC_MAPPEN.includes(x)?DOC_MAPPEN.indexOf(x):500;if(r(A[0])!==r(B[0]))return r(A[0])-r(B[0])}
+    if(/^\d{4}$/.test(A[i])&&/^\d{4}$/.test(B[i]))return B[i].localeCompare(A[i]);return A[i].localeCompare(B[i],"nl",{numeric:true})}
+  return A.length-B.length}
+const docNaamVan=m=>m.split("/").pop();
+const docKind=p=>docMappen().filter(m=>p?m.startsWith(p+"/")&&!m.slice(p.length+1).includes("/"):!m.includes("/"));
+const docIn=(m,diep)=>[...S.documenten.values()].filter(d=>{const x=docPad(d);return x===m||(diep&&x.startsWith(m+"/"))});
+const docLabel=m=>m.split("/").join(" › ");
+function docLijst(){const q=norm(DOC.q);let L=[...S.documenten.values()];
+  if(q)L=L.filter(d=>norm([d.naam,docPad(d),d.omschrijving,d.door].join(" ")).includes(q));else L=L.filter(d=>docPad(d)===DOC.map);
   return L.sort((a,b)=>String(b.op||"").localeCompare(String(a.op||"")))}
+function docMapGrid(){const K=docKind(DOC.map);if(!K.length)return "";
+  return `<div class="doc-fold-g">${K.map(m=>{const n=docIn(m,true).length,sub=docKind(m).length,eigen=!DOC_MAPPEN.includes(m);
+    return `<div class="doc-fold" data-map="${esc(m)}"><button type="button" class="doc-fold-b" data-act="docMapF" data-v="${esc(m)}">${ic("documenten")}<span><b>${esc(docNaamVan(m))}</b><small>${n?n+" document"+(n===1?"":"en"):"leeg"}${sub?" · "+sub+" map"+(sub===1?"":"pen"):""}</small></span></button>
+    ${canWrite&&eigen?`<button type="button" class="doc-fold-e" data-act="docMapEdit" data-v="${esc(m)}" aria-label="Map ${esc(docNaamVan(m))} wijzigen" title="Map wijzigen">${ic("instellingen")}</button>`:""}</div>`}).join("")}</div>`}
+function docKruim(){const p=DOC.map?DOC.map.split("/"):[];
+  return `<nav class="doc-kr" aria-label="Map">${p.length?`<button type="button" data-act="docMapF" data-v="">Alle mappen</button>`:`<b>Alle mappen</b>`}${p.map((x,i)=>{const v=p.slice(0,i+1).join("/");return `<span class="muted">›</span>${i===p.length-1?`<b>${esc(x)}</b>`:`<button type="button" data-act="docMapF" data-v="${esc(v)}">${esc(x)}</button>`}`}).join("")}</nav>`}
+function docTabel(){const L=docLijst(),metMap=!!DOC.q;const dt=s=>{const d=new Date(s);return isNaN(d)?"":d.toLocaleDateString("nl-BE",{day:"numeric",month:"short",year:"numeric"})};
+  if(!DOC.q&&!DOC.map)return "";
+  const leeg=DOC.q?"Geen documenten gevonden.":docKind(DOC.map).length?"":"Deze map is nog leeg."+(canWrite?" Sleep bestanden hierboven of klik op kies bestanden.":"");
+  if(!L.length)return leeg?`<div class="panel"><div class="empty">${leeg}</div></div>`:"";
+  const mob=`<div class="mlist" role="list">${L.map(d=>{const e=docExt(d.naam);return `<div class="ml-row doc-mr" role="listitem"><a class="doc-n" data-act="docOpen" data-id="${esc(d.id)}" href="#documenten"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span>
+    <span class="ml-m"><span class="ml-n"><b>${esc(d.naam)}</b></span><span class="ml-s">${metMap?esc(docLabel(docPad(d)))+'<span class="ml-dot">·</span>':""}${docKB(d.grootte||0)}<span class="ml-dot">·</span>${dt(d.op)}</span>${d.rol?`<span class="doc-rol">${ic("link")}Knop ${d.rol==="sponsordossier"?"Sponsordossier":"Reglement"}</span>`:""}${d.omschrijving&&!docVgLink(d)?`<span class="ml-s">${esc(d.omschrijving)}</span>`:""}${docVgLink(d)}</span></a>
+    <span class="doc-ma"><button type="button" class="iconbtn2" data-act="docDown" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="iconbtn2" data-act="docEdit" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} wijzigen">${ic("instellingen")}</button>`:""}</span></div>`}).join("")}</div>`;
+  return `<div class="panel">`+mob+`<div class="tw dsk-only"><table class="rcards doct" data-main="0"><thead><tr><th>Naam</th>${metMap?"<th>Map</th>":""}<th class="num">Grootte</th><th>Toegevoegd</th><th></th></tr></thead><tbody>
+  ${L.map(d=>{const e=docExt(d.naam);return `<tr><td><a class="doc-n" data-act="docOpen" data-id="${esc(d.id)}" href="#documenten"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span><span class="doc-t"><b>${esc(d.naam)}</b>${d.rol?`<span class="doc-rol">${ic("link")}Knop ${d.rol==="sponsordossier"?"Sponsordossier":"Reglement"}</span>`:""}${d.omschrijving&&!docVgLink(d)?`<span>${esc(d.omschrijving)}</span>`:""}${docVgLink(d)}</span></a></td>
+   ${metMap?`<td><button type="button" class="pill neutral doc-pm" data-act="docMapF" data-v="${esc(docPad(d))}">${esc(docLabel(docPad(d)))}</button></td>`:""}<td class="num nowrap muted">${docKB(d.grootte||0)}</td><td class="nowrap muted">${dt(d.op)}${d.door?`<div class="small">${esc(d.door)}</div>`:""}</td>
+   <td class="nowrap doc-a"><button type="button" class="btn sm" data-act="docDown" data-id="${esc(d.id)}" title="Downloaden" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="btn sm" data-act="docEdit" data-id="${esc(d.id)}" title="Wijzigen" aria-label="${esc(d.naam)} wijzigen">${ic("instellingen")}</button>`:""}</td></tr>`}).join("")}
+  </tbody></table></div></div>`}
+function docInhoud(){return DOC.q?docTabel():docMapGrid()+docTabel()}
 // verslag van een vergadering: knop naar die vergadering in de agenda
 function docVgLink(d){const v=d.vergaderingId&&S.vergaderingen.get(d.vergaderingId);if(!v)return "";
   return `<span class="doc-rol doc-vg" role="link" tabindex="0" data-va="agenda" data-id="${esc(v.id)}">${ic("agenda")}Bekijk in de agenda</span>`}
-function docTabel(){const L=docLijst();const dt=s=>{const d=new Date(s);return isNaN(d)?"":d.toLocaleDateString("nl-BE",{day:"numeric",month:"short",year:"numeric"})};
-  const mob=`<div class="mlist" role="list">${L.map(d=>{const e=docExt(d.naam);return `<div class="ml-row doc-mr" role="listitem"><a class="doc-n" data-act="docOpen" data-id="${esc(d.id)}" href="#documenten"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span>
-    <span class="ml-m"><span class="ml-n"><b>${esc(d.naam)}</b></span><span class="ml-s">${esc(d.map||"Andere")}<span class="ml-dot">·</span>${docKB(d.grootte||0)}<span class="ml-dot">·</span>${dt(d.op)}</span>${d.rol?`<span class="doc-rol">${ic("link")}Knop ${d.rol==="sponsordossier"?"Sponsordossier":"Reglement"}</span>`:""}${d.omschrijving&&!docVgLink(d)?`<span class="ml-s">${esc(d.omschrijving)}</span>`:""}${docVgLink(d)}</span></a>
-    <span class="doc-ma"><button type="button" class="iconbtn2" data-act="docDown" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="iconbtn2" data-act="docEdit" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} wijzigen">${ic("instellingen")}</button>`:""}</span></div>`}).join("")||`<div class="empty">${DOC.q||DOC.map?"Geen documenten gevonden.":"Nog geen documenten."}</div>`}</div>`;
-  return mob+`<div class="tw dsk-only"><table class="rcards doct" data-main="0"><thead><tr><th>Naam</th><th>Map</th><th class="num">Grootte</th><th>Toegevoegd</th><th></th></tr></thead><tbody>
-  ${L.map(d=>{const e=docExt(d.naam);return `<tr><td><a class="doc-n" data-act="docOpen" data-id="${esc(d.id)}" href="#documenten"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span><span class="doc-t"><b>${esc(d.naam)}</b>${d.rol?`<span class="doc-rol">${ic("link")}Knop ${d.rol==="sponsordossier"?"Sponsordossier":"Reglement"}</span>`:""}${d.omschrijving&&!docVgLink(d)?`<span>${esc(d.omschrijving)}</span>`:""}${docVgLink(d)}</span></a></td>
-   <td><span class="pill neutral">${esc(d.map||"Andere")}</span></td><td class="num nowrap muted">${docKB(d.grootte||0)}</td><td class="nowrap muted">${dt(d.op)}${d.door?`<div class="small">${esc(d.door)}</div>`:""}</td>
-   <td class="nowrap doc-a"><button type="button" class="btn sm" data-act="docDown" data-id="${esc(d.id)}" title="Downloaden" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="btn sm" data-act="docEdit" data-id="${esc(d.id)}" title="Wijzigen" aria-label="${esc(d.naam)} wijzigen">${ic("instellingen")}</button>`:""}</td></tr>`}).join("")||`<tr><td colspan="5" class="empty">${DOC.q||DOC.map?"Geen documenten gevonden.":"Nog geen documenten. Sleep bestanden hierboven of klik op Bestanden kiezen."}</td></tr>`}
-  </tbody></table></div>`}
-VIEWS.documenten=()=>({title:"Documenten",body(){const all=[...S.documenten.values()];const n=m=>all.filter(d=>d.map===m).length;
-  return `${canWrite?`<div class="doc-up"><div class="doc-drop" id="docDrop"><span class="doc-drop-ic">${ic("upload")}</span><span class="doc-drop-t"><span><b>Sleep bestanden hierheen</b> of <label for="docFile" class="doc-lnk">kies bestanden</label></span><small>Draaiboeken, verslagen, brieven… tot 50 MB per bestand</small></span>
-    <span class="doc-drop-map"><label for="docMap">Opladen in map</label><select id="docMap" class="sel">${selOpts(DOC_MAPPEN,DOC.map||"Draaiboeken")}</select></span></div><input type="file" id="docFile" multiple hidden><label for="docFile" class="btn primary doc-mup">${ic("upload")}Bestand opladen</label><div id="docProg"></div></div>`:""}
-  <div class="bar"><div class="search">${ic("search")}<input id="docQ" data-docq placeholder="Zoek op naam of omschrijving" value="${esc(DOC.q)}"></div>
-   <div class="seg doc-seg">${[["","Alle",all.length],...DOC_MAPPEN.map(m=>[m,m,n(m)])].map(([v,l,c])=>`<button type="button" data-act="docMapF" data-v="${esc(v)}" class="${DOC.map===v?"on":""}">${esc(l)}${c?` <span class="muted">${c}</span>`:""}</button>`).join("")}</div></div>
-  <div class="panel" id="docList">${docTabel()}</div>`}});
-async function docUpload(files){if(!canWrite||!files||!files.length)return;const map=($("#docMap")||{}).value||"Andere";const prog=$("#docProg");let ok=0,fout=[];
+VIEWS.documenten=()=>({title:"Documenten",body(){if(DOC.map&&!docMappen().includes(DOC.map))DOC.map="";
+  return `${canWrite?`<div class="doc-up"><div class="doc-drop" id="docDrop"><span class="doc-drop-ic">${ic("upload")}</span><span class="doc-drop-t"><span><b>Sleep bestanden hierheen</b> of <label for="docFile" class="doc-lnk">kies bestanden</label></span><small>Daarna kies je in welke map ze komen · tot 50 MB per bestand</small></span></div><input type="file" id="docFile" multiple hidden><label for="docFile" class="btn primary doc-mup">${ic("upload")}Bestand opladen</label><div id="docProg"></div></div>`:""}
+  <div class="bar doc-bar">${docKruim()}<div class="search">${ic("search")}<input id="docQ" data-docq placeholder="Zoek in alle mappen" value="${esc(DOC.q)}"></div>${canWrite?`<button type="button" class="btn" data-act="docMapNieuw">${ic("plus")}Nieuwe map</button>`:""}</div>
+  <div id="docList">${docInhoud()}</div>`}});
+/* opladen: eerst bestanden kiezen of slepen, dan de map kiezen */
+function docMapOpties(sel){return docMappen().map(m=>{const d=m.split("/").length-1;return `<label class="doc-kr-o${m===sel?" on":""}" style="--d:${d}"><input type="radio" name="dkM" value="${esc(m)}"${m===sel?" checked":""}>${ic("documenten")}<span>${esc(docNaamVan(m))}</span><small class="muted">${docIn(m,false).length||""}</small></label>`}).join("")}
+function docKiesMap(files,voor){files=[...files].filter(f=>f&&f.size>=0);if(!canWrite||!files.length)return;
+  const sel=voor||DOC.map||"";const tot=files.reduce((a,f)=>a+f.size,0);
+  modal(files.length===1?"Bestand opladen":files.length+" bestanden opladen",`<div class="doc-up-l">${files.slice(0,8).map(f=>{const e=docExt(f.name);return `<div class="doc-up-f"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span><span>${esc(f.name)}</span><small class="muted">${docKB(f.size)}</small></div>`}).join("")}${files.length>8?`<div class="muted small">en nog ${files.length-8} andere (${docKB(tot)} in totaal)</div>`:""}</div>
+   <div class="doc-up-k"><div class="doc-up-h"><b>In welke map?</b><button type="button" class="btn sm ghost" id="dkNieuw">${ic("plus")}Nieuwe map</button></div>
+   <div id="dkNw" class="doc-up-nw" hidden><input id="dkNwN" maxlength="60" placeholder="Naam van de nieuwe map"><span class="muted small" id="dkNwIn"></span><button type="button" class="btn sm primary" id="dkNwOk">Maken</button></div>
+   <div class="doc-kr-l" id="dkL" role="radiogroup" aria-label="Map">${docMapOpties(sel)}</div><div class="err" id="dkErr"></div></div>`,
+   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="dkOk"${sel?"":" disabled"}>${ic("upload")}Opladen</button>`);
+  const kies=()=>{const r=document.querySelector('input[name="dkM"]:checked');$("#dkOk").disabled=!r;document.querySelectorAll(".doc-kr-o").forEach(l=>l.classList.toggle("on",!!l.querySelector("input:checked")));
+    $("#dkNwIn").textContent=r?"in "+docLabel(r.value):"als hoofdmap";return r&&r.value};
+  $("#dkL").addEventListener("change",kies);const k0=$("#dkL .on");if(k0)k0.scrollIntoView({block:"nearest"});
+  $("#dkNieuw").onclick=()=>{$("#dkNw").hidden=false;kies();$("#dkNwN").focus()};
+  const maak=async()=>{const n=$("#dkNwN").value.trim(),ouder=kies()||"",err=$("#dkErr");err.textContent="";
+    const m=docMapGeldig(n,ouder);if(m.fout){err.textContent=m.fout;return}
+    try{await docMapBewaar([...docEigen(),m.pad])}catch(x){err.textContent=x.message;return}
+    $("#dkL").innerHTML=docMapOpties(m.pad);$("#dkNw").hidden=true;$("#dkNwN").value="";kies();const o=$("#dkL .on");if(o)o.scrollIntoView({block:"nearest"})};
+  $("#dkNwOk").onclick=maak;$("#dkNwN").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();maak()}};
+  $("#dkOk").onclick=()=>{const m=kies();if(!m)return;closeModal();DOC.map=m;DOC.q="";render(true);docUpload(files,m)}}
+function docMapGeldig(n,ouder){n=String(n||"").replace(/\s+/g," ").trim();if(!n)return{fout:"Geef de map een naam."};if(/[\/\\]/.test(n))return{fout:"Een mapnaam mag geen / bevatten."};
+  const pad=ouder?ouder+"/"+n:n;if(docMappen().some(m=>norm(m)===norm(pad)))return{fout:"Die map bestaat al."};return{pad}}
+async function docMapBewaar(L){const c=(S.config&&S.config.get("documenten"))||{};const r={...stripId(c),mappen:[...new Set(L)].sort(docSort)};S.config.set("documenten",{...r,id:"documenten"});await write("config","documenten",r)}
+function docMapNieuw(){const ouder=DOC.map||"";
+  modal("Nieuwe map",`<form id="fDm" class="form">${fld("dmN","Naam",inp("dmN","",'maxlength="60" placeholder="bv. 2026 of Kinderfeest"'),"full")}<div class="full muted small">${ouder?"Wordt aangemaakt in <b>"+esc(docLabel(ouder))+"</b>.":"Wordt aangemaakt als hoofdmap."}</div><div class="err full" id="dmErr"></div></form>`,
+  `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="dmOk">Maken</button>`);
+  const ok=async e=>{e&&e.preventDefault();const m=docMapGeldig($("#dmN").value,ouder);if(m.fout){$("#dmErr").textContent=m.fout;return}
+    try{await docMapBewaar([...docEigen(),m.pad]);closeModal();DOC.map=m.pad;render(true);toast("Map gemaakt.")}catch(x){$("#dmErr").textContent=x.message}};
+  $("#dmOk").onclick=ok;$("#fDm").onsubmit=ok;setTimeout(()=>$("#dmN")&&$("#dmN").focus(),50)}
+function docMapEdit(m){const p=m.split("/"),ouder=p.slice(0,-1).join("/"),n=docIn(m,true).length;
+  modal("Map wijzigen",`<form id="fDm" class="form">${fld("dmN","Naam",inp("dmN",p[p.length-1],'maxlength="60"'),"full")}<div class="full muted small">${ouder?"In "+esc(docLabel(ouder))+" · ":""}${n?n+" document"+(n===1?"":"en"):"Lege map"}</div><div class="err full" id="dmErr"></div></form>`,
+  `<button class="btn danger" id="dmDel" style="margin-right:auto"${n?' disabled title="Enkel een lege map kan verwijderd worden"':""}>Verwijderen</button><button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="dmOk">Bewaren</button>`);
+  const ok=async e=>{e&&e.preventDefault();const nn=$("#dmN").value.trim();if(nn===p[p.length-1]){closeModal();return}
+    const g=docMapGeldig(nn,ouder);if(g.fout){$("#dmErr").textContent=g.fout;return}const nieuw=g.pad,om=x=>x===m?nieuw:x.startsWith(m+"/")?nieuw+x.slice(m.length):x;
+    $("#dmOk").disabled=true;try{for(const d of docIn(m,true))await write("documenten",d.id,{...stripId(d),map:om(docPad(d))});await docMapBewaar(docEigen().map(om).concat(nieuw));
+      if(DOC.map===m||DOC.map.startsWith(m+"/"))DOC.map=om(DOC.map);closeModal();render(true);toast("Map hernoemd.")}catch(x){$("#dmErr").textContent=x.message;$("#dmOk").disabled=false}};
+  $("#dmOk").onclick=ok;$("#fDm").onsubmit=ok;
+  $("#dmDel").onclick=()=>{if(n)return;confirmBox(`Map <b>${esc(docLabel(m))}</b> verwijderen?`,"Verwijderen",async()=>{await docMapBewaar(docEigen().filter(x=>x!==m&&!x.startsWith(m+"/")));if(DOC.map===m||DOC.map.startsWith(m+"/"))DOC.map=ouder;render(true);toast("Map verwijderd.")})}}
+async function docUpload(files,map){if(!canWrite||!files||!files.length)return;map=map||"Andere";const prog=$("#docProg");let ok=0,fout=[];
   DOC.busy=true;
   for(const f of files){if(f.size>50*1048576){fout.push(f.name+" (groter dan 50 MB)");continue}
-    if(prog)prog.innerHTML=`<div class="note info">Bezig met opladen: <b>${esc(f.name)}</b> (${ok+fout.length+1} van ${files.length})…</div>`;
-    const id=agId("doc"),pad=`${docVeilig(map)}/${id}-${docVeilig(f.name)}`;
+    if(prog)prog.innerHTML=`<div class="note info">Bezig met opladen naar <b>${esc(docLabel(map))}</b>: <b>${esc(f.name)}</b> (${ok+fout.length+1} van ${files.length})…</div>`;
+    const id=agId("doc"),pad=`${docVeilig(map.split("/")[0])}/${id}-${docVeilig(f.name)}`;
     try{const {error}=await SB.storage.from(DOC_BUCKET).upload(pad,f,{contentType:f.type||"application/octet-stream",upsert:false});if(error)throw error;
       await write("documenten",id,{naam:f.name,pad,map,grootte:f.size,type:f.type||"",omschrijving:"",door:ME_NAME||"",op:new Date().toISOString()});ok++}
     catch(e){fout.push(f.name+(e&&e.message?" ("+e.message+")":""))}}
-  DOC.busy=false;if(prog)prog.innerHTML=fout.length?`<div class="note">Niet gelukt: ${fout.map(esc).join(", ")}</div>`:"";
-  if(ok)toast(ok===1?"Document opgeladen.":ok+" documenten opgeladen.");render(true)}
+  DOC.busy=false;const pg=$("#docProg");if(pg)pg.innerHTML=fout.length?`<div class="note">Niet gelukt: ${fout.map(esc).join(", ")}</div>`:"";
+  if(ok)toast((ok===1?"Document opgeladen":ok+" documenten opgeladen")+" in "+docLabel(map)+".");render(true)}
 async function docUrl(d,download){const {data,error}=await SB.storage.from(DOC_BUCKET).createSignedUrl(d.pad,120,download?{download:d.naam}:undefined);if(error)throw error;return data.signedUrl}
 async function docOpen(d,download){const w=download?null:window.open("","_blank");
   try{const u=await docUrl(d,download);if(w)w.location.href=u;else{const a=document.createElement("a");a.href=u;a.rel="noopener";document.body.append(a);a.click();a.remove()}}
   catch(e){if(w)w.close();toast("Het document kon niet geopend worden"+(e&&e.message?": "+e.message:"")+".",true)}}
 function docEdit(d){
-  modal("Document",`<form id="fDoc" class="form">${fld("dcN","Naam",inp("dcN",d.naam,'maxlength="160"'),"full")}${fld("dcM","Map",`<select id="dcM" class="sel">${selOpts(DOC_MAPPEN,d.map||"Andere")}</select>`)}${fld("dcG","Grootte",`<input id="dcG" value="${esc(docKB(d.grootte||0))}" disabled>`)}${fld("dcR","Koppelen aan knop",`<select id="dcR" class="sel">${selOpts(DOC_ROLLEN,d.rol||"")}</select>`,"full")}
+  modal("Document",`<form id="fDoc" class="form">${fld("dcN","Naam",inp("dcN",d.naam,'maxlength="160"'),"full")}${fld("dcM","Map",`<select id="dcM" class="sel">${docMappen().map(m=>`<option value="${esc(m)}"${m===docPad(d)?" selected":""}>${"\u00a0\u00a0".repeat(m.split("/").length-1)+esc(docNaamVan(m))}</option>`).join("")}</select>`)}${fld("dcG","Grootte",`<input id="dcG" value="${esc(docKB(d.grootte||0))}" disabled>`)}${fld("dcR","Koppelen aan knop",`<select id="dcR" class="sel">${selOpts(DOC_ROLLEN,d.rol||"")}</select>`,"full")}
   ${fld("dcO","Omschrijving",`<textarea id="dcO" maxlength="400" placeholder="Optioneel, bv. voor welk jaar of welke activiteit">${esc(d.omschrijving||"")}</textarea>`,"full")}</form>`,
   `<button class="btn danger" id="dcDel" style="margin-right:auto">Verwijderen</button><button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="dcOk">Bewaren</button>`);
   $("#dcOk").onclick=async()=>{const r={naam:$("#dcN").value.trim()||d.naam,map:$("#dcM").value,omschrijving:$("#dcO").value.trim(),rol:$("#dcR").value};closeModal();if(r.rol)for(const o of S.documenten.values())if(o.id!==d.id&&o.rol===r.rol)await write("documenten",o.id,{...stripId(o),rol:""});await write("documenten",d.id,{...stripId(d),...r});toast("Document bewaard.")};
@@ -2425,15 +2485,17 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="docRo
   toast("Er is nog geen sponsordossier. Laad het op bij Administratie › Documenten en koppel het via het tandwieltje.",true)});
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;const d=S.documenten.get(t.dataset.id);
   switch(t.dataset.act){
-    case"docMapF":DOC.map=t.dataset.v;render(true);break;
+    case"docMapF":DOC.map=t.dataset.v;DOC.q="";render(true);window.scrollTo({top:0});break;
     case"docOpen":e.preventDefault();if(d)docOpen(d,false);break;
     case"docDown":if(d)docOpen(d,true);break;
     case"docEdit":if(d)docEdit(d);break;
+    case"docMapNieuw":docMapNieuw();break;
+    case"docMapEdit":docMapEdit(t.dataset.v);break;
   }});
-document.addEventListener("change",e=>{if(e.target.id==="docFile"){docUpload([...e.target.files]);e.target.value=""}});
-document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.docq!==undefined){DOC.q=e.target.value;const el=$("#docList");if(el)el.innerHTML=docTabel()}});
-["dragenter","dragover"].forEach(ev=>document.addEventListener(ev,e=>{const z=e.target.closest&&e.target.closest("#docDrop");if(!z)return;e.preventDefault();z.classList.add("on")}));
-["dragleave","drop"].forEach(ev=>document.addEventListener(ev,e=>{const z=e.target.closest&&e.target.closest("#docDrop");if(!z)return;e.preventDefault();z.classList.remove("on");if(ev==="drop"&&e.dataTransfer&&e.dataTransfer.files.length)docUpload([...e.dataTransfer.files])}));
+document.addEventListener("change",e=>{if(e.target.id==="docFile"){const f=[...e.target.files];e.target.value="";docKiesMap(f)}});
+document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.docq!==undefined){DOC.q=e.target.value;const el=$("#docList");if(el)el.innerHTML=docInhoud()}});
+["dragenter","dragover"].forEach(ev=>document.addEventListener(ev,e=>{const z=e.target.closest&&e.target.closest("#docDrop,.doc-fold");if(!z||!canWrite)return;e.preventDefault();z.classList.add("on")}));
+["dragleave","drop"].forEach(ev=>document.addEventListener(ev,e=>{const z=e.target.closest&&e.target.closest("#docDrop,.doc-fold");if(!z)return;e.preventDefault();if(ev==="dragleave"&&z.contains(e.relatedTarget))return;z.classList.remove("on");if(ev==="drop"&&e.dataTransfer&&e.dataTransfer.files.length)docKiesMap([...e.dataTransfer.files],z.dataset.map||"")}));
 
 /* ============ Foto's (Activiteiten › Foto's) ============
    Collectie "fotoalbums": {titel, jaar, datum, link, fotograaf, omschrijving, cover} — een album is een link naar een externe galerij (bv. Pixieset). */
