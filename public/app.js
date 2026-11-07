@@ -1601,13 +1601,14 @@ function lidgeldHist(lid){
   for(let y=last;y>=first;y--){const jl=S.jaarleden.get(y+"_"+lid.id);out.push({y,bet:hits.get(y)||[],ov:jl&&jl.lidgeld})}
   return out;
 }
+const LG_VRIJ={2021:"Vrijgesteld (corona)"};
 function lidgeldHistHtml(l,r){
   const H=lidgeldHist(l);if(!H.length)return"";
   const ere=isEreVoorzitter(l);let ok=0;
-  const rows=H.map(h=>{const paid=h.y===JAAR?r.lg.ok:(h.ov==="OK"||(h.ov!=="NOK"&&(h.bet.length>0||ere)));if(paid)ok++;
-    const b=h.bet[0];const pill=ere&&!h.bet.length?'<span class="pill neutral">vrijgesteld</span>':paid?'<span class="pill ok">✓ Betaald</span>':'<span class="pill nok">Niet gevonden</span>';
+  const rows=H.map(h=>{const vrij=h.y!==JAAR&&LG_VRIJ[h.y]&&!h.bet.length&&h.ov!=="NOK";const paid=h.y===JAAR?r.lg.ok:(h.ov==="OK"||vrij||(h.ov!=="NOK"&&(h.bet.length>0||ere)));if(paid)ok++;
+    const b=h.bet[0];const pill=vrij?`<span class="pill neutral" title="Geen lidgeld gevraagd dit jaar">${esc(LG_VRIJ[h.y])}</span>`:ere&&!h.bet.length?'<span class="pill neutral">vrijgesteld</span>':paid?'<span class="pill ok">✓ Betaald</span>':'<span class="pill nok">Niet gevonden</span>';
     return `<tr><td><b>${h.y}</b></td><td>${pill}${h.ov&&h.y!==JAAR?' <span class="pill neutral">manueel</span>':""}</td><td style="white-space:nowrap">${b?fmtDate(b.datum):""}</td><td class="num">${b?eur(h.bet.reduce((s,x)=>s+x.bedrag,0)):""}</td><td class="trunc" style="max-width:340px" title="${esc(b?b.mededeling:"")}">${b?esc(b.mededeling)+(b._jaar!==h.y?` <span style="color:var(--muted)">(geboekt in ${b._jaar})</span>`:""):""}${h.bet.length>1?` <span class="pill neutral">${h.bet.length} betalingen</span>`:""}</td></tr>`}).join("");
-  return `<div><div style="display:flex;align-items:baseline;gap:10px;margin:6px 0 8px"><b>Lidgeld per jaar</b><span style="color:var(--muted);font-size:13px">${ok} van ${H.length} jaar betaald</span></div>
+  return `<div><div style="display:flex;align-items:baseline;gap:10px;margin:6px 0 8px"><b>Lidgeld per jaar</b><span style="color:var(--muted);font-size:13px">${ok} van ${H.length} jaar in orde</span></div>
   <div class="tw" style="max-height:300px;border:1px solid var(--line);border-radius:8px"><table class="rcards"><thead><tr><th>Jaar</th><th>Status</th><th>Datum</th><th class="num">Bedrag</th><th>Mededeling</th></tr></thead><tbody>${rows}</tbody></table></div>
   <div style="color:var(--muted);font-size:12.5px;margin-top:6px">Gezocht op naam, voornaam en "lidgeld" in de boekhouding van alle jaren. Een betaling met een ander jaartal in de mededeling (bv. "lidgeld 2024" betaald in januari 2025) telt voor dat jaar.</div></div>`;
 }
