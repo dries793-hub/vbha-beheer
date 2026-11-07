@@ -45,6 +45,14 @@
     {
       "source": "/api/sponsor",
       "destination": "/api/openbaar?f=sponsor"
+    },
+    {
+      "source": "/api/status",
+      "destination": "/api/openbaar?f=status"
+    },
+    {
+      "source": "/api/reglement",
+      "destination": "/api/openbaar?f=reglement"
     }
   ]
 }

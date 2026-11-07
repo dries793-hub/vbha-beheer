@@ -2554,8 +2554,8 @@ const ML_VELDEN=[
   ["Vereniging",[["jaar","Jaar"],["volgend_jaar","Volgend jaar"],["rekeningnummer","Rekeningnummer"]]],
   ["Banket",[["banket_datum","Datum"],["banket_uur","Uur"],["banket_locatie","Locatie"],["banket_prijs","Prijs per persoon"],["banket_tot","Inschrijven tot"]]],
   ["Kinderfeest",[["kinderfeest_datum","Datum"],["kinderfeest_uur","Uur"],["kinderfeest_locatie","Locatie"],["kinderfeest_tot","Inschrijven tot"]]],
-  ["Links",[["link_banket","Inschrijven banket"],["link_kinderfeest","Inschrijven kinderfeest"],["link_lidgeld","Lidgeld betalen (persoonlijk)"],["link_inschrijven","Lid worden"],["link_kaart","Kaart kalenderronde"]]]];
-const ML_LINKS=[["{link_lidgeld}","Lidgeld betalen (Bancontact of QR)"],["{link_banket}","Inschrijfpagina banket"],["{link_kinderfeest}","Inschrijfpagina kinderfeest"],["{link_inschrijven}","Lid worden"],["{link_kaart}","Kaart kalenderronde"]];
+  ["Links",[["link_banket","Inschrijven banket"],["link_kinderfeest","Inschrijven kinderfeest"],["link_lidgeld","Lidgeld betalen (persoonlijk)"],["link_status","Mijn status opvragen (persoonlijk)"],["link_reglement","Reglement puntensysteem"],["link_inschrijven","Lid worden"],["link_kaart","Kaart kalenderronde"]]]];
+const ML_LINKS=[["{link_lidgeld}","Lidgeld betalen (Bancontact of QR)"],["{link_status}","Mijn status opvragen"],["{link_reglement}","Reglement puntensysteem"],["{link_banket}","Inschrijfpagina banket"],["{link_kinderfeest}","Inschrijfpagina kinderfeest"],["{link_inschrijven}","Lid worden"],["{link_kaart}","Kaart kalenderronde"]];
 const ML_NIEUW='<p>Beste {voornaam},</p><p><br></p><p>Met vriendelijke groeten,<br><strong>Het bestuur</strong></p>';
 const mlId=()=>"m-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,6);
 const mlLang=iso=>{const [y,m,d]=String(iso||"").split("-").map(Number);if(!y)return"";const s=new Date(y,m-1,d,12).toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"});return s.charAt(0).toUpperCase()+s.slice(1)};
@@ -2601,7 +2601,7 @@ function mlMap(r){const c=cfg(),b=bkCfg();let k={};try{k=kfCfg()}catch(e){}
     rekeningnummer:c.rekeningnummer||"BE43 9730 6810 0401",vereniging:c.vereniging||"Vriendenkring Brandweer Hoofdpost Aalst",
     banket_datum:mlLang(b.datum),banket_uur:b.uur||"",banket_locatie:b.locatie||"",banket_prijs:fmtBedrag(num(b.prijs))+" euro",banket_tot:mlKort(bkTot),
     kinderfeest_datum:mlLang(k.datum),kinderfeest_uur:k.tijd||"",kinderfeest_locatie:k.locatie||"",kinderfeest_tot:mlKort(kfTot),
-    link_lidgeld:r.lidId&&Number(r.bedrag)>0?`${O}/lidgeld?l=${encodeURIComponent(r.lidId)}&j=${JAAR}&b=${Number(r.bedrag)}&t=@@SIG@@`:O+"/inschrijven",link_banket:O+"/banket",link_kinderfeest:O+"/kinderfeest",link_inschrijven:O+"/inschrijven",link_kaart:O+"/kaart"}}
+    link_lidgeld:r.lidId&&Number(r.bedrag)>0?`${O}/lidgeld?l=${encodeURIComponent(r.lidId)}&j=${JAAR}&b=${Number(r.bedrag)}&t=@@SIG@@`:O+"/inschrijven",link_status:r.lidId?`${O}/status?l=${encodeURIComponent(r.lidId)}&j=${JAAR}&t=@@SIG@@`:O+"/reglement",link_reglement:O+"/reglement",link_banket:O+"/banket",link_kinderfeest:O+"/kinderfeest",link_inschrijven:O+"/inschrijven",link_kaart:O+"/kaart"}}
 const fmtBedrag=v=>{const n=Number(v);if(!isFinite(n))return String(v??"");return Number.isInteger(n)?String(n):n.toFixed(2).replace(".",",")};
 const mlLegacy=s=>String(s).split("Beste xnaamx,").join("Beste {voornaam},").split(/xnaamx xvoornaamx lidgeld \d{4}/).join("{mededeling}").split("xx euro").join("{bedrag} euro").split("xnaamx").join("{voornaam}");
 function vul(t,r,html){
@@ -4101,6 +4101,20 @@ document.addEventListener("change",async e=>{const i=e.target.closest&&e.target.
   i.disabled=true;try{const {data,error}=await SB.rpc("kf_cadeau",{p_id:id,p_aan:aan,p_door:ME_NAME||""});if(error)throw error;S.kinderfeest.set(id,{...(data||r),id});
     toast(aan?`Cadeaus van ${r.lid} doorgegeven.`:`Vinkje bij ${r.lid} weggehaald.`)}
   catch(x){i.checked=!aan;toast("Niet gelukt: "+(x.message||x),true)}finally{i.disabled=false;renderBody()}});
+/* ---------- export (knop "Exporteren"): met cadeauwaarde per kind en of de cadeaus doorgegeven zijn ---------- */
+{const _v=VIEWS.kinderfeest;const n=function(){const v=_v.apply(this,arguments);v.actions=String(v.actions||"").replace('<button class="btn primary" data-w data-act="kfNieuw">',`<button class="btn" data-act="kfExport">${ic("download")}Exporteren</button><button class="btn primary" data-w data-act="kfNieuw">`);return v};Object.assign(n,_v);VIEWS.kinderfeest=n}
+function kfGroepenC(t){return String(t||"").split(/\n+/).map(l=>l.match(/^\s*(\d{4})(?:\s*[-–]\s*(\d{4}))?\s*[:=]\s*(.+?)\s*$/)).filter(Boolean).map(m=>({van:Math.min(+m[1],+(m[2]||m[1])),tot:Math.max(+m[1],+(m[2]||m[1])),tekst:m[3]}))}
+kfExport=async function(){const st=kfStats(),c=st.c,M=kfMailCfg(),G=kfGroepenC(M.groepen),wb=XLSX.utils.book_new();
+  const waarde=geb=>{const y=Number(String(geb||"").slice(0,4)),g=G.find(g=>y>=g.van&&y<=g.tot);return g?g.tekst.replace(/\s*per kind\s*$/i,""):""};
+  const dg=r=>kfcAan(r)?"Ja":"Nee";
+  const kids=[];for(const r of st.L)for(const k of (r.kinderen||[])){const a=kfLeeftijd(k.geb,c.datum);kids.push({Kind:k.naam,Geboortedatum:fmtDate(k.geb),"Leeftijd op feest":a??"",Cadeautje:a==null||a<=c.leeftijd?"ja":"nee","Waarde cadeau":M.cadeau?waarde(k.geb):"",Lid:r.lid,"E-mail":r.email,"Cadeaus doorgegeven":dg(r)})}
+  kids.sort((a,b)=>(a["Leeftijd op feest"]===""?99:a["Leeftijd op feest"])-(b["Leeftijd op feest"]===""?99:b["Leeftijd op feest"])||String(a.Kind).localeCompare(String(b.Kind),"nl"));
+  const ws1=XLSX.utils.json_to_sheet(kids);ws1["!cols"]=[{wch:18},{wch:14},{wch:10},{wch:10},{wch:26},{wch:24},{wch:28},{wch:12}];XLSX.utils.book_append_sheet(wb,ws1,"Kinderen");
+  const ws2=XLSX.utils.json_to_sheet(st.L.map(r=>({Lid:r.lid,"E-mail":r.email,"Aantal kinderen":(r.kinderen||[]).length,Kinderen:(r.kinderen||[]).map(k=>k.naam).join(", "),"Cadeaus doorgegeven":dg(r),"Doorgegeven op":kfcAan(r)&&r.cadeau.op?fmtDate(String(r.cadeau.op).slice(0,10)):"",Ingeschreven:fmtDate(String(r.aangemeld||"").slice(0,10)),Bron:r.bron==="formulier"?"Website":"Manueel",Opmerking:r.opmerking||""})));
+  ws2["!cols"]=[{wch:24},{wch:28},{wch:8},{wch:30},{wch:12},{wch:12},{wch:12},{wch:10},{wch:30}];XLSX.utils.book_append_sheet(wb,ws2,"Inschrijvingen");
+  const ages=[];for(let a=0;a<=c.leeftijd;a++)ages.push({Leeftijd:a,"Aantal cadeautjes":st.per.get(a)||0});if(st.onbekend)ages.push({Leeftijd:"onbekend","Aantal cadeautjes":st.onbekend});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(ages),"Cadeautjes per leeftijd");
+  const out=XLSX.write(wb,{bookType:"xlsx",type:"array"});await save("VBHA_Kinderfeest_"+JAAR+".xlsx",new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}))};
 
 /* ============ Banket: korting volgens het puntensysteem ============
    Instelling (Banket › tandwiel): kortingAan + kostprijs (= prijs). De status komt uit de punten van het vorige jaar,
@@ -4132,6 +4146,16 @@ async function bkHerbereken(L){const bc=bkCfg();let n=0;
   toast(n?`${n} ${n===1?"inschrijving":"inschrijvingen"} herberekend.`:"Alle prijzen waren al juist.")}
 // prijs en korting tonen bij een inschrijving
 {const _f=bkForm;bkForm=function(r,id){_f(r,id);if(!id||!r||!r.korting)return;const e=$("#biErr");if(e)e.insertAdjacentHTML("beforebegin",`<div class="full bk-kr">${medal(r.status||"BRONS")}<span>${r.korting}% korting · <b>${eur(r.prijsPP)}</b> per persoon</span></div>`)}}
+/* ---------- export (knop "Exporteren") ---------- */
+{const _v=VIEWS.banket;const n=function(){const v=_v.apply(this,arguments);v.actions=String(v.actions||"").replace('<button class="btn primary" data-w data-act="bkNieuw">',`<button class="btn" data-act="bkExport">${ic("download")}Exporteren</button><button class="btn primary" data-w data-act="bkNieuw">`);return v};Object.assign(n,_v);VIEWS.banket=n}
+bkSheet=function(){return bkRows().map(x=>({Naam:x.r.naam,Formule:x.r.personen===2?"Met partner":"Alleen",Personen:x.r.personen===2?2:1,"Menu lid":x.r.menu1,"Menu partner":x.r.personen===2?x.r.menu2:"",Opmerking:x.r.opmerking||"",
+  Status:x.r.status?x.r.status.charAt(0)+x.r.status.slice(1).toLowerCase():"",Korting:x.r.korting?x.r.korting/100:"","Prijs per persoon":x.r.prijsPP!=null&&x.r.prijsPP!==""?num(x.r.prijsPP):num(bkCfg().prijs),
+  Bedrag:x.due,Betaald:x.p.ok?"Ja":x.p.deel?"Deels ("+x.p.bedrag+")":"Nee",Ingeschreven:x.r.ingediend||"",Bron:x.r.bron==="formulier"?"Website":"Manueel"}))};
+bkExport=function(){const ws=XLSX.utils.json_to_sheet(bkSheet());const R=XLSX.utils.decode_range(ws["!ref"]||"A1");
+  const kol=k=>Object.keys(bkSheet()[0]||{}).indexOf(k);const ck=kol("Korting"),cp=kol("Prijs per persoon"),cb=kol("Bedrag");
+  for(let r=1;r<=R.e.r;r++){for(const [c,z] of [[ck,"0%"],[cp,"€ #,##0.00"],[cb,"€ #,##0.00"]]){if(c<0)continue;const a=XLSX.utils.encode_cell({r,c});if(ws[a]&&typeof ws[a].v==="number")ws[a].z=z}}
+  ws["!cols"]=[{wch:26},{wch:12},{wch:9},{wch:12},{wch:12},{wch:30},{wch:9},{wch:9},{wch:15},{wch:12},{wch:10},{wch:13},{wch:10}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Banket "+JAAR);save("VBHA_Banket_"+JAAR+".xlsx",XLSX.write(wb,{type:"array",bookType:"xlsx"}))};
 
 /* ============ Instellingen enkel voor de administrator ============
    Andere profielen zien geen tandwieltjes of instellingenpagina's. Wat iedereen wel kan: "Meldingen op dit toestel" (eigen pagina).

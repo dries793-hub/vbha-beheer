@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { lidStatus } from "./status.js";
 import { admin, sendError, httpErr } from "./sb.js";
 import { epcPayload, qrSvg } from "./epc.js";
 import { onlineConfigured as bcConfigured } from "./betaalprovider.js";
@@ -13,21 +14,12 @@ async function info(sb) {
   const ins = inschrijving(c, A.jaar + "-12-01");
   return { ...A, prijs: Number(c.prijs) || 65, kortingAan: !!c.kortingAan, deadline: ins.totTekst.replace(/ \d{4}$/, ""), online: bcConfigured(), open: ins.open, tot: ins.tot, totTekst: ins.totTekst, gesloten: ins.gesloten };
 }
-/* korting volgens het puntensysteem: de status (brons/zilver/goud) komt uit de punten van het vorige jaar (reglement: punten uit
-   werkjaar X gelden in jaar X+1); het kortingspercentage uit de instellingen van het banketjaar. Erewacht = steeds goud. */
-const DEF = { gewichten: { kaarten: 1, kalenders: 25, shifts: 35, vergaderingen: 20 }, drempels: { zilver: 65, goud: 100 }, korting: { brons: 20, zilver: 35, goud: 50 } };
-async function jaarCfg(sb, Y) { const { data } = await sb.from("jaren").select("data").eq("id", String(Y)).maybeSingle(); const j = (data && data.data) || {};
-  return { gewichten: { ...DEF.gewichten, ...(j.gewichten || {}) }, drempels: { ...DEF.drempels, ...(j.drempels || {}) }, korting: { ...DEF.korting, ...(j.korting || {}) } }; }
+/* korting volgens het puntensysteem: status uit de punten van het vorige jaar (zie status.js) */
 export async function banketPrijs(sb, I, lidId) {
   const basis = I.prijs;
   if (!I.kortingAan || !lidId) return { prijs: basis, basis, status: null, korting: 0 };
-  const vorig = I.jaar - 1;
-  const [{ data: lid }, { data: jl }, cv, cj] = await Promise.all([sb.from("leden").select("data").eq("id", lidId).maybeSingle(), sb.from("jaarleden").select("data").eq("id", vorig + "_" + lidId).maybeSingle(), jaarCfg(sb, vorig), jaarCfg(sb, I.jaar)]);
-  const L = (lid && lid.data) || {}, j = (jl && jl.data) || {}, w = cv.gewichten;
-  const punten = (j.kaarten || 0) * w.kaarten + (j.kalUitgevoerd || 0) * w.kalenders + (j.shifts || 0) * w.shifts + (j.vergaderingen || 0) * w.vergaderingen + (j.extraPunten || 0);
-  const status = L.categorie === "Erewacht" ? "GOUD" : punten >= cv.drempels.goud ? "GOUD" : punten >= cv.drempels.zilver ? "ZILVER" : "BRONS";
-  const korting = Math.max(0, Math.min(100, Number(cj.korting[status.toLowerCase()]) || 0));
-  return { prijs: Math.round(basis * (100 - korting)) / 100, basis, status, korting, punten, puntenJaar: vorig };
+  const S = await lidStatus(sb, lidId, I.jaar);
+  return { prijs: Math.round(basis * (100 - S.korting)) / 100, basis, status: S.status, korting: S.korting, punten: S.punten, puntenJaar: S.puntenJaar };
 }
 const menu = v => /veg/i.test(String(v || "")) ? "Vegetarisch" : "Normaal";
 
