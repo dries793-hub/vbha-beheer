@@ -3077,7 +3077,7 @@ const fcLijst=()=>[...S.facturen.values()].sort((a,b)=>(!a.nr)-(!b.nr)||String(b
 const fcNaam=f=>(f.klant&&f.klant.naam)||"(geen klant)";
 
 VIEWS.facturen=()=>({title:"Facturen",sub:"Facturen en creditnota's met automatische opvolging van de betalingen",
-  actions:fcMag()?`<button class="btn" data-fc="instel" title="Instellingen facturatie">${ic("tandwiel")}<span class="fc-hl">Instellingen</span></button><button class="btn primary" data-fc="nieuw">${ic("plus")}Nieuwe factuur</button>`:"",
+  actions:fcMag()?`<button class="btn primary" data-fc="nieuw">${ic("plus")}Nieuwe factuur</button><button class="btn iconbtn" data-fc="instel" title="Instellingen facturatie" aria-label="Instellingen facturatie">${ic("instellingen")}</button>`:"",
   body(){
   const alle=fcLijst(),st=new Map(alle.map(f=>[f.id,fcStatus(f)]));
   const jaren=[...new Set(alle.map(f=>String(f.datum||"").slice(0,4)).filter(Boolean))].sort().reverse();
@@ -3388,7 +3388,7 @@ function spiDownload(soort){const q=spiQr(spiUrl());if(!q){toast("De QR-code kon
   for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))g.fillRect((c+m)*cel,(r+m)*cel,cel,cel);
   cv.toBlob(b=>{const u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=naam+".png";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000)},"image/png")}
 // knoppen op de sponsorpagina
-{const _s=VIEWS.sponsors;const n=function(){const v=_s.apply(this,arguments);v.actions=`<button class="btn" data-spi="open" title="Instellingen sponsoring" aria-label="Instellingen sponsoring">${ic("tandwiel")}</button><a class="btn" href="/sponsor" target="_blank" rel="noopener" title="Openbare inschrijfpagina voor sponsors">${ic("link")}<span class="fc-hl">Inschrijfpagina</span></a>`+(v.actions||"");
+{const _s=VIEWS.sponsors;const n=function(){const v=_s.apply(this,arguments);v.actions=`<a class="btn" href="/sponsor" target="_blank" rel="noopener" title="Openbare inschrijfpagina voor sponsors">${ic("link")}Inschrijfpagina</a>`+(v.actions||"")+`<button class="btn iconbtn" data-spi="open" title="Instellingen sponsoring" aria-label="Instellingen sponsoring">${ic("instellingen")}</button>`;
   const b=v.body;v.body=function(){return spiNieuwBlok()+b.apply(this,arguments)};return v};Object.assign(n,_s);VIEWS.sponsors=n}
 // nieuwe inschrijvingen bovenaan de sponsorpagina (en op het dashboard)
 function spiNieuwe(){return [...S.sponsors.values()].filter(s=>s.nieuw&&s.inschrijvingen).map(s=>{const L=Object.values(s.inschrijvingen).sort((a,b)=>String(b.op).localeCompare(String(a.op)));return{s,i:L[0]}}).filter(x=>x.i).sort((a,b)=>String(b.i.op).localeCompare(String(a.i.op)))}
@@ -3536,7 +3536,7 @@ async function vaBulkOk(btn){const err=$("#vaBulkErr");if(VA_BULK.some(x=>!x.dat
       const cur=S.vergaderingen.get(vid)||v;await write("vergaderingen",vid,{...stripId(cur),afgerond:{...(cur.afgerond||{}),op:(cur.afgerond&&cur.afgerond.op)||new Date().toISOString(),door:ME_NAME||"",verslagDoc:did,zonderMail:true}});ok++}
     catch(e){fout.push(x.file.name+": "+(e.message||e))}}
   closeModal();if(fout.length)modal("Verslagen opladen",`<p style="margin:0 0 8px">${ok} ${ok===1?"verslag":"verslagen"} opgeladen.</p><div class="note">${fout.map(esc).join("<br>")}</div>`,`<button class="btn primary" data-act="closeModal">Sluiten</button>`);else toast(`${ok} ${ok===1?"verslag":"verslagen"} opgeladen. Er werden geen mails verstuurd.`);AG.oud=true;render(true)}
-{const _a=VIEWS.agenda;const n=function(){const v=_a.apply(this,arguments);if(canWrite)v.actions=`<button class="btn" data-va="bulk">${ic("upload")}<span class="fc-hl">Verslagen opladen</span></button>`+(v.actions||"");return v};Object.assign(n,_a);VIEWS.agenda=n}
+{const _a=VIEWS.agenda;const n=function(){const v=_a.apply(this,arguments);if(canWrite)v.actions=`<button class="btn" data-va="bulk" title="Verslagen opladen">${ic("upload")}Verslagen</button>`+(v.actions||"");return v};Object.assign(n,_a);VIEWS.agenda=n}
 document.addEventListener("change",e=>{const t=e.target;
   if(t.id==="vaBulkF"){for(const f of t.files)if(!VA_BULK.some(x=>x.file.name===f.name&&x.file.size===f.size))VA_BULK.push({file:f,datum:vaDatumUitNaam(f.name)});VA_BULK.sort((a,b)=>String(a.datum).localeCompare(String(b.datum)));t.value="";vaBulkLijst()}
   if(t.classList&&t.classList.contains("va-bd")){VA_BULK[+t.dataset.i].datum=t.value;vaBulkLijst()}});
