@@ -4,6 +4,7 @@ import tls from "node:tls";
 import crypto from "node:crypto";
 
 export const smtpConfigured = () => !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+export const BCC = () => String(process.env.MAIL_BCC ?? "dries@vbha.be").trim().toLowerCase();
 export const afzender = () => ({ email: String(process.env.SMTP_FROM || process.env.SMTP_USER || "").trim(), naam: String(process.env.MAIL_FROM_NAAM || "").trim() });
 
 const b64 = s => Buffer.from(String(s), "utf8").toString("base64");
@@ -86,6 +87,9 @@ export async function verstuur(berichten) {
         await cmd(`MAIL FROM:<${van.email}>`, 250);
         await cmd(`RCPT TO:<${m.aan}>`, 25);
         for (const c of (Array.isArray(m.cc) ? m.cc : [])) { try { await cmd(`RCPT TO:<${c}>`, 25); } catch (e) { console.error("cc geweigerd", c, e.message); } }
+        // controlekopie (Bcc, niet zichtbaar voor de ontvanger) van elke uitgaande mail; bij bulkmails enkel bij de eerste (m.geenBcc)
+        const bcc = BCC();
+        if (bcc && !m.geenBcc && ![m.aan, ...(Array.isArray(m.cc) ? m.cc : [])].some(x => String(x || "").toLowerCase() === bcc)) { try { await cmd(`RCPT TO:<${bcc}>`, 25); } catch (e) { console.error("bcc geweigerd", e.message); } }
         await cmd("DATA", 354);
         const data = bouwBericht({ van, ...m }).replace(/^\./gm, "..");
         await cmd(data + "\r\n.", 250);
