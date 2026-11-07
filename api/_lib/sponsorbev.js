@@ -18,7 +18,7 @@ const ROOD = "#b30000", GRIJS = "#666666", LICHT = "#f4f1ea";
 const sponsorNaam = s => String(s.bedrijf || s.weergave || "").trim();
 const contactNaam = s => [s.voornaam, s.naam].filter(Boolean).join(" ").trim();
 
-export function bevPdf(b, s, cfg) {
+export function bevPdf(b, s, cfg, hand) {
   const pdf = new Pdf(), L = 50, R = 545, W = R - L;
   pdf.vlak(0, 0, 595, 6, ROOD);
   pdf.beeld(L, 30, 46, 46 * LOGO.h / LOGO.w, LOGO);
@@ -63,9 +63,10 @@ export function bevPdf(b, s, cfg) {
   }
   alinea(`Wij danken ${sponsorNaam(s)} hartelijk voor de steun.`, { kleur: "#222222" });
   y += 10;
-  pdf.tekst(L, y, `Aalst, ${dmy(b.opgemaakt)}`, { size: 10.5 }); y += 34;
+  pdf.tekst(L, y, `Aalst, ${dmy(b.opgemaakt)}`, { size: 10.5 }); y += 18;
+  if (hand) { const hw = 150, hh = hw * hand.h / hand.w; pdf.beeld(L - 4, y, hw, hh, hand); y += hh + 4; } else y += 16;
   if (b.ondertekenaar) { pdf.tekst(L, y, b.ondertekenaar, { size: 10.5, bold: true }); y += 14; }
-  pdf.tekst(L, y, (b.functie ? b.functie + ", " : "") + "namens de " + cfg.vereniging, { size: 9.5, kleur: GRIJS }); y += 30;
+  pdf.tekst(L, y, b.functie || "Namens de " + cfg.vereniging, { size: 9.5, kleur: GRIJS }); y += 30;
 
   // voet
   const wmW = 400, wmH = wmW * WATERMERK.h / WATERMERK.w;
@@ -92,6 +93,13 @@ function bevMail(b, s, cfg) {
   return { onderwerp: `Sponsorbevestiging ${b.nr} - ${cfg.vereniging}`, html: huisstijl(html, cfg.vereniging) };
 }
 
+// Handtekening (tabel "handtekeningen", enkel leesbaar voor de server): wordt enkel gebruikt als de ondertekenaar exact die naam heeft.
+const nmH = x => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z]+/g, " ").trim();
+async function handtekening(sb, naam) {
+  if (!naam) return null;
+  try { const { data } = await sb.from("handtekeningen").select("naam,beeld"); const r = (data || []).find(x => nmH(x.naam) === nmH(naam)); return r && r.beeld && r.beeld.w ? r.beeld : null; }
+  catch (e) { console.error("handtekening", e); return null; }
+}
 const isMail = a => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(a);
 const datumOk = d => !d || /^\d{4}-\d{2}-\d{2}$/.test(d);
 
@@ -125,9 +133,10 @@ export async function sponsorBevestiging(req, res) {
     ondertekenaar: String(b0.ondertekenaar || "").trim().slice(0, 80), functie: String(b0.functie || "").trim().slice(0, 60),
   };
   // voorbeeld (geen nummer, niet gelogd)
-  if (actie === "voorbeeld") { b.nr = "voorbeeld"; return res.status(200).json({ naam: pdfNaam(b, s), pdf: bevPdf(b, s, cfg).toString("base64") }); }
+  if (actie === "voorbeeld") { b.nr = "voorbeeld"; return res.status(200).json({ naam: pdfNaam(b, s), pdf: bevPdf(b, s, cfg, await handtekening(sb, b.ondertekenaar)).toString("base64") }); }
   b.nr = await volgNr(sb, Number(opgemaakt.slice(0, 4)));
-  const pdfb = bevPdf(b, s, cfg), log = { ...b, op: new Date().toISOString(), door: user.email || "" };
+  const hand = await handtekening(sb, b.ondertekenaar);
+  const pdfb = bevPdf(b, s, cfg, hand), log = { ...b, op: new Date().toISOString(), door: user.email || "" };
   if (actie === "mail") {
     const aan = String(b0.aan || s.email || "").trim();
     if (!isMail(aan)) throw httpErr(400, "Geen geldig e-mailadres voor deze sponsor.");

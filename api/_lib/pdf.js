@@ -70,7 +70,10 @@ export class Pdf {
     const catalog = add(null), pages = add(null);
     const f1 = add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
     const f2 = add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
-    const im = this.beelden.map(b => { const data = Buffer.from(b.data, "base64"); return add({ dict: `<< /Type /XObject /Subtype /Image /Width ${b.w} /Height ${b.h} /ColorSpace /${b.cs || "DeviceRGB"} /BitsPerComponent 8 /Filter /FlateDecode /Length ${data.length} >>`, data }); });
+    // beelden met transparantie (b.alpha: zlib-gecomprimeerd grijswaardenmasker) krijgen een /SMask
+    const im = this.beelden.map(b => { const data = Buffer.from(b.data, "base64");
+      let sm = ""; if (b.alpha) { const ad = Buffer.from(b.alpha, "base64"); sm = ` /SMask ${add({ dict: `<< /Type /XObject /Subtype /Image /Width ${b.w} /Height ${b.h} /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length ${ad.length} >>`, data: ad })} 0 R`; }
+      return add({ dict: `<< /Type /XObject /Subtype /Image /Width ${b.w} /Height ${b.h} /ColorSpace /${b.cs || "DeviceRGB"} /BitsPerComponent 8 /Filter /FlateDecode${sm} /Length ${data.length} >>`, data }); });
     const xo = im.length ? "/XObject << " + im.map((o, i) => `/Im${i} ${o} 0 R`).join(" ") + " >>" : "";
     const kids = [];
     for (const ops of this.paginas) {
