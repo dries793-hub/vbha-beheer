@@ -228,12 +228,17 @@ export function factuurPdf(f, cfg, { status } = {}) {
 export const pdfNaam = f => `${f.type === "credit" ? "Creditnota" : "Factuur"} ${f.nr || "concept"}.pdf`;
 
 /* ---------- mail ---------- */
+// aanspreking: bij sponsors enkel de voornaam van het contact (of gewoon "Beste,"); anders contact of naam
+function groetVan(k) {
+  if (k.sponsorId) { const vn = String(k.voornaam || String(k.contact || "").trim().split(/\s+/)[0] || "").trim(); return vn ? `Beste ${esc(vn)},` : "Beste,"; }
+  return `Beste ${esc(k.contact || k.naam || "")},`.replace(" ,", ",");
+}
 function vul(t, f, cfg, T) {
   return String(t || "").replace(/\{(\w+)\}/g, (m, k) => ({ naam: (f.klant && (f.klant.contact || f.klant.naam)) || "", nr: f.nr || "", bedrag: eur(T.totaal), vervaldatum: kort(f.vervaldatum), vereniging: cfg.vereniging }[k] ?? m));
 }
 export function factuurMail(f, cfg, soort = "factuur", status) {
   const T = totalen(f), k = f.klant || {}, credit = f.type === "credit";
-  const groet = `Beste ${esc(k.contact || k.naam || "")},`.replace(" ,", ",");
+  const groet = groetVan(k);
   const open = status ? status.open : T.totaal;
   let html = p(groet), onderwerp;
   if (credit) {
@@ -406,7 +411,7 @@ export async function factuurOnlineBetaald(sb, id) {
   const aan = String((f.klant && f.klant.email) || "").trim();
   if (aan) {
     const cfg = await fcConfig(sb);
-    const html = p(`Beste ${esc((f.klant && (f.klant.contact || f.klant.naam)) || "")},`.replace(" ,", ","))
+    const html = p(groetVan(f.klant || {}))
       + kaderBlok("&#10003; Betaling ontvangen", p(`We ontvingen je betaling van <b>${eur(b.bedrag)}</b> voor factuur <b>${esc(f.nr)}</b> via Bancontact. Hartelijk dank!`, "margin:0"), "#1a7f45", "#f1faf4");
     // de factuur met de vermelding "BETAALD (Bancontact)" mee in bijlage
     let bijlagen;

@@ -81,7 +81,8 @@ const pdfNaam = (b, s) => `Sponsorbevestiging ${b.nr} ${sponsorNaam(s)}.pdf`.rep
 
 function bevMail(b, s, cfg) {
   const natura = b.soort !== "geld";
-  let html = p(`Beste ${esc(contactNaam(s) || sponsorNaam(s))},`)
+  const vn = String(s.voornaam || "").trim();
+  let html = p(vn ? `Beste ${esc(vn)},` : "Beste,")
     + p(`Hartelijk dank voor je steun aan de ${esc(cfg.vereniging)}. Zoals gevraagd vind je in bijlage de bevestiging van je sponsoring voor je boekhouding.`)
     + kaderBlok("Sponsorbevestiging " + esc(b.nr), tabel([
       rij("Omschrijving", esc(b.omschrijving)),
