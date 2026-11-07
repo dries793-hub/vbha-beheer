@@ -2374,8 +2374,9 @@ const docVeilig=n=>String(n).normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^
    Een map is een pad ("Verslagen", "Verslagen/2026"). Vaste hoofdmappen = DOC_MAPPEN; eigen mappen in config "documenten".mappen;
    mappen waar documenten in zitten bestaan ook altijd. */
 const docPad=d=>d.map||"Andere";
+const DOC_VAST=["Sponsors/Logo's"]; // vaste submappen (de app/website bewaart erin)
 const docEigen=()=>((S.config&&S.config.get("documenten"))||{}).mappen||[];
-function docMappen(){const s=new Set(DOC_MAPPEN);for(const m of docEigen())s.add(m);for(const d of S.documenten.values())s.add(docPad(d));
+function docMappen(){const s=new Set([...DOC_MAPPEN,...DOC_VAST]);for(const m of docEigen())s.add(m);for(const d of S.documenten.values())s.add(docPad(d));
   for(const m of [...s]){const p=m.split("/");for(let i=1;i<p.length;i++)s.add(p.slice(0,i).join("/"))}return [...s].sort(docSort)}
 function docSort(a,b){const A=a.split("/"),B=b.split("/");for(let i=0;i<Math.min(A.length,B.length);i++){if(A[i]===B[i])continue;
     if(i===0){const r=x=>x==="Andere"?999:DOC_MAPPEN.includes(x)?DOC_MAPPEN.indexOf(x):500;if(r(A[0])!==r(B[0]))return r(A[0])-r(B[0])}
@@ -2389,7 +2390,7 @@ function docLijst(){const q=norm(DOC.q);let L=[...S.documenten.values()];
   if(q)L=L.filter(d=>norm([d.naam,docPad(d),d.omschrijving,d.door].join(" ")).includes(q));else L=L.filter(d=>docPad(d)===DOC.map);
   return L.sort((a,b)=>String(b.op||"").localeCompare(String(a.op||"")))}
 function docMapGrid(){const K=docKind(DOC.map);if(!K.length)return "";
-  return `<div class="doc-fold-g">${K.map(m=>{const n=docIn(m,true).length,sub=docKind(m).length,eigen=!DOC_MAPPEN.includes(m);
+  return `<div class="doc-fold-g">${K.map(m=>{const n=docIn(m,true).length,sub=docKind(m).length,eigen=!DOC_MAPPEN.includes(m)&&!DOC_VAST.some(v=>v===m||v.startsWith(m+"/"));
     return `<div class="doc-fold" data-map="${esc(m)}"><button type="button" class="doc-fold-b" data-act="docMapF" data-v="${esc(m)}">${ic("documenten")}<span><b>${esc(docNaamVan(m))}</b><small>${n?n+" document"+(n===1?"":"en"):"leeg"}${sub?" · "+sub+" map"+(sub===1?"":"pen"):""}</small></span></button>
     ${canWrite&&eigen?`<button type="button" class="doc-fold-e" data-act="docMapEdit" data-v="${esc(m)}" aria-label="Map ${esc(docNaamVan(m))} wijzigen" title="Map wijzigen">${ic("instellingen")}</button>`:""}</div>`}).join("")}</div>`}
 function docKruim(){const p=DOC.map?DOC.map.split("/"):[];
@@ -3468,6 +3469,23 @@ function spiNieuwBlok(){const L=spiNieuwe();if(!L.length)return"";
 {const _f=sponsorForm;sponsorForm=function(s,id){_f(s,id);if(!id||!s||!s.inschrijvingen)return;const L=Object.values(s.inschrijvingen).sort((a,b)=>String(b.kj).localeCompare(String(a.kj)));
   const h=`<div class="full spi-ins"><b>Inschrijvingen via de website</b>${L.map(i=>`<div><span>Kalender ${esc(i.kj)}: <b>${esc(i.formuleNaam)}</b> · ${eur(i.bedrag)}</span><span class="muted small">${i.op?new Date(i.op).toLocaleDateString("nl-BE"):""}${i.factuurNr?` · <a href="#facturen" data-spi="fact" data-id="${esc(i.factuurId)}">factuur ${esc(i.factuurNr)}</a>`:i.factuur?" · factuur gevraagd":""}${i.bevestigd===false?" · bevestiging niet verstuurd":""}</span></div>`).join("")}</div>`;
   const e=$("#spErr");if(e)e.insertAdjacentHTML("beforebegin",h)}}
+/* logo van de sponsor (Documenten › Sponsors › Logo's) */
+const SP_LOGO_MAP="Sponsors/Logo's";
+const spLogo=(s,id)=>[...S.documenten.values()].filter(d=>d.map===SP_LOGO_MAP&&(d.sponsorId===id||(s&&s.logoId===d.id))).sort((a,b)=>String(b.op||"").localeCompare(String(a.op||"")))[0]||null;
+function spLogoHtml(s,id){const d=spLogo(s,id);
+  return `<span class="spl-ic">${ic("documenten")}</span><span class="spl-t">${d?`<b>Logo</b> <a href="#" data-spl="open" data-id="${esc(d.id)}">${esc(d.naam)}</a>`:`<b>Logo</b> <span class="pill warn">nog niet ontvangen</span>`}</span>${canWrite?`<label class="btn sm" for="splF">${ic("upload")}${d?"Ander logo":"Logo opladen"}</label><input type="file" id="splF" data-sid="${esc(id)}" hidden accept=".png,.jpg,.jpeg,.svg,.pdf,.eps,.ai,.webp,.tif,.tiff">`:""}`}
+{const _f=sponsorForm;sponsorForm=function(s,id){_f(s,id);if(!id)return;const e=$("#spErr");if(e)e.insertAdjacentHTML("beforebegin",`<div class="full spl" id="splR">${spLogoHtml(s,id)}</div>`)}}
+document.addEventListener("click",async e=>{const t=e.target.closest('[data-spl="open"]');if(!t)return;e.preventDefault();const d=S.documenten.get(t.dataset.id);if(d)docOpen(d,false)});
+document.addEventListener("change",async e=>{if(e.target.id!=="splF")return;const f=e.target.files[0],sid=e.target.dataset.sid;e.target.value="";if(!f)return;
+  if(f.size>50*1048576){toast("Het logo is groter dan 50 MB.",true);return}
+  const s=S.sponsors.get(sid)||{},naam=spNaam?spNaam(s):(s.bedrijf||"sponsor"),ext=docExt(f.name)||"bin",id=agId("doc"),pad=`Sponsors/${id}-${docVeilig(norm(naam).replace(/\s+/g,"-")+"-logo."+ext)}`;
+  const r=$("#splR");if(r)r.innerHTML=`<span class="muted small">Logo wordt opgeladen…</span>`;
+  try{const {error}=await SB.storage.from(DOC_BUCKET).upload(pad,f,{contentType:f.type||"application/octet-stream",upsert:false});if(error)throw error;
+    const d={naam:`Logo ${naam}.${ext}`,pad,map:SP_LOGO_MAP,grootte:f.size,type:f.type||"",omschrijving:`Logo ${naam} · origineel: ${f.name}`,door:ME_NAME||"",op:new Date().toISOString(),sponsorId:sid};
+    S.documenten.set(id,{...d,id});await write("documenten",id,d);toast("Logo bewaard in Documenten › Sponsors › Logo's.")}
+  catch(x){toast("Opladen lukte niet: "+(x.message||x),true)}
+  const r2=$("#splR");if(r2)r2.innerHTML=spLogoHtml(S.sponsors.get(sid),sid)});
+
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-spi]");if(!t)return;const a=t.dataset.spi;
   if(a==="open")spiInstel();else if(a==="ok")spiBewaar();else if(a==="png"||a==="svg")spiDownload(a);
   else if(a==="kopie"){try{await navigator.clipboard.writeText(spiUrl());toast("Link gekopieerd.")}catch(x){prompt("Link",spiUrl())}}

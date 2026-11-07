@@ -42,6 +42,31 @@ const okMail = e => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(e);
 async function alleSponsors(sb) { const { data, error } = await sb.from("sponsors").select("id,data").limit(2000); if (error) throw error; return data || []; }
 
 /* ---------- mails ---------- */
+/* ---------- logo: meegestuurd als base64, bewaard in Documenten › Sponsors › Logo's ---------- */
+export const LOGO_MAP = "Sponsors/Logo's";
+const LOGO_TYPES = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif", svg: "image/svg+xml", pdf: "application/pdf", eps: "application/postscript", ai: "application/postscript", tif: "image/tiff", tiff: "image/tiff" };
+const LOGO_MAX = 3.5 * 1048576;
+const veiligNaam = n => String(n).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9._-]+/g, "_").replace(/_+/g, "_").slice(-80) || "logo";
+function logoUit(b) {
+  const l = b && b.logo; if (!l || typeof l.data !== "string" || !l.data) return null;
+  const naam = String(l.naam || "logo").slice(0, 120), ext = (naam.match(/\.([a-z0-9]{2,5})$/i) || [])[1]?.toLowerCase() || "";
+  if (!LOGO_TYPES[ext]) throw httpErr(400, "Dit bestandstype kunnen we niet aanvaarden als logo. Gebruik PNG, JPG, SVG, PDF, EPS of AI.");
+  const data = Buffer.from(l.data.replace(/^data:[^,]*,/, ""), "base64");
+  if (data.length < 50) throw httpErr(400, "Het logo lijkt leeg te zijn.");
+  if (data.length > LOGO_MAX) throw httpErr(413, "Het logo is te groot (max. 3,5 MB). Stuur het dan via mail.");
+  return { naam, ext, type: LOGO_TYPES[ext], data };
+}
+async function bewaarLogo(sb, logo, d, id, kj) {
+  const did = "doc-" + Date.now().toString(36) + crypto.randomBytes(3).toString("hex");
+  const pad = `Sponsors/${did}-${veiligNaam(slug(d.bedrijf).slice(0, 40) + "-logo." + logo.ext)}`;
+  const { error } = await sb.storage.from("documenten").upload(pad, logo.data, { contentType: logo.type, upsert: false });
+  if (error) throw error;
+  const { error: e2 } = await sb.from("documenten").insert({ id: did, data: { naam: `Logo ${d.bedrijf}.${logo.ext}`, pad, map: LOGO_MAP, grootte: logo.data.length, type: logo.type,
+    omschrijving: `Logo ${d.bedrijf} · kalender ${kj} · origineel: ${logo.naam}`, door: "Sponsorformulier", op: new Date().toISOString(), sponsorId: id } });
+  if (e2) throw e2;
+  return did;
+}
+
 function bevestigingMail(d, ins, C, { factuur, link, mededeling, nieuw }) {
   const vn = String(d.voornaam || "").trim();
   let html = p(vn ? `Beste ${esc(vn)},` : "Beste,")
@@ -51,12 +76,13 @@ function bevestigingMail(d, ins, C, { factuur, link, mededeling, nieuw }) {
   html += kaderBlok("Betalen", tabel([rij("Bedrag", `<b>${eur(ins.bedrag)}</b>`), rij("Rekening", `<b>${esc(String(C.iban).replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim())}</b>`), rij("Begunstigde", esc(C.vereniging)), rij("Mededeling", `<b>${esc(mededeling)}</b>`), rij("Te betalen vóór", `<b>${esc(datumTekst(C.deadline))}</b>`)])
     + p("Gebruik exact deze mededeling, dan wordt uw betaling automatisch herkend.", "margin:10px 0 0;font-size:13.5px;color:#666666"))
     + knop("Online betalen met Bancontact of QR-code", link)
-    + p(`Bezorg ons ook uw <b>logo</b> (liefst in hoge resolutie of als vectorbestand) via <a href="mailto:${esc(C.logoMail)}">${esc(C.logoMail)}</a>, of antwoord gewoon op deze mail.`);
+    + (ins.logo ? p("We ontvingen ook uw <b>logo</b>. Hartelijk dank!")
+      : p(`<b>We ontvingen nog geen logo.</b> Stuur uw logo (liefst in hoge resolutie of als vectorbestand) nog door naar <a href="mailto:${esc(C.logoMail)}">${esc(C.logoMail)}</a>, of antwoord gewoon op deze mail.`));
   return { onderwerp: `Bevestiging sponsoring brandweerkalender ${ins.kj}${factuur ? " - factuur " + factuur.nr : ""}`, html: huisstijl(html, C.vereniging) };
 }
 function meldingMail(d, ins, C, nieuw) {
   const html = p(`${nieuw ? "Nieuwe sponsor" : "Sponsoring vernieuwd"} via de inschrijfpagina.`)
-    + kaderBlok(esc(d.bedrijf), tabel([rij("Formule", esc(ins.formuleNaam)), rij("Bedrag", eur(ins.bedrag)), rij("Factuur", ins.factuur ? "ja" + (ins.factuurNr ? " (" + esc(ins.factuurNr) + ")" : "") : "nee"),
+    + kaderBlok(esc(d.bedrijf), tabel([rij("Formule", esc(ins.formuleNaam)), rij("Bedrag", eur(ins.bedrag)), rij("Factuur", ins.factuur ? "ja" + (ins.factuurNr ? " (" + esc(ins.factuurNr) + ")" : "") : "nee"), rij("Logo", ins.logo ? "opgeladen (Documenten › Sponsors › Logo's)" : "<b>nog niet ontvangen</b>"),
       rij("Contact", esc([d.voornaam, d.naam].filter(Boolean).join(" "))), rij("E-mail", esc(d.email)), rij("Telefoon", esc(d.telefoon)), rij("Adres", esc(d.adres)), rij("Btw", esc(d.kbo))]))
     + p("Je vindt de sponsor in VBHA Beheer › Sponsors.");
   return { onderwerp: `${nieuw ? "Nieuwe sponsor" : "Sponsoring vernieuwd"}: ${d.bedrijf} (${ins.formuleNaam}, ${eur(ins.bedrag)})`, html: huisstijl(html, C.vereniging) };
@@ -90,7 +116,7 @@ export default async function handler(req, res) {
       bedrijf: clean(b.bedrijf, 120), voornaam: clean(b.voornaam, 60), naam: clean(b.naam, 80), adres: clean([b.straat, b.gemeente].filter(Boolean).join(", "), 200),
       kbo: clean(b.btw, 30).toUpperCase().replace(/\s+/g, ""), email: clean(b.email, 120).toLowerCase(), telefoon: clean(b.telefoon, 40),
     };
-    const wilFactuur = !!b.factuur;
+    const wilFactuur = !!b.factuur, logo = logoUit(b);
     let id = String(b.sponsorId || ""), oud = null;
     if (id) { const { data } = await sb.from("sponsors").select("id,data").eq("id", id).maybeSingle(); if (!data) throw httpErr(400, "Deze sponsor werd niet gevonden. Kies 'Nieuwe sponsor'."); oud = data.data || {}; }
     const d = { ...(oud || {}) };
@@ -106,6 +132,10 @@ export default async function handler(req, res) {
     d.inschrijvingen = { ...(d.inschrijvingen || {}), [kj]: ins };
     const { error } = await sb.from("sponsors").upsert({ id, data: d });
     if (error) throw error;
+    if (logo) {
+      try { const did = await bewaarLogo(sb, logo, d, id, kj); ins.logo = true; ins.logoId = did; d.logoId = did; d.inschrijvingen[kj] = ins; await sb.from("sponsors").update({ data: d }).eq("id", id); }
+      catch (e) { console.error("logo sponsor", e); ins.logo = false; }
+    }
 
     // factuur (in het facturatiesysteem, definitief met uniek nummer en gestructureerde mededeling)
     let factuur = null, fcfg = null;
@@ -149,7 +179,7 @@ export default async function handler(req, res) {
     let qr = null;
     try { qr = qrSvg(epcPayload({ naam: C.vereniging, iban: C.iban, bedrag, mededeling })); } catch (e) { console.error("QR", e); }
     res.status(200).json({ ok: true, nieuw, bedrijf: d.bedrijf, formule: formuleNaam, bedrag, kalenderjaar: kj, mededeling, rekeningnummer: C.iban, begunstigde: C.vereniging, qr,
-      deadlineTekst: datumTekst(C.deadline), factuur: factuur ? { nr: factuur.nr } : null, betaalLink: link, online: onlineConfigured() });
+      deadlineTekst: datumTekst(C.deadline), factuur: factuur ? { nr: factuur.nr } : null, logo: !!ins.logo, logoMail: C.logoMail, betaalLink: link, online: onlineConfigured() });
   } catch (e) { sendError(res, e); }
 }
 
