@@ -3614,7 +3614,7 @@ const inkDatum=d=>String((d.inkomend&&d.inkomend.ontvangen)||d.op||"").slice(0,1
 /* ---------- tekst uit de PDF en voorstel van transacties ---------- */
 async function inkLees(d){if(INK.txt.has(d.id)||INK.bezig.has(d.id)||!/pdf/i.test(d.type||d.naam))return;INK.bezig.add(d.id);
   try{const r=await fetch(await docUrl(d,false));const f=new File([await r.blob()],d.naam,{type:"application/pdf"});INK.txt.set(d.id,inkAnalyse(await vaTekst(f)))}
-  catch(e){console.warn("pdf lezen",e);INK.txt.set(d.id,{fout:true})}finally{INK.bezig.delete(d.id);if(route()==="inkomend")inkHerteken()}}
+  catch(e){console.warn("pdf lezen",e);INK.txt.set(d.id,{fout:true})}finally{INK.bezig.delete(d.id);if(route()==="inkomend")inkHerteken();inkAutoPlan()}}
 function inkAnalyse(t){const tekst=String(t||""),bedragen=[],tot=[];
   const re=/(?:€|EUR)?\s*(-?\d{1,3}(?:[.\s ]\d{3})*,\d{2}|-?\d+,\d{2}|-?\d+\.\d{2})(?!\d)/g;
   for(const lijn of tekst.split(/\n/)){let m;const isTot=/totaal|te betalen|total|bedrag|saldo|amount due|à payer/i.test(lijn);
@@ -3634,7 +3634,7 @@ function inkVoorstel(d){const A=INK.txt.get(d.id);if(!A||A.fout)return[];const d
 
 /* ---------- pagina ---------- */
 function inkRij(d){const L=inkBoekVan(d.id),nieuw=d.inkomend&&d.inkomend.nieuw&&!L.length,m=inkMag();
-  const kop=`<div class="ink-k"><button type="button" class="ink-n" data-ink="pdf" data-id="${esc(d.id)}" title="Openen">${ic("verslagen")}<span><b>${esc(inkVan(d)||d.naam)}</b><span class="muted small">${esc(d.naam)}${inkDatum(d)?" · "+fmtDate(inkDatum(d)):""}${d.inkomend&&d.inkomend.van?" · via "+esc(d.inkomend.van):""}</span></span></button>${nieuw?'<span class="pill info">nieuw</span>':""}${L.length?'<span class="pill ok">✓ gekoppeld</span>':""}</div>`;
+  const kop=`<div class="ink-k"><button type="button" class="ink-n" data-ink="pdf" data-id="${esc(d.id)}" title="Openen">${ic("verslagen")}<span><b>${esc(inkVan(d)||d.naam)}</b><span class="muted small">${esc(d.naam)}${inkDatum(d)?" · "+fmtDate(inkDatum(d)):""}${d.inkomend&&d.inkomend.van?" · via "+esc(d.inkomend.van):""}</span></span></button>${nieuw?'<span class="pill info">nieuw</span>':""}${L.length?'<span class="pill ok">✓ gekoppeld</span>':""}${L.length&&d.inkomend&&d.inkomend.auto?'<span class="pill info" title="'+esc(d.inkomend.autoWaarom||"")+'">automatisch</span>':""}</div>`;
   if(L.length)return `<div class="ink-r">${kop}<div class="ink-b">${L.map(b=>`<div class="ink-t"><span>${fmtDate(b.datum)} · <b>${esc(b.partij||b.mededeling||"")}</b> · ${eur(b.bedrag)}${b.categorie?` · <span class="muted">${esc(b.categorie)}</span>`:""}</span>${m?`<button type="button" class="btn sm ghost" data-ink="los" data-id="${esc(b.id)}">Ontkoppelen</button>`:""}</div>`).join("")}</div></div>`;
   const A=INK.txt.get(d.id),V=inkVoorstel(d);if(!A)inkLees(d);
   const kand=[...S.boekingen.values()].filter(b=>b.richting==="uit"&&!b.documentId).sort((a,b)=>String(b.datum).localeCompare(String(a.datum))).slice(0,250);
@@ -3678,7 +3678,33 @@ async function inkKoppel(did,bid){const b=S.boekingen.get(bid),d=S.documenten.ge
   const nb={...stripId(b),documentId:did};S.boekingen.set(bid,{...nb,id:bid});dirty=true;await write("boekingen",bid,nb);
   if(d.inkomend&&d.inkomend.nieuw){try{await write("documenten",did,{...stripId(d),inkomend:{...d.inkomend,nieuw:false}})}catch(e){}}
   toast("Gekoppeld aan de transactie van "+fmtDate(b.datum)+".");renderBody()}
-async function inkLos(bid){const b=S.boekingen.get(bid);if(!b)return;const nb={...stripId(b)};delete nb.documentId;S.boekingen.set(bid,{...nb,id:bid});dirty=true;await write("boekingen",bid,nb);toast("Ontkoppeld.");if(route()==="inkomend")renderBody()}
+async function inkLos(bid){const b=S.boekingen.get(bid);if(!b)return;{const d=b.documentId&&S.documenten.get(b.documentId);if(d&&d.inkomend){try{await write("documenten",d.id,{...stripId(d),inkomend:{...d.inkomend,auto:false,nieuw:false,geenAuto:true}})}catch(e){}}}const nb={...stripId(b)};delete nb.documentId;S.boekingen.set(bid,{...nb,id:bid});dirty=true;await write("boekingen",bid,nb);toast("Ontkoppeld.");if(route()==="inkomend")renderBody()}
+/* ---------- automatisch koppelen ----------
+   Enkel als de match zeker is: exact hetzelfde totaalbedrag én (gestructureerde mededeling, factuurnummer of naam leverancier),
+   één duidelijke beste kandidaat (≥3 punten voor op de tweede) en die transactie is voor geen andere factuur de beste keuze.
+   Draait in de app (PDF-tekst lezen gebeurt hier) bij admin/boekhouder, na het laden en telkens als er transacties bijkomen. */
+let INK_AUTO_T=null,INK_AUTO_BEZIG=false;
+function inkAutoPlan(){clearTimeout(INK_AUTO_T);INK_AUTO_T=setTimeout(inkAuto,1500)}
+function inkAutoKies(d){const V=inkVoorstel(d);if(!V.length)return null;const x=V[0];
+  if(x.sc<8||!x.w.includes("zelfde bedrag")||!x.w.some(w=>w!=="zelfde bedrag"))return null;
+  if(V[1]&&x.sc-V[1].sc<3)return null;return x}
+async function inkAuto(){if(INK_AUTO_BEZIG||!inkMag()||(typeof ROL_ECHT!=="undefined"&&ROL_ECHT&&ROL_ECHT!==ROL))return;
+  if(!S.documenten||!S.boekingen||!S.boekingen.size)return;
+  const grens=new Date(Date.now()-200*864e5).toISOString().slice(0,10);
+  const D=inkDocs().filter(d=>!inkBoekVan(d.id).length&&!(d.inkomend&&d.inkomend.geenAuto)&&inkDatum(d)>=grens);if(!D.length)return;
+  INK_AUTO_BEZIG=true;let n=0;
+  try{for(const d of D){if(!INK.txt.has(d.id)){if(INK.bezig.size<3)inkLees(d);continue}
+      const x=inkAutoKies(d);if(!x)continue;
+      // dezelfde transactie mag niet ook de beste keuze zijn voor een andere factuur
+      if(D.some(o=>o!==d&&INK.txt.has(o.id)&&(inkAutoKies(o)||{}).b===x.b))continue;
+      const b=x.b,nb={...stripId(b),documentId:d.id};
+      try{S.boekingen.set(b.id,{...nb,id:b.id});dirty=true;await write("boekingen",b.id,nb);
+        const ink={...(d.inkomend||{}),auto:true,nieuw:true,autoOp:new Date().toISOString(),autoWaarom:x.w.join(", ")};
+        S.documenten.set(d.id,{...d,inkomend:ink});await write("documenten",d.id,{...stripId(d),inkomend:ink});n++}
+      catch(e){console.warn("auto koppelen",e)}}}
+  finally{INK_AUTO_BEZIG=false}
+  if(n){toast(n===1?"Een inkomende factuur werd automatisch aan de transactie gekoppeld.":n+" inkomende facturen werden automatisch gekoppeld.");if(["dashboard","inkomend"].includes(route()))renderBody()}}
+{let sig="";setInterval(()=>{if(!S.boekingen||!S.documenten)return;const t=S.boekingen.size+"|"+S.documenten.size;if(t!==sig){sig=t;inkAutoPlan()}},5000)}
 async function inkOpladen(files){let n=0;for(const f of files){try{if(f.size>25*1048576){toast(f.name+" is groter dan 25 MB.",true);continue}
     const id=agId("doc"),pad=`${INK_MAP}/${id}-${docVeilig(f.name)}`;const {error}=await SB.storage.from(DOC_BUCKET).upload(pad,f,{contentType:f.type||"application/pdf",upsert:false});if(error)throw error;
     await write("documenten",id,{naam:f.name,pad,map:INK_MAP,grootte:f.size,type:f.type||"application/pdf",omschrijving:"",door:ME_NAME||"",op:new Date().toISOString(),inkomend:{ontvangen:new Date().toISOString(),nieuw:true,opgeladen:true}});n++}
@@ -3690,6 +3716,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ink]
   else if(a==="koppel")inkKoppel(id,t.dataset.b);
   else if(a==="kies"){const s=document.querySelector(`[data-ink-sel="${CSS.escape(id)}"]`);if(!s||!s.value){toast("Kies eerst een transactie.",true);return}inkKoppel(id,s.value)}
   else if(a==="los")inkLos(id);
+  else if(a==="autoGezien"){t.disabled=true;for(const did of id.split(",")){const d=S.documenten.get(did);if(d&&d.inkomend){const ink={...d.inkomend,nieuw:false};S.documenten.set(did,{...d,inkomend:ink});try{await write("documenten",did,{...stripId(d),inkomend:ink})}catch(x){}}}renderBody()}
   else if(a==="weg"){const d=S.documenten.get(id);if(!d)return;confirmBox(`Factuur <b>${esc(d.naam)}</b> verwijderen?`,"Verwijderen",async()=>{try{await SB.storage.from(DOC_BUCKET).remove([d.pad])}catch(x){}await write("documenten",id,null,{del:true});toast("Verwijderd.")})}
   else if(a==="instel"){if(!INK.srv)await inkSrv();inkInstel()}
   else if(a==="instelOk"){const f=inkLeesForm(),err=$("#ikErr");if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(f.adres)){err.textContent="Vul een geldig e-mailadres in.";return}
@@ -3707,6 +3734,8 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ink]
 // dashboard: nieuwe facturen te koppelen
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){let x="";if(inkMag()){const L=inkDocs().filter(d=>!inkBoekVan(d.id).length&&d.inkomend&&d.inkomend.nieuw);
     if(L.length)x=`<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("inkomend")}</span><div class="nm-body"><b>${L.length===1?"Een inkomende factuur":L.length+" inkomende facturen"} te koppelen</b><div class="nm-l">${L.slice(0,5).map(d=>`<a class="nm-i" href="#inkomend"><b>${esc(inkVan(d)||d.naam)}</b><span>${fmtDate(inkDatum(d))}</span></a>`).join("")}</div></div></div>`}
+    const A=!inkMag()?[]:inkDocs().filter(d=>d.inkomend&&d.inkomend.auto&&d.inkomend.nieuw).map(d=>({d,b:inkBoekVan(d.id)[0]})).filter(x=>x.b);
+    if(A.length)x+=`<div class="nmeld dm-b" role="status"><span class="nm-ic">${ic("inkomend")}</span><div class="nm-body"><b>${A.length===1?"Een inkomende factuur":A.length+" inkomende facturen"} automatisch gekoppeld</b><div class="nm-l">${A.slice(0,5).map(({d,b})=>`<a class="nm-i" href="#inkomend"><b>${esc(inkVan(d)||d.naam)}</b><span>${eur(b.bedrag)} · transactie ${fmtDate(b.datum)}</span></a>`).join("")}</div></div><button type="button" class="nm-x" data-ink="autoGezien" data-id="${esc(A.map(x=>x.d.id).join(","))}" title="Gezien" aria-label="Gezien">${ic("x")}</button></div>`;
     return x+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 document.addEventListener("input",e=>{if(e.target.id==="ikA"){const h=INK_HOSTS[(e.target.value.split("@")[1]||"").toLowerCase()];if(h&&$("#ikH"))$("#ikH").value=h}});
 
