@@ -1,4 +1,5 @@
 import { admin, sendError, httpErr } from "./sb.js";
+import { stuurBevestiging } from "./bevestiging.js";
 import { clean, body, nieuwId, algemeen, configDoc, spamCheck, actieveLeden, inschrijving } from "./publiek.js";
 
 // Openbare inschrijving kinderfeest: komt rechtstreeks in Administratie › Kinderfeest.
@@ -31,8 +32,10 @@ export default async function handler(req, res) {
     if (!kinderen.length) throw httpErr(400, "Voeg minstens één kind toe.");
     if (kinderen.some(k => !k.geb)) throw httpErr(400, "Vul voor elk kind een geldige geboortedatum in.");
     const d = { jaar: I.jaar, lid, lidId: lidRij.id, email, opmerking: clean(b.opmerking, 400), kinderen, bron: "formulier", aangemeld: new Date().toISOString(), nieuw: true };
-    const { error } = await sb.from("kinderfeest").insert({ id: nieuwId("web"), data: d });
+    const kid = nieuwId("web");
+    const { error } = await sb.from("kinderfeest").insert({ id: kid, data: d });
     if (error) throw error;
+    try { await stuurBevestiging(sb, "kinderfeest", kid); } catch (e) { console.error("bevestiging", e); }
     res.status(200).json({ ok: true, ...I, kinderen });
   } catch (e) { sendError(res, e); }
 }

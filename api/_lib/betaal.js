@@ -1,4 +1,5 @@
 import { maakBetaling, haalBetaling, EIND, providerNaam } from "./betaalprovider.js";
+import { betalingGelukt } from "./bevestiging.js";
 
 // Online betalingen (Mollie of Bancontact Pay) voor records in de tabellen "leden" (lidgeld) en "banket".
 // Elk record bewaart zijn betaling in data.betaling = {id, status, bedrag, jaar, deeplink, qrcode, ...}.
@@ -47,6 +48,7 @@ export async function controleerBetaling(sb, tabel, row) {
   const betaling = { ...cur, status: p.status, betaaldOp: p.betaaldOp || cur.betaaldOp || null };
   if (p.status !== cur.status) await bewaar(sb, tabel, row.id, { ...d, betaling });
   if (p.status === "SUCCEEDED" && tabel === "leden") await zetLidgeldBetaald(sb, row.id, cur.jaar, p);
+  if (p.status === "SUCCEEDED" && cur.status !== "SUCCEEDED") { try { await betalingGelukt(sb, tabel, row.id); } catch (e) { console.error("bevestiging", e); } }
   return betaling;
 }
 
