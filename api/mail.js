@@ -6,6 +6,7 @@ import { bevestigingenCron, kfVoorbeeld } from "./_lib/bevestiging.js";
 import { factuurActie } from "./_lib/factuur.js";
 import { pushApi } from "./_lib/push.js";
 import { inkomendApi } from "./_lib/inkomend.js";
+import { inWachtrij, wachtrijCron } from "./_lib/wachtrij.js";
 
 // Mails versturen vanuit Communicatie › Mails (enkel voor bewerkers).
 // GET  -> {ingesteld, van}
@@ -22,12 +23,14 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "push") return await pushApi(req, res); // pushmeldingen: toestel aan- of afmelden, testmelding
     if (req.query && req.query.f === "factuur") return await factuurActie(req, res); // facturatie: PDF, definitief maken, versturen, herinnering
     if (req.query && req.query.f === "kf-voorbeeld") return await kfVoorbeeld(req, res); // voorbeeld bevestigingsmail kinderfeest
+    if (req.query && req.query.f === "wachtrij") return await wachtrijCron(req, res); // geplande taak: bulkmails uit de wachtrij versturen
     if (req.query && req.query.f === "bevestigingen") return await bevestigingenCron(req, res); // geplande taak: bevestigingen na 20 min zonder online betaling
     if (req.method === "GET") { await requireUser(req); return res.status(200).json({ ingesteld: smtpConfigured(), van: afzender() }); }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
     await requireUser(req, { write: true });
     if (!smtpConfigured()) throw httpErr(501, "Versturen is niet ingesteld (SMTP_HOST, SMTP_USER, SMTP_PASS in Vercel).");
     const b = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+    if (b.wachtrij) return await inWachtrij(req, res, b); // bulkmail: in de wachtrij, de server verstuurt ze gespreid
     const L = (Array.isArray(b.berichten) ? b.berichten : []).slice(0, 15)
       .map(m => ({ aan: String(m.aan || "").trim(), aanNaam: String(m.aanNaam || "").slice(0, 120), onderwerp: String(m.onderwerp || "").slice(0, 300), html: String(m.html || "").slice(0, 300000), antwoordAan: m.antwoordAan ? String(m.antwoordAan).trim() : "" }))
       .filter(m => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(m.aan) && m.onderwerp);
