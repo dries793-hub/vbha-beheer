@@ -97,6 +97,12 @@ input:focus{outline:none;border-color:var(--info);box-shadow:0 0 0 3px var(--inf
 .bevestig .sam span{color:var(--muted)}
 .bevestig .sam b{text-align:right}
 .bevestig .tot{margin:22px 0 0;font-size:18px;font-weight:700}
+/* iPhone: datumvelden niet breder dan hun vak, geen schuifbalken */
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;width:100%;display:block;box-sizing:border-box;min-height:44px}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
+html,body{overflow-x:hidden}
+@media (max-width:760px){*{scrollbar-width:none}*::-webkit-scrollbar{display:none;width:0;height:0}}
+.kid>*{min-width:0}
 </style>
 </head>
 <body>

@@ -886,7 +886,12 @@ VIEWS.ronde.after=krAfter;
 
 function krHistory(M){const E=Object.values(M).sort((a,b)=>(b.at||"").localeCompare(a.at||""));
   if(!E.length)return '<div class="empty">Nog geen straten aangeduid voor '+JAAR+'. Tik een straat aan op de kaart en zet ze op Reserveren of Gedaan.</div>';
-  return `<div class="tw" style="max-height:440px"><table class="rcards" data-main="0"><thead><tr><th>Straat</th><th>Status</th><th>Deelgemeente</th><th class="num">Adressen</th><th>Door</th><th>Wanneer</th><th></th></tr></thead><tbody>${E.map(m=>{const dl=KR_DEEL.get(m.straat),s=KR.byId.get(dl?dl.sid:m.straat);
+  const mob=`<div class="mlist" role="list">${E.map(m=>{const dl=KR_DEEL.get(m.straat),s=KR.byId.get(dl?dl.sid:m.straat);
+    return `<div class="ml-row kr-mr" role="listitem"><button type="button" class="kr-mn" data-act="krToon" data-id="${esc(s.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(s.n)}</b>${dl?` <span class="pill neutral">deel ${dl.nr}</span>`:""}</span>
+      <span class="ml-s">${esc(s.w)}<span class="ml-dot">·</span>${dl?"± "+dl.a:s.a} adressen</span><span class="ml-s">${esc(m.by||"onbekend")}<span class="ml-dot">·</span>${esc(krDT(m.at))}</span></span>
+      <span class="ml-r">${m.status==="reserved"?'<span class="pill info">Gereserveerd</span>':'<span class="pill ok">Gedaan</span>'}</span></button>
+      ${canWrite?`<button type="button" class="iconbtn2 kr-x" data-act="krWis" data-id="${esc(m.straat)}" aria-label="${esc(s.n)} terug op te doen zetten">${ic("x")}</button>`:""}</div>`}).join("")}</div>`;
+  return mob+`<div class="tw dsk-only" style="max-height:440px"><table class="rcards" data-main="0"><thead><tr><th>Straat</th><th>Status</th><th>Deelgemeente</th><th class="num">Adressen</th><th>Door</th><th>Wanneer</th><th></th></tr></thead><tbody>${E.map(m=>{const dl=KR_DEEL.get(m.straat),s=KR.byId.get(dl?dl.sid:m.straat);
     return `<tr><td><button type="button" class="kr-link" data-act="krToon" data-id="${esc(s.id)}" title="Toon op de kaart">${esc(s.n)}</button>${dl?` <span class="pill neutral">deel ${dl.nr}</span>`:""}</td><td>${m.status==="reserved"?'<span class="pill info">Gereserveerd</span>':'<span class="pill ok">Gedaan</span>'}</td><td class="muted">${esc(s.w)}</td><td class="num">${dl?"± "+dl.a:s.a}</td><td>${esc(m.by||"onbekend")}</td><td class="nowrap muted">${esc(krDT(m.at))}</td><td class="num"><button type="button" class="btn sm ghost danger" data-w data-act="krWis" data-id="${esc(m.straat)}" title="Terug op Te doen zetten" aria-label="${esc(s.n)} wissen">${ic("x")}</button></td></tr>`}).join("")}</tbody></table></div>`}
 
 /* De kaart blijft bestaan als één element dat na elke hertekening terug in #krSlot gehangen wordt. */

@@ -930,6 +930,21 @@ table.kal-t .kr-link b{font-weight:600}
 .sim-bar{position:relative;z-index:60;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;padding:8px 16px;background:#C1A057;color:#1a1408;font-size:14px}
 .sim-bar .sim-t{display:inline}.sim-bar svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
 .sim-bar .btn{background:#1a1408;color:#fff;border-color:#1a1408}
+/* iPhone: datum- en uurvelden houden zich niet aan width:100% (oorzaak van horizontale schuifbalken) */
+input[type=date],input[type=time],input[type=datetime-local],input[type=month]{-webkit-appearance:none;appearance:none;min-width:0;max-width:100%;width:100%;display:block;box-sizing:border-box;min-height:44px}
+input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left;margin:0}
+.modal-b{overflow-x:hidden}
+@media (max-width:760px){
+  html,body{overflow-x:hidden}
+  *{scrollbar-width:none}
+  *::-webkit-scrollbar{display:none;width:0;height:0}
+  .tw{overflow-x:visible}
+}
+@media (max-width:760px){
+  .kr-mr{padding:8px 6px 8px 14px;gap:4px;cursor:default}
+  .kr-mn{flex:1;min-width:0;display:flex;align-items:center;gap:10px;border:0;background:none;color:var(--ink);font:inherit;text-align:left;padding:2px 0;cursor:pointer}
+  .kr-x{color:var(--bad)}
+}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
