@@ -1532,7 +1532,8 @@ function modal(title,body,foot,{wide=false,onClose}={}){
   $("#modal").innerHTML=`<div class="modal-bg" data-act="closeModalBg"><div class="modal${wide?" wide":""}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-h"><h3>${esc(title)}</h3><button class="btn ghost sm" data-act="closeModal" aria-label="Sluiten">${ic("x")}</button></div><div class="modal-b">${body}</div>${foot?`<div class="modal-f">${foot}</div>`:""}</div></div>`;
   MODAL_CLOSE=onClose||null;const f=$("#modal input:not([type=hidden]):not([disabled]),#modal select,#modal textarea");if(f&&!window.matchMedia("(max-width:760px)").matches)setTimeout(()=>f.focus(),30);
 }
-let MODAL_CLOSE=null;
+let MODAL_CLOSE=null,MODAL_DOWN=null;
+document.addEventListener("pointerdown",e=>{MODAL_DOWN=e.target},true);
 function closeModal(){$("#modal").innerHTML="";if(MODAL_CLOSE){const f=MODAL_CLOSE;MODAL_CLOSE=null;f()}}
 function confirmBox(text,label,fn){modal("Bevestigen",`<p style="margin:0">${text}</p>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="cfOk">${esc(label)}</button>`);$("#cfOk").onclick=()=>{closeModal();fn()}}
 function toast(msg,bad){const t=$("#toast");t.className="toast"+(bad?" bad":"");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true},bad?5000:2600)}
@@ -1883,7 +1884,7 @@ document.addEventListener("click",async e=>{
   if(!e.target.closest("#acct"))closeAcct();
   if(e.target.closest("td.chk"))return;
   const t=e.target.closest("[data-act]");if(!t)return;const a=t.dataset.act,id=t.dataset.id;
-  if(a==="closeModalBg"){if(e.target===t)closeModal();return}
+  if(a==="closeModalBg"){if(e.target===t&&MODAL_DOWN===t&&!t.querySelector("input:not([type=hidden]),textarea,select,[contenteditable]"))closeModal();return}
   switch(a){
     case"closeModal":closeModal();break;
     case"logout":await SB.auth.signOut();location.href="/";break;
