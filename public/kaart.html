@@ -807,7 +807,7 @@ const $=q=>document.querySelector(q);
 const KR_WIJKEN=["Centrum","Gijzegem","Hofstade","Nieuwerkerken"];
 const KR_LABEL_ZOOM=16;
 /* Startbeeld van de kaart: midden van Aalst-centrum op zoomniveau 15. De knop met het speldje toont de hele regio. */
-const KR_START={at:[50.9402,4.0368],zoom:15};
+const KR_START={at:[50.9413,4.0341],zoom:14};
 /* Lijndikte per zoomniveau (pixels): [te doen, gedaan, geselecteerd]. Tussen twee niveaus wordt de dichtstbijzijnde gebruikt. */
 const KR_DIKTE={12:[1,1.5,4],13:[1.2,2,4.5],14:[1.6,2.5,5],15:[2,3,6],16:[2.8,4,7],17:[3.5,5,8],18:[4,6,9]};
 const krDikte=z=>KR_DIKTE[Math.max(12,Math.min(18,Math.round(z)))]; // vanaf dit zoomniveau staan de straatnamen op de kaart
