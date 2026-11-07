@@ -138,6 +138,7 @@ Deze pagina's zijn voor iedereen bereikbaar met de link, zonder aan te melden. A
 |---|---|
 | `/inschrijven` | Nieuw lid: komt in de ledenlijst en betaalt het lidgeld |
 | `/banket` | Inschrijving banket (alleen of met partner, menu's). Het lid betaalt meteen met Bancontact of met een overschrijving. Een online betaling staat in **Banket** meteen op **Betaald**. |
+| `/steun` | Vrije steun: iedereen kiest zelf een bedrag en mededeling en betaalt meteen met Bancontact (zelfde online betaalprovider). Er wordt niets bewaard in de app; de betaling komt binnen via de doorstorting/bankimport. Voorinvullen kan met `/steun?b=20&m=Kalender%202027` (met `&go=1` start de betaling meteen). Hier linkt vbha.be naar. |
 | `/kinderfeest` | Inschrijving kinderen voor het kinderfeest. Datum, uur, plaats en maximumleeftijd komen uit de instellingen van het kinderfeest in de app. |
 | `/kaart` | Kalenderronde: de kaart met de bedeelde en gereserveerde straten, met naam en datum. Ze ververst zichzelf elke 30 seconden. |
 

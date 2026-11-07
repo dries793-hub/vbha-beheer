@@ -7,6 +7,7 @@ import { algemeen } from "./_lib/publiek.js";
 import { epcPayload, qrSvg } from "./_lib/epc.js";
 import { factuurPubliek } from "./_lib/factuur.js";
 import { sponsorLink } from "./_lib/open_sponsor.js";
+import { steunBetaling } from "./_lib/steun.js";
 
 // Openbaar, maar enkel met het geheime token dat de inschrijver na het inschrijven kreeg.
 // GET  ?t=leden|banket&id=&token=  -> status van de betaling
@@ -18,6 +19,7 @@ export default async function handler(req, res) {
     if (req.method === "GET" && req.query?.test === "bancontact") return res.status(200).json({ provider: onlineConfigured() ? providerNaam() : null, ...(await testSleutel()) });
     if (req.method === "GET" && req.query?.test === "verken") return res.status(200).json(await verken());
     const b = req.method === "POST" ? (typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {})) : (req.query || {});
+    if (b.steun) return await steunBetaling(req, res, b); // vrije steun met eigen bedrag en mededeling (/steun, vbha.be)
     if (b.l) return await lidgeldLink(req, res, b);
     if (b.sp) return await sponsorLink(req, res, b, { startBetaling, controleerBetaling }); // betaallink sponsoring (zonder factuur)
     if (b.fa) return await factuurPubliek(req, res, b, { onlineConfigured, startBetaling, controleerBetaling }); // betaallink uit een factuurmail
