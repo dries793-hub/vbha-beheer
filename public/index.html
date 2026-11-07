@@ -1021,6 +1021,14 @@ input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and
 .dm-v .nm-ic{background:#2F6FE4;color:#fff}.dm-v .nm-i{border-color:#a9c2f2;background:#f6f9ff;color:#122c5c}.dm-v .nm-i:hover{border-color:#2F6FE4;background:#fff}
 .dm-b .nm-body,.dm-v .nm-body{min-width:0}
 @media (max-width:760px){.dm-b .nm-i,.dm-v .nm-i{display:flex;flex-direction:column;align-items:flex-start;gap:1px;max-width:100%;white-space:normal}.dm-b .nm-i span,.dm-v .nm-i span{white-space:normal}}
+/* datumvelden DD/MM/JJJJ */
+.dt-w{position:relative;display:block;min-width:0}
+.dt-w .dt-in{width:100%;padding-right:42px;font-variant-numeric:tabular-nums}
+.dt-w .dt-in.dt-err{border-color:var(--bad)!important;box-shadow:0 0 0 3px rgba(192,22,31,.12)}
+.dt-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:34px;height:32px;border:0;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer;border-radius:6px}
+.dt-btn:hover{background:var(--sunken);color:var(--ink)}.dt-btn:disabled{opacity:.4;cursor:default}
+.dt-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.dt-nat{position:absolute;right:0;bottom:0;width:40px;height:1px;opacity:0;pointer-events:none;border:0!important;padding:0!important;margin:0;min-height:0!important}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
