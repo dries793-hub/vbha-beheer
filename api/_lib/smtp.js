@@ -4,6 +4,8 @@ import tls from "node:tls";
 import crypto from "node:crypto";
 
 export const smtpConfigured = () => !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+// standaard antwoordadres (Reply-To) van alle mails; facturen geven hun eigen adres mee
+export const ANTWOORD = () => String(process.env.MAIL_ANTWOORD ?? "dries@vbha.be").trim();
 export const BCC = () => String(process.env.MAIL_BCC ?? "dries@vbha.be").trim().toLowerCase();
 export const afzender = () => ({ email: String(process.env.SMTP_FROM || process.env.SMTP_USER || "").trim(), naam: String(process.env.MAIL_FROM_NAAM || "").trim() });
 
@@ -32,7 +34,7 @@ export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan, b
     "From: " + adres(van.email, van.naam),
     "To: " + adres(aan, aanNaam),
     ...(Array.isArray(cc) && cc.length ? ["Cc: " + cc.join(", ")] : []),
-    ...(antwoordAan ? ["Reply-To: " + antwoordAan] : []),
+    ...((antwoordAan || ANTWOORD()) ? ["Reply-To: " + (antwoordAan || ANTWOORD())] : []),
     // Afmeldlink in de kop: Gmail, Outlook en Apple Mail tonen dan een nette "Afmelden"-knop in plaats van "Spam melden".
     "List-Unsubscribe: <mailto:" + (process.env.MAIL_AFMELDEN || van.email) + "?subject=Afmelden%20mails%20VBHA>",
     "X-Auto-Response-Suppress: OOF, AutoReply",

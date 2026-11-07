@@ -142,7 +142,7 @@ export async function sponsorBevestiging(req, res) {
     if (!isMail(aan)) throw httpErr(400, "Geen geldig e-mailadres voor deze sponsor.");
     if (!smtpConfigured()) throw httpErr(501, "Versturen is niet ingesteld (SMTP in Vercel).");
     const m = bevMail(b, s, cfg);
-    const berichten = [{ aan, aanNaam: contactNaam(s) || sponsorNaam(s), onderwerp: m.onderwerp, html: m.html, van: afzender(), bijlagen: [{ naam: pdfNaam(b, s), type: "application/pdf", data: pdfb }], antwoordAan: cfg.email || undefined }];
+    const berichten = [{ aan, aanNaam: contactNaam(s) || sponsorNaam(s), onderwerp: m.onderwerp, html: m.html, van: afzender(), bijlagen: [{ naam: pdfNaam(b, s), type: "application/pdf", data: pdfb }], antwoordAan: undefined }];
     const kopie = String(cfg.kopie || "").split(/[,;\s]+/).filter(x => /@/.test(x) && x.toLowerCase() !== aan.toLowerCase());
     for (const k of kopie) berichten.push({ ...berichten[0], aan: k, aanNaam: "", onderwerp: "[Kopie] " + m.onderwerp });
     const r = await verstuur(berichten);
