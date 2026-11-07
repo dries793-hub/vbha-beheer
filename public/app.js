@@ -3521,10 +3521,17 @@ function vaBlok(v,id){const af=v.afgerond;
   return `<div class="full va-box"><div><b>Vergadering voorbij?</b><div class="muted small">Laad het verslag op, bevestig dat de vergadering afgerond is en plan meteen de volgende. Het bestuur krijgt een mail met het verslag en de nieuwe datum.</div></div>
    <button type="button" class="btn primary" data-va="start" data-id="${esc(id)}">${ic("check")}Vergadering afronden</button></div>`}
 const vaBestaand=(v,datum)=>[...S.vergaderingen.values()].filter(x=>x.id!==v.id&&(x.soort||"")===(v.soort||"")&&x.datum>v.datum&&(!datum||x.datum===datum)).sort((a,b)=>a.datum.localeCompare(b.datum))[0];
-function vaDialoog(id){const v=S.vergaderingen.get(id);if(!v)return;const al=vaBestaand(v),vd=al?al.datum:vaPlus(v.datum>todayISO()?v.datum:todayISO(),28);
+let VA_FILE=null;
+const VA_WORD=/\.docx$/i,VA_OKEXT=/\.(pdf|docx)$/i;
+function vaDialoog(id){const v=S.vergaderingen.get(id);if(!v)return;const al=vaBestaand(v),vd=al?al.datum:vaPlus(v.datum>todayISO()?v.datum:todayISO(),28);VA_FILE=null;
+  const B=vaBestuur(),pre=new Set(v.aanwezigIds||[]);
   modal("Vergadering afronden",`<form id="fVa" class="form">
    <p class="full muted small" style="margin:0">${esc(v.titel||v.soort||"Vergadering")} van ${esc(agLang(v.datum))}</p>
-   <div class="fld full"><span class="lbl">Verslag (PDF) *</span><span class="help" style="margin:0 0 6px">Wordt automatisch in de VBHA-huisstijl gezet en bewaard als <b>${esc(vaBestand(v))}</b>.</span><label class="va-file" for="vaFile"><span id="vaFn">${ic("upload")}Kies het verslag…</span></label><input type="file" id="vaFile" accept="application/pdf,.pdf" hidden></div>
+   <div class="fld full"><div class="va-aw-h"><span class="lbl" style="margin:0">Aanwezig</span>${B.length?`<button type="button" class="btn sm ghost" data-va="allen">Iedereen aanwezig</button>`:""}</div>
+    <span class="help" style="margin:0 0 8px">Duid aan wie er was. Wie je niet aanduidt, komt in het verslag op <b>verontschuldigd</b>. Aanwezigen krijgen hun punt in het puntensysteem.</span>
+    ${B.length?`<div class="va-aw2" role="group" aria-label="Bestuursleden">${B.map(l=>`<label class="va-p"><input type="checkbox" name="vaA" value="${esc(l.id)}"${pre.has(l.id)?" checked":""}><span class="va-pc" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>${esc(l.voornaam)} ${esc(l.naam)}</span></label>`).join("")}</div>
+    <div class="va-sum" id="vaSum">${vaSamenvatting()}</div>`:`<div class="muted small">Duid eerst de bestuursleden aan in de ledenlijst (eigenschappen van een lid › Bestuurslid).</div>`}</div>
+   <div class="fld full"><span class="lbl">Verslag *</span><div id="vaDropW">${vaDropHtml(v)}</div><input type="file" id="vaFile" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden></div>
    <div class="fc-sec full"><h4>Volgende vergadering</h4>${al?`<p class="muted small" style="margin:0">De ${esc(agLang(al.datum))} staat al een ${esc((al.soort||"vergadering").toLowerCase())} in de agenda. Kies je die datum, dan wordt die gebruikt (geen dubbele vergadering).</p>`:""}</div>
    ${fld("va_soort","Soort",`<select id="va_soort" class="sel">${selOpts(VG_SOORT,v.soort||"Bestuursvergadering")}</select>`)}${fld("va_datum","Datum *",`<input id="va_datum" type="date" value="${vd}">`)}
    ${fld("va_uur","Uur",inp("va_uur",(al&&al.uur)||v.uur||"20u00",'maxlength="20"'))}${fld("va_loc","Waar",inp("va_loc",(al&&al.locatie)||v.locatie,'maxlength="160"'))}
@@ -3532,12 +3539,91 @@ function vaDialoog(id){const v=S.vergaderingen.get(id);if(!v)return;const al=vaB
    <label class="sp-nat full" for="vaMail"><input type="checkbox" id="vaMail" checked><span><b>Mail naar ${esc(vaOntv())}</b><small>Met het verslag in bijlage en de datum van de volgende vergadering.</small></span></label>
    <div class="err full" id="vaErr"></div></form>`,
    `<button class="btn" data-va="terug" data-id="${esc(id)}">Annuleren</button><button class="btn primary" data-va="ok" data-id="${esc(id)}">Afronden</button>`)}
+function vaDropHtml(v){const f=VA_FILE;
+  if(!f)return `<label class="va-drop" id="vaDrop" for="vaFile"><span class="va-drop-ic">${ic("upload")}</span><span class="va-drop-t"><b>Sleep het verslag hierheen</b> of <u>kies een bestand</u><small>PDF of Word (.docx) · wordt in de VBHA-huisstijl gezet en bewaard als ${esc(vaBestand(v))}</small></span></label>`;
+  const e=(f.name.match(/\.([a-z0-9]+)$/i)||[])[1]||"";
+  return `<div class="va-drop va-drop-ok" id="vaDrop"><span class="doc-ic ${VA_WORD.test(f.name)?"doc":"pdf"}">${esc(e.toUpperCase().slice(0,4))}</span><span class="va-drop-t"><b>${esc(f.name)}</b><small>${docKB(f.size)}${VA_WORD.test(f.name)?" · Word wordt omgezet naar PDF in de huisstijl":" · wordt in de huisstijl gezet"}</small></span><label class="btn sm ghost" for="vaFile">Ander bestand</label><button type="button" class="va-drop-x" data-va="geenFile" aria-label="Bestand verwijderen" title="Verwijderen">×</button></div>`}
+function vaAanwNamen(ids){const B=vaBestuur(),vn=new Map();B.forEach(l=>vn.set(norm(l.voornaam),(vn.get(norm(l.voornaam))||0)+1));
+  const naam=l=>vn.get(norm(l.voornaam))>1?`${l.voornaam} ${String(l.naam||"").charAt(0)}.`:l.voornaam;
+  const lijst=L=>L.length<2?L.join(""):L.slice(0,-1).join(", ")+" en "+L[L.length-1];const S1=new Set(ids);
+  const A=B.filter(l=>S1.has(l.id)).map(naam),V=B.filter(l=>!S1.has(l.id)).map(naam);
+  return{aanwezig:lijst(A),verontschuldigd:lijst(V),nA:A.length,nV:V.length,volA:B.filter(l=>S1.has(l.id)).map(l=>l.voornaam+" "+l.naam),volV:B.filter(l=>!S1.has(l.id)).map(l=>l.voornaam+" "+l.naam)}}
+function vaSamenvatting(){const n=vaAanwNamen(vaGekozen($("#fVa")||document.createElement("div")));
+  return `<span><b>Aanwezig (${n.nA}):</b> ${n.nA?esc(n.aanwezig):"<span class=muted>nog niemand aangeduid</span>"}</span><span><b>Verontschuldigd (${n.nV}):</b> ${n.nV?esc(n.verontschuldigd):"<span class=muted>niemand</span>"}</span>`}
+function vaKiesBestand(f){const err=$("#vaErr");if(!f||!$("#fVa"))return;
+  if(/\.doc$/i.test(f.name)){err.textContent="Oude Word-bestanden (.doc) kunnen niet gelezen worden. Bewaar het verslag in Word als .docx of als PDF.";return}
+  if(!VA_OKEXT.test(f.name)&&f.type!=="application/pdf"){err.textContent="Het verslag moet een PDF of een Word-bestand (.docx) zijn.";return}
+  if(f.size>15*1048576){err.textContent="Het verslag is groter dan 15 MB; dat is te groot om te mailen.";return}
+  err.textContent="";VA_FILE=f;const v=S.vergaderingen.get($('[data-va="ok"]').dataset.id);$("#vaDropW").innerHTML=vaDropHtml(v||{datum:todayISO()})}
+document.addEventListener("change",e=>{if(e.target.id==="vaFile"){const f=e.target.files[0];e.target.value="";vaKiesBestand(f)}else if(e.target.name==="vaA"&&$("#vaSum"))$("#vaSum").innerHTML=vaSamenvatting()});
+document.addEventListener("click",e=>{const t=e.target.closest('[data-va="allen"],[data-va="geenFile"]');if(!t)return;e.preventDefault();
+  if(t.dataset.va==="allen"){const I=$$('#fVa input[name="vaA"]'),alle=I.every(i=>i.checked);I.forEach(i=>i.checked=!alle);t.textContent=alle?"Iedereen aanwezig":"Niemand aanwezig";$("#vaSum").innerHTML=vaSamenvatting()}
+  else{VA_FILE=null;const v=S.vergaderingen.get($('[data-va="ok"]').dataset.id);$("#vaDropW").innerHTML=vaDropHtml(v||{datum:todayISO()})}});
+["dragenter","dragover"].forEach(ev=>document.addEventListener(ev,e=>{const z=e.target.closest&&e.target.closest("#vaDrop");if(!z)return;e.preventDefault();z.classList.add("on")}));
+["dragleave","drop"].forEach(ev=>document.addEventListener(ev,e=>{const z=e.target.closest&&e.target.closest("#vaDrop");if(!z)return;e.preventDefault();if(ev==="dragleave"&&z.contains(e.relatedTarget))return;z.classList.remove("on");if(ev==="drop"&&e.dataTransfer&&e.dataTransfer.files[0])vaKiesBestand(e.dataTransfer.files[0])}));
+/* ---------- Word (.docx) naar PDF: tekst, koppen, opsommingen en tabellen (zonder afbeeldingen) ---------- */
+async function vaWordPdf(file,{breed=515.28,hoog=691.89,marge=6}={}){
+  if(typeof JSZip==="undefined")throw new Error("JSZip niet geladen");const L=await vaLib(),{PDFDocument,StandardFonts,rgb}=L;
+  const zip=await JSZip.loadAsync(await file.arrayBuffer()),dx=zip.file("word/document.xml");if(!dx)throw new Error("Dit lijkt geen geldig Word-bestand.");
+  const W="http://schemas.openxmlformats.org/wordprocessingml/2006/main",P=x=>new DOMParser().parseFromString(x,"application/xml");
+  const xml=P(await dx.async("string")),nx=zip.file("word/numbering.xml"),num=nx?P(await nx.async("string")):null,sx=zip.file("word/styles.xml"),sty=sx?P(await sx.async("string")):null;
+  const at=(el,n)=>el&&(el.getAttributeNS(W,n)||el.getAttribute("w:"+n));const kind=(el,n)=>{if(!el)return null;for(const c of el.children)if(c.localName===n)return c;return null};
+  const stijlNaam={},stijlNum={},stijlBasis={};if(sty)for(const st of sty.getElementsByTagNameNS(W,"style")){const sid=at(st,"styleId"),nm=kind(st,"name");stijlNaam[sid]=String(at(nm,"val")||sid||"");
+    const np=kind(kind(st,"pPr"),"numPr");if(np)stijlNum[sid]={id:at(kind(np,"numId"),"val"),lv:at(kind(np,"ilvl"),"val")};const bo=kind(st,"basedOn");if(bo)stijlBasis[sid]=at(bo,"val")}
+  const numVanStijl=sid=>{for(let n=0;sid&&n<10;n++,sid=stijlBasis[sid])if(stijlNum[sid])return stijlNum[sid];return null};
+  const fmt={};if(num){const abs={};for(const a of num.getElementsByTagNameNS(W,"abstractNum")){const lv={};for(const l of a.getElementsByTagNameNS(W,"lvl"))lv[at(l,"ilvl")]=at(kind(l,"numFmt"),"val")||"bullet";abs[at(a,"abstractNumId")]=lv}
+    for(const n of num.getElementsByTagNameNS(W,"num"))fmt[at(n,"numId")]=abs[at(kind(n,"abstractNumId"),"val")]||{}}
+  const aan=el=>{if(!el)return false;const v=at(el,"val");return v==null||!/^(0|false|off|none)$/i.test(v)};
+  function runs(p){const R=[];const loop=el=>{for(const c of el.children){const n=c.localName;if(n==="del"||n==="moveFrom"||n==="pPr"||n==="rPr")continue;
+      if(n==="r"){const pr=kind(c,"rPr"),b=aan(kind(pr,"b")),i=aan(kind(pr,"i"));for(const k of c.children){if(k.localName==="t")R.push({t:k.textContent,b,i});else if(k.localName==="tab")R.push({t:"    ",b,i});else if(k.localName==="br"||k.localName==="cr")R.push({br:true})}}
+      else loop(c)}};loop(p);return R}
+  const blokken=[],teller={};
+  const para=p=>{const pr=kind(p,"pPr"),sid=at(kind(pr,"pStyle"),"val")||"",sn=(stijlNaam[sid]||sid).toLowerCase(),np=kind(pr,"numPr");
+    let kop=0;const m=sn.match(/(?:heading|kop)\s*(\d)/);if(m)kop=+m[1];else if(/^(title|titel)$/.test(sn))kop=1;
+    let lijst=null;const sn0=numVanStijl(sid);if(np||sn0){const id=(np&&at(kind(np,"numId"),"val"))||(sn0&&sn0.id),lv=+((np&&at(kind(np,"ilvl"),"val"))||(sn0&&sn0.lv)||0);if(id&&id!=="0"){const f=(fmt[id]||{})[lv]||"bullet",k=id+"_"+lv;
+      Object.keys(teller).forEach(x=>{const[a,b]=x.split("_");if(a===id&&+b>lv)delete teller[x]});teller[k]=(teller[k]||0)+1;lijst={lv,teken:f==="bullet"||f==="none"?"•":f==="lowerLetter"?String.fromCharCode(96+teller[k])+")":f==="upperLetter"?String.fromCharCode(64+teller[k])+".":teller[k]+"."}}}
+    if(!lijst&&/list bullet|lijstopsomming|opsomming/.test(sn))lijst={lv:0,teken:"•"};
+    else if(!lijst&&/list number|lijstnummering|nummering/.test(sn)){const k="st_"+sn;teller[k]=(teller[k]||0)+1;lijst={lv:0,teken:teller[k]+"."}}
+    if(!lijst)Object.keys(teller).filter(x=>x.startsWith("st_")).forEach(x=>delete teller[x]);
+    const al=at(kind(pr,"jc"),"val");return{soort:"p",kop,lijst,runs:runs(p),midden:al==="center"}};
+  const body=xml.getElementsByTagNameNS(W,"body")[0];
+  const lagen=el=>[...el.children].flatMap(c=>c.localName==="sdt"?lagen(kind(c,"sdtContent")||c):c.localName==="customXml"||c.localName==="smartTag"?lagen(c):[c]);
+  for(const c of lagen(body)){if(c.localName==="p")blokken.push(para(c));else if(c.localName==="tbl"){const rijen=[];for(const tr of c.children){if(tr.localName!=="tr")continue;const cel=[];for(const tc of tr.children){if(tc.localName!=="tc")continue;cel.push([...tc.children].filter(x=>x.localName==="p").map(para))}rijen.push(cel)}blokken.push({soort:"tbl",rijen})}}
+  // opmaak
+  const doc=await PDFDocument.create(),F={"":await doc.embedFont(StandardFonts.Helvetica),b:await doc.embedFont(StandardFonts.HelveticaBold),i:await doc.embedFont(StandardFonts.HelveticaOblique),bi:await doc.embedFont(StandardFonts.HelveticaBoldOblique)};
+  const ok=new Map(),veilig=t=>[...String(t)].map(ch=>{if(ok.has(ch))return ok.get(ch);let r=ch;try{F[""].widthOfTextAtSize(ch,10)}catch(e){r=ch==="→"?"->":ch==="…"?"...":/\s/.test(ch)?" ":"?"}ok.set(ch,r);return r}).join("");
+  const fnt=w=>F[(w.b?"b":"")+(w.i?"i":"")];const ZWART=rgb(.1,.1,.1),LIJN=rgb(.8,.8,.8);
+  let pg=null,y=0;const nieuw=()=>{pg=doc.addPage([breed,hoog]);y=hoog-marge};
+  // zet runs om naar regels binnen breedte b
+  function regels(R,size,b,vet){const L=[];let cur=[],w=0;const push=()=>{L.push(cur);cur=[];w=0};
+    for(const r of R){if(r.br){push();continue}const stuk=veilig(r.t).split(/(\s+)/);
+      for(const s0 of stuk){if(!s0)continue;const st={b:r.b||vet,i:r.i},sw=fnt(st).widthOfTextAtSize(s0,size);
+        if(/^\s+$/.test(s0)){if(cur.length){cur.push({t:" ",...st,w:fnt(st).widthOfTextAtSize(" ",size)});w+=cur[cur.length-1].w}continue}
+        if(w+sw>b&&cur.length){while(cur.length&&cur[cur.length-1].t===" ")cur.pop();push()}
+        let s=s0;while(fnt(st).widthOfTextAtSize(s,size)>b&&s.length>1){let k=s.length;while(k>1&&fnt(st).widthOfTextAtSize(s.slice(0,k),size)>b)k--;cur.push({t:s.slice(0,k),...st,w:fnt(st).widthOfTextAtSize(s.slice(0,k),size)});push();s=s.slice(k)}
+        cur.push({t:s,...st,w:fnt(st).widthOfTextAtSize(s,size)});w+=cur[cur.length-1].w}}
+    if(cur.length||!L.length)L.push(cur);return L}
+  const teken=(L,x,size,lh,b,midden)=>{for(const l of L){if(y-lh<marge)nieuw();y-=lh;let xx=x;if(midden){const tw=l.reduce((a,s)=>a+s.w,0);xx=x+(b-tw)/2}
+      for(const s of l){if(s.t.trim())pg.drawText(s.t,{x:xx,y:y+lh*.25,size,font:fnt(s),color:ZWART});xx+=s.w}}};
+  nieuw();const X=marge,B=breed-2*marge;let vorigeLeeg=false;
+  for(const k of blokken){
+    if(k.soort==="p"){const leeg=!k.runs.some(r=>r.br||String(r.t||"").trim());if(leeg){if(!vorigeLeeg)y-=7;vorigeLeeg=true;continue}vorigeLeeg=false;
+      if(k.kop){const size=[0,15,13,11.5,11,11,11][k.kop]||11;y-=k.kop<=2?10:6;teken(regels(k.runs,size,B,true),X,size,size*1.3,B,k.midden);y-=3;continue}
+      if(k.lijst){const ind=14+k.lijst.lv*16,size=10.5,lh=14.5;const L=regels(k.runs,size,B-ind-10,false);if(y-lh<marge)nieuw();
+        pg.drawText(veilig(k.lijst.teken),{x:X+ind-12,y:y-lh+lh*.25,size,font:F[""],color:ZWART});teken(L,X+ind+2,size,lh,B-ind-10,false);y-=2;continue}
+      teken(regels(k.runs,10.5,B,false),X,10.5,14.5,B,k.midden);y-=5}
+    else{vorigeLeeg=false;const nk=Math.max(...k.rijen.map(r=>r.length)),cw=B/nk,size=9.5,lh=12.5,pad=4;y-=4;
+      for(const rij of k.rijen){const C=rij.map(cel=>cel.flatMap((p,i)=>i?[{br:true},...p.runs]:p.runs)),Ls=C.map(R=>regels(R,size,cw-2*pad,false)),h=Math.max(...Ls.map(l=>l.length))*lh+2*pad;
+        if(y-h<marge)nieuw();const y0=y;Ls.forEach((L,ci)=>{y=y0-pad;teken(L,X+ci*cw+pad,size,lh,cw-2*pad,false)});
+        for(let ci=0;ci<nk;ci++)pg.drawRectangle({x:X+ci*cw,y:y0-h,width:cw,height:h,borderColor:LIJN,borderWidth:.6});y=y0-h}
+      y-=8}}
+  return new File([await doc.save()],file.name.replace(/\.docx$/i,".pdf"),{type:"application/pdf"})}
 /* verslag in de VBHA-huisstijl: elke pagina van de opgeladen PDF komt (verkleind) in een A4-sjabloon met kop en voet.
    pdf-lib (MIT) staat op de eigen site en wordt pas geladen als het nodig is. */
 let VA_LIB=null;
 function vaLib(){if(window.PDFLib)return Promise.resolve(window.PDFLib);if(!VA_LIB)VA_LIB=new Promise((ok,nok)=>{const sc=document.createElement("script");sc.src="/pdf-lib.min.js";sc.onload=()=>ok(window.PDFLib);sc.onerror=()=>{VA_LIB=null;nok(new Error("pdf-lib kon niet geladen worden"))};document.head.appendChild(sc)});return VA_LIB}
 const vaBestand=v=>`VBHA verslag vergadering ${fmtDate(v.datum).replace(/\//g,"-")}.pdf`;
-async function vaHuisstijl(file,v){const L=await vaLib(),{PDFDocument,StandardFonts,rgb}=L;
+async function vaHuisstijl(file,v,aanw){const L=await vaLib(),{PDFDocument,StandardFonts,rgb}=L;
   const bron=await PDFDocument.load(await file.arrayBuffer(),{ignoreEncryption:true});
   const doc=await PDFDocument.create();const F=await doc.embedFont(StandardFonts.Helvetica),FB=await doc.embedFont(StandardFonts.HelveticaBold);
   let logo=null;try{logo=await doc.embedPng(await (await fetch("/favicon.png")).arrayBuffer())}catch(e){}
@@ -3553,7 +3639,13 @@ async function vaHuisstijl(file,v){const L=await vaLib(),{PDFDocument,StandardFo
     const sw=F.widthOfTextAtSize(verJ,7.5);p.drawText(verJ,{x:W-40-sw,y:H-56,size:7.5,font:F,color:GRIJS});
     p.drawLine({start:{x:40,y:H-80},end:{x:W-40,y:H-80},thickness:1.2,color:ROOD});
     // inhoud: originele pagina, zo groot mogelijk binnen het kader
-    const bx=40,by=56,bw=W-80,bh=H-80-14-by,sc=Math.min(bw/ep.width,bh/ep.height,1),dw=ep.width*sc,dh=ep.height*sc;
+    let bx=40,by=56,bw=W-80,bh=H-80-14-by;
+    if(i===0&&aanw&&(aanw.aanwezig||aanw.verontschuldigd)){const size=9,lh=12.5,mw=bw-24;const wrap=t=>{const w=String(t).split(/\s+/),R=[];let c="";for(const x of w){const n=c?c+" "+x:x;if(F.widthOfTextAtSize(n,size)>mw-90&&c){R.push(c);c=x}else c=n}if(c)R.push(c);return R.length?R:["-"]};
+      const A=wrap(aanw.aanwezig||"-"),V=wrap(aanw.verontschuldigd||"-"),hh=(A.length+V.length)*lh+16,top=H-80-12;
+      p.drawRectangle({x:bx,y:top-hh,width:bw,height:hh,color:rgb(.965,.965,.965)});p.drawRectangle({x:bx,y:top-hh,width:3,height:hh,color:ROOD});
+      let yy=top-8-lh+3;const rij=(lbl,L)=>{p.drawText(lbl,{x:bx+12,y:yy,size,font:FB,color:rgb(.13,.13,.13)});L.forEach((t,k)=>{p.drawText(t,{x:bx+102,y:yy,size,font:F,color:rgb(.13,.13,.13)});yy-=lh})};
+      rij("Aanwezig",A);rij("Verontschuldigd",V);bh-=hh+12}
+    const sc=Math.min(bw/ep.width,bh/ep.height,1),dw=ep.width*sc,dh=ep.height*sc;
     p.drawPage(ep,{x:bx+(bw-dw)/2,y:by+bh-dh,width:dw,height:dh});
     p.drawLine({start:{x:40,y:42},end:{x:W-40,y:42},thickness:.6,color:LIJN});
     p.drawText(`${verJ}  ·  ${titel} ${dk}`,{x:40,y:28,size:7.5,font:F,color:GRIJS});
@@ -3561,22 +3653,23 @@ async function vaHuisstijl(file,v){const L=await vaLib(),{PDFDocument,StandardFo
     p.drawRectangle({x:0,y:0,width:W,height:4,color:ROOD})});
   doc.setTitle(`${titel} ${dk}`);doc.setAuthor(verJ);doc.setCreator("VBHA Beheer");
   return new File([await doc.save()],vaBestand(v),{type:"application/pdf"})}
-async function vaOk(btn){const id=btn.dataset.id,v=S.vergaderingen.get(id),err=$("#vaErr"),f=$("#vaFile").files[0];
+async function vaOk(btn){const id=btn.dataset.id,v=S.vergaderingen.get(id),err=$("#vaErr"),f=VA_FILE;
   const datum=$("#va_datum").value;
-  if(!f){err.textContent="Kies het verslag (PDF).";return}if(!/\.pdf$/i.test(f.name)&&f.type!=="application/pdf"){err.textContent="Het verslag moet een PDF zijn.";return}
+  if(!f){err.textContent="Sleep of kies het verslag (PDF of Word).";return}if(!VA_OKEXT.test(f.name)&&f.type!=="application/pdf"){err.textContent="Het verslag moet een PDF of een Word-bestand (.docx) zijn.";return}
   if(f.size>15*1048576){err.textContent="Het verslag is groter dan 15 MB; dat is te groot om te mailen.";return}
   if(!/^\d{4}-\d{2}-\d{2}$/.test(datum)){err.textContent="Kies de datum van de volgende vergadering.";return}
   if(datum<=v.datum){err.textContent="De volgende vergadering moet na deze vergadering vallen.";return}
-  const mail=$("#vaMail").checked,g=k=>$("#va_"+k).value.trim();
+  const mail=$("#vaMail").checked,g=k=>$("#va_"+k).value.trim(),aw=vaAanwNamen(vaGekozen($("#fVa"))),aanw=vaBestuur().length?aw:null;
   btn.disabled=true;btn.textContent="Bezig…";
-  try{let pdf;try{pdf=await vaHuisstijl(f,v)}catch(x){console.warn("huisstijl",x);pdf=new File([f],vaBestand(v),{type:"application/pdf"});toast("De huisstijl kon niet toegepast worden; het verslag wordt opgeladen zoals het is.",true)}
+  try{let bron=f;if(VA_WORD.test(f.name)){btn.textContent="Word omzetten…";try{bron=await vaWordPdf(f)}catch(x){console.warn("word",x);throw new Error("Het Word-bestand kon niet omgezet worden ("+(x.message||x)+"). Bewaar het in Word als PDF en probeer opnieuw.")}}
+    btn.textContent="Bezig…";let pdf;try{pdf=await vaHuisstijl(bron,v,aanw)}catch(x){console.warn("huisstijl",x);pdf=new File([bron],vaBestand(v),{type:"application/pdf"});toast("De huisstijl kon niet toegepast worden; het verslag wordt opgeladen zoals het is.",true)}
     const did=agId("doc"),pad=`Verslagen/${did}-${docVeilig(pdf.name)}`;
     const {error}=await SB.storage.from(DOC_BUCKET).upload(pad,pdf,{contentType:"application/pdf",upsert:false});if(error)throw error;
     await write("documenten",did,{naam:pdf.name,pad,map:"Verslagen",grootte:pdf.size,type:"application/pdf",omschrijving:`Verslag ${(v.titel||v.soort||"vergadering").toLowerCase()} ${fmtDate(v.datum)}`,door:ME_NAME||"",op:new Date().toISOString(),vergaderingId:id});
     const soort=$("#va_soort").value,al=vaBestaand({...v,soort},datum),nid=al?al.id:agId("verg");
     const nv={...(al?stripId(al):{titel:""}),soort,datum,uur:g("uur"),locatie:g("loc"),agenda:g("ag")};if(!al)nv.inMail=vgInMail(nv);
     await write("vergaderingen",nid,nv);
-    await write("vergaderingen",id,{...stripId(S.vergaderingen.get(id)||v),afgerond:{op:new Date().toISOString(),door:ME_NAME||"",volgendeId:nid,verslagDoc:did}});
+    await write("vergaderingen",id,{...stripId(S.vergaderingen.get(id)||v),afgerond:{op:new Date().toISOString(),door:ME_NAME||"",volgendeId:nid,verslagDoc:did},...(aanw?{aanwezig:aw.aanwezig,verontschuldigd:aw.verontschuldigd}:{})});
     if(mail){const j=await api("/api/mail?f=vergadering-afgerond",{method:"POST",body:JSON.stringify({id})});closeModal();toast("Afgerond. Verslag en nieuwe datum gemaild naar "+j.aan.join(", ")+".")}
     else{closeModal();toast("Vergadering afgerond en volgende vergadering aangemaakt.")}}
   catch(x){btn.disabled=false;btn.textContent="Afronden";err.textContent="Niet gelukt: "+(x.message||x)}}
@@ -3664,10 +3757,6 @@ async function vaPuntenBatch(L){const delta=new Map(),meet=[];
   for(const [vid,ids] of meet){const cur=S.vergaderingen.get(vid);await write("vergaderingen",vid,{...stripId(cur),aanwezigIds:ids,puntenIds:ids})}}
 const vaPuntenZet=(vid,ids)=>vaPuntenBatch([{vid,ids}]);
 // afronden: aanwezigheid onder het verslag
-{const _d=vaDialoog;vaDialoog=function(id){_d(id);const f=$("#fVa .fc-sec");if(f)f.insertAdjacentHTML("beforebegin",`<div class="fld full" id="vaAanw">${vaAanwHtml((S.vergaderingen.get(id)||{}).aanwezigIds||[],"")}</div>`)}}
-document.addEventListener("change",async e=>{if(e.target.id!=="vaFile")return;const f=e.target.files[0],box=$("#vaAanw");if(!f||!box)return;
-  box.innerHTML=vaAanwHtml([],"Namen worden uit het verslag gehaald…");const ids=await vaAanwVanBestand(f);if(!$("#vaAanw"))return;
-  box.innerHTML=vaAanwHtml(ids||[],ids==null?"Geen regel \"Aanwezig:\" gevonden in het verslag; vink de aanwezigen zelf aan.":`Uit het verslag gehaald (${ids.length}). Controleer en pas aan waar nodig.`)});
 {const _o=vaOk;vaOk=async function(btn){const id=btn.dataset.id,ids=vaGekozen($("#fVa"));await _o(btn);if($("#fVa"))return; // niet gelukt: het venster staat nog open
   if(ids.length||((S.vergaderingen.get(id)||{}).puntenIds||[]).length){try{await vaPuntenZet(id,ids)}catch(x){toast("Punten niet bijgewerkt: "+(x.message||x),true)}}}}
 // bulk: aanwezigheid per verslag
