@@ -2679,6 +2679,7 @@ VIEWS.mails=()=>({title:"Mails",actions:'<button class="btn" data-w data-act="ml
   const tg=M.groep&&G.find(x=>x.id===M.groep);
   const d=canWrite?"":" disabled";
   return `<div class="ml-grid">
+  <div class="ml-main">
   <div class="panel ml-ed-p"><div class="panel-h"><h2>Bericht</h2><span class="grow"></span>
     <select class="sel ml-tpl" data-change="mlTpl" aria-label="Sjabloon">${M.tplId?"":`<option value="" selected>${esc(M.naam||"Nieuw sjabloon")}</option>`}${cats.filter(c=>tpls.some(t=>(t.categorie||"Algemeen")===c)).map(c=>`<optgroup label="${esc(c)}">${tpls.filter(t=>(t.categorie||"Algemeen")===c).map(t=>`<option value="${esc(t.id)}"${t.id===M.tplId?" selected":""}>${esc(t.naam||"Zonder naam")}</option>`).join("")}</optgroup>`).join("")}</select></div>
   <div class="panel-b"><div class="form">
@@ -2691,6 +2692,10 @@ VIEWS.mails=()=>({title:"Mails",actions:'<button class="btn" data-w data-act="ml
       <label class="btn ghost" for="mlFile" style="cursor:pointer">${ic("upload")}HTML laden</label><input type="file" id="mlFile" accept=".html,.htm,text/html" hidden>
       <span class="grow"></span>${M.tplId?'<button class="btn ghost danger" data-act="mlDel">Verwijderen</button>':""}`:""}<span class="ml-dirty" id="mlDirty">${M.dirty?"Niet bewaard":""}</span></div>
   </div></div></div>
+  <div class="panel"><div class="panel-h"><h2>Voorbeeld</h2><span class="grow"></span>
+    <div class="seg" role="group" aria-label="Weergave"><button class="${UI.mlDev==="gsm"?"":"on"}" data-act="mlDev" data-v="pc">Computer</button><button class="${UI.mlDev==="gsm"?"on":""}" data-act="mlDev" data-v="gsm">Gsm</button></div></div>
+    <div class="panel-b stack" style="gap:10px"><div class="ml-head" id="mHead"></div><div class="ml-prev${UI.mlDev==="gsm"?" gsm":""}"><iframe id="mlFrame" title="Voorbeeld van de mail" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div></div></div>
+  </div>
   <div class="ml-side">
   <div class="panel"><div class="panel-h"><h2>Ontvangers</h2><span class="grow"></span><span class="pill ${actief.length?"info":"neutral"}">${actief.length}</span></div><div class="panel-b stack" style="gap:10px">
     <select class="sel" data-change="mlGroep" aria-label="Doelgroep">${sects.map(s=>`<optgroup label="${esc(s)}">${G.filter(x=>x.sect===s).map(x=>`<option value="${esc(x.id)}"${x.id===g.id?" selected":""}>${esc(x.label)} (${x.list.filter(r=>r.email).length})</option>`).join("")}</optgroup>`).join("")}</select>
@@ -2701,9 +2706,6 @@ VIEWS.mails=()=>({title:"Mails",actions:'<button class="btn" data-w data-act="ml
     ${mlBlokUI(g)}
     ${zonder.length?`<details class="ml-lijst"><summary>Zonder e-mailadres (${zonder.length})</summary><div class="ml-rl muted">${zonder.map(r=>`<div>${esc(r.label)}</div>`).join("")}</div></details>`:""}
   </div></div>
-  <div class="panel"><div class="panel-h"><h2>Voorbeeld</h2><span class="grow"></span>
-    <div class="seg" role="group" aria-label="Weergave"><button class="${UI.mlDev==="gsm"?"":"on"}" data-act="mlDev" data-v="pc">Computer</button><button class="${UI.mlDev==="gsm"?"on":""}" data-act="mlDev" data-v="gsm">Gsm</button></div></div>
-    <div class="panel-b stack" style="gap:10px"><div class="ml-head" id="mHead"></div><div class="ml-prev${UI.mlDev==="gsm"?" gsm":""}"><iframe id="mlFrame" title="Voorbeeld van de mail" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div></div></div>
   <div class="panel"><div class="panel-h"><h2>Versturen</h2></div><div class="panel-b stack" style="gap:10px">
     ${MAILSMTP===null?(mailSmtpLaad(),'<div class="muted small">Verzendinstellingen laden…</div>'):MAILSMTP.ingesteld?`
     <button class="btn primary" data-act="mlSend"${actief.length&&canWrite?"":" disabled"}>${ic("mails")}${actief.length} ${actief.length===1?"mail":"mails"} versturen</button>
@@ -2731,8 +2733,11 @@ function mlEditor(M){const d=!canWrite;const b=(act,t,lab,extra="")=>`<button ty
   <span class="help">Velden zoals <span class="kbd">{voornaam}</span> worden per ontvanger ingevuld. <span class="kbd">{agenda}</span> wordt de lijst met komende activiteiten die in de agenda aangevinkt staan voor de mail. Logo, rode balken en lettertype komen er bij het versturen vanzelf bij.</span>`}
 function mlHistoriek(){const L=[...(S.mailings||new Map()).values()].sort((a,b)=>String(b.datum||"").localeCompare(String(a.datum||"")));if(!L.length)return"";
   const N=UI.mlHistN||5;const dt=s=>{const x=new Date(s);return isNaN(x)?"":x.toLocaleDateString("nl-BE",{day:"numeric",month:"short",year:"numeric"})+" "+x.toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})};
-  return `<div class="panel"><div class="panel-h"><h2>Verzonden</h2></div><div class="list">${L.slice(0,N).map(m=>`<div class="li ml-h"><div class="grow" style="min-width:0"><div class="trunc"><b>${esc(m.onderwerp||"")}</b></div>
-    <div class="muted small trunc">${esc(dt(m.datum))} · ${esc(m.groep||"")}${m.door?" · "+esc(m.door):""}</div></div><span class="pill ${m.fout&&m.fout.length?"warn":"ok"}" title="${esc((m.fout||[]).join(", "))}">${m.ok||0}${m.fout&&m.fout.length?" / "+m.aantal:""}</span></div>`).join("")}</div>
+  const st=m=>{const f=(m.fout||[]).length,n=Number(m.aantal)||0,ok=Number(m.ok)||0;
+    if(m.bezig)return `<span class="pill info" title="Wordt gespreid verstuurd">bezig · ${n}</span>`;
+    return f?`<span class="pill warn" title="${esc(f+" niet gelukt: "+(m.fout||[]).slice(0,20).join(", "))}">${ok} / ${n}</span>`:`<span class="pill ok" title="Alles verstuurd">✓ ${ok||n}</span>`};
+  return `<div class="panel ml-hist"><div class="panel-h"><h2>Verzonden</h2></div><div class="ml-hl">${L.slice(0,N).map(m=>`<div class="ml-h"><div class="ml-hm"><b class="trunc">${esc(m.onderwerp||"")}</b>
+    <span class="muted small trunc">${esc(dt(m.datum))} · ${esc(m.groep||"")}</span></div>${st(m)}</div>`).join("")}</div>
     ${L.length>N?'<div style="padding:10px 16px;border-top:1px solid var(--line)"><button class="btn sm" data-act="mlHistMeer">Meer tonen</button></div>':""}</div>`}
 VIEWS.mails.after=()=>{mailPreview();const ed=$("#mlEd");if(ed&&!ed.dataset.init){ed.dataset.init=1}};
 
