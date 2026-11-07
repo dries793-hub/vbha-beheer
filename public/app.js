@@ -818,8 +818,8 @@ const KR_GRENS=(()=>{const el=document.getElementById("krGrens");if(!el)return[]
 const krInRing=(p,r)=>{let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const yi=r[i][0],xi=r[i][1],yj=r[j][0],xj=r[j][1];if(((yi>p[0])!==(yj>p[0]))&&(p[1]<(xj-xi)*(p[0]-yi)/(yj-yi)+xi))c=!c}return c};
 const krBinnen=p=>!KR_GRENS.length||KR_GRENS.some(r=>krInRing(p,r));
 const KR_STREETS=(()=>{const el=document.getElementById("krData");if(!el)return[];
-  return el.textContent.trim().split("\n").map(l=>{const m=l.match(/^(.*) ([0-3]) (\d+) ([^0-9]*)$/);if(!m)return null;const n=m[1],w=KR_WIJKEN[+m[2]];
-    return{id:w==="Centrum"?krSlug(n):krSlug(n)+"--"+krSlug(w),n,w,a:+m[3],g:m[4].trim().split(" ").map(krDecode).filter(part=>part.filter(krBinnen).length*2>=part.length)}}).filter(s=>s&&s.g.length)})();
+  let gen=0;return el.textContent.trim().split("\n").map(l=>{const gm=l.match(/^#gen (\d+)/);if(gm){gen=+gm[1];return null}const m=l.match(/^(.*) ([0-3]) (\d+) ([^0-9]*)$/);if(!m)return null;const n=m[1],w=KR_WIJKEN[+m[2]];
+    return{id:w==="Centrum"?krSlug(n):krSlug(n)+"--"+krSlug(w),n,w,a:+m[3],gen,g:m[4].trim().split(" ").map(krDecode).filter(part=>part.filter(krBinnen).length*2>=part.length)}}).filter(s=>s&&s.g.length)})();
 const KR={ss:new Set(),map:null,host:null,sp:null,lines:new Map(),labels:null,labelAt:null,sel:null,busy:false,byId:new Map(KR_STREETS.map(s=>[s.id,s]))};
 const krNaam=()=>ls.get("rondeNaam","");
 const krVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -834,12 +834,14 @@ function krRes(){const a=krAll(),m={};for(const k in a)if(a[k].status==="reserve
    Punten van eenzelfde straat die minder dan 40 m van elkaar liggen tellen als één kruispunt, zodat de twee rijrichtingen van een
    gescheiden rijbaan samen één stuk vormen. Stukken korter dan 50 m worden bij een aangrenzend stuk gevoegd.
    Id van een deel: <straat-id>~<volgnummer>. Zelfde code in de app en op de openbare kaart, zodat de ids overal gelijk zijn. */
-function krMaakDelen(streets){const key=p=>p[0].toFixed(5)+","+p[1].toFixed(5),cnt=new Map();
-  for(const s of streets){const seen=new Set();for(const part of s.g)for(const p of part){const k=key(p);if(!seen.has(k)){seen.add(k);cnt.set(k,(cnt.get(k)||0)+1)}}}
+function krMaakDelen(streets){const key=p=>p[0].toFixed(5)+","+p[1].toFixed(5),cntVan=new Map();
+  /* Stabiele ids: een straat wordt enkel opgedeeld door straten van dezelfde of een oudere generatie (#gen in krData).
+     Zo veranderen de stukken van bestaande straten niet als er later straten bijkomen. */
+  const cntTot=g=>{if(!cntVan.has(g)){const c=new Map();for(const s of streets){if((s.gen||0)>g)continue;const seen=new Set();for(const part of s.g)for(const p of part){const k=key(p);if(!seen.has(k)){seen.add(k);c.set(k,(c.get(k)||0)+1)}}}cntVan.set(g,c)}return cntVan.get(g)};
   const dist=(a,b)=>{const dy=(a[0]-b[0])*111320,dx=(a[1]-b[1])*111320*Math.cos(a[0]*Math.PI/180);return Math.hypot(dx,dy)};
   const lengte=g=>{let t=0;for(let i=1;i<g.length;i++)t+=dist(g[i-1],g[i]);return t};
   const out=new Map();
-  for(const s of streets){const stuk=[];
+  for(const s of streets){const stuk=[],cnt=cntTot(s.gen||0);
     for(const part of s.g){let cur=[part[0]];for(let i=1;i<part.length;i++){cur.push(part[i]);if(i<part.length-1&&cnt.get(key(part[i]))>1){stuk.push(cur);cur=[part[i]]}}if(cur.length>1)stuk.push(cur)}
     // eindpunten van de stukken groeperen tot kruispunten (binnen 40 m)
     const kp=[];const kpVan=p=>{for(let i=0;i<kp.length;i++)if(dist(kp[i],p)<40)return i;kp.push(p);return kp.length-1};
