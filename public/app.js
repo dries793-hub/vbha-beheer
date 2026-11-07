@@ -492,7 +492,7 @@ function lgPill(r){return r.lg.ok?'<span class="pill ok" title="'+esc(r.lg.bron)
 
 /* ---------- boekhouding ---------- */
 const BOEK_TABS=[["boekhouding","Overzicht"],["boekingen","Transacties"],["verwerken","Te verwerken"],["historiek","Historiek"]];
-const INST_TABS=[["instellingen","Algemeen"],["regels","Automatische regels"],["bank","Bankimport"],["logboek","Logboek"]];
+const INST_TABS=[["instellingen","Algemeen"],["herinneringen","Herinneringen"],["regels","Automatische regels"],["bank","Bankimport"],["logboek","Logboek"]];
 const INST_IDS=INST_TABS.map(t=>t[0]);
 function instTabs(act){return `<nav class="tabs" aria-label="Onderdelen instellingen">${INST_TABS.map(([k,l])=>`<a href="#${k}" class="${k===act?"on":""}">${esc(l)}</a>`).join("")}</nav>`}
 const MAANDEN=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
@@ -3003,3 +3003,32 @@ function spToewijzen(bid){const b=S.boekingen.get(bid);if(!b)return;const C=ctx(
    `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="spTwOk">Bewaren</button>`);
   $("#spGeen").onchange=e=>{$("#spTw").disabled=e.target.checked};
   $("#spTwOk").onclick=async()=>{const geen=$("#spGeen").checked,sid=geen?"-":$("#spTw").value;closeModal();await spZetBoeking(bid,sid);toast(geen?"Aangeduid als geen sponsorbetaling.":"Toegewezen aan "+spNaam(S.sponsors.get(sid))+".")}}
+
+/* ============ Instellingen › Herinneringen ============
+   Herinneringsmail voor vergaderingen (config "herinneringen"): de server (api/_lib/herinnering.js) leest deze instellingen;
+   een geplande taak in Supabase roept elk uur aan en de server verstuurt enkel op het gekozen uur. */
+if(!ROUTES.some(r=>r[0]==="herinneringen"))ROUTES.push(["herinneringen","Herinneringen"]);
+const HR_DEF={aan:true,ontvangers:"bestuur@vbha.be",dagen:5,uur:8,soorten:[]};
+const hrCfg=()=>({...HR_DEF,...(S.config.get("herinneringen")||{})});
+VIEWS.herinneringen=()=>({title:"Instellingen",sub:"Herinneringen",body(){
+  const c=hrCfg(),d=canWrite?"":" disabled",nu=todayISO();
+  const komend=[...S.vergaderingen.values()].filter(v=>v.datum&&v.datum>=nu&&(!c.soorten.length||c.soorten.includes(v.soort||"Andere"))).sort((a,b)=>a.datum.localeCompare(b.datum)).slice(0,5);
+  const verstuurOp=v=>{const [y,m,dd]=v.datum.split("-").map(Number);const t=new Date(y,m-1,dd-c.dagen,12);const iso=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");return iso<nu?"vandaag of morgen":agLang(iso)+" om "+c.uur+"u"};
+  return instTabs("herinneringen")+`<div class="grid g2" style="align-items:start">
+  <form class="panel" id="fHr"><div class="panel-h"><h2>Herinnering vergaderingen</h2></div><div class="panel-b"><div class="form">
+    <label class="sp-nat full" for="hrAan"><input type="checkbox" id="hrAan"${c.aan?" checked":""}${d}><span><b>Herinneringsmail versturen</b><small>Automatisch een mail met datum, uur, locatie en agenda vóór elke vergadering in de agenda.</small></span></label>
+    ${fld("hrAanW","Ontvangers",`<input id="hrAanW" value="${esc(c.ontvangers)}" placeholder="bestuur@vbha.be"${d}>`,"full")}
+    <span class="help full muted small" style="margin-top:-6px;color:var(--muted)">Meerdere adressen scheid je met een komma.</span>
+    ${fld("hrDagen","Hoeveel dagen vooraf",`<select id="hrDagen" class="sel"${d}>${[1,2,3,4,5,6,7,10,14].map(n=>`<option value="${n}"${n===Number(c.dagen)?" selected":""}>${n} ${n===1?"dag":"dagen"}</option>`).join("")}</select>`)}
+    ${fld("hrUur","Op welk uur",`<select id="hrUur" class="sel"${d}>${[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].map(n=>`<option value="${n}"${n===Number(c.uur)?" selected":""}>${n}u00</option>`).join("")}</select>`)}
+    <div class="fld full"><span class="lbl">Voor welke vergaderingen</span><div class="hr-soorten">${VG_SOORT.map(s=>`<label><input type="checkbox" name="hrS" value="${esc(s)}"${!c.soorten.length||c.soorten.includes(s)?" checked":""}${d}>${esc(s)}</label>`).join("")}</div></div>
+    ${canWrite?`<div class="full bar"><button class="btn primary" type="button" id="hrOk">Bewaren</button><button class="btn" type="button" id="hrTest">Voorbeeld naar mezelf sturen</button></div>`:""}
+  </div></div></form>
+  <div class="panel"><div class="panel-h"><h2>Volgende herinneringen</h2></div>${!c.aan?'<div class="empty">Herinneringen staan uit.</div>':komend.length?`<div class="list">${komend.map(v=>`<div class="li" style="display:block;padding:12px 16px"><div><b>${esc(v.titel||v.soort||"Vergadering")}</b> <span class="muted small">${esc(agLang(v.datum))}${v.uur?" om "+esc(v.uur):""}</span></div>
+     <div class="muted small">${v.herinnerdVoor===v.datum?"✓ Herinnering verstuurd":"Herinnering op "+esc(verstuurOp(v))}</div></div>`).join("")}</div>`:'<div class="empty">Geen komende vergaderingen in de agenda.</div>'}</div></div>`}});
+async function hrBewaar(){const ont=$("#hrAanW").value.split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean);const fout=ont.filter(x=>!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x));
+  if($("#hrAan").checked&&!ont.length){toast("Vul minstens één ontvanger in.",true);return}if(fout.length){toast("Geen geldig e-mailadres: "+fout.join(", "),true);return}
+  const alle=$$('input[name="hrS"]'),aan=alle.filter(i=>i.checked).map(i=>i.value);if(!aan.length){toast("Kies minstens één soort vergadering.",true);return}
+  await write("config","herinneringen",{...stripId(S.config.get("herinneringen")||{}),aan:$("#hrAan").checked,ontvangers:ont.join(", "),dagen:Number($("#hrDagen").value),uur:Number($("#hrUur").value),soorten:aan.length===alle.length?[]:aan});toast("Herinneringen bewaard.")}
+async function hrTest(b){b.disabled=true;try{const j=await api("/api/mail?f=herinnering-test",{method:"POST",body:"{}"});toast("Voorbeeld verstuurd naar "+j.aan+".")}catch(x){toast(x.message,true)}finally{b.disabled=false}}
+document.addEventListener("click",e=>{const t=e.target.closest("#hrOk,#hrTest");if(!t)return;if(t.id==="hrOk")hrBewaar();else hrTest(t)});
