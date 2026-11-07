@@ -46,7 +46,17 @@ export class Imap {
   }
   static q(s) { return '"' + String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"'; }
   async login(user, pass) { await this.cmd(`LOGIN ${Imap.q(user)} ${Imap.q(pass)}`); }
-  async select(map = "INBOX") { await this.cmd(`SELECT ${Imap.q(map)}`); }
+  async select(map = "INBOX", { alleenLezen = false } = {}) {
+    const r = await this.cmd(`${alleenLezen ? "EXAMINE" : "SELECT"} ${Imap.q(map)}`);
+    const t = r.filter(x => typeof x === "string").join("\n");
+    return { uidValidity: Number((t.match(/UIDVALIDITY (\d+)/i) || [])[1] || 0), bestaat: Number((t.match(/\* (\d+) EXISTS/i) || [])[1] || 0) };
+  }
+  // kop + grootte zonder de mail als gelezen te markeren
+  async kop(uid) {
+    const r = await this.cmd(`UID FETCH ${uid} (RFC822.SIZE BODY.PEEK[HEADER.FIELDS (FROM SUBJECT MESSAGE-ID DATE CONTENT-TYPE)])`);
+    const t = r.filter(x => typeof x === "string").join(" "), k = r.find(x => Buffer.isBuffer(x));
+    return { grootte: Number((t.match(/RFC822\.SIZE (\d+)/i) || [])[1] || 0), kop: k ? k.toString("latin1") : "" };
+  }
   async zoek(criteria = "UNSEEN") {
     const r = await this.cmd(`UID SEARCH ${criteria}`);
     const l = r.find(x => typeof x === "string" && /^\* SEARCH/i.test(x)) || "";
@@ -69,7 +79,7 @@ function woorden(s) { // RFC 2047 =?utf-8?B?...?= / =?iso-8859-1?Q?...?=
     } catch (e) { return t; }
   });
 }
-function koppen(tekst) {
+export function koppen(tekst) {
   const H = {}; let laatst = null;
   for (const l of tekst.split(/\r?\n/)) {
     if (/^[ \t]/.test(l) && laatst) { H[laatst] += " " + l.trim(); continue; }
