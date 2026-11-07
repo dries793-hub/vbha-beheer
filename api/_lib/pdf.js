@@ -56,6 +56,8 @@ export class Pdf {
     let i = this.beelden.indexOf(img); if (i < 0) { this.beelden.push(img); i = this.beelden.length - 1; }
     this.ops.push(`q ${f(w)} 0 0 ${f(h)} ${f(x)} ${f(this.H - y - h)} cm /Im${i} Do Q`); return this;
   }
+  // beeld onder alle andere inhoud van de huidige pagina (watermerk)
+  achtergrond(x, y, w, h, img) { const n = this.ops.length; this.beeld(x, y, w, h, img); this.ops.unshift(this.ops.splice(n, 1)[0]); return this; }
   // QR-code: n x n modules, donker(r, c) -> boolean
   qr(x, y, maat, n, donker) {
     const m = maat / n; let d = "";
@@ -68,7 +70,7 @@ export class Pdf {
     const catalog = add(null), pages = add(null);
     const f1 = add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
     const f2 = add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
-    const im = this.beelden.map(b => { const data = Buffer.from(b.data, "base64"); return add({ dict: `<< /Type /XObject /Subtype /Image /Width ${b.w} /Height ${b.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length ${data.length} >>`, data }); });
+    const im = this.beelden.map(b => { const data = Buffer.from(b.data, "base64"); return add({ dict: `<< /Type /XObject /Subtype /Image /Width ${b.w} /Height ${b.h} /ColorSpace /${b.cs || "DeviceRGB"} /BitsPerComponent 8 /Filter /FlateDecode /Length ${data.length} >>`, data }); });
     const xo = im.length ? "/XObject << " + im.map((o, i) => `/Im${i} ${o} 0 R`).join(" ") + " >>" : "";
     const kids = [];
     for (const ops of this.paginas) {

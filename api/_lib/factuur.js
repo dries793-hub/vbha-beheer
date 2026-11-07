@@ -3,7 +3,7 @@ import { admin, requireUser, isDbCron, httpErr } from "./sb.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
 import { algemeen, configDoc, DEF_IBAN } from "./publiek.js";
 import { Pdf, afbreken, breedte } from "./pdf.js";
-import { LOGO } from "./logo_pdf.js";
+import { LOGO, WATERMERK } from "./logo_pdf.js";
 import { epcPayload, qrSvg, qrMatrix } from "./epc.js";
 import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, lang, kort, vandaag, plusDagen, site } from "./bevestiging.js";
 
@@ -109,7 +109,7 @@ export function factuurPdf(f, cfg, { status } = {}) {
   for (const r of [k.contact ? "T.a.v. " + k.contact : "", ...String(k.adres || "").split(/\r?\n|,\s*(?=\d{4}\s)/).map(s => s.trim()).filter(Boolean), k.btw ? "Btw/ondernemingsnr. " + k.btw : ""].filter(Boolean)) { pdf.tekst(L, ky, r, { size: 9.5 }); ky += 12.5; }
 
   const gx = 330, gw = R - gx;
-  const rijen = [[credit ? "Creditnotanummer" : "Factuurnummer", f.nr || "wordt toegekend bij verzenden"], [credit ? "Datum" : "Factuurdatum", dmy(f.datum)]];
+  const rijen = [[credit ? "Creditnotanummer" : "Factuurnummer", f.nr || "concept"], [credit ? "Datum" : "Factuurdatum", dmy(f.datum)]];
   if (!credit) rijen.push(["Vervaldatum", dmy(f.vervaldatum)]);
   if (credit && f.factuurNr) rijen.push(["Betreft factuur", f.factuurNr]);
   if (f.referentie) rijen.push(["Uw referentie", f.referentie]);
@@ -163,8 +163,9 @@ export function factuurPdf(f, cfg, { status } = {}) {
   // betaalgegevens met QR-code (niet bij een creditnota)
   const st = status || null;
   if (!credit && T.totaal > 0) {
-    const bh = 112;
+    const bh = st && st.betaald ? 46 : 112;
     if (y + bh > ONDER) { pdf.nieuwePagina(); y = kop(false); }
+    y = ONDER - bh; // altijd onderaan de pagina, net boven de voettekst
     if (st && st.betaald) {
       pdf.vlak(L, y, Wb, 46, "#f1faf4"); pdf.vlak(L, y, 4, 46, "#1a7f45");
       pdf.tekst(L + 16, y + 10, "BETAALD", { size: 13, bold: true, kleur: "#1a7f45" });
@@ -178,7 +179,7 @@ export function factuurPdf(f, cfg, { status } = {}) {
       regel("Te betalen", geld(te), true);
       regel("Rekening", String(cfg.iban).replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim() + (cfg.bic ? "   BIC " + cfg.bic : ""));
       regel("Begunstigde", cfg.vereniging);
-      regel("Mededeling", f.ogm ? ogmFmt(f.ogm) : f.nr || "", true);
+      regel("Mededeling", f.ogm ? ogmFmt(f.ogm) : f.nr || "volgt bij het versturen", !!(f.ogm || f.nr));
       if (f.vervaldatum) regel("Uiterlijk op", dmy(f.vervaldatum));
       if (f.nr) {
         try {
@@ -192,10 +193,12 @@ export function factuurPdf(f, cfg, { status } = {}) {
     }
   }
 
-  // voettekst op elke pagina
+  // watermerk (VBHA-woordmerk) en voettekst op elke pagina
+  const wmW = 400, wmH = wmW * WATERMERK.h / WATERMERK.w;
   const voet = [cfg.voettekst || "", `${cfg.vereniging}${cfg.kbo ? " · " + cfg.kbo : ""} · ${String(cfg.iban).replace(/\s+/g, "")}`].filter(Boolean);
   pdf.paginas.forEach((ops, i) => {
     pdf.ops = ops;
+    pdf.achtergrond((595 - wmW) / 2, (842 - wmH) / 2 + 30, wmW, wmH, WATERMERK);
     pdf.lijn(L, 790, R, 790, "#dddddd");
     let vy = 797;
     for (const v of voet) for (const r of afbreken(v, 7.5, false, Wb - 60)) { pdf.tekst(L, vy, r, { size: 7.5, kleur: GRIJS }); vy += 10; }
