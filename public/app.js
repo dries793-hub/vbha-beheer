@@ -3361,7 +3361,7 @@ const vaBestaand=(v,datum)=>[...S.vergaderingen.values()].filter(x=>x.id!==v.id&
 function vaDialoog(id){const v=S.vergaderingen.get(id);if(!v)return;const al=vaBestaand(v),vd=al?al.datum:vaPlus(v.datum>todayISO()?v.datum:todayISO(),28);
   modal("Vergadering afronden",`<form id="fVa" class="form">
    <p class="full muted small" style="margin:0">${esc(v.titel||v.soort||"Vergadering")} van ${esc(agLang(v.datum))}</p>
-   <div class="fld full"><span class="lbl">Verslag (PDF) *</span><label class="va-file" for="vaFile"><span id="vaFn">${ic("upload")}Kies het verslag…</span></label><input type="file" id="vaFile" accept="application/pdf,.pdf" hidden></div>
+   <div class="fld full"><span class="lbl">Verslag (PDF) *</span><span class="help" style="margin:0 0 6px">Wordt automatisch in de VBHA-huisstijl gezet en bewaard als <b>${esc(vaBestand(v))}</b>.</span><label class="va-file" for="vaFile"><span id="vaFn">${ic("upload")}Kies het verslag…</span></label><input type="file" id="vaFile" accept="application/pdf,.pdf" hidden></div>
    <div class="fc-sec full"><h4>Volgende vergadering</h4>${al?`<p class="muted small" style="margin:0">De ${esc(agLang(al.datum))} staat al een ${esc((al.soort||"vergadering").toLowerCase())} in de agenda. Kies je die datum, dan wordt die gebruikt (geen dubbele vergadering).</p>`:""}</div>
    ${fld("va_soort","Soort",`<select id="va_soort" class="sel">${selOpts(VG_SOORT,v.soort||"Bestuursvergadering")}</select>`)}${fld("va_datum","Datum *",`<input id="va_datum" type="date" value="${vd}">`)}
    ${fld("va_uur","Uur",inp("va_uur",(al&&al.uur)||v.uur||"20u00",'maxlength="20"'))}${fld("va_loc","Waar",inp("va_loc",(al&&al.locatie)||v.locatie,'maxlength="160"'))}
@@ -3369,6 +3369,35 @@ function vaDialoog(id){const v=S.vergaderingen.get(id);if(!v)return;const al=vaB
    <label class="sp-nat full" for="vaMail"><input type="checkbox" id="vaMail" checked><span><b>Mail naar ${esc(vaOntv())}</b><small>Met het verslag in bijlage en de datum van de volgende vergadering.</small></span></label>
    <div class="err full" id="vaErr"></div></form>`,
    `<button class="btn" data-va="terug" data-id="${esc(id)}">Annuleren</button><button class="btn primary" data-va="ok" data-id="${esc(id)}">Afronden</button>`)}
+/* verslag in de VBHA-huisstijl: elke pagina van de opgeladen PDF komt (verkleind) in een A4-sjabloon met kop en voet.
+   pdf-lib (MIT) staat op de eigen site en wordt pas geladen als het nodig is. */
+let VA_LIB=null;
+function vaLib(){if(window.PDFLib)return Promise.resolve(window.PDFLib);if(!VA_LIB)VA_LIB=new Promise((ok,nok)=>{const sc=document.createElement("script");sc.src="/pdf-lib.min.js";sc.onload=()=>ok(window.PDFLib);sc.onerror=()=>{VA_LIB=null;nok(new Error("pdf-lib kon niet geladen worden"))};document.head.appendChild(sc)});return VA_LIB}
+const vaBestand=v=>`VBHA verslag vergadering ${fmtDate(v.datum).replace(/\//g,"-")}.pdf`;
+async function vaHuisstijl(file,v){const L=await vaLib(),{PDFDocument,StandardFonts,rgb}=L;
+  const bron=await PDFDocument.load(await file.arrayBuffer(),{ignoreEncryption:true});
+  const doc=await PDFDocument.create();const F=await doc.embedFont(StandardFonts.Helvetica),FB=await doc.embedFont(StandardFonts.HelveticaBold);
+  let logo=null;try{logo=await doc.embedPng(await (await fetch("/favicon.png")).arrayBuffer())}catch(e){}
+  const pages=await doc.embedPages(bron.getPages());const ROOD=rgb(.702,0,0),GRIJS=rgb(.4,.4,.4),LIJN=rgb(.87,.87,.87),W=595.28,H=841.89;
+  const soort=v.soort||"Vergadering",titel="Verslag "+soort.toLowerCase(),dl=agLang(v.datum),dk=fmtDate(v.datum);
+  const ver=(S.config.get("algemeen")||{}).vereniging||"Vriendenkring Brandweer Hoofdpost Aalst",verJ=/\bvzw\b/i.test(ver)?ver:ver+" vzw";
+  pages.forEach((ep,i)=>{const p=doc.addPage([W,H]);
+    p.drawRectangle({x:0,y:H-6,width:W,height:6,color:ROOD});
+    if(logo){const lh=44,lw=lh*logo.width/logo.height;p.drawImage(logo,{x:40,y:H-24-lh,width:lw,height:lh})}
+    p.drawText(titel,{x:96,y:H-42,size:15,font:FB,color:rgb(.13,.13,.13)});
+    p.drawText(dl.charAt(0).toUpperCase()+dl.slice(1)+(v.locatie?"  ·  "+v.locatie:""),{x:96,y:H-59,size:9.5,font:F,color:GRIJS});
+    const vw=FB.widthOfTextAtSize("VBHA",15);p.drawText("VBHA",{x:W-40-vw,y:H-42,size:15,font:FB,color:ROOD});
+    const sw=F.widthOfTextAtSize(verJ,7.5);p.drawText(verJ,{x:W-40-sw,y:H-56,size:7.5,font:F,color:GRIJS});
+    p.drawLine({start:{x:40,y:H-80},end:{x:W-40,y:H-80},thickness:1.2,color:ROOD});
+    // inhoud: originele pagina, zo groot mogelijk binnen het kader
+    const bx=40,by=56,bw=W-80,bh=H-80-14-by,sc=Math.min(bw/ep.width,bh/ep.height,1),dw=ep.width*sc,dh=ep.height*sc;
+    p.drawPage(ep,{x:bx+(bw-dw)/2,y:by+bh-dh,width:dw,height:dh});
+    p.drawLine({start:{x:40,y:42},end:{x:W-40,y:42},thickness:.6,color:LIJN});
+    p.drawText(`${verJ}  ·  ${titel} ${dk}`,{x:40,y:28,size:7.5,font:F,color:GRIJS});
+    const pt=`Pagina ${i+1}/${pages.length}`,pw=F.widthOfTextAtSize(pt,7.5);p.drawText(pt,{x:W-40-pw,y:28,size:7.5,font:F,color:GRIJS});
+    p.drawRectangle({x:0,y:0,width:W,height:4,color:ROOD})});
+  doc.setTitle(`${titel} ${dk}`);doc.setAuthor(verJ);doc.setCreator("VBHA Beheer");
+  return new File([await doc.save()],vaBestand(v),{type:"application/pdf"})}
 async function vaOk(btn){const id=btn.dataset.id,v=S.vergaderingen.get(id),err=$("#vaErr"),f=$("#vaFile").files[0];
   const datum=$("#va_datum").value;
   if(!f){err.textContent="Kies het verslag (PDF).";return}if(!/\.pdf$/i.test(f.name)&&f.type!=="application/pdf"){err.textContent="Het verslag moet een PDF zijn.";return}
@@ -3377,9 +3406,10 @@ async function vaOk(btn){const id=btn.dataset.id,v=S.vergaderingen.get(id),err=$
   if(datum<=v.datum){err.textContent="De volgende vergadering moet na deze vergadering vallen.";return}
   const mail=$("#vaMail").checked,g=k=>$("#va_"+k).value.trim();
   btn.disabled=true;btn.textContent="Bezig…";
-  try{const did=agId("doc"),pad=`Verslagen/${did}-${docVeilig(f.name)}`;
-    const {error}=await SB.storage.from(DOC_BUCKET).upload(pad,f,{contentType:"application/pdf",upsert:false});if(error)throw error;
-    await write("documenten",did,{naam:f.name,pad,map:"Verslagen",grootte:f.size,type:"application/pdf",omschrijving:`Verslag ${(v.titel||v.soort||"vergadering").toLowerCase()} ${fmtDate(v.datum)}`,door:ME_NAME||"",op:new Date().toISOString(),vergaderingId:id});
+  try{let pdf;try{pdf=await vaHuisstijl(f,v)}catch(x){console.warn("huisstijl",x);pdf=new File([f],vaBestand(v),{type:"application/pdf"});toast("De huisstijl kon niet toegepast worden; het verslag wordt opgeladen zoals het is.",true)}
+    const did=agId("doc"),pad=`Verslagen/${did}-${docVeilig(pdf.name)}`;
+    const {error}=await SB.storage.from(DOC_BUCKET).upload(pad,pdf,{contentType:"application/pdf",upsert:false});if(error)throw error;
+    await write("documenten",did,{naam:pdf.name,pad,map:"Verslagen",grootte:pdf.size,type:"application/pdf",omschrijving:`Verslag ${(v.titel||v.soort||"vergadering").toLowerCase()} ${fmtDate(v.datum)}`,door:ME_NAME||"",op:new Date().toISOString(),vergaderingId:id});
     const soort=$("#va_soort").value,al=vaBestaand({...v,soort},datum),nid=al?al.id:agId("verg");
     const nv={...(al?stripId(al):{titel:""}),soort,datum,uur:g("uur"),locatie:g("loc"),agenda:g("ag")};if(!al)nv.inMail=vgInMail(nv);
     await write("vergaderingen",nid,nv);
