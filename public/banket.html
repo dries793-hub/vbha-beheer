@@ -220,9 +220,16 @@ function gesloten(wat,j){$("#box").innerHTML=`<div class="card bevestig"><div cl
   <h2>De inschrijvingen zijn afgesloten</h2><p class="lead2">${j.gesloten==="verlopen"&&j.totTekst?"Inschrijven voor "+wat+" kon tot en met "+esc(j.totTekst)+".":"Je kan je op dit moment niet inschrijven voor "+wat+"."} Neem voor vragen contact op met iemand van het bestuur.</p></div>`}
 fetch("/api/banket").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;upd();$("#h1").textContent="Banket "+j.jaar;document.title="Banket "+j.jaar+" · VBHA";INFO.basis=j.prijs;$("#fPrijs").textContent=(j.kortingAan?"vanaf ":"")+eur(j.prijs)+" per persoon";if(j.kortingAan){const f=$("#fPrijs");f.textContent=eur(j.prijs)+" per persoon";const s=document.createElement("small");s.className="fk";s.textContent="korting volgens je status (brons, zilver, goud)";f.after(s)}if(j.totTekst)$("#fDead").textContent=(j.open===false?"inschrijven was mogelijk t.e.m. ":"inschrijven t.e.m. ")+j.totTekst;if(j.open===false)gesloten("het banket",j)}).catch(()=>{});
 /* persoonlijke prijs (korting volgens de status van het lid) */
-let LP=0;async function lidPrijs(id){const el=$("#lpPrijs"),n=++LP;
-  if(!id||!INFO.kortingAan){INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
-  try{const r=await fetch("/api/banket?lid="+encodeURIComponent(id));const j=await r.json();if(n!==LP)return;if(!r.ok)throw 0;INFO.prijs=j.prijs;
+function alMeld(inp,t){let m=document.getElementById("alMeld");const go=$("#go");
+  if(!t){if(m)m.remove();if(go&&go.dataset.al){go.disabled=false;delete go.dataset.al}return}
+  if(!m){m=document.createElement("div");m.id="alMeld";m.setAttribute("role","alert");m.style.cssText="margin:8px 0 0;padding:10px 12px;border-radius:10px;background:#fdecea;color:#8a1c12;border:1px solid #f5c2bd;font-size:14.5px;line-height:1.45";
+    (inp.closest(".lp")||inp.parentElement).append(m)}
+  const k=t.indexOf(". ");m.innerHTML=k>0?"<b>"+esc(t.slice(0,k+1))+"</b> "+esc(t.slice(k+2)):esc(t);if(go){go.disabled=true;go.dataset.al="1"}}
+let LP=0;async function lidPrijs(id){const el=$("#lpPrijs"),n=++LP;alMeld($("#naam"),"");
+  if(!id){INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
+  try{const r=await fetch("/api/banket?lid="+encodeURIComponent(id));const j=await r.json();if(n!==LP)return;if(!r.ok)throw 0;
+    if(j.al){alMeld($("#naam"),j.melding);INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
+    if(!INFO.kortingAan){INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}INFO.prijs=j.prijs;
     if(el){el.hidden=false;el.innerHTML=j.korting?`<span class="lp-st ${esc(String(j.status).toLowerCase())}">${esc(j.status.charAt(0)+j.status.slice(1).toLowerCase())}</span><span>Jouw prijs: <b>${eur(j.prijs)}</b> per persoon <small>(${j.korting}% korting op ${eur(j.basis)})</small></span>`:`<span>Jouw prijs: <b>${eur(j.prijs)}</b> per persoon</span>`}}
   catch(x){if(n!==LP)return;INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true}upd()}
 function val(n){const c=document.querySelector('input[name="'+n+'"]:checked');return c?c.value:""}

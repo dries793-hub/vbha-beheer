@@ -85,3 +85,12 @@ export function inschrijving(c, defTot) {
   const open = !manueel && vandaagISO() <= tot;
   return { open, tot, totTekst: datumTekst(tot), gesloten: open ? null : manueel ? "manueel" : "verlopen" };
 }
+
+// Een lid kan zich per jaar maar één keer inschrijven (banket, kinderfeest).
+export async function alIngeschreven(sb, tabel, jaar, lidId) {
+  if (!lidId) return false;
+  const { data, error } = await sb.from(tabel).select("id").eq("data->>lidId", String(lidId)).eq("data->>jaar", String(jaar)).limit(1);
+  if (error) throw error;
+  return !!(data && data.length);
+}
+export const AL_TEKST = (wat, jaar) => `Je bent al ingeschreven voor ${wat} ${jaar}. Een lid kan zich maar één keer inschrijven. Wil je iets wijzigen? Mail dan naar info@vbha.be.`;

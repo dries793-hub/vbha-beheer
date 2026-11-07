@@ -1,6 +1,6 @@
 import { admin, sendError, httpErr } from "./sb.js";
 import { stuurBevestiging } from "./bevestiging.js";
-import { clean, body, nieuwId, algemeen, configDoc, spamCheck, actieveLeden, inschrijving } from "./publiek.js";
+import { clean, body, nieuwId, algemeen, configDoc, spamCheck, actieveLeden, inschrijving, alIngeschreven, AL_TEKST } from "./publiek.js";
 
 // Openbare inschrijving kinderfeest: komt rechtstreeks in Administratie › Kinderfeest.
 async function info(sb) {
@@ -14,7 +14,12 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
     const sb = admin();
-    if (req.method === "GET") return res.status(200).json(await info(sb));
+    if (req.method === "GET") {
+      const I = await info(sb), lidId = String(req.query?.lid || "");
+      if (!lidId) return res.status(200).json(I);
+      const al = await alIngeschreven(sb, "kinderfeest", I.jaar, lidId);
+      return res.status(200).json(al ? { al: true, melding: AL_TEKST("het kinderfeest", I.jaar) } : { al: false });
+    }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
     const b = body(req);
     if (await spamCheck(sb, "kinderfeest", b, httpErr)) return res.status(200).json({ ok: true });
@@ -22,6 +27,7 @@ export default async function handler(req, res) {
     if (!I.open) throw httpErr(403, "De inschrijvingen voor het kinderfeest zijn afgesloten.");
     const lidRij = (await actieveLeden(sb, I.jaar)).find(l => l.id === String(b.lidId || ""));
     if (!lidRij) throw httpErr(400, "Kies de naam van het lid uit de lijst.");
+    if (await alIngeschreven(sb, "kinderfeest", I.jaar, lidRij.id)) throw httpErr(409, AL_TEKST("het kinderfeest", I.jaar));
     const lid = lidRij.naam;
     // "lidMail": de inschrijver liet het bekende adres van het lid staan (dat adres krijgt de browser enkel verborgen te zien)
     const email = b.lidMail && lidRij.em ? lidRij.em : clean(b.email, 120).toLowerCase();

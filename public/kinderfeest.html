@@ -190,6 +190,12 @@ function draw(focus){$("#kids").innerHTML=KIDS.map((k,i)=>`<div class="kid"><div
 $("#add").addEventListener("click",()=>{read();KIDS.push({naam:"",geb:""});draw(true)});
 $("#kids").addEventListener("click",e=>{const b=e.target.closest("[data-del]");if(!b)return;read();KIDS.splice(+b.dataset.del,1);draw()});
 $("#kids").addEventListener("input",e=>{if(e.target.classList.contains("kg"))$("#ka"+e.target.id.slice(2)).textContent=ageTxt(e.target.value)});
+function alMeld(inp,t){let m=document.getElementById("alMeld");const go=$("#go");
+  if(!t){if(m)m.remove();if(go&&go.dataset.al){go.disabled=false;delete go.dataset.al}return}
+  if(!m){m=document.createElement("div");m.id="alMeld";m.setAttribute("role","alert");m.style.cssText="margin:8px 0 0;padding:10px 12px;border-radius:10px;background:#fdecea;color:#8a1c12;border:1px solid #f5c2bd;font-size:14.5px;line-height:1.45";
+    (inp.closest(".lp")||inp.parentElement).append(m)}
+  const k=t.indexOf(". ");m.innerHTML=k>0?"<b>"+esc(t.slice(0,k+1))+"</b> "+esc(t.slice(k+2)):esc(t);if(go){go.disabled=true;go.dataset.al="1"}}
+let AC=0;async function alCheck(inp,id){const n=++AC;alMeld(inp,"");try{const r=await fetch("/api/kinderfeest?lid="+encodeURIComponent(id),{cache:"no-store"});const j=await r.json();if(n!==AC||!r.ok)return;if(j.al)alMeld(inp,j.melding)}catch(_){}}
 $("#f").addEventListener("submit",async e=>{e.preventDefault();read();const er=$("#err");er.textContent="";
   const lid=$("#lid").value.trim(),mail=$("#mail").value.trim();
   const lidId=$("#lid").dataset.id||"";if(!lidId){er.textContent=lid?"Kies de naam van het lid uit de lijst.":"Vul de naam van het lid in en kies ze uit de lijst.";$("#lid").focus();return}
@@ -209,9 +215,9 @@ function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");co
   const mark=(n,q)=>{const t=q.trim().split(/\s+/).filter(Boolean);let h=esc(n);for(const x of t){const re=new RegExp("("+x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i");h=h.replace(re,"<b>$1</b>")}return h};
   const teken=q=>{if(!L.length){box.innerHTML=q.trim().length>=2?'<div class="lp-leeg">Geen lid gevonden met deze naam.</div>':"";box.hidden=q.trim().length<2;return}
     box.innerHTML=L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${mark(l.naam,q)}</button>`).join("");box.hidden=false};
-  const kies=l=>{inp.value=l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.naam;
+  const kies=l=>{inp.value=l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.naam;alCheck(inp,l.id);
     const m=$("#mail");if(m&&(!m.value.trim()||m.dataset.auto)){if(l.mail){m.value=l.mail;m.dataset.auto="1";m.type="text";$("#mhint").hidden=false}else if(m.dataset.auto){m.value="";delete m.dataset.auto;m.type="email";$("#mhint").hidden=true}}};
-  inp.addEventListener("input",()=>{delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;
+  inp.addEventListener("input",()=>{if(inp.dataset.id){AC++;alMeld(inp,"")}delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;
     if(q.trim().length<2){L=[];box.hidden=true;return}
     T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[];}catch(e){L=[]}if(inp.value===q)teken(q)},160)});
   inp.addEventListener("keydown",e=>{if(box.hidden||!L.length)return;
