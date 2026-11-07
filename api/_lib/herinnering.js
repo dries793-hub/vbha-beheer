@@ -83,3 +83,46 @@ export async function herinneringTest(req, res) {
   if (!r || !r.ok) throw httpErr(502, "Versturen lukte niet" + (r && r.fout ? ": " + r.fout : ""));
   res.status(200).json({ ok: true, aan: user.email });
 }
+
+/* ---------- vergadering afgerond: verslag (PDF) + datum van de volgende vergadering naar het bestuur ----------
+   POST /api/mail?f=vergadering-afgerond {id}  (aangemeld, administrator)
+   De app laadt het verslag op in Documenten (bucket "documenten"), maakt de volgende vergadering aan en zet
+   data.afgerond = {op, door, volgendeId, verslagDoc} op de afgeronde vergadering. */
+export async function vergaderingAfgerond(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+  if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
+  const { sb } = await requireUser(req, { write: true });
+  if (!smtpConfigured()) throw httpErr(501, "Versturen is niet ingesteld (SMTP in Vercel).");
+  const b = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+  const { data: r } = await sb.from("vergaderingen").select("id,data").eq("id", String(b.id || "")).maybeSingle();
+  if (!r) throw httpErr(404, "Vergadering niet gevonden");
+  const v = r.data || {}, af = v.afgerond || {};
+  const { data: vr } = af.volgendeId ? await sb.from("vergaderingen").select("data").eq("id", af.volgendeId).maybeSingle() : { data: null };
+  const nv = vr && vr.data;
+  const bijlagen = [];
+  if (af.verslagDoc) {
+    const { data: doc } = await sb.from("documenten").select("data").eq("id", af.verslagDoc).maybeSingle();
+    if (doc && doc.data && doc.data.pad) {
+      const { data: blob, error } = await sb.storage.from("documenten").download(doc.data.pad);
+      if (error) throw httpErr(500, "Het verslag kon niet gelezen worden: " + error.message);
+      bijlagen.push({ naam: doc.data.naam || "Verslag.pdf", type: doc.data.type || "application/pdf", data: Buffer.from(await blob.arrayBuffer()) });
+    }
+  }
+  const cfg = await instellingen(sb), aan = ontvangers(cfg);
+  if (!aan.length) throw httpErr(400, "Er zijn geen ontvangers ingesteld (Instellingen › Herinneringen).");
+  const { huisstijl, kaderBlok, tabel, rij, p } = await import("./bevestiging.js");
+  const soort = (v.soort || "vergadering").toLowerCase(), titel = v.titel || v.soort || "Vergadering";
+  const punten = nv ? String(nv.agenda || "").split(/\r?\n/).map(x => x.replace(/^\s*[-•*\d.)]+\s*/, "").trim()).filter(Boolean) : [];
+  let html = p("Beste bestuursleden,") + p(`De ${esc(soort)} van ${esc(lang(v.datum).replace(/^./, c => c.toLowerCase()))} is afgerond. ${bijlagen.length ? "In bijlage vind je het <b>verslag</b>." : ""}`);
+  if (nv) html += kaderBlok("Volgende " + esc((nv.soort || "vergadering").toLowerCase()), tabel([
+    rij("Datum", `<b>${esc(lang(nv.datum))}</b>`), nv.uur ? rij("Uur", esc(nv.uur)) : "", nv.locatie ? rij("Locatie", esc(nv.locatie)) : "", nv.titel ? rij("Onderwerp", esc(nv.titel)) : ""])
+    + (punten.length ? `<p style="margin:12px 0 5px"><b>Agenda</b></p><ol style="margin:0;padding-left:22px">${punten.map(x => `<li style="margin:0 0 4px">${esc(x)}</li>`).join("")}</ol>` : ""));
+  html += p(nv ? "Zet de datum alvast in je agenda. Kan je er niet bij zijn? Laat het dan even weten." : "Opmerkingen bij het verslag? Antwoord gewoon op deze mail.");
+  const onderwerp = `Verslag ${titel.toLowerCase() === soort ? soort : titel} ${lang(v.datum).replace(/^\S+ /, "")}${nv ? " - volgende vergadering " + lang(nv.datum).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase()) : ""}`;
+  const m = { aanNaam: "Bestuur VBHA", onderwerp, html: huisstijl(html, "Vriendenkring Brandweer Hoofdpost Aalst"), bijlagen, van: afzender() };
+  const uit = await verstuur(aan.map(a => ({ ...m, aan: a })));
+  const ok = uit.some(x => x && x.ok);
+  if (!ok) throw httpErr(502, "Versturen mislukt: " + ((uit[0] && uit[0].fout) || "onbekende fout"));
+  await sb.from("vergaderingen").update({ data: { ...v, afgerond: { ...af, gemaild: new Date().toISOString(), aan: aan.join(", ") } } }).eq("id", r.id);
+  res.status(200).json({ aan, bijlage: bijlagen.length > 0 });
+}

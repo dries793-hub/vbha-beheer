@@ -3338,3 +3338,60 @@ document.addEventListener("change",e=>{const t=e.target;if(t.id==="fcJaar"){FC.j
 {const _sf=sponsorForm;sponsorForm=function(s,id){_sf(s,id);if(id&&fcMag()){const ok=$("#spOk");if(ok)ok.insertAdjacentHTML("beforebegin",`<button class="btn" data-fc="sponsor" data-id="${esc(id)}">${ic("facturen")}Factuur maken</button>`)}}}
 // na elke render: facturen-pagina houdt de koppeling met de transacties bij
 VIEWS.facturen.after=()=>fcSync();
+
+/* ============ Agenda › vergadering afronden ============
+   In een vergadering: verslag (PDF) opladen + bevestigen dat de vergadering afgerond is + datum van de volgende vergadering.
+   Daarna: verslag in Documenten › Verslagen, volgende vergadering in de agenda, mail met het verslag in bijlage naar het bestuur
+   (ontvangers uit Instellingen › Herinneringen, standaard bestuur@vbha.be). */
+const vaOntv=()=>String((S.config.get("herinneringen")||{}).ontvangers||"bestuur@vbha.be");
+const vaPlus=(iso,n)=>{const d=agD(iso);d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+function vaBlok(v,id){const af=v.afgerond;
+  if(af){const nv=af.volgendeId&&S.vergaderingen.get(af.volgendeId),doc=af.verslagDoc&&S.documenten.get(af.verslagDoc);
+    return `<div class="full va-ok"><div class="va-h">${ic("check")}<b>Vergadering afgerond</b><span class="muted small">${af.op?fmtDate(af.op.slice(0,10)):""}${af.door?" · "+esc(af.door):""}</span></div>
+     <div class="va-r">${doc?`<button type="button" class="btn sm" data-va="dl" data-id="${esc(doc.id)}">${ic("download")}${esc(doc.naam)}</button>`:'<span class="muted small">Geen verslag opgeladen.</span>'}
+     ${nv?`<button type="button" class="btn sm ghost" data-va="volg" data-id="${esc(nv.id)}">Volgende: ${esc(agKort(nv.datum))}${nv.uur?" "+esc(nv.uur):""}</button>`:""}</div>
+     <div class="muted small">${af.gemaild?`Gemaild naar ${esc(af.aan||vaOntv())} op ${new Date(af.gemaild).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}.`:`Nog niet gemaild. <a href="#" data-va="mail" data-id="${esc(id)}">Nu mailen</a>`}</div></div>`}
+  if(v.datum>todayISO())return "";
+  return `<div class="full va-box"><div><b>Vergadering voorbij?</b><div class="muted small">Laad het verslag op, bevestig dat de vergadering afgerond is en plan meteen de volgende. Het bestuur krijgt een mail met het verslag en de nieuwe datum.</div></div>
+   <button type="button" class="btn primary" data-va="start" data-id="${esc(id)}">${ic("check")}Vergadering afronden</button></div>`}
+const vaBestaand=(v,datum)=>[...S.vergaderingen.values()].filter(x=>x.id!==v.id&&(x.soort||"")===(v.soort||"")&&x.datum>v.datum&&(!datum||x.datum===datum)).sort((a,b)=>a.datum.localeCompare(b.datum))[0];
+function vaDialoog(id){const v=S.vergaderingen.get(id);if(!v)return;const al=vaBestaand(v),vd=al?al.datum:vaPlus(v.datum>todayISO()?v.datum:todayISO(),28);
+  modal("Vergadering afronden",`<form id="fVa" class="form">
+   <p class="full muted small" style="margin:0">${esc(v.titel||v.soort||"Vergadering")} van ${esc(agLang(v.datum))}</p>
+   <div class="fld full"><span class="lbl">Verslag (PDF) *</span><label class="va-file" for="vaFile"><span id="vaFn">${ic("upload")}Kies het verslag…</span></label><input type="file" id="vaFile" accept="application/pdf,.pdf" hidden></div>
+   <div class="fc-sec full"><h4>Volgende vergadering</h4>${al?`<p class="muted small" style="margin:0">De ${esc(agLang(al.datum))} staat al een ${esc((al.soort||"vergadering").toLowerCase())} in de agenda. Kies je die datum, dan wordt die gebruikt (geen dubbele vergadering).</p>`:""}</div>
+   ${fld("va_soort","Soort",`<select id="va_soort" class="sel">${selOpts(VG_SOORT,v.soort||"Bestuursvergadering")}</select>`)}${fld("va_datum","Datum *",`<input id="va_datum" type="date" value="${vd}">`)}
+   ${fld("va_uur","Uur",inp("va_uur",(al&&al.uur)||v.uur||"20u00",'maxlength="20"'))}${fld("va_loc","Waar",inp("va_loc",(al&&al.locatie)||v.locatie,'maxlength="160"'))}
+   <div class="fld full"><label for="va_ag">Agenda (optioneel)</label><textarea id="va_ag" style="height:80px;min-height:0" placeholder="Eén punt per regel">${esc((al&&al.agenda)||"")}</textarea></div>
+   <label class="sp-nat full" for="vaMail"><input type="checkbox" id="vaMail" checked><span><b>Mail naar ${esc(vaOntv())}</b><small>Met het verslag in bijlage en de datum van de volgende vergadering.</small></span></label>
+   <div class="err full" id="vaErr"></div></form>`,
+   `<button class="btn" data-va="terug" data-id="${esc(id)}">Annuleren</button><button class="btn primary" data-va="ok" data-id="${esc(id)}">Afronden</button>`)}
+async function vaOk(btn){const id=btn.dataset.id,v=S.vergaderingen.get(id),err=$("#vaErr"),f=$("#vaFile").files[0];
+  const datum=$("#va_datum").value;
+  if(!f){err.textContent="Kies het verslag (PDF).";return}if(!/\.pdf$/i.test(f.name)&&f.type!=="application/pdf"){err.textContent="Het verslag moet een PDF zijn.";return}
+  if(f.size>15*1048576){err.textContent="Het verslag is groter dan 15 MB; dat is te groot om te mailen.";return}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(datum)){err.textContent="Kies de datum van de volgende vergadering.";return}
+  if(datum<=v.datum){err.textContent="De volgende vergadering moet na deze vergadering vallen.";return}
+  const mail=$("#vaMail").checked,g=k=>$("#va_"+k).value.trim();
+  btn.disabled=true;btn.textContent="Bezig…";
+  try{const did=agId("doc"),pad=`Verslagen/${did}-${docVeilig(f.name)}`;
+    const {error}=await SB.storage.from(DOC_BUCKET).upload(pad,f,{contentType:"application/pdf",upsert:false});if(error)throw error;
+    await write("documenten",did,{naam:f.name,pad,map:"Verslagen",grootte:f.size,type:"application/pdf",omschrijving:`Verslag ${(v.titel||v.soort||"vergadering").toLowerCase()} ${fmtDate(v.datum)}`,door:ME_NAME||"",op:new Date().toISOString(),vergaderingId:id});
+    const soort=$("#va_soort").value,al=vaBestaand({...v,soort},datum),nid=al?al.id:agId("verg");
+    const nv={...(al?stripId(al):{titel:""}),soort,datum,uur:g("uur"),locatie:g("loc"),agenda:g("ag")};if(!al)nv.inMail=vgInMail(nv);
+    await write("vergaderingen",nid,nv);
+    await write("vergaderingen",id,{...stripId(S.vergaderingen.get(id)||v),afgerond:{op:new Date().toISOString(),door:ME_NAME||"",volgendeId:nid,verslagDoc:did}});
+    if(mail){const j=await api("/api/mail?f=vergadering-afgerond",{method:"POST",body:JSON.stringify({id})});closeModal();toast("Afgerond. Verslag en nieuwe datum gemaild naar "+j.aan.join(", ")+".")}
+    else{closeModal();toast("Vergadering afgerond en volgende vergadering aangemaakt.")}}
+  catch(x){btn.disabled=false;btn.textContent="Afronden";err.textContent="Niet gelukt: "+(x.message||x)}}
+{const _vg=vgForm;vgForm=function(v,id){_vg(v,id);if(!id||!v)return;const e=$("#vgErr");if(e&&(canWrite||v.afgerond))e.insertAdjacentHTML("beforebegin",vaBlok(v,id))}}
+document.addEventListener("change",e=>{if(e.target.id==="vaFile"){const f=e.target.files[0],l=$("#vaFn");if(l)l.innerHTML=f?ic("verslagen")+esc(f.name):ic("upload")+"Kies het verslag…"}});
+document.addEventListener("click",async e=>{const t=e.target.closest("[data-va]");if(!t)return;e.preventDefault();const id=t.dataset.id;
+  switch(t.dataset.va){
+    case"start":vaDialoog(id);break;
+    case"terug":{const v=S.vergaderingen.get(id);if(v)vgForm(v,id);break}
+    case"ok":vaOk(t);break;
+    case"dl":{const d=S.documenten.get(id);if(d)try{window.open(await docUrl(d,false),"_blank")}catch(x){toast(x.message,true)}break}
+    case"volg":{const v=S.vergaderingen.get(id);if(v)vgForm(v,id);break}
+    case"mail":try{const j=await api("/api/mail?f=vergadering-afgerond",{method:"POST",body:JSON.stringify({id})});toast("Gemaild naar "+j.aan.join(", ")+".");const v=S.vergaderingen.get(id);if(v)setTimeout(()=>vgForm(S.vergaderingen.get(id),id),600)}catch(x){toast(x.message,true)}break;
+  }});
