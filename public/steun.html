@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}.logo-a{display:block;flex:none;line-height:0;border-radius:4px}.logo-a:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.ovd{margin:0}.ovd div{display:flex;gap:10px;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid var(--line)}.ovd div:last-child{border-bottom:0}.ovd dt{width:130px;color:var(--muted)}.ovd dd{margin:0;font-weight:600}
 </style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Steun VBHA</title>
 <meta name="description" content="Steun de Vriendenkring Brandweer Hoofdpost Aalst met een vrije bijdrage via Bancontact.">
@@ -132,8 +133,13 @@ html,body{overflow-x:hidden}
     </div>
     <p class="err" id="err" role="alert"></p>
     <button class="btn" id="go" type="submit">Betaal met Bancontact</button>
-    <p class="hint c" style="font-size:13px;color:var(--muted)">Bijdragen zijn niet fiscaal aftrekbaar.</p>
+    <p class="hint c" style="font-size:13px;color:var(--muted)">Je gaat naar de beveiligde betaalpagina van de Vriendenkring.</p>
   </form>
+  <div class="card ov" style="margin-top:14px">
+    <b style="display:block;margin:0 0 8px">Liever overschrijven? Dat kan ook:</b>
+    <dl class="ovd"><div><dt>Rekeningnummer</dt><dd>BE43 9730 6810 0401</dd></div><div><dt>Mededeling</dt><dd>Kalender 2027</dd></div></dl>
+    <p style="margin:10px 0 0;font-size:13.5px;color:var(--muted)">Bijdragen zijn niet fiscaal aftrekbaar. Vragen? Mail naar <a href="mailto:info@vbha.be" style="color:var(--ink)">info@vbha.be</a>. Alvast hartelijk dank voor je steun!</p>
+  </div>
   </div>
   <p class="foot">Vriendenkring Brandweer Hoofdpost Aalst · <a href="https://vbha.be" style="color:inherit">vbha.be</a></p>
 </main>
