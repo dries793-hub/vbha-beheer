@@ -35,6 +35,10 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/api/kassa",
+      "destination": "/api/openbaar?f=kassa"
+    },
+    {
       "source": "/api/fuif",
       "destination": "/api/openbaar?f=fuif"
     },

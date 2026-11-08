@@ -118,7 +118,6 @@ export default async function fuifPubliek(req, res) {
 
     // ---- bestellen ----
     const b = body(req);
-    if (String(b.actie || "").startsWith("kassa-")) return await kassaApi(sb, req, res, b, c);
     if (await spamCheck(sb, "tickets", b, httpErr)) return res.status(200).json({ ok: true });
     await rateLimit(sb, req, "fuif", 15, 3600, httpErr);
     if (!onlineConfigured()) throw httpErr(501, "Online betalen is nog niet ingesteld. Probeer het later opnieuw.");
@@ -291,69 +290,13 @@ export async function scanTicket(sb, ruw, door, alleenBekijk) {
   if (!upd || !upd.length) return { ok: false, al: true, reden: "Dit ticket werd net al gescand.", ...info };
   return { ok: true, op, ...info };
 }
-// Gastlogin kassa: een kassacode (ingesteld in de app) geeft 24 uur lang enkel toegang tot scannen.
-const kassaSleutel = () => String(process.env.BETAAL_GEHEIM || process.env.SUPABASE_SERVICE_ROLE_KEY || "");
-const kassaSig = (exp, code) => crypto.createHmac("sha256", kassaSleutel()).update(`vbha-kassa|${exp}|${String(code).toUpperCase()}`).digest("base64url").slice(0, 32);
-// een kassacode is 1 dag (24 uur) geldig vanaf het aanmaken
-const kassaTot = c => c.kassa && c.kassa.code ? (Date.parse(c.kassa.sinds || "") || 0) + 24 * 3600 * 1000 : 0;
-function kassaOk(c, token) {
-  const code = c.kassa && c.kassa.code; if (!code || !kassaSleutel() || Date.now() > kassaTot(c)) return false;
-  const [exp, sig] = String(token || "").split("."); if (!/^\d{10,13}$/.test(exp || "") || Number(exp) < Date.now()) return false;
-  const a = Buffer.from(kassaSig(exp, code)), b = Buffer.from(String(sig || "")); return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-// aanbod aan de kassa: inkom aan kassaprijs en drankkaarten aan volle waarde
-export const kassaAanbod = c => ({ kassaPrijs: Math.max(0, Number(c.kassaPrijs) || Number(c.prijs) || 0), dranken: (Array.isArray(c.drank) ? c.drank : []).map(Number).filter(v => v > 0 && v <= 500).sort((a, b) => a - b).map(v => ({ id: "d" + String(v).replace(/\D/g, ""), waarde: v })) });
-async function kassaApi(sb, req, res, b, c) {
-  if (b.actie === "kassa-login") {
-    await rateLimit(sb, req, "kassalogin", 10, 900, httpErr);
-    const code = c.kassa && c.kassa.code, in_ = String(b.code || "").trim().toUpperCase().replace(/\s+/g, "");
-    const a = Buffer.from(String(code || "").toUpperCase()), x = Buffer.from(in_);
-    if (!code || a.length !== x.length || !crypto.timingSafeEqual(a, x)) throw httpErr(403, "Deze kassacode klopt niet.");
-    if (Date.now() > kassaTot(c)) throw httpErr(403, "Deze kassacode is verlopen (een code is 1 dag geldig). Vraag een nieuwe code aan het bestuur.");
-    const exp = String(Math.min(Date.now() + 24 * 3600 * 1000, kassaTot(c)));
-    return res.status(200).json({ ok: true, token: exp + "." + kassaSig(exp, code), naam: c.naam, tot: Number(exp) });
-  }
-  if (!kassaOk(c, b.token)) throw httpErr(401, "Je kassatoegang is verlopen. Geef een geldige kassacode in.");
-  await rateLimit(sb, req, "kassascan", 600, 600, httpErr);
-  if (b.actie === "kassa-scan") return res.status(200).json(await scanTicket(sb, b.code, "kassa (gast)", false));
-  if (b.actie === "kassa-stand") {
-    const L = (await bestellingen(sb, c.jaar)).filter(r => r.data.status === "betaald"), on = L.filter(r => r.data.bron !== "kassa"), ka = L.filter(r => r.data.bron === "kassa");
-    const T = on.flatMap(r => (r.data.tickets || []).filter(x => !isDrank(x))), kT = ka.reduce((n, r) => n + (Number(r.data.aantal) || 0), 0);
-    return res.status(200).json({ ok: true, tickets: T.length, binnen: T.filter(x => x.gescand).length + kT, kassa: { tickets: kT, bedrag: Math.round(ka.reduce((n, r) => n + (Number(r.data.bedrag) || 0), 0) * 100) / 100 }, naam: c.naam, ...kassaAanbod(c) });
-  }
-  if (b.actie === "kassa-verkoop") {
-    const A = kassaAanbod(c), want = b.items || {}, cash = b.betaalwijze === "cash";
-    const aantal = Math.max(0, Math.min(100, Math.floor(Number(want.ticket)) || 0));
-    const drank = A.dranken.map(k => ({ id: k.id, waarde: k.waarde, prijs: k.waarde, aantal: Math.max(0, Math.min(100, Math.floor(Number(want[k.id])) || 0)) })).filter(k => k.aantal);
-    if (!aantal && !drank.length) throw httpErr(400, "Kies minstens één kaart.");
-    const bedrag = Math.round((aantal * A.kassaPrijs + drank.reduce((n, k) => n + k.aantal * k.waarde, 0)) * 100) / 100;
-    const id = "k" + c.jaar + "-" + Date.now().toString(36) + crypto.randomBytes(3).toString("hex"), token = crypto.randomBytes(18).toString("base64url");
-    const row = { id, data: { jaar: c.jaar, bron: "kassa", voornaam: "Kassa", naam: "", aantal, prijs: A.kassaPrijs, drank, bedrag, betaalwijze: cash ? "cash" : "bancontact", aangemeld: new Date().toISOString(), betaalToken: token, status: cash ? "betaald" : "wacht", tickets: [], ...(cash ? { betaaldOp: new Date().toISOString() } : {}) } };
-    const { error } = await sb.from("tickets").insert(row); if (error) throw error;
-    if (cash) return res.status(200).json({ ok: true, id, bedrag, status: "SUCCEEDED" });
-    if (!onlineConfigured()) { await sb.from("tickets").delete().eq("id", id); throw httpErr(501, "Bancontact is niet ingesteld."); }
-    const { startBetaling } = await import("./betaal.js");
-    let bt; try { bt = await startBetaling(sb, req, "tickets", row, { bedrag, jaar: c.jaar, terug: "/kassa" }); }
-    catch (e) { console.error("kassa betaling", e); await sb.from("tickets").delete().eq("id", id); throw httpErr(502, "De betaling kon niet gestart worden. Probeer opnieuw."); }
-    return res.status(200).json({ ok: true, id, token, bedrag, qrcode: bt.qrcode, deeplink: bt.deeplink, verlooptOp: bt.verlooptOp });
-  }
-  if (b.actie === "kassa-status" || b.actie === "kassa-stop") {
-    const { data: row } = await sb.from("tickets").select("id,data").eq("id", String(b.id || "")).maybeSingle();
-    if (!row || row.data.bron !== "kassa") throw httpErr(404, "Verkoop niet gevonden.");
-    if (b.actie === "kassa-stop") { if (row.data.status === "wacht") await sb.from("tickets").update({ data: { ...row.data, status: "verlopen", gestopt: new Date().toISOString() } }).eq("id", row.id).eq("data->>status", "wacht"); return res.status(200).json({ ok: true }); }
-    if (row.data.status === "betaald") return res.status(200).json({ ok: true, status: "SUCCEEDED" });
-    const { controleerBetaling } = await import("./betaal.js");
-    const st = await controleerBetaling(sb, "tickets", row);
-    return res.status(200).json({ ok: true, status: st && st.status });
-  }
-  if (b.actie === "kassa-nieuweqr") {
-    const { data: row } = await sb.from("tickets").select("id,data").eq("id", String(b.id || "")).maybeSingle();
-    if (!row || row.data.bron !== "kassa" || row.data.status !== "wacht") throw httpErr(404, "Verkoop niet gevonden.");
-    const { startBetaling } = await import("./betaal.js");
-    const bt = await startBetaling(sb, req, "tickets", row, { bedrag: row.data.bedrag, jaar: row.data.jaar, terug: "/kassa" });
-    return res.status(200).json({ ok: true, qrcode: bt.qrcode, deeplink: bt.deeplink, verlooptOp: bt.verlooptOp });
-  }
-  throw httpErr(400, "Onbekende actie.");
+// stand voor de kassa: online tickets (gescand) en inkom verkocht aan de kassa
+export async function fuifStand(sb, jaar) {
+  const L = (await bestellingen(sb, jaar)).filter(r => r.data.status === "betaald");
+  const T = L.flatMap(r => (r.data.tickets || []).filter(x => !isDrank(x)));
+  const { data: K } = await sb.from("kassa").select("data").eq("data->>activiteit", "fuif").eq("data->>jaar", String(jaar)).eq("data->>status", "betaald");
+  const kT = (K || []).reduce((n, r) => n + (r.data.items || []).filter(i => i.inkom).reduce((m, i) => m + (Number(i.aantal) || 0), 0), 0);
+  return { tickets: T.length, gescand: T.filter(x => x.gescand).length, kassaInkom: kT, binnen: T.filter(x => x.gescand).length + kT };
 }
 
 /* ---------- app: scannen en beheren (POST /api/mail?f=fuif) ---------- */
