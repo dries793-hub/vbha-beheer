@@ -4739,7 +4739,7 @@ function fuStats(){const L0=fuLijst(),L=L0.filter(t=>t.bron!=="kassa"),B=L.filte
   return{L,B,K,kT,kBc,kCash,kDk,tk,bin,dk,dkW,dkB,dkKort,omzet:B.reduce((n,t)=>n+(Number(t.bedrag)||0),0),via}}
 
 VIEWS.fuif=()=>({title:fuCfg().naam||"In Vier en Vlam",sub:"Tickets fuif",
-  actions:`<a class="btn" href="/fuif" target="_blank" rel="noopener" title="Openbare ticketpagina">${ic("link")}Ticketpagina${(()=>{const v=fuStatus(fuCfg());return `<span class="fu-dot ${v.k==="open"?"open":""}" title="${esc(v.t)}" aria-label="${esc(v.t)}"></span>`})()}</a><button class="btn primary" data-fu="scan">${ic("scan")}Tickets scannen</button>${typeof ADM!=="function"||ADM()?`<button class="btn iconbtn" data-fu="inst" aria-label="Instellingen fuif" title="Instellingen fuif">${ic("instellingen")}</button>`:""}`,
+  actions:`<a class="btn" href="/fuif" target="_blank" rel="noopener" title="Openbare ticketpagina">${ic("link")}Ticketpagina${(()=>{const v=fuStatus(fuCfg());return `<span class="fu-dot ${v.k==="open"?"open":""}" title="${esc(v.t)}" aria-label="${esc(v.t)}"></span>`})()}</a><button class="btn primary" data-fu="scan">${ic("scan")}Tickets scannen</button><button class="btn" data-fu="kassa" title="Kassamodule: verkopen en scannen aan de kassa">${ic("bank")}Kassa</button>${typeof ADM!=="function"||ADM()?`<button class="btn iconbtn" data-fu="inst" aria-label="Instellingen fuif" title="Instellingen fuif">${ic("instellingen")}</button>`:""}`,
   body(){const c=fuCfg(),st=fuStats(),q=norm(FU.q);
     let L=FU.alles?st.L:st.L.filter(t=>t.status==="betaald"||t.status==="wacht");
     if(q)L=L.filter(t=>norm([fuNaam(t),t.email,t.adres,t.via&&(t.via.naam||t.via.tekst),...(t.tickets||[]).map(x=>x.code)].join(" ")).includes(q));
@@ -4782,6 +4782,9 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-fu]"
   if(a==="toon"){e.preventDefault();fuToon(id)}
   else if(a==="inst"){e.preventDefault();fuInst()}
   else if(a==="scan"){e.preventDefault();fuScan()}
+  else if(a==="kassa"){e.preventDefault();const k=(fuCfg().kassa||{}).code;if(k){window.open("/kassa?code="+encodeURIComponent(k),"_blank","noopener");return}
+    if(canWrite&&(typeof ADM!=="function"||ADM()))confirmBox("Er is nog geen kassacode. Nu een kassacode aanmaken en de kassa openen?","Aanmaken",async()=>{const c=S.config.get("fuif")||{},abc="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",x=new Uint32Array(6);crypto.getRandomValues(x);const code=[...x].map(v=>abc[v%32]).join(""),r={...stripId(c),kassa:{code,sinds:new Date().toISOString(),door:ME_NAME||""}};S.config.set("fuif",{...r,id:"fuif"});await write("config","fuif",r);toast("Kassacode: "+code);window.open("/kassa?code="+code,"_blank","noopener")});
+    else toast("Er is nog geen kassacode. Vraag een administrator om er een aan te maken.",true)}
   else if(a==="mail"){t.disabled=true;try{await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"mail",id})});toast("Tickets opnieuw gemaild.")}catch(x){toast(x.message,true)}t.disabled=false}
   else if(a==="controle"){t.disabled=true;try{const j=await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"controle",id})});toast("Status bij Bancontact: "+(j.status||"onbekend"))}catch(x){toast(x.message,true)}t.disabled=false}
   else if(a==="pdf"){t.disabled=true;try{const j=await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"pdf",id})});const b=Uint8Array.from(atob(j.pdf),c=>c.charCodeAt(0));const u=URL.createObjectURL(new Blob([b],{type:"application/pdf"}));const l=document.createElement("a");l.href=u;l.download=j.naam;document.body.append(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}catch(x){toast(x.message,true)}t.disabled=false}
