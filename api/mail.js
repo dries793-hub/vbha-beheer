@@ -34,7 +34,6 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "kassa") return await kassaApi(req, res); // kassa: transacties wissen of nakijken
     if (req.query && req.query.f === "fuif") return await fuifApi(req, res); // fuif: tickets scannen en bestellingen beheren
     if (req.query && req.query.f === "wachtrij") return await wachtrijCron(req, res); // geplande taak: bulkmails uit de wachtrij versturen
-    if (req.query && req.query.f === "tmplogos") return await (await import("./_lib/tmplogos.js")).tmpLogos(req, res); // TIJDELIJK
     if (req.query && req.query.f === "bevestigingen") return await bevestigingenCron(req, res); // geplande taak: bevestigingen na 20 min zonder online betaling
     if (req.method === "GET") { await requireUser(req); return res.status(200).json({ ingesteld: smtpConfigured(), van: afzender() }); }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");

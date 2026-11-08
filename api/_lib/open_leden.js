@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   try {
     if (req.method !== "GET") throw httpErr(405, "Gebruik GET");
     const sb = admin();
-    await rateLimit(sb, req, "leden", 100, 600, httpErr);
+    await rateLimit(sb, req, "leden", 40, 600, httpErr);
     const A = await algemeen(sb);
     res.status(200).json(zoekLeden(await actieveLeden(sb, A.jaar), String(req.query?.q || "").slice(0, 60)));
   } catch (e) { sendError(res, e); }
