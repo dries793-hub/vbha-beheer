@@ -4716,7 +4716,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-ns="nu"]')
    Scannen aan de kassa: camera (BarcodeDetector of jsQR) -> POST /api/mail?f=fuif {actie:"scan", code}. */
 ICON.fuif='<path d="M12 3c1.5 3 4.5 4.5 4.5 8.5a4.5 4.5 0 0 1-9 0C7.5 9 9 8 9.5 6c1 1.2 1.6 2 2.5 2.4C12.3 6.8 12 5 12 3z"/><path d="M10 16.5a2 2 0 0 0 4 0c0-1.5-2-2.5-2-4-.8 1.2-2 2.3-2 4z"/>';
 ICON.scan='<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M7 12h10"/>';
-{const a=NAV.find(n=>n.id==="administratie");if(a&&!a.items.some(i=>i[0]==="fuif"))a.items.push(["fuif","In Vier en Vlam"])}
+{const a=NAV.find(n=>n.id==="administratie");if(a&&!a.items.some(i=>i[0]==="fuif")){const k=a.items.findIndex(i=>i[0]==="kalenders");a.items.splice(k<0?0:k+1,0,["fuif","In Vier en Vlam"])}}
 if(!ROUTES.some(r=>r[0]==="fuif"))ROUTES.push(["fuif","In Vier en Vlam"]);
 if(!COLS.includes("tickets")){COLS.push("tickets");S.tickets=new Map()}
 const FU_DEF={kassaPrijs:0,naam:"In Vier en Vlam",datum:"",deuren:"",locatie:"",prijs:5,open:true,max:0,perBestelling:10,info:"",drankAan:true,drank:[20,50],drankKorting:10};
