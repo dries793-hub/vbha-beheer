@@ -5319,8 +5319,8 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-sg]"
 },true);
 /* kolom in de sponsorlijst */
 {const _s=VIEWS.sponsors;const n=function(){const v=_s.apply(this,arguments);const b=v.body;v.body=function(){let h=b.apply(this,arguments);
-  h=h.replace(`<th>Ontvangen ${JAAR}</th>`,`<th>Ontvangen ${JAAR}</th><th>Bedankje ${JAAR}</th>`).replace('colspan="7" class="empty">Geen sponsors.','colspan="8" class="empty">Geen sponsors.');
-  h=h.replace(/(<tr class="click" data-act="toonSponsor" data-id="([^"]*)">[\s\S]*?)(<\/tr>)/g,(m,a,id,c)=>{const s=S.sponsors.get(id.replace(/&amp;/g,"&").replace(/&quot;/g,'"'));return a+`<td data-l="Bedankje">${s?sgPills(s):""}</td>`+c});
+  h=h.replace(/(<thead><tr>(?:(?!<\/thead>)[\s\S])*?Bedrijf(?:(?!<\/thead>)[\s\S])*?)(<\/tr><\/thead>)/,(m,a,c)=>a+`<th>Bedankje ${JAAR}</th>`+c).replace('colspan="7" class="empty">Geen sponsors.','colspan="8" class="empty">Geen sponsors.');
+  h=h.replace(/(<tr class="click" data-act="toonSponsor" data-id="([^"]*)">[\s\S]*?)(<\/tr>)/g,(m,a,id,c)=>{const s=S.sponsors.get(id.replace(/&amp;/g,"&").replace(/&quot;/g,'"'));return a.replace(/<td class="muted">/g,'<td class="muted nowrap">')+`<td data-l="Bedankje">${s?sgPills(s):""}</td>`+c});
   const L=[...S.sponsors.values()],nK=L.filter(s=>sgG(s).kalender).length,nT=L.filter(s=>sgG(s).kaarten).length;
   h=h.replace('<div class="bar"><div class="search">',`<p class="muted small" style="margin:-4px 0 12px">Bedankje ${JAAR}: ${nK} ${nK===1?"sponsor kreeg":"sponsors kregen"} een kalender, ${nT} ${nT===1?"kreeg":"kregen"} fuifkaarten, ${L.length-L.filter(s=>sgG(s).kalender||sgG(s).kaarten).length} nog niets. Klik op een sponsor om aan te duiden of kaarten te mailen.</p><div class="bar"><div class="search">`);
   return h};if(typeof canWrite==="undefined"||canWrite)v.actions=`<button class="btn" data-sg="bulk">Fuifkaarten aanbieden</button>`+(v.actions||"");return v};Object.assign(n,_s);VIEWS.sponsors=n}
