@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { admin, httpErr, sendError, requireUser } from "./sb.js";
-import { clean, body, norm, algemeen, configDoc, spamCheck, rateLimit, actieveLeden, zoekLeden, vandaagISO } from "./publiek.js";
+import { clean, body, norm, algemeen, configDoc, spamCheck, rateLimit, zoekLeden, vandaagISO } from "./publiek.js";
 import { adresVolledig, ADRES_FOUT } from "./adrescheck.js";
 import { onlineConfigured } from "./betaalprovider.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
@@ -59,6 +59,20 @@ const pub = (t, d) => ({ code: t.code, nr: t.nr, van: isDrank(t) ? (d.tickets ||
 export function verkoopTot(c) { if (!c.datum) return ""; const m = String(c.deuren || "").match(/(\d{1,2})\s*[u:h.]\s*(\d{2})?/i); return m ? `${c.datum}T${String(Math.min(23, +m[1])).padStart(2, "0")}:${m[2] || "00"}` : `${c.datum}T23:59`; }
 const nuBxl = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Brussels", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date()).replace(" ", "T");
 const isVoorbij = c => !!c.datum && nuBxl() >= verkoopTot(c);
+// leden voor "via welk lid": iedereen in de ledenlijst die lid is (geen "geen lid", niet gestopt vóór het jaar van de fuif), los van het lidgeld
+let FL_CACHE = null;
+async function fuifLeden(sb, jaar) {
+  if (FL_CACHE && FL_CACHE.jaar === jaar && Date.now() - FL_CACHE.t < 60000) return FL_CACHE.L;
+  const L = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from("leden").select("id,data").range(from, from + 999); if (error) throw error;
+    for (const r of data) { const l = r.data || {}; if (!l.naam || l.dubbelVan || l.geenLid) continue; if (l.lidTot && Number(l.lidTot) < jaar - 1) continue;
+      L.push({ id: r.id, naam: `${l.naam} ${l.voornaam || ""}`.replace(/\s+/g, " ").trim(), voornaam: String(l.voornaam || "").trim(), em: "" }); }
+    if (data.length < 1000) break;
+  }
+  L.sort((a, b) => a.naam.localeCompare(b.naam, "nl"));
+  FL_CACHE = { jaar, t: Date.now(), L }; return L;
+}
 const wanneer = c => [c.datum ? lang(c.datum) : "", c.deuren ? "deuren " + c.deuren : ""].filter(Boolean).join(", ");
 
 /* ---------- openbaar: /api/fuif ---------- */
@@ -88,7 +102,7 @@ export default async function fuifPubliek(req, res) {
     }
     if (req.method === "GET" && q.zoek != null) {
       await rateLimit(sb, req, "fuifzoek", 120, 600, httpErr);
-      return res.status(200).json(zoekLeden(await actieveLeden(sb, c.jaar), String(q.zoek)).map(l => ({ id: l.id, naam: l.naam })));
+      return res.status(200).json(zoekLeden(await fuifLeden(sb, c.jaar), String(q.zoek)).map(l => ({ id: l.id, naam: l.naam })));
     }
     if (req.method === "GET") {
       const n = c.max ? await bezet(sb, c.jaar) : 0, vrij = c.max ? Math.max(0, c.max - n) : null;
@@ -120,7 +134,7 @@ export default async function fuifPubliek(req, res) {
     // via welk lid (optioneel): gekozen uit de lijst (id) of vrij ingetypt (dan zoeken we het lid op naam)
     let via = null; const viaTekst = clean(b.viaTekst || b.via, 100), viaId = clean(b.viaId, 80);
     if (viaId || viaTekst) {
-      const L = await actieveLeden(sb, c.jaar);
+      const L = await fuifLeden(sb, c.jaar);
       let lid = viaId ? L.find(l => l.id === viaId) : null;
       if (!lid && viaTekst) { const t = norm(viaTekst).replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean).sort().join(" "); const hits = L.filter(l => norm(l.naam).replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean).sort().join(" ") === t); if (hits.length === 1) lid = hits[0]; }
       via = { tekst: viaTekst || (lid ? lid.naam : ""), lidId: lid ? lid.id : null, naam: lid ? lid.naam : null };
