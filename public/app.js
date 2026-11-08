@@ -5196,3 +5196,30 @@ var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.verwerke
 function bkTabs(act){let n=0;try{n=teVerwerken(ctx()).length}catch(e){}
   return `<div class="ka-tabs" role="tablist"><a role="tab" href="#boekingen" class="${act==="boekingen"?"on":""}">Transacties</a><a role="tab" href="#verwerken" class="${act==="verwerken"?"on":""}">Te verwerken${n?` <span class="bt-n">${n}</span>`:""}</a></div>`}
 for(const r of ["boekingen","verwerken"]){const _v=VIEWS[r];if(!_v)continue;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){return bkTabs(r)+String(b.apply(this,arguments))};return v};Object.assign(n,_v);VIEWS[r]=n}
+
+/* ============ Zoekbalken: kruisje rechts om leeg te maken ============ */
+(function(){
+  if(window.__zoekx)return;window.__zoekx=1;
+  const st=document.createElement("style");
+  st.textContent=`.zx-w{position:relative;display:block;flex:1 1 auto;min-width:0}.zx-w>input{width:100%}
+.zx{position:absolute!important;right:6px;top:50%;transform:translateY(-50%);width:30px!important;height:30px!important;border:0!important;border-radius:50%!important;background:transparent!important;color:var(--muted,#777)!important;display:none!important;align-items:center;justify-content:center;cursor:pointer;padding:0!important;margin:0!important;box-shadow:none!important}
+.zx:hover{background:rgba(127,127,127,.16)!important}.zx svg{position:static!important;transform:none!important;left:auto!important;width:16px!important;height:16px!important;stroke:currentColor!important;fill:none!important;stroke-width:2.4!important}
+.zx-on>.zx{display:flex!important}.zx-on>input{padding-right:40px!important}
+.search input::-webkit-search-cancel-button,.zx-w input::-webkit-search-cancel-button{-webkit-appearance:none;display:none}`;
+  document.head.appendChild(st);
+  const X='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke-linecap="round"/></svg>';
+  const zet=inp=>{const w=inp.parentElement;if(w)w.classList.toggle("zx-on",!!inp.value)};
+  function voorzie(inp){
+    if(inp.dataset.zx)return;inp.dataset.zx="1";
+    let w=inp.parentElement;if(!w)return;
+    if(!w.classList.contains("search")){const s=document.createElement("span");s.className="zx-w";w.insertBefore(s,inp);s.appendChild(inp);w=s}
+    const b=document.createElement("button");b.type="button";b.className="zx";b.setAttribute("aria-label","Zoekveld leegmaken");b.title="Leegmaken";b.innerHTML=X;
+    b.addEventListener("mousedown",e=>e.preventDefault());
+    b.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();inp.value="";inp.dispatchEvent(new Event("input",{bubbles:true}));inp.dispatchEvent(new Event("change",{bubbles:true}));zet(inp);inp.focus()});
+    w.appendChild(b);zet(inp);
+  }
+  const scan=()=>document.querySelectorAll('.search input:not([data-zx]),input[type="search"]:not([data-zx])').forEach(voorzie);
+  document.addEventListener("input",e=>{const t=e.target;if(t&&t.dataset&&t.dataset.zx)zet(t)},true);
+  let q=0;new MutationObserver(()=>{if(q)return;q=1;requestAnimationFrame(()=>{q=0;scan()})}).observe(document.documentElement,{childList:true,subtree:true});
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",scan);else scan();
+})();
