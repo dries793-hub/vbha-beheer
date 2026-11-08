@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:title" content="VBHA – Vriendenkring Brandweer Hoofdpost Aalst">
+<meta property="og:image" content="https://vbha.be/w/kalender-2027.jpg">
+<title>VBHA – Vriendenkring Brandweer Hoofdpost Aalst</title>
+<meta name="description" content="Vriendenkring Brandweer Hoofdpost Aalst. De nieuwe brandweerkalender 2027 wordt nu bedeeld.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f5f5f6;--surface:#fff;--ink:#1a1b1e;--muted:#686b71;--line:#e5e6e8;--line-strong:#ccced2;--navy:#18191c;--accent:#c0161f;--accent-deep:#8f0f16;--accent-soft:#fcebec}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font:16px/1.55 "Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+
+  header{background:var(--navy)}
+  header .in{max-width:1240px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  header img{height:44px;width:auto;display:block}
+  .admin{display:inline-flex;align-items:center;gap:7px;color:#d4d5d8;font-size:14px;font-weight:500;text-decoration:none;padding:7px 12px;border:1px solid #3a3c40;border-radius:8px}
+  .admin:hover{color:#fff;border-color:#6a6c70}
+  .admin svg{width:15px;height:15px}
+
+  main{max-width:1240px;margin:0 auto;padding:48px 16px 56px}
+  .hero{display:grid;grid-template-columns:1.8fr 1fr;gap:40px;align-items:center}
+  .tag{display:inline-block;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:5px 10px;border-radius:6px;margin-bottom:16px}
+  h1{font-size:clamp(1.8rem,3vw,2.4rem);line-height:1.15;letter-spacing:-.01em;font-weight:700}
+  .lead{margin-top:14px;color:var(--muted);font-size:1.08rem;max-width:42ch}
+  .photo img{width:100%;height:auto;display:block;border-radius:12px;border:1px solid var(--line)}
+
+  .steun{margin-top:56px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;border-top:1px solid var(--line);padding-top:48px}
+  h2{font-size:1.5rem;line-height:1.25;margin-bottom:10px}
+  .steun p{color:var(--muted)}
+  .bank{margin-top:18px;font-size:15px;color:var(--ink)}
+  .bank div{display:flex;gap:10px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line)}
+  .bank dt{width:130px;color:var(--muted)}
+  .bank dd{font-weight:600}
+  .note{margin-top:14px;font-size:13.5px}
+
+  form{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px}
+  .lbl,label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+  .opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .opt{position:relative}
+  .opt input{position:absolute;opacity:0;inset:0;cursor:pointer}
+  .opt span{display:block;text-align:center;padding:10px 6px;border:1px solid var(--line-strong);border-radius:8px;font-weight:500;font-size:15px;cursor:pointer}
+  .opt input:checked+span{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .opt input:focus-visible+span{outline:2px solid var(--ink);outline-offset:2px}
+  input[type=text]{width:100%;font:inherit;padding:11px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink)}
+  input[type=text]:focus{outline:none;border-color:var(--ink)}
+  .field{margin-top:16px}
+  .err{color:var(--accent);font-size:14px;font-weight:500;margin-top:12px}
+  .err:empty{display:none}
+  button{margin-top:18px;width:100%;padding:13px 18px;border:0;border-radius:8px;background:var(--accent);color:#fff;font:600 16px "Inter",system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+  button:hover{background:var(--accent-deep)}
+  button svg{width:19px;height:19px}
+  .small{margin-top:10px;text-align:center;font-size:13px;color:var(--muted)}
+
+  .social{margin-top:24px;display:flex;align-items:center;gap:10px}
+  .social span{font-size:14px;color:var(--muted);margin-right:4px}
+  .social a,.fsocial a{width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--line-strong);border-radius:50%;color:var(--ink);background:var(--surface);transition:.15s}
+  .social a:hover,.fsocial a:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .social svg,.fsocial svg{width:19px;height:19px}
+  .fsocial{display:flex;gap:8px}
+  .fsocial a{width:34px;height:34px}
+  .fsocial svg{width:16px;height:16px}
+  .mail{color:var(--ink);font-weight:500}
+  .sponsors{margin-top:56px;border-top:1px solid var(--line);padding-top:48px}
+  .sponsors .head{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px 24px;margin-bottom:20px}
+  .sponsors .head p{color:var(--muted);max-width:60ch}
+  .sponsors .grid{background:#fff;border:1px solid var(--line);border-radius:12px;padding:clamp(10px,2vw,24px)}
+  .sponsors .grid img{width:100%;height:auto;display:block}
+  .cta{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:600;color:var(--accent);text-decoration:none;white-space:nowrap}
+  .cta:hover{text-decoration:underline}
+  .btn-red{display:inline-flex;align-items:center;gap:9px;margin-top:24px;padding:14px 22px;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;font-size:16px;text-decoration:none;transition:background .15s}
+  .btn-red:hover{background:var(--accent-deep)}
+  .btn-red svg{width:19px;height:19px}
+  .btn-sub{margin-top:10px;font-size:13.5px;color:var(--muted);max-width:42ch}
+  footer{border-top:1px solid var(--line);color:var(--muted);font-size:13.5px}
+  footer .in{max-width:1240px;margin:0 auto;padding:22px 16px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center}
+
+  .top{display:flex;gap:8px;align-items:center}
+  .btn-red span b{font-weight:700}
+  .winkel{margin-top:56px;border-top:1px solid var(--line);padding-top:48px}
+  .winkel .head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px}
+  .winkel .head p{color:var(--muted);max-width:60ch}
+  .winkel .btn-red{margin-top:0}
+  .prods{margin-top:22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+  .prod{display:block;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;text-decoration:none;transition:border-color .15s,transform .15s}
+  .prod:hover{border-color:var(--line-strong);transform:translateY(-2px)}
+  .prod .im{aspect-ratio:1;background:#f0f0f1 center/cover no-repeat}
+  .prod .bd{padding:10px 12px;display:flex;justify-content:space-between;gap:8px;font-size:15px}
+  .prod .bd b{font-weight:600}.prod .bd span{color:var(--accent);font-weight:700;white-space:nowrap}
+  @media (max-width:860px){
+    .btn-red{display:flex;width:100%;justify-content:center;text-align:center;padding:15px 16px;line-height:1.3}
+    .btn-red svg{flex:0 0 auto}
+    .btn-sub{max-width:none;text-align:center}
+    .winkel,.sponsors,.steun{margin-top:40px;padding-top:36px}
+    .prods{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .admin{padding:7px 10px}
+    .hero,.steun{grid-template-columns:1fr;gap:28px}
+    main{padding-top:28px}
+    .photo{order:-1}
+    header img{height:36px}
+  }
+  @media (max-width:420px){.admin.shop svg{display:none}.top{gap:6px}.admin{font-size:13px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="in">
+    <a href="/" aria-label="VBHA – Vriendenkring Brandweer Hoofdpost Aalst"><img src="/w/logo.png" alt="VBHA" width="720" height="245"></a>
+    <nav class="top"><a class="admin shop" href="/shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6"/><circle cx="10" cy="20.5" r="1.2"/><circle cx="17" cy="20.5" r="1.2"/></svg>Webshop</a>
+    <a class="admin" href="https://vbha-beheer.vercel.app" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Beheer
+    </a></nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <figure class="photo">
+      <img src="/w/kalender-2027.jpg" alt="Stapel brandweerkalenders 2027 van Brandweer Aalst met een groepsfoto van het korps voor een ladderwagen" width="1600" height="1372">
+    </figure>
+    <div>
+      <h1>De nieuwe brandweerkalender 2027 wordt nu bedeeld</h1>
+      <p class="lead">De komende weken brengen onze brandweermensen de kalender van Brandweer Aalst bij je langs. Bedankt om de Vriendenkring te steunen!</p>
+      <a class="btn-red" href="/kalender">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20H4z"/><path d="M9.5 20v-5h5v5"/></svg>
+        <span>Kalender zeker in je bus? <b>Geef je adres door</b></span>
+      </a>
+    </div>
+  </section>
+
+  <section class="steun" id="steun">
+    <div>
+      <h2>Steun de Vriendenkring</h2>
+      <p>Kies zelf een bedrag en een mededeling en betaal meteen met Bancontact. Liever overschrijven? Dat kan ook:</p>
+      <dl class="bank">
+        <div><dt>Rekeningnummer</dt><dd>BE43 9730 6810 0401</dd></div>
+        <div><dt>Mededeling</dt><dd>Kalender 2027</dd></div>
+      </dl>
+      <p class="note">Bijdragen zijn niet fiscaal aftrekbaar. Vragen? Mail naar <a class="mail" href="mailto:info@vbha.be">info@vbha.be</a>. Alvast hartelijk dank voor je steun!</p>
+    </div>
+
+    <form id="f" action="/steun" method="get" novalidate>
+      <span class="lbl">Bedrag</span>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="keuze" value="5"><span>€ 5</span></label>
+        <label class="opt"><input type="radio" name="keuze" value="10" checked><span>€ 10</span></label>
+        <label class="opt"><input type="radio" name="keuze" value="20"><span>€ 20</span></label>
+        <label class="opt"><input type="radio" name="keuze" value="25"><span>€ 25</span></label>
+        <label class="opt"><input type="radio" name="keuze" value="50"><span>€ 50</span></label>
+        <label class="opt"><input type="radio" name="keuze" value="ander"><span>Ander</span></label>
+      </div>
+      <div class="field" id="anderWrap" hidden>
+        <label for="ander">Ander bedrag (€)</label>
+        <input type="text" id="ander" inputmode="decimal" autocomplete="off" placeholder="bv. 15">
+      </div>
+      <div class="field">
+        <label for="m">Mededeling</label>
+        <input type="text" id="m" name="m" maxlength="60" value="Kalender 2027">
+      </div>
+      <input type="hidden" name="b" id="b">
+      <input type="hidden" name="go" value="1">
+      <p class="err" id="err" role="alert"></p>
+      <button type="submit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M10 18.5h4"/></svg>
+        Betaal met Bancontact
+      </button>
+      <p class="small">Je gaat naar de beveiligde betaalpagina van de Vriendenkring.</p>
+    </form>
+  </section>
+  <section class="winkel" id="webshop">
+    <div class="head">
+      <div>
+        <h2>Webshop</h2>
+        <p>Patches en andere aandenkens van de Vriendenkring. Bestel online en laat thuis leveren met bpost, of haal af in de kazerne.</p>
+      </div>
+      <a class="btn-red alt" href="/shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6"/><circle cx="10" cy="20.5" r="1.2"/><circle cx="17" cy="20.5" r="1.2"/></svg>Naar de webshop</a>
+    </div>
+    <div class="prods" id="prods" hidden></div>
+  </section>
+
+  <section class="sponsors" id="sponsors">
+    <div class="head">
+      <div>
+        <h2>Onze sponsors</h2>
+        <p>Dankzij deze sponsors kunnen we de kalender maken. Hartelijk dank voor jullie steun!</p>
+      </div>
+      <a class="cta" href="/sponsor">Ook sponsor worden? →</a>
+    </div>
+    <div class="grid">
+      <img src="/w/sponsors-2027.jpg" alt="Logo's van de sponsors van de brandweerkalender 2027" width="1385" height="878" loading="lazy">
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="in">
+    <span>© <span id="y">2026</span> Vriendenkring Brandweer Hoofdpost Aalst</span>
+    <div class="fsocial"><a href="https://www.facebook.com/vriendenkring.brandweer.hoofdpost.aalst/" target="_blank" rel="noopener" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.6-1.5h1.6V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4v2.2H7.9v3h2.6V21h3z"/></svg></a><a href="https://www.instagram.com/vriendenkringbrandweeraalst/" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1" fill="currentColor" stroke="none"/></svg></a><a href="mailto:info@vbha.be" aria-label="Mail info@vbha.be"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg></a></div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('y').textContent = new Date().getFullYear();
+  const f = document.getElementById('f'), ander = document.getElementById('anderWrap'), err = document.getElementById('err');
+  f.addEventListener('change', e => {
+    if (e.target.name !== 'keuze') return;
+    ander.hidden = e.target.value !== 'ander';
+    if (!ander.hidden) document.getElementById('ander').focus();
+  });
+  f.addEventListener('submit', e => {
+    const k = f.querySelector('input[name=keuze]:checked').value;
+    const n = Number(String(k === 'ander' ? document.getElementById('ander').value : k).replace(',', '.'));
+    if (!(n >= 1) || n > 2500) { e.preventDefault(); err.textContent = 'Kies een bedrag tussen € 1 en € 2500.'; return; }
+    err.textContent = '';
+    document.getElementById('b').value = Math.round(n * 100) / 100;
+    f.querySelectorAll('input[name=keuze]').forEach(r => r.disabled = true); // niet meesturen in de link
+  });
+  fetch('/api/shop').then(r => r.ok ? r.json() : null).then(w => {
+    if (!w) return;
+    if (w.open === false) { document.getElementById('webshop').hidden = true; document.querySelector('.admin.shop').hidden = true; return; }
+    const L = (w.items || []).slice(0, 4), el = document.getElementById('prods'), e = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    if (!L.length) return;
+    el.innerHTML = L.map(i => `<a class="prod" href="/shop"><div class="im"${i.hoofd ? ` style="background-image:url('/api/shop?img=${encodeURIComponent(i.hoofd)}')"` : ''}></div><div class="bd"><b>${e(i.naam)}</b><span>€ ${Number(i.prijs || 0).toLocaleString('nl-BE', { minimumFractionDigits: 2 })}</span></div></a>`).join('');
+    el.hidden = false;
+  }).catch(() => {});
+  addEventListener('pageshow', () => f.querySelectorAll('input[name=keuze]').forEach(r => r.disabled = false));
+</script>
+</body>
+</html>
