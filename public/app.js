@@ -1741,7 +1741,7 @@ function sponsorForm(s,id){
   if(!s)s={};
   $("#spOk").onclick=async()=>{const f=formData($("#fSp"));if(!f.bedrijf.trim()){$("#spErr").textContent="Vul de naam van het bedrijf in.";return}
     const nj=new Set((s.naturaJaren||[]).map(Number));if($("#sNat").checked)nj.add(JAAR);else nj.delete(JAAR);
-    const d={...stripId(s),...f,bedrijf:f.bedrijf.trim(),weergave:String(f.weergave||"").trim(),bedrag:num(f.bedrag),naturaJaren:[...nj].sort()};closeModal();await write("sponsors",id||newId("sponsors"),d);toast("Sponsor bewaard.")};
+    const d={...stripId((id&&S.sponsors.get(id))||s),...f,bedrijf:f.bedrijf.trim(),weergave:String(f.weergave||"").trim(),bedrag:num(f.bedrag),naturaJaren:[...nj].sort()};closeModal();await write("sponsors",id||newId("sponsors"),d);toast("Sponsor bewaard.")};
   if(id)spBetBind(id);
   if(id)$("#spDel").onclick=()=>confirmBox("Sponsor <b>"+esc(spNaam(s))+"</b> verwijderen?","Verwijderen",async()=>{await write("sponsors",id,null,{del:true});toast("Sponsor verwijderd.")});
 }
@@ -4753,12 +4753,12 @@ function fuNu(){return new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Brussel
 function fuStatus(c){if(!c.datum)return{k:"dicht",t:"Gesloten: stel eerst de datum in"};if(fuNu()>=fuTot(c))return{k:"dicht",t:"Afgelopen: de fuif is begonnen"};if(c.open===false)return{k:"dicht",t:"Manueel gesloten"};
   const [dd,uu]=fuTot(c).split("T");return{k:"open",t:`Open tot ${fmtDate(dd)} ${uu.replace(":","u")}`}}
 const fuEur=n=>"€ "+Number(n||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
-const fuNaam=d=>[d.voornaam,d.naam].filter(Boolean).join(" ");
+const fuNaam=d=>d.bron==="sponsor"&&d.bedrijf?d.bedrijf:[d.voornaam,d.naam].filter(Boolean).join(" ");
 const FU_ST={betaald:["ok","Betaald"],wacht:["warn","Betaling bezig"],verlopen:["neutral","Niet betaald"],geannuleerd:["neutral","Geannuleerd"]};
 function fuLijst(){const j=fuJaar();return [...S.tickets.values()].filter(t=>Number(t.jaar)===j).sort((a,b)=>String(b.aangemeld||"").localeCompare(String(a.aangemeld||"")))}
 function fuStats(){const L0=fuLijst(),L=L0.filter(t=>t.bron!=="kassa"),B=L.filter(t=>t.status==="betaald"),K=(typeof kaTrans==="function"?kaTrans("fuif",fuJaar()):[]).filter(t=>t.status==="betaald");
   const kT=K.reduce((n,t)=>n+(t.items||[]).filter(x=>x.inkom).reduce((m,x)=>m+(Number(x.aantal)||0),0),0),kBc=K.filter(t=>t.betaalwijze!=="cash").reduce((n,t)=>n+(Number(t.bedrag)||0),0),kCash=K.filter(t=>t.betaalwijze==="cash").reduce((n,t)=>n+(Number(t.bedrag)||0),0),kDk=new Map();for(const t of K)for(const x of (t.items||[]))if(!x.inkom&&/drank/i.test(x.naam)){const w=Number(x.prijs);kDk.set(w,(kDk.get(w)||0)+x.aantal)}const tk=B.reduce((n,t)=>n+(t.tickets||[]).filter(x=>!fuDrank(x)).length,0),bin=B.reduce((n,t)=>n+(t.tickets||[]).filter(x=>x.gescand&&!fuDrank(x)).length,0);
-  const dk=new Map();let dkW=0,dkB=0,dkKort=0;for(const t of B)for(const k of (t.drank||[])){dk.set(k.waarde,(dk.get(k.waarde)||0)+k.aantal);dkW+=k.aantal*k.waarde;dkKort+=k.aantal*(k.waarde-k.prijs)}for(const t of B)dkB+=(t.tickets||[]).filter(x=>fuDrank(x)&&x.gescand).length;
+  const dk=new Map();let dkW=0,dkB=0,dkKort=0;for(const t of B)for(const k of (t.drank||[])){dk.set(k.waarde,(dk.get(k.waarde)||0)+k.aantal);dkW+=k.aantal*k.waarde;if(t.bron!=="sponsor")dkKort+=k.aantal*(k.waarde-k.prijs)}for(const t of B)dkB+=(t.tickets||[]).filter(x=>fuDrank(x)&&x.gescand).length;
   const via=new Map();for(const t of B)if(t.via&&t.via.lidId){const k=t.via.lidId;via.set(k,(via.get(k)||0)+(t.tickets||[]).filter(x=>!fuDrank(x)).length)}
   return{L,B,K,kT,kBc,kCash,kDk,tk,bin,dk,dkW,dkB,dkKort,omzet:B.reduce((n,t)=>n+(Number(t.bedrag)||0),0),via}}
 
@@ -4780,7 +4780,7 @@ VIEWS.fuif=()=>({title:fuCfg().naam||"In Vier en Vlam",sub:"Tickets fuif",
     <div class="grid g2" style="align-items:start">
     <div class="panel" style="min-width:0"><div class="panel-h"><h2>Bestellingen</h2><span class="grow"></span><label class="cbx small muted"><input type="checkbox" data-fu="alles"${FU.alles?" checked":""}>ook niet betaald</label></div>
       <div class="panel-b" style="padding-bottom:6px"><div class="search">${ic("search")}<input id="fuQ" data-fuq placeholder="Zoek op naam, e-mail, lid of ticketcode" value="${esc(FU.q)}"></div></div>
-      <div class="mlist" role="list">${L.map(t=>{const [k,lbl]=FU_ST[t.status]||["neutral",t.status];const bin=(t.tickets||[]).filter(x=>x.gescand&&!fuDrank(x)).length;
+      <div class="mlist" role="list">${L.map(t=>{const [k,lbl]=t.bron==="sponsor"&&t.status==="betaald"?["info","Sponsor"]:FU_ST[t.status]||["neutral",t.status];const bin=(t.tickets||[]).filter(x=>x.gescand&&!fuDrank(x)).length;
         const nd=(t.drank||[]).reduce((a,k)=>a+k.aantal,0);return `<button type="button" class="ml-row" role="listitem" data-fu="toon" data-id="${esc(t.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(fuNaam(t))}</b></span><span class="ml-s">${t.aantal||0} ${t.aantal==1?"ticket":"tickets"}${nd?` + ${nd} ${nd==1?"drankkaart":"drankkaarten"}`:""}${t.via&&(t.via.naam||t.via.tekst)?` · via ${esc(t.via.naam||t.via.tekst)}${t.via.lidId?"":" (?)"}`:""}${bin?` · ${bin} binnen`:""} · ${esc(fmtDate(String(t.aangemeld||"").slice(0,10)))}</span></span><span class="pill ${k}">${lbl}</span><span class="ml-chev" aria-hidden="true">›</span></button>`}).join("")||`<div class="empty">${q?"Niets gevonden.":"Nog geen bestellingen."}</div>`}</div></div>
     <div class="stack" style="gap:16px;min-width:0">
     <div class="panel" style="min-width:0"><div class="panel-h"><h2>Verkocht via leden</h2></div><div class="panel-b">${viaL.length?`<div class="stack" style="gap:6px">${viaL.map(x=>`<div style="display:flex;justify-content:space-between;gap:10px"><span>${esc(naamVol(x.l))}</span><b>${x.n}</b></div>`).join("")}</div>`:'<div class="muted small">Nog geen tickets via een lid verkocht. Kopers kunnen bij het bestellen het lid kiezen via wie ze kopen; die tickets tellen automatisch mee als "kaarten" in het puntensysteem.</div>'}</div></div></div>
@@ -5223,3 +5223,49 @@ for(const r of ["boekingen","verwerken"]){const _v=VIEWS[r];if(!_v)continue;cons
   let q=0;new MutationObserver(()=>{if(q)return;q=1;requestAnimationFrame(()=>{q=0;scan()})}).observe(document.documentElement,{childList:true,subtree:true});
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",scan);else scan();
 })();
+
+/* ============ Sponsors: geschenk per jaar (kalender of fuifkaarten) ============
+   sponsor.geschenk[jaar] = {kalender:{op,door}|null, kaarten:{op,door,ticketId,aantal,drank,mail:{op,aan}|null, papier:true}|null}
+   Kaarten met QR worden aangemaakt in de fuifmodule (tickets, bron "sponsor", gratis) en tellen daar mee. */
+const sgG=s=>((s&&s.geschenk)||{})[JAAR]||{};
+const sgD=iso=>iso?fmtDate(String(iso).slice(0,10)):"";
+function sgPills(s){const g=sgG(s),L=[];
+  if(g.kalender)L.push('<span class="pill ok">Kalender</span>');
+  if(g.kaarten)L.push(`<span class="pill ok" title="${g.kaarten.papier?"Op papier gegeven":esc("Gemaild"+(g.kaarten.mail?" op "+sgD(g.kaarten.mail.op)+" naar "+g.kaarten.mail.aan:" (nog niet verstuurd)"))}">Kaarten${g.kaarten.ticketId&&!g.kaarten.mail?" (mail mislukt)":""}</span>`);
+  return L.join(" ")||'<span class="pill neutral">nog niets</span>'}
+async function sgZet(id,patch){const s=S.sponsors.get(id);if(!s)return;const G={...(s.geschenk||{})};G[JAAR]={...(G[JAAR]||{}),...patch};
+  for(const k of Object.keys(G[JAAR]))if(G[JAAR][k]==null)delete G[JAAR][k];
+  await write("sponsors",id,{geschenk:G},{merge:true})}
+function sgBlok(s,id){const g=sgG(s),k=g.kaarten,c=typeof fuCfg==="function"?fuCfg():{};
+  const kaartTxt=k?(k.papier?`Op papier gegeven op ${sgD(k.op)}`:`${k.aantal||0} inkomkaarten${k.drank?` + drankkaart ${eur(k.drank)}`:""} · ${k.mail?`gemaild op ${sgD(k.mail.op)} naar ${esc(k.mail.aan)}`:"<b>mail is niet vertrokken</b>"}`):"";
+  return `<div class="full sg" id="sgBlok"><div class="sg-h"><b>Bedankje ${JAAR}</b><span class="muted small">Wat kreeg deze sponsor als dank?</span></div>
+   <label class="sp-nat" for="sgKal"><input type="checkbox" id="sgKal"${g.kalender?" checked":""}${canWrite?"":" disabled"}><span><b>Kalender ontvangen</b><small>${g.kalender?`Aangeduid op ${sgD(g.kalender.op)}`:"Vink aan als de sponsor een kalender kreeg."}</small></span></label>
+   <div class="sp-nat sg-k${k?" on":""}"><span style="flex:1;min-width:0"><b>Fuifkaarten ${esc(c.naam||"In Vier en Vlam")}</b><small>${k?kaartTxt:`${c.sponsorTickets??10} inkomkaarten en een drankkaart van ${eur(c.sponsorDrank??50)}, met QR-codes per mail. Ze tellen mee in de fuifmodule.`}</small>
+    <span class="sg-acts">${!canWrite?"":k?(k.ticketId?`<button type="button" class="btn sm" data-sg="opnieuw" data-id="${esc(k.ticketId)}">Opnieuw mailen</button><a class="btn sm ghost" href="#fuif">In fuifmodule</a>`:`<button type="button" class="btn sm ghost" data-sg="papierUit" data-id="${esc(id)}">Ongedaan maken</button>`)
+      :`<button type="button" class="btn sm primary" data-sg="mail" data-id="${esc(id)}">Kaarten mailen</button><button type="button" class="btn sm ghost" data-sg="papier" data-id="${esc(id)}">Op papier gegeven</button>`}</span></span></div></div>`}
+{const _f=sponsorForm;sponsorForm=function(s,id){_f(s,id);if(!id)return;const e=$("#spErr");if(!e)return;e.insertAdjacentHTML("beforebegin",sgBlok(s,id));
+  const kb=$("#sgKal");if(kb)kb.onchange=async()=>{kb.disabled=true;try{await sgZet(id,{kalender:kb.checked?{op:new Date().toISOString(),door:ME_NAME||""}:null});toast(kb.checked?"Kalender aangeduid als ontvangen.":"Kalender niet meer aangeduid.")}catch(x){toast("Bewaren lukte niet.",true);kb.checked=!kb.checked}kb.disabled=false}}}
+function sgHerteken(id){const b=$("#sgBlok"),s=S.sponsors.get(id);if(!b||!s)return;b.outerHTML=sgBlok(s,id);const kb=$("#sgKal");if(kb)kb.onchange=async()=>{kb.disabled=true;try{await sgZet(id,{kalender:kb.checked?{op:new Date().toISOString(),door:ME_NAME||""}:null})}catch(x){toast("Bewaren lukte niet.",true)}kb.disabled=false}}
+document.addEventListener("click",async e=>{const t=e.target.closest("[data-sg]");if(!t)return;e.preventDefault();e.stopPropagation();const a=t.dataset.sg,id=t.dataset.id;
+  if(a==="papier"){await sgZet(id,{kaarten:{op:new Date().toISOString(),door:ME_NAME||"",papier:true}});toast("Kaarten aangeduid als op papier gegeven.");setTimeout(()=>sgHerteken(id),300);return}
+  if(a==="papierUit"){await sgZet(id,{kaarten:null});setTimeout(()=>sgHerteken(id),300);return}
+  if(a==="opnieuw"){t.disabled=true;try{await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"mail",id})});toast("Kaarten opnieuw gemaild.")}catch(x){toast(x.message,true)}t.disabled=false;return}
+  if(a==="mail"){const s=S.sponsors.get(id);if(!s)return;const c=typeof fuCfg==="function"?fuCfg():{};
+    const blok=$("#sgBlok");if(!blok)return;const oud=blok.innerHTML;
+    blok.innerHTML=`<div class="sg-h"><b>Fuifkaarten mailen</b><span class="muted small">Gratis tickets met QR-code, ze tellen mee in de fuifmodule.</span></div>
+     <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:10px">${fld("sgN","Inkomkaarten",`<input id="sgN" type="number" min="0" max="50" value="${esc(c.sponsorTickets??10)}" inputmode="numeric">`)}${fld("sgD","Drankkaart (€, 0 = geen)",`<input id="sgD" type="number" min="0" max="500" step="5" value="${esc(c.sponsorDrank??50)}" inputmode="decimal">`)}
+     ${fld("sgA","Naar e-mailadres",`<input id="sgA" type="email" value="${esc(s.email||"")}">`,"full")}</div>
+     <div class="err" id="sgErr"></div><div class="bar" style="gap:8px;justify-content:flex-end"><button type="button" class="btn sm" id="sgTerug">Annuleren</button><button type="button" class="btn sm primary" id="sgGo">Aanmaken en mailen</button></div>`;
+    $("#sgTerug").onclick=()=>sgHerteken(id);
+    $("#sgGo").onclick=async()=>{const b=$("#sgGo");b.disabled=true;b.textContent="Bezig…";
+      try{const r=await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"sponsor",sponsorId:id,jaar:JAAR,aantal:num($("#sgN").value),drank:num($("#sgD").value),aan:$("#sgA").value.trim()})});
+        toast(r.mail?"Kaarten gemaild naar "+r.aan+".":"Kaarten aangemaakt, maar de mail vertrok niet. Probeer opnieuw.",!r.mail);setTimeout(()=>sgHerteken(id),500)}
+      catch(x){$("#sgErr").textContent=x.message;b.disabled=false;b.textContent="Aanmaken en mailen"}}}
+},true);
+/* kolom in de sponsorlijst */
+{const _s=VIEWS.sponsors;const n=function(){const v=_s.apply(this,arguments);const b=v.body;v.body=function(){let h=b.apply(this,arguments);
+  h=h.replace(`<th>Ontvangen ${JAAR}</th>`,`<th>Ontvangen ${JAAR}</th><th>Bedankje ${JAAR}</th>`).replace('colspan="7" class="empty">Geen sponsors.','colspan="8" class="empty">Geen sponsors.');
+  h=h.replace(/(<tr class="click" data-act="toonSponsor" data-id="([^"]*)">[\s\S]*?)(<\/tr>)/g,(m,a,id,c)=>{const s=S.sponsors.get(id.replace(/&amp;/g,"&").replace(/&quot;/g,'"'));return a+`<td data-l="Bedankje">${s?sgPills(s):""}</td>`+c});
+  const L=[...S.sponsors.values()],nK=L.filter(s=>sgG(s).kalender).length,nT=L.filter(s=>sgG(s).kaarten).length;
+  h=h.replace('<div class="bar"><div class="search">',`<p class="muted small" style="margin:-4px 0 12px">Bedankje ${JAAR}: ${nK} ${nK===1?"sponsor kreeg":"sponsors kregen"} een kalender, ${nT} ${nT===1?"kreeg":"kregen"} fuifkaarten, ${L.length-L.filter(s=>sgG(s).kalender||sgG(s).kaarten).length} nog niets. Klik op een sponsor om aan te duiden of kaarten te mailen.</p><div class="bar"><div class="search">`);
+  return h};return v};Object.assign(n,_s);VIEWS.sponsors=n}
