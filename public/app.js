@@ -37,7 +37,7 @@ const ICON={
   communicatie:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/>',deel:'<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'
 };
 const ic=n=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+ICON[n]+'</svg>';
-const NAV=[{id:"leden",label:"Leden",items:[["leden","Ledenlijst"],["punten","Puntensysteem"]]},{id:"boekhouding",label:"Boekhouding",items:[["boekhouding","Overzicht"],["boekingen","Transacties"],["verwerken","Te verwerken"],["historiek","Historiek"]]},{id:"administratie",label:"Activiteiten",items:[["kalenders","Kalenders"],["banket","Banket"]]},{id:"communicatie",label:"Administratie",items:[["sponsors","Sponsors"],["mails","Mails"]]}];
+const NAV=[{id:"leden",label:"Leden",items:[["leden","Ledenlijst"],["punten","Puntensysteem"]]},{id:"boekhouding",label:"Financiën",items:[["boekhouding","Overzicht"],["boekingen","Transacties"],["verwerken","Te verwerken"],["historiek","Historiek"]]},{id:"administratie",label:"Activiteiten",items:[["kalenders","Kalenders"],["banket","Banket"]]},{id:"communicatie",label:"Administratie",items:[["sponsors","Sponsors"],["mails","Mails"]]}];
 const ROUTES=[["logboek","Logboek"],["boekingen","Transacties"],["verwerken","Te verwerken"],["regels","Regels"],["bank","Bankimport"],["dashboard","Dashboard"],["leden","Leden"],["boekhouding","Boekhouding"],["punten","Puntensysteem"],["kalenders","Kalenders"],["ronde","Kalenderronde"],["sponsors","Sponsors"],["banket","Banket"],["historiek","Historiek"],["mails","Mails"],["instellingen","Instellingen"]];
 
 /* ============ standaardwaarden ============ */
@@ -1511,7 +1511,7 @@ VIEWS.logboek=()=>({title:"Logboek",actions:LOG_CLIENT?"":'<button class="btn" d
 VIEWS.instellingen=()=>({title:"Instellingen",sub:"Boekjaren, puntensysteem, lijsten en back-ups",body(){
   const C=ctx(),c=cfg(),j=C.c,ys=jaren(),last=ys[ys.length-1];
   const d=canWrite?"":" disabled";
-  return instTabs("instellingen")+`<div class="panel"><div class="panel-h"><h2>Actief boekjaar</h2></div><div class="panel-b bar"><select class="sel" id="actiefJaar" data-change="actiefJaar" aria-label="Actief boekjaar"${d}>${ys.map(y=>`<option${y===JAAR?" selected":""}>${y}</option>`).join("")}</select><span style="color:var(--muted);font-size:13.5px;flex:1 1 260px">Dit is het jaar dat iedereen ziet in het dashboard, de leden, de boekhouding, de punten en de kalenders. Oudere jaren bekijk je via Boekhouding › Historiek.</span></div></div>
+  return instTabs("instellingen")+`<div class="panel"><div class="panel-h"><h2>Actief boekjaar</h2></div><div class="panel-b bar"><select class="sel" id="actiefJaar" data-change="actiefJaar" aria-label="Actief boekjaar"${d}>${ys.map(y=>`<option${y===JAAR?" selected":""}>${y}</option>`).join("")}</select><span style="color:var(--muted);font-size:13.5px;flex:1 1 260px">Dit is het jaar dat iedereen ziet in het dashboard, de leden, de boekhouding, de punten en de kalenders. Oudere jaren bekijk je via Financiën › Historiek.</span></div></div>
   <div class="grid g2" style="align-items:start">
   <form class="panel" id="fJaar"><div class="panel-h"><h2>Punten en kalenders ${JAAR}</h2></div><div class="panel-b"><div class="form">
     <div class="fld"><label for="jW1">Punten per kaart</label><input id="jW1" name="w_kaarten" inputmode="numeric" value="${j.gewichten.kaarten}"${d}></div>
@@ -3212,7 +3212,7 @@ async function hrBewaar(){const ont=$("#hrAanW").value.split(/[,;\s]+/).map(x=>x
 async function hrTest(b){b.disabled=true;try{const j=await api("/api/mail?f=herinnering-test",{method:"POST",body:"{}"});toast("Voorbeeld verstuurd naar "+j.aan+".")}catch(x){toast(x.message,true)}finally{b.disabled=false}}
 document.addEventListener("click",e=>{const t=e.target.closest("#hrOk,#hrTest");if(!t)return;if(t.id==="hrOk")hrBewaar();else hrTest(t)});
 
-/* ============ Boekhouding › Facturen ============
+/* ============ Financiën › Facturen ============
    Collectie "facturen" (zie api/_lib/factuur.js voor het datamodel). Concepten bewaart de app zelf; definitief maken
    (uniek nummer + gestructureerde mededeling), de PDF en het mailen gebeuren op de server (/api/mail?f=factuur).
    Betaald = overschrijving met de gestructureerde mededeling of het factuurnummer, online betaling, of manueel. */
@@ -3551,7 +3551,7 @@ function spiInstel(){const c=spiCfg(),url=spiUrl(),q=spiQr(url),svg=q?q.createSv
    <label class="sp-nat full" for="spiVrij"><input type="checkbox" id="spiVrij"${c.vrij.aan?" checked":""}><span><b>Vrije bijdrage toelaten</b><small>De sponsor kiest zelf een bedrag.</small></span></label>
    ${fld("spiMin","Minimum vrije bijdrage (€)",inp("spiMin",c.vrij.min,'inputmode="decimal"'))}${fld("spiLogo","Logo's sturen naar",inp("spiLogo",c.logoMail,'type="email"'))}
    ${fld("spiMeld","Melding van elke inschrijving naar",inp("spiMeld",c.melding,'placeholder="bv. info@vbha.be (leeg = geen melding)"'),"full")}
-   <p class="full muted small" style="margin:0">Vraagt een sponsor een factuur, dan wordt die automatisch aangemaakt in Boekhouding › Facturen en met de bevestigingsmail meegestuurd (instellingen van de facturatie gelden). Zonder factuur krijgt de sponsor een betaallink met Bancontact en de gegevens om over te schrijven.</p>
+   <p class="full muted small" style="margin:0">Vraagt een sponsor een factuur, dan wordt die automatisch aangemaakt in Financiën › Facturen en met de bevestigingsmail meegestuurd (instellingen van de facturatie gelden). Zonder factuur krijgt de sponsor een betaallink met Bancontact en de gegevens om over te schrijven.</p>
    <div class="err full" id="spiErr"></div></form>`,
    `<button class="btn" data-act="closeModal">Annuleren</button>${spiMag()?'<button class="btn primary" data-spi="ok">Bewaren</button>':""}`,{wide:true});
   {const st=spiStatus(c.open,c.deadline);$("#spiSt").dataset.k=st.k}
@@ -3882,7 +3882,7 @@ const vaPuntenZet=(vid,ids)=>vaPuntenBatch([{vid,ids}]);
 document.addEventListener("click",async e=>{const t=e.target.closest('[data-va="aanwOk"]');if(!t)return;t.disabled=true;
   try{await vaPuntenZet(t.dataset.id,vaGekozen(t.closest(".va-awb")));toast("Aanwezigheid en punten bijgewerkt.")}catch(x){toast(x.message,true)}finally{t.disabled=false}});
 
-/* ============ Boekhouding › Inkomende facturen ============
+/* ============ Financiën › Inkomende facturen ============
    PDF's komen binnen via de mailbox (api/_lib/inkomend.js) of door ze hier op te laden, en staan in Documenten › Inkomende facturen.
    Koppelen aan een transactie: boeking.documentId = id van het document. De app leest de tekst van de PDF (pdf.js) en stelt
    de transactie voor met hetzelfde bedrag, dezelfde mededeling/factuurnummer of de naam van de leverancier. */
@@ -4024,7 +4024,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ink]
 // transactie: gekoppelde factuur tonen
 {const _b=boekingForm;boekingForm=function(b,id,title){_b(b,id,title);if(!id||!b)return;const e=$("#fBoek");if(!e)return;const d=b.documentId&&S.documenten.get(b.documentId);
   const h=d?`<div class="full ink-fb">${ic("verslagen")}<span>Factuur: <a href="#" data-ink="pdf" data-id="${esc(d.id)}">${esc(d.naam)}</a></span>${inkMag()?`<button type="button" class="btn sm ghost" data-ink="los" data-id="${esc(id)}">Ontkoppelen</button>`:""}</div>`
-    :b.richting==="uit"&&inkMag()?`<div class="full ink-fb muted small">${ic("verslagen")}<span>Geen factuur gekoppeld. Koppel er een via <a href="#inkomend" data-act="closeModal">Boekhouding › Inkomende facturen</a>.</span></div>`:"";
+    :b.richting==="uit"&&inkMag()?`<div class="full ink-fb muted small">${ic("verslagen")}<span>Geen factuur gekoppeld. Koppel er een via <a href="#inkomend" data-act="closeModal">Financiën › Inkomende facturen</a>.</span></div>`:"";
   if(h)e.insertAdjacentHTML("beforeend",h)}}
 // dashboard: nieuwe facturen te koppelen
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){let x="";if(inkMag()){const L=inkDocs().filter(d=>!inkBoekVan(d.id).length&&d.inkomend&&d.inkomend.nieuw);
@@ -4810,7 +4810,7 @@ function fuInst(){const c=fuCfg(),d=canWrite?"":" disabled",u=location.origin+"/
     <div class="pi-sec"><h4>Afbeelding bovenaan (affiche of banner)</h4><p class="pi-note" style="margin:0 0 8px">Komt bovenaan de bestelpagina en op elk ticket en elke drankkaart in de PDF. JPG of PNG, liefst breed (bv. 1600 × 600).</p>
       <div id="fuKop">${c.header?`<img src="/api/fuif?header=${esc(c.header)}" alt="" style="display:block;width:100%;max-height:220px;object-fit:cover;border-radius:10px;border:1px solid var(--line)">`:'<div class="muted small">Nog geen afbeelding.</div>'}</div>
       ${canWrite?`<div class="bar" style="margin:8px 0 0"><label class="btn sm" for="fuKopF" style="cursor:pointer">${ic("upload")}${c.header?"Andere afbeelding":"Afbeelding opladen"}</label><input type="file" id="fuKopF" accept="image/jpeg,image/png,image/webp" hidden>${c.header?'<button type="button" class="btn sm ghost danger" data-fu="kopweg">Verwijderen</button>':""}<span class="muted small" id="fuKopSt"></span></div>`:""}</div>
-    <div class="pi-sec"><h4>Kassa</h4><p class="pi-note" style="margin:0">Tegels, prijzen, scannen en de kassacode stel je in bij <b>Boekhouding › Kassa</b> (tandwiel).</p></div>
+    <div class="pi-sec"><h4>Kassa</h4><p class="pi-note" style="margin:0">Tegels, prijzen, scannen en de kassacode stel je in bij <b>Financiën › Kassa</b> (tandwiel).</p></div>
     <div class="pi-sec ka-qrs"><h4>Ticketpagina en QR-code voor de affiche</h4><p class="pi-note" style="margin:0 0 8px">Wie de QR-code scant, komt op de pagina om tickets te bestellen en met Bancontact te betalen.</p>
     <div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(u)}" onclick="this.select()"><button type="button" class="btn" data-act="kopieerLink" data-v="${esc(u)}">${ic("copy")}Kopiëren</button><a class="btn" href="/fuif" target="_blank" rel="noopener">Openen</a></div>
     <div class="ka-qr"><img alt="QR-code naar de ticketpagina" src="${kaQr(u,8)}" width="148" height="148"><div class="ka-qr-b"><span class="muted small">Voor de affiche, flyers of Facebook.</span><button type="button" class="btn sm" data-kaqr="kopie" data-v="${esc(u)}">${ic("copy")}QR kopiëren</button><button type="button" class="btn sm" data-kaqr="png" data-v="${esc(u)}" data-n="QR tickets ${esc(c.naam||"fuif")}">${ic("download")}QR downloaden</button></div></div></div>`,
@@ -4919,7 +4919,7 @@ var KASSA_ICONEN={
  tshirt:'<path d="M8 3l-5 3 2 4 2-1v12h10V9l2 1 2-4-5-3a4 4 0 0 1-8 0z"/>'};
 function kassaIcoon(k,kl){var p=KASSA_ICONEN[k];return p?'<svg viewBox="0 0 24 24" aria-hidden="true" style="width:30px;height:30px;fill:none;stroke:'+(kl||"currentColor")+';stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round">'+p+'</svg>':""}
 
-/* ============ Kassa (Boekhouding › Kassa, en een tab Kassa bij In Vier en Vlam, Kinderfeest en Jaarmarkt) ============
+/* ============ Kassa (Financiën › Kassa, en een tab Kassa bij In Vier en Vlam, Kinderfeest en Jaarmarkt) ============
    Config "kassa": {actief, scan, code:{code,sinds}, activiteiten:{<act>:{tegels:[{id,naam,prijs,kleur,icoon,inkom}]}}}
    Transacties in de collectie "kassa" (zie api/_lib/kassa.js). Openbare kassa: /kassa (gastlogin met kassacode, 1 dag geldig). */
 const KA_ACTS={fuif:"In Vier en Vlam",kinderfeest:"Kinderfeest",jaarmarkt:"Jaarmarkt"};
@@ -4987,7 +4987,7 @@ function kaMetTab(route,act,eerste){const _v=VIEWS[route];if(!_v)return;const n=
 kaMetTab("fuif","fuif","Tickets");kaMetTab("kinderfeest","kinderfeest","Inschrijvingen");
 VIEWS.jaarmarkt=()=>({title:"Jaarmarkt",sub:"Kassa jaarmarkt",actions:`<button class="btn primary" data-ka="open" data-act="jaarmarkt">${ic("kassa")}Kassa openen</button>${kaAdm()?`<button class="btn iconbtn" data-ka="inst" data-act="jaarmarkt" aria-label="Instellingen kassa" title="Instellingen kassa">${ic("instellingen")}</button>`:""}`,body(){return kaTabBody("jaarmarkt")}});
 
-/* ---------- Boekhouding › Kassa ---------- */
+/* ---------- Financiën › Kassa ---------- */
 VIEWS.kassa=()=>({title:"Kassa",sub:"Verkoop aan de kassa",
   actions:`<button class="btn primary" data-ka="open">${ic("kassa")}Kassa openen</button>${kaAdm()?`<button class="btn iconbtn" data-ka="inst" aria-label="Instellingen kassa" title="Instellingen kassa">${ic("instellingen")}</button>`:""}`,
   body(){const c=kaCfg(),actief=KA_ACTS[c.actief]?c.actief:"fuif",code=kaCode(),tot=kaCodeTot(code);
@@ -5046,7 +5046,7 @@ document.addEventListener("click",e=>{const a=e.target.closest("[data-katoon]");
    Artikelen: collectie "shop_items"; afbeeldingen in de tabel "beelden" (id "shop-…"); bestellingen: "shop_orders"; instellingen: config "shop".
    Openbare winkel: /shop (api/_lib/shop.js). */
 ICON.webshop='<path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L20.5 8H6.2"/><circle cx="10" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/>';
-if(!NAV.some(n=>(Array.isArray(n)?n[0]:n.id)==="webshop")){const k=NAV.findIndex(n=>n.id==="administratie");NAV.splice(k<0?NAV.length:k+1,0,["webshop","Webshop"])}
+if(!NAV.some(n=>(Array.isArray(n)?n[0]:n.id)==="webshop")){NAV.push(["webshop","Webshop"])}
 if(!ROUTES.some(r=>r[0]==="webshop"))ROUTES.push(["webshop","Webshop"]);
 for(const c of ["shop_items","shop_orders"])if(!COLS.includes(c)){COLS.push(c);S[c]=new Map()}
 const SH={tab:"best",filter:"open",q:""};
