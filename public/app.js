@@ -4869,7 +4869,7 @@ async function fuKopVerwerk(file){const st=$("#fuKopSt");if(st)st.textContent="V
   try{const img=await new Promise((ok,nok)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{ok(i);setTimeout(()=>URL.revokeObjectURL(u),1000)};i.onerror=()=>nok(new Error("Deze afbeelding kan niet gelezen worden."));i.src=u});
     const teken=(maxW,maxH)=>{const k=Math.min(1,maxW/img.naturalWidth,maxH/img.naturalHeight),w=Math.max(1,Math.round(img.naturalWidth*k)),h=Math.max(1,Math.round(img.naturalHeight*k)),cv=document.createElement("canvas");cv.width=w;cv.height=h;const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,w,h);g.drawImage(img,0,0,w,h);return cv};
     const web=teken(1600,1600).toDataURL("image/jpeg",.85).split(",")[1];
-    const pc=teken(1100,700),px=pc.getContext("2d").getImageData(0,0,pc.width,pc.height).data,rgb=new Uint8Array(pc.width*pc.height*3);for(let i=0,j=0;i<px.length;i+=4){rgb[j++]=px[i];rgb[j++]=px[i+1];rgb[j++]=px[i+2]}
+    const pc=teken(900,600),px=pc.getContext("2d").getImageData(0,0,pc.width,pc.height).data,rgb=new Uint8Array(pc.width*pc.height*3);for(let i=0,j=0;i<px.length;i+=4){rgb[j++]=px[i];rgb[j++]=px[i+1];rgb[j++]=px[i+2]}
     const z=new Uint8Array(await new Response(new Blob([rgb]).stream().pipeThrough(new CompressionStream("deflate"))).arrayBuffer());let b="";for(let i=0;i<z.length;i+=32768)b+=String.fromCharCode.apply(null,z.subarray(i,i+32768));
     const data={mime:"image/jpeg",web,pdf:{w:pc.width,h:pc.height,data:btoa(b)},naam:file.name,op:new Date().toISOString(),door:ME_NAME||""};
     const {error}=await SB.from("beelden").upsert({id:"fuif-header",data});if(error)throw error;
