@@ -213,7 +213,7 @@ export function ticketPdf(d, c, kop) {
     pdf.tekst(L + 70, Y(64), dr ? `Drankkaart ${geld(t.waarde).replace(",00", "")}` : c.naam, { size: 24, bold: true });
     pdf.tekst(L + 70, Y(94), dr ? `${c.naam}  ·  ${c.datum ? lang(c.datum) : ""}` : [c.datum ? lang(c.datum) : "", c.deuren ? "deuren " + c.deuren : ""].filter(Boolean).join("  ·  "), { size: 11 });
     if (c.locatie) pdf.tekst(L + 70, Y(110), c.locatie, { size: 11, kleur: GRIJS });
-    const q = qrMatrix(ticketUrl(t.code)), maat = hH ? 270 : 300, qx = (595 - maat) / 2, qy = Y(170);
+    const q = qrMatrix(ticketUrl(t.code)), maat = 160, qx = (595 - maat) / 2, qy = Y(170);
     pdf.vlak(qx - 16, qy - 16, maat + 32, maat + 32, "#ffffff"); pdf.kader(qx - 16, qy - 16, maat + 32, maat + 32, dr ? GOUD : "#dddddd", 1);
     pdf.qr(qx, qy, maat, q.n, q.donker);
     pdf.tekst(297.5, qy + maat + 34, t.code.replace(/(.{4})(?=.)/g, "$1 "), { size: 16, bold: true, align: "center" });
