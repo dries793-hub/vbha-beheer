@@ -158,6 +158,7 @@ html,body{overflow-x:hidden}
 .vk .x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1}
 .hint{font-size:13px;color:var(--muted);margin:6px 0 0}
 .tks{display:grid;gap:14px;margin-top:20px}
+.tk.drank{border-color:#e8d3a6;background:#fffaf0}.tk.drank .n{color:#b07a12}
 .tk{border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center;background:#fff;color:#111}
 .tk img{width:220px;max-width:70vw;height:auto;display:block;margin:6px auto}
 .tk .c{font-family:ui-monospace,Menlo,monospace;font-weight:700;letter-spacing:.08em;font-size:16px}
@@ -178,10 +179,10 @@ const tijd=s=>new Date(s).toLocaleString("nl-BE",{day:"numeric",month:"long",hou
   try{const r=await fetch(url);const j=await r.json();if(!r.ok)throw new Error(j.error||"Ticket niet gevonden.");const e=j.ev||{};
     document.title=(e.naam||"Ticket")+" · VBHA";
     const st=!j.geldig?`<p class="err" style="text-align:center">${j.status==="geannuleerd"?"Dit ticket werd geannuleerd.":"Dit ticket is (nog) niet betaald."}</p>`:"";
-    $("#box").innerHTML=`<div class="card" style="text-align:center"><p style="margin:0;font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700">${j.tickets.length>1?j.tickets.length+" TICKETS":"TICKET"}</p>
+    $("#box").innerHTML=`<div class="card" style="text-align:center"><p style="margin:0;font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700">${j.tickets.length>1?"JE BESTELLING":j.tickets[0]&&j.tickets[0].soort==="drank"?"DRANKKAART":"TICKET"}</p>
       <h1 style="margin:4px 0 6px">${esc(e.naam||"")}</h1><p style="margin:0;color:var(--muted)">${esc([e.datumTekst,e.deuren?"deuren "+e.deuren:""].filter(Boolean).join(" · "))}${e.locatie?"<br>"+esc(e.locatie):""}</p>
       ${j.naam?`<p style="margin:12px 0 0">Op naam van <b>${esc(j.naam)}</b></p>`:""}${st}
-      <div class="tks">${j.tickets.map(x=>`<div class="tk"${x.gescand?' style="opacity:.55"':""}><div class="n">TICKET ${x.nr} VAN ${x.van}</div><img src="/api/fuif?qr=${esc(x.code)}" alt="QR-code ticket ${x.nr}"><div class="c">${esc(x.code.replace(/(.{4})(?=.)/g,"$1 "))}</div>${x.gescand?`<div style="margin-top:6px;font-size:13px;color:#666">Gescand op ${esc(tijd(x.gescand))}</div>`:""}</div>`).join("")}</div></div>`;
+      <div class="tks">${j.tickets.map(x=>`<div class="tk${x.soort==="drank"?" drank":""}"${x.gescand?' style="opacity:.55"':""}><div class="n">${x.soort==="drank"?"DRANKKAART € "+x.waarde:"TICKET"} ${x.nr} VAN ${x.van}</div><img src="/api/fuif?qr=${esc(x.code)}" alt="QR-code ticket ${x.nr}"><div class="c">${esc(x.code.replace(/(.{4})(?=.)/g,"$1 "))}</div>${x.gescand?`<div style="margin-top:6px;font-size:13px;color:#666">Gescand op ${esc(tijd(x.gescand))}</div>`:""}</div>`).join("")}</div></div>`;
   }catch(x){$("#box").innerHTML=`<div class="card"><p style="margin:0">${esc(x.message)}</p></div>`}})();
 </script>
 </body>

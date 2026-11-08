@@ -158,6 +158,17 @@ html,body{overflow-x:hidden}
 .vk .x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1}
 .hint{font-size:13px;color:var(--muted);margin:6px 0 0}
 .tks{display:grid;gap:14px;margin-top:20px}
+.dk{margin-top:4px;border:1px solid #e8d3a6;background:linear-gradient(180deg,#fff8e8,#fffdf7);border-radius:12px;padding:14px 14px 10px}
+@media (prefers-color-scheme:dark){.dk{background:#2a2416;border-color:#5a4a26}}
+.dk-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 4px}
+.dk-h b{font-size:15.5px}.dk-badge{background:#1a7f45;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.dk-p{margin:0 0 10px;font-size:13.5px;color:var(--muted)}
+.dk-r{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #efe2c2}
+.dk-r .w{display:flex;flex-direction:column;gap:1px}.dk-r .w b{font-size:15px}
+.dk-r .w s{color:var(--muted);font-size:13px}.dk-r .w em{font-style:normal;color:#1a7f45;font-weight:700;font-size:14px}
+.dk-r .stp button{width:42px;font-size:20px}.dk-r .stp input{width:48px!important;font-size:18px!important;padding:6px 0!important}
+.spaar{color:#1a7f45;font-weight:700;font-size:14px;text-align:right;margin-top:8px}.spaar:empty{display:none}
+.tk.drank{border-color:#e8d3a6;background:#fffaf0}.tk.drank .n{color:#b07a12}
 .tk{border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center;background:#fff;color:#111}
 .tk img{width:220px;max-width:70vw;height:auto;display:block;margin:6px auto}
 .tk .c{font-family:ui-monospace,Menlo,monospace;font-weight:700;letter-spacing:.08em;font-size:16px}
@@ -172,7 +183,9 @@ html,body{overflow-x:hidden}
   <div class="facts" id="facts"></div></section>
   <div id="box"><form class="card" id="f" novalidate>
     <div class="grid">
-      <div class="full"><span class="lbl">Aantal tickets</span><div class="aantal"><div class="stp"><button type="button" data-d="-1" aria-label="Eén minder">−</button><input type="number" id="aantal" name="aantal" value="1" min="1" max="10" inputmode="numeric" aria-label="Aantal tickets"><button type="button" data-d="1" aria-label="Eén meer">+</button></div><div class="som">Totaal <b id="tot">€ 5,00</b></div></div></div>
+      <div class="full"><span class="lbl">Aantal tickets</span><div class="aantal"><div class="stp"><button type="button" data-d="-1" aria-label="Eén minder">−</button><input type="number" id="aantal" name="aantal" value="1" min="0" max="10" inputmode="numeric" aria-label="Aantal tickets"><button type="button" data-d="1" aria-label="Eén meer">+</button></div><div class="som" id="somT"></div></div></div>
+      <div class="full" id="dkWrap" hidden></div>
+      <div class="full"><div class="aantal" style="border-top:1px solid var(--line);padding-top:12px"><span class="lbl" style="margin:0">Totaal</span><div class="som"><b id="tot">€ 5,00</b></div></div><div class="spaar" id="spaar"></div></div>
       <div><label for="voornaam">Voornaam *</label><input type="text" id="voornaam" name="voornaam" autocomplete="given-name" required maxlength="80"></div>
       <div><label for="naam">Naam *</label><input type="text" id="naam" name="naam" autocomplete="family-name" required maxlength="80"></div>
       <div class="full"><label for="adres">Adres *</label><input type="text" id="adres" name="adres" autocomplete="street-address" placeholder="Straat nr, postcode gemeente" required maxlength="200"></div>
@@ -193,17 +206,26 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const eur=n=>"€ "+Number(n||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
 let INFO={prijs:5,perBestelling:10},VIA=null,BET=null,volgT=0,volgN=0,KLAAR=null;
 const BC_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M10 18.5h4"/></svg>';
-function n(){let v=parseInt($("#aantal").value,10);if(!(v>0))v=1;return Math.min(v,INFO.perBestelling,INFO.vrij==null?99:Math.max(1,INFO.vrij))}
-function som(){$("#tot").textContent=eur(n()*INFO.prijs);$("#go").textContent=`Bestellen en ${eur(n()*INFO.prijs)} betalen`}
-document.addEventListener("click",e=>{const b=e.target.closest(".stp [data-d]");if(!b)return;const i=$("#aantal");i.value=Math.max(1,Math.min(n()+ +b.dataset.d,INFO.perBestelling,INFO.vrij==null?99:INFO.vrij));som()});
-document.addEventListener("input",e=>{if(e.target.id==="aantal")som()});
+function n(){let v=parseInt($("#aantal").value,10);if(!(v>=0))v=0;return Math.min(v,INFO.perBestelling,INFO.vrij==null?99:Math.max(0,INFO.vrij))}
+const DK=()=>(INFO.dranken||[]).map(k=>{const i=$("#dk_"+k.id);let v=parseInt(i&&i.value,10);if(!(v>=0))v=0;return{...k,aantal:Math.min(v,20)}});
+function som(){const t=n()*INFO.prijs,D=DK(),dt=D.reduce((a,k)=>a+k.aantal*k.prijs,0),sp=D.reduce((a,k)=>a+k.aantal*(k.waarde-k.prijs),0),tot=t+dt;
+  $("#somT").innerHTML=n()?`${n()} × ${eur(INFO.prijs)}`:"";$("#tot").textContent=eur(tot);
+  $("#spaar").textContent=sp>0?`Je bespaart ${eur(sp)} op je drankkaarten`:"";
+  $("#go").textContent=tot>0?`Bestellen en ${eur(tot)} betalen`:"Kies een ticket of drankkaart";$("#go").disabled=!(tot>0)}
+document.addEventListener("click",e=>{const b=e.target.closest(".stp [data-d]");if(!b)return;const i=b.parentElement.querySelector("input"),mx=i.id==="aantal"?Math.min(INFO.perBestelling,INFO.vrij==null?99:INFO.vrij):20;
+  i.value=Math.max(0,Math.min((parseInt(i.value,10)||0)+ +b.dataset.d,mx));som()});
+document.addEventListener("input",e=>{if(e.target.id==="aantal"||/^dk_/.test(e.target.id))som()});
+function dkBlok(j){const L=j.dranken||[];if(!L.length)return"";
+  return `<div class="dk"><div class="dk-h"><b>🍺 Drankkaarten in voorverkoop</b>${j.drankKorting?`<span class="dk-badge">${j.drankKorting}% korting</span>`:""}</div>
+    <p class="dk-p">Aan de kassa betaal je de volle prijs. Koop je je drankkaart nu al, dan krijg je ${j.drankKorting}% korting. Je wisselt hem aan de kassa om met de QR-code uit je mail.</p>
+    ${L.map(k=>`<div class="dk-r"><div class="w"><b>Drankkaart ${eur(k.waarde).replace(",00","")}</b><em>${eur(k.prijs)}</em><span style="font-size:12.5px;color:var(--muted)"><s>${eur(k.waarde)}</s> aan de kassa</span></div><div class="stp"><button type="button" data-d="-1" aria-label="Eén minder">−</button><input type="number" id="dk_${esc(k.id)}" value="0" min="0" max="20" inputmode="numeric" aria-label="Aantal drankkaarten van ${eur(k.waarde)}"><button type="button" data-d="1" aria-label="Eén meer">+</button></div></div>`).join("")}</div>`}
 function feiten(j){const f=[];if(j.datumTekst)f.push(`<div class="fact"><span>Wanneer</span><b>${esc(j.datumTekst)}</b>${j.deuren?`<small>deuren ${esc(j.deuren)}</small>`:""}</div>`);
   if(j.locatie){const [a,...b]=String(j.locatie).split(/,\s*/);f.push(`<div class="fact"><span>Waar</span><b>${esc(a)}</b>${b.length?`<small>${esc(b.join(", "))}</small>`:""}</div>`)}
-  f.push(`<div class="fact"><span>Prijs</span><b>${eur(j.prijs)} per ticket</b>${j.vrij!=null?`<small>nog ${j.vrij} beschikbaar</small>`:"<small>betalen met Bancontact</small>"}</div>`);$("#facts").innerHTML=f.join("")}
+  f.push(`<div class="fact"><span>Prijs</span><b>${eur(j.prijs)} per ticket</b>${j.vrij!=null?`<small>nog ${j.vrij} beschikbaar</small>`:(j.dranken||[]).length&&j.drankKorting?`<small>drankkaarten ${j.drankKorting}% goedkoper in voorverkoop</small>`:"<small>betalen met Bancontact</small>"}</div>`);$("#facts").innerHTML=f.join("")}
 function gesloten(j){$("#box").innerHTML=`<div class="card bevestig"><div class="ic" style="background:var(--sunken);color:var(--muted)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
   <h2>${j.gesloten==="uitverkocht"?"Uitverkocht!":j.gesloten==="voorbij"?"De ticketverkoop is afgelopen":"De ticketverkoop is gesloten"}</h2><p class="lead2">${j.gesloten==="uitverkocht"?"Alle tickets zijn verkocht. Bedankt voor de massale interesse!":"Online tickets bestellen kan op dit moment niet."} Vragen? Mail naar <a href="mailto:info@vbha.be">info@vbha.be</a>.</p></div>`}
 fetch("/api/fuif").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;$("#h1").textContent=j.naam||"In Vier en Vlam";document.title=(j.naam||"In Vier en Vlam")+" · tickets · VBHA";feiten(j);
-  const a=$("#aantal");if(a){a.max=j.perBestelling;som()}
+  const a=$("#aantal");if(a){a.max=j.perBestelling;const w=$("#dkWrap");if(w&&(j.dranken||[]).length){w.innerHTML=dkBlok(j);w.hidden=false}som()}
   if(!KLAAR&&!/[?&]betaling=terug/.test(location.search)&&(!j.open||!j.online))gesloten(j.open?{gesloten:"manueel"}:j)}).catch(()=>{});
 // lid zoeken (optioneel, voor het puntensysteem)
 let zT=0,zN=0,ZL=[],zSel=-1;
@@ -222,7 +244,7 @@ $("#f").addEventListener("submit",async e=>{e.preventDefault();const f=e.target,
   if(!adresVolledig(d.adres)){er.textContent="Vul je volledige adres in: straat, huisnummer, postcode en gemeente (bv. Kerkstraat 12, 9300 Aalst).";f.elements.adres.focus();return}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(d.email).trim())){er.textContent="Dit e-mailadres lijkt niet te kloppen.";f.elements.email.focus();return}
   const b=$("#go");b.disabled=true;b.textContent="Bezig…";
-  try{const r=await fetch("/api/fuif",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...d,aantal:n(),viaId:VIA?VIA.id:"",viaTekst:VIA?"":($("#viaQ").value||"").trim(),duur:Date.now()-t0})});
+  try{const r=await fetch("/api/fuif",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...d,aantal:n(),drank:Object.fromEntries(DK().filter(k=>k.aantal).map(k=>[k.id,k.aantal])),viaId:VIA?VIA.id:"",viaTekst:VIA?"":($("#viaQ").value||"").trim(),duur:Date.now()-t0})});
     const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Bestellen lukte niet.");
     try{sessionStorage.setItem("vbha_fuif",JSON.stringify(j))}catch(x){}toonBetalen(j);window.scrollTo({top:0,behavior:"smooth"});
   }catch(x){er.textContent=x.message;b.disabled=false;som()}});
@@ -233,14 +255,15 @@ function onlineBlok(o,bedrag){const href=appLink(o);
   ${o.qrcode?`<div class="qrwrap desk"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div><p>Op een computer? Scan deze code met de Bancontact-app of de app van je bank.</p></div>`:""}
   <p class="wacht" id="bcStatus" aria-live="polite"></p></div>`}
 function toonBetalen(j){KLAAR=j;const o=j.online;
-  $("#box").innerHTML=`<div class="card ok"><h2>Nog één stap, ${esc(j.voornaam)}!</h2><p>Betaal je ${j.aantal} ${j.aantal===1?"ticket":"tickets"} met Bancontact. Zodra de betaling gelukt is, krijg je je ${j.aantal===1?"ticket":"tickets"} met QR-code per mail.</p>
+  const nd=(j.drank||[]).reduce((a,k)=>a+k.aantal,0),wat=[j.aantal?`${j.aantal} ${j.aantal===1?"ticket":"tickets"}`:"",nd?`${nd} ${nd===1?"drankkaart":"drankkaarten"}`:""].filter(Boolean).join(" en ");
+  $("#box").innerHTML=`<div class="card ok"><h2>Nog één stap, ${esc(j.voornaam)}!</h2><p>Betaal je ${wat} met Bancontact. Zodra de betaling gelukt is, krijg je alles met QR-code per mail.${j.korting>0?` <b style="color:#1a7f45">Je bespaart ${eur(j.korting)} dankzij de voorverkoop.</b>`:""}</p>
   <div class="paybox">${onlineBlok(o,j.bedrag)}</div></div>`;BET={t:"tickets",id:j.id,token:j.token};volgN=0;volg()}
 async function toonTickets(){const j=KLAAR||{};let t=null;
   for(let i=0;i<6&&!(t&&t.tickets&&t.tickets.length);i++){try{const r=await fetch(`/api/fuif?b=${encodeURIComponent(j.id)}&t=${encodeURIComponent(j.token)}`);t=r.ok?await r.json():null}catch(x){}if(!(t&&t.tickets&&t.tickets.length))await new Promise(r=>setTimeout(r,1500))}
   const L=(t&&t.tickets)||[],link=`/ticket?b=${encodeURIComponent(j.id)}&t=${encodeURIComponent(j.token)}`;
   $("#box").innerHTML=`<div class="card bevestig"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
-  <h2>Betaald, tot op de fuif!</h2><p class="lead2">Bedankt${j.voornaam?", "+esc(j.voornaam):""}. Je ${L.length===1?"ticket staat":"tickets staan"} hieronder en ${L.length===1?"komt":"komen"} ook per mail. Toon de QR-code aan de kassa.</p>
-  ${L.length?`<div class="tks">${L.map(x=>`<div class="tk"><div class="n">TICKET ${x.nr} VAN ${x.van}</div><img src="/api/fuif?qr=${esc(x.code)}" alt="QR-code ticket ${x.nr}"><div class="c">${esc(x.code.replace(/(.{4})(?=.)/g,"$1 "))}</div></div>`).join("")}</div>`:`<p class="lead2" style="margin-top:14px">Je tickets worden aangemaakt en komen zo meteen per mail.</p>`}
+  <h2>Betaald, tot op de fuif!</h2><p class="lead2">Bedankt${j.voornaam?", "+esc(j.voornaam):""}. Alles staat hieronder en komt ook per mail. Toon de QR-codes aan de kassa.</p>
+  ${L.length?`<div class="tks">${L.map(x=>`<div class="tk${x.soort==="drank"?" drank":""}"><div class="n">${x.soort==="drank"?"DRANKKAART "+eur(x.waarde).replace(",00",""):"TICKET"} ${x.nr} VAN ${x.van}</div><img src="/api/fuif?qr=${esc(x.code)}" alt="QR-code ticket ${x.nr}"><div class="c">${esc(x.code.replace(/(.{4})(?=.)/g,"$1 "))}</div></div>`).join("")}</div>`:`<p class="lead2" style="margin-top:14px">Je tickets worden aangemaakt en komen zo meteen per mail.</p>`}
   <a class="btn" href="${esc(link)}" style="text-decoration:none">Tickets bewaren of opnieuw bekijken</a></div>`;
   window.scrollTo({top:0,behavior:"smooth"});try{sessionStorage.removeItem("vbha_fuif")}catch(x){}}
 async function volg(){clearTimeout(volgT);if(!BET)return;
