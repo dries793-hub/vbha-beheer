@@ -5,7 +5,7 @@ import { clean, algemeen, DEF_IBAN } from "./publiek.js";
 import { epcPayload, qrSvg } from "./epc.js";
 
 /* ============ Vrije steun (/steun, ook gelinkt vanaf vbha.be) ============
-   Iedereen kan zelf een bedrag en mededeling kiezen en meteen online betalen (Mollie of Bancontact Pay).
+   Iedereen kan zelf een bedrag en mededeling kiezen en meteen online betalen (Bancontact Pay).
    Er wordt niets in de database bewaard: de betaling komt gewoon binnen via de doorstorting/bankimport.
    GET  /api/betaling?steun=info        -> rekeningnummer, begunstigde, of online betalen kan
    GET  /api/betaling?steun=<paymentId>  -> status van een steunbetaling (enkel betalingen met referentie "VBHA STEUN")

@@ -1,7 +1,7 @@
 import { maakBetaling, haalBetaling, EIND, providerNaam } from "./betaalprovider.js";
 import { betalingGelukt } from "./bevestiging.js";
 
-// Online betalingen (Mollie of Bancontact Pay) voor records in de tabellen "leden" (lidgeld) en "banket".
+// Online betalingen (Bancontact Pay) voor records in de tabellen "leden" (lidgeld) en "banket".
 // Elk record bewaart zijn betaling in data.betaling = {id, status, bedrag, jaar, deeplink, qrcode, ...}.
 export const BETAALTABELLEN = ["leden", "banket", "facturen", "sponsors", "tickets", "kassa", "shop_orders"];
 
