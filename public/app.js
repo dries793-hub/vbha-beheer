@@ -5269,3 +5269,34 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-sg]"
   const L=[...S.sponsors.values()],nK=L.filter(s=>sgG(s).kalender).length,nT=L.filter(s=>sgG(s).kaarten).length;
   h=h.replace('<div class="bar"><div class="search">',`<p class="muted small" style="margin:-4px 0 12px">Bedankje ${JAAR}: ${nK} ${nK===1?"sponsor kreeg":"sponsors kregen"} een kalender, ${nT} ${nT===1?"kreeg":"kregen"} fuifkaarten, ${L.length-L.filter(s=>sgG(s).kalender||sgG(s).kaarten).length} nog niets. Klik op een sponsor om aan te duiden of kaarten te mailen.</p><div class="bar"><div class="search">`);
   return h};return v};Object.assign(n,_s);VIEWS.sponsors=n}
+
+/* ============ Dashboard: aangeklikte meldingen zijn gelezen en verdwijnen ============
+   Per gebruiker, bewaard op dit toestel. Verandert de inhoud van een melding (nieuwe transactie, ander bedrag…),
+   dan is het een nieuwe melding en verschijnt ze opnieuw. */
+(function(){
+  const KEY=()=>"vbha_gelezen_"+((typeof ME_NAME!=="undefined"&&ME_NAME)||"x");
+  const lees=()=>{try{return JSON.parse(localStorage.getItem(KEY())||"[]")}catch(e){return []}};
+  const bewaar=L=>{try{localStorage.setItem(KEY(),JSON.stringify(L.slice(-400)))}catch(e){}};
+  const sig=el=>{const a=el.matches&&el.matches("a")?el:el.querySelector("a");return((a&&a.getAttribute("href"))||"")+"|"+(a&&a.dataset&&a.dataset.id||"")+"|"+el.textContent.replace(/\s+/g," ").trim().slice(0,240)};
+  const item=a=>a.closest(".nm-i")||a.closest(".nmeld");
+  let toon=false;
+  function zuiver(){
+    if(toon||!document.querySelector(".nmeld"))return;
+    const G=new Set(lees());let weg=0;
+    document.querySelectorAll(".nmeld").forEach(m=>{
+      if(m.closest(".modal"))return;
+      const I=[...m.querySelectorAll(".nm-i")];
+      if(I.length){I.forEach(i=>{if(G.has(sig(i))){i.remove();weg++}});if(!m.querySelector(".nm-i")){m.remove()}}
+      else if(G.has(sig(m))){m.remove();weg++}
+    });
+    if(weg&&!document.getElementById("glTerug")){const host=document.querySelector(".nmeld")?.parentElement||document.querySelector("#main .page, #main, main");
+      if(host&&typeof route==="function"&&route()==="dashboard"){host.insertAdjacentHTML("beforeend",`<p class="small muted" id="glTerug" style="margin:4px 0 0"><button type="button" class="linkbtn" data-gl="toon">Gelezen meldingen opnieuw tonen</button></p>`)}}
+  }
+  window.addEventListener("click",e=>{
+    const g=e.target.closest("[data-gl]");if(g){e.preventDefault();toon=true;if(typeof render==="function")render();setTimeout(()=>{toon=false},800);return}
+    const a=e.target.closest(".nmeld a, .nmeld button");if(!a||a.closest(".modal"))return;
+    const it=item(a);if(!it)return;const L=lees(),s=sig(it);if(!L.includes(s)){L.push(s);bewaar(L)}
+    setTimeout(()=>{if(it.isConnected){const m=it.closest(".nmeld");it.remove();if(m&&m!==it&&!m.querySelector(".nm-i"))m.remove()}},400);
+  },true);
+  let q=0;new MutationObserver(()=>{if(q)return;q=1;requestAnimationFrame(()=>{q=0;zuiver()})}).observe(document.documentElement,{childList:true,subtree:true});
+})();
