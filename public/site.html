@@ -83,6 +83,7 @@
 
   .top{display:flex;gap:8px;align-items:center}
   .btn-red span b{font-weight:700}
+  .bt small{font-size:inherit;font-weight:500}
   .winkel{margin-top:56px;border-top:1px solid var(--line);padding-top:48px}
   .winkel .head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px}
   .winkel .head p{color:var(--muted);max-width:60ch}
@@ -95,7 +96,11 @@
   .prod .bd b{font-weight:600}.prod .bd span{color:var(--accent);font-weight:700;white-space:nowrap}
   @media (max-width:860px){
     .btn-red{display:flex;width:100%;justify-content:center;text-align:center;padding:15px 16px;line-height:1.3}
-    .btn-red svg{flex:0 0 auto}
+    .btn-red svg{flex:0 0 auto;width:24px;height:24px}
+    .btn-red .bt{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:2px}
+    .btn-red .bt small{font-size:14px;font-weight:500;opacity:.9}
+    .btn-red .bt b{font-size:17px}
+    a.btn-red:has(.bt){gap:14px;padding:14px 18px}
     .btn-sub{max-width:none;text-align:center}
     .winkel,.sponsors,.steun{margin-top:40px;padding-top:36px}
     .prods{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -131,7 +136,7 @@
       <p class="lead">De komende weken brengen onze brandweermensen de kalender van Brandweer Aalst bij je langs. Bedankt om de Vriendenkring te steunen!</p>
       <a class="btn-red" href="/kalender">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20H4z"/><path d="M9.5 20v-5h5v5"/></svg>
-        <span>Kalender zeker in je bus? <b>Geef je adres door</b></span>
+        <span class="bt"><small>Kalender zeker in je bus?</small> <b>Geef je adres door</b></span>
       </a>
     </div>
   </section>
