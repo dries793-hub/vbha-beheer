@@ -1,5 +1,5 @@
 /* Status van een lid (brons/zilver/goud) voor werkjaar J: volgens het reglement tellen de punten van werkjaar J-1.
-   Erewacht = steeds goud. Kortingspercentages uit de instellingen van jaar J. Gedeeld door banket en "status opvragen". */
+   Erewacht = steeds goud; vrijstelling (jaarleden.vrijstelling) ook. Kortingspercentages uit de instellingen van jaar J. Gedeeld door banket en "status opvragen". */
 export const DEF = { gewichten: { kaarten: 1, kalenders: 25, shifts: 35, vergaderingen: 20 }, drempels: { zilver: 65, goud: 100 }, korting: { brons: 20, zilver: 35, goud: 50 } };
 export async function jaarCfg(sb, Y) {
   const { data } = await sb.from("jaren").select("data").eq("id", String(Y)).maybeSingle(); const j = (data && data.data) || {};
@@ -11,7 +11,8 @@ export async function lidStatus(sb, lidId, jaar) {
   const L = (lid && lid.data) || {}, j = (jl && jl.data) || {}, w = cv.gewichten;
   const punten = (j.kaarten || 0) * w.kaarten + (j.kalUitgevoerd || 0) * w.kalenders + (j.shifts || 0) * w.shifts + (j.vergaderingen || 0) * w.vergaderingen + (j.extraPunten || 0);
   const ere = L.categorie === "Erewacht";
-  const status = ere ? "GOUD" : punten >= cv.drempels.goud ? "GOUD" : punten >= cv.drempels.zilver ? "ZILVER" : "BRONS";
+  const vrij = !ere && !!j.vrijstelling; // vrijstelling puntensysteem voor werkjaar J-1 (ziekte, werkonderbreking…) = goud
+  const status = ere || vrij ? "GOUD" : punten >= cv.drempels.goud ? "GOUD" : punten >= cv.drempels.zilver ? "ZILVER" : "BRONS";
   const korting = Math.max(0, Math.min(100, Number(cj.korting[status.toLowerCase()]) || 0));
-  return { status, korting, punten, puntenJaar: vorig, ere, lid: L, cfg: cj, cfgVorig: cv };
+  return { status, korting, punten, puntenJaar: vorig, ere, vrij, lid: L, cfg: cj, cfgVorig: cv };
 }
