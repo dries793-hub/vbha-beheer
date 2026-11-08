@@ -226,7 +226,7 @@ main.ks{max-width:none;padding:10px 10px 0}
 .vk{display:flex;flex-direction:column;height:calc(100dvh - 58px - 10px)}
 .vk .ks-tabs{margin-bottom:8px;flex:none;width:100%}
 .pos2{flex:1;min-height:0;width:100%;display:grid;gap:10px;grid-auto-rows:auto;align-content:start;overflow-y:auto;padding-bottom:8px}
-.pos2 .pt{min-height:0;height:auto;aspect-ratio:1/1;padding:8px;gap:2px}
+.pos2 .pt{min-height:0;height:100%;padding:8px;gap:2px;overflow:hidden}
 .pos2 .pt svg{width:clamp(32px,8vw,56px)!important;height:clamp(32px,8vw,56px)!important}
 .pos2 .pt b{font-size:clamp(15px,4.2vw,20px)}.pos2 .pt span{font-size:clamp(14px,3.8vw,18px)}
 .pt .min{position:absolute;top:6px;left:6px;width:38px;height:38px;border-radius:999px;border:0;background:rgba(0,0,0,.1);color:var(--ink);font:800 26px/1 var(--f);display:grid;place-items:center;cursor:pointer}
@@ -272,7 +272,10 @@ function kolommen(n){const w=innerWidth;if(n<=2)return n;if(n<=4)return 2;if(n<=
 function verkoopScherm(){clearTimeout(naT);const T=ST.tegels||[],tot=T.reduce((n,x)=>n+(MAND[x.id]||0)*x.prijs,0),aantal=Object.values(MAND).reduce((a,b)=>a+b,0);
   $("#box").innerHTML=`<div class="vk">${tabs()}${T.length?`<div class="pos2" style="grid-template-columns:repeat(${kolommen(T.length)},minmax(0,1fr))">${T.map(x=>{const [k,b]=kleur(x.kleur),n=MAND[x.id]||0;return `<button type="button" class="pt" data-pt="${esc(x.id)}" style="--k:${k};--b:${b}"><i>${n||""}</i>${n?`<span class="min" data-min="${esc(x.id)}" role="button" aria-label="Eén minder">−</span>`:""}${typeof kassaIcoon==="function"?kassaIcoon(x.icoon,k):""}<b>${esc(x.naam)}</b><span>${eur(x.prijs)}</span></button>`}).join("")}</div>`:'<div class="card"><p style="margin:0">Nog geen tegels ingesteld.</p></div>'}
    <div class="balk"><div class="tot"><b>${eur(tot)}</b>${aantal?`<button type="button" id="leeg">✕ wissen</button>`:""}</div><button class="btn" id="afr"${tot>0&&ST.online?"":" disabled"}>Bancontact</button><button class="btn sec" id="cash"${tot>0?"":" disabled"}>Cash</button></div></div>`}
-function pasHoogte(){const v=$(".vk"),h=$(".ks-hdr");if(v&&h)v.style.height=(innerHeight-h.offsetHeight-18)+"px"}
+function pasHoogte(){const v=$(".vk"),h=$(".ks-hdr");if(v&&h)v.style.height=(innerHeight-h.offsetHeight-18)+"px";
+  // vierkante tegels: rijhoogte = kolombreedte (aspect-ratio werkt niet betrouwbaar in een scrollend grid op iPhone)
+  const g=$(".pos2");if(g){const n=(getComputedStyle(g).gridTemplateColumns||"").split(" ").filter(Boolean).length||1,gap=parseFloat(getComputedStyle(g).columnGap)||0;const w=Math.floor((g.clientWidth-gap*(n-1))/n);if(w>0)g.style.gridAutoRows=w+"px"}}
+addEventListener("resize",()=>requestAnimationFrame(pasHoogte));
 new MutationObserver(pasHoogte).observe(document.getElementById("box"),{childList:true});
 addEventListener("resize",()=>{if(ST&&TAB==="verkoop"&&!VK&&$(".pos2"))verkoopScherm()});
 document.addEventListener("click",e=>{if(e.target.closest("[data-min]")){const k=e.target.closest("[data-min]").dataset.min;MAND[k]=Math.max(0,(MAND[k]||0)-1);if(!MAND[k])delete MAND[k];tril(8);verkoopScherm();return}const t=e.target.closest("[data-pt]");if(t){MAND[t.dataset.pt]=(MAND[t.dataset.pt]||0)+1;tril(12);verkoopScherm();const n=$(`[data-pt="${CSS.escape(t.dataset.pt)}"]`);if(n){n.classList.add("flash")}return}
