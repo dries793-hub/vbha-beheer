@@ -35,6 +35,20 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "(www\\.)?vbha\\.be"
+        }
+      ],
+      "destination": "/site"
+    },
+    {
+      "source": "/",
+      "destination": "/beheer"
+    },
+    {
       "source": "/api/shop",
       "destination": "/api/openbaar?f=shop"
     },
