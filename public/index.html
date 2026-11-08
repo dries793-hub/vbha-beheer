@@ -1303,6 +1303,19 @@ html{touch-action:manipulation}
 .fu-dot.open{background:#1a7f45;box-shadow:0 0 0 3px color-mix(in srgb,#1a7f45 22%,transparent)}
 /* gsm/tablet: het echte datumveld ligt onzichtbaar over de kalenderknop, zodat een tik altijd de kalender van het toestel opent (iOS) */
 @media (pointer:coarse){.dt-w .dt-nat{top:50%;bottom:auto;right:4px;transform:translateY(-50%);width:36px!important;height:34px!important;opacity:0;pointer-events:auto;z-index:2;-webkit-appearance:none;appearance:none;font-size:16px;background:transparent;color:transparent;min-width:0!important;max-width:none!important;display:block}}
+/* fuif: compact kassa-overzicht */
+.fu-ko{display:flex;flex-direction:column}
+.fu-kr{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line)}
+.fu-kr b{min-width:78px;text-align:right;font-variant-numeric:tabular-nums}
+.fu-kt{display:flex;justify-content:space-between;padding:6px 0;font-size:14.5px}.fu-kt b{font-variant-numeric:tabular-nums}
+.fu-kt:first-of-type{margin-top:6px}
+.fu-kt.tot{border-top:2px solid var(--ink);margin-top:4px;padding-top:8px;font-size:16px}
+.fu-tr{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.fu-tr summary{cursor:pointer;font-weight:600;font-size:14px}
+.fu-trr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.fu-trr:last-child{border-bottom:0}
+.fu-x{flex:none;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:none;color:var(--bad,#c0161f);font-size:22px;line-height:1;cursor:pointer}
+.fu-x:hover{background:var(--sunken);border-color:var(--line)}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */

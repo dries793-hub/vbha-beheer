@@ -368,6 +368,12 @@ export async function fuifApi(req, res) {
   if (actie === "mail") { if (d.status !== "betaald") throw httpErr(400, "Deze bestelling is niet betaald."); const ok = await stuurTickets(sb, r, clean(b.aan, 120) || d.email); if (!ok) throw httpErr(502, "Versturen lukte niet."); return res.status(200).json({ ok: true }); }
   if (actie === "pdf") { if (d.status !== "betaald") throw httpErr(400, "Deze bestelling is niet betaald."); const { c } = await fuifCfg(sb); return res.status(200).json({ ok: true, naam: `Tickets ${c.naam} ${d.voornaam} ${d.naam}.pdf`, pdf: ticketPdf(d, c, await fuifHeader(sb, true)).toString("base64") }); }
   if (actie === "ontscan") { const code = codeUit(b.code); const tickets = d.tickets.map(x => x.code === code ? { ...x, gescand: null } : x); await sb.from("tickets").update({ data: { ...d, tickets } }).eq("id", r.id); return res.status(200).json({ ok: true }); }
+  if (actie === "wis") { // enkel administrator: bestelling of kassatransactie volledig verwijderen
+    if (!["admin", "bewerker"].includes(rol)) throw httpErr(403, "Enkel een administrator kan transacties wissen.");
+    if (d.punten) await puntenBij(sb, d.punten.lidId, d.punten.jaar, -d.punten.aantal);
+    const { error } = await sb.from("tickets").delete().eq("id", r.id); if (error) throw error;
+    return res.status(200).json({ ok: true });
+  }
   if (actie === "annuleer") { // gekochte tickets zijn niet annuleerbaar; enkel een administrator kan dit uitzonderlijk
     if (!["admin", "bewerker"].includes(rol)) throw httpErr(403, "Enkel een administrator kan tickets annuleren.");
     if (d.status === "geannuleerd") return res.status(200).json({ ok: true });
