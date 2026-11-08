@@ -5041,9 +5041,124 @@ document.addEventListener("input",e=>{const t=e.target;if(!t.matches||!t.matches
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="kaScan"){KA_ED.scan=t.checked;return}if(t.matches&&t.matches('#kaEd [data-kae="inkom"]')){KA_ED.tegels[KA_ED.act][+t.dataset.i].inkom=t.checked}});
 document.addEventListener("click",e=>{const a=e.target.closest("[data-katoon]");if(!a)return;const act=a.dataset.katoon;if(act!=="jaarmarkt")KA_UI.tab[act]="kassa"});
 
+/* ============ Webshop (eigen knop in het menu) ============
+   Artikelen: collectie "shop_items"; afbeeldingen in de tabel "beelden" (id "shop-…"); bestellingen: "shop_orders"; instellingen: config "shop".
+   Openbare winkel: /shop (api/_lib/shop.js). */
+ICON.webshop='<path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L20.5 8H6.2"/><circle cx="10" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/>';
+if(!NAV.some(n=>(Array.isArray(n)?n[0]:n.id)==="webshop")){const k=NAV.findIndex(n=>n.id==="administratie");NAV.splice(k<0?NAV.length:k+1,0,["webshop","Webshop"])}
+if(!ROUTES.some(r=>r[0]==="webshop"))ROUTES.push(["webshop","Webshop"]);
+for(const c of ["shop_items","shop_orders"])if(!COLS.includes(c)){COLS.push(c);S[c]=new Map()}
+const SH={tab:"best",filter:"open",q:""};
+const SH_DEF={open:false,naam:"VBHA webshop",intro:"Steun de Vriendenkring Brandweer Aalst met een patch of ander aandenken.",afhaaladres:"Kazerne Brandweer Aalst, Vrijheidstraat, 9300 Aalst",verpakking:20,gratisVanaf:0,info:"",
+  tarieven:[{tot:100,prijs:2.5,naam:"Brief (1 zegel)"},{tot:350,prijs:4.5,naam:"Brief (2 zegels)"},{tot:2000,prijs:9,naam:"Pakje tot 2 kg"},{tot:5000,prijs:12,naam:"Pakje tot 5 kg"},{tot:10000,prijs:16,naam:"Pakje tot 10 kg"}]};
+const shCfg=()=>({...SH_DEF,...((S.config&&S.config.get("shop"))||{})});
+const shEur=n=>"€ "+Number(n||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
+const shImg=id=>id?"/api/shop?img="+encodeURIComponent(id):"";
+const shAdm=()=>canWrite&&(typeof ADM!=="function"||ADM());
+const SH_ST={nieuw:["warn","Nieuw"],betaald:["info","Betaald"],verzonden:["ok","Verzonden"],klaar:["info","Klaar voor afhaling"],afgehaald:["ok","Afgehaald"],geannuleerd:["neutral","Geannuleerd"]};
+const shItems=()=>[...S.shop_items.values()].sort((a,b)=>(Number(a.volgorde)||0)-(Number(b.volgorde)||0)||String(a.naam).localeCompare(String(b.naam),"nl"));
+const shOrders=()=>[...S.shop_orders.values()].sort((a,b)=>String(b.aangemeld||"").localeCompare(String(a.aangemeld||"")));
+const shOpen=o=>!["afgehaald","verzonden","geannuleerd"].includes(o.status);
+
+VIEWS.webshop=()=>({title:shCfg().naam||"Webshop",sub:"Webshop van de Vriendenkring",
+  actions:`<a class="btn" href="/shop" target="_blank" rel="noopener">${ic("link")}Webshop<span class="fu-dot ${shCfg().open!==false?"open":""}" title="${shCfg().open!==false?"Webshop open":"Webshop gesloten"}"></span></a>${shAdm()?`<button class="btn primary" data-sh="nieuwItem">${ic("plus")}Artikel</button><button class="btn iconbtn" data-sh="inst" aria-label="Instellingen webshop" title="Instellingen webshop">${ic("instellingen")}</button>`:""}`,
+  body(){const O=shOrders(),open=O.filter(shOpen);
+    return `<div class="ka-tabs" role="tablist"><button type="button" data-sh="tab" data-v="best" class="${SH.tab==="best"?"on":""}">Bestellingen${open.length?` <span class="bt-n">${open.length}</span>`:""}</button><button type="button" data-sh="tab" data-v="art" class="${SH.tab==="art"?"on":""}">Artikelen</button></div>`+(SH.tab==="art"?shArtikelen():shBestellingen(O))}});
+
+function shBestellingen(O){const jaar=String(new Date().getFullYear()),dit=O.filter(o=>String(o.jaar)===jaar&&o.status!=="geannuleerd");
+  const tb=O.filter(o=>!o.betaald&&o.status!=="geannuleerd"),tv=O.filter(o=>o.betaald&&o.levering==="post"&&!["verzonden","geannuleerd"].includes(o.status)),ta=O.filter(o=>o.levering==="afhalen"&&!["afgehaald","geannuleerd"].includes(o.status));
+  const q=norm(SH.q);let L=SH.filter==="open"?O.filter(shOpen):O;if(q)L=L.filter(o=>norm([o.nr,o.klant&&o.klant.naam,o.klant&&o.klant.voornaam,o.klant&&o.klant.email,(o.items||[]).map(i=>i.naam).join(" ")].join(" ")).includes(q));
+  return `<div class="tiles"><div class="tile hero"><span class="lbl">Omzet ${jaar}</span><span class="val">${shEur(dit.filter(o=>o.betaald).reduce((n,o)=>n+(Number(o.totaal)||0),0))}</span><span class="hint">${dit.length} ${dit.length===1?"bestelling":"bestellingen"} · ${dit.reduce((n,o)=>n+(o.items||[]).reduce((m,i)=>m+i.aantal,0),0)} stuks</span></div>
+    <div class="tile"><span class="lbl">Nog te betalen</span><span class="val">${tb.length}</span><span class="hint">${shEur(tb.reduce((n,o)=>n+(Number(o.totaal)||0),0))}</span></div>
+    <div class="tile"><span class="lbl">Te verzenden</span><span class="val">${tv.length}</span><span class="hint">betaald, nog niet verzonden</span></div>
+    <div class="tile"><span class="lbl">Af te halen</span><span class="val">${ta.length}</span><span class="hint">contact opnemen</span></div></div>
+  <div class="panel"><div class="panel-h"><h2>Bestellingen</h2><span class="grow"></span><div class="seg"><button type="button" class="${SH.filter==="open"?"on":""}" data-sh="filter" data-v="open">Open</button><button type="button" class="${SH.filter==="alle"?"on":""}" data-sh="filter" data-v="alle">Alle</button></div></div>
+   <div class="panel-b" style="padding-bottom:6px"><div class="search">${ic("search")}<input id="shQ" data-shq placeholder="Zoek op nummer, naam, e-mail of artikel" value="${esc(SH.q)}"></div></div>
+   <div class="mlist" role="list">${L.map(o=>{const [k,l]=SH_ST[o.status]||["neutral",o.status],n=(o.items||[]).reduce((m,i)=>m+i.aantal,0);
+     return `<button type="button" class="ml-row" role="listitem" data-act="shToon" data-id="${esc(o.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(o.klant?o.klant.voornaam+" "+o.klant.naam:"")}</b></span><span class="ml-s">${esc(o.nr)} · ${n} ${n===1?"stuk":"stuks"} · ${o.levering==="post"?"verzenden":"afhalen"} · ${o.betaald?"betaald":o.betaalwijze==="cash"?"cash bij afhalen":o.betaalwijze==="bancontact"?"Bancontact bezig":"overschrijving"}</span></span><span class="ml-amt">${shEur(o.totaal)}</span><span class="pill ${k}">${l}</span><span class="ml-chev" aria-hidden="true">›</span></button>`}).join("")||`<div class="empty">${SH.filter==="open"?"Geen open bestellingen.":"Nog geen bestellingen."}</div>`}</div></div>`}
+
+function shToon(id){const o=S.shop_orders.get(id);if(!o)return;const [k,l]=SH_ST[o.status]||["neutral",o.status],w=canWrite,K=o.klant||{};
+  const knop=(st,t,mail,cls="")=>`<button class="btn ${cls}" data-sh="status" data-id="${esc(o.id)}" data-v="${st}"${mail?' data-mail="1"':""}>${t}</button>`;
+  modal("Bestelling "+o.nr,`<div class="stack" style="gap:14px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="pill ${k}">${l}</span><span class="pill ${o.betaald?"ok":"warn"}">${o.betaald?"Betaald":"Niet betaald"}</span><span class="muted small">${esc(new Date(o.aangemeld).toLocaleString("nl-BE"))}</span></div>
+    <div class="fu-ko">${(o.items||[]).map(i=>`<div class="fu-kr"><span>${esc(i.naam)}</span><span class="muted">${i.aantal} × ${shEur(i.prijs)}</span><b>${shEur(i.aantal*i.prijs)}</b></div>`).join("")}<div class="fu-kr"><span>${o.levering==="post"?"Verzending ("+esc(o.verzendNaam||"bpost")+")":"Afhalen in de kazerne"}</span><span class="muted">${o.gewicht?o.gewicht+" g":""}</span><b>${o.verzendkost?shEur(o.verzendkost):"gratis"}</b></div><div class="fu-kt tot"><span>Totaal</span><b>${shEur(o.totaal)}</b></div></div>
+    <dl class="kv"><dt>Klant</dt><dd><b>${esc(K.voornaam+" "+K.naam)}</b></dd><dt>Telefoon</dt><dd><a href="tel:${esc(String(K.telefoon||"").replace(/\s/g,""))}">${esc(K.telefoon)}</a></dd><dt>E-mail</dt><dd><a href="mailto:${esc(K.email)}">${esc(K.email)}</a></dd><dt>Adres</dt><dd>${esc(K.adres)}</dd>
+      <dt>Betaling</dt><dd>${o.betaalwijze==="bancontact"?"Bancontact":o.betaalwijze==="cash"?"Cash bij afhalen":"Overschrijving"}${o.bancontactMislukt?' <span class="muted small">(Bancontact lukte niet)</span>':""}${!o.betaald&&o.betaalwijze==="overschrijving"?`<div class="muted small">Mededeling: Webshop ${esc(o.nr)} ${esc(K.naam)}</div>`:""}</dd>${o.opmerking?`<dt>Opmerking</dt><dd>${esc(o.opmerking)}</dd>`:""}</dl>
+    <div class="err" id="shErr"></div></div>`,
+   w?`${o.status!=="geannuleerd"?knop("geannuleerd","Annuleren",false,"ghost danger"):""}<span class="grow"></span>${!o.betaald&&o.status!=="geannuleerd"?knop("betaald","Betaald"):""}${o.levering==="post"&&o.status!=="verzonden"&&o.status!=="geannuleerd"?knop("verzonden","Verzonden + mail",true,"primary"):""}${o.levering==="afhalen"&&!["klaar","afgehaald","geannuleerd"].includes(o.status)?knop("klaar","Klaar + mail",true):""}${o.levering==="afhalen"&&o.status!=="afgehaald"&&o.status!=="geannuleerd"?knop("afgehaald","Afgehaald",false,"primary"):""}`:`<button class="btn" data-act="closeModal">Sluiten</button>`)}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="shToon"]');if(!t)return;e.preventDefault();e.stopPropagation();shToon(t.dataset.id)},true);
+
+/* ---------- artikelen ---------- */
+function shArtikelen(){const L=shItems();
+  return `<div class="panel"><div class="mlist" role="list">${L.map(i=>`<button type="button" class="ml-row sh-art" role="listitem" data-sh="item" data-id="${esc(i.id)}"><span class="sh-th" style="background-image:url('${shImg(i.hoofd||(i.afbeeldingen||[])[0])}')"></span><span class="ml-m"><span class="ml-n"><b>${esc(i.naam)}</b>${i.actief===false?' <span class="pill neutral">verborgen</span>':""}</span><span class="ml-s">${(i.afbeeldingen||[]).length} ${(i.afbeeldingen||[]).length===1?"foto":"foto's"} · ${Number(i.gewicht)||0} g${i.voorraad!==""&&i.voorraad!=null?` · voorraad ${i.voorraad}`:""}</span></span><span class="ml-amt">${shEur(i.prijs)}</span><span class="ml-chev" aria-hidden="true">›</span></button>`).join("")||`<div class="empty">Nog geen artikelen. ${shAdm()?'Klik op <b>Artikel</b> om er een toe te voegen.':""}</div>`}</div></div>`}
+let SHE=null;
+function shItem(id){const i=id?S.shop_items.get(id):null;SHE={id:id||("i"+Date.now().toString(36)),nieuw:!i,naam:i?i.naam:"",prijs:i?i.prijs:10,beschrijving:i?i.beschrijving||"":"",gewicht:i?i.gewicht??15:15,voorraad:i&&i.voorraad!=null?i.voorraad:"",actief:i?i.actief!==false:true,volgorde:i?i.volgorde||0:shItems().length,afbeeldingen:[...(i&&i.afbeeldingen||[])],hoofd:i?i.hoofd||null:null,weg:[]};
+  const d=shAdm()?"":" disabled";
+  modal(SHE.nieuw?"Nieuw artikel":"Artikel bewerken",`<form id="fSh" class="form" onsubmit="return false">
+    ${fld("shN","Naam *",inp("shN",SHE.naam,'maxlength="80" placeholder="bv. Patch VBHA"'+d),"full")}
+    ${fld("shP","Prijs (€) *",`<input id="shP" inputmode="decimal" value="${esc(String(SHE.prijs).replace(".",","))}"${d}>`)}${fld("shG","Gewicht per stuk (g)",`<input id="shG" inputmode="numeric" value="${esc(SHE.gewicht)}"${d}>`)}
+    ${fld("shV","Voorraad",`<input id="shV" inputmode="numeric" value="${esc(SHE.voorraad)}" placeholder="leeg = onbeperkt"${d}>`)}${fld("shA","Zichtbaar in de webshop",`<label class="spi-sw" for="shA" style="margin-top:6px"><input type="checkbox" id="shA" role="switch"${SHE.actief?" checked":""}${d}><span class="spi-sw-t" aria-hidden="true"></span><b>${SHE.actief?"zichtbaar":"verborgen"}</b></label>`)}
+    ${fld("shB","Beschrijving",`<textarea id="shB" rows="3" maxlength="1500"${d}>${esc(SHE.beschrijving)}</textarea>`,"full")}
+    <div class="full"><span class="lbl">Afbeeldingen</span><p class="muted small" style="margin:2px 0 8px">Tik op ★ om de hoofdafbeelding te kiezen (die staat in het overzicht van de webshop).</p><div class="sh-imgs" id="shImgs"></div>
+      ${shAdm()?`<label class="btn" for="shF" style="cursor:pointer;margin-top:8px">${ic("upload")}Afbeeldingen toevoegen</label><input type="file" id="shF" accept="image/*" multiple hidden><span class="muted small" id="shSt" style="margin-left:8px"></span>`:""}</div>
+    <div class="err full" id="shErr"></div></form>`,
+   `${!SHE.nieuw&&shAdm()?'<button class="btn ghost danger" id="shDel">Verwijderen</button><span class="grow"></span>':""}<button class="btn" data-act="closeModal">Annuleren</button>${shAdm()?'<button class="btn primary" id="shOk">Bewaren</button>':""}`,{wide:true});
+  shImgsTeken();
+  const ok=$("#shOk");if(ok)ok.onclick=shItemBewaar;
+  const del=$("#shDel");if(del)del.onclick=()=>confirmBox(`Artikel <b>${esc(SHE.naam)}</b> verwijderen? Bestaande bestellingen blijven bewaard.`,"Verwijderen",async()=>{const ids=SHE.afbeeldingen;await write("shop_items",SHE.id,null,{del:true});for(const x of ids)try{await SB.from("beelden").delete().eq("id",x)}catch(e){}toast("Artikel verwijderd.")})}
+function shImgsTeken(){const el=$("#shImgs");if(!el)return;const A=SHE.afbeeldingen,h=SHE.hoofd&&A.includes(SHE.hoofd)?SHE.hoofd:A[0];
+  el.innerHTML=A.map(a=>`<div class="sh-im${a===h?" hoofd":""}" style="background-image:url('${shImg(a)}')">${shAdm()?`<button type="button" class="st" data-shim="hoofd" data-v="${esc(a)}" title="Hoofdafbeelding" aria-label="Hoofdafbeelding">${a===h?"★":"☆"}</button><button type="button" class="x" data-shim="weg" data-v="${esc(a)}" title="Verwijderen" aria-label="Afbeelding verwijderen">×</button>`:""}${a===h?'<span class="hb">Hoofd</span>':""}</div>`).join("")||'<div class="muted small">Nog geen afbeeldingen.</div>'}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-shim]");if(!t||!SHE)return;e.preventDefault();const v=t.dataset.v;
+  if(t.dataset.shim==="hoofd")SHE.hoofd=v;else{SHE.afbeeldingen=SHE.afbeeldingen.filter(x=>x!==v);SHE.weg.push(v);if(SHE.hoofd===v)SHE.hoofd=SHE.afbeeldingen[0]||null}shImgsTeken()});
+document.addEventListener("change",async e=>{if(e.target.id==="shA"){const b=e.target.parentElement.querySelector("b");if(b)b.textContent=e.target.checked?"zichtbaar":"verborgen";return}
+  if(e.target.id!=="shF"||!SHE)return;const F=[...e.target.files].slice(0,12),st=$("#shSt");let n=0;
+  for(const f of F){if(st)st.textContent=`Opladen ${++n} van ${F.length}…`;
+    try{const img=await new Promise((ok,nok)=>{const u=URL.createObjectURL(f),i=new Image();i.onload=()=>{ok(i);setTimeout(()=>URL.revokeObjectURL(u),1000)};i.onerror=()=>nok(new Error(f.name+": geen geldige afbeelding"));i.src=u});
+      const k=Math.min(1,1400/Math.max(img.naturalWidth,img.naturalHeight)),cv=document.createElement("canvas");cv.width=Math.round(img.naturalWidth*k);cv.height=Math.round(img.naturalHeight*k);const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,cv.height);g.drawImage(img,0,0,cv.width,cv.height);
+      const web=cv.toDataURL("image/jpeg",.86).split(",")[1],id="shop-"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+      const {error}=await SB.from("beelden").upsert({id,data:{mime:"image/jpeg",web,naam:f.name,op:new Date().toISOString()}});if(error)throw error;
+      SHE.afbeeldingen.push(id);if(!SHE.hoofd)SHE.hoofd=id;shImgsTeken()}catch(x){toast(x.message||"Opladen lukte niet.",true)}}
+  if(st)st.textContent="";e.target.value=""});
+async function shItemBewaar(){const g=i=>($("#"+i).value||"").trim(),prijs=Math.round(Number(g("shP").replace(",","."))*100)/100,e=$("#shErr");
+  if(!g("shN")){e.textContent="Vul een naam in.";return}if(!(prijs>0)){e.textContent="Vul een geldige prijs in.";return}
+  const vr=g("shV"),d={naam:g("shN"),prijs,gewicht:Math.max(0,parseInt(g("shG"),10)||0),voorraad:vr===""?"":Math.max(0,parseInt(vr,10)||0),actief:$("#shA").checked,beschrijving:g("shB"),volgorde:SHE.volgorde,afbeeldingen:SHE.afbeeldingen,hoofd:SHE.hoofd&&SHE.afbeeldingen.includes(SHE.hoofd)?SHE.hoofd:(SHE.afbeeldingen[0]||null)};
+  const weg=SHE.weg;closeModal();await write("shop_items",SHE.id,d);for(const x of weg)try{await SB.from("beelden").delete().eq("id",x)}catch(z){}toast("Artikel bewaard.");SHE=null}
+
+/* ---------- instellingen ---------- */
+let SHT=null;
+function shInst(){const c=shCfg(),u=location.origin+"/shop";SHT=c.tarieven.map(t=>({...t}));
+  modal("Instellingen webshop",`<form id="fShI" class="form" onsubmit="return false">
+    <div class="full spi-st"><div class="spi-st-r"><label class="spi-sw" for="shO"><input type="checkbox" id="shO" role="switch"${c.open!==false?" checked":""}><span class="spi-sw-t" aria-hidden="true"></span><b>Webshop open</b></label></div></div>
+    ${fld("shIN","Naam van de webshop",inp("shIN",c.naam))}${fld("shIA","Afhaaladres (kazerne)",inp("shIA",c.afhaaladres))}
+    ${fld("shII","Korte intro bovenaan",`<textarea id="shII" rows="2">${esc(c.intro||"")}</textarea>`,"full")}
+    ${fld("shIX","Extra info in de bevestigingsmail",`<textarea id="shIX" rows="2" placeholder="optioneel">${esc(c.info||"")}</textarea>`,"full")}
+    <div class="full pi-sec" style="margin:0"><h4>Verzendkosten bpost (volgens gewicht)</h4><p class="pi-note" style="margin:0 0 8px">Gewicht van de bestelling = som van de artikelen + verpakking. De eerste schijf waarin het gewicht past, bepaalt de prijs. Een paar patches gaan als brief; zwaardere bestellingen als pakje.</p>
+      <div id="shT"></div><button type="button" class="btn sm" data-sht="nieuw" style="margin-top:8px">${ic("plus")}Schijf toevoegen</button>
+      <div class="form" style="margin-top:12px">${fld("shIV","Gewicht verpakking (g)",`<input id="shIV" inputmode="numeric" value="${esc(c.verpakking)}">`)}${fld("shIG","Gratis verzending vanaf (€)",`<input id="shIG" inputmode="decimal" value="${c.gratisVanaf?esc(String(c.gratisVanaf).replace(".",",")):""}" placeholder="leeg = nooit">`)}</div></div>
+    <div class="err full" id="shIErr"></div></form>
+    <div class="pi-sec ka-qrs"><h4>Link en QR-code van de webshop</h4><div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(u)}" onclick="this.select()"><button type="button" class="btn" data-act="kopieerLink" data-v="${esc(u)}">${ic("copy")}Kopiëren</button></div>
+      <div class="ka-qr"><img alt="QR-code naar de webshop" src="${kaQr(u,8)}" width="148" height="148"><div class="ka-qr-b"><span class="muted small">Voor flyers, affiches of sociale media.</span><button type="button" class="btn sm" data-kaqr="kopie" data-v="${esc(u)}">${ic("copy")}QR kopiëren</button><button type="button" class="btn sm" data-kaqr="png" data-v="${esc(u)}" data-n="QR webshop">${ic("download")}QR downloaden</button></div></div></div>`,
+   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="shIOk">Bewaren</button>`,{wide:true});
+  shTTeken();
+  $("#shIOk").onclick=async()=>{const g=i=>($("#"+i).value||"").trim(),T=SHT.map(t=>({tot:parseInt(t.tot,10)||0,prijs:Math.round(Number(String(t.prijs).replace(",","."))*100)/100,naam:String(t.naam||"").trim()})).filter(t=>t.tot>0&&t.prijs>=0).sort((a,b)=>a.tot-b.tot);
+    if(!T.length){$("#shIErr").textContent="Voeg minstens één verzendschijf toe.";return}
+    const r={...stripId(S.config.get("shop")||{}),open:$("#shO").checked,naam:g("shIN")||SH_DEF.naam,afhaaladres:g("shIA"),intro:g("shII"),info:g("shIX"),tarieven:T,verpakking:Math.max(0,parseInt(g("shIV"),10)||0),gratisVanaf:Math.max(0,Number(g("shIG").replace(",","."))||0)};
+    closeModal();S.config.set("shop",{...r,id:"shop"});await write("config","shop",r);toast("Instellingen webshop bewaard.");render(true)}}
+function shTTeken(){const el=$("#shT");if(!el)return;el.innerHTML=`<div class="sh-t sh-th2"><span>Tot (gram)</span><span>Prijs (€)</span><span>Omschrijving</span><span></span></div>`+SHT.map((t,i)=>`<div class="sh-t"><input data-sht="tot" data-i="${i}" inputmode="numeric" value="${esc(t.tot)}" aria-label="Tot gram"><input data-sht="prijs" data-i="${i}" inputmode="decimal" value="${esc(String(t.prijs).replace(".",","))}" aria-label="Prijs"><input data-sht="naam" data-i="${i}" value="${esc(t.naam||"")}" placeholder="bv. Pakje tot 2 kg" aria-label="Omschrijving"><button type="button" class="fu-x" data-sht="weg" data-i="${i}" aria-label="Schijf verwijderen">×</button></div>`).join("")}
+document.addEventListener("input",e=>{const t=e.target;if(!t.matches||!t.matches("#shT [data-sht]"))return;SHT[+t.dataset.i][t.dataset.sht]=t.value});
+document.addEventListener("click",e=>{const t=e.target.closest("[data-sht]");if(!t||t.tagName==="INPUT")return;e.preventDefault();if(t.dataset.sht==="nieuw")SHT.push({tot:"",prijs:"",naam:""});else if(t.dataset.sht==="weg")SHT.splice(+t.dataset.i,1);shTTeken()});
+
+/* ---------- acties ---------- */
+document.addEventListener("input",e=>{if(e.target.matches("[data-shq]")){SH.q=e.target.value;const p=e.target.selectionStart;renderBody();const i=$("#shQ");if(i){i.focus();try{i.setSelectionRange(p,p)}catch(x){}}}});
+document.addEventListener("click",async e=>{const t=e.target.closest("[data-sh]");if(!t)return;const a=t.dataset.sh;e.preventDefault();
+  if(a==="tab"){SH.tab=t.dataset.v;renderBody()}else if(a==="filter"){SH.filter=t.dataset.v;renderBody()}
+  else if(a==="inst")shInst();else if(a==="nieuwItem")shItem(null);else if(a==="item")shItem(t.dataset.id);
+  else if(a==="status"){const id=t.dataset.id,st=t.dataset.v,go=async()=>{t.disabled=true;try{const j=await api("/api/mail?f=shop",{method:"POST",body:JSON.stringify({actie:"status",id,status:st,mail:!!t.dataset.mail})});closeModal();toast((SH_ST[st]||[0,st])[1]+(j.gemaild?" · klant gemaild":"")+".")}catch(x){toast(x.message,true);t.disabled=false}};
+    if(st==="geannuleerd")confirmBox("Deze bestelling annuleren? Een eventuele betaling stort je zelf terug.","Annuleren",go);else go()}});
+
 /* Label "Nieuw" bij inschrijvingen van vandaag (Belgische tijd); de volgende dag verdwijnt het vanzelf.
    Werkt op alle lijsten met rijen [data-act=bkToon|kfToon|toonLid|toonSponsor] en de fuifbestellingen [data-fu=toon]. */
-const NW_MAP={bkToon:"banket",kfToon:"kinderfeest",toonLid:"leden",toonSponsor:"sponsors"};
+const NW_MAP={bkToon:"banket",kfToon:"kinderfeest",toonLid:"leden",toonSponsor:"sponsors",shToon:"shop_orders"};
 const nwDag=d=>new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Brussels",year:"numeric",month:"2-digit",day:"2-digit"}).format(d);
 function nwIsNieuw(r){const t=r&&(r.aangemeld||r.ingeschreven);if(!t)return false;const d=new Date(t);return !isNaN(d)&&nwDag(d)===nwDag(new Date())}
 function nwLabels(){const root=$("#main");if(!root)return;
