@@ -19,7 +19,7 @@ async function bewaar(sb, tabel, id, data) {
 
 function omschrijving(tabel, d, jaar) {
   if (tabel === "facturen") return `Factuur ${d.nr}`;
-  if (tabel === "tickets") return `${d.aantal} ${Number(d.aantal) === 1 ? "ticket" : "tickets"} fuif ${jaar} ${d.voornaam || ""} ${d.naam || ""}`.replace(/\s+/g, " ").trim().slice(0, 140);
+  if (tabel === "tickets") return `Fuif ${jaar}: ${[d.aantal ? d.aantal + (Number(d.aantal) === 1 ? " ticket" : " tickets") : "", (d.drank || []).reduce((n, k) => n + k.aantal, 0) ? (d.drank || []).reduce((n, k) => n + k.aantal, 0) + " drankkaart(en)" : ""].filter(Boolean).join(" + ")} ${d.voornaam || ""} ${d.naam || ""}`.replace(/\s+/g, " ").trim().slice(0, 140);
   if (tabel === "sponsors") return `Sponsoring ${jaar} ${d.bedrijf || ""}`.trim().slice(0, 140);
   return tabel === "banket" ? `${d.naam} Banket ${jaar}` : `${d.naam} ${d.voornaam} Lidgeld ${jaar}`;
 }

@@ -20,7 +20,7 @@ import { meldPush } from "./push.js";
    Een ticket-QR bevat de link <site>/ticket?c=<code>; de scanner in de app leest de code uit die link.
    Punten: kies je bij de aankoop een lid, dan krijgt dat lid per betaald ticket een "kaart" in het puntensysteem (jaarleden.kaarten). */
 
-export const FUIF_DEF = { naam: "In Vier en Vlam", datum: "", deuren: "", locatie: "", prijs: 5, open: true, max: 0, perBestelling: 10, info: "" };
+export const FUIF_DEF = { naam: "In Vier en Vlam", datum: "", deuren: "", locatie: "", prijs: 5, open: true, max: 0, perBestelling: 10, info: "", drankAan: true, drank: [20, 50], drankKorting: 10 };
 const CODE_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const nieuweCode = () => { const b = crypto.randomBytes(12); let s = ""; for (const x of b) s += CODE_ABC[x % 32]; return s; };
 const CODE_RE = /^[A-Z2-9]{12}$/;
@@ -31,6 +31,9 @@ export async function fuifCfg(sb) {
   const c = { ...FUIF_DEF, ...(await configDoc(sb, "fuif")) }, A = await algemeen(sb);
   c.prijs = Math.max(0, Number(c.prijs) || 0); c.max = Math.max(0, Number(c.max) || 0); c.perBestelling = Math.min(50, Math.max(1, Number(c.perBestelling) || 10));
   c.jaar = Number(String(c.datum || "").slice(0, 4)) || A.jaar;
+  c.drankKorting = Math.min(90, Math.max(0, Number(c.drankKorting) || 0));
+  c.dranken = c.drankAan === false ? [] : [...new Set((Array.isArray(c.drank) ? c.drank : []).map(Number).filter(v => v > 0 && v <= 500))].sort((a, b) => a - b)
+    .map(v => ({ id: "d" + String(v).replace(/\D/g, ""), waarde: v, prijs: Math.round(v * (100 - c.drankKorting)) / 100 }));
   return { c, A };
 }
 async function bestellingen(sb, jaar) {
@@ -50,6 +53,8 @@ async function zoekTicket(sb, code) {
 const ticketUrl = code => `${site()}/ticket?c=${code}`;
 const bestelUrl = (id, t) => `${site()}/ticket?b=${encodeURIComponent(id)}&t=${encodeURIComponent(t)}`;
 const qrUrl = code => `${site()}/api/fuif?qr=${code}`;
+const isDrank = t => t && t.soort === "drank";
+const pub = (t, d) => ({ code: t.code, nr: t.nr, van: isDrank(t) ? (d.tickets || []).filter(x => isDrank(x) && x.waarde === t.waarde).length : (d.tickets || []).filter(x => !isDrank(x)).length, soort: t.soort || "ticket", waarde: t.waarde || null, gescand: t.gescand ? t.gescand.op : null });
 const wanneer = c => [c.datum ? lang(c.datum) : "", c.deuren ? "deuren " + c.deuren : ""].filter(Boolean).join(", ");
 
 /* ---------- openbaar: /api/fuif ---------- */
@@ -68,14 +73,14 @@ export default async function fuifPubliek(req, res) {
       await rateLimit(sb, req, "ticket", 120, 600, httpErr);
       const code = codeUit(q.c); const r = code && await zoekTicket(sb, code); if (!r) throw httpErr(404, "Dit ticket bestaat niet.");
       const t = r.data.tickets.find(x => x.code === code), d = r.data;
-      return res.status(200).json({ ev, tickets: [{ code, nr: t.nr, van: d.tickets.length, gescand: t.gescand ? t.gescand.op : null }], naam: [d.voornaam, d.naam].filter(Boolean).join(" "), geldig: d.status === "betaald", status: d.status });
+      return res.status(200).json({ ev, tickets: [pub(t, d)], naam: [d.voornaam, d.naam].filter(Boolean).join(" "), geldig: d.status === "betaald", status: d.status });
     }
     if (req.method === "GET" && q.b) {
       await rateLimit(sb, req, "ticket", 120, 600, httpErr);
       const { data: r } = await sb.from("tickets").select("id,data").eq("id", String(q.b)).maybeSingle();
       if (!r || !r.data.betaalToken || r.data.betaalToken !== String(q.t || "")) throw httpErr(404, "Deze tickets werden niet gevonden.");
       const d = r.data;
-      return res.status(200).json({ ev, tickets: (d.tickets || []).map(t => ({ code: t.code, nr: t.nr, van: d.tickets.length, gescand: t.gescand ? t.gescand.op : null })), naam: [d.voornaam, d.naam].filter(Boolean).join(" "), geldig: d.status === "betaald", status: d.status, aantal: d.aantal, bedrag: d.bedrag });
+      return res.status(200).json({ ev, tickets: (d.tickets || []).map(t => pub(t, d)), drank: d.drank || [], naam: [d.voornaam, d.naam].filter(Boolean).join(" "), geldig: d.status === "betaald", status: d.status, aantal: d.aantal, bedrag: d.bedrag });
     }
     if (req.method === "GET" && q.zoek != null) {
       await rateLimit(sb, req, "fuifzoek", 120, 600, httpErr);
@@ -84,7 +89,7 @@ export default async function fuifPubliek(req, res) {
     if (req.method === "GET") {
       const n = c.max ? await bezet(sb, c.jaar) : 0, vrij = c.max ? Math.max(0, c.max - n) : null;
       const voorbij = c.datum && vandaagISO() > c.datum;
-      return res.status(200).json({ ...ev, prijs: c.prijs, open: c.open !== false && !!c.datum && !voorbij && (vrij == null || vrij > 0), gesloten: c.open === false || !c.datum ? "manueel" : voorbij ? "voorbij" : vrij === 0 ? "uitverkocht" : null, vrij, perBestelling: c.perBestelling, online: onlineConfigured(), vereniging: A.vereniging });
+      return res.status(200).json({ ...ev, prijs: c.prijs, open: c.open !== false && !!c.datum && !voorbij && (vrij == null || vrij > 0), gesloten: c.open === false || !c.datum ? "manueel" : voorbij ? "voorbij" : vrij === 0 ? "uitverkocht" : null, vrij, perBestelling: c.perBestelling, dranken: c.dranken, drankKorting: c.drankKorting, online: onlineConfigured(), vereniging: A.vereniging });
     }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
 
@@ -100,9 +105,13 @@ export default async function fuifPubliek(req, res) {
     if (!d.voornaam || !d.naam) throw httpErr(400, "Vul je voornaam en naam in.");
     if (!adresVolledig(d.adres)) throw httpErr(400, ADRES_FOUT);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)) throw httpErr(400, "Dit e-mailadres lijkt niet te kloppen. Daar sturen we je tickets naartoe.");
-    const aantal = Math.floor(Number(b.aantal));
-    if (!(aantal >= 1 && aantal <= c.perBestelling)) throw httpErr(400, `Kies tussen 1 en ${c.perBestelling} tickets.`);
-    if (c.max) { const vrij = c.max - await bezet(sb, c.jaar); if (vrij <= 0) throw httpErr(409, "De tickets zijn uitverkocht."); if (aantal > vrij) throw httpErr(409, `Er ${vrij === 1 ? "is" : "zijn"} nog maar ${vrij} ${vrij === 1 ? "ticket" : "tickets"} beschikbaar.`); }
+    const aantal = Math.floor(Number(b.aantal)) || 0;
+    if (!(aantal >= 0 && aantal <= c.perBestelling)) throw httpErr(400, `Je kan maximaal ${c.perBestelling} tickets per keer bestellen.`);
+    // drankkaarten in voorverkoop (met korting): b.drank = {d20: 2, d50: 1}
+    const drank = c.dranken.map(k => ({ id: k.id, waarde: k.waarde, prijs: k.prijs, aantal: Math.max(0, Math.min(20, Math.floor(Number((b.drank || {})[k.id])) || 0)) })).filter(k => k.aantal > 0);
+    const nDrank = drank.reduce((n, k) => n + k.aantal, 0);
+    if (!aantal && !nDrank) throw httpErr(400, "Kies minstens één ticket of drankkaart.");
+    if (c.max && aantal) { const vrij = c.max - await bezet(sb, c.jaar); if (vrij <= 0) throw httpErr(409, "De tickets zijn uitverkocht."); if (aantal > vrij) throw httpErr(409, `Er ${vrij === 1 ? "is" : "zijn"} nog maar ${vrij} ${vrij === 1 ? "ticket" : "tickets"} beschikbaar.`); }
     // via welk lid (optioneel): gekozen uit de lijst (id) of vrij ingetypt (dan zoeken we het lid op naam)
     let via = null; const viaTekst = clean(b.viaTekst || b.via, 100), viaId = clean(b.viaId, 80);
     if (viaId || viaTekst) {
@@ -112,14 +121,15 @@ export default async function fuifPubliek(req, res) {
       via = { tekst: viaTekst || (lid ? lid.naam : ""), lidId: lid ? lid.id : null, naam: lid ? lid.naam : null };
     }
     const id = "t" + c.jaar + "-" + Date.now().toString(36) + crypto.randomBytes(3).toString("hex"), token = crypto.randomBytes(18).toString("base64url");
-    const bedrag = Math.round(aantal * c.prijs * 100) / 100;
-    const row = { id, data: { jaar: c.jaar, ...d, aantal, prijs: c.prijs, bedrag, via, bron: "formulier", aangemeld: new Date().toISOString(), betaalToken: token, status: "wacht", tickets: [] } };
+    const bedrag = Math.round((aantal * c.prijs + drank.reduce((n, k) => n + k.aantal * k.prijs, 0)) * 100) / 100;
+    const korting = Math.round(drank.reduce((n, k) => n + k.aantal * (k.waarde - k.prijs), 0) * 100) / 100;
+    const row = { id, data: { jaar: c.jaar, ...d, aantal, prijs: c.prijs, drank, korting, bedrag, via, bron: "formulier", aangemeld: new Date().toISOString(), betaalToken: token, status: "wacht", tickets: [] } };
     const { error } = await sb.from("tickets").insert(row); if (error) throw error;
     const { startBetaling } = await import("./betaal.js");
     let bt;
     try { bt = await startBetaling(sb, req, "tickets", row, { bedrag, jaar: c.jaar, terug: "/fuif?betaling=terug" }); }
     catch (e) { console.error("fuif betaling", e); await sb.from("tickets").delete().eq("id", id); throw httpErr(502, "De betaling kon niet gestart worden. Probeer het zo meteen opnieuw."); }
-    res.status(200).json({ ok: true, id, token, bedrag, aantal, voornaam: d.voornaam, online: { t: "tickets", id, token, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp, provider: bt.provider || null } });
+    res.status(200).json({ ok: true, id, token, bedrag, aantal, drank, korting, voornaam: d.voornaam, online: { t: "tickets", id, token, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp, provider: bt.provider || null } });
   } catch (e) { sendError(res, e); }
 }
 
@@ -135,39 +145,48 @@ async function puntenBij(sb, lidId, jaar, delta) {
 export async function fuifBetaald(sb, id) {
   const { data: r } = await sb.from("tickets").select("id,data").eq("id", id).maybeSingle();
   if (!r || r.data.status === "betaald" || r.data.status === "geannuleerd") return;
-  const d = r.data, tickets = d.tickets && d.tickets.length ? d.tickets : Array.from({ length: Number(d.aantal) || 1 }, (_, i) => ({ code: nieuweCode(), nr: i + 1, gescand: null }));
-  const punten = d.via && d.via.lidId ? { lidId: d.via.lidId, jaar: d.jaar, aantal: tickets.length } : null;
+  const d = r.data;
+  let tickets = d.tickets && d.tickets.length ? d.tickets : null;
+  if (!tickets) {
+    tickets = Array.from({ length: Number(d.aantal) || 0 }, (_, i) => ({ code: nieuweCode(), nr: i + 1, soort: "ticket", gescand: null }));
+    for (const k of d.drank || []) for (let i = 0; i < k.aantal; i++) tickets.push({ code: nieuweCode(), nr: i + 1, soort: "drank", waarde: k.waarde, gescand: null });
+  }
+  const nT = tickets.filter(t => !isDrank(t)).length, nD = tickets.length - nT;
+  const punten = d.via && d.via.lidId && nT ? { lidId: d.via.lidId, jaar: d.jaar, aantal: nT } : null;
   const nieuw = { ...d, status: "betaald", betaaldOp: (d.betaling && d.betaling.betaaldOp) || new Date().toISOString(), tickets, ...(punten ? { punten } : {}) };
   // enkel als de bestelling nog op "wacht" (of "verlopen") staat: zo krijgt niemand twee keer tickets of punten
   const { data: upd, error } = await sb.from("tickets").update({ data: nieuw }).eq("id", id).in("data->>status", ["wacht", "verlopen"]).select("id");
   if (error) throw error; if (!upd || !upd.length) return;
   try { if (punten) await puntenBij(sb, punten.lidId, punten.jaar, punten.aantal); } catch (e) { console.error("fuif punten", e); }
   try { await stuurTickets(sb, { id, data: nieuw }); } catch (e) { console.error("fuif mail", e); }
-  try { await meldPush(sb, "iedereen", { titel: "Tickets verkocht", tekst: `${nieuw.voornaam} ${nieuw.naam}: ${tickets.length} ${tickets.length === 1 ? "ticket" : "tickets"} (${eur(nieuw.bedrag)})${punten ? " via " + (d.via.naam || "") : ""}`, url: "/#fuif", tag: "fuif-" + id }); } catch (e) { console.error("fuif push", e); }
+  const wat = [nT ? `${nT} ${nT === 1 ? "ticket" : "tickets"}` : "", nD ? `${nD} ${nD === 1 ? "drankkaart" : "drankkaarten"}` : ""].filter(Boolean).join(" + ");
+  try { await meldPush(sb, "iedereen", { titel: "Fuif: bestelling betaald", tekst: `${nieuw.voornaam} ${nieuw.naam}: ${wat} (${eur(nieuw.bedrag)})${punten ? " via " + (d.via.naam || "") : ""}`, url: "/#fuif", tag: "fuif-" + id }); } catch (e) { console.error("fuif push", e); }
 }
 
 /* ---------- ticket-PDF en mail ---------- */
+const naamVan = t => isDrank(t) ? `Drankkaart ${geld(t.waarde).replace(",00", "")}` : "Ticket";
 export function ticketPdf(d, c) {
-  const pdf = new Pdf(), L = 60, R = 535, W = R - L, ROOD = "#b30000", GRIJS = "#666666";
+  const pdf = new Pdf(), L = 60, R = 535, ROOD = "#b30000", GRIJS = "#666666", GOUD = "#b07a12";
+  const nT = d.tickets.filter(t => !isDrank(t)).length;
   d.tickets.forEach((t, i) => {
     if (i) pdf.nieuwePagina();
-    pdf.vlak(0, 0, 595, 8, ROOD);
+    const dr = isDrank(t), kl = dr ? GOUD : ROOD, van = dr ? d.tickets.filter(x => isDrank(x) && x.waarde === t.waarde).length : nT;
+    pdf.vlak(0, 0, 595, 8, kl);
     pdf.beeld(L, 40, 54, 54 * LOGO.h / LOGO.w, LOGO);
-    pdf.tekst(L + 70, 48, "TICKET", { size: 10, bold: true, kleur: ROOD });
-    pdf.tekst(L + 70, 64, c.naam, { size: 24, bold: true });
-    pdf.tekst(L + 70, 94, [c.datum ? lang(c.datum) : "", c.deuren ? "deuren " + c.deuren : ""].filter(Boolean).join("  ·  "), { size: 11 });
+    pdf.tekst(L + 70, 48, dr ? "DRANKKAART · VOORVERKOOP" : "TICKET", { size: 10, bold: true, kleur: kl });
+    pdf.tekst(L + 70, 64, dr ? `Drankkaart ${geld(t.waarde).replace(",00", "")}` : c.naam, { size: 24, bold: true });
+    pdf.tekst(L + 70, 94, dr ? `${c.naam}  ·  ${c.datum ? lang(c.datum) : ""}` : [c.datum ? lang(c.datum) : "", c.deuren ? "deuren " + c.deuren : ""].filter(Boolean).join("  ·  "), { size: 11 });
     if (c.locatie) pdf.tekst(L + 70, 110, c.locatie, { size: 11, kleur: GRIJS });
     const q = qrMatrix(ticketUrl(t.code)), maat = 300, qx = (595 - maat) / 2, qy = 170;
-    pdf.vlak(qx - 16, qy - 16, maat + 32, maat + 32, "#ffffff"); pdf.kader(qx - 16, qy - 16, maat + 32, maat + 32, "#dddddd", 1);
+    pdf.vlak(qx - 16, qy - 16, maat + 32, maat + 32, "#ffffff"); pdf.kader(qx - 16, qy - 16, maat + 32, maat + 32, dr ? GOUD : "#dddddd", 1);
     pdf.qr(qx, qy, maat, q.n, q.donker);
     pdf.tekst(297.5, qy + maat + 34, t.code.replace(/(.{4})(?=.)/g, "$1 "), { size: 16, bold: true, align: "center" });
-    pdf.tekst(297.5, qy + maat + 56, `Ticket ${t.nr} van ${d.tickets.length}`, { size: 11, kleur: GRIJS, align: "center" });
+    pdf.tekst(297.5, qy + maat + 56, `${naamVan(t)} ${t.nr} van ${van}`, { size: 11, kleur: GRIJS, align: "center" });
     let y = qy + maat + 100;
     pdf.lijn(L, y, R, y, "#dddddd"); y += 18;
-    for (const [a, v] of [["Op naam van", [d.voornaam, d.naam].filter(Boolean).join(" ")], ["Bestelling", `${d.aantal} × ${geld(d.prijs)} = ${geld(d.bedrag)} (betaald)`]]) { pdf.tekst(L, y, a, { size: 9, kleur: GRIJS }); pdf.tekst(L + 110, y, v, { size: 10.5 }); y += 18; }
-    y += 10;
-    pdf.tekst(L, y, "Toon deze QR-code aan de kassa, op je gsm of afgedrukt. Elke code is één keer geldig.", { size: 9.5, kleur: GRIJS });
-    pdf.vlak(0, 834, 595, 8, ROOD);
+    pdf.tekst(L, y, "Op naam van", { size: 9, kleur: GRIJS }); pdf.tekst(L + 110, y, [d.voornaam, d.naam].filter(Boolean).join(" "), { size: 10.5 }); y += 28;
+    pdf.tekst(L, y, dr ? "Wissel deze QR-code aan de kassa om tegen je drankkaart. Elke code is één keer geldig." : "Toon deze QR-code aan de kassa, op je gsm of afgedrukt. Elke code is één keer geldig.", { size: 9.5, kleur: GRIJS });
+    pdf.vlak(0, 834, 595, 8, kl);
   });
   return Buffer.from(pdf.bytes({ titel: `Tickets ${c.naam}`, auteur: "VBHA" }));
 }
@@ -175,20 +194,27 @@ export async function stuurTickets(sb, row, aan) {
   if (!smtpConfigured()) return false;
   const d = row.data, { c, A } = await fuifCfg(sb), naar = String(aan || d.email || "").trim();
   if (!naar || !(d.tickets || []).length) return false;
-  const n = d.tickets.length;
+  const T = d.tickets.filter(t => !isDrank(t)), D = d.tickets.filter(isDrank), n = T.length;
+  const wat = [n ? (n === 1 ? "je ticket" : `je ${n} tickets`) : "", D.length ? (D.length === 1 ? "je drankkaart" : `je ${D.length} drankkaarten`) : ""].filter(Boolean).join(" en ");
+  const blok = (t, kop, kl) => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 16px;border:1px solid ${kl === "#b30000" ? "#e3e3e3" : "#e8d3a6"};border-radius:8px"><tr><td align="center" style="padding:18px 12px">
+      <div style="font-size:12px;letter-spacing:.12em;color:${kl};font-weight:bold;margin:0 0 8px">${kop}</div>
+      <img src="${qrUrl(t.code)}" alt="QR-code ${esc(kop.toLowerCase())}" width="220" height="220" style="display:block;width:220px;height:220px;border:0;margin:0 auto">
+      <div style="font-family:Menlo,Consolas,monospace;font-size:16px;font-weight:bold;letter-spacing:.08em;margin-top:8px">${t.code.replace(/(.{4})(?=.)/g, "$1 ")}</div></td></tr></table>`;
   const html = p(`Beste ${esc(d.voornaam || "")},`.replace(" ,", ","))
-    + p(`Bedankt voor je bestelling! Je betaling van <b>${eur(d.bedrag)}</b> is goed ontvangen. Hieronder ${n === 1 ? "vind je je ticket" : `vind je je ${n} tickets`} voor <b>${esc(c.naam)}</b>.`)
-    + kaderBlok(esc(c.naam), tabel([rij("Wanneer", esc(wanneer(c))), rij("Waar", esc(c.locatie || "")), rij("Tickets", `${n} × ${eur(d.prijs)}`), rij("Op naam van", esc([d.voornaam, d.naam].filter(Boolean).join(" ")))]))
-    + p(`Toon ${n === 1 ? "de QR-code" : "de QR-codes"} aan de kassa, op je gsm of afgedrukt. Elke code is één keer geldig${n > 1 ? ", dus geef je vrienden elk hun eigen ticket" : ""}. De tickets zitten ook als PDF in bijlage.`)
-    + d.tickets.map(t => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 16px;border:1px solid #e3e3e3;border-radius:8px"><tr><td align="center" style="padding:18px 12px">
-      <div style="font-size:12px;letter-spacing:.12em;color:#b30000;font-weight:bold;margin:0 0 8px">TICKET ${t.nr} VAN ${n}</div>
-      <img src="${qrUrl(t.code)}" alt="QR-code ticket ${t.nr}" width="220" height="220" style="display:block;width:220px;height:220px;border:0;margin:0 auto">
-      <div style="font-family:Menlo,Consolas,monospace;font-size:16px;font-weight:bold;letter-spacing:.08em;margin-top:8px">${t.code.replace(/(.{4})(?=.)/g, "$1 ")}</div></td></tr></table>`).join("")
-    + knop(n === 1 ? "Ticket online bekijken" : "Tickets online bekijken", bestelUrl(row.id, d.betaalToken))
-    + p("Gekochte tickets worden niet terugbetaald en kunnen niet geannuleerd worden.", "margin:0 0 15px;font-size:13.5px;color:#666666")
+    + p(`Bedankt voor je bestelling! Je betaling van <b>${eur(d.bedrag)}</b> is goed ontvangen. Hieronder vind je ${wat} voor <b>${esc(c.naam)}</b>.`)
+    + kaderBlok(esc(c.naam), tabel([rij("Wanneer", esc(wanneer(c))), rij("Waar", esc(c.locatie || "")), n ? rij("Tickets", `${n} × ${eur(d.prijs)}`) : "",
+      ...(d.drank || []).map(k => rij(`Drankkaart ${eur(k.waarde)}`, `${k.aantal} × ${eur(k.prijs)} <span style="color:#1a7f45">(voorverkoop, je bespaart ${eur((k.waarde - k.prijs) * k.aantal)})</span>`)),
+      rij("Op naam van", esc([d.voornaam, d.naam].filter(Boolean).join(" ")))]))
+    + (d.korting > 0 ? p(`<b style="color:#1a7f45">Dankzij de voorverkoop bespaar je ${eur(d.korting)} op je drankkaarten.</b>`) : "")
+    + p(`Toon de QR-codes aan de kassa, op je gsm of afgedrukt. Elke code is één keer geldig${n > 1 ? ", dus geef je vrienden elk hun eigen ticket" : ""}.${D.length ? " Je drankkaarten wissel je aan de kassa om met de gele QR-codes." : ""} Alles zit ook als PDF in bijlage.`)
+    + T.map(t => blok(t, `TICKET ${t.nr} VAN ${n}`, "#b30000")).join("")
+    + D.map(t => blok(t, `DRANKKAART ${eur(t.waarde).replace(",00", "")} · ${t.nr} VAN ${D.filter(x => x.waarde === t.waarde).length}`, "#b07a12")).join("")
+    + knop("Online bekijken", bestelUrl(row.id, d.betaalToken))
+    + p("Gekochte tickets en drankkaarten worden niet terugbetaald en kunnen niet geannuleerd worden.", "margin:0 0 15px;font-size:13.5px;color:#666666")
     + (c.info ? p(esc(c.info), "margin:0 0 15px;font-size:13.5px;color:#666666") : "")
     + p("Tot op de fuif!");
-  const [r] = await verstuur([{ aan: naar, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" "), onderwerp: `Je ${n === 1 ? "ticket" : "tickets"} voor ${c.naam}`, html: huisstijl(html, A.vereniging), van: afzender(), bijlagen: [{ naam: `Tickets ${c.naam}.pdf`, type: "application/pdf", data: ticketPdf(d, c) }] }]);
+  const ond = n ? `Je ${n === 1 ? "ticket" : "tickets"} voor ${c.naam}` : `Je ${D.length === 1 ? "drankkaart" : "drankkaarten"} voor ${c.naam}`;
+  const [r] = await verstuur([{ aan: naar, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" "), onderwerp: ond, html: huisstijl(html, A.vereniging), van: afzender(), bijlagen: [{ naam: `Tickets ${c.naam}.pdf`, type: "application/pdf", data: ticketPdf(d, c) }] }]);
   if (r && r.ok) await sb.from("tickets").update({ data: { ...d, mail: { op: new Date().toISOString(), aan: naar } } }).eq("id", row.id);
   return !!(r && r.ok);
 }
@@ -221,16 +247,16 @@ export async function fuifApi(req, res) {
     const code = codeUit(b.code); if (!code) return res.status(200).json({ ok: false, reden: "Geen geldige ticketcode." });
     const r = await zoekTicket(sb, code); if (!r) return res.status(200).json({ ok: false, reden: "Onbekend ticket. Dit is geen ticket van onze fuif." });
     const d = r.data, t = d.tickets.find(x => x.code === code), { c } = await fuifCfg(sb);
-    const info = { code, nr: t.nr, van: d.tickets.length, naam: [d.voornaam, d.naam].filter(Boolean).join(" "), bestelling: r.id, jaar: d.jaar };
+    const P = pub(t, d), info = { code, nr: t.nr, van: P.van, soort: P.soort, waarde: P.waarde, naam: [d.voornaam, d.naam].filter(Boolean).join(" "), bestelling: r.id, jaar: d.jaar };
     if (d.status !== "betaald") return res.status(200).json({ ok: false, reden: d.status === "geannuleerd" ? "Dit ticket werd geannuleerd." : "Dit ticket is niet betaald.", ...info });
     if (Number(d.jaar) !== Number(c.jaar)) return res.status(200).json({ ok: false, reden: `Dit ticket is voor de fuif van ${d.jaar}.`, ...info });
-    if (t.gescand) return res.status(200).json({ ok: false, al: true, reden: "Dit ticket werd al gescand.", op: t.gescand.op, door: t.gescand.door, ...info });
+    if (t.gescand) return res.status(200).json({ ok: false, al: true, reden: isDrank(t) ? "Deze drankkaart werd al afgehaald." : "Dit ticket werd al gescand.", op: t.gescand.op, door: t.gescand.door, ...info });
     if (actie === "bekijk") return res.status(200).json({ ok: true, bekijk: true, ...info });
     const op = new Date().toISOString(), tickets = d.tickets.map(x => x.code === code ? { ...x, gescand: { op, door: user.email || "" } } : x);
     // alleen als het ticket intussen niet door een andere kassa gescand werd
     const { data: upd } = await sb.from("tickets").update({ data: { ...d, tickets } }).eq("id", r.id).not("data", "cs", JSON.stringify({ tickets: [{ code, gescand: {} }] })).select("id");
     if (!upd || !upd.length) return res.status(200).json({ ok: false, al: true, reden: "Dit ticket werd net al gescand.", ...info });
-    const bin = tickets.filter(x => x.gescand).length;
+    const bin = tickets.filter(x => x.gescand && !isDrank(x)).length;
     return res.status(200).json({ ok: true, op, binnen: bin, ...info });
   }
   const { sb, user, rol } = await requireUser(req, { write: true });
@@ -251,7 +277,7 @@ export async function fuifApi(req, res) {
     const lidId = clean(b.lidId, 80) || null;
     if (d.punten) await puntenBij(sb, d.punten.lidId, d.punten.jaar, -d.punten.aantal);
     let naam = null; if (lidId) { const { data: l } = await sb.from("leden").select("data").eq("id", lidId).maybeSingle(); if (!l) throw httpErr(404, "Lid niet gevonden."); naam = `${l.data.naam || ""} ${l.data.voornaam || ""}`.trim(); }
-    const punten = lidId && d.status === "betaald" ? { lidId, jaar: d.jaar, aantal: (d.tickets || []).length } : null;
+    const nT = (d.tickets || []).filter(x => !isDrank(x)).length, punten = lidId && d.status === "betaald" && nT ? { lidId, jaar: d.jaar, aantal: nT } : null;
     if (punten) await puntenBij(sb, punten.lidId, punten.jaar, punten.aantal);
     await sb.from("tickets").update({ data: { ...d, via: lidId ? { ...(d.via || {}), lidId, naam, tekst: (d.via && d.via.tekst) || naam } : (d.via ? { ...d.via, lidId: null, naam: null } : null), punten } }).eq("id", r.id);
     return res.status(200).json({ ok: true });
