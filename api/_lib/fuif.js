@@ -185,6 +185,7 @@ export async function stuurTickets(sb, row, aan) {
       <img src="${qrUrl(t.code)}" alt="QR-code ticket ${t.nr}" width="220" height="220" style="display:block;width:220px;height:220px;border:0;margin:0 auto">
       <div style="font-family:Menlo,Consolas,monospace;font-size:16px;font-weight:bold;letter-spacing:.08em;margin-top:8px">${t.code.replace(/(.{4})(?=.)/g, "$1 ")}</div></td></tr></table>`).join("")
     + knop(n === 1 ? "Ticket online bekijken" : "Tickets online bekijken", bestelUrl(row.id, d.betaalToken))
+    + p("Gekochte tickets worden niet terugbetaald en kunnen niet geannuleerd worden.", "margin:0 0 15px;font-size:13.5px;color:#666666")
     + (c.info ? p(esc(c.info), "margin:0 0 15px;font-size:13.5px;color:#666666") : "")
     + p("Tot op de fuif!");
   const [r] = await verstuur([{ aan: naar, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" "), onderwerp: `Je ${n === 1 ? "ticket" : "tickets"} voor ${c.naam}`, html: huisstijl(html, A.vereniging), van: afzender(), bijlagen: [{ naam: `Tickets ${c.naam}.pdf`, type: "application/pdf", data: ticketPdf(d, c) }] }]);
@@ -232,14 +233,15 @@ export async function fuifApi(req, res) {
     const bin = tickets.filter(x => x.gescand).length;
     return res.status(200).json({ ok: true, op, binnen: bin, ...info });
   }
-  const { sb, user } = await requireUser(req, { write: true });
+  const { sb, user, rol } = await requireUser(req, { write: true });
   const { data: r } = await sb.from("tickets").select("id,data").eq("id", String(b.id || "")).maybeSingle();
   if (!r) throw httpErr(404, "Bestelling niet gevonden.");
   const d = r.data;
   if (actie === "mail") { if (d.status !== "betaald") throw httpErr(400, "Deze bestelling is niet betaald."); const ok = await stuurTickets(sb, r, clean(b.aan, 120) || d.email); if (!ok) throw httpErr(502, "Versturen lukte niet."); return res.status(200).json({ ok: true }); }
   if (actie === "pdf") { if (d.status !== "betaald") throw httpErr(400, "Deze bestelling is niet betaald."); const { c } = await fuifCfg(sb); return res.status(200).json({ ok: true, naam: `Tickets ${c.naam} ${d.voornaam} ${d.naam}.pdf`, pdf: ticketPdf(d, c).toString("base64") }); }
   if (actie === "ontscan") { const code = codeUit(b.code); const tickets = d.tickets.map(x => x.code === code ? { ...x, gescand: null } : x); await sb.from("tickets").update({ data: { ...d, tickets } }).eq("id", r.id); return res.status(200).json({ ok: true }); }
-  if (actie === "annuleer") {
+  if (actie === "annuleer") { // gekochte tickets zijn niet annuleerbaar; enkel een administrator kan dit uitzonderlijk
+    if (!["admin", "bewerker"].includes(rol)) throw httpErr(403, "Enkel een administrator kan tickets annuleren.");
     if (d.status === "geannuleerd") return res.status(200).json({ ok: true });
     if (d.punten) await puntenBij(sb, d.punten.lidId, d.punten.jaar, -d.punten.aantal);
     await sb.from("tickets").update({ data: { ...d, status: "geannuleerd", geannuleerd: { op: new Date().toISOString(), door: user.email || "" }, punten: null } }).eq("id", r.id);
