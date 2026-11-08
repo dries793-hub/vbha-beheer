@@ -4502,6 +4502,9 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-kaqr
   if(t.dataset.kaqr==="png"){const a=document.createElement("a");a.href=c.toDataURL("image/png");a.download=(t.dataset.n||"QR")+".png";document.body.append(a);a.click();a.remove();return}
   try{const blob=await new Promise(ok=>c.toBlob(ok,"image/png"));await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);toast("QR-code gekopieerd. Plak ze in je document of bericht.")}
   catch(x){toast("Kopiëren lukt niet in deze browser. Gebruik QR downloaden.",true)}});
+// niet zoomen op gsm (pinch en dubbeltik), behalve op de kaart
+document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
+document.addEventListener("touchmove",e=>{if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false});
 
 /* ============ Bankimport: overzichtelijkere koppeling + dashboardmelding bij (bijna) verlopen toestemming ============ */
 const bkIban=s=>String(s||"").replace(/\s+/g,"").replace(/(.{4})/g,"$1 ").trim();
