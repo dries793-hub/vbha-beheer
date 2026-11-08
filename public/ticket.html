@@ -163,6 +163,7 @@ html,body{overflow-x:hidden}
 .tk img{width:220px;max-width:70vw;height:auto;display:block;margin:6px auto}
 .tk .c{font-family:ui-monospace,Menlo,monospace;font-weight:700;letter-spacing:.08em;font-size:16px}
 .tk .n{font-size:12px;letter-spacing:.12em;color:#b30000;font-weight:700}
+.kop{display:block;width:100%;height:auto;max-height:70vh;object-fit:cover;border-radius:14px;margin:0 0 18px;background:var(--sunken)}
 </style>
 </head>
 <body>
@@ -172,11 +173,12 @@ html,body{overflow-x:hidden}
   <p class="foot">Toon de QR-code aan de kassa, op je gsm of afgedrukt. Elke code is één keer geldig. Vragen? Mail naar <a href="mailto:info@vbha.be">info@vbha.be</a>.</p>
 </main>
 <script>
+function kop(u){if(!u||document.querySelector('.kop'))return;const i=document.createElement('img');i.className='kop';i.alt='';i.src=u;const m=document.querySelector('main');m.insertBefore(i,m.firstChild)}
 const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const P=new URLSearchParams(location.search),url=P.get("c")?"/api/fuif?c="+encodeURIComponent(P.get("c")):P.get("b")?`/api/fuif?b=${encodeURIComponent(P.get("b"))}&t=${encodeURIComponent(P.get("t")||"")}`:"";
 const tijd=s=>new Date(s).toLocaleString("nl-BE",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"});
 (async()=>{if(!url){$("#box").innerHTML='<div class="card"><p style="margin:0">Deze link is onvolledig.</p></div>';return}
-  try{const r=await fetch(url);const j=await r.json();if(!r.ok)throw new Error(j.error||"Ticket niet gevonden.");const e=j.ev||{};
+  try{const r=await fetch(url);const j=await r.json();if(!r.ok)throw new Error(j.error||"Ticket niet gevonden.");const e=j.ev||{};kop((j.ev||j).header);
     document.title=(e.naam||"Ticket")+" · VBHA";
     const st=!j.geldig?`<p class="err" style="text-align:center">${j.status==="geannuleerd"?"Dit ticket werd geannuleerd.":"Dit ticket is (nog) niet betaald."}</p>`:"";
     $("#box").innerHTML=`<div class="card" style="text-align:center"><p style="margin:0;font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700">${j.tickets.length>1?"JE BESTELLING":j.tickets[0]&&j.tickets[0].soort==="drank"?"DRANKKAART":"TICKET"}</p>

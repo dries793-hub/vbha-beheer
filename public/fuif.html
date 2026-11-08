@@ -173,6 +173,7 @@ html,body{overflow-x:hidden}
 .tk img{width:220px;max-width:70vw;height:auto;display:block;margin:6px auto}
 .tk .c{font-family:ui-monospace,Menlo,monospace;font-weight:700;letter-spacing:.08em;font-size:16px}
 .tk .n{font-size:12px;letter-spacing:.12em;color:#b30000;font-weight:700}
+.kop{display:block;width:100%;height:auto;max-height:70vh;object-fit:cover;border-radius:14px;margin:0 0 18px;background:var(--sunken)}
 </style>
 </head>
 <body>
@@ -200,6 +201,7 @@ html,body{overflow-x:hidden}
   <p class="foot">We gebruiken je gegevens enkel voor je tickets. Vragen? Mail naar <a href="mailto:info@vbha.be">info@vbha.be</a>.</p>
 </main>
 <script>
+function kop(u){if(!u||document.querySelector('.kop'))return;const i=document.createElement('img');i.className='kop';i.alt='';i.src=u;const m=document.querySelector('main');m.insertBefore(i,m.firstChild)}
 const adresVolledig=s=>{s=String(s||"").trim();return /[A-Za-zÀ-ÿ]{2,}/.test(s)&&/\b[1-9]\d{3}\s+[A-Za-zÀ-ÿ'’][A-Za-zÀ-ÿ'’ .\-]+/.test(s)&&/[A-Za-zÀ-ÿ.]\s*\d+\s*[A-Za-z]?\b(?=.*\b[1-9]\d{3}\b)/.test(s)};
 const $=s=>document.querySelector(s),t0=Date.now();
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -224,7 +226,7 @@ function feiten(j){const f=[];if(j.datumTekst)f.push(`<div class="fact"><span>Wa
   f.push(`<div class="fact"><span>Prijs</span><b>${eur(j.prijs)} per ticket</b>${j.vrij!=null?`<small>nog ${j.vrij} beschikbaar</small>`:(j.dranken||[]).length&&j.drankKorting?`<small>drankkaarten ${j.drankKorting}% goedkoper in voorverkoop</small>`:"<small>betalen met Bancontact</small>"}</div>`);$("#facts").innerHTML=f.join("")+(j.verkoopTot&&j.open?`<p class="hint" style="grid-column:1/-1;margin:0">Online bestellen kan tot ${esc(new Date(j.verkoopTot.slice(0,10)+"T12:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long"}))} om ${esc(j.verkoopTot.slice(11).replace(":","u"))}. Daarna enkel nog aan de kassa.</p>`:"")}
 function gesloten(j){$("#box").innerHTML=`<div class="card bevestig"><div class="ic" style="background:var(--sunken);color:var(--muted)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
   <h2>${j.gesloten==="uitverkocht"?"Uitverkocht!":j.gesloten==="voorbij"?"De online ticketverkoop is afgelopen":"De ticketverkoop is gesloten"}</h2><p class="lead2">${j.gesloten==="uitverkocht"?"Alle tickets zijn verkocht. Bedankt voor de massale interesse!":j.gesloten==="voorbij"?"De fuif is begonnen. Tickets en drankkaarten zijn nog te koop aan de kassa.":"Online tickets bestellen kan op dit moment niet."} Vragen? Mail naar <a href="mailto:info@vbha.be">info@vbha.be</a>.</p></div>`}
-fetch("/api/fuif").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;$("#h1").textContent=j.naam||"In Vier en Vlam";document.title=(j.naam||"In Vier en Vlam")+" · tickets · VBHA";feiten(j);
+fetch("/api/fuif").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;kop((j.ev||j).header);$("#h1").textContent=j.naam||"In Vier en Vlam";document.title=(j.naam||"In Vier en Vlam")+" · tickets · VBHA";feiten(j);
   const a=$("#aantal");if(a){a.max=j.perBestelling;const w=$("#dkWrap");if(w&&(j.dranken||[]).length){w.innerHTML=dkBlok(j);w.hidden=false}som()}
   if(!KLAAR&&!/[?&]betaling=terug/.test(location.search)&&(!j.open||!j.online))gesloten(j.open?{gesloten:"manueel"}:j)}).catch(()=>{});
 // lid zoeken (optioneel, voor het puntensysteem)
