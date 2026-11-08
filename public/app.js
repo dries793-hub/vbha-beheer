@@ -4739,7 +4739,7 @@ function fuStats(){const L0=fuLijst(),L=L0.filter(t=>t.bron!=="kassa"),B=L.filte
   return{L,B,K,kT,kBc,kCash,kDk,tk,bin,dk,dkW,dkB,dkKort,omzet:B.reduce((n,t)=>n+(Number(t.bedrag)||0),0),via}}
 
 VIEWS.fuif=()=>({title:fuCfg().naam||"In Vier en Vlam",sub:"Tickets fuif",
-  actions:`<a class="btn" href="/fuif" target="_blank" rel="noopener" title="Openbare ticketpagina">${ic("link")}Ticketpagina${(()=>{const v=fuStatus(fuCfg());return `<span class="spi-dot ${v.k==="open"?"":"dicht"}" title="${esc(v.t)}">${v.k==="open"?"Open":"Gesloten"}</span>`})()}</a><button class="btn primary" data-fu="scan">${ic("scan")}Tickets scannen</button>${typeof ADM!=="function"||ADM()?`<button class="btn iconbtn" data-fu="inst" aria-label="Instellingen fuif" title="Instellingen fuif">${ic("instellingen")}</button>`:""}`,
+  actions:`<a class="btn" href="/fuif" target="_blank" rel="noopener" title="Openbare ticketpagina">${ic("link")}Ticketpagina${(()=>{const v=fuStatus(fuCfg());return `<span class="fu-dot ${v.k==="open"?"open":""}" title="${esc(v.t)}" aria-label="${esc(v.t)}"></span>`})()}</a><button class="btn primary" data-fu="scan">${ic("scan")}Tickets scannen</button>${typeof ADM!=="function"||ADM()?`<button class="btn iconbtn" data-fu="inst" aria-label="Instellingen fuif" title="Instellingen fuif">${ic("instellingen")}</button>`:""}`,
   body(){const c=fuCfg(),st=fuStats(),q=norm(FU.q);
     let L=FU.alles?st.L:st.L.filter(t=>t.status==="betaald"||t.status==="wacht");
     if(q)L=L.filter(t=>norm([fuNaam(t),t.email,t.adres,t.via&&(t.via.naam||t.via.tekst),...(t.tickets||[]).map(x=>x.code)].join(" ")).includes(q));
