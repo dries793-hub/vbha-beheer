@@ -4874,7 +4874,7 @@ function fuInst(){const c=fuCfg(),d=canWrite?"":" disabled",u=location.origin+"/
     closeModal();S.config.set("fuif",{...r,id:"fuif"});await write("config","fuif",r);toast("Instellingen bewaard.");render(true)}}
 
 /* ---------- scannen aan de kassa ---------- */
-const FU_JSQR={src:"https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js",sri:"sha384-b5Ya4Bq3qCyz39m2ISh+4DxjAIljdeFwK/BsXLuj9gugaNwAcj/ia15fxNZL9Nlx"};
+const FU_JSQR={src:"/lib/jsQR.js",sri:"sha384-b5Ya4Bq3qCyz39m2ISh+4DxjAIljdeFwK/BsXLuj9gugaNwAcj/ia15fxNZL9Nlx"};
 let FUS=null;
 function fuLaadJsQR(){if(window.jsQR)return Promise.resolve();return new Promise((ok,nok)=>{const s=document.createElement("script");s.src=FU_JSQR.src;if(FU_JSQR.sri){s.integrity=FU_JSQR.sri;s.crossOrigin="anonymous"}s.onload=ok;s.onerror=()=>nok(new Error("De QR-lezer kon niet geladen worden."));document.head.append(s)})}
 async function fuScan(){
