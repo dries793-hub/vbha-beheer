@@ -1371,6 +1371,10 @@ html{touch-action:manipulation}
 /* lid: lidgeld per jaar niet laten overlappen met de uitleg eronder */
 .tw[style*="max-height:300px"]{overflow:auto}
 @media (max-width:760px){.tw[style*="max-height:300px"]{max-height:none!important;overflow:visible}}
+
+.fc-lh.fc-nobtw,.fc-nobtw .fc-l{grid-template-columns:minmax(0,1fr) 64px 96px 92px 34px}
+@media (max-width:760px){.fc-nobtw .fc-l{grid-template-columns:1fr 1fr 1fr 34px;grid-template-areas:"om om om weg" "aa pr pr pr" "lt lt lt lt"}}
+.bnk-saldo{border:1px solid var(--line);border-radius:10px;padding:12px 14px}.bnk-saldo.fout{border-color:color-mix(in srgb,#c62828 45%,var(--line));background:color-mix(in srgb,#c62828 6%,transparent)}.bnk-saldo .bnk-st{margin:10px 0 0}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */

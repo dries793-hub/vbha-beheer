@@ -11,16 +11,28 @@ const r2 = n => Math.round(n * 100) / 100;
 // Wordt om 9u, 13u en 17u aangeroepen door een geplande taak in Supabase (pg_cron, functie bank_sync_cron) of via de knop "Nu ophalen".
 export default async function handler(req, res) {
   try {
-    let sb;
+    let sb, manueel = false;
     if (isCron(req) || await isDbCron(req)) sb = admin();
-    else { if (req.method !== "POST") throw httpErr(405, "Gebruik POST"); ({ sb } = await requireUser(req, { boek: true })); }
+    else { if (req.method !== "POST") throw httpErr(405, "Gebruik POST"); ({ sb } = await requireUser(req, { boek: true })); manueel = true; }
     if (!configured()) throw httpErr(501, "Enable Banking is nog niet ingesteld");
-    const result = await syncAll(sb);
+    const result = await syncAll(sb, { manueel });
     res.status(200).json(result);
   } catch (e) { sendError(res, e); }
 }
 
-export async function syncAll(sb) {
+// Saldo van de rekening bij de bank. Banken beperken automatische opvragingen (PSD2: ongeveer 4 per dag),
+// dus automatisch hooguit één keer per dag; met "Nu ophalen" altijd.
+const VOORKEUR = ["CLBD", "ITBD", "XPCD", "CLAV", "ITAV", "OPBD"];
+async function haalSaldo(acc) {
+  const r = await eb(`/accounts/${encodeURIComponent(acc.uid)}/balances`);
+  const L = (r.balances || []).filter(b => b.balance_amount && b.balance_amount.amount != null);
+  if (!L.length) return null;
+  L.sort((a, b) => (VOORKEUR.indexOf(a.balance_type) + 1 || 99) - (VOORKEUR.indexOf(b.balance_type) + 1 || 99));
+  const b = L[0], geboekt = ["CLBD", "OPBD", "ITBD", "XPCD"].includes(b.balance_type);
+  return { bedrag: r2(Number(b.balance_amount.amount)), munt: b.balance_amount.currency || "EUR", type: b.balance_type || "", naam: b.name || "",
+    datum: b.reference_date || String(b.last_change_date_time || "").slice(0, 10) || null, geboekt, op: new Date().toISOString() };
+}
+export async function syncAll(sb, { manueel = false } = {}) {
   const { data: kops, error } = await sb.from("bank_koppelingen").select("id,data");
   if (error) throw error;
   const totaal = { nieuw: 0, dubbel: 0, open: 0, rekeningen: 0, fouten: [] };
@@ -58,6 +70,10 @@ export async function syncAll(sb) {
         const r = await boekTransacties(sb, txs, { regels, leden, bron: d.aspsp || "Bank" });
         totaal.nieuw += r.nieuw; totaal.dubbel += r.dubbel; totaal.open += r.open;
       } catch (e) { totaal.fouten.push(`${acc.iban || acc.uid}: ${e.message}`); }
+      if (manueel || !acc.saldo || String(acc.saldo.op || "").slice(0, 10) !== nu.toISOString().slice(0, 10)) {
+        try { const sd = await haalSaldo(acc); if (sd) { acc.saldo = sd; totaal.saldo = r2((totaal.saldo || 0) + sd.bedrag); } }
+        catch (e) { console.warn("saldo", acc.iban || acc.uid, e.message); if (acc.saldo) acc.saldo = { ...acc.saldo, fout: e.message.slice(0, 160) }; }
+      }
     }
     await sb.from("bank_koppelingen").update({ data: { ...d, laatste_sync: nu.toISOString() } }).eq("id", k.id);
   }

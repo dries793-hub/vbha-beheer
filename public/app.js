@@ -3228,7 +3228,7 @@ ICON.check=ICON.check||'<path d="M5 12.5l4.5 4.5L19 7.5"/>';
 ICON.tandwiel='<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
 
 const FC={f:"alle",q:"",jaar:"alle"};
-const FC_DEF={voorvoegsel:"F",creditVoorvoegsel:"C",start:{},vervaldagen:30,bic:"ARSPBE22",adres:"",kbo:"",email:"",telefoon:"",website:"vbha.be",voettekst:"",kopie:"",mailOnderwerp:"",mailTekst:"",herinnering:{aan:false,dagenNaVerval:7,interval:14,max:2}};
+const FC_DEF={btwPlichtig:false,voorvoegsel:"F",creditVoorvoegsel:"C",start:{},vervaldagen:30,bic:"ARSPBE22",adres:"",kbo:"",email:"",telefoon:"",website:"vbha.be",voettekst:"",kopie:"",mailOnderwerp:"",mailTekst:"",herinnering:{aan:false,dagenNaVerval:7,interval:14,max:2}};
 const FC_VW="Betaalbaar binnen {termijn} dagen na factuurdatum, door overschrijving met de vermelde gestructureerde mededeling. Bij niet-betaling op de vervaldag is van rechtswege en zonder voorafgaande ingebrekestelling een verwijlintrest verschuldigd volgens de wet van 2 augustus 2002 betreffende de bestrijding van de betalingsachterstand bij handelstransacties, vermeerderd met een forfaitaire schadevergoeding van € 40. Klachten over deze factuur worden schriftelijk gemeld binnen 8 dagen na ontvangst.";
 const fcCfg=()=>{const c=S.config.get("facturen")||{};return{...FC_DEF,...c,herinnering:{...FC_DEF.herinnering,...(c.herinnering||{})}}};
 const fcMag=()=>ROL==="admin"||ROL==="boekhouder";
@@ -3318,7 +3318,7 @@ let FCE=null;
 const fcBtw=v=>`<select class="sel fc-btw" aria-label="Btw">${[0,6,12,21].map(t=>`<option value="${t}"${num(v)===t?" selected":""}>${t}%</option>`).join("")}</select>`;
 const fcLijnHtml=(l,i)=>`<div class="fc-l" data-i="${i}"><textarea class="fc-om" rows="1" placeholder="Omschrijving" aria-label="Omschrijving">${esc(l.omschrijving||"")}</textarea>
   <input class="fc-aa" inputmode="decimal" value="${esc(String(l.aantal??1).replace(".",","))}" aria-label="Aantal"><input class="fc-pr" inputmode="decimal" value="${l.prijs===""||l.prijs==null?"":esc(String(l.prijs).replace(".",","))}" placeholder="0,00" aria-label="Prijs per stuk">
-  ${fcBtw(l.btw)}<span class="fc-lt num">${eur(r2(num(l.aantal)*num(l.prijs)))}</span><button type="button" class="btn sm ghost" data-fc="lijnweg" aria-label="Lijn verwijderen">${ic("x")}</button></div>`;
+  ${fcCfg().btwPlichtig?fcBtw(l.btw):`<input type="hidden" class="fc-btw" value="0">`}<span class="fc-lt num">${eur(r2(num(l.aantal)*num(l.prijs)))}</span><button type="button" class="btn sm ghost" data-fc="lijnweg" aria-label="Lijn verwijderen">${ic("x")}</button></div>`;
 const fcVaste=()=>(fcCfg().klanten||[]).slice().sort((a,b)=>String(a.naam).localeCompare(String(b.naam),"nl"));
 function fcKlanten(){const o=[];const vast=new Set();
   for(const v of fcVaste()){vast.add(norm(v.naam));o.push({lbl:v.naam+(v.contact?" ("+v.contact+")":"")+" · klant",k:{naam:v.naam,contact:v.contact||"",adres:v.adres||"",btw:v.btw||"",email:v.email||"",sponsorId:v.sponsorId||"",lidId:v.lidId||"",klantId:v.id}})}
@@ -3340,9 +3340,9 @@ function fcEdit(f,{nieuw=false}={}){
    <div class="full fc-kbar"><button type="button" class="btn sm" data-fc="klantOpslaan" id="fcKo">${ic("plus")}Opslaan als nieuwe klant</button><span class="muted small" id="fcKst"></span></div>
    ${fld("fcD",cr?"Datum":"Factuurdatum",inp("fcD",f.datum,'type="date"'))}${cr?"":fld("fcV","Vervaldatum",inp("fcV",verval,'type="date"'))}
    ${fld("fcR","Uw referentie",inp("fcR",f.referentie,'placeholder="bv. bestelbon (optioneel)"'))}${cr?"":fld("fcCat","Categorie in de boekhouding",`<select id="fcCat" class="sel"><option value="">—</option>${cats.map(x=>`<option${x===f.categorie?" selected":""}>${esc(x)}</option>`).join("")}</select>`)}
-   <div class="fld full"><span class="lbl">Lijnen</span><div class="fc-lh"><span>Omschrijving</span><span>Aantal</span><span>Prijs</span><span>Btw</span><span class="num">Totaal</span><span></span></div>
-    <div id="fcL">${f.lijnen.map(fcLijnHtml).join("")}</div><button type="button" class="btn sm" data-fc="lijn" style="margin-top:8px">${ic("plus")}Lijn toevoegen</button>
-    <div class="fc-tot" id="fcTot"></div></div>
+   <div class="fld full"><span class="lbl">Lijnen</span><div class="fc-lh${fcCfg().btwPlichtig?"":" fc-nobtw"}"><span>Omschrijving</span><span>Aantal</span><span>Prijs</span>${fcCfg().btwPlichtig?"<span>Btw</span>":""}<span class="num">Totaal</span><span></span></div>
+    <div id="fcL" class="${fcCfg().btwPlichtig?"":"fc-nobtw"}">${f.lijnen.map(fcLijnHtml).join("")}</div><button type="button" class="btn sm" data-fc="lijn" style="margin-top:8px">${ic("plus")}Lijn toevoegen</button>
+    <div class="fc-tot" id="fcTot"></div>${fcCfg().btwPlichtig?"":`<p class="muted small" style="margin:6px 0 0">Geen btw: de vereniging is niet btw-plichtig. Op de factuur staat "Vereniging niet onderworpen aan de btw."</p>`}</div>
    <div class="fld full"><label for="fcO">Opmerking op de factuur</label><textarea id="fcO" rows="2" placeholder="bv. Bedankt voor je steun!">${esc(f.opmerking||"")}</textarea></div>
    <div class="err full" id="fcErr"></div></form>`,
    `${f.id?`<button class="btn ghost danger" data-fc="weg">Verwijderen</button>`:""}<button class="btn" data-fc="voorbeeld">${ic("download")}Voorbeeld</button><span class="grow"></span>
@@ -3407,7 +3407,8 @@ function fcInstel(){const c=fcCfg(),H=c.herinnering,j=new Date().getFullYear(),p
    ${fld("fiKbo","Ondernemingsnummer",inp("fiKbo",c.kbo,'placeholder="0123.456.789"'))}${fld("fiBic","BIC van de bank",inp("fiBic",c.bic))}
    ${fld("fiMail","E-mail (antwoorden komen hier)",inp("fiMail",c.email,'type="email" placeholder="penningmeester@vbha.be"'))}${fld("fiTel","Telefoon",inp("fiTel",c.telefoon))}
    ${fld("fiWeb","Website",inp("fiWeb",c.website))}${fld("fiVd","Betaaltermijn",`<select id="fiVd" class="sel">${[8,10,14,15,21,30,45,60].map(n=>`<option value="${n}"${n===num(c.vervaldagen)?" selected":""}>${n} dagen</option>`).join("")}</select>`)}
-   <div class="fld full"><label for="fiVt">Voettekst (bv. btw-vermelding)</label><textarea id="fiVt" rows="2" placeholder="bv. Vereniging niet onderworpen aan btw.">${esc(c.voettekst)}</textarea></div>
+   <div class="fld full"><label class="chk"><input type="checkbox" id="fiBtwP"${c.btwPlichtig?" checked":""}> De vereniging is btw-plichtig (btw per lijn aanrekenen)</label><span class="help">Uit (standaard): geen btw op de facturen en automatisch de vermelding "Vereniging niet onderworpen aan de btw."</span></div>
+   <div class="fld full"><label for="fiVt">Extra voettekst</label><textarea id="fiVt" rows="2" placeholder="Optioneel">${esc(c.voettekst)}</textarea></div>
    <div class="fld full"><label for="fiVw">Betalingsvoorwaarden (onderaan elke factuur)</label><textarea id="fiVw" rows="4" style="height:96px">${esc(c.voorwaarden??FC_VW)}</textarea><span class="help">{termijn} wordt de betaaltermijn hierboven. Laat leeg om geen voorwaarden af te drukken.</span></div>
    <div class="fc-sec full"><h4>Klantenlijst</h4>${fcVaste().length?`<div class="fc-kl">${fcVaste().map(v=>`<div><span class="grow" style="min-width:0"><b>${esc(v.naam)}</b><span class="muted small trunc"> ${[v.contact,v.email].filter(Boolean).map(esc).join(" · ")}</span></span><button type="button" class="btn sm ghost" data-fc="klantWeg" data-id="${esc(v.id)}">Verwijderen</button></div>`).join("")}</div>`:'<p class="muted small" style="margin:0">Nog geen klanten opgeslagen. Dat doe je bij het maken van een factuur met <b>Opslaan als nieuwe klant</b>.</p>'}</div>
    <div class="fc-sec full"><h4>Nummering</h4></div>
@@ -3427,7 +3428,7 @@ async function fcInstelBewaar(volgend){const c=fcCfg(),j=new Date().getFullYear(
   const nr=parseInt(g("#fiNr"),10);if(!(nr>=1)){$("#fiErr").textContent="Vul een geldig volgnummer in.";return}
   const kop=g("#fiKop").split(/[,;\s]+/).filter(Boolean);if(kop.some(x=>!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x))){$("#fiErr").textContent="Het kopie-adres klopt niet.";return}
   const start={...(c.start||{})};if(nr!==volgend)start[pre+j]=nr;
-  const d={...stripId(S.config.get("facturen")||{}),adres:$("#fiAd").value.trim(),kbo:g("#fiKbo"),bic:g("#fiBic"),email:g("#fiMail"),telefoon:g("#fiTel"),website:g("#fiWeb"),vervaldagen:num($("#fiVd").value),voettekst:$("#fiVt").value.trim(),rechtsvorm:g("#fiRv"),rpr:g("#fiRpr"),voorwaarden:$("#fiVw").value.trim(),
+  const d={...stripId(S.config.get("facturen")||{}),adres:$("#fiAd").value.trim(),kbo:g("#fiKbo"),bic:g("#fiBic"),email:g("#fiMail"),telefoon:g("#fiTel"),website:g("#fiWeb"),vervaldagen:num($("#fiVd").value),voettekst:$("#fiVt").value.trim(),btwPlichtig:!!$("#fiBtwP").checked,rechtsvorm:g("#fiRv"),rpr:g("#fiRpr"),voorwaarden:$("#fiVw").value.trim(),
     start,mailOnderwerp:g("#fiOnd"),mailTekst:$("#fiTxt").value.trim(),kopie:kop.join(", "),herinnering:{aan:$("#fiHa").checked,dagenNaVerval:num($("#fiHd").value),interval:num($("#fiHi").value),max:num($("#fiHm").value)}};
   try{await write("config","facturen",d);closeModal();toast("Instellingen bewaard.")}catch(x){$("#fiErr").textContent="Bewaren lukte niet: "+(x.message||"")}}
 
@@ -4513,6 +4514,22 @@ document.addEventListener("touchmove",e=>{if(e.scale&&e.scale!==1&&!(e.target.cl
 /* ============ Bankimport: overzichtelijkere koppeling + dashboardmelding bij (bijna) verlopen toestemming ============ */
 const bkIban=s=>String(s||"").replace(/\s+/g,"").replace(/(.{4})/g,"$1 ").trim();
 const bkDagen=k=>k&&k.valid_until?Math.floor((new Date(k.valid_until)-Date.now())/864e5):null;
+/* ---- saldocontrole: saldo bij de bank naast het saldo van "Rekening" in de app ---- */
+function bkAppSaldo(datum){const Y=Number(String(datum).slice(0,4));if(!S.jaren.has(String(Y)))return null;const c=jaarCfg(Y);let s=Number(c.beginRekening)||0;
+  for(const b of S.boekingen.values())if(b.jaar===Y&&b.rekening!=="Kas"&&b.datum&&b.datum<=datum)s+=(b.richting==="uit"?-1:1)*(Number(b.bedrag)||0);return r2(s)}
+function bkSaldoCheck(K){const A=(K||[]).flatMap(k=>(k.accounts||[]).map(a=>({a,k}))).filter(x=>x.a.saldo&&x.a.saldo.bedrag!=null);if(!A.length)return null;
+  const vandaag=todayISO(),datum=A.map(x=>x.a.saldo.geboekt&&x.a.saldo.datum?x.a.saldo.datum:vandaag).sort()[0];
+  const bank=r2(A.reduce((t,x)=>t+x.a.saldo.bedrag,0)),app=bkAppSaldo(datum);
+  return{A,datum,bank,app,verschil:app==null?null:r2(bank-app),op:A.map(x=>x.a.saldo.op).sort()[0],bankNaam:[...new Set(A.map(x=>x.k.aspsp||"de bank"))].join(" + ")}}
+function bkSaldoHtml(K){const c=bkSaldoCheck(K);
+  if(!c)return (K||[]).length?`<div class="bnk-saldo"><b>Saldocontrole</b><p class="muted small" style="margin:4px 0 0">Het saldo van de rekening wordt opgehaald bij de volgende synchronisatie (of klik op Nu ophalen).</p></div>`:"";
+  const ok=c.verschil!=null&&Math.abs(c.verschil)<0.01;
+  const pill=c.verschil==null?'<span class="pill neutral">Boekjaar niet geopend</span>':ok?'<span class="pill ok">&#10003; Klopt</span>':`<span class="pill nok">Verschil ${eur(c.verschil)}</span>`;
+  return `<div class="bnk-saldo${ok?"":" fout"}"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b>Saldocontrole</b><span class="grow"></span>${pill}</div>
+   <dl class="bnk-st"><div><dt>Saldo bij ${esc(c.bankNaam)}</dt><dd><b>${eur(c.bank)}</b> <small class="muted">op ${fmtDate(c.datum)}</small></dd></div>
+   <div><dt>Saldo rekening in de app</dt><dd><b>${c.app==null?"–":eur(c.app)}</b> <small class="muted">t/m ${fmtDate(c.datum)}</small></dd></div>
+   <div><dt>Opgehaald</dt><dd>${fmtDate(c.op.slice(0,10))} om ${new Date(c.op).toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})}</dd></div></dl>
+   ${ok||c.verschil==null?"":`<p class="small" style="margin:8px 0 0">${c.verschil>0?"De bank toont <b>meer</b> dan de app":"De bank toont <b>minder</b> dan de app"}. Mogelijke oorzaken: verrichtingen die nog niet ingelezen zijn of dubbel staan, een transactie op <i>Kas</i> die via de rekening liep (of omgekeerd), een verkeerde datum, of een beginsaldo van ${String(c.datum).slice(0,4)} dat niet klopt (tandwiel op <a href="#boekhouding">Financiën</a>). <a href="#boekingen">Naar transacties</a></p>`}</div>`}
 function bankKoppelForm(K,open){return `<details class="bnk-new"${open?" open":""}><summary>${K.length?"Andere rekening koppelen":"Rekening koppelen"}</summary>
   <div class="form" data-w><div class="fld"><label for="ebBank">Bank</label><select id="ebBank"><option value="">Banken laden…</option></select></div>
   <div class="fld"><label for="ebType">Soort rekening</label><select id="ebType"><option value="business">Zakelijk (vzw)</option><option value="personal">Particulier</option></select></div>
@@ -4533,7 +4550,7 @@ bankHtml=function(B){setTimeout(fillBanks,0);
         <div><dt>Laatst opgehaald</dt><dd>${ls?fmtDate(ls.slice(0,10))+" om "+new Date(ls).toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"}):"nog nooit"}</dd></div>
         <div><dt>Automatisch ophalen</dt><dd>9u · 13u · 17u</dd></div></dl>
       <div class="bnk-act" data-w>${weg||bijna?`<button class="btn primary sm" data-act="bankHerkoppel" data-bank="${esc(k.aspsp||"")}">${ic("bank")}Opnieuw koppelen</button>`:""}${weg?"":`<button class="btn${weg||bijna?"":" primary"} sm" data-act="bankSync">${ic("download")}Nu ophalen</button>`}<span class="grow"></span><button class="btn sm ghost danger" data-act="bankOntkoppel" data-id="${esc(k.id)}">Ontkoppelen</button></div></div>`};
-  return head(pill)+`<div class="panel-b stack">${K.length?K.map(kaart).join("")+`<p class="muted small" style="margin:0">Opgehaalde verrichtingen lopen langs de <a href="#regels">automatische regels</a>; wat geen regel heeft, komt bij <a href="#verwerken">Te verwerken</a>. De bank vraagt om de zoveel maanden de toestemming te vernieuwen.</p>`:""}
+  return head(pill)+`<div class="panel-b stack">${K.length?K.map(kaart).join("")+bkSaldoHtml(K)+`<p class="muted small" style="margin:0">Opgehaalde verrichtingen lopen langs de <a href="#regels">automatische regels</a>; wat geen regel heeft, komt bij <a href="#verwerken">Te verwerken</a>. De bank vraagt om de zoveel maanden de toestemming te vernieuwen.</p>`:""}
     ${bankKoppelForm(K,!K.length)}</div>`};
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="bankHerkoppel"]');if(!t)return;e.preventDefault();e.stopPropagation();
   const det=$(".bnk-new");if(det)det.open=true;const sel=$("#ebBank"),b=t.dataset.bank;
@@ -4545,10 +4562,12 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="bankH
 let BANK_DASH=0;
 function bankMelding(){if(!(ROL==="admin"||ROL==="boekhouder"))return"";
   if(!BANK&&!BANK_DASH){BANK_DASH=1;api("/api/bank/status").then(r=>{BANK=r;if(route()==="dashboard")renderBody()}).catch(()=>{})}
-  const K=(BANK&&BANK.koppelingen)||[];const L=K.map(k=>({k,d:bkDagen(k)})).filter(x=>x.d!=null&&x.d<14);if(!L.length)return"";
+  const K=(BANK&&BANK.koppelingen)||[];const L=K.map(k=>({k,d:bkDagen(k)})).filter(x=>x.d!=null&&x.d<14);
+  const sc=bkSaldoCheck(K),sm=sc&&sc.verschil!=null&&Math.abs(sc.verschil)>=0.01?`<div class="nmeld dm-v" role="alert"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>Het saldo van de rekening klopt niet met de boekhouding</b><div class="nm-l"><a class="nm-i" href="#bank"><b>Verschil ${eur(sc.verschil)}</b><span>Bank ${eur(sc.bank)} · app ${eur(sc.app)} op ${fmtDate(sc.datum)} · bekijken</span></a></div></div></div>`:"";
+  if(!L.length)return sm;
   const weg=L.some(x=>x.d<0);
   return `<div class="nmeld ${weg?"dm-r":"dm-v"}" role="alert"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>${weg?"De koppeling met de bank is verlopen":"De koppeling met de bank verloopt binnenkort"}</b>
-   <div class="nm-l">${L.map(({k,d})=>`<a class="nm-i" href="#bank"><b>${esc(k.aspsp||"Bank")}</b><span>${d<0?"Verlopen op "+fmtDate(k.valid_until.slice(0,10))+" · er worden geen verrichtingen meer opgehaald":"Nog "+d+" "+(d===1?"dag":"dagen")+" geldig (tot "+fmtDate(k.valid_until.slice(0,10))+")"} · opnieuw koppelen</span></a>`).join("")}</div></div></div>`}
+   <div class="nm-l">${L.map(({k,d})=>`<a class="nm-i" href="#bank"><b>${esc(k.aspsp||"Bank")}</b><span>${d<0?"Verlopen op "+fmtDate(k.valid_until.slice(0,10))+" · er worden geen verrichtingen meer opgehaald":"Nog "+d+" "+(d===1?"dag":"dagen")+" geldig (tot "+fmtDate(k.valid_until.slice(0,10))+")"} · opnieuw koppelen</span></a>`).join("")}</div></div></div>`+sm}
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return bankMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 
 /* ============ Kalenders › Controle ============
