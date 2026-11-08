@@ -5309,7 +5309,7 @@ async function sgZet(id,patch){const s=S.sponsors.get(id);if(!s)return;const G={
   await write("sponsors",id,{geschenk:G},{merge:true})}
 function sgBlok(s,id){const g=sgG(s),k=g.kaarten,c=typeof fuCfg==="function"?fuCfg():{};
   const kaartTxt=k?(k.papier?`Op papier gegeven op ${sgD(k.op)}`:`${k.aantal||0} inkomkaarten${k.drank?` + drankkaart ${eur(k.drank)}`:""} · ${k.mail?`gemaild op ${sgD(k.mail.op)} naar ${esc(k.mail.aan)}`:"<b>mail is niet vertrokken</b>"}`):"";
-  return `<div class="full sg" id="sgBlok"><div class="sg-h"><b>Bedankje ${JAAR}</b><span class="muted small">Wat kreeg deze sponsor als dank?</span></div>
+  return `<div class="full sg" id="sgBlok"><div class="sg-h"><b>Attentie</b><span class="muted small">Wat kreeg deze sponsor als dank?</span></div>
    <label class="sp-nat" for="sgKal"><input type="checkbox" id="sgKal"${g.kalender?" checked":""}${canWrite?"":" disabled"}><span><b>Kalender ontvangen</b><small>${g.kalender?`Aangeduid op ${sgD(g.kalender.op)}`:"Vink aan als de sponsor een kalender kreeg."}</small></span></label>
    <div class="sp-nat sg-k${k?" on":""}"><span style="flex:1;min-width:0"><b>Fuifkaarten ${esc(c.naam||"In Vier en Vlam")}</b><small>${k?kaartTxt:g.uitnodiging?`Uitnodiging gemaild op ${sgD(g.uitnodiging.op)} naar ${esc(g.uitnodiging.aan||"")}. Nog niet aangevraagd: de tickets worden pas aangemaakt als de sponsor op de knop in de mail drukt.`:`De sponsor krijgt een mail met een knop om zelf ${c.sponsorTickets??10} inkomkaarten en een drankkaart van ${eur(c.sponsorDrank??50)} aan te vragen. Pas dan worden de tickets met QR aangemaakt (één keer).`}</small>
     <span class="sg-acts">${!canWrite?"":k?(k.ticketId?`<button type="button" class="btn sm" data-sg="opnieuw" data-id="${esc(k.ticketId)}">Opnieuw mailen</button><a class="btn sm ghost" href="#fuif">In fuifmodule</a>`:`<button type="button" class="btn sm ghost" data-sg="papierUit" data-id="${esc(id)}">Ongedaan maken</button>`)
@@ -5339,10 +5339,10 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-sg]"
 },true);
 /* kolom in de sponsorlijst */
 {const _s=VIEWS.sponsors;const n=function(){const v=_s.apply(this,arguments);const b=v.body;v.body=function(){let h=b.apply(this,arguments);
-  h=h.replace(/(<thead><tr>(?:(?!<\/thead>)[\s\S])*?Bedrijf(?:(?!<\/thead>)[\s\S])*?)(<\/tr><\/thead>)/,(m,a,c)=>a+`<th>Bedankje ${JAAR}</th>`+c).replace('colspan="7" class="empty">Geen sponsors.','colspan="8" class="empty">Geen sponsors.');
-  h=h.replace(/(<tr class="click" data-act="toonSponsor" data-id="([^"]*)">[\s\S]*?)(<\/tr>)/g,(m,a,id,c)=>{const s=S.sponsors.get(id.replace(/&amp;/g,"&").replace(/&quot;/g,'"'));return a.replace(/<td class="muted">/g,'<td class="muted nowrap">')+`<td data-l="Bedankje">${s?sgPills(s):""}</td>`+c});
+  h=h.replace(/(<thead><tr>(?:(?!<\/thead>)[\s\S])*?Bedrijf(?:(?!<\/thead>)[\s\S])*?)(<\/tr><\/thead>)/,(m,a,c)=>a+`<th>Attentie</th>`+c).replace('colspan="7" class="empty">Geen sponsors.','colspan="8" class="empty">Geen sponsors.');
+  h=h.replace(/(<tr class="click" data-act="toonSponsor" data-id="([^"]*)">[\s\S]*?)(<\/tr>)/g,(m,a,id,c)=>{const s=S.sponsors.get(id.replace(/&amp;/g,"&").replace(/&quot;/g,'"'));return a.replace(/<td class="muted">/g,'<td class="muted nowrap">')+`<td data-l="Attentie">${s?sgPills(s):""}</td>`+c});
   const L=[...S.sponsors.values()],nK=L.filter(s=>sgG(s).kalender).length,nT=L.filter(s=>sgG(s).kaarten).length;
-  h=h.replace('<div class="bar"><div class="search">',`<p class="muted small" style="margin:-4px 0 12px">Bedankje ${JAAR}: ${nK} ${nK===1?"sponsor kreeg":"sponsors kregen"} een kalender, ${nT} ${nT===1?"kreeg":"kregen"} fuifkaarten, ${L.length-L.filter(s=>sgG(s).kalender||sgG(s).kaarten).length} nog niets. Klik op een sponsor om aan te duiden of kaarten te mailen.</p><div class="bar"><div class="search">`);
+  h=h.replace('<div class="bar"><div class="search">',`<p class="muted small" style="margin:-4px 0 12px">Attentie dit jaar: ${nK} ${nK===1?"sponsor kreeg":"sponsors kregen"} een kalender, ${nT} ${nT===1?"kreeg":"kregen"} fuifkaarten, ${L.length-L.filter(s=>sgG(s).kalender||sgG(s).kaarten).length} nog niets. Klik op een sponsor om aan te duiden of kaarten te mailen.</p><div class="bar"><div class="search">`);
   return h};return v};Object.assign(n,_s);VIEWS.sponsors=n}
 
 function sgBulk(){const c=typeof fuCfg==="function"?fuCfg():{};
