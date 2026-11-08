@@ -294,8 +294,10 @@ export async function scanTicket(sb, ruw, door, alleenBekijk) {
 // Gastlogin kassa: een kassacode (ingesteld in de app) geeft 24 uur lang enkel toegang tot scannen.
 const kassaSleutel = () => String(process.env.BETAAL_GEHEIM || process.env.SUPABASE_SERVICE_ROLE_KEY || "");
 const kassaSig = (exp, code) => crypto.createHmac("sha256", kassaSleutel()).update(`vbha-kassa|${exp}|${String(code).toUpperCase()}`).digest("base64url").slice(0, 32);
+// een kassacode is 1 dag (24 uur) geldig vanaf het aanmaken
+const kassaTot = c => c.kassa && c.kassa.code ? (Date.parse(c.kassa.sinds || "") || 0) + 24 * 3600 * 1000 : 0;
 function kassaOk(c, token) {
-  const code = c.kassa && c.kassa.code; if (!code || !kassaSleutel()) return false;
+  const code = c.kassa && c.kassa.code; if (!code || !kassaSleutel() || Date.now() > kassaTot(c)) return false;
   const [exp, sig] = String(token || "").split("."); if (!/^\d{10,13}$/.test(exp || "") || Number(exp) < Date.now()) return false;
   const a = Buffer.from(kassaSig(exp, code)), b = Buffer.from(String(sig || "")); return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
@@ -307,10 +309,11 @@ async function kassaApi(sb, req, res, b, c) {
     const code = c.kassa && c.kassa.code, in_ = String(b.code || "").trim().toUpperCase().replace(/\s+/g, "");
     const a = Buffer.from(String(code || "").toUpperCase()), x = Buffer.from(in_);
     if (!code || a.length !== x.length || !crypto.timingSafeEqual(a, x)) throw httpErr(403, "Deze kassacode klopt niet.");
-    const exp = String(Date.now() + 24 * 3600 * 1000);
+    if (Date.now() > kassaTot(c)) throw httpErr(403, "Deze kassacode is verlopen (een code is 1 dag geldig). Vraag een nieuwe code aan het bestuur.");
+    const exp = String(Math.min(Date.now() + 24 * 3600 * 1000, kassaTot(c)));
     return res.status(200).json({ ok: true, token: exp + "." + kassaSig(exp, code), naam: c.naam, tot: Number(exp) });
   }
-  if (!kassaOk(c, b.token)) throw httpErr(401, "Je kassatoegang is verlopen. Geef de kassacode opnieuw in.");
+  if (!kassaOk(c, b.token)) throw httpErr(401, "Je kassatoegang is verlopen. Geef een geldige kassacode in.");
   await rateLimit(sb, req, "kassascan", 600, 600, httpErr);
   if (b.actie === "kassa-scan") return res.status(200).json(await scanTicket(sb, b.code, "kassa (gast)", false));
   if (b.actie === "kassa-stand") {
