@@ -173,10 +173,10 @@ function toonBetalen(j){
   const href=appLink(o)||o.checkout;
   $("#box").innerHTML=`<div class="card"><div class="paybox" style="margin-top:0"><h3>Steun van ${eur(j.bedrag)}</h3><div id="online">
     <a class="btn bc" id="bcGo" href="${esc(href)}">${BC_ICON}Betaal ${eur(j.bedrag)} met Bancontact</a>
-    <p class="hint c">${o.deeplink?"Je bank- of Bancontact-app opent en je bevestigt de betaling daar.":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
+    <p class="hint c">${o.deeplink?"Je Bancontact- of bankapp opent en je bevestigt daar binnen 2 minuten.<br><small>Kom je op een pagina om een app te downloaden? Dan heb je geen app die Bancontact Pay ondersteunt: kies dan hieronder <b>overschrijving</b>.</small>":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
     ${o.qrcode?`<div class="qrwrap desk"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div><p>Op een computer? Scan deze code met de Bancontact-app of de app van je bank.</p></div>`:""}
     <p class="wacht" id="bcStatus" aria-live="polite"></p></div>
-    <details class="zelf"><summary>Liever zelf overschrijven?</summary>${handmatig(j)}</details></div>${terug}</div>`;
+    <details class="zelf"><summary>Geen app of lukt het niet? Betaal via overschrijving</summary>${handmatig(j)}</details></div>${terug}</div>`;
   BET=o.id;volgN=0;volg();
   return href}
 

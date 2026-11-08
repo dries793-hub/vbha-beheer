@@ -182,7 +182,7 @@ function handmatig(j){return `<dl class="pd"><div><dt>Bedrag</dt><dd><b>${eur(j.
 function appLink(o){if(!o||!o.deeplink)return null;const ret=location.origin+location.pathname+"?betaling=terug";return o.deeplink+(o.deeplink.includes("?")?"&":"?")+"returnUrl="+encodeURIComponent(ret)}
 function onlineBlok(o,bedrag){const href=appLink(o);
   return `<div id="online"><a class="btn bc" id="bcGo" href="${esc(href||o.checkout||"#")}">${BC_ICON}Betaal ${eur(bedrag)} met Bancontact</a>
-  <p class="hint c">${o.deeplink?"Je bank- of Bancontact-app opent en je bevestigt de betaling daar.":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
+  <p class="hint c">${o.deeplink?"Je Bancontact- of bankapp opent en je bevestigt daar binnen 2 minuten.<br><small>Kom je op een pagina om een app te downloaden? Dan heb je geen app die Bancontact Pay ondersteunt: kies dan hieronder <b>overschrijving</b>.</small>":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
   ${o.qrcode?`<div class="qrwrap desk"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div><p>Op een computer? Scan deze code met de Bancontact-app of de app van je bank.</p></div>`:""}
   <p class="wacht" id="bcStatus" aria-live="polite"></p></div>`}
 let KLAAR=null;
@@ -190,7 +190,7 @@ function toonKlaar(j){KLAAR=j;
   const o=j.online&&(j.online.deeplink||j.online.checkout)?j.online:null;
   $("#box").innerHTML=`<div class="card ok"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Bedankt, ${esc(j.voornaam)}!</h2><p>Je inschrijving voor ${j.personen===2?"2 personen":"1 persoon"} is goed ontvangen.</p>
   ${j.rekeningnummer||o?`<div class="paybox" id="paybox">${o?"":`<h3>Betaal ${eur(j.bedrag)}${j.deadline?" voor "+esc(j.deadline):""}</h3>`}
-  ${o?onlineBlok(o,j.bedrag)+`<details class="zelf"><summary>Liever zelf overschrijven?</summary>${j.deadline?`<p class="hint" style="margin:0 0 10px">Schrijf het bedrag over voor <b>${esc(j.deadline)}</b>.</p>`:""}${handmatig(j)}</details>`
+  ${o?onlineBlok(o,j.bedrag)+`<details class="zelf"><summary>Geen app of lukt het niet? Betaal via overschrijving</summary>${j.deadline?`<p class="hint" style="margin:0 0 10px">Schrijf het bedrag over voor <b>${esc(j.deadline)}</b>.</p>`:""}${handmatig(j)}</details>`
      :`${j.qr?`<div class="qrwrap"><div class="qr">${j.qr}</div><p>Scan deze code met de app van je bank. Bedrag, rekeningnummer en mededeling staan dan al ingevuld.</p></div><div class="or"><span>of schrijf zelf over</span></div>`:""}${handmatig(j)}`}
   </div>`:""}</div>`;
   if(o){BET={t:o.t||"leden",id:o.id,token:o.token};volg()}}
