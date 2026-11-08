@@ -4710,3 +4710,124 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-ns="nu"]')
     for(const r of N){const l=S.leden.get(r.lidId);if(l)await write("leden",l.id,{...stripId(l),nastuur:{...(l.nastuur||{}),[M.tplId]:op}})}
     try{await write("mailings",mid,{datum:op,onderwerp:vul(M.onderwerp,{}),sjabloon:M.naam||"",sjabloonId:M.tplId||"",groep:"Nagestuurd naar nieuwe leden",aantal:N.length,ok:res.ok,fout:res.fout.slice(0,200),...(res.wachtrij?{wachtrij:res.wachtrij,bezig:true}:{}),door:ME?ME.email:""})}catch(x){}
     renderBody()})});
+
+/* ============ Fuif "In Vier en Vlam" (Activiteiten › In Vier en Vlam) ============
+   Bestellingen in de collectie "tickets" (zie api/_lib/fuif.js), instellingen in config "fuif".
+   Scannen aan de kassa: camera (BarcodeDetector of jsQR) -> POST /api/mail?f=fuif {actie:"scan", code}. */
+ICON.fuif='<path d="M12 3c1.5 3 4.5 4.5 4.5 8.5a4.5 4.5 0 0 1-9 0C7.5 9 9 8 9.5 6c1 1.2 1.6 2 2.5 2.4C12.3 6.8 12 5 12 3z"/><path d="M10 16.5a2 2 0 0 0 4 0c0-1.5-2-2.5-2-4-.8 1.2-2 2.3-2 4z"/>';
+ICON.scan='<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M7 12h10"/>';
+{const a=NAV.find(n=>n.id==="administratie");if(a&&!a.items.some(i=>i[0]==="fuif"))a.items.push(["fuif","In Vier en Vlam"])}
+if(!ROUTES.some(r=>r[0]==="fuif"))ROUTES.push(["fuif","In Vier en Vlam"]);
+if(!COLS.includes("tickets")){COLS.push("tickets");S.tickets=new Map()}
+const FU_DEF={naam:"In Vier en Vlam",datum:"",deuren:"",locatie:"",prijs:5,open:true,max:0,perBestelling:10,info:""};
+const fuCfg=()=>({...FU_DEF,...((S.config&&S.config.get("fuif"))||{})});
+const fuJaar=()=>Number(String(fuCfg().datum||"").slice(0,4))||JAAR;
+const FU={q:"",alles:false};
+const fuEur=n=>"€ "+Number(n||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fuNaam=d=>[d.voornaam,d.naam].filter(Boolean).join(" ");
+const FU_ST={betaald:["ok","Betaald"],wacht:["warn","Betaling bezig"],verlopen:["neutral","Niet betaald"],geannuleerd:["neutral","Geannuleerd"]};
+function fuLijst(){const j=fuJaar();return [...S.tickets.values()].filter(t=>Number(t.jaar)===j).sort((a,b)=>String(b.aangemeld||"").localeCompare(String(a.aangemeld||"")))}
+function fuStats(){const L=fuLijst(),B=L.filter(t=>t.status==="betaald");const tk=B.reduce((n,t)=>n+(t.tickets||[]).length,0),bin=B.reduce((n,t)=>n+(t.tickets||[]).filter(x=>x.gescand).length,0);
+  const via=new Map();for(const t of B)if(t.via&&t.via.lidId){const k=t.via.lidId;via.set(k,(via.get(k)||0)+(t.tickets||[]).length)}
+  return{L,B,tk,bin,omzet:B.reduce((n,t)=>n+(Number(t.bedrag)||0),0),via}}
+
+VIEWS.fuif=()=>({title:fuCfg().naam||"In Vier en Vlam",sub:"Tickets fuif",
+  actions:`<a class="btn" href="/fuif" target="_blank" rel="noopener" title="Openbare ticketpagina">${ic("link")}Ticketpagina${fuCfg().open===false?'<span class="spi-dot dicht">Gesloten</span>':""}</a><button class="btn primary" data-fu="scan">${ic("scan")}Tickets scannen</button>${typeof ADM!=="function"||ADM()?`<button class="btn iconbtn" data-fu="inst" aria-label="Instellingen fuif" title="Instellingen fuif">${ic("instellingen")}</button>`:""}`,
+  body(){const c=fuCfg(),st=fuStats(),q=norm(FU.q);
+    let L=FU.alles?st.L:st.L.filter(t=>t.status==="betaald"||t.status==="wacht");
+    if(q)L=L.filter(t=>norm([fuNaam(t),t.email,t.adres,t.via&&(t.via.naam||t.via.tekst),...(t.tickets||[]).map(x=>x.code)].join(" ")).includes(q));
+    const viaL=[...st.via.entries()].map(([id,n])=>({l:S.leden.get(id),n})).filter(x=>x.l).sort((a,b)=>b.n-a.n);
+    const zonder=st.B.filter(t=>t.via&&t.via.tekst&&!t.via.lidId);
+    return `<div class="tiles">
+      <div class="tile hero"><span class="lbl">Verkochte tickets</span><span class="val">${st.tk}${c.max?`<small style="font-size:.5em;color:var(--muted)"> / ${c.max}</small>`:""}</span><span class="hint">${st.B.length} ${st.B.length===1?"bestelling":"bestellingen"} · ${fuEur(c.prijs)} per ticket</span></div>
+      <div class="tile"><span class="lbl">Ontvangen</span><span class="val">${fuEur(st.omzet)}</span><span class="hint">via Bancontact</span></div>
+      <div class="tile"><span class="lbl">Binnen</span><span class="val">${st.bin}</span><span class="hint">${st.tk?Math.round(st.bin/st.tk*100)+"% gescand":"nog niemand gescand"}</span></div>
+      <div class="tile"><span class="lbl">Via leden</span><span class="val">${[...st.via.values()].reduce((a,b)=>a+b,0)}</span><span class="hint">tickets, tellen mee als kaarten</span></div></div>
+    ${c.datum?"":`<div class="note info">Stel eerst de datum, het uur, de locatie en de prijs in via het tandwiel. Daar vind je ook de link en de QR-code voor de affiche.</div>`}
+    ${zonder.length?`<div class="note">${zonder.length} ${zonder.length===1?"bestelling vermeldt":"bestellingen vermelden"} een lid dat we niet automatisch vonden. Open de bestelling en kies het juiste lid, dan tellen de tickets mee in het puntensysteem.</div>`:""}
+    <div class="grid g2" style="align-items:start">
+    <div class="panel" style="min-width:0"><div class="panel-h"><h2>Bestellingen</h2><span class="grow"></span><label class="small muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-fu="alles"${FU.alles?" checked":""}>ook niet betaald</label></div>
+      <div class="panel-b" style="padding-bottom:6px"><div class="search">${ic("search")}<input id="fuQ" data-fuq placeholder="Zoek op naam, e-mail, lid of ticketcode" value="${esc(FU.q)}"></div></div>
+      <div class="mlist" role="list">${L.map(t=>{const [k,lbl]=FU_ST[t.status]||["neutral",t.status];const n=(t.tickets||[]).length||t.aantal,bin=(t.tickets||[]).filter(x=>x.gescand).length;
+        return `<button type="button" class="ml-row" role="listitem" data-fu="toon" data-id="${esc(t.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(fuNaam(t))}</b></span><span class="ml-s">${n} ${n==1?"ticket":"tickets"}${t.via&&(t.via.naam||t.via.tekst)?` · via ${esc(t.via.naam||t.via.tekst)}${t.via.lidId?"":" (?)"}`:""}${bin?` · ${bin} binnen`:""} · ${esc(fmtDate(String(t.aangemeld||"").slice(0,10)))}</span></span><span class="pill ${k}">${lbl}</span><span class="ml-chev" aria-hidden="true">›</span></button>`}).join("")||`<div class="empty">${q?"Niets gevonden.":"Nog geen bestellingen."}</div>`}</div></div>
+    <div class="panel" style="min-width:0"><div class="panel-h"><h2>Verkocht via leden</h2></div><div class="panel-b">${viaL.length?`<div class="stack" style="gap:6px">${viaL.map(x=>`<div style="display:flex;justify-content:space-between;gap:10px"><span>${esc(naamVol(x.l))}</span><b>${x.n}</b></div>`).join("")}</div>`:'<div class="muted small">Nog geen tickets via een lid verkocht. Kopers kunnen bij het bestellen het lid kiezen via wie ze kopen; die tickets tellen automatisch mee als "kaarten" in het puntensysteem.</div>'}</div></div>
+    </div>`}});
+document.addEventListener("input",e=>{if(e.target.matches("[data-fuq]")){FU.q=e.target.value;const p=e.target.selectionStart;renderBody();const i=$("#fuQ");if(i){i.focus();try{i.setSelectionRange(p,p)}catch(x){}}}});
+document.addEventListener("change",e=>{if(e.target.matches('[data-fu="alles"]')){FU.alles=e.target.checked;renderBody()}});
+
+/* ---------- bestelling ---------- */
+function fuToon(id){const t=S.tickets.get(id);if(!t)return;const [k,lbl]=FU_ST[t.status]||["neutral",t.status],w=canWrite;
+  const opts=[...S.leden.values()].filter(l=>!l.geenLid&&!l.dubbelVan).sort((a,b)=>naamVol(a).localeCompare(naamVol(b),"nl"));
+  modal("Bestelling "+fuNaam(t),`<div class="stack" style="gap:14px">
+    <dl class="kv"><dt>Status</dt><dd><span class="pill ${k}">${lbl}</span>${t.betaaldOp?` <span class="muted small">${esc(new Date(t.betaaldOp).toLocaleString("nl-BE"))}</span>`:""}</dd>
+      <dt>Tickets</dt><dd>${t.aantal} × ${fuEur(t.prijs)} = <b>${fuEur(t.bedrag)}</b></dd><dt>E-mail</dt><dd>${esc(t.email)}</dd><dt>Adres</dt><dd>${esc(t.adres)}</dd>${t.telefoon?`<dt>Telefoon</dt><dd>${esc(t.telefoon)}</dd>`:""}
+      <dt>Besteld</dt><dd>${esc(new Date(t.aangemeld).toLocaleString("nl-BE"))}</dd>${t.mail?`<dt>Tickets gemaild</dt><dd>${esc(new Date(t.mail.op).toLocaleString("nl-BE"))} naar ${esc(t.mail.aan)}</dd>`:""}</dl>
+    <div class="fld"><label for="fuVia">Verkocht via lid (puntensysteem)</label><select id="fuVia" class="sel"${w?"":" disabled"}><option value="">Geen lid</option>${opts.map(l=>`<option value="${esc(l.id)}"${t.via&&t.via.lidId===l.id?" selected":""}>${esc(naamVol(l))}</option>`).join("")}</select>${t.via&&t.via.tekst&&!t.via.lidId?`<span class="help">De koper typte: <b>${esc(t.via.tekst)}</b></span>`:""}${t.punten?`<span class="help">${t.punten.aantal} ${t.punten.aantal===1?"kaart":"kaarten"} geteld bij ${esc((S.leden.get(t.punten.lidId)&&naamVol(S.leden.get(t.punten.lidId)))||"")} (${t.punten.jaar}).</span>`:""}</div>
+    ${(t.tickets||[]).length?`<div><span class="lbl">Tickets</span><div class="stack" style="gap:6px;margin-top:6px">${t.tickets.map(x=>`<div style="display:flex;align-items:center;gap:10px;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:8px 12px"><span><b>${x.nr}</b> · <span style="font-family:ui-monospace,Menlo,monospace">${esc(x.code.replace(/(.{4})(?=.)/g,"$1 "))}</span></span>${x.gescand?`<span class="small"><span class="pill ok">Binnen</span> ${esc(new Date(x.gescand.op).toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"}))}${w?` <button type="button" class="linkbtn" data-fu="ontscan" data-id="${esc(t.id)}" data-c="${esc(x.code)}">ongedaan</button>`:""}</span>`:'<span class="pill neutral">Nog niet binnen</span>'}</div>`).join("")}</div></div>`:""}
+    <div class="err" id="fuErr"></div></div>`,
+   `${w&&t.status!=="geannuleerd"?`<button class="btn ghost danger" data-fu="annuleer" data-id="${esc(t.id)}">Annuleren</button><span class="grow"></span>`:""}${t.status==="wacht"&&w?`<button class="btn" data-fu="controle" data-id="${esc(t.id)}">Betaling nakijken</button>`:""}${t.status==="betaald"?`<button class="btn" data-fu="pdf" data-id="${esc(t.id)}">${ic("download")}PDF</button>${w?`<button class="btn" data-fu="mail" data-id="${esc(t.id)}">${ic("mails")}Opnieuw mailen</button>`:""}`:""}<button class="btn primary" data-act="closeModal">Sluiten</button>`);
+  const v=$("#fuVia");if(v&&w)v.onchange=async()=>{v.disabled=true;try{await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"koppel",id,lidId:v.value})});toast(v.value?"Tickets tellen mee bij "+naamVol(S.leden.get(v.value))+".":"Tickets aan geen lid meer gekoppeld.")}catch(e){$("#fuErr").textContent=e.message}v.disabled=false}}
+document.addEventListener("click",async e=>{const t=e.target.closest("[data-fu]");if(!t||t.tagName==="INPUT")return;const a=t.dataset.fu,id=t.dataset.id;
+  if(a==="toon"){e.preventDefault();fuToon(id)}
+  else if(a==="inst"){e.preventDefault();fuInst()}
+  else if(a==="scan"){e.preventDefault();fuScan()}
+  else if(a==="mail"){t.disabled=true;try{await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"mail",id})});toast("Tickets opnieuw gemaild.")}catch(x){toast(x.message,true)}t.disabled=false}
+  else if(a==="controle"){t.disabled=true;try{const j=await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"controle",id})});toast("Status bij Bancontact: "+(j.status||"onbekend"))}catch(x){toast(x.message,true)}t.disabled=false}
+  else if(a==="pdf"){t.disabled=true;try{const j=await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"pdf",id})});const b=Uint8Array.from(atob(j.pdf),c=>c.charCodeAt(0));const u=URL.createObjectURL(new Blob([b],{type:"application/pdf"}));const l=document.createElement("a");l.href=u;l.download=j.naam;document.body.append(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}catch(x){toast(x.message,true)}t.disabled=false}
+  else if(a==="ontscan"){try{await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"ontscan",id,code:t.dataset.c})});toast("Scan ongedaan gemaakt.");setTimeout(()=>fuToon(id),400)}catch(x){toast(x.message,true)}}
+  else if(a==="annuleer"){const r=S.tickets.get(id);confirmBox(`Bestelling van <b>${esc(fuNaam(r))}</b> annuleren? De tickets worden ongeldig${r.punten?" en de kaarten in het puntensysteem worden teruggeteld":""}.<br><small class="muted">Het geld terugstorten doe je zelf.</small>`,"Annuleren",async()=>{try{await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"annuleer",id})});toast("Bestelling geannuleerd.")}catch(x){toast(x.message,true)}})}});
+
+/* ---------- instellingen ---------- */
+function fuInst(){const c=fuCfg(),d=canWrite?"":" disabled",u=location.origin+"/fuif";
+  modal("Instellingen "+(c.naam||"fuif"),`<form id="fFu" class="form" onsubmit="return false">
+    <label class="sp-nat full" for="fuOpen"><input type="checkbox" id="fuOpen"${c.open!==false?" checked":""}${d}><span><b>Ticketverkoop open</b><small>Uit = de openbare pagina toont dat de verkoop gesloten is. Na de datum van de fuif sluit de verkoop vanzelf.</small></span></label>
+    ${fld("fuN","Naam",inp("fuN",c.naam,d))}${fld("fuD","Datum",`<input id="fuD" type="date" value="${esc(c.datum)}"${d}>`)}
+    ${fld("fuU","Deuren open",inp("fuU",c.deuren,'placeholder="bv. 21u00"'+d))}${fld("fuL","Locatie",inp("fuL",c.locatie,'placeholder="Zaal, straat nr, gemeente"'+d))}
+    ${fld("fuP","Prijs per ticket (€)",`<input id="fuP" inputmode="decimal" value="${esc(String(c.prijs).replace(".",","))}"${d}>`)}${fld("fuM","Maximum aantal tickets",`<input id="fuM" inputmode="numeric" value="${c.max||""}" placeholder="leeg = onbeperkt"${d}>`)}
+    ${fld("fuB","Max. tickets per bestelling",`<input id="fuB" inputmode="numeric" value="${c.perBestelling||10}"${d}>`)}
+    ${fld("fuI","Extra info in de ticketmail",`<textarea id="fuI" rows="2" placeholder="bv. Gratis vestiaire. Minimumleeftijd 16 jaar."${d}>${esc(c.info||"")}</textarea>`,"full")}
+    <div class="err full" id="fuIErr"></div></form>
+    <div class="pi-sec ka-qrs"><h4>Ticketpagina en QR-code voor de affiche</h4><p class="pi-note" style="margin:0 0 8px">Wie de QR-code scant, komt op de pagina om tickets te bestellen en met Bancontact te betalen.</p>
+    <div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(u)}" onclick="this.select()"><button type="button" class="btn" data-act="kopieerLink" data-v="${esc(u)}">${ic("copy")}Kopiëren</button><a class="btn" href="/fuif" target="_blank" rel="noopener">Openen</a></div>
+    <div class="ka-qr"><img alt="QR-code naar de ticketpagina" src="${kaQr(u,8)}" width="148" height="148"><div class="ka-qr-b"><span class="muted small">Voor de affiche, flyers of Facebook.</span><button type="button" class="btn sm" data-kaqr="kopie" data-v="${esc(u)}">${ic("copy")}QR kopiëren</button><button type="button" class="btn sm" data-kaqr="png" data-v="${esc(u)}" data-n="QR tickets ${esc(c.naam||"fuif")}">${ic("download")}QR downloaden</button></div></div></div>`,
+   `<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="fuOk">Bewaren</button>':""}`,{wide:true});
+  const ok=$("#fuOk");if(ok)ok.onclick=async()=>{const g=i=>($("#"+i).value||"").trim(),prijs=Math.round(Number(g("fuP").replace(",","."))*100)/100;
+    if(!(prijs>0)){$("#fuIErr").textContent="Vul een geldige prijs in.";return}
+    const r={...stripId(S.config.get("fuif")||{}),open:$("#fuOpen").checked,naam:g("fuN")||FU_DEF.naam,datum:g("fuD"),deuren:g("fuU"),locatie:g("fuL"),prijs,max:Math.max(0,parseInt(g("fuM"),10)||0),perBestelling:Math.min(50,Math.max(1,parseInt(g("fuB"),10)||10)),info:g("fuI")};
+    closeModal();S.config.set("fuif",{...r,id:"fuif"});await write("config","fuif",r);toast("Instellingen bewaard.");render(true)}}
+
+/* ---------- scannen aan de kassa ---------- */
+const FU_JSQR={src:"https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js",sri:""};
+let FUS=null;
+function fuLaadJsQR(){if(window.jsQR)return Promise.resolve();return new Promise((ok,nok)=>{const s=document.createElement("script");s.src=FU_JSQR.src;if(FU_JSQR.sri){s.integrity=FU_JSQR.sri;s.crossOrigin="anonymous"}s.onload=ok;s.onerror=()=>nok(new Error("De QR-lezer kon niet geladen worden."));document.head.append(s)})}
+async function fuScan(){
+  modal("Tickets scannen",`<div class="fu-scan"><div class="fu-cam"><video id="fuV" playsinline muted></video><div class="fu-kader"></div><div class="fu-res" id="fuRes" hidden></div></div>
+    <p class="muted small" id="fuStat" style="margin:8px 0 0;text-align:center">Camera starten…</p>
+    <form class="fu-man" id="fuMan" onsubmit="return false"><input id="fuCode" placeholder="Of typ de ticketcode" autocomplete="off" autocapitalize="characters"><button class="btn" id="fuCodeOk">Controleren</button></form></div>`,
+   `<span class="muted small" id="fuTel"></span><span class="grow"></span><button class="btn primary" data-act="closeModal">Klaar</button>`,{onClose:fuStop});
+  $("#fuCodeOk").onclick=()=>{const v=$("#fuCode").value.trim();if(v){fuCheck(v);$("#fuCode").value=""}};
+  FUS={bezig:false,stop:false,laatst:"",t:0};
+  try{const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});if(!FUS||FUS.stop){st.getTracks().forEach(x=>x.stop());return}
+    FUS.stream=st;const v=$("#fuV");v.srcObject=st;await v.play();
+    let det=null;if("BarcodeDetector" in window){try{const f=await BarcodeDetector.getSupportedFormats();if(f.includes("qr_code"))det=new BarcodeDetector({formats:["qr_code"]})}catch(x){}}
+    if(!det)await fuLaadJsQR();
+    $("#fuStat").textContent="Richt de camera op de QR-code van het ticket.";
+    const cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true});
+    const loop=async()=>{if(!FUS||FUS.stop)return;
+      if(!FUS.bezig&&v.readyState>=2){let txt="";
+        try{if(det){const r=await det.detect(v);txt=r[0]&&r[0].rawValue||""}
+          else{const w=Math.min(720,v.videoWidth),h=Math.round(v.videoHeight*w/v.videoWidth);cv.width=w;cv.height=h;cx.drawImage(v,0,0,w,h);const r=window.jsQR(cx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:"dontInvert"});txt=r&&r.data||""}}catch(x){}
+        if(txt&&!(txt===FUS.laatst&&Date.now()-FUS.t<4000)){FUS.laatst=txt;FUS.t=Date.now();fuCheck(txt)}}
+      FUS.raf=requestAnimationFrame(loop)};loop();
+  }catch(e){const s=$("#fuStat");if(s)s.textContent=(e&&e.name==="NotAllowedError"?"Geen toegang tot de camera. Sta de camera toe in je browser, of typ de code hieronder.":"De camera kon niet starten"+(e&&e.message?": "+e.message:"")+". Typ de code hieronder.")}}
+function fuStop(){if(!FUS)return;FUS.stop=true;cancelAnimationFrame(FUS.raf);if(FUS.stream)FUS.stream.getTracks().forEach(x=>x.stop());FUS=null}
+async function fuCheck(txt){if(!FUS)return;FUS.bezig=true;const r=$("#fuRes");
+  try{const j=await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"scan",code:txt})});
+    const tijd=s=>new Date(s).toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"});
+    r.className="fu-res "+(j.ok?"ok":j.al?"al":"nok");
+    r.innerHTML=j.ok?`<b>✓ Geldig</b><span>${esc(j.naam)}</span><small>Ticket ${j.nr} van ${j.van}</small>`
+      :`<b>${j.al?"⚠ Al gescand":"✕ Niet geldig"}</b><span>${esc(j.naam||"")}</span><small>${esc(j.reden||"")}${j.al&&j.op?" Om "+tijd(j.op)+".":""}</small>`;
+    r.hidden=false;try{navigator.vibrate&&navigator.vibrate(j.ok?80:[60,60,60])}catch(x){}
+    if(j.ok&&j.binnen!=null){const s=fuStats();const t=$("#fuTel");if(t)t.textContent=`${s.bin+1} van ${s.tk} binnen`}}
+  catch(e){r.className="fu-res nok";r.innerHTML=`<b>Fout</b><small>${esc(e.message)}</small>`;r.hidden=false}
+  setTimeout(()=>{if(!FUS)return;FUS.bezig=false;const x=$("#fuRes");if(x)x.hidden=true},2200)}

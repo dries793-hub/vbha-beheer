@@ -202,7 +202,9 @@ export async function bevestigingenCron(req, res) {
   try { inkomend = await (await import("./inkomend.js")).inkomendCron(sb); } catch (e) { console.error("inkomend", e); inkomend = { fout: e.message }; }
   let betaalherinnering = null;
   try { betaalherinnering = await (await import("./betaalherinnering.js")).betaalHerinneringCron(sb); } catch (e) { console.error("betaalherinnering", e); betaalherinnering = { fout: e.message }; }
-  res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend, betaalherinnering });
+  let fuif = null;
+  try { fuif = await (await import("./fuif.js")).fuifCron(sb); } catch (e) { console.error("fuif", e); fuif = { fout: e.message }; }
+  res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend, betaalherinnering, fuif });
 }
 // gedeeld met de facturatie (api/_lib/factuur.js)
 export { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, kort, lang, vandaag, plusDagen, site };
