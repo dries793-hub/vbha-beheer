@@ -70,7 +70,7 @@ function ctx(){
   boek.sort((a,b)=>(a.datum||"").localeCompare(b.datum||"")||(a.nr||0)-(b.nr||0));
   let kas=c.beginKas,rek=c.beginRekening,tin=0,tuit=0;const perCat={};const reeks=[];
   for(const b of boek){const v=b.richting==="uit"?-b.bedrag:b.bedrag;if(b.rekening==="Kas")kas+=v;else rek+=v;b._kas=r2(kas);b._rek=r2(rek);
-    if(b.richting==="uit")tuit+=b.bedrag;else tin+=b.bedrag;const k=b.categorie||"(geen categorie)";perCat[k]=perCat[k]||{in:0,uit:0,n:0};perCat[k][b.richting==="uit"?"uit":"in"]+=b.bedrag;perCat[k].n++;reeks.push([b.datum,kas+rek])}
+    if(b.richting==="uit")tuit+=b.bedrag;else tin+=b.bedrag;const k=catKey(b,Y);perCat[k]=perCat[k]||{in:0,uit:0,n:0};perCat[k][b.richting==="uit"?"uit":"in"]+=b.bedrag;perCat[k].n++;reeks.push([b.datum,kas+rek])}
   const lidBoek=[...S.boekingen.values()].filter(b=>b.richting!=="uit"&&(b.lidgeldJaar?Number(b.lidgeldJaar)===Y:b.jaar===Y)).map(b=>({...b,_m:norm(b.mededeling),_p:norm(b.partij)})).filter(b=>b._m.includes("lidgeld")||b.lidId);
   const leden=[...S.leden.values()].filter(l=>!l.geenLid&&(!l.lidSinds||l.lidSinds<=Y)&&(!l.lidTot||l.lidTot>=Y));
   const oud=[...S.leden.values()].filter(l=>!leden.includes(l)&&!(l.lidSinds>Y));
@@ -90,6 +90,7 @@ function ctx(){
   }
   const sortNaam=(a,b)=>(a.naam||"").localeCompare(b.naam||"","nl")||(a.voornaam||"").localeCompare(b.voornaam||"","nl");
   leden.sort(sortNaam);oud.sort(sortNaam);
+  wjLabels(perCat,Y);
   CTX={Y,c,boek,kas:r2(kas),rek:r2(rek),tin,tuit,perCat,reeks,leden,oud,rows};CTXKEY=Y;dirty=false;return CTX;
 }
 
@@ -510,7 +511,7 @@ function teVerwerken(C){return C.boek.filter(b=>!b.categorie||b.status==="contro
 function boekTabs(act){return "";const n=teVerwerken(ctx()).length;return `<nav class="tabs" aria-label="Onderdelen boekhouding">${BOEK_TABS.map(([k,l])=>`<a href="#${k}" class="${k===act?"on":""}">${esc(l)}${k==="verwerken"&&n?`<span class="cnt">${n}</span>`:""}</a>`).join("")}</nav>`}
 function catList(C){return [...new Set([...cfg().boekCategorieen,...(C?C.boek.map(b=>b.categorie).filter(Boolean):[])])]}
 function bedragCel(b){return `<span class="amt ${b.richting==="uit"?"out":"in"}">${b.richting==="uit"?"−":"+"}${eur(b.bedrag)}</span>`}
-function catCell(b){if(!b.categorie)return '<span class="pill warn">Te verwerken</span>';return `<span class="cat">${esc(b.categorie)}</span>${b.status==="controle"?' <span class="pill warn" title="Automatisch voorgesteld, nog niet bevestigd">controleren</span>':""}`}
+function catCell(b){if(!b.categorie)return '<span class="pill warn">Te verwerken</span>';return `<span class="cat">${esc(b.categorie)}</span>${wjPill(b)}${b.status==="controle"?' <span class="pill warn" title="Automatisch voorgesteld, nog niet bevestigd">controleren</span>':""}`}
 function bronLabel(b){return b.bron==="api"?"Bankkoppeling":b.bron==="bank"?"Bankbestand":b.bron==="excel"?"Excel-import":"Manueel"}
 const boekActions=()=>'<button class="btn primary" data-w data-act="nieuweBoeking" title="Een transactie met de hand toevoegen, bv. een kasverrichting">'+ic("plus")+'Manuele transactie</button>';
 
@@ -562,7 +563,7 @@ VIEWS.boekhouding=()=>({title:"Boekhouding",sub:"Overzicht boekjaar "+JAAR,actio
     <div class="panel"><div class="panel-h"><h2>Laatste transacties</h2><span class="grow"></span><a class="btn sm" href="#boekingen">Alle transacties</a></div><div class="list" style="padding:4px 20px">
       ${recent.map(b=>`<div class="li click" data-act="toonBoeking" data-id="${esc(b.id)}"><span class="muted nowrap" style="width:84px">${fmtDate(b.datum)}</span><span class="grow trunc">${esc(b.partij||b.mededeling)}<br><span class="muted small">${b.categorie?esc(b.categorie):"Te verwerken"}</span></span>${bedragCel(b)}</div>`).join("")||'<div class="empty">Nog geen transacties.</div>'}
     </div></div>
-  </div>`}});
+  </div>${wjPaneel()}`}});
 function maandChart(C){
   const m=Array.from({length:12},()=>({in:0,uit:0}));for(const b of C.boek){const i=+String(b.datum||"").slice(5,7)-1;if(i>=0&&i<12)m[i][b.richting==="uit"?"uit":"in"]+=b.bedrag}
   const W=900,H=240,P=46,B=26;const top=Math.max(1,...m.map(x=>Math.max(x.in,x.uit)));const stepV=[100,200,250,500,1000,2000,2500,5000,10000,20000,50000].find(s=>top/s<=4)||100000;const hi=Math.ceil(top/stepV)*stepV;
@@ -581,7 +582,7 @@ VIEWS.boekingen=()=>({title:"Transacties",sub:"Journaal boekjaar "+JAAR,actions:
   return boekTabs("boekingen")+`<div class="bar">
    <div class="search">${ic("search")}<input id="boekQ" data-live data-input="boekQ" placeholder="Zoek op naam, mededeling, bedrag of nummer" value="${esc(UI.boekQ)}"></div>
    <select class="sel" id="boekMaand" data-change="boekMaand" aria-label="Maand"><option value="">Hele jaar</option>${MAANDEN_VOL.map((m,i)=>{const v=String(i+1).padStart(2,"0");return `<option value="${v}"${UI.boekMaand===v?" selected":""}>${m}</option>`}).join("")}</select>
-   <select class="sel" id="boekCat" data-change="boekCat" aria-label="Categorie"><option value="">Alle categorieën</option>${[...catList(C),"(geen categorie)"].map(k=>`<option${UI.boekCat===k?" selected":""}>${esc(k)}</option>`).join("")}</select>
+   <select class="sel" id="boekCat" data-change="boekCat" aria-label="Categorie"><option value="">Alle categorieën</option>${[...new Set([...catList(C),...Object.keys(C.perCat).filter(k=>/ \d{4}$/.test(k)).sort(),"(geen categorie)"])].map(k=>`<option${UI.boekCat===k?" selected":""}>${esc(k)}</option>`).join("")}</select>
    <div class="seg" role="group" aria-label="Rekening of kas">${[["","Alles"],["Rekening","Rekening"],["Kas","Kas"]].map(([k,l])=>`<button data-act="boekRek" data-v="${k}" class="${UI.boekRek===k?"on":""}">${l}</button>`).join("")}</div>
    <div class="seg" role="group" aria-label="In of uit">${[["","In en uit"],["in","In"],["uit","Uit"]].map(([k,l])=>`<button data-act="boekDir" data-v="${k}" class="${UI.boekDir===k?"on":""}">${l}</button>`).join("")}</div>
    ${UI.boekQ||UI.boekMaand||UI.boekCat||UI.boekRek||UI.boekDir?'<button class="btn ghost sm" data-act="filtersWis">Filters wissen</button>':""}
@@ -589,7 +590,7 @@ VIEWS.boekingen=()=>({title:"Transacties",sub:"Journaal boekjaar "+JAAR,actions:
 function journalList(){
   const C=ctx();const q=norm(UI.boekQ);let L=C.boek;
   if(UI.boekMaand)L=L.filter(b=>String(b.datum||"").slice(5,7)===UI.boekMaand);
-  if(UI.boekCat)L=L.filter(b=>(b.categorie||"(geen categorie)")===UI.boekCat);
+  if(UI.boekCat)L=L.filter(b=>catMatch(b,UI.boekCat));
   if(UI.boekRek)L=L.filter(b=>b.rekening===UI.boekRek);
   if(UI.boekDir)L=L.filter(b=>(b.richting==="uit"?"uit":"in")===UI.boekDir);
   if(q)L=L.filter(b=>(b._m+" "+b._p+" "+norm(b.categorie)+" "+String(b.bedrag).replace(".",",")+" "+(b.nr??"")+" "+norm(b.iban)).includes(q));
@@ -722,6 +723,7 @@ function finInst(){const j=jaarCfg(JAAR),c=cfg();const d=canWrite?"":" disabled"
   <div class="pi-sec"><h4>Lidgeld ${JAAR}</h4><div class="form">${n("fiLg","Gewoon lid",j.lidgeld.gewoon,"€")}${n("fiLe","Erewacht",j.lidgeld.erewacht,"€")}</div></div>
   <div class="pi-sec"><h4>Rekening</h4><div class="form"><div class="fld full"><label for="fiIban">Rekeningnummer</label><input id="fiIban" value="${esc(c.rekeningnummer)}" placeholder="BE.. .... .... ...."${d}><span class="help">Staat op de betaal-QR's, de inschrijfpagina's en in de mails.</span></div></div></div>
   <div class="pi-sec"><h4>Categorieën</h4><div class="form"><div class="fld full"><span class="lbl">Categorieën boekhouding</span>${catEditor("fiCat",c.boekCategorieen)}<span class="help">Een categorie verwijderen verandert niets aan bestaande transacties.</span></div></div></div>
+  ${wjInstHtml(c)}
   <div class="pi-sec"><h4>Bank</h4><div class="bar" style="margin:0"><a class="btn" href="#bank" data-act="closeModal">${ic("upload")}Bankimport en koppeling</a><a class="btn" href="#regels" data-act="closeModal">Automatische regels</a></div></div>`,
   `<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="fiOk">Bewaren</button>':""}`);
   const ok=$("#fiOk");if(!ok)return;
@@ -729,7 +731,7 @@ function finInst(){const j=jaarCfg(JAAR),c=cfg();const d=canWrite?"":" disabled"
     if(!cats.length){toast("Geef minstens één categorie op.",true);return}
     const cur=stripId(S.jaren.get(String(JAAR))||{jaar:JAAR});
     await write("jaren",String(JAAR),{...cur,jaar:JAAR,beginKas:v("fiKas"),beginRekening:v("fiRek"),lidgeld:{...(cur.lidgeld||{}),gewoon:v("fiLg"),erewacht:v("fiLe")}});
-    await write("config","algemeen",{...stripId(S.config.get("algemeen")||{}),rekeningnummer:$("#fiIban").value.trim(),boekCategorieen:cats});
+    await write("config","algemeen",{...stripId(S.config.get("algemeen")||{}),rekeningnummer:$("#fiIban").value.trim(),boekCategorieen:cats,...(wjInstVals()?{overlopend:wjInstVals()}:{})});
     closeModal();toast("Financiële instellingen bewaard.")}}
 function puntInst(){const c=jaarCfg(JAAR),w=c.gewichten,dr=c.drempels,k=c.korting;
   const n=(id,l,v,suf)=>`<div class="fld"><label for="${id}">${l}</label><div class="sfx"><input id="${id}" type="number" min="0" step="1" inputmode="numeric" value="${v}"><span>${suf}</span></div></div>`;
@@ -1293,9 +1295,9 @@ function alleJaren(){
   for(const j of list){let kas=j.beginKas,rek=j.beginRekening,tin=0,tuit=0;const perCat={};
     j.rows.sort((a,b)=>(a.datum||"").localeCompare(b.datum||"")||(a.nr||0)-(b.nr||0));
     for(const b of j.rows){const v=b.richting==="uit"?-b.bedrag:b.bedrag;if(b.rekening==="Kas")kas+=v;else if(b.rekening==="Rekening")rek+=v;
-      if(b.richting==="uit")tuit+=b.bedrag;else tin+=b.bedrag;const k=b.categorie||"(geen categorie)";perCat[k]=perCat[k]||{in:0,uit:0,n:0};perCat[k][b.richting==="uit"?"uit":"in"]+=b.bedrag;perCat[k].n++;
+      if(b.richting==="uit")tuit+=b.bedrag;else tin+=b.bedrag;const k=catKey(b,j.jaar);perCat[k]=perCat[k]||{in:0,uit:0,n:0};perCat[k][b.richting==="uit"?"uit":"in"]+=b.bedrag;perCat[k].n++;
       b._kas=r2(kas);b._rek=r2(rek)}
-    Object.assign(j,{eindKas:r2(kas),eindRek:r2(rek),tin:r2(tin),tuit:r2(tuit),perCat})}
+    wjLabels(perCat,j.jaar);Object.assign(j,{eindKas:r2(kas),eindRek:r2(rek),tin:r2(tin),tuit:r2(tuit),perCat})}
   list.forEach((j,i)=>{const p=list[i-1];j.gat=p&&p.jaar===j.jaar-1?r2((j.beginKas+j.beginRekening)-(p.eindKas+p.eindRek)):0;j.gatKas=p&&p.jaar===j.jaar-1?r2(j.beginKas-p.eindKas):0;j.gatRek=p&&p.jaar===j.jaar-1?r2(j.beginRekening-p.eindRek):0});
   return list;
 }
@@ -1633,7 +1635,7 @@ function boekingForm(b,id,title){
     ${fld("bRich","In of uit *",`<select id="bRich" name="richting">${selOpts([["in","In (ontvangst)"],["uit","Uit (uitgave)"]],b.richting||"in")}</select>`)}
     ${fld("bRek","Rekening of kas *",`<select id="bRek" name="rekening">${selOpts(["Kas","Rekening"],b.rekening||"Kas")}</select>`)}
     ${fld("bIban","Rekening tegenpartij",inp("bIban",b.iban,'name="iban" placeholder="BE.. .... .... ...."'))}
-    ${fld("bLgJ","Lidgeld voor jaar",`<select id="bLgJ" name="lidgeldJaar">${selOpts([["","Boekjaar van de transactie"],...[JAAR-1,JAAR+1].map(y=>[String(y),"Lidgeld "+y+(y>JAAR?" (vooruitbetaald)":"")])],b.lidgeldJaar?String(b.lidgeldJaar):"")}</select>`)}${fld("bLid","Gekoppeld lid (lidgeld)",`<select id="bLid" name="lidId">${selOpts(ledenOpts,b.lidId||"")}</select>`,"full")}
+    ${fld("bLgJ","Lidgeld voor jaar",`<select id="bLgJ" name="lidgeldJaar">${selOpts([["","Boekjaar van de transactie"],...[JAAR-1,JAAR+1].map(y=>[String(y),"Lidgeld "+y+(y>JAAR?" (vooruitbetaald)":"")])],b.lidgeldJaar?String(b.lidgeldJaar):"")}</select>`)}${fld("bWj","Hoort bij werkjaar",`<select id="bWj" name="werkjaar">${selOpts([["","Automatisch (datum en categorie)"],...[JAAR-1,JAAR,JAAR+1].map(y=>[String(y),"Werkjaar "+y])],b.werkjaar?String(b.werkjaar):"")}</select>`)}${fld("bLid","Gekoppeld lid (lidgeld)",`<select id="bLid" name="lidId">${selOpts(ledenOpts,b.lidId||"")}</select>`,"full")}
     ${info}<div class="err full" id="boekErr"></div></form>`,
     `${id?'<button class="btn ghost danger" id="bDel">Verwijderen</button><button class="btn ghost" id="bRegel">Regel maken</button><span class="grow"></span>':""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="bOk">${id?"Bewaren":"Toevoegen"}</button>`,{wide:false});
   $("#bOk").onclick=async()=>{
@@ -1645,7 +1647,7 @@ function boekingForm(b,id,title){
     if(!bedrag){e.textContent="Vul een bedrag in.";return}
     const nr=id?b.nr:nextNr();
     const base=id?stripId(S.boekingen.get(id)||b):{bron:"manueel"};
-    const d={...base,jaar:JAAR,nr,datum:f.datum,categorie:f.categorie,mededeling:f.mededeling.trim(),partij:f.partij.trim(),iban:f.iban.trim(),rekening:f.rekening,bedrag,richting:f.richting,lidId:f.lidId||null,lidgeldJaar:f.lidgeldJaar?Number(f.lidgeldJaar):null,status:null};
+    const d={...base,jaar:JAAR,nr,datum:f.datum,categorie:f.categorie,mededeling:f.mededeling.trim(),partij:f.partij.trim(),iban:f.iban.trim(),rekening:f.rekening,bedrag,richting:f.richting,lidId:f.lidId||null,lidgeldJaar:f.lidgeldJaar?Number(f.lidgeldJaar):null,werkjaar:f.werkjaar?Number(f.werkjaar):null,status:null};
     closeModal();await write("boekingen",id||newId("boekingen"),d);toast(id?"Transactie bewaard.":"Transactie "+nr+" toegevoegd.");
   };
   if(id){$("#bDel").onclick=()=>confirmBox("Transactie "+esc(b.nr??"")+" (“"+esc(b.mededeling||b.partij)+"”, "+eur(b.bedrag)+") verwijderen?","Verwijderen",async()=>{await write("boekingen",id,null,{del:true});toast("Transactie verwijderd.")});
@@ -5413,3 +5415,29 @@ document.addEventListener("change",async e=>{const t=e.target;
     catch(x){t.checked=!aan;toast("Bewaren lukte niet.",true)}return}
   if(t.dataset&&t.dataset.vrijr){const id=t.dataset.vrijr,jl=S.jaarleden.get(JAAR+"_"+id)||{};if(!jl.vrijstelling)return;
     try{await setJL(id,{vrijstelling:{...jl.vrijstelling,reden:t.value.trim()}});toast("Reden bewaard.")}catch(x){toast("Bewaren lukte niet.",true)}}});
+
+/* ---------- werkjaar: overlopende opbrengsten en kosten (kalenders, sponsoring…) ---------- */
+const WJ_MND=["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
+function wjCfg(){const o=cfg().overlopend||{};return{cats:Array.isArray(o.cats)?o.cats:["Kalenders","Sponsoring"],maand:Number(o.maand)||5}}
+// Werkjaar waartoe een transactie hoort. Manueel gekozen werkjaar gaat voor; lidgeld volgt "lidgeld voor jaar";
+// voor overlopende categorieën hoort alles vóór de grensmaand nog bij het vorige werkjaar.
+function wjVan(b,y){y=Number(y??b.jaar);if(b.werkjaar)return Number(b.werkjaar);
+  if(b.categorie==="Lidgeld"&&b.lidgeldJaar)return Number(b.lidgeldJaar);
+  const o=wjCfg();if(o.cats.includes(b.categorie)&&b.datum&&Number(String(b.datum).slice(5,7))<o.maand)return y-1;return y}
+function catKey(b,y){const c=b.categorie||"(geen categorie)";if(!b.categorie)return c;const w=wjVan(b,y);return w!==Number(y??b.jaar)?c+" "+w:c}
+// Als een categorie zowel een deel van een ander werkjaar als van dit jaar heeft, krijgt ook het deel van dit jaar het jaartal.
+function wjLabels(perCat,Y){for(const k of Object.keys(perCat)){const m=k.match(/^(.*) (\d{4})$/);if(m&&perCat[m[1]]&&!perCat[m[1]+" "+Y]){perCat[m[1]+" "+Y]=perCat[m[1]];delete perCat[m[1]]}}return perCat}
+function catMatch(b,v){const c=b.categorie||"(geen categorie)";if(c===v)return true;if(!b.categorie)return false;return catKey(b)===v||(c+" "+wjVan(b))===v}
+function wjPill(b){if(!b.categorie)return"";const w=wjVan(b);return w!==Number(b.jaar)?` <span class="pill neutral" title="Hoort bij werkjaar ${w}${b.werkjaar?" (manueel gekozen)":""}">${w}</span>`:""}
+function wjPaneel(){const o=wjCfg();const Y=JAAR;const all=[...S.boekingen.values()].filter(b=>b.categorie&&(o.cats.includes(b.categorie)||b.werkjaar));
+  const rows=[];for(const cat of [...new Set(all.map(b=>b.categorie))].sort((a,b)=>a.localeCompare(b,"nl")))for(const w of [Y-1,Y]){
+    const L=all.filter(b=>b.categorie===cat&&wjVan(b)===w);if(!L.length)continue;
+    const net=yy=>L.filter(b=>Number(b.jaar)===yy).reduce((s,b)=>s+(b.richting==="uit"?-b.bedrag:b.bedrag),0);
+    const per=[w-1,w,w+1].map(yy=>[yy,net(yy),L.some(b=>Number(b.jaar)===yy)]);const tot=per.reduce((s,p)=>s+p[1],0);
+    rows.push(`<tr><td><b>${esc(cat)} ${w}</b></td><td class="small">${per.filter(p=>p[2]).map(p=>`${p[1]>=0?"+":"−"}${eur(Math.abs(p[1]))} <span class="muted">in ${p[0]}</span>`).join("<br>")}</td><td class="num ${tot>=0?"in":"out"}"><b>${tot>=0?"+":"−"}${eur(Math.abs(tot))}</b></td></tr>`)}
+  if(!rows.length)return"";
+  return `<div class="panel"><div class="panel-h"><h2>Resultaat per werkjaar</h2><span class="grow"></span><span class="muted small">Overlopend: ${esc(o.cats.join(", "))} · vóór 1 ${WJ_MND[o.maand-1]} = vorig werkjaar</span></div><div class="tw"><table class="rcards"><thead><tr><th>Werkjaar</th><th>Geboekt in</th><th class="num">Totaal</th></tr></thead><tbody>${rows.join("")}</tbody></table></div></div>`}
+function wjInstHtml(c){const o=wjCfg();const d=canWrite?"":" disabled";
+  return `<div class="pi-sec"><h4>Overlopende werkjaren</h4><div class="form"><div class="fld full"><span class="lbl">Categorieën die over de jaargrens lopen</span><div class="bar" style="margin:0;flex-wrap:wrap;gap:6px 14px" id="wjCats">${c.boekCategorieen.map(k=>`<label style="display:inline-flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" value="${esc(k)}"${o.cats.includes(k)?" checked":""}${d}> ${esc(k)}</label>`).join("")}</div><span class="help">Transacties van deze categorieën vóór de grensdatum tellen nog bij het vorige werkjaar (bv. kalenders van vorig jaar die in het voorjaar nog betaald worden). Per transactie kan je het werkjaar ook zelf kiezen.</span></div>
+  <div class="fld"><label for="wjMaand">Nieuw werkjaar vanaf</label><select id="wjMaand"${d}>${WJ_MND.map((m,i)=>`<option value="${i+1}"${o.maand===i+1?" selected":""}>1 ${m}</option>`).join("")}</select></div></div></div>`}
+function wjInstVals(){const el=$("#wjCats");if(!el)return null;return{cats:[...el.querySelectorAll("input:checked")].map(i=>i.value),maand:Number($("#wjMaand").value)||5}}
