@@ -204,7 +204,9 @@ export async function bevestigingenCron(req, res) {
   try { betaalherinnering = await (await import("./betaalherinnering.js")).betaalHerinneringCron(sb); } catch (e) { console.error("betaalherinnering", e); betaalherinnering = { fout: e.message }; }
   let fuif = null;
   try { fuif = await (await import("./fuif.js")).fuifCron(sb); } catch (e) { console.error("fuif", e); fuif = { fout: e.message }; }
-  res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend, betaalherinnering, fuif });
+  let kassa = null;
+  try { kassa = await (await import("./kassa.js")).kassaCron(sb); } catch (e) { console.error("kassa", e); kassa = { fout: e.message }; }
+  res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend, betaalherinnering, fuif, kassa });
 }
 // gedeeld met de facturatie (api/_lib/factuur.js)
 export { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, kort, lang, vandaag, plusDagen, site };

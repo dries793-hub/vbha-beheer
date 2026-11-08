@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}</style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
-<title>Kassa · tickets scannen · VBHA</title>
+<title>Kassa · VBHA</title>
 <link rel="icon" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -173,126 +173,157 @@ html,body{overflow-x:hidden}
 .tk img{width:220px;max-width:70vw;height:auto;display:block;margin:6px auto}
 .tk .c{font-family:ui-monospace,Menlo,monospace;font-weight:700;letter-spacing:.08em;font-size:16px}
 .tk .n{font-size:12px;letter-spacing:.12em;color:#b30000;font-weight:700}
+.kop{display:block;width:100%;height:auto;max-height:70vh;object-fit:cover;border-radius:14px;margin:0 0 18px;background:var(--sunken)}
 </style>
 <style>
-.ks-cam{position:relative;background:#000;border-radius:14px;overflow:hidden;height:60vh;max-height:560px}
+main{max-width:760px;padding:14px 12px 30px}
+.ks-tabs{display:flex;background:var(--sunken);border-radius:12px;padding:4px;gap:4px;margin:0 0 12px}
+.ks-tabs button{flex:1;border:0;background:none;padding:11px 8px;border-radius:9px;font:600 15px var(--f);color:var(--muted);cursor:pointer}
+.ks-tabs button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.pos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+@media (max-width:420px){.pos{grid-template-columns:1fr 1fr}}
+.pt{--k:#55585e;--b:#f0f1f2;position:relative;border:2px solid color-mix(in srgb,var(--k) 35%,transparent);border-radius:16px;background:var(--b);color:var(--ink);padding:14px 10px;min-height:112px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;font:inherit;-webkit-user-select:none;user-select:none;touch-action:manipulation;transition:transform .06s}
+@media (prefers-color-scheme:dark){.pt{background:color-mix(in srgb,var(--k) 22%,#16171a)}}
+.pt:active{transform:scale(.96)}.pt.flash{animation:fl .25s}
+@keyframes fl{from{box-shadow:0 0 0 6px color-mix(in srgb,var(--k) 40%,transparent)}to{box-shadow:none}}
+.pt b{font-size:16.5px;line-height:1.2;text-align:center}.pt span{font-size:15px;color:var(--k);font-weight:700}
+.pt i{position:absolute;top:7px;right:7px;min-width:30px;height:30px;border-radius:999px;background:var(--k);color:#fff;font:700 16px var(--f);font-style:normal;display:grid;place-items:center;padding:0 8px}
+.pt i:empty{display:none}
+.mand{margin-top:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:10px 14px}
+.mand-r{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0}
+.mand-r+.mand-r{border-top:1px solid var(--line)}
+.mand-r button{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:8px;width:36px;height:36px;font-size:20px;cursor:pointer}
+.mand-t{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:8px;border-top:2px solid var(--ink);font-size:22px;font-weight:800}
+.ks-acts{display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:10px}.ks-acts .btn{margin:0;min-height:56px;font-size:17px}
+.btn.sec{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}.btn.sec:hover{background:var(--sunken)}
+.bq{text-align:center}.bq .bedrag{font-size:38px;font-weight:800;margin:2px 0 8px}
+.bq canvas,.bq img{width:min(320px,82vw);height:auto;background:#fff;padding:12px;border-radius:14px;border:1px solid var(--line);image-rendering:pixelated}
+.ok .vink{width:96px;height:96px;border-radius:50%;background:#1a7f45;color:#fff;display:grid;place-items:center;margin:8px auto;font-size:56px}
+.wg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.wg button{min-height:52px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:10px;font:700 17px var(--f);cursor:pointer}
+.wg button.on{border-color:var(--ink);background:var(--ink);color:var(--surface)}
+.terug{font-size:30px;font-weight:800;color:#1a7f45;margin:4px 0 10px}
+.ks-cam{position:relative;background:#000;border-radius:14px;overflow:hidden;height:58vh;max-height:560px}
 .ks-cam video{width:100%;height:100%;object-fit:cover;display:block}
 .ks-kader{position:absolute;inset:20% 14%;border:3px solid rgba(255,255,255,.85);border-radius:16px;box-shadow:0 0 0 999px rgba(0,0,0,.25);pointer-events:none}
 .ks-res{position:absolute;inset:auto 10px 10px 10px;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:2px;color:#fff;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .ks-res b{font-size:24px}.ks-res span{font-size:18px;font-weight:600}.ks-res small{font-size:14px;opacity:.92}
 .ks-res.ok{background:#1a7f45}.ks-res.nok{background:#b3121b}.ks-res.al{background:#b06a00}.ks-res.dk{background:#a86e00}
-.ks-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:12px 0 0;font-size:14px;color:var(--muted)}
-.ks-man{display:flex;gap:8px;margin-top:12px}.ks-man input{flex:1;min-width:0;font:inherit;font-size:16px;padding:11px 12px;border:1px solid var(--line-strong);border-radius:8px;text-transform:uppercase;font-family:ui-monospace,Menlo,monospace;background:var(--surface);color:var(--ink)}
+.ks-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0 0;font-size:14px;color:var(--muted)}
+.ks-man{display:flex;gap:8px;margin-top:10px}.ks-man input{flex:1;min-width:0;font:inherit;font-size:16px;padding:11px 12px;border:1px solid var(--line-strong);border-radius:8px;text-transform:uppercase;font-family:ui-monospace,Menlo,monospace;background:var(--surface);color:var(--ink)}
 .ks-man .btn{margin:0;width:auto}
-.ks-code{font-family:ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.15em;text-align:center;font-size:22px!important}
 .linkb{border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;font:inherit;font-size:13.5px}
-.ks-tabs{display:flex;background:var(--sunken);border-radius:12px;padding:4px;gap:4px;margin:0 0 14px}
-.ks-tabs button{flex:1;border:0;background:none;padding:11px 8px;border-radius:9px;font:600 15px var(--f);color:var(--muted);cursor:pointer}
-.ks-tabs button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.pos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.pt{position:relative;border:2px solid var(--line-strong);border-radius:16px;background:var(--surface);color:var(--ink);padding:18px 12px;min-height:118px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;font:inherit;-webkit-user-select:none;user-select:none;touch-action:manipulation;transition:transform .05s}
-.pt:active{transform:scale(.97)}
-.pt b{font-size:18px}.pt span{font-size:15px;color:var(--muted)}
-.pt.inkom{border-color:#e7a3a6;background:#fff5f5}.pt.drank{border-color:#e8d3a6;background:#fffaf0}
-@media (prefers-color-scheme:dark){.pt.inkom{background:#2a1617}.pt.drank{background:#2a2416}}
-.pt i{position:absolute;top:8px;right:8px;min-width:30px;height:30px;border-radius:999px;background:var(--accent);color:#fff;font:700 16px var(--f);font-style:normal;display:grid;place-items:center;padding:0 8px}
-.pt i:empty{display:none}
-.mand{margin-top:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:12px 14px}
-.mand-r{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0}
-.mand-r+.mand-r{border-top:1px solid var(--line)}
-.mand-r button{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer}
-.mand-t{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:10px;border-top:2px solid var(--ink);font-size:20px;font-weight:700}
-.ks-acts{display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-top:12px}.ks-acts .btn{margin:0}
-.btn.sec{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}
-.bq{text-align:center}.bq img{width:min(300px,80vw);height:auto;background:#fff;padding:10px;border-radius:14px;border:1px solid var(--line)}
-.bq .bedrag{font-size:34px;font-weight:800;margin:4px 0 8px}
-.bq.ok .vink{width:90px;height:90px;border-radius:50%;background:#1a7f45;color:#fff;display:grid;place-items:center;margin:10px auto;font-size:52px}
+.ks-code{font-family:ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.15em;text-align:center;font-size:22px!important;width:100%;padding:11px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink)}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" integrity="sha512-ZDSPMa/JM1D+7kdg2x3BsruQ6T/JpJo3jWDWkCZsP+5yVyp1KfESqLI+7RqB5k24F7p2cV7i2YHh/890y6P6Sw==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+<script src="/kassa-iconen.js"></script>
 </head>
 <body>
-<header class="hdr"><div class="in"><img class="logo" alt="VBHA" width="132" height="40" src="data:image/png;base64,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"><span>Vriendenkring Brandweer Hoofdpost Aalst</span></div></header>
-<main>
-  <div class="title"><h1 id="h1">Kassa</h1></div>
-  <p class="lead" id="lead">Tickets scannen aan de kassa.</p>
-  <div id="box"></div>
-</main>
+<header class="hdr"><div class="in" style="justify-content:space-between"><b style="color:#fff;font-size:16px" id="hNaam">Kassa</b><small id="hTot" style="color:#c9cbd0;font-size:13px;text-align:right"></small></div></header>
+<main><div id="box"></div></main>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const eur=n=>"€ "+Number(n||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
 const JSQR={src:"https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js",sri:"sha384-b5Ya4Bq3qCyz39m2ISh+4DxjAIljdeFwK/BsXLuj9gugaNwAcj/ia15fxNZL9Nlx"};
-let TOK=null;try{const t=JSON.parse(localStorage.getItem("vbha_kassa")||"null");if(t&&t.tot>Date.now())TOK=t}catch(x){}
-const post=async b=>{const r=await fetch("/api/fuif",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.error||"Er ging iets mis.");e.status=r.status;throw e}return j};
-function login(msg){stop();$("#lead").textContent="Geef de kassacode in die je van het bestuur kreeg. Daarmee kan je enkel tickets scannen.";
-  $("#box").innerHTML=`<form class="card" id="fl" novalidate><label for="kc">Kassacode</label><input type="text" id="kc" class="ks-code" autocomplete="off" autocapitalize="characters" maxlength="12" style="width:100%;font:inherit;padding:11px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink)"><p class="err" id="err" role="alert">${esc(msg||"")}</p><button class="btn" id="go" type="submit">Starten</button></form>`;
-  $("#fl").onsubmit=async e=>{e.preventDefault();const b=$("#go");b.disabled=true;try{const j=await post({actie:"kassa-login",code:$("#kc").value});TOK=j;try{localStorage.setItem("vbha_kassa",JSON.stringify(j))}catch(x){}scanner()}catch(x){$("#err").textContent=x.message;b.disabled=false}}}
+const tril=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(x){}};
+let TOK=null,ST=null,TAB="verkoop",MAND={},VK=null,vkT=0,naT=0;
+try{const t=JSON.parse(localStorage.getItem("vbha_kassa")||"null");if(t&&t.tot>Date.now())TOK=t}catch(x){}
+const post=async b=>{const r=await fetch("/api/kassa",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:TOK&&TOK.token,...b})});const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.error||"Er ging iets mis. Controleer de internetverbinding.");e.status=r.status;throw e}return j};
+function fout(e){if(e&&e.status===401){login(e.message);return true}return false}
+/* ---------- aanmelden ---------- */
+function login(msg){stop();TOK=null;try{localStorage.removeItem("vbha_kassa")}catch(x){}$("#hNaam").textContent="Kassa";$("#hTot").textContent="";
+  $("#box").innerHTML=`<form class="card" id="fl" novalidate style="margin-top:12px"><h2 style="margin:0 0 6px">Kassa</h2><p class="lead" style="margin:0 0 14px">Geef de kassacode in die je van het bestuur kreeg. Een code is 1 dag geldig.</p><label for="kc">Kassacode</label><input type="text" id="kc" class="ks-code" autocomplete="off" autocapitalize="characters" maxlength="12"><p class="err" id="err" role="alert">${esc(msg||"")}</p><button class="btn" id="go" type="submit">Starten</button></form>`;
+  $("#fl").onsubmit=async e=>{e.preventDefault();const b=$("#go");b.disabled=true;try{const j=await post({actie:"login",code:$("#kc").value});TOK=j;try{localStorage.setItem("vbha_kassa",JSON.stringify(j))}catch(x){}await laad();toon()}catch(x){$("#err").textContent=x.message;b.disabled=false}}}
+async function laad(){ST=await post({actie:"stand"});$("#hNaam").textContent="Kassa · "+ST.naam;hoofd()}
+function hoofd(){if(!ST)return;const t=ST.totalen||{};$("#hTot").textContent=`${t.verkopen||0} verkopen · ${eur((t.bancontact||0)+(t.cash||0))}`}
+const tabs=()=>ST&&ST.scan?`<div class="ks-tabs"><button type="button" data-tab="verkoop" class="${TAB==="verkoop"?"on":""}">Verkopen</button><button type="button" data-tab="scan" class="${TAB==="scan"?"on":""}">Scannen</button></div>`:"";
+function toon(){if(!ST)return;if(!ST.scan)TAB="verkoop";if(TAB==="scan")scanner();else{stop();verkoopScherm()}}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-tab]");if(!t)return;TAB=t.dataset.tab;toon()});
+// stand en tegels af en toe verversen (op de achtergrond, zonder te storen)
+setInterval(async()=>{if(!TOK||VK||document.hidden)return;try{const oud=JSON.stringify(ST&&ST.tegels);await laad();if(TAB==="verkoop"&&JSON.stringify(ST.tegels)!==oud&&!Object.keys(MAND).length)verkoopScherm()}catch(e){fout(e)}},45000);
+/* ---------- verkopen ---------- */
+const kleur=k=>(window.KASSA_KLEUREN||{})[k]||["#55585e","#f0f1f2"];
+function verkoopScherm(){clearTimeout(naT);const T=ST.tegels||[],tot=T.reduce((n,x)=>n+(MAND[x.id]||0)*x.prijs,0),gek=T.filter(x=>MAND[x.id]);
+  $("#box").innerHTML=tabs()+(T.length?`<div class="pos">${T.map(x=>{const [k,b]=kleur(x.kleur);return `<button type="button" class="pt" data-pt="${esc(x.id)}" style="--k:${k};--b:${b}"><i>${MAND[x.id]||""}</i>${typeof kassaIcoon==="function"?kassaIcoon(x.icoon,k):""}<b>${esc(x.naam)}</b><span>${eur(x.prijs)}</span></button>`}).join("")}</div>`:'<div class="card"><p style="margin:0">Er staan nog geen tegels klaar voor deze kassa. Vraag het bestuur om ze in te stellen.</p></div>')+`
+   <div class="mand">${gek.length?gek.map(x=>`<div class="mand-r"><span><b>${MAND[x.id]}×</b> ${esc(x.naam)}</span><span style="display:flex;align-items:center;gap:10px">${eur(MAND[x.id]*x.prijs)}<button type="button" data-min="${esc(x.id)}" aria-label="Eén minder">−</button></span></div>`).join(""):'<div class="hint" style="margin:4px 0;text-align:center">Tik op een tegel om toe te voegen.</div>'}
+   <div class="mand-t"><span>Totaal</span><span>${eur(tot)}</span></div></div>
+   <div class="ks-acts"><button class="btn" id="afr"${tot>0&&ST.online?"":" disabled"}>Bancontact</button><button class="btn sec" id="cash"${tot>0?"":" disabled"}>Cash</button></div>
+   ${gek.length?'<p style="text-align:center;margin:10px 0 0"><button type="button" class="linkb" id="leeg">Alles wissen</button></p>':""}`}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-pt]");if(t){MAND[t.dataset.pt]=(MAND[t.dataset.pt]||0)+1;tril(12);verkoopScherm();const n=$(`[data-pt="${CSS.escape(t.dataset.pt)}"]`);if(n){n.classList.add("flash")}return}
+  const m=e.target.closest("[data-min]");if(m){const k=m.dataset.min;MAND[k]=Math.max(0,(MAND[k]||0)-1);if(!MAND[k])delete MAND[k];verkoopScherm();return}
+  const id=e.target.id;
+  if(id==="leeg"){MAND={};verkoopScherm()}else if(id==="afr")bancontact();else if(id==="cash")cashScherm();
+  else if(id==="vkStop"){if(VK)post({actie:"stop",id:VK.id}).catch(()=>{});VK=null;clearTimeout(vkT);verkoopScherm()}
+  else if(id==="vkNieuw")nieuweQr();else if(id==="vkVolgende"||id==="okVolgende")volgende();else if(id==="cashTerug")verkoopScherm();
+  else if(id==="cashOk")cashBevestig();else if(e.target.closest("[data-wg]")){const v=e.target.closest("[data-wg]").dataset.wg;cashOntv=v==="gepast"?mandTot():Number(v);cashTeken()}});
+const mandTot=()=>Math.round((ST.tegels||[]).reduce((n,x)=>n+(MAND[x.id]||0)*x.prijs,0)*100)/100;
+function wat(){return (ST.tegels||[]).filter(x=>MAND[x.id]).map(x=>`${MAND[x.id]}× ${esc(x.naam)}`).join("<br>")}
+// Bancontact: QR meteen lokaal tekenen uit de betaallink (geen wachten op een afbeelding)
+function qrCanvas(txt){if(!window.qrcode)return null;const q=qrcode(0,"M");q.addData(txt);q.make();const n=q.getModuleCount(),px=8,r=2,cv=document.createElement("canvas");cv.width=cv.height=(n+r*2)*px;const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,cv.height);g.fillStyle="#000";for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(q.isDark(y,x))g.fillRect((x+r)*px,(y+r)*px,px,px);return cv}
+async function bancontact(){const b=$("#afr");b.disabled=true;b.textContent="QR maken…";
+  try{const j=await post({actie:"verkoop",items:MAND,betaalwijze:"bancontact",bedrag:mandTot()});VK=j;toonQr();volgVk(1200)}
+  catch(e){if(fout(e))return;if(e.status===409){await laad();MAND={};verkoopScherm()}alert(e.message);const x=$("#afr");if(x){x.disabled=false;x.textContent="Bancontact"}}}
+function toonQr(){$("#box").innerHTML=tabs()+`<div class="card bq"><p style="margin:0;color:var(--muted)">Laat de klant scannen met de Bancontact- of bankapp</p><div class="bedrag">${eur(VK.bedrag)}</div><div id="qrPlek"></div><p class="wacht" id="vkSt" style="margin-top:10px">Wachten op betaling…</p>
+  <div class="ks-acts" style="grid-template-columns:1fr 1fr"><button class="btn sec" id="vkNieuw">Nieuwe QR</button><button class="btn sec" id="vkStop">Annuleren</button></div></div>`;
+  const p=$("#qrPlek"),cv=VK.deeplink&&qrCanvas(VK.deeplink);if(cv)p.append(cv);else if(VK.qrcode)p.innerHTML=`<img src="${esc(VK.qrcode)}" alt="Bancontact-QR-code">`;else p.innerHTML='<p class="err">Geen QR-code ontvangen. Tik op Nieuwe QR.</p>'}
+async function nieuweQr(){const b=$("#vkNieuw");if(b)b.disabled=true;try{const j=await post({actie:"nieuweqr",id:VK.id});VK={...VK,...j};toonQr();volgVk(1200)}catch(e){if(!fout(e))alert(e.message);if(b)b.disabled=false}}
+function volgVk(ms){clearTimeout(vkT);vkT=setTimeout(async()=>{if(!VK)return;const id=VK.id;
+  try{const j=await post({actie:"status",id});if(!VK||VK.id!==id)return;
+    if(j.status==="SUCCEEDED"){gelukt(false);return}
+    const st=$("#vkSt"),eind=["EXPIRED","CANCELLED","FAILED","AUTHORIZATION_FAILED"].includes(j.status);
+    if(st){if(eind)st.textContent=j.status==="EXPIRED"?"QR-code verlopen. Tik op Nieuwe QR.":"Betaling niet gelukt. Tik op Nieuwe QR.";else if(j.status==="IDENTIFIED"||j.status==="AUTHORIZED")st.textContent="Klant bevestigt in de app…"}
+    if(eind)return}catch(e){if(fout(e))return}
+  volgVk(1500)},ms)}
+// cash met wisselgeld
+let cashOntv=0;
+function cashScherm(){cashOntv=0;cashTeken()}
+function cashTeken(){const t=mandTot(),terug=cashOntv?Math.round((cashOntv-t)*100)/100:null;
+  $("#box").innerHTML=tabs()+`<div class="card bq"><p style="margin:0;color:var(--muted)">Cash te betalen</p><div class="bedrag">${eur(t)}</div>
+   <p style="margin:0;font-weight:600">Ontvangen</p><div class="wg">${["gepast",5,10,20,50,100].filter(v=>v==="gepast"||v>=t).map(v=>`<button type="button" data-wg="${v}" class="${(v==="gepast"?t:v)===cashOntv?"on":""}">${v==="gepast"?"Gepast":"€"+v}</button>`).join("")}</div>
+   ${terug!=null?(terug>=0?`<div class="terug">Wisselgeld ${eur(terug)}</div>`:`<div class="terug" style="color:var(--accent)">Nog ${eur(-terug)} tekort</div>`):'<p class="hint" style="margin:0 0 10px">Tik wat de klant geeft om het wisselgeld te zien (optioneel).</p>'}
+   <div class="ks-acts" style="grid-template-columns:2fr 1fr"><button class="btn" id="cashOk"${terug!=null&&terug<0?" disabled":""}>Cash ontvangen</button><button class="btn sec" id="cashTerug">Terug</button></div></div>`}
+async function cashBevestig(){const b=$("#cashOk");b.disabled=true;
+  try{const j=await post({actie:"verkoop",items:MAND,betaalwijze:"cash",bedrag:mandTot(),ontvangen:cashOntv||null});VK=j;gelukt(true)}
+  catch(e){if(fout(e))return;if(e.status===409){await laad();MAND={};verkoopScherm()}alert(e.message);b.disabled=false}}
+function gelukt(cash){clearTimeout(vkT);tril([70,40,70]);const bedrag=VK?VK.bedrag:mandTot(),w=wat();
+  $("#box").innerHTML=tabs()+`<div class="card bq ok"><div class="vink">✓</div><h2 style="margin:0">${cash?"Cash ontvangen":"Betaald"}</h2><div class="bedrag">${eur(bedrag)}</div><p style="margin:0 0 4px;color:var(--muted)">Geef de klant:</p><p style="margin:0;font-size:19px;color:var(--ink)"><b>${w}</b></p>
+   <button class="btn" id="okVolgende" style="margin-top:18px">Volgende klant</button><p class="hint c" id="auto">Automatisch verder over 5 seconden…</p></div>`;
+  if(ST&&ST.totalen){ST.totalen.verkopen++;if(cash)ST.totalen.cash+=bedrag;else ST.totalen.bancontact+=bedrag;hoofd()}
+  let n=5;const tik=()=>{n--;const a=$("#auto");if(!a)return;if(n<=0){volgende();return}a.textContent=`Automatisch verder over ${n} seconden…`;naT=setTimeout(tik,1000)};naT=setTimeout(tik,1000)}
+function volgende(){clearTimeout(naT);MAND={};VK=null;verkoopScherm()}
+/* ---------- scannen ---------- */
 let S=null;
 function stop(){if(!S)return;S.stop=true;cancelAnimationFrame(S.raf);if(S.stream)S.stream.getTracks().forEach(x=>x.stop());S=null}
 function laadJsQR(){if(window.jsQR)return Promise.resolve();return new Promise((ok,nok)=>{const s=document.createElement("script");s.src=JSQR.src;s.integrity=JSQR.sri;s.crossOrigin="anonymous";s.onload=ok;s.onerror=()=>nok(new Error("De QR-lezer kon niet geladen worden."));document.head.append(s)})}
-let AANBOD=null;
-async function stand(){try{const j=await post({actie:"kassa-stand",token:TOK.token});AANBOD=j;const e=$("#stand");if(e)e.textContent=`${j.binnen} binnen (${j.tickets} online + ${j.kassa.tickets} aan de kassa)`;if(j.naam){$("#h1").textContent="Kassa · "+j.naam}}catch(e){if(e.status===401)login(e.message)}}
-const tabs=k=>`<div class="ks-tabs"><button type="button" data-tab="scan" class="${k==="scan"?"on":""}">Scannen</button><button type="button" data-tab="verkoop" class="${k==="verkoop"?"on":""}">Verkopen</button></div>`;
-document.addEventListener("click",e=>{const t=e.target.closest("[data-tab]");if(!t)return;if(t.dataset.tab==="scan")scanner();else verkoop()});
-async function scanner(){$("#lead").textContent="Richt de camera op de QR-code van het ticket of de drankkaart.";
-  $("#box").innerHTML=tabs("scan")+`<div class="ks-cam"><video id="v" playsinline muted></video><div class="ks-kader"></div><div class="ks-res" id="res" hidden></div></div>
-   <div class="ks-bar"><span id="stand"></span><button type="button" class="linkb" id="uit">Afmelden</button></div>
-   <form class="ks-man" id="man" novalidate><input id="code" placeholder="Of typ de code" autocomplete="off" autocapitalize="characters"><button class="btn" type="submit">Controleren</button></form>
-   <p class="hint" id="stat" style="text-align:center"></p>`;
-  $("#uit").onclick=()=>{try{localStorage.removeItem("vbha_kassa")}catch(x){}TOK=null;login()};
-  $("#man").onsubmit=e=>{e.preventDefault();const v=$("#code").value.trim();if(v){check(v);$("#code").value=""}};
-  stand();S={bezig:false,stop:false,laatst:"",t:0};
+async function scanner(){const f=ST.fuif||{};
+  $("#box").innerHTML=tabs()+`<div class="ks-cam"><video id="v" playsinline muted></video><div class="ks-kader"></div><div class="ks-res" id="res" hidden></div></div>
+   <div class="ks-bar"><span id="stand">${f.binnen!=null?`${f.binnen} binnen (${f.gescand} van ${f.tickets} online gescand + ${f.kassaInkom} kassa)`:""}</span><button type="button" class="linkb" id="uit">Afmelden</button></div>
+   <form class="ks-man" id="man" novalidate><input id="code" placeholder="Of typ de code" autocomplete="off" autocapitalize="characters"><button class="btn" type="submit">Controleren</button></form><p class="hint" id="stat" style="text-align:center"></p>`;
+  $("#uit").onclick=()=>login();$("#man").onsubmit=e=>{e.preventDefault();const v=$("#code").value.trim();if(v){check(v);$("#code").value=""}};
+  if(S)return;S={bezig:false,stop:false,laatst:"",t:0};
   try{const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});if(!S||S.stop){st.getTracks().forEach(x=>x.stop());return}
     S.stream=st;const v=$("#v");v.srcObject=st;await v.play();
-    let det=null;if("BarcodeDetector" in window){try{const f=await BarcodeDetector.getSupportedFormats();if(f.includes("qr_code"))det=new BarcodeDetector({formats:["qr_code"]})}catch(x){}}
-    if(!det)await laadJsQR();
-    const cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true});
-    const loop=async()=>{if(!S||S.stop)return;
-      if(!S.bezig&&v.readyState>=2){let txt="";
-        try{if(det){const r=await det.detect(v);txt=r[0]&&r[0].rawValue||""}else{const w=Math.min(720,v.videoWidth),h=Math.round(v.videoHeight*w/v.videoWidth);cv.width=w;cv.height=h;cx.drawImage(v,0,0,w,h);const r=window.jsQR(cx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:"dontInvert"});txt=r&&r.data||""}}catch(x){}
+    let det=null;if("BarcodeDetector" in window){try{const fm=await BarcodeDetector.getSupportedFormats();if(fm.includes("qr_code"))det=new BarcodeDetector({formats:["qr_code"]})}catch(x){}}
+    if(!det)await laadJsQR();const cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true});
+    const loop=async()=>{if(!S||S.stop)return;const vv=$("#v");
+      if(vv&&!S.bezig&&vv.readyState>=2){let txt="";
+        try{if(det){const r=await det.detect(vv);txt=r[0]&&r[0].rawValue||""}else{const w=Math.min(720,vv.videoWidth),h=Math.round(vv.videoHeight*w/vv.videoWidth);cv.width=w;cv.height=h;cx.drawImage(vv,0,0,w,h);const r=window.jsQR(cx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:"dontInvert"});txt=r&&r.data||""}}catch(x){}
         if(txt&&!(txt===S.laatst&&Date.now()-S.t<4000)){S.laatst=txt;S.t=Date.now();check(txt)}}
       S.raf=requestAnimationFrame(loop)};loop();
-  }catch(e){$("#stat").textContent=e&&e.name==="NotAllowedError"?"Geen toegang tot de camera. Sta de camera toe, of typ de code hierboven.":"De camera kon niet starten. Typ de code hierboven."}}
+  }catch(e){const s=$("#stat");if(s)s.textContent=e&&e.name==="NotAllowedError"?"Geen toegang tot de camera. Sta de camera toe, of typ de code hierboven.":"De camera kon niet starten. Typ de code hierboven."}}
 async function check(txt){if(S)S.bezig=true;const r=$("#res");
-  try{const j=await post({actie:"kassa-scan",token:TOK.token,code:txt});const tijd=s=>new Date(s).toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"});
+  try{const j=await post({actie:"scan",code:txt});const tijd=s=>new Date(s).toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"});
     r.className="ks-res "+(j.ok?(j.soort==="drank"?"dk":"ok"):j.al?"al":"nok");
     r.innerHTML=j.ok?(j.soort==="drank"?`<b>🍺 Drankkaart €${esc(j.waarde)} geven</b><span>${esc(j.naam)}</span><small>Drankkaart ${j.nr} van ${j.van}</small>`:`<b>✓ Geldig</b><span>${esc(j.naam)}</span><small>Ticket ${j.nr} van ${j.van}</small>`)
       :`<b>${j.al?"⚠ Al gescand":"✕ Niet geldig"}</b><span>${esc(j.naam||"")}</span><small>${esc(j.reden||"")}${j.al&&j.op?" Om "+tijd(j.op)+".":""}</small>`;
-    r.hidden=false;try{navigator.vibrate&&navigator.vibrate(j.ok?80:[60,60,60])}catch(x){}if(j.ok&&j.soort!=="drank")stand()}
-  catch(e){if(e.status===401){login(e.message);return}r.className="ks-res nok";r.innerHTML=`<b>Fout</b><small>${esc(e.message)}</small>`;r.hidden=false}
-  setTimeout(()=>{if(S)S.bezig=false;const x=$("#res");if(x)x.hidden=true},2200)}
-const P=new URLSearchParams(location.search);
-if(TOK)scanner();else{login();if(P.get("code")){$("#kc").value=P.get("code");history.replaceState(null,"",location.pathname)}}
-// ---------- verkopen aan de kassa ----------
-const eur=n=>"€ "+Number(n||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
-let MAND={},VK=null,vkT=0;
-function items(){const A=AANBOD||{kassaPrijs:0,dranken:[]};return[{id:"ticket",naam:"Inkom",prijs:A.kassaPrijs,k:"inkom"},...(A.dranken||[]).map(d=>({id:d.id,naam:"Drankkaart €"+d.waarde,prijs:d.waarde,k:"drank"}))]}
-async function verkoop(){stop();if(!AANBOD)await stand();$("#lead").textContent="Tik op een tegel per verkochte kaart en reken af met Bancontact.";vkTeken()}
-function vkTeken(){clearTimeout(vkT);const I=items(),tot=I.reduce((n,x)=>n+(MAND[x.id]||0)*x.prijs,0),gekozen=I.filter(x=>MAND[x.id]);
-  $("#box").innerHTML=tabs("verkoop")+`<div class="pos">${I.map(x=>`<button type="button" class="pt ${x.k}" data-pt="${x.id}"><i>${MAND[x.id]||""}</i><b>${esc(x.naam)}</b><span>${eur(x.prijs)}</span></button>`).join("")}</div>
-   <div class="mand">${gekozen.length?gekozen.map(x=>`<div class="mand-r"><span><b>${MAND[x.id]}×</b> ${esc(x.naam)}</span><span style="display:flex;align-items:center;gap:8px">${eur(MAND[x.id]*x.prijs)}<button type="button" data-min="${x.id}" aria-label="Eén minder">−</button></span></div>`).join(""):'<div class="hint" style="margin:0;text-align:center">Nog niets gekozen.</div>'}
-   <div class="mand-t"><span>Totaal</span><span>${eur(tot)}</span></div></div>
-   <div class="ks-acts"><button class="btn" id="afr"${tot>0?"":" disabled"}>Afrekenen met Bancontact</button><button class="btn sec" id="cash"${tot>0?"":" disabled"}>Cash</button></div>
-   ${gekozen.length?'<p style="text-align:center;margin:10px 0 0"><button type="button" class="linkb" id="leeg">Alles wissen</button></p>':""}`}
-document.addEventListener("click",e=>{const t=e.target.closest("[data-pt]");if(t){MAND[t.dataset.pt]=(MAND[t.dataset.pt]||0)+1;try{navigator.vibrate&&navigator.vibrate(15)}catch(x){}vkTeken();return}
-  const m=e.target.closest("[data-min]");if(m){const k=m.dataset.min;MAND[k]=Math.max(0,(MAND[k]||0)-1);if(!MAND[k])delete MAND[k];vkTeken();return}
-  if(e.target.id==="leeg"){MAND={};vkTeken()}else if(e.target.id==="afr")afrekenen(false);else if(e.target.id==="cash")afrekenen(true)
-  else if(e.target.id==="vkStop"){if(VK)post({actie:"kassa-stop",token:TOK.token,id:VK.id}).catch(()=>{});VK=null;vkTeken()}
-  else if(e.target.id==="vkNieuw")nieuweQr();else if(e.target.id==="vkVolgende"){MAND={};VK=null;vkTeken();stand()}});
-async function afrekenen(cash){const b=$(cash?"#cash":"#afr");b.disabled=true;
-  try{const j=await post({actie:"kassa-verkoop",token:TOK.token,items:MAND,betaalwijze:cash?"cash":"bancontact"});VK=j;if(j.status==="SUCCEEDED"){betaald(cash);return}toonQr();volgVk()}
-  catch(e){if(e.status===401){login(e.message);return}alert(e.message);b.disabled=false}}
-function toonQr(){$("#box").innerHTML=tabs("verkoop")+`<div class="card bq"><p style="margin:0;color:var(--muted)">Laat de klant deze QR-code scannen met de Bancontact- of bankapp</p><div class="bedrag">${eur(VK.bedrag)}</div>
-  ${VK.qrcode?`<img src="${esc(VK.qrcode)}" alt="Bancontact-QR-code">`:`<p>Geen QR-code beschikbaar.</p>`}<p class="wacht" id="vkSt" style="margin-top:10px">Wachten op betaling…</p>
-  <div class="ks-acts" style="grid-template-columns:1fr 1fr"><button class="btn sec" id="vkNieuw">Nieuwe QR</button><button class="btn sec" id="vkStop">Annuleren</button></div></div>`}
-async function nieuweQr(){try{const j=await post({actie:"kassa-nieuweqr",token:TOK.token,id:VK.id});VK={...VK,...j};toonQr();volgVk()}catch(e){alert(e.message)}}
-async function volgVk(){clearTimeout(vkT);if(!VK)return;const id=VK.id;
-  try{const j=await post({actie:"kassa-status",token:TOK.token,id});if(!VK||VK.id!==id)return;
-    if(j.status==="SUCCEEDED"){betaald(false);return}
-    const st=$("#vkSt");if(st){if(["EXPIRED","CANCELLED","FAILED","AUTHORIZATION_FAILED"].includes(j.status))st.textContent=j.status==="EXPIRED"?"QR-code verlopen. Tik op Nieuwe QR.":"Betaling niet gelukt. Tik op Nieuwe QR.";else if(j.status==="IDENTIFIED"||j.status==="AUTHORIZED")st.textContent="Klant bevestigt in de app…"}
-    if(["EXPIRED","CANCELLED","FAILED","AUTHORIZATION_FAILED"].includes(j.status))return}
-  catch(e){if(e.status===401){login(e.message);return}}
-  vkT=setTimeout(volgVk,2000)}
-function betaald(cash){clearTimeout(vkT);const I=items(),wat=I.filter(x=>MAND[x.id]).map(x=>`${MAND[x.id]}× ${esc(x.naam)}`).join("<br>");
-  $("#box").innerHTML=tabs("verkoop")+`<div class="card bq ok"><div class="vink">✓</div><h2 style="margin:0">${cash?"Cash ontvangen":"Betaald"}</h2><div class="bedrag">${eur(VK?VK.bedrag:0)}</div><p style="margin:0 0 4px">Geef de klant:</p><p style="margin:0;font-size:18px"><b>${wat}</b></p>
-  <button class="btn" id="vkVolgende" style="margin-top:18px">Volgende klant</button></div>`;try{navigator.vibrate&&navigator.vibrate([80,40,80])}catch(x){}}
+    r.hidden=false;tril(j.ok?80:[60,60,60]);if(j.ok&&j.soort!=="drank"&&ST.fuif){ST.fuif.gescand++;ST.fuif.binnen++;const s=$("#stand");if(s)s.textContent=`${ST.fuif.binnen} binnen (${ST.fuif.gescand} van ${ST.fuif.tickets} online gescand + ${ST.fuif.kassaInkom} kassa)`}}
+  catch(e){if(fout(e))return;r.className="ks-res nok";r.innerHTML=`<b>Fout</b><small>${esc(e.message)}</small>`;r.hidden=false}
+  setTimeout(()=>{if(S)S.bezig=false;const x=$("#res");if(x)x.hidden=true},2000)}
+/* ---------- start ---------- */
+(async()=>{const P=new URLSearchParams(location.search),c=P.get("code");if(c)history.replaceState(null,"",location.pathname);
+  if(c&&(!TOK)){login();$("#kc").value=c;$("#fl").requestSubmit();return}
+  if(!TOK){login();return}
+  $("#box").innerHTML='<div class="card"><p style="margin:0;color:var(--muted)">Kassa laden…</p></div>';
+  try{await laad();toon()}catch(e){if(!fout(e))$("#box").innerHTML=`<div class="card"><p style="margin:0">${esc(e.message)}</p><button class="btn" onclick="location.reload()">Opnieuw</button></div>`}})();
 </script>
 </body>
 </html>
