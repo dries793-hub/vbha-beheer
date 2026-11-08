@@ -2760,6 +2760,7 @@ VIEWS.mails=()=>({title:"Mails",actions:'<button class="btn" data-w data-act="ml
       <button class="btn" data-act="mailZip"${actief.length?"":" disabled"}>${ic("download")}Concepten downloaden (.zip)</button>
       <button class="btn" data-act="mailCopy"${actief.length?"":" disabled"}>${ic("copy")}Adressen kopiëren (voor BCC)</button></div></details>
   </div></div>
+  ${mlNastuurUI()}
   ${mlHistoriek()}
   </div></div>`}});
 function mlBlokUI(g){const B=mlGeblok(),keys=Object.keys(B).sort();const hier=new Set(g.geblokt.map(r=>String(r.email).toLowerCase()));
@@ -4678,3 +4679,34 @@ const ADRES_FOUT="Vul een volledig adres in: straat, huisnummer, postcode en gem
     const al=m&&!gn&&[...S.leden.values()].find(l=>String(l.email||"").trim().toLowerCase()===m&&!l.geenLid);
     if(al){$("#lidErr").textContent=`Dit e-mailadres hoort al bij ${naamVol(al)}.`;return}
     return _c&&_c.call(this,ev)}}}
+
+/* Mails nasturen naar nieuwe leden: een bulkmail (bv. uitnodiging activiteiten) gaat automatisch ook naar wie zich daarna inschrijft.
+   Config "nastuur": {regels:{<tplId>:{naam,onderwerp,html,tot,sinds,door}}}. De html is een momentopname met @@VOORNAAM@@ en @@NAAM@@;
+   de server vult die in en zet de mail in de wachtrij zodra de bevestigingsmail van een nieuw lid vertrokken is (api/_lib/bevestiging.js). */
+const nsCfg=()=>((S.config&&S.config.get("nastuur"))||{}).regels||{};
+const nsLaatst=tpl=>[...(S.mailings||new Map()).values()].filter(x=>x.sjabloonId===tpl&&!/^Losse|^Nagestuurd/.test(x.groep||"")).sort((a,b)=>String(b.datum||"").localeCompare(String(a.datum||"")))[0]||null;
+function nsNieuwe(tpl){const m=nsLaatst(tpl);if(!m)return[];const B=mlGeblok(),alle=(groepen().find(g=>g.id==="alle")||{list:[]}).list;
+  const ids=new Set([...S.leden.values()].filter(l=>!l.geenLid&&l.email&&String(l.aangemeld||"")>String(m.datum)&&!(l.nastuur&&l.nastuur[tpl])&&!B[String(l.email).trim().toLowerCase()]).map(l=>l.id));
+  return alle.filter(r=>ids.has(r.lidId))}
+function mlNastuurUI(){const M=MAIL;if(!M||!M.tplId||!canWrite)return "";const R=nsCfg()[M.tplId],m=nsLaatst(M.tplId);if(!m&&!R)return "";
+  const nu=todayISO(),aan=R&&R.tot>=nu,N=nsNieuwe(M.tplId);
+  const tot=(R&&R.tot)||(()=>{const L=typeof mlAgendaItems==="function"?mlAgendaItems():[];return L.length?L[L.length-1].datum:new Date(Date.now()+90*864e5).toISOString().slice(0,10)})();
+  return `<div class="panel"><div class="panel-h"><h2>Nieuwe leden</h2>${aan?'<span class="grow"></span><span class="pill ok">Aan</span>':""}</div><div class="panel-b stack" style="gap:10px">
+    <p class="muted small" style="margin:0">${m?`Deze mail werd verstuurd op ${esc(fmtDate(String(m.datum).slice(0,10)))} naar ${esc(m.groep||"")}.`:""} Wie zich daarna als lid inschrijft, kan ze automatisch ook krijgen, kort na de bevestigingsmail van zijn inschrijving.</p>
+    <label class="sp-nat"><input type="checkbox" id="nsAan"${aan?" checked":""}><span><b>Automatisch sturen naar nieuwe leden</b><small>Tot en met <input type="date" id="nsTot" value="${esc(tot)}" style="font:inherit;padding:2px 6px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink)">. Bij wijzigingen aan het sjabloon: opnieuw aanvinken om de nieuwe versie te gebruiken.</small></span></label>
+    ${R&&R.sinds?`<div class="muted small">Versie van ${esc(fmtDate(String(R.sinds).slice(0,10)))}${R.door?" door "+esc(R.door):""}.</div>`:""}
+    ${N.length?`<div class="note info" style="margin:0"><b>${N.length} ${N.length===1?"nieuw lid kreeg":"nieuwe leden kregen"} deze mail nog niet:</b> ${N.slice(0,8).map(r=>esc(r.label)).join(", ")}${N.length>8?" …":""}<div style="margin-top:8px"><button class="btn sm primary" data-ns="nu">Nu naar ${N.length===1?"hem of haar":"hen"} sturen</button></div></div>`:m?'<div class="muted small">Alle leden die zich na het versturen inschreven, kregen deze mail al.</div>':""}
+  </div></div>`}
+async function nsBewaar(aan){const M=MAIL,c=(S.config&&S.config.get("nastuur"))||{},regels={...(c.regels||{})};
+  if(aan){const r={voornaam:"@@VOORNAAM@@",naam:"@@NAAM@@",email:"",lidId:"",bedrag:"",mededeling:"",label:""};
+    regels[M.tplId]={naam:M.naam||"",onderwerp:vul(M.onderwerp,r),html:mailHtml(r,M),tot:($("#nsTot")||{}).value||todayISO(),sinds:new Date().toISOString(),door:ME_NAME||""}}
+  else delete regels[M.tplId];
+  const d={...stripId(c),regels};S.config.set("nastuur",{...d,id:"nastuur"});await write("config","nastuur",d);
+  toast(aan?"Nieuwe leden krijgen deze mail automatisch tot "+fmtDate(regels[M.tplId].tot)+".":"Nasturen naar nieuwe leden staat uit.");renderBody()}
+document.addEventListener("change",e=>{if(e.target.id==="nsAan")nsBewaar(e.target.checked);else if(e.target.id==="nsTot"&&$("#nsAan")&&$("#nsAan").checked)nsBewaar(true)});
+document.addEventListener("click",e=>{const t=e.target.closest('[data-ns="nu"]');if(!t)return;e.preventDefault();const M=MAIL,N=nsNieuwe(M.tplId);if(!N.length)return;
+  confirmBox(`<b>${esc(M.naam||"Deze mail")}</b> nu sturen naar ${N.length} ${N.length===1?"nieuw lid":"nieuwe leden"}?<br><small class="muted">${N.map(r=>esc(r.label)).join(", ")}</small>`,"Versturen",async()=>{
+    const mid=mlId(),res=await mailVerstuur(N.map(r=>mailBericht(r,M)),"",{mid});const op=new Date().toISOString();
+    for(const r of N){const l=S.leden.get(r.lidId);if(l)await write("leden",l.id,{...stripId(l),nastuur:{...(l.nastuur||{}),[M.tplId]:op}})}
+    try{await write("mailings",mid,{datum:op,onderwerp:vul(M.onderwerp,{}),sjabloon:M.naam||"",sjabloonId:M.tplId||"",groep:"Nagestuurd naar nieuwe leden",aantal:N.length,ok:res.ok,fout:res.fout.slice(0,200),...(res.wachtrij?{wachtrij:res.wachtrij,bezig:true}:{}),door:ME?ME.email:""})}catch(x){}
+    renderBody()})});
