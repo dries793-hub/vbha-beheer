@@ -1201,11 +1201,11 @@ function bkTable(){
   let R=bkRows();if(q)R=R.filter(x=>norm([x.r.naam,x.r.opmerking,x.r.menu1,x.r.menu2].join(" ")).includes(q));
   if(F==="open")R=R.filter(x=>!x.p.ok);else if(F==="ok")R=R.filter(x=>x.p.ok);else if(F==="veg")R=R.filter(x=>x.r.menu1==="Vegetarisch"||(x.r.personen===2&&x.r.menu2==="Vegetarisch"));
   const pers=R.reduce((s,x)=>s+(x.r.personen===2?2:1),0);
-  return `<div class="tw"><table class="rcards"><thead><tr><th>Naam</th><th>Formule</th><th>Menu</th><th>Opmerking</th><th class="num">Bedrag</th><th>Betaling</th></tr></thead><tbody>
+  return `<div class="tw"><table class="rcards"><thead><tr><th>Naam</th><th>Formule</th><th>Categorie</th><th>Menu</th><th>Opmerking</th><th class="num">Bedrag</th><th>Betaling</th></tr></thead><tbody>
   ${R.map(x=>{const r=x.r;const menu=r.personen===2?esc(r.menu1)+" + "+esc(r.menu2||"?"):esc(r.menu1);
     const pill=x.p.ok?`<span class="pill ok" title="${esc(x.p.bron)}">Betaald</span>`:x.p.deel?`<span class="pill warn" title="${esc(x.p.bron)}">Deels: ${eur(x.p.bedrag)}</span>`:`<span class="pill nok">Open</span>`;
-    return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b>${x.lid?"":'<div class="small muted">niet gevonden in ledenlijst</div>'}</td><td class="nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td></tr>`}).join("")||'<tr><td colspan="6" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
-  </tbody>${R.length?`<tfoot><tr><td>${R.length} inschrijvingen</td><td>${pers} personen</td><td></td><td></td><td class="num">${eur(R.reduce((s,x)=>s+x.due,0))}</td><td></td><td></td></tr></tfoot>`:""}</table></div>`}
+    return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b>${x.lid?"":'<div class="small muted">niet gevonden in ledenlijst</div>'}</td><td class="nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td class="nowrap">${x.lid&&x.lid.categorie?esc(x.lid.categorie):'<span class="muted">–</span>'}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
+  </tbody>${R.length?`<tfoot><tr><td>${R.length} inschrijvingen</td><td>${pers} personen</td><td></td><td></td><td></td><td class="num">${eur(R.reduce((s,x)=>s+x.due,0))}</td><td></td></tr></tfoot>`:""}</table></div>`}
 VIEWS.banket=()=>({title:"Banket "+JAAR,sub:"Inschrijvingen en betalingen",
   actions:`<a class="btn" href="${BK_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden (${esc(insStatus(bkCfg(),JAAR+"-12-01").label)})">${ic("link")}Inschrijfpagina${insPill(insStatus(bkCfg(),JAAR+"-12-01"))}</a><button class="btn primary" data-w data-act="bkNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-act="bkInst" aria-label="Instellingen banket" title="Instellingen banket">${ic("instellingen")}</button>`,
   body(){
@@ -4271,7 +4271,7 @@ async function bkHerbereken(L){const bc=bkCfg();let n=0;
 {const _f=bkForm;bkForm=function(r,id){_f(r,id);if(!id||!r||!r.korting)return;const e=$("#biErr");if(e)e.insertAdjacentHTML("beforebegin",`<div class="full bk-kr">${medal(r.status||"BRONS")}<span>${r.korting}% korting · <b>${eur(r.prijsPP)}</b> per persoon</span></div>`)}}
 /* ---------- export (knop "Exporteren") ---------- */
 {const _v=VIEWS.banket;const n=function(){const v=_v.apply(this,arguments);v.actions=String(v.actions||"").replace('<button class="btn primary" data-w data-act="bkNieuw">',`<button class="btn" data-act="bkExport">${ic("download")}Exporteren</button><button class="btn primary" data-w data-act="bkNieuw">`);return v};Object.assign(n,_v);VIEWS.banket=n}
-bkSheet=function(){return bkRows().map(x=>({Naam:x.r.naam,Formule:x.r.personen===2?"Met partner":"Alleen",Personen:x.r.personen===2?2:1,"Menu lid":x.r.menu1,"Menu partner":x.r.personen===2?x.r.menu2:"",Opmerking:x.r.opmerking||"",
+bkSheet=function(){return bkRows().map(x=>({Naam:x.r.naam,Formule:x.r.personen===2?"Met partner":"Alleen",Categorie:(x.lid&&x.lid.categorie)||"",Personen:x.r.personen===2?2:1,"Menu lid":x.r.menu1,"Menu partner":x.r.personen===2?x.r.menu2:"",Opmerking:x.r.opmerking||"",
   Status:x.r.status?x.r.status.charAt(0)+x.r.status.slice(1).toLowerCase():"",Korting:x.r.korting?x.r.korting/100:"","Prijs per persoon":x.r.prijsPP!=null&&x.r.prijsPP!==""?num(x.r.prijsPP):num(bkCfg().prijs),
   Bedrag:x.due,Betaald:x.p.ok?"Ja":x.p.deel?"Deels ("+x.p.bedrag+")":"Nee",Ingeschreven:x.r.ingediend||"",Bron:x.r.bron==="formulier"?"Website":"Manueel"}))};
 bkExport=function(){const ws=XLSX.utils.json_to_sheet(bkSheet());const R=XLSX.utils.decode_range(ws["!ref"]||"A1");
@@ -4300,7 +4300,7 @@ kfLijst=function(){return [...S.kinderfeest.values()].filter(r=>r.jaar===JAAR).s
     const pill=x.p.ok?'<span class="pill ok">Betaald</span>':x.p.deel?`<span class="pill warn">Deels</span>`:'<span class="pill nok">Open</span>';
     return `<button type="button" class="ml-row bk-row" role="listitem" data-act="bkToon" data-id="${esc(r.id)}"><span class="ml-m">
       <span class="ml-n"><b>${esc(r.naam)}</b>${x.lid?"":' <span class="pill warn">niet in ledenlijst</span>'}</span>
-      <span class="ml-s">${duo?"Met partner":"Alleen"} · ${esc(r.menu1||"?")}${duo?" + "+esc(r.menu2||"?"):""}</span>
+      <span class="ml-s">${duo?"Met partner":"Alleen"}${x.lid&&x.lid.categorie?" · "+esc(x.lid.categorie):""} · ${esc(r.menu1||"?")}${duo?" + "+esc(r.menu2||"?"):""}</span>
       ${r.opmerking?`<span class="bk-opm">${esc(r.opmerking)}</span>`:""}</span>
       <span class="ml-r bk-r"><b>${eur(x.due)}</b>${pill}</span></button>`}).join("")||'<div class="empty">Nog geen inschrijvingen.</div>'}</div>`;
   return mob+h}}
