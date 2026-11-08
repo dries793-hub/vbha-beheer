@@ -238,7 +238,7 @@ main.ks{max-width:none;padding:10px 10px 0}
 .balk .btn:disabled{opacity:.35}
 .bq .ks-acts .btn,.ks-acts .btn{min-height:58px}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" integrity="sha512-ZDSPMa/JM1D+7kdg2x3BsruQ6T/JpJo3jWDWkCZsP+5yVyp1KfESqLI+7RqB5k24F7p2cV7i2YHh/890y6P6Sw==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+<script src="/lib/qrcode.min.js" integrity="sha512-ZDSPMa/JM1D+7kdg2x3BsruQ6T/JpJo3jWDWkCZsP+5yVyp1KfESqLI+7RqB5k24F7p2cV7i2YHh/890y6P6Sw==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
 <script src="/kassa-iconen.js"></script>
 </head>
 <body>
@@ -247,7 +247,7 @@ main.ks{max-width:none;padding:10px 10px 0}
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const eur=n=>"€ "+Number(n||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
-const JSQR={src:"https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js",sri:"sha384-b5Ya4Bq3qCyz39m2ISh+4DxjAIljdeFwK/BsXLuj9gugaNwAcj/ia15fxNZL9Nlx"};
+const JSQR={src:"/lib/jsQR.js",sri:"sha384-b5Ya4Bq3qCyz39m2ISh+4DxjAIljdeFwK/BsXLuj9gugaNwAcj/ia15fxNZL9Nlx"};
 const tril=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(x){}};
 let TOK=null,ST=null,TAB="verkoop",MAND={},VK=null,vkT=0,naT=0;
 try{const t=JSON.parse(localStorage.getItem("vbha_kassa")||"null");if(t&&t.tot>Date.now())TOK=t}catch(x){}
