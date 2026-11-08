@@ -18,7 +18,7 @@ export function statusHtml(L, S, j) {
   const badge = `<span style="display:inline-block;padding:4px 12px;border-radius:999px;background:${KLEUR[S.status]};color:#ffffff;font-weight:bold;letter-spacing:.5px">${esc(S.status)}</span>`;
   return p(`Beste ${esc(L.voornaam || L.naam || "")},`) + p(`Je vroeg je status op voor het werkjaar <b>${j}</b>.`)
     + kaderBlok("Jouw status " + j, tabel([rij("Status", badge), rij("Korting", `<b>${S.korting}%</b> op de kostprijs van betalende activiteiten (bv. het banket)`)]))
-    + p(S.ere ? "Als lid van de erewacht geniet je steeds de maximale korting." : `Je status is gebaseerd op de punten die je in ${S.puntenJaar} verdiende met je inzet voor de vereniging.`)
+    + p(S.ere ? "Als lid van de erewacht geniet je steeds de maximale korting." : S.vrij ? `Omdat je in ${S.puntenJaar} vrijgesteld was van het puntensysteem, krijg je de goudstatus.` : `Je status is gebaseerd op de punten die je in ${S.puntenJaar} verdiende met je inzet voor de vereniging.`)
     + p("Hoe je punten verdient en wat elke status betekent, lees je in het reglement:") + knop("Reglement puntensysteem bekijken", site() + "/reglement")
     + p("Klopt er volgens jou iets niet? Antwoord dan gewoon op deze mail.", "margin:0 0 15px;font-size:13.5px;color:#666666");
 }

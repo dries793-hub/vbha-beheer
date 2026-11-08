@@ -84,7 +84,7 @@ function ctx(){
     else{const n1=norm(lid.naam),n2=norm(lid.voornaam);const b=lidBoek.find(b=>b.lidId===lid.id||(n1&&n2&&b._m.includes("lidgeld")&&b._m.includes(n1)&&b._m.includes(n2)));lg=b?{ok:true,bron:"Betaling",boeking:b}:{ok:false,bron:""}}
     const w=c.gewichten;const p={kaarten:(jl.kaarten||0)*w.kaarten,kalenders:(jl.kalUitgevoerd||0)*w.kalenders,shifts:(jl.shifts||0)*w.shifts,vergaderingen:(jl.vergaderingen||0)*w.vergaderingen,extra:jl.extraPunten||0};
     p.totaal=p.kaarten+p.kalenders+p.shifts+p.vergaderingen+p.extra;
-    const status=!lg.ok?"niet actief":lid.categorie==="Erewacht"?"GOUD":p.totaal<c.drempels.zilver?"BRONS":p.totaal<c.drempels.goud?"ZILVER":"GOUD";
+    const status=!lg.ok?"niet actief":(lid.categorie==="Erewacht"||jl.vrijstelling)?"GOUD":p.totaal<c.drempels.zilver?"BRONS":p.totaal<c.drempels.goud?"ZILVER":"GOUD";
     const bedrag=lid.categorie==="Erewacht"?c.lidgeld.erewacht:c.lidgeld.gewoon;
     rows.set(lid.id,{lid,jl,lg,p,status,bedrag,huidig:leden.includes(lid),jaren:lid.lidSinds?Y-lid.lidSinds:null});
   }
@@ -1584,7 +1584,7 @@ function toonLid(id){
    <div style="font-size:13.5px;color:var(--muted)">${b?`Gevonden in transactie ${b.nr??""} van ${fmtDate(b.datum)}: “${esc(b.mededeling)}”`:esc(r.lg.bron)||"Geen betaling gevonden met naam, voornaam en het woord lidgeld in de mededeling."}</div>
    <div class="fld" data-w><label for="lgOv">Lidgeldstatus</label><select id="lgOv" data-lgov="${esc(id)}">${selOpts([["","Automatisch (uit de boekhouding)"],["OK","Manueel: betaald"],["NOK","Manueel: niet betaald"]],r.jl.lidgeld||"")}</select></div>
    ${!r.lg.ok?`<button class="btn primary" data-w data-act="lidgeldBetaald" data-id="${esc(id)}" style="align-self:flex-start">Lidgeld ontvangen boeken</button>`:""}
-   ${l.categorie!=="Erewacht"?`<div><b>Punten ${JAAR}</b>: ${r.p.totaal} &nbsp;${medal(r.status)}</div>`:""}</div></div>`+lidgeldHistHtml(l,r);
+   ${l.categorie!=="Erewacht"?`<div><b>Punten ${JAAR}</b>: ${r.p.totaal} &nbsp;${medal(r.status)}${r.jl&&r.jl.vrijstelling?` <span class="pill info" title="${esc(r.jl.vrijstelling.reden||"")}">vrijgesteld</span>`:""}</div>${vrijHtml(l,id,r)}`:""}</div></div>`+lidgeldHistHtml(l,r);
   modal(naamVol(l),body,`<button class="btn ghost danger" data-w id="lidDel">Verwijderen</button><span class="grow"></span><button class="btn" data-act="closeModal">Sluiten</button><button class="btn primary" data-w id="lidEdit">Gegevens wijzigen</button>`,{wide:true});
   $("#lidEdit").onclick=()=>{modal("Lid wijzigen",lidForm(l),`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="lidOk">Bewaren</button>`);
     $("#lidOk").onclick=async()=>{const d=readLid();if(!d)return;closeModal();await write("leden",id,{...stripId(S.leden.get(id)||l),...d});toast(d.geenLid&&!l.geenLid?naamVol(d)+" staat niet meer in de ledenlijst.":"Gegevens bewaard.")}};
@@ -5397,3 +5397,19 @@ function sgBulk(){const c=typeof fuCfg==="function"?fuCfg():{};
   },true);
   let q=0;new MutationObserver(()=>{if(q)return;q=1;requestAnimationFrame(()=>{q=0;zuiver()})}).observe(document.documentElement,{childList:true,subtree:true});
 })();
+
+/* ============ Vrijstelling puntensysteem ============
+   In het profiel van een lid: vrijstelling voor het werkjaar (bv. ziekte of tijdelijke werkonderbreking).
+   Bewaard in jaarleden[JAAR_lidId].vrijstelling = {reden, op, door}. Het lid telt dan als GOUD voor het volgende jaar
+   (de punten van werkjaar J bepalen de status en kortingen in J+1). */
+function vrijHtml(l,id,r){const v=r&&r.jl&&r.jl.vrijstelling,w=typeof canWrite==="undefined"||canWrite;
+  if(!w&&!v)return "";
+  return `<label class="sp-nat vrij-l" for="vrijC" style="margin-top:8px"><input type="checkbox" id="vrijC" data-vrij="${esc(id)}"${v?" checked":""}${w?"":" disabled"}><span><b>Vrijstelling puntensysteem ${JAAR}</b><small>Bv. ziekte of tijdelijke werkonderbreking. Het lid telt als <b>goud</b> voor de kortingen in ${JAAR+1}, ongeacht de punten.${v&&v.op?` Gegeven op ${esc(fmtDate(String(v.op).slice(0,10)))}${v.door?" door "+esc(v.door):""}.`:""}</small></span></label>
+   <input type="text" id="vrijR" data-vrijr="${esc(id)}" placeholder="Reden (optioneel), bv. langdurig ziek" value="${esc((v&&v.reden)||"")}" maxlength="120" style="margin-top:8px;width:100%;padding:9px 12px;border:1px solid var(--line-strong);border-radius:8px;font:inherit;background:var(--surface);color:var(--ink)"${v&&w?"":" hidden"}>`}
+document.addEventListener("change",async e=>{const t=e.target;
+  if(t.dataset&&t.dataset.vrij){const id=t.dataset.vrij,aan=t.checked,r=$("#vrijR");
+    try{await setJL(id,{vrijstelling:aan?{reden:(r&&r.value.trim())||"",op:new Date().toISOString(),door:ME_NAME||""}:null});
+      if(r){r.hidden=!aan;if(aan)r.focus()}toast(aan?`Vrijgesteld voor ${JAAR}: telt als goud in ${JAAR+1}.`:"Vrijstelling ingetrokken.")}
+    catch(x){t.checked=!aan;toast("Bewaren lukte niet.",true)}return}
+  if(t.dataset&&t.dataset.vrijr){const id=t.dataset.vrijr,jl=S.jaarleden.get(JAAR+"_"+id)||{};if(!jl.vrijstelling)return;
+    try{await setJL(id,{vrijstelling:{...jl.vrijstelling,reden:t.value.trim()}});toast("Reden bewaard.")}catch(x){toast("Bewaren lukte niet.",true)}}});
