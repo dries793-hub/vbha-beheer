@@ -84,7 +84,7 @@ export async function pushApi(req, res) {
       const { data: a } = await sb.from("push_abonnementen").select("voorkeur").eq("id", id).eq("user_id", user.id).maybeSingle();
       if (a) voorkeur = { ...VOORKEUR_DEF, ...(a.voorkeur || {}) };
     }
-    return res.status(200).json({ sleutel: k.publiek, toestellen: count || 0, voorkeur, standaard: VOORKEUR_DEF });
+    return res.status(200).json({ sleutel: k.publiek, toestellen: count || 0, voorkeur, standaard: VOORKEUR_DEF, soorten: PUSH_SOORTEN.map(([k, l]) => [k, l]) });
   }
   if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
   const b = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
@@ -100,7 +100,8 @@ export async function pushApi(req, res) {
     const id = crypto.createHash("sha256").update(String(b.endpoint || "")).digest("hex").slice(0, 40), v = b.voorkeur || {};
     const dagen = [...new Set((Array.isArray(v.dagen) ? v.dagen : []).map(Number).filter(n => [0, 1, 3, 5].includes(n)))].sort((x, y) => x - y);
     const uur = Math.round(Number(v.uur)); if (!(uur >= 6 && uur <= 22)) throw httpErr(400, "Kies een uur tussen 6u en 22u.");
-    const voorkeur = { uur, dagen, vergaderingen: v.vergaderingen !== false, activiteiten: v.activiteiten !== false, meldingen: v.meldingen !== false };
+    const uit = [...new Set((Array.isArray(v.uit) ? v.uit : []).map(String).filter(k => PUSH_SOORTEN.some(x => x[0] === k)))];
+    const voorkeur = { uur, dagen, vergaderingen: v.vergaderingen !== false, activiteiten: v.activiteiten !== false, meldingen: v.meldingen !== false, uit };
     const { data, error } = await sb.from("push_abonnementen").update({ voorkeur }).eq("id", id).eq("user_id", user.id).select("id");
     if (error) throw error;
     if (!data || !data.length) throw httpErr(404, "Dit toestel is nog niet aangemeld voor meldingen.");
@@ -122,6 +123,12 @@ export async function pushApi(req, res) {
 
 /* ---------- herinneringen vóór vergaderingen en activiteiten (geplande taak, elk uur) ----------
    Per toestel kiest de gebruiker het uur en hoeveel op voorhand (zelfde dag, 1, 3 en/of 5 dagen); config herinneringen.push.aan = hoofdschakelaar. */
+// soorten dashboardmeldingen (afgeleid uit de tag van het bericht); per toestel uit te vinken (voorkeur.uit)
+export const PUSH_SOORTEN = [["leden", "Nieuw lid", ["lid-"]], ["banket", "Inschrijving banket", ["ins-banket-"]], ["kinderfeest", "Inschrijving kinderfeest", ["ins-kf-"]],
+  ["fuif", "Fuif: tickets besteld of aangevraagd", ["fuif-", "spk-", "gast-"]], ["webshop", "Webshop: nieuwe bestelling", ["shop-"]], ["kalender", "Kalender aan huis gevraagd", ["kal-"]],
+  ["sponsors", "Nieuwe sponsor", ["sponsor-"]], ["facturen", "Facturen: betaald of inkomend", ["fc-", "inkomend"]], ["bank", "Bank: transacties te verwerken, koppeling", ["verwerken", "bank"]],
+  ["herinneringen", "Betalingsherinneringen verstuurd", ["betaalherinnering"]]];
+export const pushSoort = tag => { const t = String(tag || ""); const s = PUSH_SOORTEN.find(([, , P]) => P.some(p => t === p || t.startsWith(p))); return s ? s[0] : "overig"; };
 export const VOORKEUR_DEF = { uur: 9, dagen: [0], vergaderingen: true, activiteiten: true, meldingen: true };
 export const PUSH_DEF = { aan: true };
 const plusD = (iso, n) => { const [y, m, d] = iso.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
@@ -168,7 +175,8 @@ export async function meldPush(sb, groep, bericht) {
     let q = sb.from("push_abonnementen").select("id,endpoint,p256dh,auth,user_id,voorkeur");
     if (users) q = q.in("user_id", users);
     const { data: abo } = await q;
-    const L = (abo || []).filter(a => !a.voorkeur || a.voorkeur.meldingen !== false);
+    const soort = pushSoort(bericht.tag);
+    const L = (abo || []).filter(a => !a.voorkeur || (a.voorkeur.meldingen !== false && !(Array.isArray(a.voorkeur.uit) && a.voorkeur.uit.includes(soort))));
     if (!L.length) return { toestellen: 0 };
     const k = await vapid(sb);
     const uit = await Promise.all(L.map(a => stuurEen(sb, k, a, bericht).catch(e => ({ ok: false, fout: e.message }))));

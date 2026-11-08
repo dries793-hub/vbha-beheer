@@ -4088,9 +4088,11 @@ function mpVoorkeurHtml(){const v={uur:9,dagen:[0],vergaderingen:true,activiteit
    <div class="fld full"><span class="lbl">Hoeveel op voorhand</span><div class="hr-soorten mp-dg">${dg.map(([n,l])=>`<label><input type="checkbox" name="mpvD" value="${n}"${v.dagen.includes(n)?" checked":""}>${l}</label>`).join("")}</div><span class="help">Je kan er meerdere kiezen, bv. 3 dagen vooraf én de dag zelf.</span></div>
    ${fld("mpvU","Om welk uur",`<select id="mpvU" class="sel">${[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22].map(n=>`<option value="${n}"${n===Number(v.uur)?" selected":""}>${n}u00</option>`).join("")}</select>`)}
    <label class="sp-nat full" for="mpvM"><input type="checkbox" id="mpvM"${v.meldingen?" checked":""}><span><b>Meldingen van het dashboard meteen doorsturen</b><small>Bv. een nieuwe inschrijving, een nieuw lid, een sponsor, transacties of inkomende facturen te verwerken, een betaalde factuur of een verlopen bankkoppeling. Je krijgt enkel wat je ook op je dashboard ziet.</small></span></label>
+   ${(()=>{const S0=(MP.srv&&MP.srv.soorten)||[["leden","Nieuw lid"],["banket","Inschrijving banket"],["kinderfeest","Inschrijving kinderfeest"],["fuif","Fuif: tickets besteld of aangevraagd"],["webshop","Webshop: nieuwe bestelling"],["kalender","Kalender aan huis gevraagd"],["sponsors","Nieuwe sponsor"],["facturen","Facturen: betaald of inkomend"],["bank","Bank: transacties te verwerken, koppeling"],["herinneringen","Betalingsherinneringen verstuurd"]],U=new Set(v.uit||[]);
+     return `<div class="fld full mp-soorten"${v.meldingen?"":" hidden"}><span class="lbl">Welke meldingen?</span><div class="hr-soorten mp-sl">${S0.map(([k,l])=>`<label><input type="checkbox" name="mpvS" value="${esc(k)}"${U.has(k)?"":" checked"}>${esc(l)}</label>`).join("")}</div><span class="help"><button type="button" class="linkbtn" data-mp="sAlle">Alles aan</button> · <button type="button" class="linkbtn" data-mp="sGeen">Alles uit</button></span></div>`})()}
    <div class="full bar"><button class="btn primary" type="button" data-mp="vk">Bewaren voor dit toestel</button></div></div></div>`}
 async function mpVk(b){const dagen=$$('input[name="mpvD"]').filter(i=>i.checked).map(i=>Number(i.value));
-  const vk={uur:Number($("#mpvU").value),dagen,vergaderingen:$("#mpvVg").checked,activiteiten:$("#mpvAc").checked,meldingen:$("#mpvM").checked};
+  const vk={uur:Number($("#mpvU").value),dagen,vergaderingen:$("#mpvVg").checked,activiteiten:$("#mpvAc").checked,meldingen:$("#mpvM").checked,uit:$$('input[name="mpvS"]').filter(i=>!i.checked).map(i=>i.value)};
   if((vk.vergaderingen||vk.activiteiten)&&!dagen.length){toast("Kies hoeveel op voorhand je een herinnering wil.",true);return}
   b.disabled=true;try{const j=await api("/api/mail?f=push",{method:"POST",body:JSON.stringify({actie:"voorkeur",endpoint:MP.sub&&MP.sub.endpoint,voorkeur:vk})});if(MP.srv)MP.srv.voorkeur=j.voorkeur;toast("Voorkeuren bewaard voor dit toestel.")}
   catch(x){toast(x.message,true)}finally{b.disabled=false}}
@@ -4123,6 +4125,9 @@ async function mpBewaar(){const cur=stripId(S.config.get("herinneringen")||{});
 document.addEventListener("click",e=>{const t=e.target.closest("[data-mp],#mpOk");if(!t)return;if(t.id==="mpOk")return mpBewaar();
   ({aan:mpAan,uit:mpUit,test:mpTest,vk:mpVk})[t.dataset.mp](t)});
 mpReg();
+
+document.addEventListener("change",e=>{if(e.target.id==="mpvM"){const g=$(".mp-soorten");if(g)g.hidden=!e.target.checked}});
+document.addEventListener("click",e=>{const b=e.target.closest('[data-mp="sAlle"],[data-mp="sGeen"]');if(!b)return;e.preventDefault();e.stopPropagation();const v=b.dataset.mp==="sAlle";$$('input[name="mpvS"]').forEach(i=>i.checked=v)},true);
 
 /* ============ Datumvelden altijd als DD/MM/JJJJ ============
    Browsers tonen <input type="date"> in het formaat van hun eigen taal (bv. MM/DD/YYYY in een Engelse browser).
