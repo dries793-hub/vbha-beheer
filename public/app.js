@@ -5052,3 +5052,10 @@ function nwLabels(){const root=$("#main");if(!root)return;
     if(!nwIsNieuw(S[col].get(el.dataset.id)))return;
     const b=el.querySelector(".ml-n b,td b,b");if(!b)return;b.insertAdjacentHTML("afterend",'<span class="nw-tag" title="Vandaag ingeschreven">Nieuw</span>')})}
 {let nwT=0;new MutationObserver(()=>{if(nwT)return;nwT=requestAnimationFrame(()=>{nwT=0;nwLabels()})}).observe(document.body,{childList:true,subtree:true})}
+
+/* Transacties: "Te verwerken" als tab op de pagina Transacties (niet meer als apart menu-item) */
+var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.verwerken="boekingen";
+{const b=NAV.find(n=>n.id==="boekhouding");if(b){const k=b.items.findIndex(i=>i[0]==="verwerken");if(k>=0)b.items.splice(k,1)}}
+function bkTabs(act){let n=0;try{n=teVerwerken(ctx()).length}catch(e){}
+  return `<div class="ka-tabs" role="tablist"><a role="tab" href="#boekingen" class="${act==="boekingen"?"on":""}">Transacties</a><a role="tab" href="#verwerken" class="${act==="verwerken"?"on":""}">Te verwerken${n?` <span class="bt-n">${n}</span>`:""}</a></div>`}
+for(const r of ["boekingen","verwerken"]){const _v=VIEWS[r];if(!_v)continue;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){return bkTabs(r)+String(b.apply(this,arguments))};return v};Object.assign(n,_v);VIEWS[r]=n}
