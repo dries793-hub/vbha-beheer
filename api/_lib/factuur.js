@@ -17,6 +17,7 @@ import { meldPush } from "./push.js";
    jaar(4) + volgnummer(6) + controle (mod 97), zodat elke overschrijving automatisch aan de juiste factuur gekoppeld wordt. */
 
 export const FC_DEF = {
+  btwPlichtig: false, // vzw niet btw-plichtig: geen btw op de facturen, wel de vermelding BTW_VRIJ
   voorvoegsel: "F", creditVoorvoegsel: "C", start: {}, vervaldagen: 30, bic: "ARSPBE22",
   adres: "", kbo: "", email: "", telefoon: "", website: "vbha.be",
   voettekst: "", kopie: "", mailOnderwerp: "", mailTekst: "", rechtsvorm: "vzw", rpr: "RPR Gent, afdeling Dendermonde",
@@ -92,7 +93,9 @@ const geld = n => "€ " + Number(n || 0).toLocaleString("nl-BE", { minimumFract
 const aantalTxt = n => Number(n || 0).toLocaleString("nl-BE", { maximumFractionDigits: 2 });
 const ROOD = "#b30000", GRIJS = "#666666", LICHT = "#f4f1ea", GOUD = "#C1A057";
 
+export const BTW_VRIJ = "Vereniging niet onderworpen aan de btw.";
 export function factuurPdf(f, cfg, { status } = {}) {
+  if (!cfg.btwPlichtig) f = { ...f, lijnen: (f.lijnen || []).map(l => ({ ...l, btw: 0 })) };
   const pdf = new Pdf(), L = 50, R = 545, Wb = R - L;
   const credit = f.type === "credit", concept = !f.nr;
   const T = totalen(f), metBtw = T.btw.length > 0 || (f.lijnen || []).some(l => Number(l.btw));
@@ -214,7 +217,7 @@ export function factuurPdf(f, cfg, { status } = {}) {
 
   // watermerk (VBHA-woordmerk) en voettekst op elke pagina
   const wmW = 400, wmH = wmW * WATERMERK.h / WATERMERK.w;
-  const voet = [cfg.voettekst || "", `${cfg.naamJuridisch || cfg.vereniging}${cfg.kbo ? " · " + cfg.kbo : ""}${cfg.rpr ? " · " + cfg.rpr : ""} · ${String(cfg.iban).replace(/\s+/g, "")}`].filter(Boolean);
+  const voet = [[cfg.btwPlichtig ? "" : BTW_VRIJ, cfg.voettekst || ""].filter(Boolean).join(" "), `${cfg.naamJuridisch || cfg.vereniging}${cfg.kbo ? " · " + cfg.kbo : ""}${cfg.rpr ? " · " + cfg.rpr : ""} · ${String(cfg.iban).replace(/\s+/g, "")}`].filter(Boolean);
   pdf.paginas.forEach((ops, i) => {
     pdf.ops = ops;
     pdf.achtergrond((595 - wmW) / 2, (842 - wmH) / 2 + 30, wmW, wmH, WATERMERK);
