@@ -122,8 +122,8 @@ export async function shopMail(sb, id, soort) {
   if (!smtpConfigured()) return false;
   const { data: r } = await sb.from("shop_orders").select("id,data").eq("id", id).maybeSingle(); if (!r) return false;
   const d = r.data, c = await shopCfg(sb), A = await algemeen(sb), iban = A.rekeningnummer || DEF_IBAN;
-  const lijnen = tabel([...d.items.map(l => rij(`${l.aantal} × ${l.naam}`, eur(l.prijs * l.aantal))), rij(d.levering === "post" ? `Verzending (${d.verzendNaam || "bpost"})` : "Afhalen in de kazerne", d.verzendkost ? eur(d.verzendkost) : "gratis"), rij("Totaal", `<b>${eur(d.totaal)}</b>`)]);
-  const lev = d.levering === "post" ? `We sturen je bestelling met bpost naar:<br><b>${esc(d.klant.adres)}</b>` : `Je haalt je bestelling af in de kazerne (${esc(c.afhaaladres)}). Een bestuurslid neemt contact met je op om een moment af te spreken.`;
+  const lijnen = tabel([...d.items.map(l => rij(`${l.aantal} × ${l.naam}`, eur(l.prijs * l.aantal))), rij(d.levering === "post" ? "Verzending met bpost" : "Afhalen in de kazerne", d.verzendkost ? eur(d.verzendkost) : "gratis"), rij("Totaal", `<b>${eur(d.totaal)}</b>`)]);
+  const lev = d.levering === "post" ? `We sturen je bestelling met bpost naar:<br><b>${esc(d.klant.adres)}</b>` : `Je haalt je bestelling af in de kazerne (${esc(c.afhaaladres)}). We nemen contact met je op om een moment af te spreken.`;
   let ond, html;
   if (soort === "bevestiging") {
     const bet = d.betaald ? kaderBlok("&#10003; Betaling ontvangen", p(`We ontvingen je betaling van <b>${eur(d.totaal)}</b>.`, "margin:0"), "#1a7f45", "#f1faf4")
@@ -135,7 +135,7 @@ export async function shopMail(sb, id, soort) {
   } else if (soort === "verzonden") {
     ond = `Je bestelling ${d.nr} is verzonden`; html = p(`Beste ${esc(d.klant.voornaam)},`) + p(`Goed nieuws: je bestelling <b>${esc(d.nr)}</b> is vandaag met bpost verzonden naar ${esc(d.klant.adres)}.`) + kaderBlok(`Bestelling ${esc(d.nr)}`, lijnen) + p("Bedankt voor je steun aan de Vriendenkring!");
   } else if (soort === "klaar") {
-    ond = `Je bestelling ${d.nr} ligt klaar`; html = p(`Beste ${esc(d.klant.voornaam)},`) + p(`Je bestelling <b>${esc(d.nr)}</b> ligt klaar in de kazerne (${esc(c.afhaaladres)}). Een bestuurslid neemt contact met je op om een moment af te spreken${d.betaalwijze === "cash" && !d.betaald ? `; je betaalt dan <b>${eur(d.totaal)}</b> cash` : ""}.`) + kaderBlok(`Bestelling ${esc(d.nr)}`, lijnen);
+    ond = `Je bestelling ${d.nr} ligt klaar`; html = p(`Beste ${esc(d.klant.voornaam)},`) + p(`Je bestelling <b>${esc(d.nr)}</b> ligt klaar in de kazerne (${esc(c.afhaaladres)}). We nemen contact met je op om een moment af te spreken${d.betaalwijze === "cash" && !d.betaald ? `; je betaalt dan <b>${eur(d.totaal)}</b> cash` : ""}.`) + kaderBlok(`Bestelling ${esc(d.nr)}`, lijnen);
   } else return false;
   const [x] = await verstuur([{ aan: d.klant.email, aanNaam: `${d.klant.voornaam} ${d.klant.naam}`, onderwerp: ond, html: huisstijl(html, A.vereniging), van: afzender() }]);
   if (x && x.ok) { const { data: n } = await sb.from("shop_orders").select("data").eq("id", id).maybeSingle(); await sb.from("shop_orders").update({ data: { ...n.data, mail: { ...(n.data.mail || {}), [soort]: new Date().toISOString() } } }).eq("id", id); }

@@ -13,7 +13,7 @@
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f)}
-.hdr{background:var(--navy);padding:14px 16px}
+.hdr{background:var(--navy);padding:calc(14px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 14px max(16px,env(safe-area-inset-left,0px))}
 .hdr .in{max-width:640px;margin:0 auto;display:flex;align-items:center;gap:14px;color:#fff}
 .hdr .logo{height:30px;width:auto;display:block}
 .hmand{margin-left:auto;position:relative;width:44px;height:44px;display:grid;place-items:center;border:1px solid #3a3c40;border-radius:10px;background:transparent;color:#fff;cursor:pointer;padding:0;flex:none}
@@ -232,8 +232,8 @@ function afrekenen(){VIEW="kassa";balk();const L=mandLijst();if(!L.length){winke
   $("#box").innerHTML=`<div class="card"><p style="margin:0 0 6px"><button type="button" class="linkb" id="terug" style="border:0;background:none;color:var(--muted);cursor:pointer;padding:0;font:inherit">← Verder winkelen</button></p>
    <h3 class="s" style="margin-top:6px">Je winkelmandje</h3>${L.map(x=>`<div class="ml"><div class="im" style="background-image:url('${img(x.i.hoofd)}')"></div><div class="t"><b>${esc(x.i.naam)}</b><small>${eur(x.i.prijs)}</small></div><div class="q"><button type="button" data-q="${esc(x.i.id)}" data-d="-1">−</button><b>${x.n}</b><button type="button" data-q="${esc(x.i.id)}" data-d="1">+</button></div></div>`).join("")}
    <h3 class="s">Levering</h3><div class="keuze">
-    <label><input type="radio" name="lev" value="post"${LEV==="post"?" checked":""}><span class="t"><b>Verzenden met bpost</b><small>${v&&LEV==="post"?esc(v.naam):"Naar je adres in België"}</small></span><span class="pz">${LEV==="post"?(v?(v.prijs?eur(v.prijs):"gratis"):"te zwaar"):""}</span></label>
-    <label><input type="radio" name="lev" value="afhalen"${LEV==="afhalen"?" checked":""}><span class="t"><b>Afhalen in de kazerne</b><small>${esc(W.afhaaladres||"")}. Een bestuurslid neemt contact op voor een afspraak.</small></span><span class="pz">gratis</span></label></div>
+    <label><input type="radio" name="lev" value="post"${LEV==="post"?" checked":""}><span class="t"><b>Verzenden met bpost</b><small>Naar je adres in België</small></span><span class="pz">${LEV==="post"?(v?(v.prijs?eur(v.prijs):"gratis"):"te zwaar"):""}</span></label>
+    <label><input type="radio" name="lev" value="afhalen"${LEV==="afhalen"?" checked":""}><span class="t"><b>Afhalen in de kazerne</b><small>${esc(W.afhaaladres||"")}. We nemen contact met je op voor een afspraak.</small></span><span class="pz">gratis</span></label></div>
    <h3 class="s">Betalen</h3><div class="keuze">
     <label class="${bc?"":"uit"}"><input type="radio" name="bet" value="bancontact"${BET==="bancontact"?" checked":""}${bc?"":" disabled"}><span class="t"><b>Bancontact</b><small>Meteen betalen met de Bancontact- of bankapp</small></span></label>
     <label><input type="radio" name="bet" value="overschrijving"${BET==="overschrijving"?" checked":""}><span class="t"><b>Overschrijving</b><small>Je krijgt de betaalgegevens per mail</small></span></label>
@@ -269,7 +269,7 @@ async function toonBestelling(id,token,nieuw){try{const r=await fetch(`/api/shop
   $("#box").innerHTML=`<div class="card bevestig"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>${o.betaald?"Betaald, bedankt!":"Bedankt voor je bestelling!"}</h2><p class="lead2">Bestelling <b>${esc(o.nr)}</b> · ${eur(o.totaal)}. ${nieuw?"Je krijgt een bevestiging per mail.":""}</p>
    ${o.iban?`<div class="paybox" style="text-align:left"><h3>Betaal via overschrijving</h3>${o.qr?`<div class="qrwrap"><div class="qr">${o.qr}</div><p>Scan met je bankapp: alles staat al ingevuld.</p></div><div class="or"><span>of schrijf zelf over</span></div>`:""}<dl class="pd"><div><dt>Bedrag</dt><dd><b>${eur(o.totaal)}</b></dd></div><div><dt>Rekeningnummer</dt><dd><span class="mono">${esc(o.iban)}</span></dd></div><div><dt>Begunstigde</dt><dd>${esc(o.begunstigde)}</dd></div><div><dt>Mededeling</dt><dd><span class="mono">${esc(o.mededeling)}</span></dd></div></dl></div>`:""}
    <div class="sam">${o.items.map(l=>`<div><span>${l.aantal} × ${esc(l.naam)}</span><b>${eur(l.prijs*l.aantal)}</b></div>`).join("")}<div><span>${o.levering==="post"?"Verzending":"Afhalen in de kazerne"}</span><b>${o.verzendkost?eur(o.verzendkost):"gratis"}</b></div></div>
-   <p class="lead2" style="margin-top:16px">${o.levering==="post"?"We sturen je bestelling met bpost zodra ze betaald is.":"Een bestuurslid neemt contact met je op om een moment af te spreken om af te halen."}</p>
+   <p class="lead2" style="margin-top:16px">${o.levering==="post"?"We sturen je bestelling met bpost zodra ze betaald is.":"We nemen contact met je op om een moment af te spreken om af te halen."}</p>
    <button class="btn" type="button" id="terug" style="margin-top:18px">Terug naar de webshop</button></div>`}catch(x){$("#box").innerHTML=`<div class="card"><p style="margin:0">${esc(x.message)}</p></div>`}}
 async function volg(){clearTimeout(volgT);if(!BETS)return;
   try{const r=await fetch(`/api/betaling?t=shop_orders&id=${encodeURIComponent(BETS.id)}&token=${encodeURIComponent(BETS.token)}`);const s=await r.json();
