@@ -5343,7 +5343,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-sg]"
   h=h.replace(/(<tr class="click" data-act="toonSponsor" data-id="([^"]*)">[\s\S]*?)(<\/tr>)/g,(m,a,id,c)=>{const s=S.sponsors.get(id.replace(/&amp;/g,"&").replace(/&quot;/g,'"'));return a.replace(/<td class="muted">/g,'<td class="muted nowrap">')+`<td data-l="Bedankje">${s?sgPills(s):""}</td>`+c});
   const L=[...S.sponsors.values()],nK=L.filter(s=>sgG(s).kalender).length,nT=L.filter(s=>sgG(s).kaarten).length;
   h=h.replace('<div class="bar"><div class="search">',`<p class="muted small" style="margin:-4px 0 12px">Bedankje ${JAAR}: ${nK} ${nK===1?"sponsor kreeg":"sponsors kregen"} een kalender, ${nT} ${nT===1?"kreeg":"kregen"} fuifkaarten, ${L.length-L.filter(s=>sgG(s).kalender||sgG(s).kaarten).length} nog niets. Klik op een sponsor om aan te duiden of kaarten te mailen.</p><div class="bar"><div class="search">`);
-  return h};if(typeof canWrite==="undefined"||canWrite)v.actions=`<button class="btn" data-sg="bulk">Fuifkaarten aanbieden</button>`+(v.actions||"");return v};Object.assign(n,_s);VIEWS.sponsors=n}
+  return h};return v};Object.assign(n,_s);VIEWS.sponsors=n}
 
 function sgBulk(){const c=typeof fuCfg==="function"?fuCfg():{};
   const L=[...S.sponsors.values()].sort((a,b)=>(a.bedrijf||"").localeCompare(b.bedrijf||"","nl"));
@@ -5364,6 +5364,10 @@ function sgBulk(){const c=typeof fuCfg==="function"?fuCfg():{};
       const r=await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"sponsoruitnodiging",ids,jaar:JAAR})});
       closeModal();toast(`${r.aantal} uitnodiging${r.aantal===1?"":"en"} in de wachtrij gezet${r.over.length?`, ${r.over.length} overgeslagen`:""}. Ze vertrekken de komende minuten.`)}
     catch(x){$("#sgbErr").textContent=x.message;b.disabled=false;b.textContent="Uitnodigingen mailen"}}}
+
+/* knop "Fuifkaarten aanbieden" in de instellingen van sponsoring (tandwiel) */
+{const _i=spiInstel;spiInstel=function(){_i.apply(this,arguments);const f=$("#fSpi");if(!f||(typeof canWrite!=="undefined"&&!canWrite))return;
+  f.insertAdjacentHTML("beforeend",`<div class="full sg-inst"><div><b>Fuifkaarten aanbieden</b><div class="muted small">Stuur sponsors een mail met een knop om gratis tickets en een drankkaart voor de fuif aan te vragen.</div></div><button type="button" class="btn sm" data-sg="bulk">Sponsors kiezen…</button></div>`)}}
 
 /* ============ Dashboard: aangeklikte meldingen zijn gelezen en verdwijnen ============
    Per gebruiker, bewaard op dit toestel. Verandert de inhoud van een melding (nieuwe transactie, ander bedrag…),
