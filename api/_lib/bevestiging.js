@@ -71,6 +71,8 @@ async function mailNieuwLid(sb, row) {
     + kaderBlok("Je gegevens", tabel([rij("Naam", esc(d.naam + " " + d.voornaam)), rij("Adres", esc(d.adres)), rij("E-mail", esc(d.email)), rij("Telefoon", esc(d.telefoon)), rij("Categorie", esc(d.categorie)), rij("Lidgeld " + jaar, eur(bedrag))]))
     + betaalBlok({ betaald, betaling: d.betaling, bedrag, rekeningnummer: A.rekeningnummer || DEF_IBAN, begunstigde: A.vereniging, mededeling: `${d.naam} ${d.voornaam} Lidgeld ${jaar}`, tegen, link })
     + p(betaald ? "Je lidmaatschap is in orde. Tot op een van onze activiteiten!" : "Zodra je lidgeld ontvangen is, ben je volwaardig lid. Tot op een van onze activiteiten!")
+    + kaderBlok("Puntensysteem", p("Als lid verdien je punten door mee te helpen: bij activiteiten, de kalenderbedeling, vergaderingen en meer. Die punten bepalen onder meer je korting op het banket. Lees hoe het werkt in het reglement van het puntensysteem.", "margin:0"))
+    + knop("Reglement puntensysteem lezen", `${site()}/reglement`)
     + p("Kloppen je gegevens niet? Antwoord dan gewoon op deze mail.", "margin:0 0 15px;font-size:13.5px;color:#666666");
   return { aan, aanNaam: d.voornaam + " " + d.naam, onderwerp: `VBHA - Bevestiging van je inschrijving als lid`, html: huisstijl(html, A.vereniging), betaald };
 }
@@ -140,6 +142,7 @@ export async function wachtOpBetaling(sb, tabel, id) { await zet(sb, tabel, id, 
 export async function stuurBevestiging(sb, tabel, id) {
   const r = await haal(sb, tabel, id); if (!r) return false;
   if (r.data.bevestiging && r.data.bevestiging.status === "verstuurd") return true;
+  if (r.data.bevestiging && r.data.bevestiging.status === "dubbel") return false;
   const m = await MAKER[tabel](sb, r);
   if (!m) { await zet(sb, tabel, id, { bevestiging: { status: "geen-adres", op: new Date().toISOString() } }); return false; }
   const ok = await stuur(m);
@@ -162,9 +165,11 @@ export async function bevestigingenCron(req, res) {
   if (!(await isDbCron(req))) throw httpErr(403, "Geen toegang");
   const sb = admin(), grens = new Date(Date.now() - 20 * 60 * 1000).toISOString(), uit = [];
   for (const tabel of ["banket", "leden"]) {
-    const { data } = await sb.from(tabel).select("id,data").eq("data->bevestiging->>status", "wacht").lt("data->bevestiging->>sinds", grens).limit(25);
+    const { data } = await sb.from(tabel).select("id,data").eq("data->bevestiging->>status", "wacht").limit(25);
     for (const r of data || []) {
       try { if (r.data.betaling && r.data.betaling.id) await controleerBetaling(sb, tabel, r); } catch (e) { console.error("controle", e); }
+      // nog geen 20 minuten oud en de betaling loopt nog: wachten. Verlopen of mislukt: meteen de bevestiging met de overschrijving.
+      if (String(r.data.bevestiging.sinds || "") >= grens) { const nu = await haal(sb, tabel, r.id), st = nu && nu.data.betaling && nu.data.betaling.status; if (!st || !/^(EXPIRED|FAILED|CANCELED|CANCELLED|AUTHORIZATION_FAILED|ERROR)$/i.test(st)) continue; }
       try { if (await stuurBevestiging(sb, tabel, r.id)) uit.push(tabel + "/" + r.id); } catch (e) { console.error("bevestiging", e); }
     }
   }

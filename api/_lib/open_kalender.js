@@ -1,6 +1,7 @@
 import { admin, sendError, httpErr } from "./sb.js";
 import { algemeen, clean, body, nieuwId, spamCheck, rateLimit, norm } from "./publiek.js";
 import { meldPush } from "./push.js";
+import { adresVolledig, ADRES_FOUT } from "./adrescheck.js";
 
 /* ============ Openbare aanvraag "kalender aan huis" ============
    POST /api/kalender {adres, naam?, email?, opmerking?, website (honeypot), duur}
@@ -24,7 +25,7 @@ export default async function handler(req, res) {
     if (await spamCheck(sb, "kalenderaanvragen", b, httpErr)) return res.status(200).json({ ok: true });
     await rateLimit(sb, req, "kalender", 10, 3600, httpErr);
     const adres = clean(b.adres, 160);
-    if (adres.length < 6 || !/\d/.test(adres)) throw httpErr(400, "Vul je volledige adres in, met huisnummer.");
+    if (!adresVolledig(adres)) throw httpErr(400, ADRES_FOUT);
     const email = clean(b.email, 120);
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw httpErr(400, "Dit e-mailadres klopt niet.");
     const A = await algemeen(sb), jaar = A.jaar;

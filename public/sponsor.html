@@ -150,7 +150,8 @@ h2.sec:first-child{margin-top:0}
   <div id="box"><div class="card ok"><p>Laden…</p></div></div>
   <p class="foot">Vragen? Mail naar <a href="mailto:info@vbha.be" id="footMail">info@vbha.be</a>.</p>
 </main>
-<script>
+<script>const adresVolledig=s=>{s=String(s||"").trim();return /[A-Za-zÀ-ÿ]{2,}/.test(s)&&/\b[1-9]\d{3}\s+[A-Za-zÀ-ÿ'’][A-Za-zÀ-ÿ'’ .\-]+/.test(s)&&/[A-Za-zÀ-ÿ.]\s*\d+\s*[A-Za-z]?\b(?=.*\b[1-9]\d{3}\b)/.test(s)};
+
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const eur=n=>"€"+Number(n).toLocaleString("nl-BE",{minimumFractionDigits:0,maximumFractionDigits:2});
@@ -182,7 +183,7 @@ function formulier(){const c=CFG;
     <div class="full" id="wBedrijf"><label for="bedrijf">Naam bedrijf / handelszaak *</label><input type="text" id="bedrijf" autocomplete="organization"></div>
     <div><label for="voornaam">Voornaam contactpersoon</label><input type="text" id="voornaam" autocomplete="given-name"></div>
     <div><label for="naam">Naam contactpersoon</label><input type="text" id="naam" autocomplete="family-name"></div>
-    <div class="full"><label for="adres">Adres</label><input type="text" id="adres" name="adres" autocomplete="street-address" placeholder="Straat nr, postcode gemeente"></div>
+    <div class="full"><label for="adres" id="lAdres">Adres *</label><input type="text" id="adres" name="adres" autocomplete="street-address" placeholder="Straat nr, postcode gemeente"></div>
     <div><label for="btw">Btw-nummer</label><input type="text" id="btw" placeholder="BE0123.456.789"></div>
     <div><label for="email">E-mail *</label><input type="email" id="email" autocomplete="email" inputmode="email"></div>
     <div><label for="telefoon">Telefoon</label><input type="tel" id="telefoon" autocomplete="tel"></div>
@@ -212,7 +213,7 @@ document.addEventListener("change",e=>{if(e.target.id==="logo"){lgKies(e.target.
 document.addEventListener("click",e=>{if(e.target.id==="lgWeg"){e.preventDefault();if(LOGO&&LOGO.url)URL.revokeObjectURL(LOGO.url);LOGO=null;lgToon()}});
 ["dragenter","dragover"].forEach(ev=>document.addEventListener(ev,e=>{const z=e.target.closest&&e.target.closest("#lgDrop");if(!z)return;e.preventDefault();z.classList.add("on")}));
 ["dragleave","drop"].forEach(ev=>document.addEventListener(ev,e=>{const z=e.target.closest&&e.target.closest("#lgDrop");if(!z)return;e.preventDefault();if(ev==="dragleave"&&z.contains(e.relatedTarget))return;z.classList.remove("on");if(ev==="drop"&&e.dataTransfer&&e.dataTransfer.files[0])lgKies(e.dataTransfer.files[0])}));
-function zoekVak(){const z=$("#zoek"),el=$('label[for="email"]');if(el)el.textContent=MODE==="bestaand"?"E-mail (leeg = gekend adres)":"E-mail *";if(MODE!=="bestaand"){z.innerHTML="";$("#wBedrijf").style.display="";return}
+function zoekVak(){const z=$("#zoek"),el=$('label[for="email"]');if(el)el.textContent=MODE==="bestaand"?"E-mail (leeg = gekend adres)":"E-mail *";const la=$("#lAdres");if(la)la.textContent=MODE==="bestaand"?"Adres (leeg = gekend adres)":"Adres *";if(MODE!=="bestaand"){z.innerHTML="";$("#wBedrijf").style.display="";return}
   $("#wBedrijf").style.display=GEKOZEN?"none":"";
   z.innerHTML=GEKOZEN?`<div class="gek"><span>✓ ${esc(GEKOZEN.naam)}</span><button type="button" id="anders">Andere kiezen</button></div>`:`<div class="zk"><label for="zq">Zoek uw bedrijf</label><input type="text" id="zq" placeholder="Typ de naam van uw bedrijf" autocomplete="off"><div class="zk-l" id="zl"></div><p class="hint2">Niet gevonden? Kies dan <b>Nieuwe sponsor</b>.</p></div>`}
 let zt=0;async function zoek(q){clearTimeout(zt);zt=setTimeout(async()=>{const l=$("#zl");if(!l)return;if(q.trim().length<2){l.innerHTML="";return}
@@ -225,7 +226,7 @@ async function verstuur(e){e.preventDefault();const err=$("#err");err.textConten
   if(MODE==="bestaand"&&!GEKOZEN){err.textContent="Zoek en kies uw bedrijf, of kies Nieuwe sponsor.";return}
   if(MODE==="nieuw"&&!g("bedrijf")){err.textContent="Vul de naam van uw bedrijf in.";$("#bedrijf").focus();return}
   const em=g("email");if((MODE==="nieuw"||em)&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(em)){err.textContent="Vul een geldig e-mailadres in.";$("#email").focus();return}
-  if($("#factuur").checked&&MODE==="nieuw"&&!/\d{4}/.test(g("adres"))){err.textContent="Voor een factuur hebben we uw volledige adres nodig (straat, nummer, postcode en gemeente).";return}
+  if((MODE==="nieuw"||g("adres"))&&!adresVolledig(g("adres"))){err.textContent="Vul het volledige adres in: straat, huisnummer, postcode en gemeente (bv. Kerkstraat 12, 9300 Aalst).";$("#adres").focus();return}
   const body={formule:r.value,bedrag:r.value==="vrij"?g("vb"):"",sponsorId:MODE==="bestaand"?GEKOZEN.id:"",bedrijf:g("bedrijf"),voornaam:g("voornaam"),naam:g("naam"),straat:g("adres"),gemeente:"",btw:g("btw"),email:em,telefoon:g("telefoon"),factuur:$("#factuur").checked,website:g("website"),duur:Date.now()-T0};
   const b=$("#go");b.disabled=true;b.textContent=LOGO?"Logo en gegevens versturen…":"Bezig…";
   try{if(LOGO)body.logo={naam:LOGO.file.name,type:LOGO.file.type,data:await lgB64(LOGO.file)};const res=await fetch("/api/sponsor",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await res.json();if(!res.ok)throw new Error(j.error||"Inschrijven lukte niet.");if(!j.bedrag)throw new Error("Inschrijven lukte niet.");bedankt(j)}
