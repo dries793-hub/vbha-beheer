@@ -132,7 +132,7 @@ function overschrijven(j){return `${j.qr?`<div class="qrwrap"><div class="qr">${
 function appLink(o){if(!o||!o.deeplink)return null;const ret=location.origin+location.pathname+qs()+"&betaling=terug";return o.deeplink+(o.deeplink.includes("?")?"&":"?")+"returnUrl="+encodeURIComponent(ret)}
 function onlineBlok(o){const href=appLink(o);
   return `<a class="btn bc" id="bcGo" href="${esc(href||o.checkout||"#")}">${BC_ICON}Betaal ${eur(INFO.bedrag)} met Bancontact</a>
-  <p class="hint c">${o.deeplink?"Je bank- of Bancontact-app opent en je bevestigt de betaling daar.":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
+  <p class="hint c">${o.deeplink?"Je Bancontact- of bankapp opent en je bevestigt daar binnen 2 minuten.<br><small>Kom je op een pagina om een app te downloaden? Dan heb je geen app die Bancontact Pay ondersteunt: kies dan hieronder <b>overschrijving</b>.</small>":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
   ${o.qrcode?`<div class="qrwrap desk"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div><p>Op een computer? Scan deze code met de Bancontact-app of de app van je bank.</p></div>`:""}
   <p class="wacht" id="bcStatus" aria-live="polite"></p>`}
 function betaald(){$("#lead").textContent="";
@@ -140,7 +140,7 @@ function betaald(){$("#lead").textContent="";
 function toon(){const j=INFO;
   $("#lead").innerHTML=`${j.voornaam?"Dag "+esc(j.voornaam)+", hier":"Hier"} betaal je je lidgeld voor <b>${esc(j.jaar)}</b>.`;
   $("#box").innerHTML=`<div class="card"><div class="paybox" style="margin-top:0"><h3>Lidgeld ${esc(j.jaar)}: ${eur(j.bedrag)}</h3>
-   ${j.kanOnline?`<div id="online"><div class="wacht">Betaling voorbereiden…</div></div><details class="zelf"><summary>Liever zelf overschrijven?</summary>${overschrijven(j)}</details>`:overschrijven(j)}</div></div>`;
+   ${j.kanOnline?`<div id="online"><div class="wacht">Betaling voorbereiden…</div></div><details class="zelf"><summary>Geen app of lukt het niet? Betaal via overschrijving</summary>${overschrijven(j)}</details>`:overschrijven(j)}</div></div>`;
   if(j.kanOnline)start()}
 async function start(o){try{if(!o||!(o.deeplink||o.checkout)||["EXPIRED","CANCELLED","FAILED","AUTHORIZATION_FAILED"].includes(o.status)){
       const r=await fetch("/api/betaling",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(P)});o=await r.json();if(!r.ok)throw new Error(o.error)}
