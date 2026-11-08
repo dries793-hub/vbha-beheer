@@ -5032,11 +5032,11 @@ function kaOpen(act){const c=kaCfg(),actief=KA_ACTS[c.actief]?c.actief:"fuif",co
 const KA_UI={tab:{},alles:false};
 function kaTabBar(route,act,eerste){const t=KA_UI.tab[route]||"hoofd";return `<div class="ka-tabs" role="tablist"><button type="button" role="tab" data-katab="${route}" data-v="hoofd" class="${t==="hoofd"?"on":""}">${esc(eerste)}</button><button type="button" role="tab" data-katab="${route}" data-v="kassa" class="${t==="kassa"?"on":""}">${ic("kassa")}Kassa</button></div>`}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-katab]");if(!b)return;KA_UI.tab[b.dataset.katab]=b.dataset.v;renderBody()});
-function kaTabBody(act){const jaar=kaJaar(act),L=kaTrans(act,jaar),T=kaTot(L),c=kaCfg(),actief=(KA_ACTS[c.actief]?c.actief:"fuif")===act,adm=kaAdm();
+function kaTabBody(act,zonderKnoppen){const jaar=kaJaar(act),L=kaTrans(act,jaar),T=kaTot(L),c=kaCfg(),actief=(KA_ACTS[c.actief]?c.actief:"fuif")===act,adm=kaAdm();
   const tijd=s=>new Date(s).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
   const toon=KA_UI.alles?L:T.B,per=[...T.per.entries()].sort((a,b)=>b[1].b-a[1].b);
   return `<div class="ka-kop"><div><span class="pill ${actief?"ok":"neutral"}">${actief?"Kassa staat op "+esc(KA_ACTS[act]):"Kassa staat op "+esc(KA_ACTS[c.actief]||KA_ACTS.fuif)}</span> <span class="muted small">${kaTegels(act).length} tegels · ${jaar}</span></div>
-    <div class="ka-kop-b">${adm?`<button class="btn" data-ka="inst" data-act="${act}">${ic("instellingen")}Tegels en instellingen</button>`:""}<button class="btn primary" data-ka="open" data-act="${act}">${ic("kassa")}Kassa openen</button></div></div>
+    <div class="ka-kop-b">${zonderKnoppen?"":`${adm?`<button class="btn" data-ka="inst" data-act="${act}">${ic("instellingen")}Tegels en instellingen</button>`:""}<button class="btn primary" data-ka="open" data-act="${act}">${ic("kassa")}Kassa openen</button>`}</div></div>
   <div class="tiles"><div class="tile hero"><span class="lbl">Totaal kassa</span><span class="val">${kaEur(T.tot)}</span><span class="hint">${T.B.length} ${T.B.length===1?"verkoop":"verkopen"}</span></div>
     <div class="tile"><span class="lbl">Bancontact</span><span class="val">${kaEur(T.bc)}</span><span class="hint">${T.B.filter(t=>t.betaalwijze!=="cash").length} verkopen</span></div>
     <div class="tile"><span class="lbl">Cash</span><span class="val">${kaEur(T.cash)}</span><span class="hint">${T.B.filter(t=>t.betaalwijze==="cash").length} verkopen</span></div></div>
@@ -5056,7 +5056,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-ka]");if(!
 function kaMetTab(route,act,eerste){const _v=VIEWS[route];if(!_v)return;const n=function(){const v=_v.apply(this,arguments),b=v.body;
   v.body=function(){return kaTabBar(route,act,eerste)+((KA_UI.tab[route]||"hoofd")==="kassa"?kaTabBody(act):String(b.apply(this,arguments)))};return v};Object.assign(n,_v);VIEWS[route]=n}
 kaMetTab("fuif","fuif","Tickets");kaMetTab("kinderfeest","kinderfeest","Inschrijvingen");
-VIEWS.jaarmarkt=()=>({title:"Jaarmarkt",sub:"Kassa jaarmarkt",actions:`<button class="btn primary" data-ka="open" data-act="jaarmarkt">${ic("kassa")}Kassa openen</button>${kaAdm()?`<button class="btn iconbtn" data-ka="inst" data-act="jaarmarkt" aria-label="Instellingen kassa" title="Instellingen kassa">${ic("instellingen")}</button>`:""}`,body(){return kaTabBody("jaarmarkt")}});
+VIEWS.jaarmarkt=()=>({title:"Jaarmarkt",sub:"Kassa jaarmarkt",actions:`<button class="btn primary" data-ka="open" data-act="jaarmarkt">${ic("kassa")}Kassa openen</button>${kaAdm()?`<button class="btn iconbtn" data-ka="inst" data-act="jaarmarkt" aria-label="Instellingen kassa" title="Instellingen kassa">${ic("instellingen")}</button>`:""}`,body(){return kaTabBody("jaarmarkt",true)}});
 
 /* ---------- Financiën › Kassa ---------- */
 VIEWS.kassa=()=>({title:"Kassa",sub:"Verkoop aan de kassa",
