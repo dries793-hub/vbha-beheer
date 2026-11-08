@@ -180,17 +180,6 @@
       <p class="small">Je gaat naar de beveiligde betaalpagina van de Vriendenkring.</p>
     </form>
   </section>
-  <section class="winkel" id="webshop">
-    <div class="head">
-      <div>
-        <h2>Webshop</h2>
-        <p>Patches en andere aandenkens van de Vriendenkring. Bestel online en laat thuis leveren met bpost, of haal af in de kazerne.</p>
-      </div>
-      <a class="btn-red alt" href="/shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6"/><circle cx="10" cy="20.5" r="1.2"/><circle cx="17" cy="20.5" r="1.2"/></svg>Naar de webshop</a>
-    </div>
-    <div class="prods" id="prods" hidden></div>
-  </section>
-
   <section class="sponsors" id="sponsors">
     <div class="head">
       <div>
@@ -228,14 +217,7 @@
     document.getElementById('b').value = Math.round(n * 100) / 100;
     f.querySelectorAll('input[name=keuze]').forEach(r => r.disabled = true); // niet meesturen in de link
   });
-  fetch('/api/shop').then(r => r.ok ? r.json() : null).then(w => {
-    if (!w) return;
-    if (w.open === false) { document.getElementById('webshop').hidden = true; document.querySelector('.admin.shop').hidden = true; return; }
-    const L = (w.items || []).slice(0, 4), el = document.getElementById('prods'), e = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    if (!L.length) return;
-    el.innerHTML = L.map(i => `<a class="prod" href="/shop"><div class="im"${i.hoofd ? ` style="background-image:url('/api/shop?img=${encodeURIComponent(i.hoofd)}')"` : ''}></div><div class="bd"><b>${e(i.naam)}</b><span>€ ${Number(i.prijs || 0).toLocaleString('nl-BE', { minimumFractionDigits: 2 })}</span></div></a>`).join('');
-    el.hidden = false;
-  }).catch(() => {});
+  fetch('/api/shop').then(r => r.ok ? r.json() : null).then(w => { if (w && w.open === false) document.querySelector('.admin.shop').hidden = true; }).catch(() => {});
   addEventListener('pageshow', () => f.querySelectorAll('input[name=keuze]').forEach(r => r.disabled = false));
 </script>
 </body>
