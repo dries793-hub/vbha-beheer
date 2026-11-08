@@ -213,13 +213,38 @@ main{max-width:760px;padding:14px 12px 30px}
 .ks-man .btn{margin:0;width:auto}
 .linkb{border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;font:inherit;font-size:13.5px}
 .ks-code{font-family:ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.15em;text-align:center;font-size:22px!important;width:100%;padding:11px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink)}
+/* kassascherm: alles op één scherm, grote tegels, vaste balk onderaan */
+.ks-hdr{padding:10px 12px;position:sticky;top:0;z-index:30}.ks-hdr .in{max-width:none;gap:10px}
+.ks-hdr b{color:#fff;font-size:16px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ks-hdr small{color:#c9cbd0;font-size:13px;white-space:nowrap}
+.ks-hdr #menu{flex:none;width:38px;height:38px;border:0;border-radius:10px;background:rgba(255,255,255,.1);display:grid;place-items:center;cursor:pointer}
+.ks-hdr #menu svg{width:20px;height:20px;fill:#fff}
+.ks-menu{position:fixed;top:56px;right:10px;z-index:40;background:var(--surface);border:1px solid var(--line-strong);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.25);min-width:230px;overflow:hidden}
+.ks-menu button{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;padding:14px 16px;border:0;background:none;font:500 15.5px var(--f);color:var(--ink);text-align:left;cursor:pointer}
+.ks-menu button+button{border-top:1px solid var(--line)}.ks-menu button b{color:var(--muted);font-weight:600}
+main.ks{max-width:none;padding:10px 10px 0}
+.vk{display:flex;flex-direction:column;height:calc(100dvh - 58px - 10px)}
+.vk .ks-tabs{margin-bottom:8px;flex:none;width:100%}
+.pos2{flex:1;min-height:0;width:100%;display:grid;gap:8px;grid-auto-rows:minmax(92px,1fr);overflow-y:auto;padding-bottom:8px}
+.pos2 .pt{min-height:0;height:100%;padding:8px;gap:2px}
+.pos2 .pt svg{width:clamp(32px,8vw,56px)!important;height:clamp(32px,8vw,56px)!important}
+.pos2 .pt b{font-size:clamp(15px,4.2vw,20px)}.pos2 .pt span{font-size:clamp(14px,3.8vw,18px)}
+.pt .min{position:absolute;top:6px;left:6px;width:38px;height:38px;border-radius:999px;border:0;background:rgba(0,0,0,.1);color:var(--ink);font:800 26px/1 var(--f);display:grid;place-items:center;cursor:pointer}
+.pt i{min-width:38px;height:38px;font-size:19px;top:6px;right:6px}
+.balk{flex:none;width:100%;display:grid;grid-template-columns:auto 1fr 1fr;gap:8px;align-items:stretch;padding:8px 0 calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--bg)}
+.balk .tot{display:flex;flex-direction:column;justify-content:center;padding:0 6px 0 2px;min-width:96px}
+.balk .tot b{font-size:24px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.balk .tot button{border:0;background:none;color:var(--muted);font:500 13px var(--f);padding:2px 0;text-align:left;cursor:pointer}
+.balk .btn{margin:0;min-height:60px;font-size:18px;border-radius:12px}
+.balk .btn:disabled{opacity:.35}
+.bq .ks-acts .btn,.ks-acts .btn{min-height:58px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" integrity="sha512-ZDSPMa/JM1D+7kdg2x3BsruQ6T/JpJo3jWDWkCZsP+5yVyp1KfESqLI+7RqB5k24F7p2cV7i2YHh/890y6P6Sw==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
 <script src="/kassa-iconen.js"></script>
 </head>
 <body>
-<header class="hdr"><div class="in" style="justify-content:space-between"><b style="color:#fff;font-size:16px" id="hNaam">Kassa</b><small id="hTot" style="color:#c9cbd0;font-size:13px;text-align:right"></small></div></header>
-<main><div id="box"></div></main>
+<header class="hdr ks-hdr"><div class="in"><b id="hNaam">Kassa</b><small id="hTot"></small><button type="button" id="menu" aria-label="Menu" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button></div></header><div id="menuL" class="ks-menu" hidden></div>
+<main class="ks"><div id="box"></div></main>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const eur=n=>"€ "+Number(n||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -230,11 +255,12 @@ try{const t=JSON.parse(localStorage.getItem("vbha_kassa")||"null");if(t&&t.tot>D
 const post=async b=>{const r=await fetch("/api/kassa",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:TOK&&TOK.token,...b})});const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.error||"Er ging iets mis. Controleer de internetverbinding.");e.status=r.status;throw e}return j};
 function fout(e){if(e&&e.status===401){login(e.message);return true}return false}
 /* ---------- aanmelden ---------- */
-function login(msg){stop();TOK=null;try{localStorage.removeItem("vbha_kassa")}catch(x){}$("#hNaam").textContent="Kassa";$("#hTot").textContent="";
+function login(msg){stop();TOK=null;const mb=$("#menu");if(mb)mb.hidden=true;try{localStorage.removeItem("vbha_kassa")}catch(x){}$("#hNaam").textContent="Kassa";$("#hTot").textContent="";
   $("#box").innerHTML=`<form class="card" id="fl" novalidate style="margin-top:12px"><h2 style="margin:0 0 6px">Kassa</h2><p class="lead" style="margin:0 0 14px">Geef de kassacode in die je van het bestuur kreeg. Een code is 1 dag geldig.</p><label for="kc">Kassacode</label><input type="text" id="kc" class="ks-code" autocomplete="off" autocapitalize="characters" maxlength="12"><p class="err" id="err" role="alert">${esc(msg||"")}</p><button class="btn" id="go" type="submit">Starten</button></form>`;
   $("#fl").onsubmit=async e=>{e.preventDefault();const b=$("#go");b.disabled=true;try{const j=await post({actie:"login",code:$("#kc").value});TOK=j;try{localStorage.setItem("vbha_kassa",JSON.stringify(j))}catch(x){}await laad();toon()}catch(x){$("#err").textContent=x.message;b.disabled=false}}}
 async function laad(){ST=await post({actie:"stand"});$("#hNaam").textContent="Kassa · "+ST.naam;hoofd()}
-function hoofd(){if(!ST)return;const t=ST.totalen||{};$("#hTot").textContent=`${t.verkopen||0} verkopen · ${eur((t.bancontact||0)+(t.cash||0))}`}
+function menuTeken(){$("#menuL").innerHTML=`<button type="button" id="wgWissel">Wisselgeld-hulp <b>${WG?"aan":"uit"}</b></button><button type="button" id="herlaad">Kassa vernieuwen</button><button type="button" id="afmeld">Afmelden</button>`}
+function hoofd(){if(!ST)return;$("#menu").hidden=false;const t=ST.totalen||{};$("#hTot").textContent=`${t.verkopen||0} verkopen · ${eur((t.bancontact||0)+(t.cash||0))}`}
 const tabs=()=>ST&&ST.scan?`<div class="ks-tabs"><button type="button" data-tab="verkoop" class="${TAB==="verkoop"?"on":""}">Verkopen</button><button type="button" data-tab="scan" class="${TAB==="scan"?"on":""}">Scannen</button></div>`:"";
 function toon(){if(!ST)return;if(!ST.scan)TAB="verkoop";if(TAB==="scan")scanner();else{stop();verkoopScherm()}}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-tab]");if(!t)return;TAB=t.dataset.tab;toon()});
@@ -242,17 +268,21 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-tab]");if(
 setInterval(async()=>{if(!TOK||VK||document.hidden)return;try{const oud=JSON.stringify(ST&&ST.tegels);await laad();if(TAB==="verkoop"&&JSON.stringify(ST.tegels)!==oud&&!Object.keys(MAND).length)verkoopScherm()}catch(e){fout(e)}},45000);
 /* ---------- verkopen ---------- */
 const kleur=k=>(window.KASSA_KLEUREN||{})[k]||["#55585e","#f0f1f2"];
-function verkoopScherm(){clearTimeout(naT);const T=ST.tegels||[],tot=T.reduce((n,x)=>n+(MAND[x.id]||0)*x.prijs,0),gek=T.filter(x=>MAND[x.id]);
-  $("#box").innerHTML=tabs()+(T.length?`<div class="pos">${T.map(x=>{const [k,b]=kleur(x.kleur);return `<button type="button" class="pt" data-pt="${esc(x.id)}" style="--k:${k};--b:${b}"><i>${MAND[x.id]||""}</i>${typeof kassaIcoon==="function"?kassaIcoon(x.icoon,k):""}<b>${esc(x.naam)}</b><span>${eur(x.prijs)}</span></button>`}).join("")}</div>`:'<div class="card"><p style="margin:0">Er staan nog geen tegels klaar voor deze kassa. Vraag het bestuur om ze in te stellen.</p></div>')+`
-   <div class="mand">${gek.length?gek.map(x=>`<div class="mand-r"><span><b>${MAND[x.id]}×</b> ${esc(x.naam)}</span><span style="display:flex;align-items:center;gap:10px">${eur(MAND[x.id]*x.prijs)}<button type="button" data-min="${esc(x.id)}" aria-label="Eén minder">−</button></span></div>`).join(""):'<div class="hint" style="margin:4px 0;text-align:center">Tik op een tegel om toe te voegen.</div>'}
-   <div class="mand-t"><span>Totaal</span><span>${eur(tot)}</span></div></div>
-   <div class="ks-acts"><button class="btn" id="afr"${tot>0&&ST.online?"":" disabled"}>Bancontact</button><button class="btn sec" id="cash"${tot>0?"":" disabled"}>Cash</button></div>
-   <p style="text-align:center;margin:8px 0 0;font-size:13px;color:var(--muted)">Wisselgeld-hulp bij cash: <button type="button" class="linkb" id="wgWissel">${WG?"aan":"uit (Cash boekt meteen)"}</button></p>
-   ${gek.length?'<p style="text-align:center;margin:10px 0 0"><button type="button" class="linkb" id="leeg">Alles wissen</button></p>':""}`}
-document.addEventListener("click",e=>{const t=e.target.closest("[data-pt]");if(t){MAND[t.dataset.pt]=(MAND[t.dataset.pt]||0)+1;tril(12);verkoopScherm();const n=$(`[data-pt="${CSS.escape(t.dataset.pt)}"]`);if(n){n.classList.add("flash")}return}
+function kolommen(n){const w=innerWidth;if(n<=2)return n;if(n<=4)return 2;if(n<=6)return w<640?2:3;if(n<=9)return 3;if(n<=12)return w<640?3:4;return w>=900?5:w>=640?4:3}
+function verkoopScherm(){clearTimeout(naT);const T=ST.tegels||[],tot=T.reduce((n,x)=>n+(MAND[x.id]||0)*x.prijs,0),aantal=Object.values(MAND).reduce((a,b)=>a+b,0);
+  $("#box").innerHTML=`<div class="vk">${tabs()}${T.length?`<div class="pos2" style="grid-template-columns:repeat(${kolommen(T.length)},minmax(0,1fr))">${T.map(x=>{const [k,b]=kleur(x.kleur),n=MAND[x.id]||0;return `<button type="button" class="pt" data-pt="${esc(x.id)}" style="--k:${k};--b:${b}"><i>${n||""}</i>${n?`<span class="min" data-min="${esc(x.id)}" role="button" aria-label="Eén minder">−</span>`:""}${typeof kassaIcoon==="function"?kassaIcoon(x.icoon,k):""}<b>${esc(x.naam)}</b><span>${eur(x.prijs)}</span></button>`}).join("")}</div>`:'<div class="card"><p style="margin:0">Nog geen tegels ingesteld.</p></div>'}
+   <div class="balk"><div class="tot"><b>${eur(tot)}</b>${aantal?`<button type="button" id="leeg">✕ wissen</button>`:""}</div><button class="btn" id="afr"${tot>0&&ST.online?"":" disabled"}>Bancontact</button><button class="btn sec" id="cash"${tot>0?"":" disabled"}>Cash</button></div></div>`}
+function pasHoogte(){const v=$(".vk"),h=$(".ks-hdr");if(v&&h)v.style.height=(innerHeight-h.offsetHeight-18)+"px"}
+new MutationObserver(pasHoogte).observe(document.getElementById("box"),{childList:true});
+addEventListener("resize",()=>{if(ST&&TAB==="verkoop"&&!VK&&$(".pos2"))verkoopScherm()});
+document.addEventListener("click",e=>{if(e.target.closest("[data-min]")){const k=e.target.closest("[data-min]").dataset.min;MAND[k]=Math.max(0,(MAND[k]||0)-1);if(!MAND[k])delete MAND[k];tril(8);verkoopScherm();return}const t=e.target.closest("[data-pt]");if(t){MAND[t.dataset.pt]=(MAND[t.dataset.pt]||0)+1;tril(12);verkoopScherm();const n=$(`[data-pt="${CSS.escape(t.dataset.pt)}"]`);if(n){n.classList.add("flash")}return}
   const m=e.target.closest("[data-min]");if(m){const k=m.dataset.min;MAND[k]=Math.max(0,(MAND[k]||0)-1);if(!MAND[k])delete MAND[k];verkoopScherm();return}
-  const id=e.target.id;
-  if(id==="wgWissel"){zetWG(!WG);verkoopScherm();return}
+  const id=(e.target.closest("button[id]")||{}).id||"";
+  if(id==="menu"){const m=$("#menuL");if(m.hidden){menuTeken();m.hidden=false}else m.hidden=true;return}
+  if(!e.target.closest("#menuL")&&!$("#menuL").hidden)$("#menuL").hidden=true;
+  if(id==="wgWissel"){zetWG(!WG);menuTeken();return}
+  if(id==="herlaad"){$("#menuL").hidden=true;laad().then(toon).catch(fout);return}
+  if(id==="afmeld"){$("#menuL").hidden=true;login();return}
   if(id==="wgUit"){zetWG(false);cashBevestig();return}
   if(id==="leeg"){MAND={};verkoopScherm()}else if(id==="afr")bancontact();else if(id==="cash")cashScherm();
   else if(id==="vkStop"){if(VK)post({actie:"stop",id:VK.id}).catch(()=>{});VK=null;clearTimeout(vkT);verkoopScherm()}
@@ -265,8 +295,8 @@ function qrCanvas(txt){if(!window.qrcode)return null;const q=qrcode(0,"M");q.add
 async function bancontact(){const b=$("#afr");b.disabled=true;b.textContent="QR maken…";
   try{const j=await post({actie:"verkoop",items:MAND,betaalwijze:"bancontact",bedrag:mandTot()});VK=j;toonQr();volgVk(1200)}
   catch(e){if(fout(e))return;if(e.status===409){await laad();MAND={};verkoopScherm()}alert(e.message);const x=$("#afr");if(x){x.disabled=false;x.textContent="Bancontact"}}}
-function toonQr(){$("#box").innerHTML=tabs()+`<div class="card bq"><p style="margin:0;color:var(--muted)">Laat de klant scannen met de Bancontact- of bankapp</p><div class="bedrag">${eur(VK.bedrag)}</div><div id="qrPlek"></div><p class="wacht" id="vkSt" style="margin-top:10px">Wachten op betaling…</p>
-  <div class="ks-acts" style="grid-template-columns:1fr 1fr"><button class="btn sec" id="vkNieuw">Nieuwe QR</button><button class="btn sec" id="vkStop">Annuleren</button></div></div>`;
+function toonQr(){$("#box").innerHTML=tabs()+`<div class="card bq"><div class="bedrag">${eur(VK.bedrag)}</div><div id="qrPlek"></div><p class="wacht" id="vkSt" style="margin-top:10px">Wachten…</p>
+  <div class="ks-acts" style="grid-template-columns:1fr 1fr"><button class="btn sec" id="vkNieuw">↻ Nieuwe QR</button><button class="btn sec" id="vkStop">✕ Annuleren</button></div></div>`;
   const p=$("#qrPlek"),cv=VK.deeplink&&qrCanvas(VK.deeplink);if(cv)p.append(cv);else if(VK.qrcode)p.innerHTML=`<img src="${esc(VK.qrcode)}" alt="Bancontact-QR-code">`;else p.innerHTML='<p class="err">Geen QR-code ontvangen. Tik op Nieuwe QR.</p>'}
 async function nieuweQr(){const b=$("#vkNieuw");if(b)b.disabled=true;try{const j=await post({actie:"nieuweqr",id:VK.id});VK={...VK,...j};toonQr();volgVk(1200)}catch(e){if(!fout(e))alert(e.message);if(b)b.disabled=false}}
 function volgVk(ms){clearTimeout(vkT);vkT=setTimeout(async()=>{if(!VK)return;const id=VK.id;
@@ -283,19 +313,19 @@ let WG=true;try{WG=localStorage.getItem("vbha_kassa_wg")!=="0"}catch(x){}
 function zetWG(v){WG=v;try{localStorage.setItem("vbha_kassa_wg",v?"1":"0")}catch(x){}}
 function cashScherm(){cashOntv=0;if(!WG){cashBevestig();return}cashTeken()}
 function cashTeken(){const t=mandTot(),terug=cashOntv?Math.round((cashOntv-t)*100)/100:null;
-  $("#box").innerHTML=tabs()+`<div class="card bq"><p style="margin:0;color:var(--muted)">Cash te betalen</p><div class="bedrag">${eur(t)}</div>
-   <p style="margin:0;font-weight:600">Ontvangen</p><div class="wg">${["gepast",5,10,20,50,100].filter(v=>v==="gepast"||v>=t).map(v=>`<button type="button" data-wg="${v}" class="${(v==="gepast"?t:v)===cashOntv?"on":""}">${v==="gepast"?"Gepast":"€"+v}</button>`).join("")}</div>
-   ${terug!=null?(terug>=0?`<div class="terug">Wisselgeld ${eur(terug)}</div>`:`<div class="terug" style="color:var(--accent)">Nog ${eur(-terug)} tekort</div>`):'<p class="hint" style="margin:0 0 10px">Tik wat de klant geeft om het wisselgeld te zien (optioneel).</p>'}
-   <div class="ks-acts" style="grid-template-columns:2fr 1fr"><button class="btn" id="cashOk"${terug!=null&&terug<0?" disabled":""}>Cash ontvangen</button><button class="btn sec" id="cashTerug">Terug</button></div>
-   <p style="margin:12px 0 0"><button type="button" class="linkb" id="wgUit">Wisselgeld zelf rekenen: dit scherm overslaan</button></p></div>`}
+  $("#box").innerHTML=tabs()+`<div class="card bq"><div class="bedrag">${eur(t)}</div>
+   <div class="wg">${["gepast",5,10,20,50,100].filter(v=>v==="gepast"||v>=t).map(v=>`<button type="button" data-wg="${v}" class="${(v==="gepast"?t:v)===cashOntv?"on":""}">${v==="gepast"?"Gepast":"€"+v}</button>`).join("")}</div>
+   ${terug!=null?(terug>=0?`<div class="terug">Wisselgeld ${eur(terug)}</div>`:`<div class="terug" style="color:var(--accent)">Nog ${eur(-terug)} tekort</div>`):''}
+   <div class="ks-acts" style="grid-template-columns:2fr 1fr"><button class="btn" id="cashOk"${terug!=null&&terug<0?" disabled":""}>✓ Ontvangen</button><button class="btn sec" id="cashTerug">Terug</button></div>
+   <p style="margin:12px 0 0"><button type="button" class="linkb" id="wgUit">Dit scherm voortaan overslaan</button></p></div>`}
 async function cashBevestig(){const b=$("#cashOk")||$("#cash");if(b)b.disabled=true;
   try{const j=await post({actie:"verkoop",items:MAND,betaalwijze:"cash",bedrag:mandTot(),ontvangen:cashOntv||null});VK=j;gelukt(true)}
   catch(e){if(fout(e))return;if(e.status===409){await laad();MAND={};verkoopScherm()}alert(e.message);if(b)b.disabled=false}}
 function gelukt(cash){clearTimeout(vkT);tril([70,40,70]);const bedrag=VK?VK.bedrag:mandTot(),w=wat();
-  $("#box").innerHTML=tabs()+`<div class="card bq ok"><div class="vink">✓</div><h2 style="margin:0">${cash?"Cash ontvangen":"Betaald"}</h2><div class="bedrag">${eur(bedrag)}</div><p style="margin:0 0 4px;color:var(--muted)">Geef de klant:</p><p style="margin:0;font-size:19px;color:var(--ink)"><b>${w}</b></p>
-   <button class="btn" id="okVolgende" style="margin-top:18px">Volgende klant</button><p class="hint c" id="auto">Automatisch verder over 5 seconden…</p></div>`;
+  $("#box").innerHTML=tabs()+`<div class="card bq ok"><div class="vink">✓</div><div class="bedrag">${eur(bedrag)}</div><p style="margin:0;font-size:19px;color:var(--ink)"><b>${w}</b></p>
+   <button class="btn" id="okVolgende" style="margin-top:18px">Volgende klant <span id="auto" style="opacity:.7;font-weight:500">5</span></button></div>`;
   if(ST&&ST.totalen){ST.totalen.verkopen++;if(cash)ST.totalen.cash+=bedrag;else ST.totalen.bancontact+=bedrag;hoofd()}
-  let n=5;const tik=()=>{n--;const a=$("#auto");if(!a)return;if(n<=0){volgende();return}a.textContent=`Automatisch verder over ${n} seconden…`;naT=setTimeout(tik,1000)};naT=setTimeout(tik,1000)}
+  let n=5;const tik=()=>{n--;const a=$("#auto");if(!a)return;if(n<=0){volgende();return}a.textContent=String(n);naT=setTimeout(tik,1000)};naT=setTimeout(tik,1000)}
 function volgende(){clearTimeout(naT);MAND={};VK=null;verkoopScherm()}
 /* ---------- scannen ---------- */
 let S=null;
