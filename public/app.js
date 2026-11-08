@@ -4121,7 +4121,7 @@ async function mpBewaar(){const cur=stripId(S.config.get("herinneringen")||{});
   await write("config","herinneringen",{...cur,push:{...(cur.push||{}),aan:$("#mpAan").checked}});toast("Pushmeldingen bewaard.")}
 // menu onder het profiel: snel naar de meldingen
 {const _m=gbMenu;gbMenu=function(){_m.apply(this,arguments);const m=$("#acctMenu");if(!m||m.querySelector("[data-mpm]"))return;const lo=m.querySelector('[data-act="logout"]');
-  const h=`<a href="#meldingen" class="acct-i" role="menuitem" data-act="acctClose" data-mpm>${ic("bel")}Meldingen op dit toestel</a>`;if(lo)lo.insertAdjacentHTML("beforebegin",h);else m.insertAdjacentHTML("beforeend",h)}}
+  const h=`<a href="#meldingen" class="acct-i" role="menuitem" data-act="acctClose" data-mpm>${ic("bel")}Meldingen</a>`;if(lo)lo.insertAdjacentHTML("beforebegin",h);else m.insertAdjacentHTML("beforeend",h)}}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-mp],#mpOk");if(!t)return;if(t.id==="mpOk")return mpBewaar();
   ({aan:mpAan,uit:mpUit,test:mpTest,vk:mpVk})[t.dataset.mp](t)});
 mpReg();
@@ -4657,14 +4657,14 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="kalIn
 const ADM=()=>ROL==="admin";
 ICON.potlood='<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-4-4L4 16z"/><path d="M14 6l4 4"/>';
 const ADM_ROUTES=[...INST_IDS,"gebruikers"];
-if(!ROUTES.some(r=>r[0]==="meldingen"))ROUTES.push(["meldingen","Meldingen op dit toestel"]);
-VIEWS.meldingen=()=>({title:"Meldingen op dit toestel",sub:"Een melding op je gsm of computer op de dag van een vergadering of activiteit",
+if(!ROUTES.some(r=>r[0]==="meldingen"))ROUTES.push(["meldingen","Meldingen"]);
+VIEWS.meldingen=()=>({title:"Meldingen",sub:"Een melding op je gsm of computer op de dag van een vergadering of activiteit",
   body(){if(!MP.srv&&!MP.bezig){MP.bezig=true;setTimeout(()=>mpLaad().finally(()=>{MP.bezig=false}),0)}const c=mpCfg();
     return `<div class="panel mp-eigen"><div class="panel-h"><h2>Dit toestel</h2></div><div class="panel-b" id="mpToestel">${mpToestelHtml()}</div></div>
     <p class="muted small mp-uitleg">${c.aan?`Staan de meldingen aan, dan krijg je om ${Number(c.uur)||9}u een melding op de dag van ${[c.vergaderingen?"een vergadering":"",c.activiteiten?"een activiteit":""].filter(Boolean).join(" of ")||"een activiteit"}. Je zet ze per toestel aan: doe dit dus op elke gsm of computer waarop je ze wilt krijgen.`:"De vereniging verstuurt momenteel geen pushmeldingen."}</p>`}});
 // instellingenpagina's afschermen
 for(const k of ADM_ROUTES){const o=VIEWS[k];if(!o)continue;const n=function(){if(ADM())return o.apply(this,arguments);
-    return{title:"Instellingen",body(){return `<div class="panel"><div class="panel-b"><p style="margin:0 0 12px">De instellingen zijn enkel toegankelijk voor de administrator.</p><a class="btn" href="#meldingen">${ic("bel")}Meldingen op dit toestel</a></div></div>`}}};
+    return{title:"Instellingen",body(){return `<div class="panel"><div class="panel-b"><p style="margin:0 0 12px">De instellingen zijn enkel toegankelijk voor de administrator.</p><a class="btn" href="#meldingen">${ic("bel")}Meldingen</a></div></div>`}}};
   Object.assign(n,o);if(o.after)n.after=function(){if(ADM())return o.after.apply(this,arguments)};VIEWS[k]=n}
 // tandwieltjes en het menu-item Instellingen verbergen (via een klasse op body, bij elke weergave bijgewerkt)
 const admKlas=()=>{document.body.classList.toggle("niet-admin",!ADM());document.body.dataset.rol=ROL||""};
