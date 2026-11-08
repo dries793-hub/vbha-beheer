@@ -4672,3 +4672,9 @@ const ADRES_FOUT="Vul een volledig adres in: straat, huisnummer, postcode en gem
 // adres toevoegen op de kalenderkaart
 {const _k=kaNieuw;kaNieuw=function(){_k.apply(this,arguments);const ok=$("#kaOk");if(!ok)return;const _c=ok.onclick;
   ok.onclick=function(ev){const a=$("#kaA");if(a&&!adresVolledig(a.value)){$("#kaErr").textContent=ADRES_FOUT;a.focus();return}return _c&&_c.call(this,ev)}}}
+// nieuw lid in de app: niet twee keer hetzelfde e-mailadres
+{const _n=nieuwLid;nieuwLid=function(){_n.apply(this,arguments);const ok=$("#lidOk");if(!ok)return;const _c=ok.onclick;
+  ok.onclick=function(ev){const m=String(($("#email")||{}).value||"").trim().toLowerCase(),gn=$("#geenLid")&&$("#geenLid").checked;
+    const al=m&&!gn&&[...S.leden.values()].find(l=>String(l.email||"").trim().toLowerCase()===m&&!l.geenLid);
+    if(al){$("#lidErr").textContent=`Dit e-mailadres hoort al bij ${naamVol(al)}.`;return}
+    return _c&&_c.call(this,ev)}}}
