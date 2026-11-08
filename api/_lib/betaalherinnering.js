@@ -79,7 +79,7 @@ async function banketLijst(sb, cfg, nu) {
   }
   return { lijst: out, jaar, verval, feest };
 }
-function banketMail(x, A) {
+export function banketMail(x, A) {
   const meded = `${x.naam} Banket ${x.jaar}`;
   const html = p(`Beste ${esc(x.voornaam || x.naam)},`)
     + p(`Bedankt voor je inschrijving voor ons banket van ${esc(lang(x.feest))}. Volgens onze gegevens hebben we je betaling nog niet ontvangen.`)
@@ -116,7 +116,7 @@ async function lidgeldLijst(sb, cfg) {
   }
   return { lijst: out, jaar: J, verval };
 }
-function lidgeldMail(x, A) {
+export function lidgeldMail(x, A) {
   const meded = `${x.naam} Lidgeld ${x.jaar}`;
   const link = `${site()}/lidgeld?l=${encodeURIComponent(x.id)}&j=${x.jaar}&b=${Number(x.bedrag)}&t=${encodeURIComponent(teken(x.id, x.jaar, x.bedrag))}`;
   const html = p(`Beste ${esc(x.voornaam || x.naam)},`)

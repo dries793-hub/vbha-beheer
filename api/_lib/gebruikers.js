@@ -28,7 +28,7 @@ async function alleGebruikers(sb) {
   }
   return out;
 }
-function welkomMail({ naam, email, rol, wachtwoord, url, reset }) {
+export function welkomMail({ naam, email, rol, wachtwoord, url, reset }) {
   const groet = naam ? "Beste " + esc(String(naam).split(" ")[0]) + "," : "Hallo,";
   const html = `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#f7f7f7">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f7f7f7"><tr><td align="center" style="padding:25px 10px">

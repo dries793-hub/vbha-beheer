@@ -79,7 +79,7 @@ export function bevPdf(b, s, cfg, hand) {
 }
 const pdfNaam = (b, s) => `Sponsorbevestiging ${b.nr} ${sponsorNaam(s)}.pdf`.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ");
 
-function bevMail(b, s, cfg) {
+export function bevMail(b, s, cfg) {
   const natura = b.soort !== "geld";
   const vn = String(s.voornaam || "").trim();
   let html = p(vn ? `Beste ${esc(vn)},` : "Beste,")

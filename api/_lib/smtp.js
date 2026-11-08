@@ -2,6 +2,10 @@
 // Nodig in Vercel: SMTP_HOST (bv. send.one.com), SMTP_PORT (465), SMTP_USER, SMTP_PASS. Optioneel: MAIL_FROM_NAAM.
 import tls from "node:tls";
 import crypto from "node:crypto";
+import { AsyncLocalStorage } from "node:async_hooks";
+
+// Testmodus (enkel binnen testMails): berichten worden verzameld i.p.v. verstuurd.
+export const testOpvang = new AsyncLocalStorage();
 
 export const smtpConfigured = () => !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 // standaard antwoordadres (Reply-To) van alle mails; facturen geven hun eigen adres mee
@@ -60,6 +64,8 @@ export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan, b
 
 // Opent één verbinding en verstuurt de berichten na elkaar. Geeft per bericht {ok, fout} terug.
 export async function verstuur(berichten) {
+  const T = testOpvang.getStore();
+  if (T) { for (const m of berichten) T.push(m); return berichten.map(() => ({ ok: true })); }
   const host = process.env.SMTP_HOST, port = Number(process.env.SMTP_PORT) || 465;
   const sock = tls.connect({ host, port, servername: host });
   sock.setEncoding("utf8");

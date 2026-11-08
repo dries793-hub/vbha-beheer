@@ -47,7 +47,7 @@ function betaalBlok({ betaald, betaling, bedrag, rekeningnummer, begunstigde, me
 const BETAALD = (d, bedrag) => d.betaling && d.betaling.status === "SUCCEEDED" && Number(d.betaling.bedrag) === Number(bedrag);
 
 /* ---------- inhoud per soort inschrijving ---------- */
-async function mailBanket(sb, row) {
+export async function mailBanket(sb, row) {
   const d = row.data, A = await algemeen(sb), c = await configDoc(sb, "banket"), jaar = d.jaar || A.jaar;
   const { data: lid } = d.lidId ? await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle() : { data: null };
   const L = lid && lid.data || {}, aan = String(L.email || "").trim();
@@ -61,7 +61,7 @@ async function mailBanket(sb, row) {
     + p(betaald ? "Je inschrijving is volledig in orde. We kijken ernaar uit om samen een gezellige avond te beleven!" : "Zodra je betaling ontvangen is, is je inschrijving definitief. We kijken ernaar uit om samen een gezellige avond te beleven!");
   return { aan, aanNaam: L.voornaam ? L.voornaam + " " + (L.naam || "") : d.naam, onderwerp: `VBHA - Bevestiging inschrijving banket ${jaar}`, html: huisstijl(html, A.vereniging), betaald };
 }
-async function mailNieuwLid(sb, row) {
+export async function mailNieuwLid(sb, row) {
   const d = row.data, A = await algemeen(sb), aan = String(d.email || "").trim();
   if (!aan) return null;
   const jaar = (d.betaling && d.betaling.jaar) || d.lidSinds || A.jaar, bedrag = d.lidgeldBedrag || 0, betaald = BETAALD(d, bedrag);
@@ -114,14 +114,14 @@ export async function kfMailHtml(sb, d, { A, c, jaar }) {
     + p("Tot dan!");
   return html;
 }
-async function mailKinderfeest(sb, row) {
+export async function mailKinderfeest(sb, row) {
   const d = row.data, A = await algemeen(sb), jaar = d.jaar || A.jaar, c = await configDoc(sb, "kf_" + jaar), aan = String(d.email || "").trim();
   if (!aan) return null;
   const html = await kfMailHtml(sb, d, { A, c, jaar });
   const M = { ...kfMailDef(jaar, c.datum || jaar + "-12-19"), ...(c.mail || {}) }, cc = String(M.kopie || "").split(/[,;\s]+/).map(x => x.trim().toLowerCase()).filter(x => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x)).slice(0, 5);
   return { aan, aanNaam: d.lid || "", cc, onderwerp: `VBHA - Bevestiging inschrijving kinderfeest ${jaar}`, html: huisstijl(html, A.vereniging), betaald: true };
 }
-async function mailBetaald(sb, tabel, row) {
+export async function mailBetaald(sb, tabel, row) {
   const d = row.data, A = await algemeen(sb), b = d.betaling || {};
   let aan = "", voornaam = "", wat = "";
   if (tabel === "leden") { aan = d.email; voornaam = d.voornaam; wat = `je lidgeld ${b.jaar || ""}`.trim(); }
