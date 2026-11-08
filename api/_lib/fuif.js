@@ -61,10 +61,6 @@ export default async function fuifPubliek(req, res) {
       res.setHeader("Content-Type", "image/png"); res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
       return res.status(200).send(qrPng(ticketUrl(code), 8, 4));
     }
-    if (req.method === "GET" && q.sri === "jsqr") { // TIJDELIJK: SRI-hash van jsQR bepalen
-      const r = await fetch("https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"); const buf = Buffer.from(await r.arrayBuffer());
-      return res.status(200).json({ status: r.status, bytes: buf.length, sri: "sha384-" + crypto.createHash("sha384").update(buf).digest("base64"), begin: buf.slice(0, 120).toString() });
-    }
     res.setHeader("Cache-Control", "no-store");
     const { c, A } = await fuifCfg(sb);
     const ev = { naam: c.naam, datum: c.datum, datumTekst: c.datum ? lang(c.datum) : "", deuren: c.deuren, locatie: c.locatie, info: c.info, jaar: c.jaar };
@@ -88,7 +84,7 @@ export default async function fuifPubliek(req, res) {
     if (req.method === "GET") {
       const n = c.max ? await bezet(sb, c.jaar) : 0, vrij = c.max ? Math.max(0, c.max - n) : null;
       const voorbij = c.datum && vandaagISO() > c.datum;
-      return res.status(200).json({ ...ev, prijs: c.prijs, open: c.open !== false && !voorbij && (vrij == null || vrij > 0), gesloten: c.open === false ? "manueel" : voorbij ? "voorbij" : vrij === 0 ? "uitverkocht" : null, vrij, perBestelling: c.perBestelling, online: onlineConfigured(), vereniging: A.vereniging });
+      return res.status(200).json({ ...ev, prijs: c.prijs, open: c.open !== false && !!c.datum && !voorbij && (vrij == null || vrij > 0), gesloten: c.open === false || !c.datum ? "manueel" : voorbij ? "voorbij" : vrij === 0 ? "uitverkocht" : null, vrij, perBestelling: c.perBestelling, online: onlineConfigured(), vereniging: A.vereniging });
     }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
 
@@ -97,7 +93,7 @@ export default async function fuifPubliek(req, res) {
     if (await spamCheck(sb, "tickets", b, httpErr)) return res.status(200).json({ ok: true });
     await rateLimit(sb, req, "fuif", 15, 3600, httpErr);
     if (!onlineConfigured()) throw httpErr(501, "Online betalen is nog niet ingesteld. Probeer het later opnieuw.");
-    if (c.open === false) throw httpErr(403, "De ticketverkoop is gesloten.");
+    if (c.open === false || !c.datum) throw httpErr(403, "De ticketverkoop is gesloten.");
     if (c.datum && vandaagISO() > c.datum) throw httpErr(403, "De ticketverkoop is afgelopen.");
     if (!(c.prijs > 0)) throw httpErr(403, "De ticketprijs is nog niet ingesteld.");
     const d = { naam: clean(b.naam, 80), voornaam: clean(b.voornaam, 80), adres: clean(b.adres, 200), email: clean(b.email, 120).toLowerCase(), telefoon: clean(b.telefoon, 40) };
