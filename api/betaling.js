@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     if (b.sp) return await sponsorLink(req, res, b, { startBetaling, controleerBetaling }); // betaallink sponsoring (zonder factuur)
     if (b.fa) return await factuurPubliek(req, res, b, { onlineConfigured, startBetaling, controleerBetaling }); // betaallink uit een factuurmail
     if (!onlineConfigured()) throw httpErr(501, "Online betalen is niet ingesteld");
-    const tabel = ["leden", "banket", "tickets"].includes(b.t) ? b.t : "leden";
+    const tabel = ["leden", "banket", "tickets", "shop_orders"].includes(b.t) ? b.t : "leden";
     const id = String(b.id || ""), token = String(b.token || "");
     if (!id || !token) throw httpErr(400, "Ontbrekende gegevens");
     const sb = admin();
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     if (!row || !row.data?.betaalToken || row.data.betaalToken !== token) throw httpErr(404, "Niet gevonden");
     if (req.method === "POST") {
       const cur = row.data.betaling || {};
-      const bt = await startBetaling(sb, req, tabel, row, { bedrag: cur.bedrag || row.data.teBetalen || row.data.lidgeldBedrag || row.data.bedrag, jaar: cur.jaar || row.data.jaar || row.data.lidSinds, ...(tabel === "tickets" ? { terug: "/fuif?betaling=terug" } : {}) });
+      const bt = await startBetaling(sb, req, tabel, row, { bedrag: cur.bedrag || row.data.teBetalen || row.data.lidgeldBedrag || row.data.bedrag || row.data.totaal, jaar: cur.jaar || row.data.jaar || row.data.lidSinds, ...(tabel === "tickets" ? { terug: "/fuif?betaling=terug" } : tabel === "shop_orders" ? { terug: "/shop?betaling=terug" } : {}) });
       return res.status(200).json(publiek(bt));
     }
     if (req.method !== "GET") throw httpErr(405, "Gebruik GET of POST");

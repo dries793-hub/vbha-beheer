@@ -35,6 +35,10 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/api/shop",
+      "destination": "/api/openbaar?f=shop"
+    },
+    {
       "source": "/api/kassa",
       "destination": "/api/openbaar?f=kassa"
     },
