@@ -64,18 +64,28 @@ export default async function handler(req, res) {
     const { count } = await sb.from("leden").select("id", { count: "exact", head: true }).eq("data->>bron", "formulier").gte("data->>aangemeld", uurGeleden);
     if ((count || 0) >= 30) throw httpErr(429, "Er zijn net veel inschrijvingen binnengekomen. Probeer het later opnieuw.");
 
-    // opnieuw ingeschreven met hetzelfde e-mailadres (bv. na een mislukte betaling)? Dan dezelfde inschrijving hergebruiken.
+    // al ingeschreven? Zelfde e-mailadres of zelfde naam en voornaam.
+    // - recente inschrijving via dit formulier (24 u) die nog niet betaald is: dezelfde inschrijving hergebruiken (bv. opnieuw proberen na een verlopen betaling)
+    // - anders: weigeren, zodat niemand twee keer in de ledenlijst komt (oud-leden en "geen lid" mogen wel opnieuw lid worden)
     const dagGeleden = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-    const { data: recent } = await sb.from("leden").select("id,data").eq("data->>bron", "formulier").eq("data->>email", d.email).gte("data->>aangemeld", dagGeleden).order("id").limit(5);
-    const vorige = (recent || []).sort((a, b) => String(b.data.aangemeld).localeCompare(String(a.data.aangemeld)))[0];
-    if (vorige && vorige.data.betaling && vorige.data.betaling.status === "SUCCEEDED") throw httpErr(409, "Je bent al ingeschreven en je lidgeld is betaald. Je ontving een bevestiging per e-mail.");
-    // bestaat dit lid al? dan toch bewaren, maar als mogelijk dubbel markeren
     let id = slug(d.naam + "-" + d.voornaam), dubbelVan = null;
-    if (vorige) { id = vorige.id; dubbelVan = vorige.data.dubbelVan || null; }
-    else {
-      const { data: bestaand } = await sb.from("leden").select("id").eq("id", id).maybeSingle();
-      if (bestaand) { dubbelVan = id; id = id + "-" + Date.now().toString(36); }
+    const [{ data: opMail }, { data: opNaam }] = await Promise.all([
+      sb.from("leden").select("id,data").ilike("data->>email", d.email).limit(20),
+      sb.from("leden").select("id,data").or(`id.eq.${id},id.like.${id}-%`).limit(20),
+    ]);
+    const kandidaten = [...new Map([...(opMail || []), ...(opNaam || [])].map(r => [r.id, r])).values()]
+      .filter(r => r.data && (r.data.email || "").toLowerCase() === d.email || (norm(r.data.naam) === norm(d.naam) && norm(r.data.voornaam) === norm(d.voornaam)));
+    const actief = r => !r.data.geenLid && !(Number(r.data.lidTot) && Number(r.data.lidTot) < I.jaar);
+    const vorige = kandidaten.filter(r => r.data.bron === "formulier" && String(r.data.aangemeld || "") >= dagGeleden && !(r.data.betaling && r.data.betaling.status === "SUCCEEDED"))
+      .sort((a, b) => String(b.data.aangemeld).localeCompare(String(a.data.aangemeld)))[0];
+    if (!vorige && kandidaten.some(actief)) {
+      const k = kandidaten.find(actief), recentBetaald = k.data.bron === "formulier" && String(k.data.aangemeld || "") >= dagGeleden;
+      throw httpErr(409, recentBetaald ? "Je bent al ingeschreven en je lidgeld is betaald. Je ontving een bevestiging per e-mail."
+        : "Je bent al lid van de Vriendenkring. Je hoeft je niet opnieuw in te schrijven. Je status en je lidgeld vind je via de link in onze mails, of stuur een mail naar info@vbha.be.");
     }
+    if (vorige) { id = vorige.id; dubbelVan = vorige.data.dubbelVan || null; }
+    else if (kandidaten.some(r => r.id === id)) { dubbelVan = id; id = id + "-" + Date.now().toString(36); }
+    else { const { data: bestaand } = await sb.from("leden").select("id").eq("id", id).maybeSingle(); if (bestaand) { dubbelVan = id; id = id + "-" + Date.now().toString(36); } }
 
     const bedrag = I.tarieven[d.categorie], mededeling = `${d.naam} ${d.voornaam} Lidgeld ${I.jaar}`;
     const token = I.online ? crypto.randomBytes(18).toString("base64url") : null;
