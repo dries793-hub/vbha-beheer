@@ -9,6 +9,7 @@ import { betaalHerinneringApi } from "./_lib/betaalherinnering.js";
 import { pushApi } from "./_lib/push.js";
 import { inkomendApi } from "./_lib/inkomend.js";
 import { inWachtrij, wachtrijCron } from "./_lib/wachtrij.js";
+import { fuifApi } from "./_lib/fuif.js";
 
 // Mails versturen vanuit Communicatie › Mails (enkel voor bewerkers).
 // GET  -> {ingesteld, van}
@@ -27,6 +28,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "betaalherinnering") return await betaalHerinneringApi(req, res); // voorbeeld automatische betalingsherinneringen
     if (req.query && req.query.f === "sponsorbev") return await sponsorBevestiging(req, res); // sponsorbevestiging (PDF / mail)
     if (req.query && req.query.f === "kf-voorbeeld") return await kfVoorbeeld(req, res); // voorbeeld bevestigingsmail kinderfeest
+    if (req.query && req.query.f === "fuif") return await fuifApi(req, res); // fuif: tickets scannen en bestellingen beheren
     if (req.query && req.query.f === "wachtrij") return await wachtrijCron(req, res); // geplande taak: bulkmails uit de wachtrij versturen
     if (req.query && req.query.f === "bevestigingen") return await bevestigingenCron(req, res); // geplande taak: bevestigingen na 20 min zonder online betaling
     if (req.method === "GET") { await requireUser(req); return res.status(200).json({ ingesteld: smtpConfigured(), van: afzender() }); }
