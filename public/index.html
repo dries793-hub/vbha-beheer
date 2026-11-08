@@ -1267,6 +1267,22 @@ html.kr-vol-aan,html.kr-vol-aan body{overflow:hidden}
  .kc-t td{font-size:15px}.kc-t td small{font-size:12px}
  .kc-t td[data-label="Bedeeld op kaart"]::before{content:"Op kaart"}
  .kc-t td[data-label="Gereserveerd"]::before{content:"Gereserv."}}
+/* mobiel: mails-editor blijft binnen het scherm */
+.ml-main,.ml-side,.ml-grid>*{min-width:0}
+@media (max-width:760px){
+ .ml-grid .panel{max-width:100%}
+ .ml-grid .panel-h{flex-wrap:wrap;row-gap:8px}
+ .ml-tpl{max-width:100%;flex:1 1 100%}
+ .ml-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ .ml-acts .grow{display:none}
+ .ml-acts .btn{width:100%;justify-content:center}
+ .ml-acts .ml-dirty{grid-column:1/-1}
+ .ml-acts .ml-dirty:empty{display:none}
+ .ml-ed{padding:16px 14px;min-height:300px}
+ .ml-meta div{grid-template-columns:78px minmax(0,1fr)}
+ .ml-prev iframe{height:480px}
+ .ml-prev.gsm{padding:0;border:0;background:none}.ml-prev.gsm iframe{width:100%;border-radius:12px}
+ .ml-test{flex-wrap:wrap}.ml-test input{flex:1;min-width:0}}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */

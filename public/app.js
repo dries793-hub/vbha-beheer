@@ -2582,6 +2582,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(
   else if(t.dataset.act==="ftEdit"){const a=S.fotoalbums.get(t.dataset.id);if(a)ftForm(a,a.id)}});
 document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.ftq!==undefined){FT.q=e.target.value;const el=$("#ftList");if(el)el.innerHTML=ftKaarten()}});
 
+const mlGsm=()=>UI.mlDev?UI.mlDev==="gsm":innerWidth<760;
 /* ============ Mails: sjablonen in huisstijl, doelgroepen, voorbeeld en verzendgeschiedenis ============
    Sjabloon (collectie "templates"): {naam, categorie, groep, onderwerp, body, opmaak:"huisstijl", isHtml:true}
      body = inhoud in eenvoudige HTML (p, h3, strong, em, a, ul/li, <div data-blok="kader">, <p data-blok="knop">);
@@ -2737,8 +2738,8 @@ VIEWS.mails=()=>({title:"Mails",actions:'<button class="btn" data-w data-act="ml
       <span class="grow"></span>${M.tplId?'<button class="btn ghost danger" data-act="mlDel">Verwijderen</button>':""}`:""}<span class="ml-dirty" id="mlDirty">${M.dirty?"Niet bewaard":""}</span></div>
   </div></div></div>
   <div class="panel"><div class="panel-h"><h2>Voorbeeld</h2><span class="grow"></span>
-    <div class="seg" role="group" aria-label="Weergave"><button class="${UI.mlDev==="gsm"?"":"on"}" data-act="mlDev" data-v="pc">Computer</button><button class="${UI.mlDev==="gsm"?"on":""}" data-act="mlDev" data-v="gsm">Gsm</button></div></div>
-    <div class="panel-b stack" style="gap:10px"><div class="ml-head" id="mHead"></div><div class="ml-prev${UI.mlDev==="gsm"?" gsm":""}"><iframe id="mlFrame" title="Voorbeeld van de mail" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div></div></div>
+    <div class="seg" role="group" aria-label="Weergave"><button class="${mlGsm()?"":"on"}" data-act="mlDev" data-v="pc">Computer</button><button class="${mlGsm()?"on":""}" data-act="mlDev" data-v="gsm">Gsm</button></div></div>
+    <div class="panel-b stack" style="gap:10px"><div class="ml-head" id="mHead"></div><div class="ml-prev${mlGsm()?" gsm":""}"><iframe id="mlFrame" title="Voorbeeld van de mail" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div></div></div>
   </div>
   <div class="ml-side">
   <div class="panel"><div class="panel-h"><h2>Ontvangers</h2><span class="grow"></span><span class="pill ${actief.length?"info":"neutral"}">${actief.length}</span></div><div class="panel-b stack" style="gap:10px">
@@ -2790,7 +2791,7 @@ function mailPreview(){const M=mailState(),list=mailRecips();const fr=$("#mlFram
   const dummy={email:"",voornaam:"Voornaam",naam:"Naam Voornaam",bedrag:30,mededeling:"Naam Voornaam "+(/^bk/.test(UI.mailGroep||"")?"Banket":"lidgeld")+" "+JAAR,label:"(geen ontvangers)"};
   M.idx=Math.max(0,Math.min(M.idx||0,Math.max(0,list.length-1)));const r=list[M.idx]||dummy;
   hd.innerHTML=`<div class="ml-nav"><button class="btn sm" data-act="mlPrev" aria-label="Vorige"${M.idx>0?"":" disabled"}>‹</button><span>${list.length?(M.idx+1)+" / "+list.length:"geen ontvangers"}</span><button class="btn sm" data-act="mlNext" aria-label="Volgende"${M.idx<list.length-1?"":" disabled"}>›</button></div>
-    <div class="ml-meta"><div><span>Aan</span><b class="trunc">${esc(r.label)}${r.email?` <small>&lt;${esc(r.email)}&gt;</small>`:""}</b></div><div><span>Onderwerp</span><b class="trunc">${esc(vul(M.onderwerp,r))}</b></div></div>`;
+    <div class="ml-meta"><div><span>Aan</span><b class="trunc">${esc(r.label)}${r.email&&String(r.label).toLowerCase()!==String(r.email).toLowerCase()?` <small>&lt;${esc(r.email)}&gt;</small>`:""}</b></div><div><span>Onderwerp</span><b class="trunc">${esc(vul(M.onderwerp,r))}</b></div></div>`;
   const h=mailHtml(r,M).replace("<head>",'<head><base target="_blank">');
   fr.onload=()=>{try{const b=fr.contentDocument.documentElement;fr.style.height=Math.max(320,b.scrollHeight+4)+"px"}catch(e){}};
   fr.srcdoc=h}
@@ -4403,12 +4404,14 @@ function bhMelding(){if(!(ROL==="admin"||ROL==="boekhouder"))return"";const c=S.
 document.addEventListener("click",async e=>{const t=e.target.closest('[data-bh="gezien"]');if(!t)return;t.disabled=true;
   try{const c=stripId(S.config.get("betaalherinnering")||{});await write("config","betaalherinnering",{...c,gezienTot:new Date().toISOString()});renderBody()}catch(x){toast(x.message,true);t.disabled=false}});
 
+/* naam die enkel het begin van het e-mailadres herhaalt (bv. "info") niet als naam tonen */
+const mlEchteNaam=(n,k)=>{const a=String(n||"").toLowerCase().replace(/[^a-z0-9]/g,""),b=String(k).split("@")[0].toLowerCase().replace(/[^a-z0-9]/g,"");return !!a&&a!==b};
 /* ============ Mails: eigen mailinglijsten (bv. Persberichten) ============
    config "maillijsten": {lijsten:[{id, naam, leden:[{naam, email}]}]} — als doelgroep te kiezen bij Mails, beheer via de knop "Mailinglijsten". */
 const mlLijsten=()=>((S.config.get("maillijsten")||{}).lijsten||[]);
 {const _g=groepen;groepen=function(){const G=_g.apply(this,arguments),B=mlGeblok(),extra=[];
   for(const L of mlLijsten()){const seen=new Set(),geblokt=[],list=[];
-    for(const p of L.leden||[]){const k=String(p.email||"").trim().toLowerCase();if(!k||seen.has(k))continue;seen.add(k);const r={email:k,voornaam:"",naam:p.naam||"",bedrag:"",mededeling:"",label:p.naam?p.naam+" ("+k+")":k};if(B[k]){geblokt.push({...r,reden:B[k].reden});continue}list.push(r)}
+    for(const p of L.leden||[]){const k=String(p.email||"").trim().toLowerCase();if(!k||seen.has(k))continue;seen.add(k);const r={email:k,voornaam:"",naam:p.naam||"",bedrag:"",mededeling:"",label:mlEchteNaam(p.naam,k)?p.naam:k};if(B[k]){geblokt.push({...r,reden:B[k].reden});continue}list.push(r)}
     extra.push({sect:"Mailinglijsten",id:"lijst:"+L.id,label:L.naam+` (${list.length})`,geblokt,list})}
   const i=G.findIndex(x=>x.sect==="Andere");G.splice(i<0?G.length:i,0,...extra);return G}}
 const mlParse=t=>{const out=[];for(const part of String(t||"").split(/\n|;|,(?=(?:[^"]*"[^"]*")*[^"]*$)/)){const s=part.trim();if(!s)continue;
