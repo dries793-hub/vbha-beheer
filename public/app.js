@@ -5040,3 +5040,15 @@ document.addEventListener("input",e=>{const t=e.target;if(!t.matches||!t.matches
   if(t.dataset.kae==="naam")L[i].naam=t.value;else if(t.dataset.kae==="prijs")L[i].prijs=t.value.replace(",",".")});
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="kaScan"){KA_ED.scan=t.checked;return}if(t.matches&&t.matches('#kaEd [data-kae="inkom"]')){KA_ED.tegels[KA_ED.act][+t.dataset.i].inkom=t.checked}});
 document.addEventListener("click",e=>{const a=e.target.closest("[data-katoon]");if(!a)return;const act=a.dataset.katoon;if(act!=="jaarmarkt")KA_UI.tab[act]="kassa"});
+
+/* Label "Nieuw" bij inschrijvingen van vandaag (Belgische tijd); de volgende dag verdwijnt het vanzelf.
+   Werkt op alle lijsten met rijen [data-act=bkToon|kfToon|toonLid|toonSponsor] en de fuifbestellingen [data-fu=toon]. */
+const NW_MAP={bkToon:"banket",kfToon:"kinderfeest",toonLid:"leden",toonSponsor:"sponsors"};
+const nwDag=d=>new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Brussels",year:"numeric",month:"2-digit",day:"2-digit"}).format(d);
+function nwIsNieuw(r){const t=r&&(r.aangemeld||r.ingeschreven);if(!t)return false;const d=new Date(t);return !isNaN(d)&&nwDag(d)===nwDag(new Date())}
+function nwLabels(){const root=$("#main");if(!root)return;
+  root.querySelectorAll('[data-act][data-id],[data-fu="toon"][data-id]').forEach(el=>{if(el.querySelector(".nw-tag"))return;
+    const col=el.dataset.fu==="toon"?"tickets":NW_MAP[el.dataset.act];if(!col||!S[col])return;
+    if(!nwIsNieuw(S[col].get(el.dataset.id)))return;
+    const b=el.querySelector(".ml-n b,td b,b");if(!b)return;b.insertAdjacentHTML("afterend",'<span class="nw-tag" title="Vandaag ingeschreven">Nieuw</span>')})}
+{let nwT=0;new MutationObserver(()=>{if(nwT)return;nwT=requestAnimationFrame(()=>{nwT=0;nwLabels()})}).observe(document.body,{childList:true,subtree:true})}
