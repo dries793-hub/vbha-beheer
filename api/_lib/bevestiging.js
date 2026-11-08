@@ -2,7 +2,7 @@ import { admin, isDbCron, httpErr, requireUser } from "./sb.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
 import { algemeen, configDoc, inschrijving, DEF_IBAN } from "./publiek.js";
 import { controleerBetaling } from "./betaal.js";
-import { teken } from "./lidlink.js";
+import { teken, ondertekenLinks } from "./lidlink.js";
 
 /* Bevestigingsmails voor de inschrijfpagina's.
    - Kinderfeest (geen betaling): meteen na de inschrijving.
@@ -147,7 +147,30 @@ export async function stuurBevestiging(sb, tabel, id) {
   if (!m) { await zet(sb, tabel, id, { bevestiging: { status: "geen-adres", op: new Date().toISOString() } }); return false; }
   const ok = await stuur(m);
   if (ok) await zet(sb, tabel, id, { bevestiging: { status: "verstuurd", op: new Date().toISOString(), aan: m.aan, betaald: !!m.betaald, voor: (r.data.betaling && r.data.betaling.id) || null } });
+  if (ok && tabel === "leden") { try { await nastuur(sb, id); } catch (e) { console.error("nastuur", e); } }
   return ok;
+}
+/* Bulkmails die na de inschrijving van een nieuw lid nog lopen (bv. uitnodiging activiteiten): automatisch nasturen via de wachtrij.
+   Ingesteld in de app (Mails › Nieuwe leden), config "nastuur".regels[tplId] = {onderwerp, html met @@VOORNAAM@@/@@NAAM@@, tot}. */
+export async function nastuur(sb, id) {
+  const { data: c } = await sb.from("config").select("data").eq("id", "nastuur").maybeSingle();
+  const regels = (c && c.data && c.data.regels) || {}, nu = vandaag();
+  const r = await haal(sb, "leden", id); if (!r) return 0;
+  const d = r.data, aan = String(d.email || "").trim().toLowerCase(); if (!aan || d.geenLid) return 0;
+  const { data: bl } = await sb.from("config").select("data").eq("id", "mail").maybeSingle();
+  if (bl && bl.data && bl.data.geblokkeerd && bl.data.geblokkeerd[aan]) return 0;
+  const al = { ...(d.nastuur || {}) }, rijen = [];
+  for (const [tpl, R] of Object.entries(regels)) {
+    if (!R || !R.html || !R.tot || R.tot < nu || al[tpl]) continue;
+    const vn = esc(d.voornaam || ""), nm = esc([d.voornaam, d.naam].filter(Boolean).join(" "));
+    const vulIn = (t, h) => String(t).split("@@VOORNAAM@@").join(h ? vn : d.voornaam || "").split("@@NAAM@@").join(h ? nm : [d.voornaam, d.naam].filter(Boolean).join(" ")).replace(/Beste\s+,/g, "Beste,");
+    rijen.push({ batch: "nastuur-" + tpl.replace(/[^\w.-]/g, "") + "-" + Date.now().toString(36), data: { aan, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" "), onderwerp: vulIn(R.onderwerp, false), html: ondertekenLinks(vulIn(R.html, true)), label: "Nagestuurd: " + (R.naam || tpl) } });
+    al[tpl] = new Date().toISOString();
+  }
+  if (!rijen.length) return 0;
+  const { error } = await sb.from("mail_wachtrij").insert(rijen); if (error) throw error;
+  await zet(sb, "leden", id, { nastuur: al });
+  return rijen.length;
 }
 /* opgeroepen zodra een online betaling gelukt is */
 export async function betalingGelukt(sb, tabel, id) {
