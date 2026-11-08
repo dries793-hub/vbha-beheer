@@ -20,7 +20,7 @@
   function toon() {
     if (!L.length) { sluit(); return; }
     if (!box) { box = document.createElement("div"); box.className = "adr-box"; box.setAttribute("role", "listbox"); document.body.appendChild(box); box.addEventListener("mousedown", e => e.preventDefault()); box.addEventListener("click", e => { const b = e.target.closest(".adr-i"); if (b) kies(+b.dataset.i); }); }
-    box.innerHTML = L.map((x, i) => `<button type="button" class="adr-i${i === sel ? " on" : ""}" role="option" data-i="${i}"><b>${esc(x.s)}${x.n ? " " + esc(x.n) : ""}</b><small>${esc(x.p)} ${esc(x.g)}${x.n ? "" : " · daarna huisnummer"}</small></button>`).join("") + `<div class="adr-v">Adressen uit het Adressenregister (Vlaanderen)</div>`;
+    box.innerHTML = L.map((x, i) => `<button type="button" class="adr-i${i === sel ? " on" : ""}" role="option" data-i="${i}"><b>${esc(x.s)}${x.n ? " " + esc(x.n) : ""}</b><small>${esc(x.p)} ${esc(x.g)}${x.n ? "" : " · daarna huisnummer"}</small></button>`).join("");
     plaats();
   }
   function zet(el, v) { el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); }
