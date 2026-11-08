@@ -72,6 +72,13 @@
   .sponsors .head p{color:var(--muted);max-width:60ch}
   .sponsors .grid{background:#fff;border:1px solid var(--line);border-radius:12px;padding:clamp(10px,2vw,24px)}
   .sponsors .grid img{width:100%;height:auto;display:block}
+  .band{overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
+  .band-in{display:flex;width:max-content;animation:band 100s linear infinite}
+  .band img{height:80px;width:auto;display:block;max-width:none}
+  .band:hover .band-in{animation-play-state:paused}
+  @keyframes band{to{transform:translateX(-50%)}}
+  @media (max-width:860px){.band img{height:60px}.band-in{animation-duration:80s}}
+  @media (prefers-reduced-motion:reduce){.band{overflow-x:auto}.band-in{animation:none}.band-in img+img{display:none}}
   .cta{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:600;color:var(--accent);text-decoration:none;white-space:nowrap}
   .cta:hover{text-decoration:underline}
   .btn-red{display:inline-flex;align-items:center;gap:9px;margin-top:24px;padding:14px 22px;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;font-size:16px;text-decoration:none;transition:background .15s}
@@ -188,8 +195,8 @@
       </div>
       <a class="cta" href="/sponsor">Ook sponsor worden? →</a>
     </div>
-    <div class="grid">
-      <img src="/w/sponsors-2027.jpg" alt="Logo's van de sponsors van de brandweerkalender 2027" width="1385" height="878" loading="lazy">
+    <div class="band" role="img" aria-label="Logo's van onze sponsors: 't Oorhuis, Atrium Renovatiewerken, Aalsterse Dakwerken, Bombeke, Tweewielers Van Impe Marilyne, Elwin's Pancakes, TeeDee Verdelging, Vermeir Wannes, Huis19, Hubo Aalst, Miss Tanget, Tower Hotel Aalst, Café Zeppelin, AH Creations, Utopia Café, ABC Drukkerij, Het Paviljoen, Gabriëls, Boomkwekerij Van Geem, Brouwerij Deneef-Moortgat (Woeste), De Soep Trien, Cottyn Advocaten, Helixe, TAS Auto-onderdelen, Café Volkshuis, John Avenel">
+      <div class="band-in"><img src="/w/sponsors-band.jpg" alt="" width="3660" height="80"><img src="/w/sponsors-band.jpg" alt="" width="3660" height="80"></div>
     </div>
   </section>
 </main>
