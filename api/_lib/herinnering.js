@@ -20,12 +20,12 @@ export function mail(v, n, url, cfg) {
   const titel = v.titel || v.soort || "Vergadering";
   const punten = String(v.agenda || "").split(/\r?\n/).map(x => x.replace(/^\s*[-•*\d.)]+\s*/, "").trim()).filter(Boolean);
   const wanneer = n === 0 ? "vandaag" : n === 1 ? "morgen" : "over " + n + " dagen";
-  const html = `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#f7f7f7">
+  const html = `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>@media only screen and (max-width:520px){.vb-in{padding:22px 18px 18px!important}.vb-k{padding:14px 14px!important}.vb-l{padding-right:10px!important}}</style></head><body style="margin:0;padding:0;background:#f7f7f7">
 <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#f7f7f7"><tr><td align="center" style="padding:25px 10px">
 <table role="presentation" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="width:100%;max-width:640px;border-collapse:collapse">
 <tr><td align="center" bgcolor="#f7f7f7" style="padding:20px"><img src="https://impro.usercontent.one/appid/oneComWsb/domain/vbha.be/media/vbha.be/onewebmedia/logo%20VBHA%201.png" alt="Vriendenkring Brandweer Hoofdpost Aalst" width="220" height="84" style="display:block;width:220px;height:84px;border:0"></td></tr>
 <tr><td style="border-top:8px solid #b30000;padding:0"></td></tr>
-<tr><td style="${F}font-size:15px;line-height:1.5;color:#222222;padding:28px 40px 24px">
+<tr><td class="vb-in" style="${F}font-size:15px;line-height:1.5;color:#222222;padding:28px 40px 24px">
 <p style="margin:0 0 15px">Beste bestuursleden,</p>
 <p style="margin:0 0 15px">Een herinnering: ${wanneer} is er een <b>${esc((v.soort || "vergadering").toLowerCase())}</b>.</p>
 <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 18px;border-collapse:collapse"><tr><td bgcolor="#fff9f9" style="padding:18px 24px;border-left:5px solid #C1A057;${F}font-size:15px;color:#222222;line-height:1.5">

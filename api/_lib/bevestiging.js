@@ -20,17 +20,17 @@ const plusDagen = (iso, n) => { const [y, m, d] = String(iso).slice(0, 10).split
 const vandaag = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 const site = () => String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, "");
 const p = (t, st = "margin:0 0 15px") => `<p style="${st}">${t}</p>`;
-const rij = (k, v) => v === "" || v == null ? "" : `<tr><td style="padding:4px 14px 4px 0;color:#666666;vertical-align:top;white-space:nowrap">${esc(k)}</td><td style="padding:4px 0;vertical-align:top">${v}</td></tr>`;
+const rij = (k, v) => v === "" || v == null ? "" : `<tr><td class="vb-l" style="padding:4px 14px 4px 0;color:#666666;vertical-align:top;white-space:nowrap">${esc(k)}</td><td style="padding:4px 0;vertical-align:top;word-break:break-word;overflow-wrap:anywhere">${v}</td></tr>`;
 const tabel = rows => `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="${F}font-size:15px;color:#222222;line-height:1.45">${rows.join("")}</table>`;
-const kaderBlok = (titel, inner, kleur = "#C1A057", bg = "#fff9f9") => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 18px;border-collapse:collapse"><tr><td bgcolor="${bg}" style="padding:16px 22px;border-left:5px solid ${kleur};${F}font-size:15px;color:#222222;line-height:1.5"><h2 style="color:#b30000;font-size:17px;font-weight:bold;margin:0 0 10px">${titel}</h2>${inner}</td></tr></table>`;
+const kaderBlok = (titel, inner, kleur = "#C1A057", bg = "#fff9f9") => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 18px;border-collapse:collapse"><tr><td class="vb-k" bgcolor="${bg}" style="padding:16px 22px;border-left:5px solid ${kleur};${F}font-size:15px;color:#222222;line-height:1.5"><h2 style="color:#b30000;font-size:17px;font-weight:bold;margin:0 0 10px">${titel}</h2>${inner}</td></tr></table>`;
 const knop = (t, href) => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 18px"><tr><td align="center"><table role="presentation" border="0" cellspacing="0" cellpadding="0"><tr><td bgcolor="#b30000" style="border-radius:4px;padding:12px 26px;text-align:center"><a href="${esc(href)}" style="${F}font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none">${esc(t)}</a></td></tr></table></td></tr></table>`;
 function huisstijl(inner, ver) {
-  return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#f7f7f7">
+  return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>@media only screen and (max-width:520px){.vb-in{padding:22px 18px 18px!important}.vb-k{padding:14px 14px!important}.vb-l{padding-right:10px!important}}</style></head><body style="margin:0;padding:0;background:#f7f7f7">
 <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#f7f7f7"><tr><td align="center" style="padding:25px 10px">
 <table role="presentation" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="width:100%;max-width:640px;border-collapse:collapse">
 <tr><td align="center" bgcolor="#f7f7f7" style="padding:20px"><img src="${LOGO}" alt="${esc(ver)}" width="220" height="84" style="display:block;width:220px;height:84px;border:0"></td></tr>
 <tr><td style="border-top:8px solid #b30000;padding:0"></td></tr>
-<tr><td style="${F}font-size:15px;line-height:1.5;color:#222222;padding:28px 40px 22px">${inner}${p("Met vriendelijke groeten,<br><b>Het bestuur</b>", "margin:0")}</td></tr>
+<tr><td class="vb-in" style="${F}font-size:15px;line-height:1.5;color:#222222;padding:28px 40px 22px">${inner}${p("Met vriendelijke groeten,<br><b>Het bestuur</b>", "margin:0")}</td></tr>
 <tr><td style="border-top:8px solid #b30000;padding:0"></td></tr>
 <tr><td align="center" bgcolor="#f7f7f7" style="${F}font-size:12px;color:#888888;line-height:1.5;padding:14px 20px">${esc(ver)} &middot; Vragen? Antwoord gewoon op deze mail.</td></tr>
 </table></td></tr></table></body></html>`;
