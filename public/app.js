@@ -4739,17 +4739,14 @@ function fuStats(){const L0=fuLijst(),L=L0.filter(t=>t.bron!=="kassa"),B=L.filte
   return{L,B,K,kT,kBc,kCash,kDk,tk,bin,dk,dkW,dkB,dkKort,omzet:B.reduce((n,t)=>n+(Number(t.bedrag)||0),0),via}}
 
 VIEWS.fuif=()=>({title:fuCfg().naam||"In Vier en Vlam",sub:"Tickets fuif",
-  actions:`<a class="btn" href="/fuif" target="_blank" rel="noopener" title="Openbare ticketpagina">${ic("link")}Ticketpagina${fuCfg().open===false?'<span class="spi-dot dicht">Gesloten</span>':""}</a><button class="btn primary" data-fu="scan">${ic("scan")}Tickets scannen</button>${typeof ADM!=="function"||ADM()?`<button class="btn iconbtn" data-fu="inst" aria-label="Instellingen fuif" title="Instellingen fuif">${ic("instellingen")}</button>`:""}`,
+  actions:`<a class="btn" href="/fuif" target="_blank" rel="noopener" title="Openbare ticketpagina">${ic("link")}Ticketpagina${(()=>{const v=fuStatus(fuCfg());return `<span class="spi-dot ${v.k==="open"?"":"dicht"}" title="${esc(v.t)}">${v.k==="open"?"Open":"Gesloten"}</span>`})()}</a><button class="btn primary" data-fu="scan">${ic("scan")}Tickets scannen</button>${typeof ADM!=="function"||ADM()?`<button class="btn iconbtn" data-fu="inst" aria-label="Instellingen fuif" title="Instellingen fuif">${ic("instellingen")}</button>`:""}`,
   body(){const c=fuCfg(),st=fuStats(),q=norm(FU.q);
     let L=FU.alles?st.L:st.L.filter(t=>t.status==="betaald"||t.status==="wacht");
     if(q)L=L.filter(t=>norm([fuNaam(t),t.email,t.adres,t.via&&(t.via.naam||t.via.tekst),...(t.tickets||[]).map(x=>x.code)].join(" ")).includes(q));
     const viaL=[...st.via.entries()].map(([id,n])=>({l:S.leden.get(id),n})).filter(x=>x.l).sort((a,b)=>b.n-a.n);
     const zonder=st.B.filter(t=>t.via&&t.via.tekst&&!t.via.lidId);
     const vs=fuStatus(c);
-    return `<div class="panel" style="margin-bottom:14px"><div class="panel-b" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-      <label class="spi-sw" for="fuSw"><input type="checkbox" id="fuSw" role="switch"${c.open!==false?" checked":""}${canWrite&&(typeof ADM!=="function"||ADM())?"":" disabled"}><span class="spi-sw-t" aria-hidden="true"></span><b>Online ticketverkoop</b></label>
-      <span class="pill ${vs.k==="open"?"ok":"neutral"}">${esc(vs.t)}</span></div></div>
-    <div class="tiles">
+    return `<div class="tiles">
       <div class="tile hero"><span class="lbl">Tickets verkocht</span><span class="val">${st.tk+st.kT}${c.max?`<small style="font-size:.5em;color:var(--muted)"> / ${c.max} online</small>`:""}</span><span class="hint">${st.tk} online · ${st.kT} aan de kassa</span></div>
       <div class="tile"><span class="lbl">Ontvangen</span><span class="val">${fuEur(st.omzet+st.kBc+st.kCash)}</span><span class="hint">online ${fuEur(st.omzet)} · kassa ${fuEur(st.kBc)} Bancontact${st.kCash?` + ${fuEur(st.kCash)} cash`:""}</span></div>
       <div class="tile"><span class="lbl">Binnen</span><span class="val">${st.bin+st.kT}</span><span class="hint">${st.bin} van ${st.tk} online tickets gescand · ${st.kT} via kassa</span></div>
@@ -4795,7 +4792,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-fu]"
 /* ---------- instellingen ---------- */
 function fuInst(){const c=fuCfg(),d=canWrite?"":" disabled",u=location.origin+"/fuif";
   modal("Instellingen "+(c.naam||"fuif"),`<form id="fFu" class="form" onsubmit="return false">
-    <div class="full spi-st"><div class="spi-st-r"><label class="spi-sw" for="fuOpen"><input type="checkbox" id="fuOpen" role="switch"${c.open!==false?" checked":""}${d}><span class="spi-sw-t" aria-hidden="true"></span><b>Online ticketverkoop open</b></label></div><small class="muted" style="display:block;margin-top:6px">De verkoop sluit ook vanzelf bij de start van de fuif (datum en uur bij "Deuren open"). Zonder uur: om middernacht na de fuif.</small></div>
+    <div class="full spi-st"><div class="spi-st-r"><label class="spi-sw" for="fuOpen"><input type="checkbox" id="fuOpen" role="switch"${c.open!==false?" checked":""}${d}><span class="spi-sw-t" aria-hidden="true"></span><b>Online ticketverkoop open</b></label><span class="pill ${fuStatus(c).k==="open"?"ok":"neutral"}" style="margin-left:auto">${esc(fuStatus(c).t)}</span></div><small class="muted" style="display:block;margin-top:6px">De verkoop sluit ook vanzelf bij de start van de fuif (datum en uur bij "Deuren open"). Zonder uur: om middernacht na de fuif.</small></div>
     ${fld("fuN","Naam",inp("fuN",c.naam,d))}${fld("fuD","Datum",`<input id="fuD" type="date" value="${esc(c.datum)}"${d}>`)}
     ${fld("fuU","Deuren open",inp("fuU",c.deuren,'placeholder="bv. 21u00"'+d))}${fld("fuL","Locatie",inp("fuL",c.locatie,'placeholder="Zaal, straat nr, gemeente"'+d))}
     ${fld("fuP","Prijs per ticket (€)",`<input id="fuP" inputmode="decimal" value="${esc(String(c.prijs).replace(".",","))}"${d}>`)}${fld("fuKP","Inkom aan de kassa (€)",`<input id="fuKP" inputmode="decimal" value="${esc(String(c.kassaPrijs||c.prijs).replace(".",","))}"${d}>`)}${fld("fuM","Maximum aantal tickets",`<input id="fuM" inputmode="numeric" value="${c.max||""}" placeholder="leeg = onbeperkt"${d}>`)}
