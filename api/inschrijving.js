@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { onlineConfigured as bcConfigured } from "./_lib/betaalprovider.js";
 import { startBetaling } from "./_lib/betaal.js";
 import { wachtOpBetaling, stuurBevestiging } from "./_lib/bevestiging.js";
+import { adresVolledig, ADRES_FOUT } from "./_lib/adrescheck.js";
 import { meldPush } from "./_lib/push.js";
 
 // Openbaar inschrijfformulier voor nieuwe leden (geen login nodig).
@@ -53,7 +54,7 @@ export default async function handler(req, res) {
       email: clean(b.email, 120).toLowerCase(), telefoon: clean(b.telefoon, 40), categorie: clean(b.categorie, 60),
     };
     if (!d.naam || !d.voornaam) throw httpErr(400, "Vul je naam en voornaam in.");
-    if (!d.adres) throw httpErr(400, "Vul je adres in.");
+    if (!adresVolledig(d.adres)) throw httpErr(400, ADRES_FOUT);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)) throw httpErr(400, "Dit e-mailadres lijkt niet te kloppen.");
     if (d.telefoon.replace(/\D/g, "").length < 8) throw httpErr(400, "Vul een geldig telefoonnummer in.");
     if (!I.categorieen.includes(d.categorie)) throw httpErr(400, "Kies wat bij jou past.");
@@ -63,15 +64,23 @@ export default async function handler(req, res) {
     const { count } = await sb.from("leden").select("id", { count: "exact", head: true }).eq("data->>bron", "formulier").gte("data->>aangemeld", uurGeleden);
     if ((count || 0) >= 30) throw httpErr(429, "Er zijn net veel inschrijvingen binnengekomen. Probeer het later opnieuw.");
 
+    // opnieuw ingeschreven met hetzelfde e-mailadres (bv. na een mislukte betaling)? Dan dezelfde inschrijving hergebruiken.
+    const dagGeleden = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { data: recent } = await sb.from("leden").select("id,data").eq("data->>bron", "formulier").eq("data->>email", d.email).gte("data->>aangemeld", dagGeleden).order("id").limit(5);
+    const vorige = (recent || []).sort((a, b) => String(b.data.aangemeld).localeCompare(String(a.data.aangemeld)))[0];
+    if (vorige && vorige.data.betaling && vorige.data.betaling.status === "SUCCEEDED") throw httpErr(409, "Je bent al ingeschreven en je lidgeld is betaald. Je ontving een bevestiging per e-mail.");
     // bestaat dit lid al? dan toch bewaren, maar als mogelijk dubbel markeren
     let id = slug(d.naam + "-" + d.voornaam), dubbelVan = null;
-    const { data: bestaand } = await sb.from("leden").select("id").eq("id", id).maybeSingle();
-    if (bestaand) { dubbelVan = id; id = id + "-" + Date.now().toString(36); }
+    if (vorige) { id = vorige.id; dubbelVan = vorige.data.dubbelVan || null; }
+    else {
+      const { data: bestaand } = await sb.from("leden").select("id").eq("id", id).maybeSingle();
+      if (bestaand) { dubbelVan = id; id = id + "-" + Date.now().toString(36); }
+    }
 
     const bedrag = I.tarieven[d.categorie], mededeling = `${d.naam} ${d.voornaam} Lidgeld ${I.jaar}`;
     const token = I.online ? crypto.randomBytes(18).toString("base64url") : null;
     const lid = { ...d, lidSinds: I.jaar, info: "", lidTot: null, bron: "formulier", nieuw: true, aangemeld: new Date().toISOString(), lidgeldBedrag: bedrag, ...(token ? { betaalToken: token } : {}), ...(dubbelVan ? { dubbelVan } : {}) };
-    const { error } = await sb.from("leden").insert({ id, data: lid });
+    const { error } = vorige ? await sb.from("leden").update({ data: { ...vorige.data, ...lid, aangemeld: vorige.data.aangemeld, opnieuw: new Date().toISOString(), betaling: null, bevestiging: null } }).eq("id", id) : await sb.from("leden").insert({ id, data: lid });
     if (error) throw error;
 
     let qr = null;
@@ -84,7 +93,7 @@ export default async function handler(req, res) {
         online = { id, token, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp, provider: bt.provider || null };
       } catch (e) { console.error("Bancontact", e); }
     }
-    await meldPush(sb, "iedereen", { titel: "Nieuw lid ingeschreven", tekst: `${[lid.voornaam, lid.naam].filter(Boolean).join(" ")}${lid.categorie ? " · " + lid.categorie : ""}`, url: "/#dashboard", tag: "lid-" + id });
+    if (!vorige) await meldPush(sb, "iedereen", { titel: "Nieuw lid ingeschreven", tekst: `${[lid.voornaam, lid.naam].filter(Boolean).join(" ")}${lid.categorie ? " · " + lid.categorie : ""}`, url: "/#dashboard", tag: "lid-" + id });
     // bevestigingsmail: bij online betalen wachten op de uitkomst, anders meteen (met de gegevens om over te schrijven)
     try { if (online) await wachtOpBetaling(sb, "leden", id); else await stuurBevestiging(sb, "leden", id); } catch (e) { console.error("bevestiging", e); }
     res.status(200).json({ ok: true, jaar: I.jaar, bedrag, rekeningnummer: I.rekeningnummer, begunstigde: I.vereniging, mededeling, qr, online });

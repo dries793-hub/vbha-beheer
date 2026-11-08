@@ -4651,3 +4651,24 @@ for(const k of ["mails","verwerken"]){const o=VIEWS[k];if(!o)continue;const n=fu
 // toetsen die toch een instellingenvenster openen: enkel voor de administrator
 document.addEventListener("click",e=>{if(ADM())return;const t=e.target.closest('[data-act="finInst"],[data-act="puntInst"],[data-act="bkInst"],[data-act="kfInst"],[data-act="ledenInst"],[data-fc="instel"],[data-spi="open"],[data-ink="instel"],a[href="#instellingen"],[aria-label^="Instellingen"],[aria-label^="Financiële instellingen"]');
   if(t){e.preventDefault();e.stopImmediatePropagation();toast("De instellingen zijn enkel toegankelijk voor de administrator.",true)}},true);
+
+/* Verplichte velden: naam, e-mail en een volledig adres (straat, huisnummer, postcode en gemeente) */
+const adresVolledig=s=>{s=String(s||"").trim();return /[A-Za-zÀ-ÿ]{2,}/.test(s)&&/\b[1-9]\d{3}\s+[A-Za-zÀ-ÿ'’][A-Za-zÀ-ÿ'’ .\-]+/.test(s)&&/[A-Za-zÀ-ÿ.]\s*\d+\s*[A-Za-z]?\b(?=.*\b[1-9]\d{3}\b)/.test(s)};
+const mailOk=s=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s||"").trim());
+const ADRES_FOUT="Vul een volledig adres in: straat, huisnummer, postcode en gemeente (bv. Kerkstraat 12, 9300 Aalst).";
+// leden: adres en e-mail verplicht (niet voor wie als "geen lid" staat)
+{const _r=readLid;readLid=function(){const d=_r.apply(this,arguments);if(!d)return d;const e=$("#lidErr");if(d.geenLid)return d;
+  if(!adresVolledig(d.adres)){e.textContent=ADRES_FOUT;const i=$("#adres");if(i)i.focus();return null}
+  if(!mailOk(d.email)){e.textContent="Vul een geldig e-mailadres in.";const i=$("#email");if(i)i.focus();return null}
+  return d}}
+{const _l=lidForm;lidForm=function(){return String(_l.apply(this,arguments)).replace('>Adres</label>','>Adres *</label>').replace('>E-mail</label>','>E-mail *</label>')}}
+// sponsors: bedrijf, e-mail en volledig adres verplicht
+{const _sf=sponsorForm;sponsorForm=function(s,id){_sf(s,id);const ok=$("#spOk");if(!ok)return;
+  for(const [f,t] of [["sA","Adres *"],["sE","E-mail *"]]){const l=document.querySelector(`label[for="${f}"]`);if(l)l.textContent=t}
+  const _c=ok.onclick;ok.onclick=function(ev){const er=$("#spErr"),a=$("#sA"),m=$("#sE");
+    if(a&&!adresVolledig(a.value)){er.textContent=ADRES_FOUT;a.focus();return}
+    if(m&&!mailOk(m.value)){er.textContent="Vul een geldig e-mailadres in.";m.focus();return}
+    return _c&&_c.call(this,ev)}}}
+// adres toevoegen op de kalenderkaart
+{const _k=kaNieuw;kaNieuw=function(){_k.apply(this,arguments);const ok=$("#kaOk");if(!ok)return;const _c=ok.onclick;
+  ok.onclick=function(ev){const a=$("#kaA");if(a&&!adresVolledig(a.value)){$("#kaErr").textContent=ADRES_FOUT;a.focus();return}return _c&&_c.call(this,ev)}}}

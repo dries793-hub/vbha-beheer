@@ -7,6 +7,7 @@ import { clean, body, norm, slug, algemeen, configDoc, spamCheck, vandaagISO, da
 import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, site } from "./bevestiging.js";
 import { fcConfig, maakDefinitief, factuurPdf, pdfNaam, betaalLink, ogmFmt } from "./factuur.js";
 import { meldPush } from "./push.js";
+import { adresVolledig } from "./adrescheck.js";
 
 /* ============ Openbare sponsorinschrijving (/sponsor) ============
    Config "sponsoring" (app: Sponsors › tandwiel): {open, kalenderjaar, deadline, formules:[{id,naam,bedrag,omschrijving}], vrij:{aan,min}, melding}
@@ -127,7 +128,8 @@ export default async function handler(req, res) {
     for (const [k, v] of Object.entries(g)) if (v) d[k] = v; // bij vernieuwen: lege velden houden de gekende gegevens
     if (!d.bedrijf) throw httpErr(400, "Vul de naam van uw bedrijf of handelszaak in.");
     if (!okMail(String(d.email || ""))) throw httpErr(400, "Vul een geldig e-mailadres in; daar sturen we de bevestiging naartoe.");
-    if (wilFactuur && !d.adres) throw httpErr(400, "Voor een factuur hebben we uw adres nodig.");
+    if (g.adres && !adresVolledig(g.adres)) throw httpErr(400, "Vul het volledige adres in: straat, huisnummer, postcode en gemeente.");
+    if ((!oud || wilFactuur) && !adresVolledig(d.adres)) throw httpErr(400, "Vul het volledige adres in: straat, huisnummer, postcode en gemeente.");
     const nieuw = !oud;
     if (nieuw) { id = slug(d.bedrijf).slice(0, 40) + "-" + crypto.randomBytes(3).toString("hex"); d.bron = "formulier"; }
     const kj = C.kalenderjaar;
