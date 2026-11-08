@@ -4753,8 +4753,8 @@ function fuNu(){return new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Brussel
 function fuStatus(c){if(!c.datum)return{k:"dicht",t:"Gesloten: stel eerst de datum in"};if(fuNu()>=fuTot(c))return{k:"dicht",t:"Afgelopen: de fuif is begonnen"};if(c.open===false)return{k:"dicht",t:"Manueel gesloten"};
   const [dd,uu]=fuTot(c).split("T");return{k:"open",t:`Open tot ${fmtDate(dd)} ${uu.replace(":","u")}`}}
 const fuEur=n=>"€ "+Number(n||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
-const fuNaam=d=>d.bron==="sponsor"&&d.bedrijf?d.bedrijf:[d.voornaam,d.naam].filter(Boolean).join(" ");
-const FU_ST={betaald:["ok","Betaald"],wacht:["warn","Betaling bezig"],verlopen:["neutral","Niet betaald"],geannuleerd:["neutral","Geannuleerd"]};
+const fuNaam=d=>d.bron==="genodigde"&&d.organisatie?d.organisatie+(d.voornaam||d.naam?" · "+[d.voornaam,d.naam].filter(Boolean).join(" "):""):d.bron==="sponsor"&&d.bedrijf?d.bedrijf:[d.voornaam,d.naam].filter(Boolean).join(" ");
+const FU_ST={betaald:["ok","Betaald"],wacht:["warn","Betaling bezig"],verlopen:["neutral","Niet betaald"],geannuleerd:["neutral","Geannuleerd"],uitgenodigd:["warn","Uitgenodigd"]};
 function fuLijst(){const j=fuJaar();return [...S.tickets.values()].filter(t=>Number(t.jaar)===j).sort((a,b)=>String(b.aangemeld||"").localeCompare(String(a.aangemeld||"")))}
 function fuStats(){const L0=fuLijst(),L=L0.filter(t=>t.bron!=="kassa"),B=L.filter(t=>t.status==="betaald"),K=(typeof kaTrans==="function"?kaTrans("fuif",fuJaar()):[]).filter(t=>t.status==="betaald");
   const kT=K.reduce((n,t)=>n+(t.items||[]).filter(x=>x.inkom).reduce((m,x)=>m+(Number(x.aantal)||0),0),0),kBc=K.filter(t=>t.betaalwijze!=="cash").reduce((n,t)=>n+(Number(t.bedrag)||0),0),kCash=K.filter(t=>t.betaalwijze==="cash").reduce((n,t)=>n+(Number(t.bedrag)||0),0),kDk=new Map();for(const t of K)for(const x of (t.items||[]))if(!x.inkom&&/drank/i.test(x.naam)){const w=Number(x.prijs);kDk.set(w,(kDk.get(w)||0)+x.aantal)}const tk=B.reduce((n,t)=>n+(t.tickets||[]).filter(x=>!fuDrank(x)).length,0),bin=B.reduce((n,t)=>n+(t.tickets||[]).filter(x=>x.gescand&&!fuDrank(x)).length,0);
@@ -4765,14 +4765,14 @@ function fuStats(){const L0=fuLijst(),L=L0.filter(t=>t.bron!=="kassa"),B=L.filte
 VIEWS.fuif=()=>({title:fuCfg().naam||"In Vier en Vlam",sub:"Tickets fuif",
   actions:`<a class="btn" href="/fuif" target="_blank" rel="noopener" title="Openbare ticketpagina">${ic("link")}Ticketpagina${(()=>{const v=fuStatus(fuCfg());return `<span class="fu-dot ${v.k==="open"?"open":""}" title="${esc(v.t)}" aria-label="${esc(v.t)}"></span>`})()}</a><button class="btn primary" data-fu="kassa" title="Kassamodule: verkopen en scannen aan de kassa">${ic("bank")}Kassa</button>${typeof ADM!=="function"||ADM()?`<button class="btn iconbtn" data-fu="inst" aria-label="Instellingen fuif" title="Instellingen fuif">${ic("instellingen")}</button>`:""}`,
   body(){const c=fuCfg(),st=fuStats(),q=norm(FU.q);
-    let L=FU.alles?st.L:st.L.filter(t=>t.status==="betaald"||t.status==="wacht");
+    let L=(FU.alles?st.L:st.L.filter(t=>t.status==="betaald"||t.status==="wacht")).filter(t=>t.status!=="uitgenodigd");
     if(q)L=L.filter(t=>norm([fuNaam(t),t.email,t.adres,t.via&&(t.via.naam||t.via.tekst),...(t.tickets||[]).map(x=>x.code)].join(" ")).includes(q));
     const viaL=[...st.via.entries()].map(([id,n])=>({l:S.leden.get(id),n})).filter(x=>x.l).sort((a,b)=>b.n-a.n);
     const zonder=st.B.filter(t=>t.via&&t.via.tekst&&!t.via.lidId);
     const vs=fuStatus(c);
     const fuG=fuGebruik(st);
     return `<div class="tiles">
-      <div class="tile hero"><span class="lbl">Tickets verkocht</span><span class="val">${st.tk-fuG.sp.t+st.kT}${c.max?`<small style="font-size:.5em;color:var(--muted)"> / ${c.max} online</small>`:""}</span><span class="hint">${st.tk-fuG.sp.t} online · ${st.kT} aan de kassa${fuG.sp.t?` · + ${fuG.sp.t} gratis voor sponsors`:""}</span></div>
+      <div class="tile hero"><span class="lbl">Tickets verkocht</span><span class="val">${st.tk-fuG.sp.t-fuG.gast.t+st.kT}${c.max?`<small style="font-size:.5em;color:var(--muted)"> / ${c.max} online</small>`:""}</span><span class="hint">${st.tk-fuG.sp.t-fuG.gast.t} online · ${st.kT} aan de kassa${fuG.sp.t+fuG.gast.t?` · + ${fuG.sp.t+fuG.gast.t} gratis (sponsors en genodigden)`:""}</span></div>
       <div class="tile"><span class="lbl">Ontvangen</span><span class="val">${fuEur(st.omzet+st.kBc+st.kCash)}</span><span class="hint">online ${fuEur(st.omzet)} · kassa ${fuEur(st.kBc)} Bancontact${st.kCash?` + ${fuEur(st.kCash)} cash`:""}</span></div>
       <div class="tile"><span class="lbl">Binnen</span><span class="val">${st.bin+st.kT}</span><span class="hint">${st.bin} van ${st.tk} tickets met QR gescand · ${st.kT} via kassa</span></div>
       <div class="tile"><span class="lbl">Drankkaarten</span><span class="val">${[...st.dk.values(),...st.kDk.values()].reduce((a,b)=>a+b,0)}</span><span class="hint">voorverkoop: ${[...st.dk.entries()].sort((a,b)=>a[0]-b[0]).map(([w,n])=>n+"× €"+w).join(" · ")||"geen"}${st.dkB?` (${st.dkB} afgehaald)`:""}<br>kassa: ${[...st.kDk.entries()].sort((a,b)=>a[0]-b[0]).map(([w,n])=>n+"× €"+w).join(" · ")||"geen"}</span></div>
@@ -4782,9 +4782,10 @@ VIEWS.fuif=()=>({title:fuCfg().naam||"In Vier en Vlam",sub:"Tickets fuif",
     <div class="grid g2" style="align-items:start">
     <div class="panel" style="min-width:0"><div class="panel-h"><h2>Bestellingen</h2><span class="grow"></span><label class="cbx small muted"><input type="checkbox" data-fu="alles"${FU.alles?" checked":""}>ook niet betaald</label></div>
       <div class="panel-b" style="padding-bottom:6px"><div class="search">${ic("search")}<input id="fuQ" data-fuq placeholder="Zoek op naam, e-mail, lid of ticketcode" value="${esc(FU.q)}"></div></div>
-      <div class="mlist" role="list">${L.map(t=>{const [k,lbl]=t.bron==="sponsor"&&t.status==="betaald"?["info","Sponsor"]:FU_ST[t.status]||["neutral",t.status];const bin=(t.tickets||[]).filter(x=>x.gescand&&!fuDrank(x)).length;
+      <div class="mlist altijd" role="list">${L.map(t=>{const [k,lbl]=t.bron==="sponsor"&&t.status==="betaald"?["info","Sponsor"]:t.bron==="genodigde"&&t.status==="betaald"?["info","Genodigde"]:FU_ST[t.status]||["neutral",t.status];const bin=(t.tickets||[]).filter(x=>x.gescand&&!fuDrank(x)).length;
         const nd=(t.drank||[]).reduce((a,k)=>a+k.aantal,0);return `<button type="button" class="ml-row" role="listitem" data-fu="toon" data-id="${esc(t.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(fuNaam(t))}</b></span><span class="ml-s">${t.aantal||0} ${t.aantal==1?"ticket":"tickets"}${nd?` + ${nd} ${nd==1?"drankkaart":"drankkaarten"}`:""}${t.via&&(t.via.naam||t.via.tekst)?` · via ${esc(t.via.naam||t.via.tekst)}${t.via.lidId?"":" (?)"}`:""}${bin?` · ${bin} binnen`:""} · ${esc(fmtDate(String(t.aangemeld||"").slice(0,10)))}</span></span><span class="pill ${k}">${lbl}</span><span class="ml-chev" aria-hidden="true">›</span></button>`}).join("")||`<div class="empty">${q?"Niets gevonden.":"Nog geen bestellingen."}</div>`}</div></div>
     <div class="stack" style="gap:16px;min-width:0">
+    ${fgPaneel()}
     <div class="panel" style="min-width:0"><div class="panel-h"><h2>Verkocht via leden</h2></div><div class="panel-b">${viaL.length?`<div class="stack" style="gap:6px">${viaL.map(x=>`<div style="display:flex;justify-content:space-between;gap:10px"><span>${esc(naamVol(x.l))}</span><b>${x.n}</b></div>`).join("")}</div>`:'<div class="muted small">Nog geen tickets via een lid verkocht. Kopers kunnen bij het bestellen het lid kiezen via wie ze kopen; die tickets tellen automatisch mee als "kaarten" in het puntensysteem.</div>'}</div></div></div>
     </div>`}});
 document.addEventListener("input",e=>{if(e.target.matches("[data-fuq]")){FU.q=e.target.value;const p=e.target.selectionStart;renderBody();const i=$("#fuQ");if(i){i.focus();try{i.setSelectionRange(p,p)}catch(x){}}}});
@@ -4920,15 +4921,46 @@ function fuKassaOverzicht(st){const c=fuCfg(),kp=Number(c.kassaPrijs)||Number(c.
       return `<div class="fu-trr"><div><b>${fuEur(t.bedrag)}</b> <span class="pill ${t.betaalwijze==="cash"?"neutral":"info"}">${t.betaalwijze==="cash"?"Cash":"Bancontact"}</span><div class="muted small">${esc(tijd(t.betaaldOp||t.aangemeld))} · ${esc(w)}</div></div>${adm?`<button type="button" class="fu-x" data-fu="wis" data-id="${esc(t.id)}" aria-label="Transactie wissen" title="Transactie wissen">×</button>`:""}</div>`}).join("")}</details>`}
 
 /* ---- gebruik aan de kassa: hoeveel QR-codes werden (nog) niet gescand ---- */
-function fuGebruik(st){const z=()=>({t:0,ts:0,d:0,ds:0,dw:0,dwo:0});const on=z(),sp=z();
-  for(const o of st.B){const x=o.bron==="sponsor"?sp:on;for(const k of (o.tickets||[])){if(fuDrank(k)){x.d++;x.dw+=Number(k.waarde)||0;if(k.gescand)x.ds++;else x.dwo+=Number(k.waarde)||0}else{x.t++;if(k.gescand)x.ts++}}}
-  return{on,sp}}
-function fuGebruikHtml(G){const {on,sp}=G;if(!on.t&&!on.d&&!sp.t&&!sp.d)return"";
+function fuGebruik(st){const z=()=>({t:0,ts:0,d:0,ds:0,dw:0,dwo:0});const on=z(),sp=z(),gast=z();
+  for(const o of st.B){const x=o.bron==="sponsor"?sp:o.bron==="genodigde"?gast:on;for(const k of (o.tickets||[])){if(fuDrank(k)){x.d++;x.dw+=Number(k.waarde)||0;if(k.gescand)x.ds++;else x.dwo+=Number(k.waarde)||0}else{x.t++;if(k.gescand)x.ts++}}}
+  return{on,sp,gast}}
+function fuGebruikHtml(G){const {on,sp,gast}=G;if(!on.t&&!on.d&&!sp.t&&!sp.d&&!gast.t&&!gast.d)return"";
   const rij=(n,a,b,extra)=>a?`<tr><td>${n}</td><td class="num">${a}</td><td class="num">${b}</td><td class="num"><b>${a-b}</b>${extra||""}</td></tr>`:"";
   return `<div class="panel" style="margin-top:16px"><div class="panel-h"><h2>Gebruik aan de kassa</h2><span class="grow"></span><span class="muted small">QR-codes die (nog) niet gescand werden</span></div><div class="tw"><table><thead><tr><th></th><th class="num">Aangemaakt</th><th class="num">Gescand</th><th class="num">Niet gebruikt</th></tr></thead><tbody>
-   ${rij("Tickets online",on.t,on.ts)}${rij("Tickets sponsors",sp.t,sp.ts)}
-   ${rij("Drankkaarten online",on.d,on.ds,on.dwo?` <span class="muted small">(${fuEur(on.dwo)})</span>`:"")}${rij("Drankkaarten sponsors",sp.d,sp.ds,sp.dwo?` <span class="muted small">(${fuEur(sp.dwo)})</span>`:"")}
+   ${rij("Tickets online",on.t,on.ts)}${rij("Tickets sponsors",sp.t,sp.ts)}${rij("Tickets genodigden",gast.t,gast.ts)}
+   ${rij("Drankkaarten online",on.d,on.ds,on.dwo?` <span class="muted small">(${fuEur(on.dwo)})</span>`:"")}${rij("Drankkaarten sponsors",sp.d,sp.ds,sp.dwo?` <span class="muted small">(${fuEur(sp.dwo)})</span>`:"")}${rij("Drankkaarten genodigden",gast.d,gast.ds,gast.dwo?` <span class="muted small">(${fuEur(gast.dwo)})</span>`:"")}
    </tbody></table></div></div>`}
+
+/* ---- genodigden: gratis tickets na bevestiging via de knop in hun mail ---- */
+const fgLijst=()=>fuLijst().filter(t=>t.bron==="genodigde"&&t.status!=="geannuleerd").sort((a,b)=>(a.organisatie||a.naam||"").localeCompare(b.organisatie||b.naam||"","nl"));
+function fgPaneel(){const L=fgLijst(),aan=L.filter(t=>t.status==="betaald").length,w=typeof canWrite==="undefined"||canWrite;
+  return `<div class="panel" style="min-width:0"><div class="panel-h"><h2>Genodigden</h2>${L.length?`<span class="cnt">${aan}/${L.length}</span>`:""}<span class="grow"></span>${w?`<button type="button" class="btn sm" data-fg="nieuw">${ic("plus")}Toevoegen</button>`:""}</div>
+   ${L.length?`<div class="mlist altijd" role="list">${L.map(t=>{const dw=(t.drank&&t.drank[0]&&t.drank[0].waarde)||0,bin=(t.tickets||[]).filter(x=>x.gescand&&!fuDrank(x)).length;
+     const pil=t.status==="betaald"?'<span class="pill ok">Aangevraagd</span>':t.uitnodiging?`<span class="pill warn" title="Uitnodiging gemaild op ${esc(fmtDate(String(t.uitnodiging.op).slice(0,10)))}">Uitgenodigd</span>`:'<span class="pill neutral">Niet gemaild</span>';
+     return `<button type="button" class="ml-row" role="listitem" data-fg="toon" data-id="${esc(t.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(fuNaam(t))}</b></span><span class="ml-s">${t.aantal||0} ${t.aantal==1?"ticket":"tickets"}${dw?` + drankkaart ${fuEur(dw)}`:""}${t.status==="betaald"&&bin?` · ${bin} binnen`:""}${t.status!=="betaald"&&t.uitnodiging?` · gemaild ${esc(fmtDate(String(t.uitnodiging.op).slice(0,10)))}`:""}</span></span>${pil}<span class="ml-chev" aria-hidden="true">›</span></button>`}).join("")}</div>`
+   :`<div class="panel-b"><p class="muted small" style="margin:0">Nodig bevriende vriendenkringen of sympathisanten uit. Ze krijgen een mail met een knop; pas als ze erop drukken, worden de gratis tickets met QR aangemaakt en gemaild (één keer).</p></div>`}</div>`}
+function fgForm(t){const nieuw=!t;t=t||{aantal:2,drank:[]};const dw=(t.drank&&t.drank[0]&&t.drank[0].waarde)||0,vast=t.status==="betaald";
+  modal(nieuw?"Genodigde toevoegen":fuNaam(t)||"Genodigde",`<form id="fgF" class="form">
+   ${fld("fgO","Organisatie (optioneel)",`<input id="fgO" name="organisatie" value="${esc(t.organisatie||"")}" placeholder="bv. Vriendenkring Brandweer Ninove">`,"full")}
+   ${fld("fgV","Voornaam",`<input id="fgV" name="voornaam" value="${esc(t.voornaam||"")}">`)}${fld("fgN","Naam",`<input id="fgN" name="naam" value="${esc(t.naam||"")}">`)}
+   ${fld("fgE","E-mail *",`<input id="fgE" name="email" type="email" value="${esc(t.email||"")}">`,"full")}
+   ${fld("fgA","Gratis tickets",`<input id="fgA" name="aantal" type="number" min="0" max="50" inputmode="numeric" value="${esc(t.aantal??2)}">`)}${fld("fgD","Drankkaart (€, 0 = geen)",`<input id="fgD" name="drank" type="number" min="0" max="500" step="5" inputmode="decimal" value="${esc(dw)}">`)}
+   ${fld("fgB","Persoonlijke boodschap in de mail (optioneel)",`<textarea id="fgB" name="boodschap" rows="3" placeholder="bv. Bedankt voor jullie hulp op onze opendeurdag!">${esc(t.boodschap||"")}</textarea>`,"full")}
+   ${vast?`<p class="full note">Deze genodigde vroeg de tickets al aan op ${esc(fmtDate(String(t.betaaldOp||"").slice(0,10)))}. Opnieuw mailen of annuleren kan via de bestelling.</p>`:t.uitnodiging?`<p class="full muted small" style="margin:0">Uitnodiging gemaild op ${esc(fmtDate(String(t.uitnodiging.op).slice(0,10)))} naar ${esc(t.uitnodiging.aan||"")}${t.uitnodiging.n>1?` (${t.uitnodiging.n} keer)`:""}. Nog niet aangevraagd.</p>`:""}
+   <div class="err full" id="fgErr"></div></form>`,
+   `${!nieuw&&!vast?'<button class="btn ghost danger" id="fgDel">Verwijderen</button><span class="grow"></span>':""}${vast?`<span class="grow"></span><button class="btn" data-fu="toon" data-id="${esc(t.id)}">Bestelling openen</button>`:`<button class="btn" id="fgOk">Bewaren</button><button class="btn primary" id="fgMail">${t.uitnodiging?"Bewaren en opnieuw mailen":"Bewaren en uitnodiging mailen"}</button>`}`);
+  if(vast){$$("#fgF input,#fgF textarea").forEach(i=>i.disabled=true);return}
+  const bewaar=async mail=>{const f=formData($("#fgF")),er=$("#fgErr");er.textContent="";
+    if(!f.organisatie.trim()&&!f.voornaam.trim()&&!f.naam.trim()){er.textContent="Vul een naam of organisatie in.";return}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email.trim())){er.textContent="Vul een geldig e-mailadres in.";$("#fgE").focus();return}
+    $$(".modal-f .btn").forEach(b=>b.disabled=true);
+    try{const r=await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"gast",id:nieuw?"":t.id,...f,aantal:num(f.aantal),drank:num(f.drank),mail})});
+      closeModal();toast(mail?(r.gemaild?"Uitnodiging staat klaar en vertrekt binnen enkele minuten.":"Bewaard, maar de uitnodiging kon niet gemaild worden."):"Genodigde bewaard.")}
+    catch(x){er.textContent=x.message;$$(".modal-f .btn").forEach(b=>b.disabled=false)}};
+  $("#fgOk").onclick=()=>bewaar(false);$("#fgMail").onclick=()=>bewaar(true);
+  if(!nieuw)$("#fgDel").onclick=()=>confirmBox(`Genodigde <b>${esc(fuNaam(t))}</b> verwijderen? Een al gemailde knop werkt dan niet meer.`,"Verwijderen",async()=>{try{await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"gastweg",id:t.id})});toast("Genodigde verwijderd.")}catch(x){toast(x.message,true)}})}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-fg]");if(!b)return;e.preventDefault();e.stopPropagation();
+  if(b.dataset.fg==="nieuw")fgForm(null);else if(b.dataset.fg==="toon"){const t=S.tickets.get(b.dataset.id);if(t)fgForm(t)}},true);
 
 /* Kassa: kleuren en iconen voor de tegels (gedeeld door de app en /kassa) */
 var KASSA_KLEUREN={rood:["#c0161f","#fdecec"],oranje:["#d4570e","#fff0e5"],goud:["#b07a12","#fff6e0"],groen:["#1a7f45","#e8f6ee"],blauw:["#1f5fbf","#e9f1fd"],paars:["#6b3fb5","#f1ebfb"],roze:["#c2367a","#fdebf3"],bruin:["#7a4b2a","#f6eee7"],grijs:["#55585e","#f0f1f2"],zwart:["#1a1b1e","#e9e9ea"]};

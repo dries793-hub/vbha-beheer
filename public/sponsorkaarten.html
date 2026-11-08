@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}.logo-a{display:block;flex:none;line-height:0;border-radius:4px}.logo-a:focus-visible{outline:2px solid #fff;outline-offset:3px}
 </style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
-<title>Fuifkaarten voor sponsors · VBHA</title>
+<title>Fuiftickets · VBHA</title>
 <link rel="icon" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -169,7 +169,7 @@ html,body{overflow-x:hidden}
 <style>
 .ev{display:flex;flex-direction:column;gap:6px;margin:0 0 18px;padding:14px 16px;border-radius:10px;background:var(--sunken)}
 .ev b{font-size:17px}.ev span{color:var(--muted);font-size:14px}
-.gift{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 6px}
+.gift{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:0 0 6px}
 .gift div{border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center;background:var(--surface)}
 .gift b{display:block;font-size:26px;line-height:1.1}.gift small{color:var(--muted)}
 .gift .dk b{color:#b07a12}
@@ -189,7 +189,7 @@ a.btn{text-decoration:none}
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const eur=n=>"€ "+Number(n||0).toLocaleString("nl-BE",{minimumFractionDigits:Number(n)%1?2:0,maximumFractionDigits:2});
-const Q=new URLSearchParams(location.search),P={sp:Q.get("sp")||"",j:Q.get("j")||"",t:Q.get("t")||""};
+const Q=new URLSearchParams(location.search),G=!!Q.get("g"),P=G?{g:Q.get("g"),t:Q.get("t")||""}:{sp:Q.get("sp")||"",j:Q.get("j")||"",t:Q.get("t")||""};
 const fdat=iso=>iso?new Date(iso).toLocaleDateString("nl-BE",{day:"numeric",month:"long",year:"numeric"}):"";
 const OK='<div class="ic"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>';
 function fout(t){$("#kaart").innerHTML=`<div class="ok"><h2>Oei</h2><p>${esc(t)}</p><p>Vragen? Mail naar <a href="mailto:info@vbha.be">info@vbha.be</a>.</p></div>`}
@@ -199,24 +199,26 @@ function klaar(d,nieuw){
    ${d.papier?`<p>Je kaarten werden al op papier aan je gegeven.</p>`:`<p>${nieuw?"We mailden":"Op "+esc(fdat(d.op))+" mailden we"} ${d.aantal?esc(d.aantal)+" inkomkaarten":""}${d.aantal&&d.drank?" en ":""}${d.drank?"een drankkaart van "+eur(d.drank):""}${d.aan?` naar <b>${esc(d.aan)}</b>`:""}.</p><p>Niets ontvangen? Kijk ook even bij je ongewenste mail.</p>`}
    ${d.bekijk?`<a class="btn" href="${esc(d.bekijk)}">Bekijk je tickets</a>`:""}</div>`}
 async function laad(){
-  if(!P.sp||!P.t){fout("Deze link is niet volledig. Gebruik de knop in je mail.");return}
+  if(!(P.sp||P.g)||!P.t){fout("Deze link is niet volledig. Gebruik de knop in je mail.");return}
   let d;try{const r=await fetch("/api/fuif?"+new URLSearchParams(P));d=await r.json();if(!r.ok)throw new Error(d.error||"Deze link is niet geldig.")}catch(e){fout(e.message);return}
   const e=d.ev||{};if(e.header){const i=document.createElement("img");i.src=e.header;i.alt="";i.style.cssText="width:100%;height:auto;border-radius:12px;margin:0 0 18px;display:block";$("#kaart").before(i)}
-  $("#h1").textContent=(e.naam||"Fuif")+" · sponsors";
-  $("#lead").textContent=`Bedankt om de brandweerkalender te sponsoren${d.bedrijf?" met "+d.bedrijf:""}!`;
+  $("#h1").textContent=(e.naam||"Fuif")+(G?"":" · sponsors");document.title=(e.naam||"Fuif")+" · VBHA";
+  $("#lead").textContent=G?`Je bent uitgenodigd${d.bedrijf?" met "+d.bedrijf:""}!`:`Bedankt om de brandweerkalender te sponsoren${d.bedrijf?" met "+d.bedrijf:""}!`;
+  if(d.status==="ingetrokken"){fout("Deze uitnodiging is niet meer geldig.");return}
   if(d.status==="aangevraagd"){klaar(d,false);return}
   if(d.status==="voorbij"){fout("De fuif is voorbij; aanvragen kan niet meer.");return}
   $("#kaart").innerHTML=`${evBlok(d)}
    <div class="gift">${d.aantal?`<div><b>${esc(d.aantal)}</b><small>inkomkaarten</small></div>`:""}${d.drank?`<div class="dk"><b>${eur(d.drank)}</b><small>drankkaart</small></div>`:""}</div>
-   <p style="margin:14px 0 0">Kom je graag? Dan maken we de tickets en de drankkaart aan op naam van <b>${esc(d.bedrijf||"je bedrijf")}</b> en mailen we ze meteen door met QR-codes.</p>
+   ${G&&d.boodschap?`<p style="margin:14px 0 0;white-space:pre-line">${esc(d.boodschap)}</p>`:""}
+   <p style="margin:14px 0 0">${G?`Kom je? Dan maken we je ${d.drank?"tickets en drankkaart":"tickets"} meteen aan en mailen we ze door met QR-codes.`:`Kom je graag? Dan maken we de tickets en de drankkaart aan op naam van <b>${esc(d.bedrijf||"je bedrijf")}</b> en mailen we ze meteen door met QR-codes.`}</p>
    <p class="err" id="err"></p>
-   <button class="btn" id="go" type="button">Mijn tickets en drankkaart aanvragen</button>
+   <button class="btn" id="go" type="button">${G&&!d.drank?"Mijn tickets aanvragen":"Mijn tickets en drankkaart aanvragen"}</button>
    <p class="sub">Dit kan één keer. Kom je niet? Dan hoef je niets te doen.</p>`;
   $("#go").onclick=async()=>{const b=$("#go");b.disabled=true;b.textContent="Even geduld…";$("#err").textContent="";
-    try{const r=await fetch("/api/fuif",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({actie:"sponsorclaim",...P})});const x=await r.json();
+    try{const r=await fetch("/api/fuif",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({actie:G?"gastclaim":"sponsorclaim",...P})});const x=await r.json();
       if(r.status===409){laad();return}if(!r.ok)throw new Error(x.error||"Dat lukte niet. Probeer het zo meteen opnieuw.");
       klaar({...x,aan:x.mail?x.aan:null},true)}
-    catch(e){$("#err").textContent=e.message;b.disabled=false;b.textContent="Mijn tickets en drankkaart aanvragen"}}
+    catch(e){$("#err").textContent=e.message;b.disabled=false;b.textContent=G&&!d.drank?"Mijn tickets aanvragen":"Mijn tickets en drankkaart aanvragen"}}
 }
 laad();
 </script>
