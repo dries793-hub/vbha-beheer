@@ -123,7 +123,8 @@ export async function testMails(req, res) {
   } catch (e) { fouten.push("nastuur: " + e.message); }
 
   // alles in één verbinding versturen, naar het testadres, zonder kopieën
-  const uit = lijst.map(m => ({ ...m, aan: AAN, aanNaam: "Test", cc: [], geenBcc: true, onderwerp: "[TEST] " + String(m.onderwerp || "").replace(/^\[TEST\]\s*/, "") }))
+  const B = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {}), alleen = Array.isArray(B.alleen) ? B.alleen : null;
+  const uit = lijst.filter(m => !alleen || alleen.includes(m._naam)).map(m => ({ ...m, aan: AAN, aanNaam: "Test", cc: [], geenBcc: true, onderwerp: "[TEST] " + String(m.onderwerp || "").replace(/^\[TEST\]\s*/, "") }))
     .filter(m => !/^\[TEST\] \[Kopie\]/.test(m.onderwerp));
   const r = uit.length ? await verstuur(uit) : [];
   res.status(200).json({ aantal: uit.length, ok: r.filter(x => x && x.ok).length, mails: uit.map((m, i) => ({ naam: m._naam, onderwerp: m.onderwerp, ok: !!(r[i] && r[i].ok), fout: r[i] && r[i].fout })), fouten });
