@@ -6,8 +6,7 @@
 </style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Kinderfeest · VBHA</title>
 <link rel="icon" href="/favicon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/fonts/inter.css">
 <style>
 :root{--bg:#F5F5F6;--surface:#FFFFFF;--sunken:#F1F1F2;--ink:#1A1B1E;--muted:#686B71;--line:#E5E6E8;--line-strong:#CCCED2;--navy:#18191C;--accent:#C0161F;--accent-deep:#8F0F16;--accent-soft:#FCEBEC;--good:#18794A;--good-soft:#E3F4EA;--info:#2F6FE4;--info-soft:#E4EDFD;--f:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 @media (prefers-color-scheme:dark){:root{--bg:#111214;--surface:#1A1B1E;--sunken:#202226;--ink:#ECEDEF;--muted:#9B9EA5;--line:#2A2C30;--line-strong:#3C3F45;--accent-soft:#3A1416;--good-soft:#12301F;--info-soft:#16233D}}
@@ -166,7 +165,7 @@ html,body{overflow-x:hidden}
     <p class="err" id="err" role="alert"></p>
     <button class="btn" id="go" type="submit">Inschrijving versturen</button>
   </form></div>
-  <p class="foot">Vragen? Spreek iemand van het bestuur aan.</p>
+  <p class="foot">Vragen? Spreek iemand van het bestuur aan. · <a href="/privacy" style="color:inherit">Privacy</a></p>
 </main>
 <script>
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const t0=Date.now();
@@ -214,12 +213,12 @@ $("#f").addEventListener("submit",async e=>{e.preventDefault();read();const er=$
 function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");const box=document.createElement("div");box.className="lp-l";box.hidden=true;box.setAttribute("role","listbox");wrap.append(box);
   let T=0,L=[],sel=-1,laatste="";inp.setAttribute("autocomplete","off");inp.setAttribute("role","combobox");inp.setAttribute("aria-autocomplete","list");
   const mark=(n,q)=>{const t=q.trim().split(/\s+/).filter(Boolean);let h=esc(n);for(const x of t){const re=new RegExp("("+x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i");h=h.replace(re,"<b>$1</b>")}return h};
-  const teken=q=>{if(!L.length){box.innerHTML=q.trim().length>=2?'<div class="lp-leeg">Geen lid gevonden met deze naam.</div>':"";box.hidden=q.trim().length<2;return}
+  const teken=q=>{if(!L.length){box.innerHTML=q.trim().length>=3?'<div class="lp-leeg">Geen lid gevonden met deze naam.</div>':"";box.hidden=q.trim().length<3;return}
     box.innerHTML=L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${mark(l.naam,q)}</button>`).join("");box.hidden=false};
   const kies=l=>{inp.value=l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.naam;alCheck(inp,l.id);
     const m=$("#mail");if(m&&(!m.value.trim()||m.dataset.auto)){if(l.mail){m.value=l.mail;m.dataset.auto="1";m.type="text";$("#mhint").hidden=false}else if(m.dataset.auto){m.value="";delete m.dataset.auto;m.type="email";$("#mhint").hidden=true}}};
   inp.addEventListener("input",()=>{if(inp.dataset.id){AC++;alMeld(inp,"")}delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;
-    if(q.trim().length<2){L=[];box.hidden=true;return}
+    if(q.trim().length<3){L=[];box.hidden=true;return}
     T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[];}catch(e){L=[]}if(inp.value===q)teken(q)},160)});
   inp.addEventListener("keydown",e=>{if(box.hidden||!L.length)return;
     if(e.key==="ArrowDown"){e.preventDefault();sel=(sel+1)%L.length;teken(inp.value)}else if(e.key==="ArrowUp"){e.preventDefault();sel=(sel-1+L.length)%L.length;teken(inp.value)}

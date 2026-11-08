@@ -82,7 +82,7 @@ export function masker(e) { const m = /^([^@\s]+)@([^@\s]+\.[^@\s]+)$/.exec(Stri
 // Zoeken op (een deel van) naam en/of voornaam; geeft enkel id + naam terug, maximaal 8.
 export function zoekLeden(L, q) {
   const t = norm(q).split(/\s+/).filter(Boolean);
-  if (!t.length || norm(q).replace(/\s/g, "").length < 2) return [];
+  if (!t.length || norm(q).replace(/\s/g, "").length < 3) return []; // min. 3 letters: de ledenlijst mag niet af te lopen zijn
   return L.filter(l => { const n = norm(l.naam); return t.every(x => n.split(/[\s'-]+/).some(w => w.startsWith(x)) || n.includes(x)); }).slice(0, 8).map(l => ({ id: l.id, naam: l.naam, mail: masker(l.em) }));
 }
 
