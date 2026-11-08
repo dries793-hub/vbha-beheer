@@ -3626,12 +3626,14 @@ const vaPlus=(iso,n)=>{const d=agD(iso);d.setDate(d.getDate()+n);return d.getFul
 function vaBlok(v,id){const af=v.afgerond;
   if(af){const nv=af.volgendeId&&S.vergaderingen.get(af.volgendeId),doc=af.verslagDoc&&S.documenten.get(af.verslagDoc);
     return `<div class="full va-ok"><div class="va-h">${ic("check")}<b>Vergadering afgerond</b><span class="muted small">${af.op?fmtDate(af.op.slice(0,10)):""}${af.door?" · "+esc(af.door):""}</span></div>
-     <div class="va-r">${doc?`<button type="button" class="btn sm" data-va="dl" data-id="${esc(doc.id)}">${ic("download")}${esc(doc.naam)}</button>`:'<span class="muted small">Geen verslag opgeladen.</span>'}
+     <div class="va-r" id="vaKopR">${doc?`<button type="button" class="btn sm" data-va="dl" data-id="${esc(doc.id)}">${ic("download")}${esc(doc.naam)}</button>`:`<span class="muted small">${af.verslagDoc?"Het gekoppelde verslag bestaat niet meer.":"Geen verslag gekoppeld."}</span>`}
+     <button type="button" class="btn sm${doc?" ghost":""}" data-va="koppel" data-id="${esc(id)}">${ic("link")}${doc?"Ander verslag":"Verslag koppelen"}</button>
      ${nv?`<button type="button" class="btn sm ghost" data-va="volg" data-id="${esc(nv.id)}">Volgende: ${esc(agKort(nv.datum))}${nv.uur?" "+esc(nv.uur):""}</button>`:""}</div>
      <div class="muted small">${af.gemaild?`Gemaild naar ${esc(af.aan||vaOntv())} op ${new Date(af.gemaild).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}.`:`${af.zonderMail?"Opgeladen zonder mail.":"Nog niet gemaild."} <a href="#" data-va="mail" data-id="${esc(id)}">Nu mailen</a>`}</div></div>`}
   if(v.datum>todayISO())return "";
+  const kop=`<div class="full va-kop" id="vaKopR"><span class="muted small">Staat het verslag al in Documenten › Verslagen?</span> <button type="button" class="btn sm ghost" data-va="koppel" data-id="${esc(id)}">${ic("link")}Verslag uit Documenten koppelen</button></div>`;
   return `<div class="full va-box"><div><b>Vergadering voorbij?</b><div class="muted small">Laad het verslag op, bevestig dat de vergadering afgerond is en plan meteen de volgende. Het bestuur krijgt een mail met het verslag en de nieuwe datum.</div></div>
-   <button type="button" class="btn primary" data-va="start" data-id="${esc(id)}">${ic("check")}Vergadering afronden</button></div>`}
+   <button type="button" class="btn primary" data-va="start" data-id="${esc(id)}">${ic("check")}Vergadering afronden</button></div>`+kop}
 const vaBestaand=(v,datum)=>[...S.vergaderingen.values()].filter(x=>x.id!==v.id&&(x.soort||"")===(v.soort||"")&&x.datum>v.datum&&(!datum||x.datum===datum)).sort((a,b)=>a.datum.localeCompare(b.datum))[0];
 let VA_FILE=null;
 const VA_WORD=/\.docx$/i,VA_OKEXT=/\.(pdf|docx)$/i;
@@ -3884,6 +3886,24 @@ const vaPuntenZet=(vid,ids)=>vaPuntenBatch([{vid,ids}]);
   ok.insertAdjacentHTML("beforeend",`<div class="va-awb">${vaAanwHtml(v.aanwezigIds||[],"")}${canWrite?`<div><button type="button" class="btn sm" data-va="aanwOk" data-id="${esc(id)}">Aanwezigheid bewaren</button></div>`:""}</div>`);if(!canWrite)ok.querySelectorAll('input[name="vaA"]').forEach(i=>i.disabled=true)}}
 document.addEventListener("click",async e=>{const t=e.target.closest('[data-va="aanwOk"]');if(!t)return;t.disabled=true;
   try{await vaPuntenZet(t.dataset.id,vaGekozen(t.closest(".va-awb")));toast("Aanwezigheid en punten bijgewerkt.")}catch(x){toast(x.message,true)}finally{t.disabled=false}});
+
+/* ---------- bestaand verslag uit Documenten › Verslagen koppelen aan een (voorbije) vergadering ---------- */
+function vaVerslagDocs(){return [...S.documenten.values()].filter(d=>String(d.map||"").startsWith("Verslagen")&&!/template/i.test(d.map+" "+d.naam)).sort((a,b)=>String(b.op||"").localeCompare(String(a.op||"")))}
+function vaRaad(v,L){const [y,m,d]=String(v.datum||"").split("-");if(!y)return null;const pats=[`${d}-${m}-${y}`,`${d}.${m}.${y}`,`${d}_${m}_${y}`,`${y}-${m}-${d}`,`${y}${m}${d}`,`${d}${m}${y}`];return L.find(x=>pats.some(p=>String(x.naam).includes(p)))||null}
+document.addEventListener("click",async e=>{const b=e.target.closest('[data-va="koppel"],[data-va="koppelOk"],[data-va="koppelX"]');if(!b)return;e.preventDefault();e.stopPropagation();
+  const id=b.dataset.id,v=S.vergaderingen.get(id);if(!v)return;const r=$("#vaKopR");
+  if(b.dataset.va==="koppelX"){vgForm(v,id);return}
+  if(b.dataset.va==="koppel"){const L=vaVerslagDocs();if(!L.length){toast("Er staan nog geen verslagen in Documenten › Verslagen.",true);return}
+    const raad=vaRaad(v,L),huidig=v.afgerond&&v.afgerond.verslagDoc;
+    r.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px;width:100%"><label class="small" for="vaKopS"><b>Verslag uit Documenten › Verslagen</b></label>
+      <select id="vaKopS" class="sel">${L.map(x=>`<option value="${esc(x.id)}"${(huidig?x.id===huidig:raad&&x.id===raad.id)?" selected":""}>${esc(x.naam)}${x.map!=="Verslagen"?" ("+esc(x.map.replace(/^Verslagen\/?/,""))+")":""}</option>`).join("")}</select>
+      ${raad&&!huidig?`<span class="muted small">Voorgesteld op basis van de datum in de bestandsnaam.</span>`:""}
+      <div class="bar" style="gap:8px"><button type="button" class="btn sm primary" data-va="koppelOk" data-id="${esc(id)}">Koppelen</button><button type="button" class="btn sm ghost" data-va="koppelX" data-id="${esc(id)}">Annuleren</button></div></div>`;return}
+  const did=$("#vaKopS").value;if(!did)return;b.disabled=true;
+  try{const cur=S.vergaderingen.get(id)||v,af=cur.afgerond||{op:new Date().toISOString(),door:ME_NAME||"",zonderMail:true};
+    await write("vergaderingen",id,{afgerond:{...af,verslagDoc:did}},{merge:true});toast("Verslag gekoppeld aan de vergadering.");
+    setTimeout(()=>{const n=S.vergaderingen.get(id);if(n)vgForm(n,id)},400)}
+  catch(x){toast("Koppelen lukte niet.",true);b.disabled=false}},true);
 
 /* ============ Financiën › Inkomende facturen ============
    PDF's komen binnen via de mailbox (api/_lib/inkomend.js) of door ze hier op te laden, en staan in Documenten › Inkomende facturen.
