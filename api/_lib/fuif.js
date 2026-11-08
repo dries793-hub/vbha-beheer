@@ -55,6 +55,10 @@ const bestelUrl = (id, t) => `${site()}/ticket?b=${encodeURIComponent(id)}&t=${e
 const qrUrl = code => `${site()}/api/fuif?qr=${code}`;
 const isDrank = t => t && t.soort === "drank";
 const pub = (t, d) => ({ code: t.code, nr: t.nr, van: isDrank(t) ? (d.tickets || []).filter(x => isDrank(x) && x.waarde === t.waarde).length : (d.tickets || []).filter(x => !isDrank(x)).length, soort: t.soort || "ticket", waarde: t.waarde || null, gescand: t.gescand ? t.gescand.op : null });
+// online verkoop loopt tot de start van de fuif (datum + uur uit "deuren", Belgische tijd); zonder uur tot het einde van die dag
+export function verkoopTot(c) { if (!c.datum) return ""; const m = String(c.deuren || "").match(/(\d{1,2})\s*[u:h.]\s*(\d{2})?/i); return m ? `${c.datum}T${String(Math.min(23, +m[1])).padStart(2, "0")}:${m[2] || "00"}` : `${c.datum}T23:59`; }
+const nuBxl = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Brussels", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date()).replace(" ", "T");
+const isVoorbij = c => !!c.datum && nuBxl() >= verkoopTot(c);
 const wanneer = c => [c.datum ? lang(c.datum) : "", c.deuren ? "deuren " + c.deuren : ""].filter(Boolean).join(", ");
 
 /* ---------- openbaar: /api/fuif ---------- */
@@ -88,18 +92,19 @@ export default async function fuifPubliek(req, res) {
     }
     if (req.method === "GET") {
       const n = c.max ? await bezet(sb, c.jaar) : 0, vrij = c.max ? Math.max(0, c.max - n) : null;
-      const voorbij = c.datum && vandaagISO() > c.datum;
-      return res.status(200).json({ ...ev, prijs: c.prijs, open: c.open !== false && !!c.datum && !voorbij && (vrij == null || vrij > 0), gesloten: c.open === false || !c.datum ? "manueel" : voorbij ? "voorbij" : vrij === 0 ? "uitverkocht" : null, vrij, perBestelling: c.perBestelling, dranken: c.dranken, drankKorting: c.drankKorting, online: onlineConfigured(), vereniging: A.vereniging });
+      const voorbij = isVoorbij(c);
+      return res.status(200).json({ ...ev, prijs: c.prijs, open: c.open !== false && !!c.datum && !voorbij && (vrij == null || vrij > 0), gesloten: c.open === false || !c.datum ? "manueel" : voorbij ? "voorbij" : vrij === 0 ? "uitverkocht" : null, vrij, verkoopTot: verkoopTot(c), perBestelling: c.perBestelling, dranken: c.dranken, drankKorting: c.drankKorting, online: onlineConfigured(), vereniging: A.vereniging });
     }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
 
     // ---- bestellen ----
     const b = body(req);
+    if (String(b.actie || "").startsWith("kassa-")) return await kassaApi(sb, req, res, b, c);
     if (await spamCheck(sb, "tickets", b, httpErr)) return res.status(200).json({ ok: true });
     await rateLimit(sb, req, "fuif", 15, 3600, httpErr);
     if (!onlineConfigured()) throw httpErr(501, "Online betalen is nog niet ingesteld. Probeer het later opnieuw.");
     if (c.open === false || !c.datum) throw httpErr(403, "De ticketverkoop is gesloten.");
-    if (c.datum && vandaagISO() > c.datum) throw httpErr(403, "De ticketverkoop is afgelopen.");
+    if (isVoorbij(c)) throw httpErr(403, "De online ticketverkoop is afgelopen.");
     if (!(c.prijs > 0)) throw httpErr(403, "De ticketprijs is nog niet ingesteld.");
     const d = { naam: clean(b.naam, 80), voornaam: clean(b.voornaam, 80), adres: clean(b.adres, 200), email: clean(b.email, 120).toLowerCase(), telefoon: clean(b.telefoon, 40) };
     if (!d.voornaam || !d.naam) throw httpErr(400, "Vul je voornaam en naam in.");
@@ -238,26 +243,53 @@ export async function fuifCron(sb) {
   return uit;
 }
 
+/* ---------- scannen (app én gastlogin aan de kassa) ---------- */
+export async function scanTicket(sb, ruw, door, alleenBekijk) {
+  const code = codeUit(ruw); if (!code) return { ok: false, reden: "Geen geldige ticketcode." };
+  const r = await zoekTicket(sb, code); if (!r) return { ok: false, reden: "Onbekend ticket. Dit is geen ticket van onze fuif." };
+  const d = r.data, t = d.tickets.find(x => x.code === code), { c } = await fuifCfg(sb);
+  const P = pub(t, d), info = { code, nr: t.nr, van: P.van, soort: P.soort, waarde: P.waarde, naam: [d.voornaam, d.naam].filter(Boolean).join(" "), jaar: d.jaar };
+  if (d.status !== "betaald") return { ok: false, reden: d.status === "geannuleerd" ? "Dit ticket werd geannuleerd." : "Dit ticket is niet betaald.", ...info };
+  if (Number(d.jaar) !== Number(c.jaar)) return { ok: false, reden: `Dit ticket is voor de fuif van ${d.jaar}.`, ...info };
+  if (t.gescand) return { ok: false, al: true, reden: isDrank(t) ? "Deze drankkaart werd al afgehaald." : "Dit ticket werd al gescand.", op: t.gescand.op, ...info };
+  if (alleenBekijk) return { ok: true, bekijk: true, ...info };
+  const op = new Date().toISOString(), tickets = d.tickets.map(x => x.code === code ? { ...x, gescand: { op, door: door || "" } } : x);
+  // alleen als het ticket intussen niet door een andere kassa gescand werd
+  const { data: upd } = await sb.from("tickets").update({ data: { ...d, tickets } }).eq("id", r.id).not("data", "cs", JSON.stringify({ tickets: [{ code, gescand: {} }] })).select("id");
+  if (!upd || !upd.length) return { ok: false, al: true, reden: "Dit ticket werd net al gescand.", ...info };
+  return { ok: true, op, ...info };
+}
+// Gastlogin kassa: een kassacode (ingesteld in de app) geeft 24 uur lang enkel toegang tot scannen.
+const kassaSleutel = () => String(process.env.BETAAL_GEHEIM || process.env.SUPABASE_SERVICE_ROLE_KEY || "");
+const kassaSig = (exp, code) => crypto.createHmac("sha256", kassaSleutel()).update(`vbha-kassa|${exp}|${String(code).toUpperCase()}`).digest("base64url").slice(0, 32);
+function kassaOk(c, token) {
+  const code = c.kassa && c.kassa.code; if (!code || !kassaSleutel()) return false;
+  const [exp, sig] = String(token || "").split("."); if (!/^\d{10,13}$/.test(exp || "") || Number(exp) < Date.now()) return false;
+  const a = Buffer.from(kassaSig(exp, code)), b = Buffer.from(String(sig || "")); return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+async function kassaApi(sb, req, res, b, c) {
+  if (b.actie === "kassa-login") {
+    await rateLimit(sb, req, "kassalogin", 10, 900, httpErr);
+    const code = c.kassa && c.kassa.code, in_ = String(b.code || "").trim().toUpperCase().replace(/\s+/g, "");
+    const a = Buffer.from(String(code || "").toUpperCase()), x = Buffer.from(in_);
+    if (!code || a.length !== x.length || !crypto.timingSafeEqual(a, x)) throw httpErr(403, "Deze kassacode klopt niet.");
+    const exp = String(Date.now() + 24 * 3600 * 1000);
+    return res.status(200).json({ ok: true, token: exp + "." + kassaSig(exp, code), naam: c.naam, tot: Number(exp) });
+  }
+  if (!kassaOk(c, b.token)) throw httpErr(401, "Je kassatoegang is verlopen. Geef de kassacode opnieuw in.");
+  await rateLimit(sb, req, "kassascan", 600, 600, httpErr);
+  if (b.actie === "kassa-scan") return res.status(200).json(await scanTicket(sb, b.code, "kassa (gast)", false));
+  if (b.actie === "kassa-stand") { const L = (await bestellingen(sb, c.jaar)).filter(r => r.data.status === "betaald"); const T = L.flatMap(r => (r.data.tickets || []).filter(x => !isDrank(x))); return res.status(200).json({ ok: true, tickets: T.length, binnen: T.filter(x => x.gescand).length, naam: c.naam }); }
+  throw httpErr(400, "Onbekende actie.");
+}
+
 /* ---------- app: scannen en beheren (POST /api/mail?f=fuif) ---------- */
 export async function fuifApi(req, res) {
   res.setHeader("Cache-Control", "no-store");
   const b = body(req), actie = String(b.actie || "");
   if (actie === "scan" || actie === "bekijk") {
     const { user, sb } = await requireUser(req);
-    const code = codeUit(b.code); if (!code) return res.status(200).json({ ok: false, reden: "Geen geldige ticketcode." });
-    const r = await zoekTicket(sb, code); if (!r) return res.status(200).json({ ok: false, reden: "Onbekend ticket. Dit is geen ticket van onze fuif." });
-    const d = r.data, t = d.tickets.find(x => x.code === code), { c } = await fuifCfg(sb);
-    const P = pub(t, d), info = { code, nr: t.nr, van: P.van, soort: P.soort, waarde: P.waarde, naam: [d.voornaam, d.naam].filter(Boolean).join(" "), bestelling: r.id, jaar: d.jaar };
-    if (d.status !== "betaald") return res.status(200).json({ ok: false, reden: d.status === "geannuleerd" ? "Dit ticket werd geannuleerd." : "Dit ticket is niet betaald.", ...info });
-    if (Number(d.jaar) !== Number(c.jaar)) return res.status(200).json({ ok: false, reden: `Dit ticket is voor de fuif van ${d.jaar}.`, ...info });
-    if (t.gescand) return res.status(200).json({ ok: false, al: true, reden: isDrank(t) ? "Deze drankkaart werd al afgehaald." : "Dit ticket werd al gescand.", op: t.gescand.op, door: t.gescand.door, ...info });
-    if (actie === "bekijk") return res.status(200).json({ ok: true, bekijk: true, ...info });
-    const op = new Date().toISOString(), tickets = d.tickets.map(x => x.code === code ? { ...x, gescand: { op, door: user.email || "" } } : x);
-    // alleen als het ticket intussen niet door een andere kassa gescand werd
-    const { data: upd } = await sb.from("tickets").update({ data: { ...d, tickets } }).eq("id", r.id).not("data", "cs", JSON.stringify({ tickets: [{ code, gescand: {} }] })).select("id");
-    if (!upd || !upd.length) return res.status(200).json({ ok: false, al: true, reden: "Dit ticket werd net al gescand.", ...info });
-    const bin = tickets.filter(x => x.gescand && !isDrank(x)).length;
-    return res.status(200).json({ ok: true, op, binnen: bin, ...info });
+    return res.status(200).json(await scanTicket(sb, b.code, user.email || "", actie === "bekijk"));
   }
   const { sb, user, rol } = await requireUser(req, { write: true });
   const { data: r } = await sb.from("tickets").select("id,data").eq("id", String(b.id || "")).maybeSingle();

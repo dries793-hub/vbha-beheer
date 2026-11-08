@@ -4724,6 +4724,10 @@ const fuDrank=x=>x&&x.soort==="drank";
 const fuCfg=()=>({...FU_DEF,...((S.config&&S.config.get("fuif"))||{})});
 const fuJaar=()=>Number(String(fuCfg().datum||"").slice(0,4))||JAAR;
 const FU={q:"",alles:false};
+function fuTot(c){if(!c.datum)return"";const m=String(c.deuren||"").match(/(\d{1,2})\s*[u:h.]\s*(\d{2})?/i);return m?`${c.datum}T${String(Math.min(23,+m[1])).padStart(2,"0")}:${m[2]||"00"}`:`${c.datum}T23:59`}
+function fuNu(){return new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Brussels",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date()).replace(" ","T")}
+function fuStatus(c){if(!c.datum)return{k:"dicht",t:"Gesloten: stel eerst de datum in"};if(fuNu()>=fuTot(c))return{k:"dicht",t:"Afgelopen: de fuif is begonnen"};if(c.open===false)return{k:"dicht",t:"Manueel gesloten"};
+  const [dd,uu]=fuTot(c).split("T");return{k:"open",t:`Open tot ${fmtDate(dd)} ${uu.replace(":","u")}`}}
 const fuEur=n=>"€ "+Number(n||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
 const fuNaam=d=>[d.voornaam,d.naam].filter(Boolean).join(" ");
 const FU_ST={betaald:["ok","Betaald"],wacht:["warn","Betaling bezig"],verlopen:["neutral","Niet betaald"],geannuleerd:["neutral","Geannuleerd"]};
@@ -4740,7 +4744,11 @@ VIEWS.fuif=()=>({title:fuCfg().naam||"In Vier en Vlam",sub:"Tickets fuif",
     if(q)L=L.filter(t=>norm([fuNaam(t),t.email,t.adres,t.via&&(t.via.naam||t.via.tekst),...(t.tickets||[]).map(x=>x.code)].join(" ")).includes(q));
     const viaL=[...st.via.entries()].map(([id,n])=>({l:S.leden.get(id),n})).filter(x=>x.l).sort((a,b)=>b.n-a.n);
     const zonder=st.B.filter(t=>t.via&&t.via.tekst&&!t.via.lidId);
-    return `<div class="tiles">
+    const vs=fuStatus(c);
+    return `<div class="panel" style="margin-bottom:14px"><div class="panel-b" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <label class="spi-sw" for="fuSw"><input type="checkbox" id="fuSw" role="switch"${c.open!==false?" checked":""}${canWrite&&(typeof ADM!=="function"||ADM())?"":" disabled"}><span class="spi-sw-t" aria-hidden="true"></span><b>Online ticketverkoop</b></label>
+      <span class="pill ${vs.k==="open"?"ok":"neutral"}">${esc(vs.t)}</span></div></div>
+    <div class="tiles">
       <div class="tile hero"><span class="lbl">Verkochte tickets</span><span class="val">${st.tk}${c.max?`<small style="font-size:.5em;color:var(--muted)"> / ${c.max}</small>`:""}</span><span class="hint">${st.B.length} ${st.B.length===1?"bestelling":"bestellingen"} · ${fuEur(c.prijs)} per ticket</span></div>
       <div class="tile"><span class="lbl">Ontvangen</span><span class="val">${fuEur(st.omzet)}</span><span class="hint">via Bancontact</span></div>
       <div class="tile"><span class="lbl">Binnen</span><span class="val">${st.bin}</span><span class="hint">${st.tk?Math.round(st.bin/st.tk*100)+"% gescand":"nog niemand gescand"}</span></div>
@@ -4756,7 +4764,8 @@ VIEWS.fuif=()=>({title:fuCfg().naam||"In Vier en Vlam",sub:"Tickets fuif",
     <div class="panel" style="min-width:0"><div class="panel-h"><h2>Verkocht via leden</h2></div><div class="panel-b">${viaL.length?`<div class="stack" style="gap:6px">${viaL.map(x=>`<div style="display:flex;justify-content:space-between;gap:10px"><span>${esc(naamVol(x.l))}</span><b>${x.n}</b></div>`).join("")}</div>`:'<div class="muted small">Nog geen tickets via een lid verkocht. Kopers kunnen bij het bestellen het lid kiezen via wie ze kopen; die tickets tellen automatisch mee als "kaarten" in het puntensysteem.</div>'}</div></div>
     </div>`}});
 document.addEventListener("input",e=>{if(e.target.matches("[data-fuq]")){FU.q=e.target.value;const p=e.target.selectionStart;renderBody();const i=$("#fuQ");if(i){i.focus();try{i.setSelectionRange(p,p)}catch(x){}}}});
-document.addEventListener("change",e=>{if(e.target.matches('[data-fu="alles"]')){FU.alles=e.target.checked;renderBody()}});
+document.addEventListener("change",async e=>{if(e.target.matches('[data-fu="alles"]')){FU.alles=e.target.checked;renderBody()}
+  else if(e.target.id==="fuSw"){const c=S.config.get("fuif")||{},r={...stripId(c),open:e.target.checked};S.config.set("fuif",{...r,id:"fuif"});await write("config","fuif",r);toast(e.target.checked?"Online ticketverkoop staat open.":"Online ticketverkoop is gesloten.");renderBody()}});
 
 /* ---------- bestelling ---------- */
 function fuToon(id){const t=S.tickets.get(id);if(!t)return;const [k,lbl]=FU_ST[t.status]||["neutral",t.status],w=canWrite;
@@ -4783,7 +4792,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-fu]"
 /* ---------- instellingen ---------- */
 function fuInst(){const c=fuCfg(),d=canWrite?"":" disabled",u=location.origin+"/fuif";
   modal("Instellingen "+(c.naam||"fuif"),`<form id="fFu" class="form" onsubmit="return false">
-    <label class="sp-nat full" for="fuOpen"><input type="checkbox" id="fuOpen"${c.open!==false?" checked":""}${d}><span><b>Ticketverkoop open</b><small>Uit = de openbare pagina toont dat de verkoop gesloten is. Na de datum van de fuif sluit de verkoop vanzelf.</small></span></label>
+    <div class="full spi-st"><div class="spi-st-r"><label class="spi-sw" for="fuOpen"><input type="checkbox" id="fuOpen" role="switch"${c.open!==false?" checked":""}${d}><span class="spi-sw-t" aria-hidden="true"></span><b>Online ticketverkoop open</b></label></div><small class="muted" style="display:block;margin-top:6px">De verkoop sluit ook vanzelf bij de start van de fuif (datum en uur bij "Deuren open"). Zonder uur: om middernacht na de fuif.</small></div>
     ${fld("fuN","Naam",inp("fuN",c.naam,d))}${fld("fuD","Datum",`<input id="fuD" type="date" value="${esc(c.datum)}"${d}>`)}
     ${fld("fuU","Deuren open",inp("fuU",c.deuren,'placeholder="bv. 21u00"'+d))}${fld("fuL","Locatie",inp("fuL",c.locatie,'placeholder="Zaal, straat nr, gemeente"'+d))}
     ${fld("fuP","Prijs per ticket (€)",`<input id="fuP" inputmode="decimal" value="${esc(String(c.prijs).replace(".",","))}"${d}>`)}${fld("fuM","Maximum aantal tickets",`<input id="fuM" inputmode="numeric" value="${c.max||""}" placeholder="leeg = onbeperkt"${d}>`)}
@@ -4794,6 +4803,7 @@ function fuInst(){const c=fuCfg(),d=canWrite?"":" disabled",u=location.origin+"/
       <p class="pi-note" id="fuDV" style="margin:6px 0 0"></p></div>
     ${fld("fuI","Extra info in de ticketmail",`<textarea id="fuI" rows="2" placeholder="bv. Gratis vestiaire. Minimumleeftijd 16 jaar."${d}>${esc(c.info||"")}</textarea>`,"full")}
     <div class="err full" id="fuIErr"></div></form>
+    ${fuKassaHtml(c)}
     <div class="pi-sec ka-qrs"><h4>Ticketpagina en QR-code voor de affiche</h4><p class="pi-note" style="margin:0 0 8px">Wie de QR-code scant, komt op de pagina om tickets te bestellen en met Bancontact te betalen.</p>
     <div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(u)}" onclick="this.select()"><button type="button" class="btn" data-act="kopieerLink" data-v="${esc(u)}">${ic("copy")}Kopiëren</button><a class="btn" href="/fuif" target="_blank" rel="noopener">Openen</a></div>
     <div class="ka-qr"><img alt="QR-code naar de ticketpagina" src="${kaQr(u,8)}" width="148" height="148"><div class="ka-qr-b"><span class="muted small">Voor de affiche, flyers of Facebook.</span><button type="button" class="btn sm" data-kaqr="kopie" data-v="${esc(u)}">${ic("copy")}QR kopiëren</button><button type="button" class="btn sm" data-kaqr="png" data-v="${esc(u)}" data-n="QR tickets ${esc(c.naam||"fuif")}">${ic("download")}QR downloaden</button></div></div></div>`,
@@ -4837,6 +4847,17 @@ async function fuCheck(txt){if(!FUS)return;FUS.bezig=true;const r=$("#fuRes");
     r.innerHTML=j.ok?(j.soort==="drank"?`<b>🍺 Drankkaart €${esc(j.waarde)} geven</b><span>${esc(j.naam)}</span><small>Drankkaart ${j.nr} van ${j.van}, betaald in voorverkoop</small>`:`<b>✓ Geldig</b><span>${esc(j.naam)}</span><small>Ticket ${j.nr} van ${j.van}</small>`)
       :`<b>${j.al?"⚠ Al gescand":"✕ Niet geldig"}</b><span>${esc(j.naam||"")}</span><small>${esc(j.reden||"")}${j.al&&j.op?" Om "+tijd(j.op)+".":""}</small>`;
     r.hidden=false;try{navigator.vibrate&&navigator.vibrate(j.ok?80:[60,60,60])}catch(x){}
-    if(j.ok&&j.binnen!=null&&j.soort!=="drank"){const s=fuStats();const t=$("#fuTel");if(t)t.textContent=`${s.bin+1} van ${s.tk} binnen`}}
+    if(j.ok&&j.soort!=="drank"){FUS.n=(FUS.n||0)+1;const t=$("#fuTel");if(t)t.textContent=`${FUS.n} gescand in deze sessie`}}
   catch(e){r.className="fu-res nok";r.innerHTML=`<b>Fout</b><small>${esc(e.message)}</small>`;r.hidden=false}
   setTimeout(()=>{if(!FUS)return;FUS.bezig=false;const x=$("#fuRes");if(x)x.hidden=true},2200)}
+
+/* ---------- gastlogin kassa: kassacode (enkel scannen, 24 uur geldig op een toestel) ---------- */
+function fuKassaHtml(c){const k=c.kassa&&c.kassa.code,u=location.origin+"/kassa"+(k?"?code="+k:"");
+  return `<div class="pi-sec ka-qrs"><h4>Gastlogin voor de kassa</h4><p class="pi-note" style="margin:0 0 8px">Mensen aan de kassa die geen bestuurslid zijn, scannen via <b>${esc(location.host)}/kassa</b> met een kassacode. Ze kunnen enkel tickets en drankkaarten scannen, niets anders zien of wijzigen. Maak je een nieuwe code, dan werkt de oude meteen niet meer.</p>
+    ${k?`<div class="bar" style="margin:0;align-items:center"><span style="font:700 24px ui-monospace,Menlo,monospace;letter-spacing:.18em">${esc(k)}</span><span class="grow"></span>${canWrite?`<button type="button" class="btn sm" data-fu="kassacode">Nieuwe code</button><button type="button" class="btn sm ghost danger" data-fu="kassauit">Uitschakelen</button>`:""}</div>
+    <div class="ka-qr"><img alt="QR-code om aan te melden aan de kassa" src="${kaQr(u,8)}" width="148" height="148"><div class="ka-qr-b"><span class="muted small">Scan deze QR-code met de gsm aan de kassa: de kassacode wordt dan meteen ingevuld.</span><button type="button" class="btn sm" data-act="kopieerLink" data-v="${esc(u)}">${ic("copy")}Link kopiëren</button><button type="button" class="btn sm" data-kaqr="png" data-v="${esc(u)}" data-n="QR kassa ${esc(c.naam||"fuif")}">${ic("download")}QR downloaden</button></div></div>`
+    :canWrite?`<button type="button" class="btn" data-fu="kassacode">Kassacode aanmaken</button>`:'<span class="muted small">Nog geen kassacode.</span>'}</div>`}
+document.addEventListener("click",async e=>{const t=e.target.closest('[data-fu="kassacode"],[data-fu="kassauit"]');if(!t)return;e.preventDefault();e.stopPropagation();
+  const c=S.config.get("fuif")||{},abc="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",a=new Uint32Array(6);crypto.getRandomValues(a);
+  const code=[...a].map(x=>abc[x%32]).join(""),r={...stripId(c),kassa:t.dataset.fu==="kassauit"?null:{code,sinds:new Date().toISOString(),door:ME_NAME||""}};
+  S.config.set("fuif",{...r,id:"fuif"});await write("config","fuif",r);toast(r.kassa?"Nieuwe kassacode: "+code:"Gastlogin kassa uitgeschakeld.");fuInst()},true);
