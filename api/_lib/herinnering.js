@@ -16,7 +16,7 @@ const lang = iso => { const [y, m, d] = iso.split("-").map(Number); const s = ne
 const dagenTot = (van, tot) => Math.round((Date.parse(tot + "T12:00:00Z") - Date.parse(van + "T12:00:00Z")) / 864e5);
 const F = "font-family:Helvetica,Arial,sans-serif;";
 
-function mail(v, n, url, cfg) {
+export function mail(v, n, url, cfg) {
   const titel = v.titel || v.soort || "Vergadering";
   const punten = String(v.agenda || "").split(/\r?\n/).map(x => x.replace(/^\s*[-•*\d.)]+\s*/, "").trim()).filter(Boolean);
   const wanneer = n === 0 ? "vandaag" : n === 1 ? "morgen" : "over " + n + " dagen";
@@ -92,6 +92,20 @@ export async function herinneringTest(req, res) {
    POST /api/mail?f=vergadering-afgerond {id}  (aangemeld, administrator)
    De app laadt het verslag op in Documenten (bucket "documenten"), maakt de volgende vergadering aan en zet
    data.afgerond = {op, door, volgendeId, verslagDoc} op de afgeronde vergadering. */
+export async function afgerondMail(v, nv, bijlagenLen) {
+  const bijlagen = { length: bijlagenLen ? 1 : 0 };
+  const { huisstijl, kaderBlok, tabel, rij, p } = await import("./bevestiging.js");
+  const soort = (v.soort || "vergadering").toLowerCase(), titel = v.titel || v.soort || "Vergadering";
+  const punten = nv ? String(nv.agenda || "").split(/\r?\n/).map(x => x.replace(/^\s*[-•*\d.)]+\s*/, "").trim()).filter(Boolean) : [];
+  let html = p("Beste bestuursleden,") + p(`De ${esc(soort)} van ${esc(lang(v.datum).replace(/^./, c => c.toLowerCase()))} is afgerond. ${bijlagen.length ? "In bijlage vind je het <b>verslag</b>." : ""}`);
+  if (v.aanwezig || v.verontschuldigd) html += kaderBlok("Aanwezigheid", tabel([rij("Aanwezig", esc(v.aanwezig || "-")), rij("Verontschuldigd", esc(v.verontschuldigd || "-"))]));
+  if (nv) html += kaderBlok("Volgende " + esc((nv.soort || "vergadering").toLowerCase()), tabel([
+    rij("Datum", `<b>${esc(lang(nv.datum))}</b>`), nv.uur ? rij("Uur", esc(nv.uur)) : "", nv.locatie ? rij("Locatie", esc(nv.locatie)) : "", nv.titel ? rij("Onderwerp", esc(nv.titel)) : ""])
+    + (punten.length ? `<p style="margin:12px 0 5px"><b>Agenda</b></p><ol style="margin:0;padding-left:22px">${punten.map(x => `<li style="margin:0 0 4px">${esc(x)}</li>`).join("")}</ol>` : ""));
+  html += p(nv ? "Zet de datum alvast in je agenda. Kan je er niet bij zijn? Laat het dan even weten." : "Opmerkingen bij het verslag? Antwoord gewoon op deze mail.");
+  const onderwerp = `Verslag ${titel.toLowerCase() === soort ? soort : titel} ${lang(v.datum).replace(/^\S+ /, "")}${nv ? " - volgende vergadering " + lang(nv.datum).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase()) : ""}`;
+  return { onderwerp, html, huisstijl };
+}
 export async function vergaderingAfgerond(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
@@ -114,16 +128,7 @@ export async function vergaderingAfgerond(req, res) {
   }
   const cfg = await instellingen(sb), aan = ontvangers(cfg);
   if (!aan.length) throw httpErr(400, "Er zijn geen ontvangers ingesteld (Instellingen › Herinneringen).");
-  const { huisstijl, kaderBlok, tabel, rij, p } = await import("./bevestiging.js");
-  const soort = (v.soort || "vergadering").toLowerCase(), titel = v.titel || v.soort || "Vergadering";
-  const punten = nv ? String(nv.agenda || "").split(/\r?\n/).map(x => x.replace(/^\s*[-•*\d.)]+\s*/, "").trim()).filter(Boolean) : [];
-  let html = p("Beste bestuursleden,") + p(`De ${esc(soort)} van ${esc(lang(v.datum).replace(/^./, c => c.toLowerCase()))} is afgerond. ${bijlagen.length ? "In bijlage vind je het <b>verslag</b>." : ""}`);
-  if (v.aanwezig || v.verontschuldigd) html += kaderBlok("Aanwezigheid", tabel([rij("Aanwezig", esc(v.aanwezig || "-")), rij("Verontschuldigd", esc(v.verontschuldigd || "-"))]));
-  if (nv) html += kaderBlok("Volgende " + esc((nv.soort || "vergadering").toLowerCase()), tabel([
-    rij("Datum", `<b>${esc(lang(nv.datum))}</b>`), nv.uur ? rij("Uur", esc(nv.uur)) : "", nv.locatie ? rij("Locatie", esc(nv.locatie)) : "", nv.titel ? rij("Onderwerp", esc(nv.titel)) : ""])
-    + (punten.length ? `<p style="margin:12px 0 5px"><b>Agenda</b></p><ol style="margin:0;padding-left:22px">${punten.map(x => `<li style="margin:0 0 4px">${esc(x)}</li>`).join("")}</ol>` : ""));
-  html += p(nv ? "Zet de datum alvast in je agenda. Kan je er niet bij zijn? Laat het dan even weten." : "Opmerkingen bij het verslag? Antwoord gewoon op deze mail.");
-  const onderwerp = `Verslag ${titel.toLowerCase() === soort ? soort : titel} ${lang(v.datum).replace(/^\S+ /, "")}${nv ? " - volgende vergadering " + lang(nv.datum).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase()) : ""}`;
+  const { onderwerp, html, huisstijl } = await afgerondMail(v, nv, bijlagen.length > 0);
   const m = { aanNaam: "Bestuur VBHA", onderwerp, html: huisstijl(html, "Vriendenkring Brandweer Hoofdpost Aalst"), bijlagen, van: afzender() };
   const uit = await verstuur(aan.map(a => ({ ...m, aan: a })));
   const ok = uit.some(x => x && x.ok);

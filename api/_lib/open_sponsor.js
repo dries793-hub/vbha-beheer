@@ -69,7 +69,7 @@ async function bewaarLogo(sb, logo, d, id, kj) {
   return did;
 }
 
-function bevestigingMail(d, ins, C, { factuur, link, mededeling, nieuw }) {
+export function bevestigingMail(d, ins, C, { factuur, link, mededeling, nieuw }) {
   const vn = String(d.voornaam || "").trim();
   let html = p(vn ? `Beste ${esc(vn)},` : "Beste,")
     + p(nieuw ? `Hartelijk dank om sponsor te worden van de <b>brandweerkalender ${ins.kj}</b>! Dankzij uw steun kunnen we onze leden in moeilijke momenten bijstaan en onze werking versterken.` : `Hartelijk dank om uw sponsoring van de <b>brandweerkalender ${ins.kj}</b> te vernieuwen. Wij waarderen uw blijvende steun enorm!`)
@@ -82,7 +82,7 @@ function bevestigingMail(d, ins, C, { factuur, link, mededeling, nieuw }) {
       : p(`<b>We ontvingen nog geen logo.</b> Stuur uw logo (liefst in hoge resolutie of als vectorbestand) nog door naar <a href="mailto:${esc(C.logoMail)}">${esc(C.logoMail)}</a>, of antwoord gewoon op deze mail.`));
   return { onderwerp: `Bevestiging sponsoring brandweerkalender ${ins.kj}${factuur ? " - factuur " + factuur.nr : ""}`, html: huisstijl(html, C.vereniging) };
 }
-function meldingMail(d, ins, C, nieuw) {
+export function meldingMail(d, ins, C, nieuw) {
   const html = p(`${nieuw ? "Nieuwe sponsor" : "Sponsoring vernieuwd"} via de inschrijfpagina.`)
     + kaderBlok(esc(d.bedrijf), tabel([rij("Formule", esc(ins.formuleNaam)), rij("Bedrag", eur(ins.bedrag)), rij("Factuur", ins.factuur ? "ja" + (ins.factuurNr ? " (" + esc(ins.factuurNr) + ")" : "") : "nee"), rij("Logo", ins.logo ? "opgeladen (Documenten › Sponsors › Logo's)" : "<b>nog niet ontvangen</b>"),
       rij("Contact", esc([d.voornaam, d.naam].filter(Boolean).join(" "))), rij("E-mail", esc(d.email)), rij("Telefoon", esc(d.telefoon)), rij("Adres", esc(d.adres)), rij("Btw", esc(d.kbo))]))
