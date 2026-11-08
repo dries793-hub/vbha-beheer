@@ -79,6 +79,11 @@ const wanneer = c => [c.datum ? lang(c.datum) : "", c.deuren ? "deuren " + c.deu
 export default async function fuifPubliek(req, res) {
   try {
     const sb = admin(), q = req.query || {};
+    if (req.method === "GET" && q.header != null) {
+      const b = await fuifHeader(sb, false); if (!b || !b.web) throw httpErr(404, "Geen afbeelding");
+      res.setHeader("Content-Type", b.mime || "image/jpeg"); res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      return res.status(200).send(Buffer.from(b.web, "base64"));
+    }
     if (req.method === "GET" && q.qr) {
       const code = String(q.qr).toUpperCase(); if (!CODE_RE.test(code)) throw httpErr(404, "Niet gevonden");
       res.setHeader("Content-Type", "image/png"); res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
@@ -86,7 +91,7 @@ export default async function fuifPubliek(req, res) {
     }
     res.setHeader("Cache-Control", "no-store");
     const { c, A } = await fuifCfg(sb);
-    const ev = { naam: c.naam, datum: c.datum, datumTekst: c.datum ? lang(c.datum) : "", deuren: c.deuren, locatie: c.locatie, info: c.info, jaar: c.jaar };
+    const ev = { header: c.header ? `/api/fuif?header=${encodeURIComponent(c.header)}` : null, naam: c.naam, datum: c.datum, datumTekst: c.datum ? lang(c.datum) : "", deuren: c.deuren, locatie: c.locatie, info: c.info, jaar: c.jaar };
     if (req.method === "GET" && q.c) {
       await rateLimit(sb, req, "ticket", 120, 600, httpErr);
       const code = codeUit(q.c); const r = code && await zoekTicket(sb, code); if (!r) throw httpErr(404, "Dit ticket bestaat niet.");
@@ -188,19 +193,28 @@ export async function fuifBetaald(sb, id) {
 
 /* ---------- ticket-PDF en mail ---------- */
 const naamVan = t => isDrank(t) ? `Drankkaart ${geld(t.waarde).replace(",00", "")}` : "Ticket";
-export function ticketPdf(d, c) {
+// header (affiche/banner) uit de tabel "beelden": web = JPEG (base64), pdf = {w, h, data (zlib RGB, base64)}
+export async function fuifHeader(sb, metPdf) {
+  try { const { data } = await sb.from("beelden").select("data").eq("id", "fuif-header").maybeSingle(); const b = data && data.data; if (!b) return null; return metPdf ? (b.pdf && b.pdf.w ? b.pdf : null) : b; }
+  catch (e) { console.error("fuif header", e); return null; }
+}
+export function ticketPdf(d, c, kop) {
   const pdf = new Pdf(), L = 60, R = 535, ROOD = "#b30000", GRIJS = "#666666", GOUD = "#b07a12";
+  let hW = 0, hH = 0; if (kop && kop.w && kop.h) { hW = 475; hH = hW * kop.h / kop.w; if (hH > 150) { hH = 150; hW = hH * kop.w / kop.h; } }
+  const dy = hH ? hH + 14 : 0;
   const nT = d.tickets.filter(t => !isDrank(t)).length;
   d.tickets.forEach((t, i) => {
     if (i) pdf.nieuwePagina();
     const dr = isDrank(t), kl = dr ? GOUD : ROOD, van = dr ? d.tickets.filter(x => isDrank(x) && x.waarde === t.waarde).length : nT;
     pdf.vlak(0, 0, 595, 8, kl);
-    pdf.beeld(L, 40, 54, 54 * LOGO.h / LOGO.w, LOGO);
-    pdf.tekst(L + 70, 48, dr ? "DRANKKAART · VOORVERKOOP" : "TICKET", { size: 10, bold: true, kleur: kl });
-    pdf.tekst(L + 70, 64, dr ? `Drankkaart ${geld(t.waarde).replace(",00", "")}` : c.naam, { size: 24, bold: true });
-    pdf.tekst(L + 70, 94, dr ? `${c.naam}  ·  ${c.datum ? lang(c.datum) : ""}` : [c.datum ? lang(c.datum) : "", c.deuren ? "deuren " + c.deuren : ""].filter(Boolean).join("  ·  "), { size: 11 });
-    if (c.locatie) pdf.tekst(L + 70, 110, c.locatie, { size: 11, kleur: GRIJS });
-    const q = qrMatrix(ticketUrl(t.code)), maat = 300, qx = (595 - maat) / 2, qy = 170;
+    if (hH) pdf.beeld((595 - hW) / 2, 18, hW, hH, kop);
+    const Y = v => v + dy;
+    pdf.beeld(L, Y(40), 54, 54 * LOGO.h / LOGO.w, LOGO);
+    pdf.tekst(L + 70, Y(48), dr ? "DRANKKAART · VOORVERKOOP" : "TICKET", { size: 10, bold: true, kleur: kl });
+    pdf.tekst(L + 70, Y(64), dr ? `Drankkaart ${geld(t.waarde).replace(",00", "")}` : c.naam, { size: 24, bold: true });
+    pdf.tekst(L + 70, Y(94), dr ? `${c.naam}  ·  ${c.datum ? lang(c.datum) : ""}` : [c.datum ? lang(c.datum) : "", c.deuren ? "deuren " + c.deuren : ""].filter(Boolean).join("  ·  "), { size: 11 });
+    if (c.locatie) pdf.tekst(L + 70, Y(110), c.locatie, { size: 11, kleur: GRIJS });
+    const q = qrMatrix(ticketUrl(t.code)), maat = hH ? 270 : 300, qx = (595 - maat) / 2, qy = Y(170);
     pdf.vlak(qx - 16, qy - 16, maat + 32, maat + 32, "#ffffff"); pdf.kader(qx - 16, qy - 16, maat + 32, maat + 32, dr ? GOUD : "#dddddd", 1);
     pdf.qr(qx, qy, maat, q.n, q.donker);
     pdf.tekst(297.5, qy + maat + 34, t.code.replace(/(.{4})(?=.)/g, "$1 "), { size: 16, bold: true, align: "center" });
@@ -237,7 +251,7 @@ export async function stuurTickets(sb, row, aan) {
     + (c.info ? p(esc(c.info), "margin:0 0 15px;font-size:13.5px;color:#666666") : "")
     + p("Tot op de fuif!");
   const ond = n ? `Je ${n === 1 ? "ticket" : "tickets"} voor ${c.naam}` : `Je ${D.length === 1 ? "drankkaart" : "drankkaarten"} voor ${c.naam}`;
-  const [r] = await verstuur([{ aan: naar, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" "), onderwerp: ond, html: huisstijl(html, A.vereniging), van: afzender(), bijlagen: [{ naam: `Tickets ${c.naam}.pdf`, type: "application/pdf", data: ticketPdf(d, c) }] }]);
+  const [r] = await verstuur([{ aan: naar, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" "), onderwerp: ond, html: huisstijl(html, A.vereniging), van: afzender(), bijlagen: [{ naam: `Tickets ${c.naam}.pdf`, type: "application/pdf", data: ticketPdf(d, c, await fuifHeader(sb, true)) }] }]);
   if (r && r.ok) await sb.from("tickets").update({ data: { ...d, mail: { op: new Date().toISOString(), aan: naar } } }).eq("id", row.id);
   return !!(r && r.ok);
 }
@@ -352,7 +366,7 @@ export async function fuifApi(req, res) {
   if (!r) throw httpErr(404, "Bestelling niet gevonden.");
   const d = r.data;
   if (actie === "mail") { if (d.status !== "betaald") throw httpErr(400, "Deze bestelling is niet betaald."); const ok = await stuurTickets(sb, r, clean(b.aan, 120) || d.email); if (!ok) throw httpErr(502, "Versturen lukte niet."); return res.status(200).json({ ok: true }); }
-  if (actie === "pdf") { if (d.status !== "betaald") throw httpErr(400, "Deze bestelling is niet betaald."); const { c } = await fuifCfg(sb); return res.status(200).json({ ok: true, naam: `Tickets ${c.naam} ${d.voornaam} ${d.naam}.pdf`, pdf: ticketPdf(d, c).toString("base64") }); }
+  if (actie === "pdf") { if (d.status !== "betaald") throw httpErr(400, "Deze bestelling is niet betaald."); const { c } = await fuifCfg(sb); return res.status(200).json({ ok: true, naam: `Tickets ${c.naam} ${d.voornaam} ${d.naam}.pdf`, pdf: ticketPdf(d, c, await fuifHeader(sb, true)).toString("base64") }); }
   if (actie === "ontscan") { const code = codeUit(b.code); const tickets = d.tickets.map(x => x.code === code ? { ...x, gescand: null } : x); await sb.from("tickets").update({ data: { ...d, tickets } }).eq("id", r.id); return res.status(200).json({ ok: true }); }
   if (actie === "annuleer") { // gekochte tickets zijn niet annuleerbaar; enkel een administrator kan dit uitzonderlijk
     if (!["admin", "bewerker"].includes(rol)) throw httpErr(403, "Enkel een administrator kan tickets annuleren.");

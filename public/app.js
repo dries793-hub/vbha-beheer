@@ -4802,6 +4802,9 @@ function fuInst(){const c=fuCfg(),d=canWrite?"":" disabled",u=location.origin+"/
       <p class="pi-note" id="fuDV" style="margin:6px 0 0"></p></div>
     ${fld("fuI","Extra info in de ticketmail",`<textarea id="fuI" rows="2" placeholder="bv. Gratis vestiaire. Minimumleeftijd 16 jaar."${d}>${esc(c.info||"")}</textarea>`,"full")}
     <div class="err full" id="fuIErr"></div></form>
+    <div class="pi-sec"><h4>Afbeelding bovenaan (affiche of banner)</h4><p class="pi-note" style="margin:0 0 8px">Komt bovenaan de bestelpagina en op elk ticket en elke drankkaart in de PDF. JPG of PNG, liefst breed (bv. 1600 × 600).</p>
+      <div id="fuKop">${c.header?`<img src="/api/fuif?header=${esc(c.header)}" alt="" style="display:block;width:100%;max-height:220px;object-fit:cover;border-radius:10px;border:1px solid var(--line)">`:'<div class="muted small">Nog geen afbeelding.</div>'}</div>
+      ${canWrite?`<div class="bar" style="margin:8px 0 0"><label class="btn sm" for="fuKopF" style="cursor:pointer">${ic("upload")}${c.header?"Andere afbeelding":"Afbeelding opladen"}</label><input type="file" id="fuKopF" accept="image/jpeg,image/png,image/webp" hidden>${c.header?'<button type="button" class="btn sm ghost danger" data-fu="kopweg">Verwijderen</button>':""}<span class="muted small" id="fuKopSt"></span></div>`:""}</div>
     ${fuKassaHtml(c)}
     <div class="pi-sec ka-qrs"><h4>Ticketpagina en QR-code voor de affiche</h4><p class="pi-note" style="margin:0 0 8px">Wie de QR-code scant, komt op de pagina om tickets te bestellen en met Bancontact te betalen.</p>
     <div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(u)}" onclick="this.select()"><button type="button" class="btn" data-act="kopieerLink" data-v="${esc(u)}">${ic("copy")}Kopiëren</button><a class="btn" href="/fuif" target="_blank" rel="noopener">Openen</a></div>
@@ -4860,3 +4863,18 @@ document.addEventListener("click",async e=>{const t=e.target.closest('[data-fu="
   const c=S.config.get("fuif")||{},abc="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",a=new Uint32Array(6);crypto.getRandomValues(a);
   const code=[...a].map(x=>abc[x%32]).join(""),r={...stripId(c),kassa:t.dataset.fu==="kassauit"?null:{code,sinds:new Date().toISOString(),door:ME_NAME||""}};
   S.config.set("fuif",{...r,id:"fuif"});await write("config","fuif",r);toast(r.kassa?"Nieuwe kassacode: "+code:"Gastlogin kassa uitgeschakeld.");fuInst()},true);
+
+/* ---------- header-afbeelding: web (JPEG) + PDF (RGB, zlib) in de tabel "beelden" ---------- */
+async function fuKopVerwerk(file){const st=$("#fuKopSt");if(st)st.textContent="Verwerken…";
+  try{const img=await new Promise((ok,nok)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>{ok(i);setTimeout(()=>URL.revokeObjectURL(u),1000)};i.onerror=()=>nok(new Error("Deze afbeelding kan niet gelezen worden."));i.src=u});
+    const teken=(maxW,maxH)=>{const k=Math.min(1,maxW/img.naturalWidth,maxH/img.naturalHeight),w=Math.max(1,Math.round(img.naturalWidth*k)),h=Math.max(1,Math.round(img.naturalHeight*k)),cv=document.createElement("canvas");cv.width=w;cv.height=h;const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,w,h);g.drawImage(img,0,0,w,h);return cv};
+    const web=teken(1600,1600).toDataURL("image/jpeg",.85).split(",")[1];
+    const pc=teken(1100,700),px=pc.getContext("2d").getImageData(0,0,pc.width,pc.height).data,rgb=new Uint8Array(pc.width*pc.height*3);for(let i=0,j=0;i<px.length;i+=4){rgb[j++]=px[i];rgb[j++]=px[i+1];rgb[j++]=px[i+2]}
+    const z=new Uint8Array(await new Response(new Blob([rgb]).stream().pipeThrough(new CompressionStream("deflate"))).arrayBuffer());let b="";for(let i=0;i<z.length;i+=32768)b+=String.fromCharCode.apply(null,z.subarray(i,i+32768));
+    const data={mime:"image/jpeg",web,pdf:{w:pc.width,h:pc.height,data:btoa(b)},naam:file.name,op:new Date().toISOString(),door:ME_NAME||""};
+    const {error}=await SB.from("beelden").upsert({id:"fuif-header",data});if(error)throw error;
+    const c=S.config.get("fuif")||{},r={...stripId(c),header:Date.now().toString(36)};S.config.set("fuif",{...r,id:"fuif"});await write("config","fuif",r);toast("Afbeelding opgeladen.");fuInst()}
+  catch(e){if(st)st.textContent="";toast(e.message||"Opladen lukte niet.",true)}}
+document.addEventListener("change",e=>{if(e.target.id==="fuKopF"&&e.target.files[0])fuKopVerwerk(e.target.files[0])});
+document.addEventListener("click",e=>{if(!e.target.closest('[data-fu="kopweg"]'))return;e.preventDefault();e.stopPropagation();
+  confirmBox("De afbeelding bovenaan de bestelpagina en de tickets verwijderen?","Verwijderen",async()=>{await SB.from("beelden").delete().eq("id","fuif-header");const c=S.config.get("fuif")||{},r={...stripId(c),header:null};S.config.set("fuif",{...r,id:"fuif"});await write("config","fuif",r);toast("Afbeelding verwijderd.");fuInst()})},true);
