@@ -20,7 +20,7 @@ import { meldPush } from "./push.js";
    Een ticket-QR bevat de link <site>/ticket?c=<code>; de scanner in de app leest de code uit die link.
    Punten: kies je bij de aankoop een lid, dan krijgt dat lid per betaald ticket een "kaart" in het puntensysteem (jaarleden.kaarten). */
 
-export const FUIF_DEF = { naam: "In Vier en Vlam", datum: "", deuren: "", locatie: "", prijs: 5, open: true, max: 0, perBestelling: 10, info: "", drankAan: true, drank: [20, 50], drankKorting: 10 };
+export const FUIF_DEF = { sponsorTickets: 10, sponsorDrank: 50, naam: "In Vier en Vlam", datum: "", deuren: "", locatie: "", prijs: 5, open: true, max: 0, perBestelling: 10, info: "", drankAan: true, drank: [20, 50], drankKorting: 10 };
 const CODE_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const nieuweCode = () => { const b = crypto.randomBytes(12); let s = ""; for (const x of b) s += CODE_ABC[x % 32]; return s; };
 const CODE_RE = /^[A-Z2-9]{12}$/;
@@ -191,6 +191,7 @@ export async function fuifBetaald(sb, id) {
 }
 
 /* ---------- ticket-PDF en mail ---------- */
+const opNaam = d => d.bron === "sponsor" && d.bedrijf ? [d.bedrijf, [d.voornaam, d.naam].filter(Boolean).join(" ")].filter(Boolean).join(" · ") : [d.voornaam, d.naam].filter(Boolean).join(" ");
 const naamVan = t => isDrank(t) ? `Drankkaart ${geld(t.waarde).replace(",00", "")}` : "Ticket";
 // header (affiche/banner) uit de tabel "beelden": web = JPEG (base64), pdf = {w, h, data (zlib RGB, base64)}
 export async function fuifHeader(sb, metPdf) {
@@ -220,7 +221,7 @@ export function ticketPdf(d, c, kop) {
     pdf.tekst(297.5, qy + maat + 56, `${naamVan(t)} ${t.nr} van ${van}`, { size: 11, kleur: GRIJS, align: "center" });
     let y = qy + maat + 100;
     pdf.lijn(L, y, R, y, "#dddddd"); y += 18;
-    pdf.tekst(L, y, "Op naam van", { size: 9, kleur: GRIJS }); pdf.tekst(L + 110, y, [d.voornaam, d.naam].filter(Boolean).join(" "), { size: 10.5 }); y += 28;
+    pdf.tekst(L, y, "Op naam van", { size: 9, kleur: GRIJS }); pdf.tekst(L + 110, y, opNaam(d), { size: 10.5 }); y += 28;
     pdf.tekst(L, y, dr ? "Wissel deze QR-code aan de kassa om tegen je drankkaart. Elke code is één keer geldig." : "Toon deze QR-code aan de kassa, op je gsm of afgedrukt. Elke code is één keer geldig.", { size: 9.5, kleur: GRIJS });
     pdf.vlak(0, 834, 595, 8, kl);
   });
@@ -236,20 +237,22 @@ export async function stuurTickets(sb, row, aan) {
       <div style="font-size:12px;letter-spacing:.12em;color:${kl};font-weight:bold;margin:0 0 8px">${kop}</div>
       <img src="${qrUrl(t.code)}" alt="QR-code ${esc(kop.toLowerCase())}" width="220" height="220" style="display:block;width:220px;height:220px;border:0;margin:0 auto">
       <div style="font-family:Menlo,Consolas,monospace;font-size:16px;font-weight:bold;letter-spacing:.08em;margin-top:8px">${t.code.replace(/(.{4})(?=.)/g, "$1 ")}</div></td></tr></table>`;
+  const sp = d.bron === "sponsor";
   const html = p(`Beste ${esc(d.voornaam || "")},`.replace(" ,", ","))
-    + p(`Bedankt voor je bestelling! Je betaling van <b>${eur(d.bedrag)}</b> is goed ontvangen. Hieronder vind je ${wat} voor <b>${esc(c.naam)}</b>.`)
-    + kaderBlok(esc(c.naam), tabel([rij("Wanneer", esc(wanneer(c))), rij("Waar", esc(c.locatie || "")), n ? rij("Tickets", `${n} × ${eur(d.prijs)}`) : "",
-      ...(d.drank || []).map(k => rij(`Drankkaart ${eur(k.waarde)}`, `${k.aantal} × ${eur(k.prijs)} <span style="color:#1a7f45">(voorverkoop, je bespaart ${eur((k.waarde - k.prijs) * k.aantal)})</span>`)),
-      rij("Op naam van", esc([d.voornaam, d.naam].filter(Boolean).join(" ")))]))
-    + (d.korting > 0 ? p(`<b style="color:#1a7f45">Dankzij de voorverkoop bespaar je ${eur(d.korting)} op je drankkaarten.</b>`) : "")
+    + (sp ? p(`Hartelijk dank om de brandweerkalender te sponsoren${d.bedrijf ? ` met <b>${esc(d.bedrijf)}</b>` : ""}! Als dank krijg je van de Vriendenkring ${wat} voor onze jaarlijkse fuif <b>${esc(c.naam)}</b>. Je vindt ze hieronder.`)
+      : p(`Bedankt voor je bestelling! Je betaling van <b>${eur(d.bedrag)}</b> is goed ontvangen. Hieronder vind je ${wat} voor <b>${esc(c.naam)}</b>.`))
+    + kaderBlok(esc(c.naam), tabel([rij("Wanneer", esc(wanneer(c))), rij("Waar", esc(c.locatie || "")), n ? rij("Tickets", sp ? `${n} inkomkaarten (geschenk)` : `${n} × ${eur(d.prijs)}`) : "",
+      ...(d.drank || []).map(k => rij(`Drankkaart ${eur(k.waarde)}`, sp ? `${k.aantal} × (geschenk)` : `${k.aantal} × ${eur(k.prijs)} <span style="color:#1a7f45">(voorverkoop, je bespaart ${eur((k.waarde - k.prijs) * k.aantal)})</span>`)),
+      rij("Op naam van", esc(opNaam(d)))]))
+    + (!sp && d.korting > 0 ? p(`<b style="color:#1a7f45">Dankzij de voorverkoop bespaar je ${eur(d.korting)} op je drankkaarten.</b>`) : "")
     + p(`Toon de QR-codes aan de kassa, op je gsm of afgedrukt. Elke code is één keer geldig${n > 1 ? ", dus geef je vrienden elk hun eigen ticket" : ""}.${D.length ? " Je drankkaarten wissel je aan de kassa om met de gele QR-codes." : ""} Alles zit ook als PDF in bijlage.`)
     + T.map(t => blok(t, `TICKET ${t.nr} VAN ${n}`, "#b30000")).join("")
     + D.map(t => blok(t, `DRANKKAART ${eur(t.waarde).replace(",00", "")} · ${t.nr} VAN ${D.filter(x => x.waarde === t.waarde).length}`, "#b07a12")).join("")
     + knop("Online bekijken", bestelUrl(row.id, d.betaalToken))
-    + p("Gekochte tickets en drankkaarten worden niet terugbetaald en kunnen niet geannuleerd worden.", "margin:0 0 15px;font-size:13.5px;color:#666666")
+    + (sp ? "" : p("Gekochte tickets en drankkaarten worden niet terugbetaald en kunnen niet geannuleerd worden.", "margin:0 0 15px;font-size:13.5px;color:#666666"))
     + (c.info ? p(esc(c.info), "margin:0 0 15px;font-size:13.5px;color:#666666") : "")
     + p("Tot op de fuif!");
-  const ond = n ? `Je ${n === 1 ? "ticket" : "tickets"} voor ${c.naam}` : `Je ${D.length === 1 ? "drankkaart" : "drankkaarten"} voor ${c.naam}`;
+  const ond = sp ? `Bedankt voor je sponsoring: ${wat.replace(/^je /, "").replace(" en je ", " en ")} voor ${c.naam}` : n ? `Je ${n === 1 ? "ticket" : "tickets"} voor ${c.naam}` : `Je ${D.length === 1 ? "drankkaart" : "drankkaarten"} voor ${c.naam}`;
   const [r] = await verstuur([{ aan: naar, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" "), onderwerp: ond, html: huisstijl(html, A.vereniging), van: afzender(), bijlagen: [{ naam: `Tickets ${c.naam}.pdf`, type: "application/pdf", data: ticketPdf(d, c, await fuifHeader(sb, true)) }] }]);
   if (r && r.ok) await sb.from("tickets").update({ data: { ...d, mail: { op: new Date().toISOString(), aan: naar } } }).eq("id", row.id);
   return !!(r && r.ok);
@@ -308,6 +311,7 @@ export async function fuifApi(req, res) {
     return res.status(200).json(await scanTicket(sb, b.code, user.email || "", actie === "bekijk"));
   }
   const { sb, user, rol } = await requireUser(req, { write: true });
+  if (actie === "sponsor") return res.status(200).json(await sponsorKaarten(sb, b, user));
   const { data: r } = await sb.from("tickets").select("id,data").eq("id", String(b.id || "")).maybeSingle();
   if (!r) throw httpErr(404, "Bestelling niet gevonden.");
   const d = r.data;
@@ -338,4 +342,33 @@ export async function fuifApi(req, res) {
   }
   if (actie === "controle") { const { controleerBetaling } = await import("./betaal.js"); const s = await controleerBetaling(sb, "tickets", r); return res.status(200).json({ ok: true, status: s && s.status }); }
   throw httpErr(400, "Onbekende actie.");
+}
+
+/* ---------- sponsors: inkomkaarten + drankkaart als geschenk (gratis, met QR, telt mee in de fuif) ----------
+   sponsor.data.geschenk[jaar].kaarten = {op, door, ticketId, aantal, drank, mail:{op, aan}} */
+async function sponsorKaarten(sb, b, user) {
+  const sid = clean(b.sponsorId, 80), jk = String(Math.floor(Number(b.jaar)) || "");
+  if (!sid || !/^20\d\d$/.test(jk)) throw httpErr(400, "Sponsor of jaar ontbreekt.");
+  const { data: s } = await sb.from("sponsors").select("id,data").eq("id", sid).maybeSingle();
+  if (!s) throw httpErr(404, "Sponsor niet gevonden.");
+  const { c } = await fuifCfg(sb), sd = s.data || {};
+  const G = { ...(sd.geschenk || {}) }, g = { ...(G[jk] || {}) };
+  if (g.kaarten && g.kaarten.ticketId) throw httpErr(409, "Deze sponsor kreeg zijn kaarten al. Stuur ze opnieuw via de fuifmodule.");
+  const aantal = Math.max(0, Math.min(50, Math.floor(Number(b.aantal ?? c.sponsorTickets)) || 0));
+  const dw = Math.max(0, Math.min(500, Number(b.drank ?? c.sponsorDrank) || 0));
+  if (!aantal && !dw) throw httpErr(400, "Kies minstens één ticket of een drankkaart.");
+  const aan = clean(b.aan || sd.email, 120).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(aan)) throw httpErr(400, "Deze sponsor heeft geen geldig e-mailadres. Vul het eerst in bij de sponsor.");
+  const tickets = Array.from({ length: aantal }, (_, i) => ({ code: nieuweCode(), nr: i + 1, soort: "ticket", gescand: null }));
+  if (dw) tickets.push({ code: nieuweCode(), nr: 1, soort: "drank", waarde: dw, gescand: null });
+  const nu = new Date().toISOString(), id = "t" + c.jaar + "-s" + Date.now().toString(36) + crypto.randomBytes(2).toString("hex");
+  const data = { jaar: c.jaar, bron: "sponsor", sponsorId: sid, sponsorJaar: Number(jk), bedrijf: sd.bedrijf || "", voornaam: sd.voornaam || "", naam: sd.naam || "", adres: sd.adres || "", email: aan, telefoon: sd.telefoon || "",
+    aantal, prijs: 0, drank: dw ? [{ id: "d" + dw, waarde: dw, prijs: 0, aantal: 1 }] : [], korting: 0, bedrag: 0, via: null, aangemeld: nu, betaalToken: crypto.randomBytes(18).toString("base64url"),
+    status: "betaald", betaaldOp: nu, door: user.email || "", tickets };
+  const { error } = await sb.from("tickets").insert({ id, data }); if (error) throw error;
+  let ok = false; try { ok = await stuurTickets(sb, { id, data }, aan); } catch (e) { console.error("sponsor kaarten mail", e); }
+  g.kaarten = { op: nu, door: user.email || "", ticketId: id, aantal, drank: dw, mail: ok ? { op: new Date().toISOString(), aan } : null };
+  G[jk] = g;
+  const { error: e2 } = await sb.from("sponsors").update({ data: { ...sd, geschenk: G } }).eq("id", sid); if (e2) throw e2;
+  return { ok: true, ticketId: id, mail: ok, aan, kaarten: g.kaarten };
 }
