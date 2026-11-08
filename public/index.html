@@ -1301,6 +1301,8 @@ html{touch-action:manipulation}
 .fu-res.dk{background:#a86e00}
 .fu-dot{width:9px;height:9px;border-radius:50%;background:#9a9ca1;flex:none;margin-left:2px;box-shadow:0 0 0 3px color-mix(in srgb,#9a9ca1 22%,transparent)}
 .fu-dot.open{background:#1a7f45;box-shadow:0 0 0 3px color-mix(in srgb,#1a7f45 22%,transparent)}
+/* gsm/tablet: het echte datumveld ligt onzichtbaar over de kalenderknop, zodat een tik altijd de kalender van het toestel opent (iOS) */
+@media (pointer:coarse){.dt-w .dt-nat{top:50%;bottom:auto;right:4px;transform:translateY(-50%);width:36px!important;height:34px!important;opacity:0;pointer-events:auto;z-index:2;-webkit-appearance:none;appearance:none;font-size:16px;background:transparent;color:transparent;min-width:0!important;max-width:none!important;display:block}}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
