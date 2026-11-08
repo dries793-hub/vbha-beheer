@@ -4988,12 +4988,12 @@ VIEWS.jaarmarkt=()=>({title:"Jaarmarkt",sub:"Kassa jaarmarkt",actions:`<button c
 VIEWS.kassa=()=>({title:"Kassa",sub:"Verkoop aan de kassa",
   actions:`<button class="btn primary" data-ka="open">${ic("kassa")}Kassa openen</button>${kaAdm()?`<button class="btn iconbtn" data-ka="inst" aria-label="Instellingen kassa" title="Instellingen kassa">${ic("instellingen")}</button>`:""}`,
   body(){const c=kaCfg(),actief=KA_ACTS[c.actief]?c.actief:"fuif",code=kaCode(),tot=kaCodeTot(code);
-    const rij=act=>{const T=kaTot(kaTrans(act,kaJaar(act)));return `<tr><td><b>${esc(KA_ACTS[act])}</b>${act===actief?' <span class="pill ok">actief</span>':""}<div class="muted small">${kaJaar(act)}</div></td><td class="num">${T.B.length}</td><td class="num">${kaEur(T.bc)}</td><td class="num">${kaEur(T.cash)}</td><td class="num"><b>${kaEur(T.tot)}</b></td></tr>`};
+    const kaart=act=>{const T=kaTot(kaTrans(act,kaJaar(act))),r=act==="fuif"?"fuif":act;return `<a class="ka-ov" href="#${r}" data-katoon="${act}"><span class="ka-ov-i">${ic(act==="fuif"?"fuif":act==="kinderfeest"?"kinderfeest":"jaarmarkt")}</span><span class="ka-ov-m"><b>${esc(KA_ACTS[act])}${act===actief?' <span class="pill ok">actief</span>':""}</b><small>${kaJaar(act)} · ${T.B.length} ${T.B.length===1?"verkoop":"verkopen"} · Bancontact ${kaEur(T.bc)} · cash ${kaEur(T.cash)}</small></span><span class="ka-ov-t">${kaEur(T.tot)}</span><span class="ml-chev" aria-hidden="true">›</span></a>`};
     return `<div class="panel"><div class="panel-b ka-status">
       <div><span class="lbl">Actieve activiteit</span><b>${esc(KA_ACTS[actief])}</b><span class="muted small">${kaTegels(actief).length} tegels${actief==="fuif"?` · scannen ${c.scan===false?"uit":"aan"}`:""}</span></div>
-      <div><span class="lbl">Kassacode</span>${code&&tot>Date.now()?`<b style="font-family:ui-monospace,Menlo,monospace;letter-spacing:.12em">${esc(code.code)}</b><span class="muted small">geldig tot ${esc(new Date(tot).toLocaleString("nl-BE",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))}</span>`:'<b>geen geldige code</b><span class="muted small">wordt aangemaakt bij Kassa openen</span>'}</div></div></div>
-    <div class="panel"><div class="panel-h"><h2>Overzicht per activiteit</h2></div><div class="tw"><table class="rcards"><thead><tr><th>Activiteit</th><th class="num">Verkopen</th><th class="num">Bancontact</th><th class="num">Cash</th><th class="num">Totaal</th></tr></thead><tbody>${Object.keys(KA_ACTS).map(rij).join("")}</tbody></table></div></div>
-    <div class="note info">De transacties per activiteit vind je in de tab <b>Kassa</b> bij In Vier en Vlam en Kinderfeest, en op de pagina Jaarmarkt.</div>`}});
+      <div><span class="lbl">Kassacode</span>${code&&tot>Date.now()?`<b style="font-family:ui-monospace,Menlo,monospace;letter-spacing:.12em">${esc(code.code)}</b><span class="muted small">tot ${esc(new Date(tot).toLocaleString("nl-BE",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))}</span>`:'<b>geen</b><span class="muted small">komt bij Kassa openen</span>'}</div></div></div>
+    <div class="panel"><div class="panel-h"><h2>Overzicht per activiteit</h2></div><div class="ka-ovl">${Object.keys(KA_ACTS).map(kaart).join("")}</div></div>
+    <p class="muted small" style="margin:4px 2px">Tik op een activiteit voor de transacties en wat er per tegel verkocht is.</p>`}});
 
 /* ---------- instellingen: activiteit, scannen, kassacode en tegels ---------- */
 const KA_ED={act:"fuif",tegels:{},open:null};
@@ -5037,3 +5037,4 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-kae]
 document.addEventListener("input",e=>{const t=e.target;if(!t.matches||!t.matches("#kaEd [data-kae]"))return;const L=KA_ED.tegels[KA_ED.act],i=+t.dataset.i;
   if(t.dataset.kae==="naam")L[i].naam=t.value;else if(t.dataset.kae==="prijs")L[i].prijs=t.value.replace(",",".")});
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="kaScan"){KA_ED.scan=t.checked;return}if(t.matches&&t.matches('#kaEd [data-kae="inkom"]')){KA_ED.tegels[KA_ED.act][+t.dataset.i].inkom=t.checked}});
+document.addEventListener("click",e=>{const a=e.target.closest("[data-katoon]");if(!a)return;const act=a.dataset.katoon;if(act!=="jaarmarkt")KA_UI.tab[act]="kassa"});
