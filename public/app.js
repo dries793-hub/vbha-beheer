@@ -4679,6 +4679,8 @@ const ADRES_FOUT="Vul een volledig adres in: straat, huisnummer, postcode en gem
     const al=m&&!gn&&[...S.leden.values()].find(l=>String(l.email||"").trim().toLowerCase()===m&&!l.geenLid);
     if(al){$("#lidErr").textContent=`Dit e-mailadres hoort al bij ${naamVol(al)}.`;return}
     return _c&&_c.call(this,ev)}}}
+// ledenlijst: de inschrijfpagina voor nieuwe leden staat altijd open -> zelfde groen bolletje als op de andere pagina's
+{const _l=VIEWS.leden;if(_l){const n=function(){const v=_l.apply(this,arguments);if(v&&typeof v.actions==="string")v.actions=v.actions.replace(/(href="\/inschrijven"[^>]*>[\s\S]*?Inschrijfpagina)(<\/a>)/,'$1<span class="spi-dot open" title="Inschrijfpagina open" aria-label="open"></span>$2');return v};Object.assign(n,_l);VIEWS.leden=n}}
 
 /* Mails nasturen naar nieuwe leden: een bulkmail (bv. uitnodiging activiteiten) gaat automatisch ook naar wie zich daarna inschrijft.
    Config "nastuur": {regels:{<tplId>:{naam,onderwerp,html,tot,sinds,door}}}. De html is een momentopname met @@VOORNAAM@@ en @@NAAM@@;
