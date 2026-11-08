@@ -2,7 +2,7 @@ import { admin } from "../_lib/sb.js";
 import { onlineConfigured } from "../_lib/betaalprovider.js";
 import { controleerBetaling, BETAALTABELLEN } from "../_lib/betaal.js";
 
-// Mollie (webhook, formulier met id=tr_…) of Bancontact Pay (JSON met paymentId) meldt hier een statuswijziging. We vertrouwen de inhoud niet blind:
+// Bancontact Pay (JSON met paymentId) meldt hier een statuswijziging. We vertrouwen de inhoud niet blind:
 // de status wordt altijd opnieuw opgevraagd bij Bancontact met onze eigen API-sleutel.
 export default async function handler(req, res) {
   try {
