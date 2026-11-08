@@ -41,10 +41,19 @@ async function alleRijen(sb, tabel, jaar) {
   }
   return out;
 }
+// Transacties die als lidgeld voor dit jaar tellen: die van het boekjaar (tenzij doorgeschoven naar een ander jaar)
+// plus betalingen uit een ander boekjaar met data.lidgeldJaar = jaar (bv. dubbel betaald en gebruikt voor het volgende jaar).
+export async function lidgeldBoekingen(sb, jaar) {
+  const [eigen, ander] = await Promise.all([alleRijen(sb, "boekingen", jaar), sb.from("boekingen").select("id,data").eq("data->>lidgeldJaar", String(jaar)).limit(1000)]);
+  if (ander.error) throw ander.error;
+  const L = eigen.filter(r => !(r.data && r.data.lidgeldJaar) || Number(r.data.lidgeldJaar) === Number(jaar));
+  for (const r of ander.data || []) if (!L.some(x => x.id === r.id)) L.push(r);
+  return L.filter(r => !r.data || r.data.richting !== "uit");
+}
 let LEDEN_CACHE = null;
 export async function actieveLeden(sb, jaar) {
   if (LEDEN_CACHE && LEDEN_CACHE.jaar === jaar && Date.now() - LEDEN_CACHE.t < 60000) return LEDEN_CACHE.L;
-  const [leden, jl, boek] = await Promise.all([alleRijen(sb, "leden"), alleRijen(sb, "jaarleden", jaar), alleRijen(sb, "boekingen", jaar)]);
+  const [leden, jl, boek] = await Promise.all([alleRijen(sb, "leden"), alleRijen(sb, "jaarleden", jaar), lidgeldBoekingen(sb, jaar)]);
   const JL = new Map(jl.map(r => [r.id, r.data || {}]));
   const nm = x => norm(x).replace(/\s+/g, " ");
   const lidBoek = boek.map(r => r.data || {}).map(b => ({ lidId: b.lidId, m: nm(b.mededeling) })).filter(b => b.lidId || b.m.includes("lidgeld"));

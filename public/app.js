@@ -71,7 +71,7 @@ function ctx(){
   let kas=c.beginKas,rek=c.beginRekening,tin=0,tuit=0;const perCat={};const reeks=[];
   for(const b of boek){const v=b.richting==="uit"?-b.bedrag:b.bedrag;if(b.rekening==="Kas")kas+=v;else rek+=v;b._kas=r2(kas);b._rek=r2(rek);
     if(b.richting==="uit")tuit+=b.bedrag;else tin+=b.bedrag;const k=b.categorie||"(geen categorie)";perCat[k]=perCat[k]||{in:0,uit:0,n:0};perCat[k][b.richting==="uit"?"uit":"in"]+=b.bedrag;perCat[k].n++;reeks.push([b.datum,kas+rek])}
-  const lidBoek=boek.filter(b=>b._m.includes("lidgeld")||b.lidId);
+  const lidBoek=[...S.boekingen.values()].filter(b=>b.richting!=="uit"&&(b.lidgeldJaar?Number(b.lidgeldJaar)===Y:b.jaar===Y)).map(b=>({...b,_m:norm(b.mededeling),_p:norm(b.partij)})).filter(b=>b._m.includes("lidgeld")||b.lidId);
   const leden=[...S.leden.values()].filter(l=>!l.geenLid&&(!l.lidSinds||l.lidSinds<=Y)&&(!l.lidTot||l.lidTot>=Y));
   const oud=[...S.leden.values()].filter(l=>!leden.includes(l)&&!(l.lidSinds>Y));
   const rows=new Map();
@@ -1595,9 +1595,9 @@ function lidgeldHist(lid){
   const hits=new Map();
   for(const j of L)for(const b of j.rows){if(b.richting==="uit")continue;const m=norm(b.mededeling),t=m+" "+norm(b.partij);
     const ok=b.lidId===lid.id||((m.includes("lidgeld")||norm(b.categorie).startsWith("lidgeld"))&&t.includes(n1)&&t.includes(n2));if(!ok)continue;
-    const ym=m.match(/lidgeld.{0,40}?\b(20\d\d)\b/);let y=j.jaar;if(ym){const v=+ym[1];if(v>=j.jaar-2&&v<=j.jaar+1)y=v}
+    const ym=m.match(/lidgeld.{0,40}?\b(20\d\d)\b/);let y=j.jaar;if(b.lidgeldJaar)y=Number(b.lidgeldJaar);else if(ym){const v=+ym[1];if(v>=j.jaar-2&&v<=j.jaar+1)y=v}
     if(!hits.has(y))hits.set(y,[]);hits.get(y).push({...b,_jaar:j.jaar})}
-  const first=Math.max(lid.lidSinds||0,L[0].jaar),last=Math.min(JAAR,lid.lidTot||JAAR);const out=[];
+  const first=Math.max(lid.lidSinds||0,L[0].jaar),last=hits.has(JAAR+1)?JAAR+1:Math.min(JAAR,lid.lidTot||JAAR);const out=[];
   for(let y=last;y>=first;y--){const jl=S.jaarleden.get(y+"_"+lid.id);out.push({y,bet:hits.get(y)||[],ov:jl&&jl.lidgeld})}
   return out;
 }
@@ -1607,7 +1607,7 @@ function lidgeldHistHtml(l,r){
   const ere=isEreVoorzitter(l);let ok=0;
   const rows=H.map(h=>{const vrij=h.y!==JAAR&&LG_VRIJ[h.y]&&!h.bet.length&&h.ov!=="NOK";const paid=h.y===JAAR?r.lg.ok:(h.ov==="OK"||vrij||(h.ov!=="NOK"&&(h.bet.length>0||ere)));if(paid)ok++;
     const b=h.bet[0];const pill=vrij?`<span class="pill neutral" title="Geen lidgeld gevraagd dit jaar">${esc(LG_VRIJ[h.y])}</span>`:ere&&!h.bet.length?'<span class="pill neutral">vrijgesteld</span>':paid?'<span class="pill ok">✓ Betaald</span>':'<span class="pill nok">Niet gevonden</span>';
-    return `<tr><td><b>${h.y}</b></td><td>${pill}${h.ov&&h.y!==JAAR?' <span class="pill neutral">manueel</span>':""}</td><td style="white-space:nowrap">${b?fmtDate(b.datum):""}</td><td class="num">${b?eur(h.bet.reduce((s,x)=>s+x.bedrag,0)):""}</td><td class="trunc" style="max-width:340px" title="${esc(b?b.mededeling:"")}">${b?esc(b.mededeling)+(b._jaar!==h.y?` <span style="color:var(--muted)">(geboekt in ${b._jaar})</span>`:""):""}${h.bet.length>1?` <span class="pill neutral">${h.bet.length} betalingen</span>`:""}</td></tr>`}).join("");
+    return `<tr><td><b>${h.y}</b></td><td>${pill}${h.ov&&h.y!==JAAR?' <span class="pill neutral">manueel</span>':""}</td><td style="white-space:nowrap">${b?fmtDate(b.datum):""}</td><td class="num">${b?eur(h.bet.reduce((s,x)=>s+x.bedrag,0)):""}</td><td class="trunc" style="max-width:340px" title="${esc(b?b.mededeling:"")}">${b?esc(b.mededeling)+(b._jaar!==h.y?` <span style="color:var(--muted)">(geboekt in ${b._jaar})</span>`:""):""}${h.bet.length>1?` <span class="pill neutral">${h.bet.length} betalingen</span>`:""}${h.bet.length>1&&h.y===JAAR&&h.bet[h.bet.length-1].id?` <button class="btn sm" data-w data-act="lgNaarVolgend" data-id="${esc(h.bet[h.bet.length-1].id)}" title="De laatste betaling telt dan als lidgeld voor ${JAAR+1}">Gebruik 1 betaling voor ${JAAR+1}</button>`:""}${h.y>JAAR&&b?` <span class="pill neutral">vooruitbetaald</span>`:""}</td></tr>`}).join("");
   return `<div><div style="display:flex;align-items:baseline;gap:10px;margin:6px 0 8px"><b>Lidgeld per jaar</b><span style="color:var(--muted);font-size:13px">${ok} van ${H.length} jaar in orde</span></div>
   <div class="tw" style="max-height:300px;border:1px solid var(--line);border-radius:8px"><table class="rcards"><thead><tr><th>Jaar</th><th>Status</th><th>Datum</th><th class="num">Bedrag</th><th>Mededeling</th></tr></thead><tbody>${rows}</tbody></table></div>
   <div style="color:var(--muted);font-size:12.5px;margin-top:6px">Gezocht op naam, voornaam en "lidgeld" in de boekhouding van alle jaren. Een betaling met een ander jaartal in de mededeling (bv. "lidgeld 2024" betaald in januari 2025) telt voor dat jaar.</div></div>`;
@@ -1631,7 +1631,7 @@ function boekingForm(b,id,title){
     ${fld("bRich","In of uit *",`<select id="bRich" name="richting">${selOpts([["in","In (ontvangst)"],["uit","Uit (uitgave)"]],b.richting||"in")}</select>`)}
     ${fld("bRek","Rekening of kas *",`<select id="bRek" name="rekening">${selOpts(["Kas","Rekening"],b.rekening||"Kas")}</select>`)}
     ${fld("bIban","Rekening tegenpartij",inp("bIban",b.iban,'name="iban" placeholder="BE.. .... .... ...."'))}
-    ${fld("bLid","Gekoppeld lid (lidgeld)",`<select id="bLid" name="lidId">${selOpts(ledenOpts,b.lidId||"")}</select>`,"full")}
+    ${fld("bLgJ","Lidgeld voor jaar",`<select id="bLgJ" name="lidgeldJaar">${selOpts([["","Boekjaar van de transactie"],...[JAAR-1,JAAR+1].map(y=>[String(y),"Lidgeld "+y+(y>JAAR?" (vooruitbetaald)":"")])],b.lidgeldJaar?String(b.lidgeldJaar):"")}</select>`)}${fld("bLid","Gekoppeld lid (lidgeld)",`<select id="bLid" name="lidId">${selOpts(ledenOpts,b.lidId||"")}</select>`,"full")}
     ${info}<div class="err full" id="boekErr"></div></form>`,
     `${id?'<button class="btn ghost danger" id="bDel">Verwijderen</button><button class="btn ghost" id="bRegel">Regel maken</button><span class="grow"></span>':""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="bOk">${id?"Bewaren":"Toevoegen"}</button>`,{wide:false});
   $("#bOk").onclick=async()=>{
@@ -1643,7 +1643,7 @@ function boekingForm(b,id,title){
     if(!bedrag){e.textContent="Vul een bedrag in.";return}
     const nr=id?b.nr:nextNr();
     const base=id?stripId(S.boekingen.get(id)||b):{bron:"manueel"};
-    const d={...base,jaar:JAAR,nr,datum:f.datum,categorie:f.categorie,mededeling:f.mededeling.trim(),partij:f.partij.trim(),iban:f.iban.trim(),rekening:f.rekening,bedrag,richting:f.richting,lidId:f.lidId||null,status:null};
+    const d={...base,jaar:JAAR,nr,datum:f.datum,categorie:f.categorie,mededeling:f.mededeling.trim(),partij:f.partij.trim(),iban:f.iban.trim(),rekening:f.rekening,bedrag,richting:f.richting,lidId:f.lidId||null,lidgeldJaar:f.lidgeldJaar?Number(f.lidgeldJaar):null,status:null};
     closeModal();await write("boekingen",id||newId("boekingen"),d);toast(id?"Transactie bewaard.":"Transactie "+nr+" toegevoegd.");
   };
   if(id){$("#bDel").onclick=()=>confirmBox("Transactie "+esc(b.nr??"")+" (“"+esc(b.mededeling||b.partij)+"”, "+eur(b.bedrag)+") verwijderen?","Verwijderen",async()=>{await write("boekingen",id,null,{del:true});toast("Transactie verwijderd.")});
@@ -1964,6 +1964,7 @@ document.addEventListener("click",async e=>{
     case"kalOpen":{KAL_OPEN.has(id)?KAL_OPEN.delete(id):KAL_OPEN.add(id);const el=$("#kalList");if(el)el.innerHTML=kalTable();break}
     case"ptOpen":{PT_OPEN.has(id)?PT_OPEN.delete(id):PT_OPEN.add(id);const el=$("#puntList");if(el)el.innerHTML=puntTable();break}
     case"lidgeldBetaald":closeModal();lidgeldBetaald(id);break;
+    case"lgNaarVolgend":{const b=S.boekingen.get(id);if(!b)break;const lid=b.lidId?S.leden.get(b.lidId):null;confirmBox(`Transactie ${esc(b.nr??"")} (${fmtDate(b.datum)}, ${eur(b.bedrag)}) telt dan als lidgeld voor <b>${JAAR+1}</b> in plaats van ${JAAR}. Het lidgeld van ${JAAR} blijft in orde door de andere betaling.`,"Overdragen naar "+(JAAR+1),async()=>{const lidId=b.lidId||[...S.leden.values()].find(l=>norm(b.mededeling+" "+b.partij).includes(norm(l.naam))&&norm(b.mededeling+" "+b.partij).includes(norm(l.voornaam)))?.id||null;await write("boekingen",id,{...stripId(b),lidId,lidgeldJaar:JAAR+1});toast("Betaling telt nu als lidgeld "+(JAAR+1)+".");closeModal();if(lidId)toonLid(lidId)});break}
     case"nieuweBoeking":boekingForm({},null);break;
     case"toonBoeking":{const b=S.boekingen.get(id);if(b)canWrite?boekingForm(b,id):toast("Je hebt alleen leesrechten.");break}
     case"importBank":importBank();break;

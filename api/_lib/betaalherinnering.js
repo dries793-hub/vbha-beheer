@@ -1,6 +1,6 @@
 import { admin, requireUser, httpErr } from "./sb.js";
 import { smtpConfigured } from "./smtp.js";
-import { algemeen, configDoc, norm, DEF_IBAN } from "./publiek.js";
+import { algemeen, configDoc, norm, DEF_IBAN, lidgeldBoekingen } from "./publiek.js";
 import { teken } from "./lidlink.js";
 import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, lang, plusDagen, site } from "./bevestiging.js";
 import { meldPush } from "./push.js";
@@ -93,7 +93,7 @@ export function banketMail(x, A) {
 /* ---------- lidgeld ---------- */
 async function lidgeldLijst(sb, cfg) {
   const J = Number(cfg.lidgeld.jaar), verval = cfg.lidgeld.vervaldatum;
-  const [leden, jl, boek, jaren] = await Promise.all([alle(sb, "leden"), alle(sb, "jaarleden", J), alle(sb, "boekingen", J), sb.from("jaren").select("data").eq("id", String(J)).maybeSingle()]);
+  const [leden, jl, boek, jaren] = await Promise.all([alle(sb, "leden"), alle(sb, "jaarleden", J), lidgeldBoekingen(sb, J), sb.from("jaren").select("data").eq("id", String(J)).maybeSingle()]);
   const jc = (jaren.data && jaren.data.data) || {}, LG = { gewoon: 30, erewacht: 20, ...(jc.lidgeld || {}) };
   const JL = new Map(jl.map(r => [r.id, r.data || {}]));
   const lidBoek = boek.map(r => r.data || {}).filter(b => b.richting !== "uit").map(b => ({ lidId: b.lidId, m: nm(b.mededeling), c: norm(b.categorie) })).filter(b => b.lidId || b.m.includes("lidgeld") || b.c.startsWith("lidgeld"));
