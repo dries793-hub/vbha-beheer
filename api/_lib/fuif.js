@@ -105,6 +105,15 @@ export default async function fuifPubliek(req, res) {
       const d = r.data;
       return res.status(200).json({ ev, tickets: (d.tickets || []).map(t => pub(t, d)), drank: d.drank || [], naam: [d.voornaam, d.naam].filter(Boolean).join(" "), geldig: d.status === "betaald", status: d.status, aantal: d.aantal, bedrag: d.bedrag });
     }
+    if (req.method === "GET" && q.sp) {
+      await rateLimit(sb, req, "spkaart", 60, 600, httpErr);
+      const { s: sp, jk } = await sponsorUitLink(sb, q);
+      const k = ((sp.data.geschenk || {})[jk] || {}).kaarten;
+      let bekijk = null;
+      if (k && k.ticketId) { const { data: r } = await sb.from("tickets").select("id,data").eq("id", k.ticketId).maybeSingle(); if (r && r.data.status === "betaald") bekijk = bestelUrl(r.id, r.data.betaalToken); }
+      return res.status(200).json({ ev, bedrijf: sp.data.bedrijf || "", voornaam: sp.data.voornaam || "", aantal: c.sponsorTickets, drank: c.sponsorDrank,
+        status: k ? "aangevraagd" : isVoorbij(c) ? "voorbij" : "open", op: k ? k.op : null, aan: k && k.mail ? k.mail.aan : null, papier: !!(k && k.papier), bekijk });
+    }
     if (req.method === "GET" && q.zoek != null) {
       await rateLimit(sb, req, "fuifzoek", 120, 600, httpErr);
       return res.status(200).json(zoekLeden(await fuifLeden(sb, c.jaar), String(q.zoek)).map(l => ({ id: l.id, naam: l.naam })));
@@ -116,6 +125,13 @@ export default async function fuifPubliek(req, res) {
     }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
 
+    if (body(req).actie === "sponsorclaim") {
+      await rateLimit(sb, req, "spkaart", 20, 600, httpErr);
+      const b = body(req), { s: sp, jk } = await sponsorUitLink(sb, b);
+      if (isVoorbij(c)) throw httpErr(403, "De fuif is voorbij; aanvragen kan niet meer.");
+      const r = await sponsorKaarten(sb, { sponsorId: sp.id, jaar: jk }, { email: "sponsor (via mail)" });
+      return res.status(200).json({ ok: true, mail: r.mail, aan: r.aan, aantal: r.kaarten.aantal, drank: r.kaarten.drank, bekijk: r.bekijk });
+    }
     // ---- bestellen ----
     const b = body(req);
     if (await spamCheck(sb, "tickets", b, httpErr)) return res.status(200).json({ ok: true });
@@ -312,6 +328,7 @@ export async function fuifApi(req, res) {
   }
   const { sb, user, rol } = await requireUser(req, { write: true });
   if (actie === "sponsor") return res.status(200).json(await sponsorKaarten(sb, b, user));
+  if (actie === "sponsoruitnodiging") return res.status(200).json(await sponsorUitnodigen(sb, b, user));
   const { data: r } = await sb.from("tickets").select("id,data").eq("id", String(b.id || "")).maybeSingle();
   if (!r) throw httpErr(404, "Bestelling niet gevonden.");
   const d = r.data;
@@ -353,7 +370,7 @@ async function sponsorKaarten(sb, b, user) {
   if (!s) throw httpErr(404, "Sponsor niet gevonden.");
   const { c } = await fuifCfg(sb), sd = s.data || {};
   const G = { ...(sd.geschenk || {}) }, g = { ...(G[jk] || {}) };
-  if (g.kaarten && g.kaarten.ticketId) throw httpErr(409, "Deze sponsor kreeg zijn kaarten al. Stuur ze opnieuw via de fuifmodule.");
+  if (g.kaarten) throw httpErr(409, g.kaarten.papier ? "De kaarten werden al op papier gegeven." : "De tickets en drankkaart werden al aangevraagd en gemaild.");
   const aantal = Math.max(0, Math.min(50, Math.floor(Number(b.aantal ?? c.sponsorTickets)) || 0));
   const dw = Math.max(0, Math.min(500, Number(b.drank ?? c.sponsorDrank) || 0));
   if (!aantal && !dw) throw httpErr(400, "Kies minstens één ticket of een drankkaart.");
@@ -361,14 +378,67 @@ async function sponsorKaarten(sb, b, user) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(aan)) throw httpErr(400, "Deze sponsor heeft geen geldig e-mailadres. Vul het eerst in bij de sponsor.");
   const tickets = Array.from({ length: aantal }, (_, i) => ({ code: nieuweCode(), nr: i + 1, soort: "ticket", gescand: null }));
   if (dw) tickets.push({ code: nieuweCode(), nr: 1, soort: "drank", waarde: dw, gescand: null });
-  const nu = new Date().toISOString(), id = "t" + c.jaar + "-s" + Date.now().toString(36) + crypto.randomBytes(2).toString("hex");
+  const nu = new Date().toISOString(), id = `tsp-${jk}-${sid}`.slice(0, 120); // vaste id: een sponsor kan maar één keer kaarten krijgen
   const data = { jaar: c.jaar, bron: "sponsor", sponsorId: sid, sponsorJaar: Number(jk), bedrijf: sd.bedrijf || "", voornaam: sd.voornaam || "", naam: sd.naam || "", adres: sd.adres || "", email: aan, telefoon: sd.telefoon || "",
     aantal, prijs: 0, drank: dw ? [{ id: "d" + dw, waarde: dw, prijs: 0, aantal: 1 }] : [], korting: 0, bedrag: 0, via: null, aangemeld: nu, betaalToken: crypto.randomBytes(18).toString("base64url"),
     status: "betaald", betaaldOp: nu, door: user.email || "", tickets };
-  const { error } = await sb.from("tickets").insert({ id, data }); if (error) throw error;
+  const { error } = await sb.from("tickets").insert({ id, data });
+  if (error) { if (error.code === "23505") throw httpErr(409, "De tickets en drankkaart werden al aangevraagd en gemaild."); throw error; }
   let ok = false; try { ok = await stuurTickets(sb, { id, data }, aan); } catch (e) { console.error("sponsor kaarten mail", e); }
-  g.kaarten = { op: nu, door: user.email || "", ticketId: id, aantal, drank: dw, mail: ok ? { op: new Date().toISOString(), aan } : null };
-  G[jk] = g;
-  const { error: e2 } = await sb.from("sponsors").update({ data: { ...sd, geschenk: G } }).eq("id", sid); if (e2) throw e2;
-  return { ok: true, ticketId: id, mail: ok, aan, kaarten: g.kaarten };
+  // sponsor opnieuw lezen: ondertussen kan iemand in de app iets aangepast hebben
+  const { data: s2 } = await sb.from("sponsors").select("data").eq("id", sid).maybeSingle(); const sd2 = (s2 && s2.data) || sd;
+  const G2 = { ...(sd2.geschenk || {}) }, g2 = { ...(G2[jk] || {}) };
+  g2.kaarten = { op: nu, door: user.email || "", ticketId: id, aantal, drank: dw, mail: ok ? { op: new Date().toISOString(), aan } : null };
+  G2[jk] = g2;
+  const { error: e2 } = await sb.from("sponsors").update({ data: { ...sd2, geschenk: G2 } }).eq("id", sid); if (e2) throw e2;
+  try { await meldPush(sb, "iedereen", { titel: "Sponsor vroeg fuifkaarten aan", tekst: `${sd2.bedrijf || ""}: ${aantal} tickets${dw ? " + drankkaart " + eur(dw) : ""}`, url: "/#sponsors", tag: "spk-" + id }); } catch (e) { }
+  return { ok: true, ticketId: id, mail: ok, aan, kaarten: g2.kaarten, bekijk: bestelUrl(id, data.betaalToken) };
+}
+
+// Persoonlijke link in de uitnodigingsmail: /sponsorkaarten?sp=<id>&j=<jaar>&t=<handtekening>
+const spSleutel = () => String(process.env.BETAAL_GEHEIM || process.env.SUPABASE_SERVICE_ROLE_KEY || "");
+const tekenSp = (sid, j) => crypto.createHmac("sha256", spSleutel()).update(`vbha-sponsorkaarten|${sid}|${j}`).digest("base64url").slice(0, 22);
+const sponsorLink = (sid, j) => `${site()}/sponsorkaarten?sp=${encodeURIComponent(sid)}&j=${j}&t=${tekenSp(sid, j)}`;
+async function sponsorUitLink(sb, q) {
+  const sid = String(q.sp || q.s || "").slice(0, 80), jk = String(q.j || ""), t = String(q.t || "");
+  const a = Buffer.from(tekenSp(sid, jk)), b = Buffer.from(t);
+  if (!spSleutel() || !sid || !/^20\d\d$/.test(jk) || a.length !== b.length || !crypto.timingSafeEqual(a, b)) throw httpErr(404, "Deze link is niet geldig.");
+  const { data: s } = await sb.from("sponsors").select("id,data").eq("id", sid).maybeSingle();
+  if (!s) throw httpErr(404, "Deze link is niet meer geldig.");
+  return { s, jk };
+}
+export function sponsorUitnodigingMail(sd, sid, jk, c) {
+  const wat = [c.sponsorTickets ? `${c.sponsorTickets} inkomkaarten` : "", c.sponsorDrank ? `een drankkaart van ${eur(c.sponsorDrank)}` : ""].filter(Boolean).join(" en ");
+  const html = p(`Beste ${esc(sd.voornaam || "")},`.replace(" ,", ","))
+    + p(`Hartelijk dank om de brandweerkalender te sponsoren${sd.bedrijf ? ` met <b>${esc(sd.bedrijf)}</b>` : ""}! Als dank bieden we je graag ${wat} aan voor onze jaarlijkse fuif <b>${esc(c.naam)}</b>.`)
+    + kaderBlok(esc(c.naam), tabel([rij("Wanneer", esc(wanneer(c))), c.locatie ? rij("Waar", esc(c.locatie)) : "", rij("Jouw bedankje", esc(wat))].filter(Boolean)))
+    + p(`Kom je graag? Klik dan op de knop hieronder. We maken de tickets en de drankkaart meteen aan op naam van ${esc(sd.bedrijf || "je bedrijf")} en mailen ze door met QR-codes.`)
+    + knop("Mijn tickets en drankkaart aanvragen", sponsorLink(sid, jk))
+    + p("De knop werkt één keer. Kom je niet? Dan hoef je niets te doen.", "margin:0 0 15px;font-size:13.5px;color:#666666")
+    + p("Nogmaals bedankt voor je steun!");
+  return { onderwerp: `Bedankt voor je sponsoring: gratis tickets voor ${c.naam}`, html };
+}
+async function sponsorUitnodigen(sb, b, user) {
+  const jk = String(Math.floor(Number(b.jaar)) || ""); if (!/^20\d\d$/.test(jk)) throw httpErr(400, "Jaar ontbreekt.");
+  const ids = (Array.isArray(b.ids) ? b.ids : []).map(x => String(x).slice(0, 80)).slice(0, 200);
+  if (!ids.length) throw httpErr(400, "Kies minstens één sponsor.");
+  const { c, A } = await fuifCfg(sb);
+  if (!c.datum) throw httpErr(400, "Stel eerst de datum van de fuif in.");
+  if (isVoorbij(c)) throw httpErr(400, "De fuif is voorbij.");
+  const { data: rows, error } = await sb.from("sponsors").select("id,data").in("id", ids); if (error) throw error;
+  const nu = new Date().toISOString(), batch = `sponsorkaarten-${jk}-${Date.now().toString(36)}`, berichten = [], ok = [], over = [];
+  for (const r of rows || []) {
+    const sd = r.data || {}, g = (sd.geschenk || {})[jk] || {}, aan = String(sd.email || "").trim();
+    if (g.kaarten) { over.push({ id: r.id, reden: "kreeg al kaarten" }); continue; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(aan)) { over.push({ id: r.id, reden: "geen e-mailadres" }); continue; }
+    const m = sponsorUitnodigingMail(sd, r.id, jk, c);
+    berichten.push({ batch, data: { aan, aanNaam: [sd.voornaam, sd.naam].filter(Boolean).join(" ") || sd.bedrijf || "", onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging), label: "Uitnodiging fuifkaarten sponsors" } });
+    ok.push(r);
+  }
+  if (berichten.length) { const { error: e } = await sb.from("mail_wachtrij").insert(berichten); if (e) throw e; }
+  for (const r of ok) {
+    const G = { ...((r.data || {}).geschenk || {}) }; G[jk] = { ...(G[jk] || {}), uitnodiging: { op: nu, door: user.email || "", aan: r.data.email } };
+    await sb.from("sponsors").update({ data: { ...r.data, geschenk: G } }).eq("id", r.id);
+  }
+  return { ok: true, aantal: ok.length, over };
 }
