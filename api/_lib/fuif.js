@@ -105,6 +105,12 @@ export default async function fuifPubliek(req, res) {
       const d = r.data;
       return res.status(200).json({ ev, tickets: (d.tickets || []).map(t => pub(t, d)), drank: d.drank || [], naam: [d.voornaam, d.naam].filter(Boolean).join(" "), geldig: d.status === "betaald", status: d.status, aantal: d.aantal, bedrag: d.bedrag });
     }
+    if (req.method === "GET" && q.g) {
+      await rateLimit(sb, req, "spkaart", 60, 600, httpErr);
+      const r = await gastRij(sb, q.g, q.t), d = r.data;
+      return res.status(200).json({ ev, gast: true, bedrijf: d.organisatie || "", voornaam: d.voornaam || "", naam: d.naam || "", aantal: d.aantal || 0, drank: (d.drank && d.drank[0] && d.drank[0].waarde) || 0, boodschap: d.boodschap || "",
+        status: d.status === "betaald" ? "aangevraagd" : d.status === "geannuleerd" ? "ingetrokken" : isVoorbij(c) ? "voorbij" : "open", op: d.betaaldOp || null, aan: d.mail ? d.mail.aan : d.email, bekijk: d.status === "betaald" ? bestelUrl(r.id, d.betaalToken) : null });
+    }
     if (req.method === "GET" && q.sp) {
       await rateLimit(sb, req, "spkaart", 60, 600, httpErr);
       const { s: sp, jk } = await sponsorUitLink(sb, q);
@@ -125,6 +131,15 @@ export default async function fuifPubliek(req, res) {
     }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
 
+    if (body(req).actie === "gastclaim") {
+      await rateLimit(sb, req, "spkaart", 20, 600, httpErr);
+      const b = body(req), r = await gastRij(sb, b.g, b.t);
+      if (r.data.status === "betaald") throw httpErr(409, "Al aangevraagd.");
+      if (r.data.status !== "uitgenodigd") throw httpErr(403, "Deze uitnodiging is niet meer geldig.");
+      if (isVoorbij(c)) throw httpErr(403, "De fuif is voorbij; aanvragen kan niet meer.");
+      const x = await gastClaim(sb, r);
+      return res.status(200).json({ ok: true, ...x });
+    }
     if (body(req).actie === "sponsorclaim") {
       await rateLimit(sb, req, "spkaart", 20, 600, httpErr);
       const b = body(req), { s: sp, jk } = await sponsorUitLink(sb, b);
@@ -207,7 +222,7 @@ export async function fuifBetaald(sb, id) {
 }
 
 /* ---------- ticket-PDF en mail ---------- */
-const opNaam = d => d.bron === "sponsor" && d.bedrijf ? [d.bedrijf, [d.voornaam, d.naam].filter(Boolean).join(" ")].filter(Boolean).join(" · ") : [d.voornaam, d.naam].filter(Boolean).join(" ");
+const opNaam = d => d.bron === "genodigde" && d.organisatie ? [[d.voornaam, d.naam].filter(Boolean).join(" "), d.organisatie].filter(Boolean).join(" · ") : d.bron === "sponsor" && d.bedrijf ? [d.bedrijf, [d.voornaam, d.naam].filter(Boolean).join(" ")].filter(Boolean).join(" · ") : [d.voornaam, d.naam].filter(Boolean).join(" ");
 const naamVan = t => isDrank(t) ? `Drankkaart ${geld(t.waarde).replace(",00", "")}` : "Ticket";
 // header (affiche/banner) uit de tabel "beelden": web = JPEG (base64), pdf = {w, h, data (zlib RGB, base64)}
 export async function fuifHeader(sb, metPdf) {
@@ -253,9 +268,10 @@ export async function stuurTickets(sb, row, aan) {
       <div style="font-size:12px;letter-spacing:.12em;color:${kl};font-weight:bold;margin:0 0 8px">${kop}</div>
       <img src="${qrUrl(t.code)}" alt="QR-code ${esc(kop.toLowerCase())}" width="220" height="220" style="display:block;width:220px;height:220px;border:0;margin:0 auto">
       <div style="font-family:Menlo,Consolas,monospace;font-size:16px;font-weight:bold;letter-spacing:.08em;margin-top:8px">${t.code.replace(/(.{4})(?=.)/g, "$1 ")}</div></td></tr></table>`;
-  const sp = d.bron === "sponsor";
+  const sp = d.bron === "sponsor" || d.bron === "genodigde", gast = d.bron === "genodigde";
   const html = p(`Beste ${esc(d.voornaam || "")},`.replace(" ,", ","))
-    + (sp ? p(`Hartelijk dank om de brandweerkalender te sponsoren${d.bedrijf ? ` met <b>${esc(d.bedrijf)}</b>` : ""}! Als dank krijg je van de Vriendenkring ${wat} voor onze jaarlijkse fuif <b>${esc(c.naam)}</b>. Je vindt ze hieronder.`)
+    + (gast ? p(`Fijn dat je erbij bent! Hieronder vind je ${wat} voor onze fuif <b>${esc(c.naam)}</b>, aangeboden door de Vriendenkring.`)
+      : sp ? p(`Hartelijk dank om de brandweerkalender te sponsoren${d.bedrijf ? ` met <b>${esc(d.bedrijf)}</b>` : ""}! Als dank krijg je van de Vriendenkring ${wat} voor onze jaarlijkse fuif <b>${esc(c.naam)}</b>. Je vindt ze hieronder.`)
       : p(`Bedankt voor je bestelling! Je betaling van <b>${eur(d.bedrag)}</b> is goed ontvangen. Hieronder vind je ${wat} voor <b>${esc(c.naam)}</b>.`))
     + kaderBlok(esc(c.naam), tabel([rij("Wanneer", esc(wanneer(c))), rij("Waar", esc(c.locatie || "")), n ? rij("Tickets", sp ? `${n} inkomkaarten (geschenk)` : `${n} × ${eur(d.prijs)}`) : "",
       ...(d.drank || []).map(k => rij(`Drankkaart ${eur(k.waarde)}`, sp ? `${k.aantal} × (geschenk)` : `${k.aantal} × ${eur(k.prijs)} <span style="color:#1a7f45">(voorverkoop, je bespaart ${eur((k.waarde - k.prijs) * k.aantal)})</span>`)),
@@ -268,7 +284,7 @@ export async function stuurTickets(sb, row, aan) {
     + (sp ? "" : p("Gekochte tickets en drankkaarten worden niet terugbetaald en kunnen niet geannuleerd worden.", "margin:0 0 15px;font-size:13.5px;color:#666666"))
     + (c.info ? p(esc(c.info), "margin:0 0 15px;font-size:13.5px;color:#666666") : "")
     + p("Tot op de fuif!");
-  const ond = sp ? `Bedankt voor je sponsoring: ${wat.replace(/^je /, "").replace(" en je ", " en ")} voor ${c.naam}` : n ? `Je ${n === 1 ? "ticket" : "tickets"} voor ${c.naam}` : `Je ${D.length === 1 ? "drankkaart" : "drankkaarten"} voor ${c.naam}`;
+  const ond = gast ? `Je tickets voor ${c.naam}` : sp ? `Bedankt voor je sponsoring: ${wat.replace(/^je /, "").replace(" en je ", " en ")} voor ${c.naam}` : n ? `Je ${n === 1 ? "ticket" : "tickets"} voor ${c.naam}` : `Je ${D.length === 1 ? "drankkaart" : "drankkaarten"} voor ${c.naam}`;
   const [r] = await verstuur([{ aan: naar, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" "), onderwerp: ond, html: huisstijl(html, A.vereniging), van: afzender(), bijlagen: [{ naam: `Tickets ${c.naam}.pdf`, type: "application/pdf", data: ticketPdf(d, c, await fuifHeader(sb, true)) }] }]);
   if (r && r.ok) await sb.from("tickets").update({ data: { ...d, mail: { op: new Date().toISOString(), aan: naar } } }).eq("id", row.id);
   return !!(r && r.ok);
@@ -329,6 +345,9 @@ export async function fuifApi(req, res) {
   const { sb, user, rol } = await requireUser(req, { write: true });
   if (actie === "sponsor") return res.status(200).json(await sponsorKaarten(sb, b, user));
   if (actie === "sponsoruitnodiging") return res.status(200).json(await sponsorUitnodigen(sb, b, user));
+  if (actie === "gast") return res.status(200).json(await gastBewaar(sb, b, user));
+  if (actie === "gastweg") { const { data: g } = await sb.from("tickets").select("id,data").eq("id", String(b.id || "")).maybeSingle(); if (!g || g.data.bron !== "genodigde") throw httpErr(404, "Niet gevonden."); if (g.data.status !== "uitgenodigd") throw httpErr(409, "Deze genodigde vroeg de tickets al aan. Annuleer via de bestelling."); const { error } = await sb.from("tickets").delete().eq("id", g.id).eq("data->>status", "uitgenodigd"); if (error) throw error; return res.status(200).json({ ok: true }); }
+  if (actie === "gastmail") return res.status(200).json(await gastUitnodigen(sb, [String(b.id || "")], user));
   const { data: r } = await sb.from("tickets").select("id,data").eq("id", String(b.id || "")).maybeSingle();
   if (!r) throw httpErr(404, "Bestelling niet gevonden.");
   const d = r.data;
@@ -441,4 +460,68 @@ async function sponsorUitnodigen(sb, b, user) {
     await sb.from("sponsors").update({ data: { ...r.data, geschenk: G } }).eq("id", r.id);
   }
   return { ok: true, aantal: ok.length, over };
+}
+
+/* ---------- genodigden (bevriende vriendenkringen, sympathisanten): gratis tickets na bevestiging via de knop in hun mail ----------
+   Rij in "tickets" met bron "genodigde", status "uitgenodigd" (nog geen QR-codes). Drukt de genodigde op de knop, dan wordt de rij
+   één keer omgezet naar "betaald" met tickets en mail. Link: /sponsorkaarten?g=<id>&t=<betaalToken> */
+const gastLink = (id, t) => `${site()}/sponsorkaarten?g=${encodeURIComponent(id)}&t=${encodeURIComponent(t)}`;
+async function gastRij(sb, id, t) {
+  const { data: r } = await sb.from("tickets").select("id,data").eq("id", String(id || "").slice(0, 120)).maybeSingle();
+  if (!r || r.data.bron !== "genodigde" || !r.data.betaalToken || String(t || "") !== r.data.betaalToken) throw httpErr(404, "Deze link is niet geldig.");
+  return r;
+}
+async function gastBewaar(sb, b, user) {
+  const { c } = await fuifCfg(sb);
+  const d = { voornaam: clean(b.voornaam, 80), naam: clean(b.naam, 80), organisatie: clean(b.organisatie, 120), email: clean(b.email, 120).toLowerCase(), boodschap: clean(b.boodschap, 600) };
+  if (!d.voornaam && !d.naam && !d.organisatie) throw httpErr(400, "Vul een naam of organisatie in.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)) throw httpErr(400, "Vul een geldig e-mailadres in.");
+  const aantal = Math.max(0, Math.min(50, Math.floor(Number(b.aantal)) || 0)), dw = Math.max(0, Math.min(500, Number(b.drank) || 0));
+  if (!aantal && !dw) throw httpErr(400, "Kies minstens één ticket of een drankkaart.");
+  let id = clean(b.id, 120), oud = null;
+  if (id) { const { data: r } = await sb.from("tickets").select("id,data").eq("id", id).maybeSingle(); if (!r || r.data.bron !== "genodigde") throw httpErr(404, "Niet gevonden."); if (r.data.status !== "uitgenodigd") throw httpErr(409, "Deze genodigde vroeg de tickets al aan; aanpassen kan niet meer."); oud = r.data; }
+  else id = "tg" + c.jaar + "-" + Date.now().toString(36) + crypto.randomBytes(3).toString("hex");
+  const data = { ...(oud || { jaar: c.jaar, bron: "genodigde", status: "uitgenodigd", aangemeld: new Date().toISOString(), betaalToken: crypto.randomBytes(18).toString("base64url"), tickets: [], prijs: 0, bedrag: 0, korting: 0, via: null, door: user.email || "" }),
+    ...d, aantal, drank: dw ? [{ id: "d" + dw, waarde: dw, prijs: 0, aantal: 1 }] : [] };
+  const { error } = oud ? await sb.from("tickets").update({ data }).eq("id", id) : await sb.from("tickets").insert({ id, data }); if (error) throw error;
+  let gemaild = 0; if (b.mail) gemaild = (await gastUitnodigen(sb, [id], user)).aantal;
+  return { ok: true, id, gemaild };
+}
+async function gastUitnodigen(sb, ids, user) {
+  const { c, A } = await fuifCfg(sb);
+  if (!c.datum) throw httpErr(400, "Stel eerst de datum van de fuif in.");
+  if (isVoorbij(c)) throw httpErr(400, "De fuif is voorbij.");
+  const { data: rows, error } = await sb.from("tickets").select("id,data").in("id", ids.slice(0, 200)); if (error) throw error;
+  const batch = `genodigden-${c.jaar}-${Date.now().toString(36)}`, berichten = [], ok = [];
+  for (const r of rows || []) {
+    const d = r.data; if (d.bron !== "genodigde" || d.status !== "uitgenodigd") continue;
+    const dw = (d.drank && d.drank[0] && d.drank[0].waarde) || 0;
+    const wat = [d.aantal ? `${d.aantal} ${d.aantal === 1 ? "gratis inkomkaart" : "gratis inkomkaarten"}` : "", dw ? `een drankkaart van ${eur(dw)}` : ""].filter(Boolean).join(" en ");
+    const html = p(`Beste ${esc(d.voornaam || d.organisatie || "")},`.replace(" ,", ","))
+      + p(`Graag nodigen we ${d.organisatie ? `jullie van <b>${esc(d.organisatie)}</b>` : "je"} uit op onze jaarlijkse fuif <b>${esc(c.naam)}</b>. We bieden ${d.organisatie ? "jullie" : "je"} ${wat} aan.`)
+      + (d.boodschap ? p(esc(d.boodschap).replace(/\n/g, "<br>")) : "")
+      + kaderBlok(esc(c.naam), tabel([rij("Wanneer", esc(wanneer(c))), c.locatie ? rij("Waar", esc(c.locatie)) : "", rij("Voor jou", esc(wat))].filter(Boolean)))
+      + p("Kom je? Klik dan op de knop hieronder. We maken de tickets meteen aan en mailen ze door met QR-codes.")
+      + knop("Mijn tickets aanvragen", gastLink(r.id, d.betaalToken))
+      + p("De knop werkt één keer. Kom je niet? Dan hoef je niets te doen.", "margin:0 0 15px;font-size:13.5px;color:#666666")
+      + p("Hopelijk tot dan!");
+    berichten.push({ batch, data: { aan: d.email, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" ") || d.organisatie || "", onderwerp: `Uitnodiging: gratis tickets voor ${c.naam}`, html: huisstijl(html, A.vereniging), label: "Uitnodiging genodigden fuif" } });
+    ok.push(r);
+  }
+  if (berichten.length) { const { error: e } = await sb.from("mail_wachtrij").insert(berichten); if (e) throw e; }
+  const nu = new Date().toISOString();
+  for (const r of ok) await sb.from("tickets").update({ data: { ...r.data, uitnodiging: { op: nu, door: user.email || "", aan: r.data.email, n: ((r.data.uitnodiging && r.data.uitnodiging.n) || 0) + 1 } } }).eq("id", r.id).eq("data->>status", "uitgenodigd");
+  return { ok: true, aantal: ok.length };
+}
+async function gastClaim(sb, r) {
+  const d = r.data, dw = (d.drank && d.drank[0] && d.drank[0].waarde) || 0;
+  const tickets = Array.from({ length: Number(d.aantal) || 0 }, (_, i) => ({ code: nieuweCode(), nr: i + 1, soort: "ticket", gescand: null }));
+  if (dw) tickets.push({ code: nieuweCode(), nr: 1, soort: "drank", waarde: dw, gescand: null });
+  const nieuw = { ...d, status: "betaald", betaaldOp: new Date().toISOString(), tickets };
+  // enkel als de rij nog op "uitgenodigd" staat: twee keer drukken maakt geen dubbele tickets
+  const { data: upd, error } = await sb.from("tickets").update({ data: nieuw }).eq("id", r.id).eq("data->>status", "uitgenodigd").select("id");
+  if (error) throw error; if (!upd || !upd.length) throw httpErr(409, "Al aangevraagd.");
+  let ok = false; try { ok = await stuurTickets(sb, { id: r.id, data: nieuw }); } catch (e) { console.error("gast mail", e); }
+  try { await meldPush(sb, "iedereen", { titel: "Genodigde vroeg fuiftickets aan", tekst: `${d.organisatie || [d.voornaam, d.naam].filter(Boolean).join(" ")}: ${d.aantal || 0} tickets${dw ? " + drankkaart " + eur(dw) : ""}`, url: "/#fuif", tag: "gast-" + r.id }); } catch (e) { }
+  return { mail: ok, aan: d.email, aantal: d.aantal || 0, drank: dw, bekijk: bestelUrl(r.id, d.betaalToken) };
 }
