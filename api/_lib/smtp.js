@@ -6,7 +6,7 @@ import crypto from "node:crypto";
 export const smtpConfigured = () => !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 // standaard antwoordadres (Reply-To) van alle mails; facturen geven hun eigen adres mee
 export const ANTWOORD = () => String(process.env.MAIL_ANTWOORD ?? "dries@vbha.be").trim();
-export const BCC = () => String(process.env.MAIL_BCC ?? "dries@vbha.be").trim().toLowerCase();
+export const BCC = () => String(process.env.MAIL_BCC ?? "dries.uyttersprot@telenet.be").trim().toLowerCase();
 export const afzender = () => ({ email: String(process.env.SMTP_FROM || process.env.SMTP_USER || "").trim(), naam: String(process.env.MAIL_FROM_NAAM || "").trim() });
 
 const b64 = s => Buffer.from(String(s), "utf8").toString("base64");
