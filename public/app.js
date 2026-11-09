@@ -5248,10 +5248,10 @@ VIEWS.webshop=()=>({title:shCfg().naam||"Webshop",sub:"Webshop van de Vriendenkr
 function shBestellingen(O){const jaar=String(new Date().getFullYear()),dit=O.filter(o=>String(o.jaar)===jaar&&o.status!=="geannuleerd");
   const tb=O.filter(o=>!o.betaald&&o.status!=="geannuleerd"),tv=O.filter(o=>o.betaald&&o.levering==="post"&&!["verzonden","geannuleerd"].includes(o.status)),ta=O.filter(o=>o.levering==="afhalen"&&!["afgehaald","geannuleerd"].includes(o.status));
   const q=norm(SH.q);let L=SH.filter==="open"?O.filter(shOpen):O;if(q)L=L.filter(o=>norm([o.nr,o.klant&&o.klant.naam,o.klant&&o.klant.voornaam,o.klant&&o.klant.email,(o.items||[]).map(i=>i.naam).join(" ")].join(" ")).includes(q));
-  return `<div class="tiles"><div class="tile hero"><span class="lbl">Omzet ${jaar}</span><span class="val">${shEur(dit.filter(o=>o.betaald).reduce((n,o)=>n+(Number(o.totaal)||0),0))}</span><span class="hint">${dit.length} ${dit.length===1?"bestelling":"bestellingen"} · ${dit.reduce((n,o)=>n+(o.items||[]).reduce((m,i)=>m+i.aantal,0),0)} stuks</span></div>
-    <div class="tile"><span class="lbl">Nog te betalen</span><span class="val">${tb.length}</span><span class="hint">${shEur(tb.reduce((n,o)=>n+(Number(o.totaal)||0),0))}</span></div>
-    <div class="tile"><span class="lbl">Te verzenden</span><span class="val">${tv.length}</span><span class="hint">betaald, nog niet verzonden</span></div>
-    <div class="tile"><span class="lbl">Af te halen</span><span class="val">${ta.length}</span><span class="hint">contact opnemen</span></div></div>
+  return `<div class="tiles"><div class="tile hero"><span class="lbl">Omzet ${jaar}</span><span class="val">${shEur(dit.filter(o=>o.betaald).reduce((n,o)=>n+(Number(o.totaal)||0),0))}</span></div>
+    <div class="tile"><span class="lbl">Nog te betalen</span><span class="val">${tb.length}</span></div>
+    <div class="tile"><span class="lbl">Te verzenden</span><span class="val">${tv.length}</span></div>
+    <div class="tile"><span class="lbl">Af te halen</span><span class="val">${ta.length}</span></div></div>
   <div class="panel"><div class="panel-h"><h2>Bestellingen</h2><span class="grow"></span><div class="seg"><button type="button" class="${SH.filter==="open"?"on":""}" data-sh="filter" data-v="open">Open</button><button type="button" class="${SH.filter==="alle"?"on":""}" data-sh="filter" data-v="alle">Alle</button></div></div>
    <div class="panel-b" style="padding-bottom:6px"><div class="search">${ic("search")}<input id="shQ" data-shq placeholder="Zoek op nummer, naam, e-mail of artikel" value="${esc(SH.q)}"></div></div>
    <div class="mlist altijd" role="list">${L.map(o=>{const [k,l]=SH_ST[o.status]||["neutral",o.status],n=(o.items||[]).reduce((m,i)=>m+i.aantal,0);
