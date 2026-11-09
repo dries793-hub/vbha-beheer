@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { requireUser, httpErr, sendError, isDbCron } from "./sb.js";
+import { requireUser, httpErr, sendError, isDbCron, admin } from "./sb.js";
 
 /* Cloudflare R2 (S3-compatibel) voor de fotoalbums.
    Nodig in Vercel: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET.
@@ -14,9 +14,9 @@ const hmac = (k, s) => crypto.createHmac("sha256", k).update(s).digest();
 const sha = s => crypto.createHash("sha256").update(s).digest("hex");
 
 // AWS Signature V4, ondertekening in de querystring (getest met het voorbeeld uit de AWS-documentatie)
-export function presign({ method, host, uri, region, ak, sk, expires, now = new Date() }) {
+export function presign({ method, host, uri, region, ak, sk, expires, now = new Date(), extra = {} }) {
   const amz = now.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""), d = amz.slice(0, 8), scope = `${d}/${region}/s3/aws4_request`;
-  const q = { "X-Amz-Algorithm": "AWS4-HMAC-SHA256", "X-Amz-Credential": `${ak}/${scope}`, "X-Amz-Date": amz, "X-Amz-Expires": String(expires), "X-Amz-SignedHeaders": "host" };
+  const q = { ...extra, "X-Amz-Algorithm": "AWS4-HMAC-SHA256", "X-Amz-Credential": `${ak}/${scope}`, "X-Amz-Date": amz, "X-Amz-Expires": String(expires), "X-Amz-SignedHeaders": "host" };
   const cq = Object.keys(q).sort().map(k => enc(k) + "=" + enc(q[k])).join("&");
   const creq = [method, uri, cq, `host:${host}`, "", "host", "UNSIGNED-PAYLOAD"].join("\n");
   const sts = ["AWS4-HMAC-SHA256", amz, scope, sha(creq)].join("\n");
@@ -28,6 +28,34 @@ export function r2Url(method, pad, expires = 3600) {
   if (!geldig(pad)) throw httpErr(400, "Ongeldig pad");
   return presign({ method, host: r2Host(), uri: `/${enc(env("R2_BUCKET"))}/${pad.split("/").map(enc).join("/")}`, region: "auto", ak: env("R2_ACCESS_KEY_ID"), sk: env("R2_SECRET_ACCESS_KEY"), expires });
 }
+/* ---------- opslaglimiet: nooit boven het gratis deel van Cloudflare R2 (10 GB) ---------- */
+export const LIMIET = 10 * 1000 ** 3;           // 10 GB
+export const MAX = Math.floor(LIMIET * 0.97);   // harde grens met wat marge (opslag van mini/pub/klein en afrondingen)
+const unxml = s => String(s).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+// som van de werkelijke grootte van alle bestanden in de bucket (ListObjectsV2, per 1000)
+export async function r2Teller() {
+  let bytes = 0, aantal = 0, token = null;
+  for (let i = 0; i < 200; i++) {
+    const extra = { "list-type": "2", "max-keys": "1000", ...(token ? { "continuation-token": token } : {}) };
+    const u = presign({ method: "GET", host: r2Host(), uri: `/${enc(env("R2_BUCKET"))}`, region: "auto", ak: env("R2_ACCESS_KEY_ID"), sk: env("R2_SECRET_ACCESS_KEY"), expires: 300, extra });
+    const r = await fetch(u); const t = await r.text();
+    if (!r.ok) throw httpErr(502, "Cloudflare R2 antwoordt niet (" + r.status + ")");
+    for (const m of t.matchAll(/<Size>(\d+)<\/Size>/g)) { bytes += Number(m[1]); aantal++; }
+    const tr = /<IsTruncated>true<\/IsTruncated>/.test(t), nt = (t.match(/<NextContinuationToken>([^<]+)<\/NextContinuationToken>/) || [])[1];
+    if (!tr || !nt) break; token = unxml(nt);
+  }
+  return { bytes, aantal };
+}
+// gebruik met een korte cache in config "r2gebruik" (zodat niet elke upload de hele bucket moet tellen)
+export async function r2Gebruik(sb, { vers = false } = {}) {
+  const { data } = await sb.from("config").select("data").eq("id", "r2gebruik").maybeSingle();
+  const c = (data && data.data) || {};
+  if (!vers && c.op && Date.now() - Date.parse(c.op) < 10 * 60 * 1000 && typeof c.bytes === "number") return c;
+  const t = await r2Teller(); const n = { bytes: t.bytes, aantal: t.aantal, op: new Date().toISOString() };
+  await sb.from("config").upsert({ id: "r2gebruik", data: n }); return n;
+}
+async function r2Bij(sb, c, extra) { await sb.from("config").upsert({ id: "r2gebruik", data: { ...c, bytes: c.bytes + extra } }); }
+const ruimte = c => ({ gebruikt: c.bytes, limiet: LIMIET, max: MAX, procent: Math.round(c.bytes / LIMIET * 1000) / 10 });
 export async function r2Wis(paden) {
   let fout = 0;
   for (let i = 0; i < paden.length; i += 8) await Promise.all(paden.slice(i, i + 8).filter(geldig).map(async p => { try { const r = await fetch(r2Url("DELETE", p, 300), { method: "DELETE" }); if (!r.ok && r.status !== 404) fout++; } catch { fout++; } }));
@@ -48,7 +76,8 @@ export default async function r2Api(req, res) {
       try { const r = await fetch(r2Url("PUT", p, 300), { method: "PUT", body: "ok", headers: { "Content-Type": "image/jpeg" } }); stap.schrijven = r.status; } catch (e) { stap.schrijven = String(e.message || e).slice(0, 80); }
       try { const r = await fetch(r2Url("GET", p, 300)); stap.lezen = r.status; } catch (e) { stap.lezen = String(e.message || e).slice(0, 80); }
       try { const r = await fetch(r2Url("DELETE", p, 300), { method: "DELETE" }); stap.wissen = r.status; } catch (e) { stap.wissen = String(e.message || e).slice(0, 80); }
-      return res.status(200).json({ aan: true, host: r2Host(), bucket: env("R2_BUCKET"), stap });
+      let gebruik = null; try { gebruik = await r2Gebruik(admin(), { vers: true }); } catch (e) { gebruik = { fout: String(e.message || e).slice(0, 80) }; }
+      return res.status(200).json({ aan: true, host: r2Host(), bucket: env("R2_BUCKET"), stap, gebruik });
     }
     if (req.method === "GET") { await requireUser(req); return res.status(200).json({ aan: r2Aan() }); }
     if (req.method !== "POST") throw httpErr(405, "Niet toegelaten");
@@ -56,11 +85,18 @@ export default async function r2Api(req, res) {
     const actie = String(b.actie || ""), paden = Array.isArray(b.paden) ? b.paden.slice(0, 500) : [];
     await requireUser(req, { write: actie !== "lees", functie: "fotos" });
     if (!r2Aan()) throw httpErr(503, "Cloudflare R2 is nog niet ingesteld");
-    if (actie === "lees" || actie === "schrijf") {
-      const urls = {}; for (const p of paden) if (geldig(p)) urls[p] = r2Url(actie === "lees" ? "GET" : "PUT", p, actie === "lees" ? 3600 : 900);
-      return res.status(200).json({ urls });
+    if (actie === "ruimte") { const sb = admin(); return res.status(200).json(ruimte(await r2Gebruik(sb, { vers: !!b.vers }))); }
+    if (actie === "lees") { const urls = {}; for (const p of paden) if (geldig(p)) urls[p] = r2Url("GET", p, 3600); return res.status(200).json({ urls }); }
+    if (actie === "schrijf") {
+      // de browser geeft de grootte van wat hij gaat opladen mee; boven de grens weigert de server de opladlink
+      const bytes = Math.max(0, Math.min(50 * 1000 ** 2 * paden.length, Number(b.bytes) || paden.length * 600 * 1000));
+      const sb = admin(); const c = await r2Gebruik(sb);
+      if (c.bytes + bytes > MAX) return res.status(507).json({ error: `De fotoruimte is vol (${(c.bytes / 1e9).toFixed(2).replace(".", ",")} van 10 GB gebruikt). Verwijder eerst oude albums of foto's.`, vol: true, ...ruimte(c) });
+      const urls = {}; for (const p of paden) if (geldig(p)) urls[p] = r2Url("PUT", p, 900);
+      await r2Bij(sb, c, bytes);
+      return res.status(200).json({ urls, ...ruimte({ bytes: c.bytes + bytes }) });
     }
-    if (actie === "wis") return res.status(200).json({ fout: await r2Wis(paden) });
+    if (actie === "wis") { const fout = await r2Wis(paden); const sb = admin(); await sb.from("config").upsert({ id: "r2gebruik", data: { op: null } }); return res.status(200).json({ fout }); }
     throw httpErr(400, "Onbekende actie");
   } catch (e) { return sendError(res, e); }
 }

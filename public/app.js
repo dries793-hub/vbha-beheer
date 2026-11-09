@@ -5754,12 +5754,24 @@ const faWmKey=a=>JSON.stringify(a.watermerk&&a.watermerk.docId?a.watermerk:null)
 const faGewijzigd=a=>a.status==="gepubliceerd"&&(JSON.stringify((a.publiek&&a.publiek.fotos||[]).map(f=>f.id))!==JSON.stringify(a.fotos.map(f=>f.id))||a.fotos.some(f=>f.pubKey!==faWmKey(a)));
 /* opslag per album: "r2" (Cloudflare R2, via tijdelijke links van de server) of standaard Supabase */
 const faR2=p=>{const m=/^Albums\/([^/]+)\//.exec(p);if(!m)return false;const a=(FA.a&&FA.a.id===m[1])?FA.a:S.fotoalbums.get(m[1]);return !!(a&&a.opslag==="r2")};
-async function faR2Api(actie,paden){return api("/api/mail?f=r2",{method:"POST",body:JSON.stringify({actie,paden})})}
+async function faR2Api(actie,paden){const b=Array.isArray(paden)?{actie,paden}:{actie,...paden};return api("/api/mail?f=r2",{method:"POST",body:JSON.stringify(b)})}
+/* opslaglimiet Cloudflare (10 GB): meter, waarschuwing vanaf 80%, blokkeren als het vol is */
+const FA_GB=b=>(b/1e9).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2})+" GB";
+async function faRuimte(vers){try{FA.ruimte=await faR2Api("ruimte",{vers:!!vers})}catch(e){}return FA.ruimte}
+function faMeter(){const r=FA.ruimte;if(!r)return"";const p=Math.min(100,r.procent),k=p>=95?"var(--bad,#b91c1c)":p>=80?"#d97706":"var(--ok,#16a34a)";
+  return `<div class="fa-meter" title="Opslag bij Cloudflare (gratis tot 10 GB)"><div><span>Fotoruimte</span><b>${FA_GB(r.gebruikt)} van 10 GB</b></div><i><em style="width:${p}%;background:${k}"></em></i>${p>=80?`<small style="color:${k}">${p>=97?"Vol: oude albums of foto's verwijderen om ruimte te maken.":"Bijna vol: nog ongeveer "+FA_GB(Math.max(0,r.max-r.gebruikt))+" vrij."}</small>`:""}</div>`}
+// vóór het opladen: inschatten of het past (± 0,9 MB per foto: origineel + kleine versie, later + watermerkversies)
+async function faPast(n,isR2){if(!isR2)return true;const r=await faRuimte(true);if(!r)return true;const nodig=n*0.9e6,na=r.gebruikt+nodig;
+  if(r.gebruikt>=r.max){modal("Fotoruimte vol",`<p style="margin:0">Je gebruikt ${FA_GB(r.gebruikt)} van de 10 GB gratis ruimte bij Cloudflare. Verwijder eerst oude albums of foto's voor je nieuwe oplaadt.</p>`,`<button class="btn primary" data-act="closeModal">OK</button>`);return false}
+  if(na>r.max){const past=Math.max(0,Math.floor((r.max-r.gebruikt)/0.9e6));modal("Niet genoeg ruimte",`<p style="margin:0">Er is nog ongeveer ${FA_GB(r.max-r.gebruikt)} vrij, genoeg voor ± ${past} foto's. Je wil er ${n} opladen. Kies minder foto's of verwijder eerst oude albums.</p>`,`<button class="btn primary" data-act="closeModal">OK</button>`);return false}
+  if(na/r.limiet>=0.8)return await new Promise(ok=>{modal("Fotoruimte bijna vol",`<p style="margin:0">Na het opladen gebruik je ongeveer <b>${FA_GB(na)}</b> van de 10 GB gratis ruimte bij Cloudflare (${Math.round(na/r.limiet*100)}%). Boven 10 GB laat de app geen foto's meer toe.</p>`,`<button class="btn" id="faRn">Annuleren</button><button class="btn primary" id="faRj">Toch opladen</button>`);
+    $("#faRj").onclick=()=>{closeModal();ok(true)};$("#faRn").onclick=()=>{closeModal();ok(false)}});
+  return true}
 let FA_R2=null;async function faR2Aan(){if(FA_R2!==null)return FA_R2;try{const j=await api("/api/mail?f=r2");FA_R2=!!j.aan}catch(e){FA_R2=false}return FA_R2}
 async function faUrls(paden){const nodig=paden.filter(p=>!FA.urls[p]);const r2=nodig.filter(faR2),sb=nodig.filter(p=>!faR2(p));
   for(let i=0;i<r2.length;i+=400){try{const j=await faR2Api("lees",r2.slice(i,i+400));Object.assign(FA.urls,j.urls||{})}catch(e){}}
   for(let i=0;i<sb.length;i+=100){const {data}=await SB.storage.from(DOC_BUCKET).createSignedUrls(sb.slice(i,i+100),3600);for(const d of data||[])if(d.signedUrl)FA.urls[d.path]=d.signedUrl}return paden.map(p=>FA.urls[p]||"")}
-async function faUp(pad,blob){if(faR2(pad)){const j=await faR2Api("schrijf",[pad]);const u=j.urls&&j.urls[pad];if(!u)throw new Error("Geen link om op te laden");
+async function faUp(pad,blob){if(faR2(pad)){let j;try{j=await faR2Api("schrijf",{paden:[pad],bytes:blob.size})}catch(e){if(/vol/i.test(e.message||"")){FA.vol=e.message;throw new Error(e.message)}throw e}if(j.procent!=null)FA.ruimte=j;const u=j.urls&&j.urls[pad];if(!u)throw new Error("Geen link om op te laden");
     const r=await fetch(u,{method:"PUT",body:blob,headers:{"Content-Type":"image/jpeg"}});if(!r.ok)throw new Error("Opladen naar Cloudflare mislukt ("+r.status+")");delete FA.urls[pad];return}
   const {error}=await SB.storage.from(DOC_BUCKET).upload(pad,blob,{contentType:"image/jpeg",upsert:true});if(error)throw error;delete FA.urls[pad]}
 async function faWis(paden){const r2=paden.filter(faR2),sb=paden.filter(p=>!faR2(p));try{if(r2.length)await faR2Api("wis",r2)}catch(e){}for(let i=0;i<sb.length;i+=100)await SB.storage.from(DOC_BUCKET).remove(sb.slice(i,i+100)).catch(()=>{})}
@@ -5784,7 +5796,7 @@ ftKaarten=function(){const L=ftLijst();
       <div class="ft-b"><div class="ft-t"><b>${esc(a.titel||"Album")}</b>${sub?`<span>${esc(sub)}</span>`:""}${a.omschrijving?`<span class="ft-o">${esc(a.omschrijving)}</span>`:""}</div>
       ${canWrite?`<button type="button" class="btn sm iconbtn ft-edit" data-act="ftEdit" data-id="${esc(a.id)}" aria-label="Album wijzigen" title="Wijzigen">${ic("potlood")}</button>`:""}
       ${u?`<div class="ft-h">${esc(ftHost(u))}</div>`:""}</div></div>`}).join("")}</div>`};
-async function faCovers(){const els=$$("[data-facover]");const P=[];for(const el of els){const a=S.fotoalbums.get(el.dataset.facover);const f=a&&(a.fotos||[]).find(x=>x.id===a.cover)||(a&&(a.fotos||[])[0]);if(f)P.push([el,faPad(a.id,"mini",f.id)])}
+async function faCovers(){if(!FA.ruimteGeladen){FA.ruimteGeladen=true;faR2Aan().then(on=>{if(on)faRuimte().then(()=>{const m=$("#faMeterBox");if(m)m.innerHTML=faMeter()})})}else{const m=$("#faMeterBox");if(m)m.innerHTML=faMeter()}const els=$$("[data-facover]");const P=[];for(const el of els){const a=S.fotoalbums.get(el.dataset.facover);const f=a&&(a.fotos||[]).find(x=>x.id===a.cover)||(a&&(a.fotos||[])[0]);if(f)P.push([el,faPad(a.id,"mini",f.id)])}
   if(!P.length)return;const U=await faUrls(P.map(p=>p[1]));P.forEach(([el,_],i)=>{if(U[i]&&el.isConnected){el.classList.remove("leeg");el.innerHTML=`<img src="${esc(U[i])}" alt="" loading="lazy">`}})}
 
 /* ---------- editor ---------- */
@@ -5814,6 +5826,7 @@ function faEditor(){const a=FA.a,d=canWrite?"":" disabled",n=a.fotos.length,wm=a
     ${canWrite?(pub?`<button class="btn" data-fa="depubliceer">Offline halen</button><button class="btn primary" data-fa="publiceer"${gew&&!FA.busy?"":" disabled"}>Wijzigingen publiceren</button>`:`<button class="btn primary" data-fa="publiceer"${n&&!FA.busy?"":" disabled"}>Publiceren</button>`):""}</div></div>`}
 {const _v=VIEWS.fotos;VIEWS.fotos=function(){const v=_v.apply(this,arguments);
   if(FA.id&&FA.a)return{title:FA.a.titel||"Fotoalbum",actions:"",body:faEditor};
+  const _b=v.body;v.body=function(){return `<div id="faMeterBox">${faMeter()}</div>`+String(_b.apply(this,arguments))};
   return{...v,actions:canWrite?`<button class="btn" data-w data-act="ftNieuw">${ic("link")}Link toevoegen</button><button class="btn primary" data-w data-act="faNieuw">${ic("plus")}Album maken</button>`:""}};Object.assign(VIEWS.fotos,_v);
   VIEWS.fotos.after=()=>{if(!(FA.id&&FA.a)){faCovers();return}faMinis();faWmVoorbeeld();
     if(FA.focus){const el=$(FA.focus.sel);if(el&&document.activeElement!==el){el.focus();try{el.setSelectionRange(FA.focus.pos,FA.focus.pos)}catch(e){}}}}}
@@ -5827,6 +5840,7 @@ async function faWmVoorbeeld(){const c=$("#faWmC");if(!c||!FA.a)return;const a=F
     const wm=a.watermerk;if(wm&&wm.docId){const L=await faLogo(wm.docId);if(job!==FA_WMJOB)return;if(L)faWmTeken(x,c.width,c.height,L.bmp,wm)}}catch(e){}}
 /* foto's opladen: verkleinen in de browser, bron + mini naar de opslag */
 async function faOpladen(files){const a=FA.a;if(!a||!files.length)return;files=[...files].filter(f=>/^image\//.test(f.type)||/\.(heic|heif|jpe?g|png|webp)$/i.test(f.name));if(!files.length){toast("Kies foto's (JPG of PNG).",true);return}
+  if(!(await faPast(files.length,a.opslag==="r2")))return;FA.vol=null;
   FA.busy={t:"Foto's opladen",i:0,n:files.length};renderBody();let fout=0;const nieuw=[];let k=0;
   const werk=async()=>{while(k<files.length){const file=files[k++];try{const r=await fotoVerklein(file,1920,0.86);const id=faId();
       const m=document.createElement("canvas"),s=Math.min(1,400/Math.max(r.w,r.h));m.width=Math.round(r.w*s);m.height=Math.round(r.h*s);m.getContext("2d").drawImage(r.canvas,0,0,m.width,m.height);const mb=await new Promise(ok=>m.toBlob(ok,"image/jpeg",0.8));
@@ -5835,9 +5849,9 @@ async function faOpladen(files){const a=FA.a;if(!a||!files.length)return;files=[
     FA.busy.i++;const p=$(".fa-prog");if(p){p.querySelector("span").textContent=FA.busy.i+" / "+FA.busy.n;p.querySelector("em").style.width=Math.round(FA.busy.i/FA.busy.n*100)+"%"}}};
   await Promise.all([werk(),werk(),werk()]);
   nieuw.sort((x,y)=>x._t-y._t||x.naam.localeCompare(y.naam,"nl",{numeric:true}));for(const f of nieuw){delete f._t;a.fotos.push(f)}if(!a.cover&&a.fotos[0])a.cover=a.fotos[0].id;
-  FA.busy=null;await faSave(true);renderBody();toast(nieuw.length+" foto"+(nieuw.length===1?"":"'s")+" opgeladen"+(fout?`, ${fout} lukte niet`:"")+".",!!fout)}
+  FA.busy=null;await faSave(true);renderBody();if(FA.vol){modal("Fotoruimte vol",`<p style="margin:0">${esc(FA.vol)}</p><p class="muted small">${nieuw.length} foto's werden wel opgeladen.</p>`,`<button class="btn primary" data-act="closeModal">OK</button>`);return}toast(nieuw.length+" foto"+(nieuw.length===1?"":"'s")+" opgeladen"+(fout?`, ${fout} lukte niet`:"")+".",!!fout)}
 /* publiceren: watermerk in de foto zetten (pub + klein), daarna de deelbare link aanmaken */
-async function faPubliceer(){const a=FA.a;if(!a||!a.fotos.length)return;const key=faWmKey(a),wm=a.watermerk&&a.watermerk.docId?a.watermerk:null;
+async function faPubliceer(){const a=FA.a;if(!a||!a.fotos.length)return;FA.vol=null;const key=faWmKey(a),wm=a.watermerk&&a.watermerk.docId?a.watermerk:null;
   let L=null;if(wm){L=await faLogo(wm.docId);if(!L){toast("Het logo voor het watermerk is niet gevonden.",true);return}}
   const todo=a.fotos.filter(f=>f.pubKey!==key);FA.busy={t:"Foto's klaarmaken met watermerk",i:0,n:todo.length};renderBody();let fout=0,k=0;
   const werk=async()=>{while(k<todo.length){const f=todo[k++];try{const [u]=await faUrls([faPad(a.id,"bron",f.id)]);const im=await createImageBitmap(await (await fetch(u)).blob());
@@ -5848,7 +5862,7 @@ async function faPubliceer(){const a=FA.a;if(!a||!a.fotos.length)return;const ke
       f.pubKey=key;f.pw=W;f.ph=H}catch(x){fout++;console.error(x)}
     FA.busy.i++;const p=$(".fa-prog");if(p){p.querySelector("span").textContent=FA.busy.i+" / "+FA.busy.n;p.querySelector("em").style.width=Math.round(FA.busy.i/FA.busy.n*100)+"%"}}};
   await Promise.all([werk(),werk(),werk()]);FA.busy=null;
-  if(fout){await faSave(true);renderBody();toast(fout+" foto's konden niet verwerkt worden. Probeer opnieuw te publiceren.",true);return}
+  if(fout){await faSave(true);renderBody();if(FA.vol){modal("Fotoruimte vol",`<p style="margin:0">${esc(FA.vol)}</p>`,`<button class="btn primary" data-act="closeModal">OK</button>`);FA.vol=null;return}toast(fout+" foto's konden niet verwerkt worden. Probeer opnieuw te publiceren.",true);return}
   const weg=(a.weg||[]).flatMap(id=>["pub","klein"].map(s=>faPad(a.id,s,id)));if(weg.length)await faWis(weg);a.weg=[];
   a.publiek={token:(a.publiek&&a.publiek.token)||faTok(),op:new Date().toISOString(),door:ME_NAME||"",fotos:a.fotos.map(f=>({id:f.id,w:f.pw||f.w,h:f.ph||f.h}))};a.status="gepubliceerd";
   await faSave(true);renderBody();toast("Album gepubliceerd. Kopieer de link om ze te delen.")}
@@ -5911,7 +5925,8 @@ input[type=range]{width:100%;accent-color:var(--ink)}
 .fa-drop{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:36px 16px;border:2px dashed var(--line);border-radius:14px;cursor:pointer;color:var(--muted)}.fa-drop b{color:var(--ink)}.fa-drop svg{width:28px;height:28px}.fa-drop.uit{pointer-events:none;opacity:.6}
 .fa-prog{margin-bottom:12px}.fa-prog div{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:6px}.fa-prog i{display:block;height:8px;border-radius:99px;background:var(--line);overflow:hidden}.fa-prog em{display:block;height:100%;background:var(--ink);transition:width .3s}
 @media (min-width:900px){.fa-save{position:sticky;bottom:12px;z-index:5;box-shadow:0 6px 24px rgba(0,0,0,.08)}}
-button.ft-hit{position:absolute;inset:0;z-index:1;cursor:pointer;width:100%}`;document.head.appendChild(st)}
+button.ft-hit{position:absolute;inset:0;z-index:1;cursor:pointer;width:100%}
+.fa-meter{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff)}.fa-meter div{display:flex;justify-content:space-between;font-size:13.5px}.fa-meter span{color:var(--muted)}.fa-meter i{display:block;height:8px;border-radius:99px;background:var(--line);overflow:hidden}.fa-meter em{display:block;height:100%}.fa-meter small{font-size:12.5px}#faMeterBox:empty{display:none}`;document.head.appendChild(st)}
 
 /* ============ Rechten per gebruiker en per functie ============
    bestuur.rechten = null → volgens het profiel (admin / boekhouder / lezer)
