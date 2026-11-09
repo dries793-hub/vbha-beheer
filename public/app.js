@@ -2424,11 +2424,11 @@ function docTabel(){const L=docLijst(),metMap=!!DOC.q;const dt=s=>{const d=new D
   if(!L.length)return leeg?`<div class="panel"><div class="empty">${leeg}</div></div>`:"";
   const mob=`<div class="mlist" role="list">${L.map(d=>{const e=docExt(d.naam);return `<div class="ml-row doc-mr" role="listitem"><a class="doc-n" data-act="docOpen" data-id="${esc(d.id)}" href="#documenten"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span>
     <span class="ml-m"><span class="ml-n"><b>${esc(d.naam)}</b></span><span class="ml-s">${metMap?esc(docLabel(docPad(d)))+'<span class="ml-dot">·</span>':""}${docKB(d.grootte||0)}<span class="ml-dot">·</span>${dt(d.op)}</span>${d.rol?`<span class="doc-rol">${ic("link")}Knop ${d.rol==="sponsordossier"?"Sponsordossier":"Reglement"}</span>`:""}${d.omschrijving&&!docVgLink(d)?`<span class="ml-s">${esc(d.omschrijving)}</span>`:""}${docVgLink(d)}</span></a>
-    <span class="doc-ma"><button type="button" class="iconbtn2" data-act="docDown" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="iconbtn2" data-act="docEdit" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} wijzigen">${ic("potlood")}</button>`:""}</span></div>`}).join("")}</div>`;
+    <span class="doc-ma"><button type="button" class="iconbtn2" data-act="docDown" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="iconbtn2" data-act="docVerpl" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} verplaatsen">${ic("verplaats")}</button><button type="button" class="iconbtn2" data-act="docEdit" data-id="${esc(d.id)}" aria-label="${esc(d.naam)} wijzigen">${ic("potlood")}</button>`:""}</span></div>`}).join("")}</div>`;
   return `<div class="panel">`+mob+`<div class="tw dsk-only"><table class="rcards doct" data-main="0"><thead><tr><th>Naam</th>${metMap?"<th>Map</th>":""}<th class="num">Grootte</th><th>Toegevoegd</th><th></th></tr></thead><tbody>
-  ${L.map(d=>{const e=docExt(d.naam);return `<tr><td><a class="doc-n" data-act="docOpen" data-id="${esc(d.id)}" href="#documenten"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span><span class="doc-t"><b>${esc(d.naam)}</b>${d.rol?`<span class="doc-rol">${ic("link")}Knop ${d.rol==="sponsordossier"?"Sponsordossier":"Reglement"}</span>`:""}${d.omschrijving&&!docVgLink(d)?`<span>${esc(d.omschrijving)}</span>`:""}${docVgLink(d)}</span></a></td>
+  ${L.map(d=>{const e=docExt(d.naam);return `<tr${canWrite?` draggable="true" data-docsleep="${esc(d.id)}"`:""}><td><a class="doc-n" data-act="docOpen" data-id="${esc(d.id)}" href="#documenten"><span class="doc-ic ${docKleur(e)}">${esc((e||"?").slice(0,4).toUpperCase())}</span><span class="doc-t"><b>${esc(d.naam)}</b>${d.rol?`<span class="doc-rol">${ic("link")}Knop ${d.rol==="sponsordossier"?"Sponsordossier":"Reglement"}</span>`:""}${d.omschrijving&&!docVgLink(d)?`<span>${esc(d.omschrijving)}</span>`:""}${docVgLink(d)}</span></a></td>
    ${metMap?`<td><button type="button" class="pill neutral doc-pm" data-act="docMapF" data-v="${esc(docPad(d))}">${esc(docLabel(docPad(d)))}</button></td>`:""}<td class="num nowrap muted">${docKB(d.grootte||0)}</td><td class="nowrap muted">${dt(d.op)}${d.door?`<div class="small">${esc(d.door)}</div>`:""}</td>
-   <td class="nowrap doc-a"><button type="button" class="btn sm" data-act="docDown" data-id="${esc(d.id)}" title="Downloaden" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="btn sm" data-act="docEdit" data-id="${esc(d.id)}" title="Wijzigen" aria-label="${esc(d.naam)} wijzigen">${ic("potlood")}</button>`:""}</td></tr>`}).join("")}
+   <td class="nowrap doc-a"><button type="button" class="btn sm" data-act="docDown" data-id="${esc(d.id)}" title="Downloaden" aria-label="${esc(d.naam)} downloaden">${ic("download")}</button>${canWrite?`<button type="button" class="btn sm" data-act="docVerpl" data-id="${esc(d.id)}" title="Naar een andere map verplaatsen" aria-label="${esc(d.naam)} verplaatsen">${ic("verplaats")}</button><button type="button" class="btn sm" data-act="docEdit" data-id="${esc(d.id)}" title="Wijzigen" aria-label="${esc(d.naam)} wijzigen">${ic("potlood")}</button>`:""}</td></tr>`}).join("")}
   </tbody></table></div></div>`}
 function docInhoud(){return DOC.q?docTabel():docMapGrid()+docTabel()}
 // verslag van een vergadering: knop naar die vergadering in de agenda
@@ -2551,6 +2551,26 @@ async function docDeel(m){if(!canWrite||!m)return;
       try{await navigator.clipboard.writeText(deelUrl(id));toast("Link gemaakt en gekopieerd.")}catch(_){toast("Link gemaakt.")}
       $("#ddV").value="";await toon(id)}catch(x){$("#ddErr").textContent=x.message}finally{b.disabled=false}};
   $("#ddOk").onclick=ok;$("#fDd").onsubmit=ok}
+
+/* ---------- document naar een andere map verplaatsen (knop of slepen naar een map) ---------- */
+ICON.verplaats='<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M10 13h6M13.5 10.5 16 13l-2.5 2.5"/>';
+async function docVerplaats(d,m){if(!d||!m||docPad(d)===m)return;await write("documenten",d.id,{...stripId(d),map:m});toast(`"${d.naam}" staat nu in ${docLabel(m)}.`)}
+function docVerplKies(d){const huidig=docPad(d);
+  modal("Verplaatsen naar…",`<p class="muted small" style="margin:0 0 10px">Kies de map voor <b>${esc(d.naam)}</b>.</p><div class="doc-vk">${docMappen().map(m=>`<button type="button" class="doc-vk-i${m===huidig?" on":""}" data-vk="${esc(m)}"${m===huidig?" disabled":""} style="padding-left:${12+18*(m.split("/").length-1)}px">${ic("documenten")}<span>${esc(docNaamVan(m))}</span>${m===huidig?'<small>huidige map</small>':""}</button>`).join("")}</div>`,
+  `<button class="btn" data-act="closeModal">Annuleren</button>`);
+  document.querySelectorAll("[data-vk]").forEach(b=>b.onclick=async()=>{closeModal();await docVerplaats(d,b.dataset.vk)})}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="docVerpl"]');if(!t||!canWrite)return;e.preventDefault();const d=S.documenten.get(t.dataset.id);if(d)docVerplKies(d)});
+// slepen: een rij op een map (tegel of kruimelpad) laten vallen
+document.addEventListener("dragstart",e=>{const r=e.target.closest&&e.target.closest("[data-docsleep]");if(!r)return;e.dataTransfer.setData("text/vbha-doc",r.dataset.docsleep);e.dataTransfer.effectAllowed="move";document.body.classList.add("doc-sleept")});
+document.addEventListener("dragend",()=>{document.body.classList.remove("doc-sleept");document.querySelectorAll(".doc-fold.over").forEach(x=>x.classList.remove("over"))});
+const docDoel=e=>e.target.closest&&e.target.closest(".doc-fold[data-map]");
+document.addEventListener("dragover",e=>{const f=docDoel(e);if(!f||!document.body.classList.contains("doc-sleept"))return;e.preventDefault();f.classList.add("over")});
+document.addEventListener("dragleave",e=>{const f=docDoel(e);if(f)f.classList.remove("over")});
+document.addEventListener("drop",e=>{const f=docDoel(e);const id=e.dataTransfer&&e.dataTransfer.getData("text/vbha-doc");if(!f||!id)return;e.preventDefault();e.stopPropagation();f.classList.remove("over");docVerplaats(S.documenten.get(id),f.dataset.map)},true);
+{const st=document.createElement("style");st.textContent=`.doc-vk{display:flex;flex-direction:column;gap:4px;max-height:60vh;overflow:auto}
+.doc-vk-i{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font:inherit;color:var(--ink);cursor:pointer}
+.doc-vk-i:hover:not(:disabled){border-color:var(--ink)}.doc-vk-i svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;color:var(--muted)}.doc-vk-i span{flex:1}.doc-vk-i small{color:var(--muted)}.doc-vk-i:disabled{opacity:.6;cursor:default}
+tr[data-docsleep]{cursor:grab}.doc-fold.over{outline:2px dashed var(--accent);outline-offset:2px}`;document.head.appendChild(st)}
 
 /* ============ Foto's (Activiteiten › Foto's) ============
    Collectie "fotoalbums": {titel, jaar, datum, link, fotograaf, omschrijving, cover} — een album is een link naar een externe galerij (bv. Pixieset). */
