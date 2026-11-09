@@ -5500,6 +5500,9 @@ function wjInstHtml(c){const o=wjCfg();const d=canWrite?"":" disabled";
   <div class="fld"><label for="wjMaand">Nieuw werkjaar vanaf</label><select id="wjMaand"${d}>${WJ_MND.map((m,i)=>`<option value="${i+1}"${o.maand===i+1?" selected":""}>1 ${m}</option>`).join("")}</select></div></div></div>`}
 function wjInstVals(){const el=$("#wjCats");if(!el)return null;return{cats:[...el.querySelectorAll("input:checked")].map(i=>i.value),maand:Number($("#wjMaand").value)||5}}
 
+// paneel "Resultaat per werkjaar" verborgen op de boekhoudpagina (op vraag); de toewijzing per werkjaar blijft gelden
+wjPaneel=function(){return ""};
+
 /* ---------- Kinderfeest: voorziene kost van de cadeaus volgens de inschrijvingen ----------
    Bedragen komen uit "Waarde per geboortejaar" (bevestigingsmail), bv. "2016-2020: 50,00 EUR per kind".
    Een groep zonder bedrag ("cadeau voorzien door VBHA") krijgt het bedrag uit kf_<jaar>.cadeauVbha. */
