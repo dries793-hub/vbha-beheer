@@ -5987,14 +5987,17 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-rg],[data-
    Velden voor de mails: {status_volgend} (goud/zilver/brons volgens de punten van dit jaar) en {status_tussenstand}
    (persoonlijke zin: al goud, of met hoeveel dozen kalenders het lid nog goud haalt). Geen punten in de mail.
    De proficiat-mail verstuurt de server automatisch (api/_lib/goudmail.js); aan/uit via config algemeen.goudMail.aan. */
-ML_VELDEN.push(["Puntensysteem",[["status_volgend","Status volgend jaar"],["status_tussenstand","Tussenstand (persoonlijke zin)"]]]);
+ML_VELDEN.push(["Puntensysteem",[["status_volgend","Status volgend jaar"],["status_tussenstand","Tussenstand (persoonlijke zin)"],["status_uitleg","Uitleg goud (niet bij goudleden)"]]]);
 function stTussen(lidId){const C=ctx(),r=C.rows.get(lidId);if(!r)return{st:"",zin:""};const c=C.c||cfg(),dr=(c.drempels||{zilver:65,goud:100}),w=(c.gewichten||{kalenders:25});
   const V=JAAR+1;if(r.lid.categorie==="Erewacht")return{st:"goud",zin:`Als lid van de erewacht heb je altijd de goudstatus.`};
   const t=r.p.totaal;const st=t>=dr.goud?"goud":t>=dr.zilver?"zilver":"brons";
   if(st==="goud")return{st,zin:`Proficiat: je hebt de goudstatus voor ${V} al behaald. Je geniet volgend jaar van de maximale korting op onze betalende activiteiten.`};
   const n=Math.max(1,Math.ceil((dr.goud-t)/(w.kalenders||25)));
   return{st,zin:`Je staat momenteel op ${st} voor ${V}. Met nog ${n===1?"slechts 1 doos":n+" dozen"} kalenders bedelen haal je de goudstatus en geniet je volgend jaar van de maximale korting op onze betalende activiteiten.`}}
-{const _m=mlMap;mlMap=function(r){const o=_m.apply(this,arguments);if(r&&r.lidId){const x=stTussen(r.lidId);o.status_volgend=x.st;o.status_tussenstand=x.zin}else{o.status_volgend="";o.status_tussenstand=""}return o}}
+{const _m=mlMap;mlMap=function(r){const o=_m.apply(this,arguments);if(r&&r.lidId){const x=stTussen(r.lidId);o.status_volgend=x.st;o.status_tussenstand=x.zin;
+  o.status_uitleg=x.st&&x.st!=="goud"?"Elke doos kalenders die je bedeelt, brengt je dichter bij de goudstatus. Als goudlid geniet je van de maximale korting op onze betalende activiteiten, zoals het banket.":""}else{o.status_volgend="";o.status_tussenstand="";o.status_uitleg=""}return o}}
+// lege alinea's (bv. {status_uitleg} bij goudleden) niet tonen
+{const _v=vul;vul=function(t,r,html){const s=_v.apply(this,arguments);return html?s.replace(/<p>\s*<\/p>/g,""):s.replace(/\n{3,}/g,"\n\n")}}
 // paneel op de pagina Puntensysteem
 const goudCfg=()=>((S.config.get("algemeen")||{}).goudMail)||{};
 function stMailPaneel(){const g=goudCfg(),aan=g.aan!==false,d=ROL==="admin"?"":" disabled";const tpl=[...S.templates.values()].find(t=>t.id==="tpl-tussenstand");
