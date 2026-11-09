@@ -107,7 +107,7 @@ function wmLaag(f){if(!WM||!WM.url)return"";const g=WM.grootte/100,m=0.03*Math.m
 function teken(){const c=A.fotos.find(f=>f.id===A.cover)||A.fotos[0];document.title=A.titel+" – VBHA";
   const n=A.fotos.length;
   $("#app").innerHTML=`<section class="hero"><div class="bg" style="background-image:url('${c?esc(c.g):""}')"></div><div class="in">
-    <span class="kick">Fotoalbum</span><h1>${esc(A.titel)}</h1>
+    <h1>${esc(A.titel)}</h1>
     <div class="meta">${A.datum?`<span>${esc(fmtD(A.datum))}</span>`:""}<span>${n} foto${n===1?"":"'s"}</span>${A.fotograaf?`<span>📷 ${esc(A.fotograaf)}</span>`:""}</div>
     ${A.omschrijving?`<p class="oms">${esc(A.omschrijving)}</p>`:""}
     <div class="acts"><button class="pill wit" id="start"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg>Diavoorstelling</button><button class="pill" id="naarGrid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>Alle foto's</button><button class="pill" id="deel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13M7.5 7.5 12 3l4.5 4.5"/></svg>Delen</button></div></div></section>
