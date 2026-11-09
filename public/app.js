@@ -5833,7 +5833,7 @@ function bgBeheer(){const D=bgDoc();
 if(!ROUTES.some(r=>r[0]==="website"))ROUTES.push(["website","Website"]);
 ICON.website='<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.8 5.6 3.8 9s-1.2 6.4-3.8 9c-2.6-2.6-3.8-5.6-3.8-9S9.4 5.6 12 3z"/>';
 const WS_BLOKKEN=[["viv","In Vier en Vlam","Info over de fuif met een knop om tickets te bestellen. Zet aan zodra de kalenders bedeeld zijn."],["kalender","Bedeling kalenders","De nieuwe kalender, met de knop om je adres door te geven."],["steun","Steun de Vriendenkring","Bedrag kiezen en betalen met Bancontact, plus de overschrijvingsgegevens."],["sponsors","Onze sponsors","De bewegende band met de logo's van de sponsors."]];
-const WS_DEF={blokken:{viv:false,kalender:true,steun:true,sponsors:true},kal_titel:"De nieuwe brandweerkalender "+(new Date().getFullYear()+1)+" wordt nu bedeeld",kal_tekst:"De komende weken brengen onze brandweermensen de kalender van Brandweer Aalst bij je langs. Bedankt om de Vriendenkring te steunen!",viv_titel:"In Vier en Vlam",viv_datum:"De fuif van de Vriendenkring",viv_tekst:"De fuif van de Vriendenkring Brandweer Hoofdpost Aalst. Bestel nu je tickets!"};
+const WS_DEF={blokken:{viv:false,kalender:true,steun:true,sponsors:true},kal_titel:"De nieuwe brandweerkalender "+(new Date().getFullYear()+1)+" wordt nu bedeeld",kal_tekst:"De komende weken brengen onze brandweermensen de kalender van Brandweer Aalst bij je langs. Bedankt om de Vriendenkring te steunen!",viv_titel:"In Vier en Vlam",viv_datum:"De fuif van de Vriendenkring",viv_tekst:"De fuif van de Vriendenkring Brandweer Hoofdpost Aalst. Bestel nu je tickets!",spo_titel:"Onze sponsors",spo_tekst:"Dankzij deze sponsors kunnen we de kalender maken. Hartelijk dank voor jullie steun!"};
 let WS=null; // werkversie (niet bewaard)
 function wsCfg(){const c=S.config.get("website")||{};return {...WS_DEF,...stripId(c),blokken:{...WS_DEF.blokken,...(c.blokken||{})},fotos:{...(c.fotos||{})}}}
 function wsWerk(){if(!WS)WS=JSON.parse(JSON.stringify(wsCfg()));return WS}
@@ -5868,6 +5868,9 @@ VIEWS.website=()=>({title:"Website",sub:"Startpagina vbha.be",
       ${fld("wsKx","Tekst",ta("wsKx","kal_tekst",600),"full")}
       ${wsFotoBlok("kalender","Foto")}
       ${wsKnoppen("kal_knoppen",W.kal_knoppen,"Extra knoppen (naast Geef je adres door)")}</div></div></div></div>
+    <div class="panel${W.blokken.sponsors?"":" ws-uit"}"><div class="panel-h"><h2>Onze sponsors</h2>${W.blokken.sponsors?'<span class="pill ok">aan</span>':'<span class="pill neutral">uit</span>'}</div><div class="panel-b"><div class="form">
+      ${fld("wsSt","Titel",`<input id="wsSt" data-wsk="spo_titel" maxlength="120" value="${esc(W.spo_titel||"")}"${d}>`,"full")}
+      ${fld("wsSx","Tekst",ta("wsSx","spo_tekst",400),"full")}</div></div></div>
     ${wsEigenPaneel()}
     <div class="panel ws-save"><div class="panel-b" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><span class="grow muted small" id="wsStat">${wsGewijzigd()?"Je hebt wijzigingen die nog niet gepubliceerd zijn.":"Alles is gepubliceerd."}</span>
       <button class="btn" data-wsact="voorbeeld">${ic("search")}Voorbeeld</button>${canWrite?`<button class="btn ghost" data-wsact="herstel"${wsGewijzigd()?"":" disabled"}>Wijzigingen ongedaan maken</button><button class="btn primary" data-wsact="publiceer">Publiceren</button>`:""}</div></div>`}});
