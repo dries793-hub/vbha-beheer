@@ -6397,9 +6397,8 @@ async function shSms(a,s){const H=(s.leden||[]).map(id=>shHelper(a,id)).filter(h
   await smsDienst();if(!SMSD||!SMSD.aan){shSmsEenVoorEen(a,s,H);return}
   const tekst=shVul(a.smsTekst,a,s,H[0]),delen=tekst.length<=160?1:Math.ceil(tekst.length/153);
   modal("Sms: "+(s.taak||"shift"),`<p style="margin:0 0 10px">${H.length} ${H.length===1?"persoon krijgt":"personen krijgen"} elk een eigen sms van <b>${esc(SMSD.afzender||"VBHA")}</b>. Voorbeeld voor ${esc(H[0].voornaam||"")}:</p>
-    <div class="sh-vb">${esc(tekst)}</div><p class="muted small" style="margin:10px 0 0">Verstuurd via BudgetSMS · ${tekst.length} tekens${delen>1?` (${delen} sms-delen per persoon)`:""} · ongeveer ${eur(H.length*delen*0.066)}</p>`,
-    `<button class="linkbtn small" id="shSmsZelf" style="margin-right:auto" title="Niet via BudgetSMS, maar één voor één vanaf je eigen gsm-nummer">Liever vanaf je eigen gsm?</button><button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="shSmsOk">${ic("mails")}Versturen</button>`);
-  $("#shSmsZelf").onclick=()=>shSmsEenVoorEen(a,s,H);
+    <div class="sh-vb">${esc(tekst)}</div>`,
+    `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="shSmsOk">${ic("mails")}Versturen</button>`);
   $("#shSmsOk").onclick=async()=>{const k=$("#shSmsOk");k.disabled=true;k.textContent="Bezig…";
     try{const j=await api("/api/mail?f=sms",{method:"POST",body:JSON.stringify({berichten:H.map(h=>({tel:h.tel,tekst:shVul(a.smsTekst,a,s,h),label:h.naam}))})});
       const ok=j.resultaten.filter(r=>r.ok).length,fout=j.resultaten.filter(r=>!r.ok);
