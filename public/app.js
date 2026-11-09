@@ -3168,7 +3168,7 @@ function kalLogForm(id){const j=S.jaarleden.get(id);if(!j)return;const naam=kalN
 /* persoon toevoegen: typen en de naam vult aan */
 function kalToevoegen(){
   const C=ctx(),k=kalStats(C);const inL=new Set(k.rows.map(j=>j.lidId));
-  const L=C.leden.filter(l=>!inL.has(l.id)).map(l=>({id:l.id,n:naamVol(l).trim(),z:norm(l.voornaam+" "+l.naam+" "+l.naam+" "+l.voornaam)})).sort((a,b)=>a.n.localeCompare(b.n,"nl"));
+  const L=C.leden.map(l=>({id:l.id,n:naamVol(l).trim(),al:inL.has(l.id),z:norm(l.voornaam+" "+l.naam+" "+l.naam+" "+l.voornaam)})).sort((a,b)=>a.n.localeCompare(b.n,"nl"));
   modal("Persoon aan kalenderlijst toevoegen",`<div class="form">
    <div class="fld full kal-ac"><label for="kWie">Naam</label><input id="kWie" autocomplete="off" placeholder="Begin te typen…" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="kSug"><div class="kal-sug" id="kSug" role="listbox" hidden></div>
     <span class="help" id="kHelp">Kies een lid uit de lijst. Staat de persoon er niet in, typ dan gewoon de volledige naam.</span></div>
@@ -3176,9 +3176,9 @@ function kalToevoegen(){
    `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kOk">Toevoegen</button>`);
   let gekozen=null,act=-1,hits=[];const inp=$("#kWie"),sug=$("#kSug");
   const toon=()=>{const q=norm(inp.value);hits=q?L.filter(x=>q.split(/\s+/).every(w=>x.z.includes(w))).slice(0,8):[];act=hits.length?0:-1;
-    sug.innerHTML=hits.map((x,i)=>`<button type="button" role="option" data-i="${i}" class="${i===act?"on":""}">${esc(x.n)}</button>`).join("")+(q&&!hits.some(x=>norm(x.n)===q)?`<div class="kal-sug-n">Geen lid? Dan voeg je <b>${esc(inp.value.trim())}</b> toe als niet-lid.</div>`:"");
+    sug.innerHTML=hits.map((x,i)=>`<button type="button" role="option" data-i="${i}" class="${i===act?"on":""}">${esc(x.n)}${x.al?' <small class="muted">(staat al in de lijst)</small>':""}</button>`).join("")+(q&&!hits.some(x=>norm(x.n)===q)?`<div class="kal-sug-n">Geen lid? Dan voeg je <b>${esc(inp.value.trim())}</b> toe als niet-lid.</div>`:"");
     sug.hidden=!q;inp.setAttribute("aria-expanded",String(!!q))};
-  const kies=x=>{gekozen=x;inp.value=x.n;sug.hidden=true;$("#kHelp").innerHTML=`Lid gekozen: <b>${esc(x.n)}</b>`};
+  const kies=x=>{gekozen=x;inp.value=x.n;sug.hidden=true;$("#kHelp").innerHTML=x.al?`<b>${esc(x.n)}</b> staat al in de lijst: de dozen worden bij hem of haar opgeteld.`:`Lid gekozen: <b>${esc(x.n)}</b>`};
   inp.addEventListener("input",()=>{gekozen=null;$("#kHelp").textContent="Kies een lid uit de lijst. Staat de persoon er niet in, typ dan gewoon de volledige naam.";toon()});
   inp.addEventListener("keydown",e=>{if(sug.hidden||!hits.length){if(e.key==="Enter"){e.preventDefault();$("#kOk").click()}return}
     if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();act=(act+(e.key==="ArrowDown"?1:-1)+hits.length)%hits.length;sug.querySelectorAll("[data-i]").forEach((b,i)=>b.classList.toggle("on",i===act))}
@@ -3187,7 +3187,7 @@ function kalToevoegen(){
   inp.addEventListener("blur",()=>setTimeout(()=>{sug.hidden=true},120));
   setTimeout(()=>inp.focus(),40);
   $("#kOk").onclick=async()=>{const naam=inp.value.trim(),n=kalLees("kalN");
-    if(!gekozen){const ex=L.find(x=>norm(x.n)===norm(naam));if(ex)gekozen=ex}
+    if(!gekozen){const q=norm(naam).split(/\s+/).sort().join(" ");const ex=L.find(x=>norm(x.n).split(/\s+/).sort().join(" ")===q);if(ex)gekozen=ex}
     if(!naam){$("#kErr").textContent="Vul een naam in.";inp.focus();return}
     const lid=gekozen?gekozen.id:null;const id=JAAR+"_"+(lid||"x-"+slug(naam));const cur=S.jaarleden.get(id)||{};closeModal();
     const op=cur.kalOpgehaald||0,ui=cur.kalUitgevoerd||0;
