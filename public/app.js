@@ -3867,7 +3867,8 @@ async function vaBulkOk(btn){const err=$("#vaBulkErr");if(VA_BULK.some(x=>!x.dat
       const cur=S.vergaderingen.get(vid)||v;await write("vergaderingen",vid,{...stripId(cur),afgerond:{...(cur.afgerond||{}),op:(cur.afgerond&&cur.afgerond.op)||new Date().toISOString(),door:ME_NAME||"",verslagDoc:did,zonderMail:true}});ok++}
     catch(e){fout.push(x.file.name+": "+(e.message||e))}}
   closeModal();if(fout.length)modal("Verslagen opladen",`<p style="margin:0 0 8px">${ok} ${ok===1?"verslag":"verslagen"} opgeladen.</p><div class="note">${fout.map(esc).join("<br>")}</div>`,`<button class="btn primary" data-act="closeModal">Sluiten</button>`);else toast(`${ok} ${ok===1?"verslag":"verslagen"} opgeladen. Er werden geen mails verstuurd.`);AG.oud=true;render(true)}
-{const _a=VIEWS.agenda;const n=function(){const v=_a.apply(this,arguments);if(canWrite)v.actions=`<button class="btn" data-va="bulk" title="Verslagen opladen">${ic("upload")}Verslagen</button>`+(v.actions||"");return v};Object.assign(n,_a);VIEWS.agenda=n}
+// knop "Verslagen" op de agenda verborgen (verslag opladen kan nog per vergadering)
+// {const _a=VIEWS.agenda;const n=function(){const v=_a.apply(this,arguments);if(canWrite)v.actions=`<button class="btn" data-va="bulk" title="Verslagen opladen">${ic("upload")}Verslagen</button>`+(v.actions||"");return v};Object.assign(n,_a);VIEWS.agenda=n}
 document.addEventListener("change",e=>{const t=e.target;
   if(t.id==="vaBulkF"){for(const f of t.files)if(!VA_BULK.some(x=>x.file.name===f.name&&x.file.size===f.size))VA_BULK.push({file:f,datum:vaDatumUitNaam(f.name)});VA_BULK.sort((a,b)=>String(a.datum).localeCompare(String(b.datum)));t.value="";vaBulkLijst()}
   if(t.classList&&t.classList.contains("va-bd")){VA_BULK[+t.dataset.i].datum=t.value;vaBulkLijst()}});
