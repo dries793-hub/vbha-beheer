@@ -5843,11 +5843,13 @@ async function faOpladen(files){const a=FA.a;if(!a||!files.length)return;files=[
   const werk=async()=>{while(k<files.length){const file=files[k++];try{const r=await fotoVerklein(file,1920,0.86);const id=faId();
       const m=document.createElement("canvas"),s=Math.min(1,400/Math.max(r.w,r.h));m.width=Math.round(r.w*s);m.height=Math.round(r.h*s);m.getContext("2d").drawImage(r.canvas,0,0,m.width,m.height);const mb=await new Promise(ok=>m.toBlob(ok,"image/jpeg",0.8));
       await faUp(faPad(a.id,"bron",id),r.blob);await faUp(faPad(a.id,"mini",id),mb);
-      nieuw.push({id,naam:String(file.name||"").slice(0,120),w:r.w,h:r.h,_t:file.lastModified||0})}catch(x){fout++;console.error(x)}
+      let km={};try{km=faKenmerk(m)}catch(e){}nieuw.push({id,naam:String(file.name||"").slice(0,120),w:r.w,h:r.h,_t:file.lastModified||0,t:file.lastModified||0,...km})}catch(x){fout++;console.error(x)}
     FA.busy.i++;const p=$(".fa-prog");if(p){p.querySelector("span").textContent=FA.busy.i+" / "+FA.busy.n;p.querySelector("em").style.width=Math.round(FA.busy.i/FA.busy.n*100)+"%"}}};
   await Promise.all([werk(),werk(),werk()]);
   nieuw.sort((x,y)=>x._t-y._t||x.naam.localeCompare(y.naam,"nl",{numeric:true}));for(const f of nieuw){delete f._t;a.fotos.push(f)}if(!a.cover&&a.fotos[0])a.cover=a.fotos[0].id;
-  FA.busy=null;await faSave(true);renderBody();if(FA.vol){modal("Fotoruimte vol",`<p style="margin:0">${esc(FA.vol)}</p><p class="muted small">${nieuw.length} foto's werden wel opgeladen.</p>`,`<button class="btn primary" data-act="closeModal">OK</button>`);return}toast(nieuw.length+" foto"+(nieuw.length===1?"":"'s")+" opgeladen"+(fout?`, ${fout} lukte niet`:"")+".",!!fout)}
+  FA.busy=null;await faSave(true);renderBody();if(FA.vol){modal("Fotoruimte vol",`<p style="margin:0">${esc(FA.vol)}</p><p class="muted small">${nieuw.length} foto's werden wel opgeladen.</p>`,`<button class="btn primary" data-act="closeModal">OK</button>`);return}toast(nieuw.length+" foto"+(nieuw.length===1?"":"'s")+" opgeladen"+(fout?`, ${fout} lukte niet`:"")+".",!!fout);
+  // automatisch controleren op gelijkaardige foto's bij de nieuwe foto's
+  const nid=new Set(nieuw.map(f=>f.id));if(FA.a===a&&faDubbels(a).some(g=>g.some(f=>nid.has(f.id))))setTimeout(()=>{if(FA.a===a&&!document.querySelector(".modal"))faDubModal()},500)}
 /* publiceren: watermerk in de foto zetten (pub + klein), daarna de deelbare link aanmaken */
 async function faPubliceer(){const a=FA.a;if(!a||!a.fotos.length)return;FA.vol=null;const key=faWmKey(a),wm=a.watermerk&&a.watermerk.docId?a.watermerk:null;
   let L=null;if(wm){L=await faLogo(wm.docId);if(!L){toast("Het logo voor het watermerk is niet gevonden.",true);return}}
@@ -5925,6 +5927,70 @@ input[type=range]{width:100%;accent-color:var(--ink)}
 @media (min-width:900px){.fa-save{position:sticky;bottom:12px;z-index:5;box-shadow:0 6px 24px rgba(0,0,0,.08)}}
 button.ft-hit{position:absolute;inset:0;z-index:1;cursor:pointer;width:100%}
 .fa-meter{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff)}.fa-meter div{display:flex;justify-content:space-between;font-size:13.5px}.fa-meter span{color:var(--muted)}.fa-meter i{display:block;height:8px;border-radius:99px;background:var(--line);overflow:hidden}.fa-meter em{display:block;height:100%}.fa-meter small{font-size:12.5px}#faMeterBox:empty{display:none}`;document.head.appendChild(st)}
+
+/* ============ Fotoalbum: gelijkaardige foto's (kort na elkaar genomen) opsporen ============
+   Per foto bewaren we een kleine "vingerafdruk" (verschil-hash 8x8 + kleuren 4x4) en een scherptescore, berekend op de mini.
+   Foto's die vlak na elkaar in het album staan en sterk lijken, vormen een reeks. De scherpste blijft standaard behouden. */
+function faKenmerk(src){const W=src.width,H=src.height;const c=document.createElement("canvas"),x=c.getContext("2d",{willReadFrequently:true});
+  c.width=9;c.height=8;x.drawImage(src,0,0,9,8);const d=x.getImageData(0,0,9,8).data,g=i=>d[i*4]*.299+d[i*4+1]*.587+d[i*4+2]*.114;
+  let dh="";for(let y=0;y<8;y++){let n=0;for(let k=0;k<8;k++)n=(n<<1)|(g(y*9+k)>g(y*9+k+1)?1:0);dh+=n.toString(16).padStart(2,"0")}
+  c.width=4;c.height=4;x.drawImage(src,0,0,4,4);const e=x.getImageData(0,0,4,4).data;let kl="";for(let i=0;i<16;i++)for(let j=0;j<3;j++)kl+=e[i*4+j].toString(16).padStart(2,"0");
+  const s=Math.min(1,256/Math.max(W,H)),w=Math.max(8,Math.round(W*s)),h=Math.max(8,Math.round(H*s));c.width=w;c.height=h;x.drawImage(src,0,0,w,h);const p=x.getImageData(0,0,w,h).data;
+  const G=new Float32Array(w*h);for(let i=0;i<w*h;i++)G[i]=p[i*4]*.299+p[i*4+1]*.587+p[i*4+2]*.114;let sm=0,sq=0,n=0;
+  for(let y=1;y<h-1;y++)for(let k=1;k<w-1;k++){const i=y*w+k,l=4*G[i]-G[i-1]-G[i+1]-G[i-w]-G[i+w];sm+=l;sq+=l*l;n++}
+  return{dh,kl,sc:n?Math.round(sq/n-(sm/n)**2):0}}
+function faHam(a,b){let n=0;for(let i=0;i<16;i+=2){let v=parseInt(a.substr(i,2),16)^parseInt(b.substr(i,2),16);while(v){n+=v&1;v>>=1}}return n}
+function faKl(a,b){let s=0;for(let i=0;i<96;i+=2)s+=Math.abs(parseInt(a.substr(i,2),16)-parseInt(b.substr(i,2),16));return s/48}
+function faLijkt(a,b){if(!a.dh||!b.dh||!a.kl||!b.kl)return false;if(a.t&&b.t&&Math.abs(a.t-b.t)>3*60e3)return false;
+  if(a.w&&a.h&&b.w&&b.h&&Math.abs(a.w/a.h-b.w/b.h)>0.05)return false;const h=faHam(a.dh,b.dh),k=faKl(a.kl,b.kl);return (h<=14&&k<=24)||(h<=24&&k<=18)}
+const faDubSleutel=g=>g.map(f=>f.id).sort().join(",");
+function faDubbels(a){const F=a.fotos||[],o=F.map((_,i)=>i),r=i=>o[i]===i?i:(o[i]=r(o[i]));
+  for(let i=0;i<F.length;i++)for(let j=i+1;j<Math.min(F.length,i+6);j++)if(faLijkt(F[i],F[j]))o[r(j)]=r(i);
+  const M=new Map();F.forEach((f,i)=>{const k=r(i);if(!M.has(k))M.set(k,[]);M.get(k).push(f)});const ok=new Set(a.dubOk||[]);
+  return [...M.values()].filter(g=>g.length>1&&!ok.has(faDubSleutel(g)))}
+const faBeste=g=>g.reduce((b,f)=>(f.sc||0)>(b.sc||0)?f:b,g[0]);
+// kenmerken aanvullen voor foto's die opgeladen werden voor deze functie bestond (op basis van de mini)
+async function faKenmerkenAanvullen(){const a=FA.a;if(!a||FA.kmBezig||!canWrite)return;const todo=a.fotos.filter(f=>!f.dh);if(!todo.length)return;FA.kmBezig=true;let k=0,nieuw=0;
+  try{const U=await faUrls(todo.map(f=>faPad(a.id,"mini",f.id)));
+    const werk=async()=>{while(k<todo.length){const i=k++,f=todo[i];if(!U[i])continue;try{const im=await createImageBitmap(await (await fetch(U[i])).blob());Object.assign(f,faKenmerk(im));if(im.close)im.close();nieuw++}catch(e){}}};
+    await Promise.all([werk(),werk(),werk(),werk()])}finally{FA.kmBezig=false}
+  if(FA.a!==a)return;if(nieuw)faSave(true);faDubBalk()}
+function faDubBalk(){const a=FA.a,g=$(".fa-grid");if(!a)return;let b=$("#faDub");if(!g){if(b)b.remove();return}
+  if(!b){g.insertAdjacentHTML("beforebegin",'<div id="faDub"></div>');b=$("#faDub")}
+  const G=faDubbels(a),ids=new Set(G.flat().map(f=>f.id));$$(".fa-it").forEach(x=>x.classList.toggle("dub",ids.has(x.dataset.faid)));
+  const n=G.reduce((s,x)=>s+x.length-1,0);
+  b.innerHTML=G.length?`<div class="fa-dub"><span><b>${G.length===1?"1 reeks":G.length+" reeksen"} gelijkaardige foto's</b> <span class="muted">· ${n} ${n===1?"foto":"foto's"} mogelijk overbodig</span></span><button type="button" class="btn sm" data-fa="dubbels">Bekijken</button></div>`
+    :(FA.kmBezig?`<div class="fa-dub stil"><span class="muted small">Controle op gelijkaardige foto's…</span></div>`:"")}
+function faDubModal(behoud){const a=FA.a;if(!a)return;const G=faDubbels(a);if(!G.length){closeModal();toast("Geen gelijkaardige foto's (meer) gevonden.");faDubBalk();return}
+  const oud=behoud&&FA.dubWeg;FA.dubWeg=new Set();FA.dubG=G;
+  G.forEach(g=>{const be=faBeste(g);g.forEach(f=>{if(oud?oud.has(f.id):f!==be)FA.dubWeg.add(f.id)})});
+  const body=`<p class="muted small" style="margin:0 0 12px">Deze foto's zijn kort na elkaar genomen en lijken sterk op elkaar. Van elke reeks blijft standaard de scherpste foto behouden. ${canWrite?"Tik op een foto om te wisselen tussen behouden en verwijderen.":""}</p>`+
+    G.map((g,gi)=>{const be=faBeste(g);return `<div class="fa-dg"><div class="fa-dgh"><b>Reeks ${gi+1}</b><span class="muted small">${g.length} foto's</span><span class="grow"></span>${canWrite?`<button type="button" class="linkbtn" data-fadok="${gi}">Geen dubbels</button>`:""}</div>
+      <div class="fa-dgl">${g.map(f=>`<button type="button" class="fa-dgi${FA.dubWeg.has(f.id)?" weg":""}" data-fadw="${esc(f.id)}"${canWrite?"":" disabled"} aria-pressed="${FA.dubWeg.has(f.id)}"><img data-famini2="${esc(f.id)}" alt=""><span class="fa-dgs">${FA.dubWeg.has(f.id)?"Verwijderen":"Behouden"}</span>${f===be?'<em>scherpst</em>':""}</button>`).join("")}</div></div>`}).join("");
+  modal("Gelijkaardige foto's",body,`<button class="btn" data-act="closeModal">Sluiten</button>${canWrite?`<button class="btn danger" data-fa="dubweg" id="faDubGo"></button>`:""}`,{wide:true});
+  faDubKnop();const els=$$("[data-famini2]");faUrls(els.map(e=>faPad(a.id,"mini",e.dataset.famini2))).then(U=>els.forEach((e,i)=>{if(U[i])e.src=U[i]}))}
+function faDubKnop(){const b=$("#faDubGo");if(!b)return;const n=FA.dubWeg.size;b.disabled=!n;b.textContent=n?`${n} ${n===1?"foto":"foto's"} verwijderen`:"Niets geselecteerd"}
+function faWegMeerdere(ids){const a=FA.a,W=new Set(ids);a.fotos=a.fotos.filter(f=>!W.has(f.id));if(W.has(a.cover))a.cover=a.fotos[0]?a.fotos[0].id:null;if(W.has(FA.sel))FA.sel=null;
+  faWis(ids.flatMap(id=>[faPad(a.id,"bron",id),faPad(a.id,"mini",id)]));
+  if(a.status==="gepubliceerd")(a.weg=a.weg||[]).push(...ids);else faWis(ids.flatMap(id=>[faPad(a.id,"pub",id),faPad(a.id,"klein",id)]));
+  faSave(true);renderBody()}
+document.addEventListener("click",e=>{if(!FA.a)return;
+  const w=e.target.closest("[data-fadw]");if(w&&canWrite){const id=w.dataset.fadw,on=!FA.dubWeg.has(id);on?FA.dubWeg.add(id):FA.dubWeg.delete(id);w.classList.toggle("weg",on);w.setAttribute("aria-pressed",on);w.querySelector(".fa-dgs").textContent=on?"Verwijderen":"Behouden";faDubKnop();return}
+  const o=e.target.closest("[data-fadok]");if(o&&canWrite){const g=FA.dubG&&FA.dubG[Number(o.dataset.fadok)];if(!g)return;FA.a.dubOk=[...new Set([...(FA.a.dubOk||[]),faDubSleutel(g)])];faSave(true);faDubBalk();faDubModal(true);return}
+  const b=e.target.closest("[data-fa]");if(!b)return;
+  if(b.dataset.fa==="dubbels"){faDubModal();return}
+  if(b.dataset.fa==="dubweg"&&canWrite&&!FA.busy){const ids=[...FA.dubWeg].filter(id=>FA.a.fotos.some(f=>f.id===id));if(!ids.length)return;closeModal();faWegMeerdere(ids);toast(ids.length+" "+(ids.length===1?"foto":"foto's")+" verwijderd.");return}});
+{const _a=VIEWS.fotos.after;VIEWS.fotos.after=function(){const r=_a.apply(this,arguments);if(FA.id&&FA.a){faDubBalk();faKenmerkenAanvullen()}return r}}
+{const st=document.createElement("style");st.textContent=`
+.fa-dub{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 12px;margin-bottom:12px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#7c2d12;font-size:14px}
+.fa-dub.stil{background:none;border-color:transparent;padding:0 0 6px}
+.fa-it.dub{border-color:#f59e0b}
+.fa-dg{margin-bottom:16px}.fa-dgh{display:flex;gap:8px;align-items:baseline;margin-bottom:8px}
+.fa-dgl{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.fa-dgi{position:relative;padding:0;border:3px solid var(--ok,#16a34a);border-radius:12px;overflow:hidden;background:var(--soft,#eee);aspect-ratio:1;cursor:pointer}
+.fa-dgi img{width:100%;height:100%;object-fit:cover;display:block}.fa-dgi.weg{border-color:var(--bad,#b91c1c)}.fa-dgi.weg img{opacity:.45}
+.fa-dgs{position:absolute;left:6px;bottom:6px;background:var(--ok,#16a34a);color:#fff;font-size:12px;font-weight:600;padding:2px 8px;border-radius:99px}.fa-dgi.weg .fa-dgs{background:var(--bad,#b91c1c)}
+.fa-dgi em{position:absolute;right:6px;top:6px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;font-style:normal;font-weight:600;padding:2px 7px;border-radius:99px}`;document.head.appendChild(st)}
 
 /* ============ Rechten per gebruiker en per functie ============
    bestuur.rechten = null → volgens het profiel (admin / boekhouder / lezer)
