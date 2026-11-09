@@ -2241,7 +2241,7 @@ const agWanneer=iso=>{const n=agDagen(iso);return n===0?"vandaag":n===1?"morgen"
 // Komt het item in de activiteitenmail ({agenda})? Activiteiten, banket en kinderfeest standaard wel; vergaderingen enkel de algemene.
 const vgBestuur=v=>/bestuur/i.test((v&&v.soort)||"");
 const vgInMail=v=>vgBestuur(v)?false:typeof v.inMail==="boolean"?v.inMail:/algemene/i.test(v.soort||"");
-const agMailVink=(id,aan)=>`<label class="sp-nat full" for="${id}"><input type="checkbox" id="${id}"${aan?" checked":""}${canWrite?"":" disabled"}><span><b>Opnemen in de activiteitenmail</b><small>Verschijnt als kader in mails met het blok {agenda}.</small></span></label>`;
+const agMailVink=(id,aan)=>`<label class="sp-nat full" for="${id}"><input type="checkbox" id="${id}"${aan?" checked":""}${canWrite?"":" disabled"}><span><b>Opnemen in de activiteitenmail</b></span></label>`;
 function agItems(){const out=[];
   for(const a of S.activiteiten.values())if(a.datum)out.push({id:a.id,t:"act",datum:a.datum,uur:a.uur||"",titel:a.titel||"Activiteit",locatie:a.locatie||"",info:a.info||"",inMail:a.inMail!==false});
   for(const v of S.vergaderingen.values())if(v.datum)out.push({id:v.id,t:"verg",datum:v.datum,uur:v.uur||"",titel:v.titel||v.soort||"Vergadering",locatie:v.locatie||"",inMail:vgInMail(v)});
@@ -2296,7 +2296,7 @@ function agForm(a,id){const d=canWrite?"":" disabled";a=a||{};
    ${fld("agT","Wat",inp("agT",a.titel,'maxlength="120" placeholder="bv. Jaarmarkt, Paasmaandagwandeling"'+d),"full")}
    ${fld("agD","Datum",`<input id="agD" type="date" value="${esc(a.datum||AG.dag||todayISO())}"${d}>`)}${fld("agU","Uur",inp("agU",a.uur,'maxlength="20" placeholder="bv. 14u00"'+d))}
    ${fld("agL","Waar",inp("agL",a.locatie,'maxlength="160"'+d),"full")}
-   ${fld("agI","Meer info",`<textarea id="agI" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false)}<label class="sp-nat full" for="agS"><input type="checkbox" id="agS"${a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length)?" checked":""}${canWrite?"":" disabled"}><span><b>Gebruiken in shiften</b><small>De activiteit verschijnt bij Shiften om helpers in te delen.</small></span></label><div class="err full" id="agErr"></div></form>`,
+   ${fld("agI","Meer info",`<textarea id="agI" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false)}<label class="sp-nat full" for="agS"><input type="checkbox" id="agS"${a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length)?" checked":""}${canWrite?"":" disabled"}><span><b>Gebruiken in shiften</b></span></label><div class="err full" id="agErr"></div></form>`,
    `${id&&canWrite?'<button class="btn danger" id="agDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="agOk">Bewaren</button>':""}`);
   if(!canWrite)return;
   $("#agOk").onclick=async()=>{const r={titel:$("#agT").value.trim(),datum:$("#agD").value,uur:$("#agU").value.trim(),locatie:$("#agL").value.trim(),info:$("#agI").value.trim(),inMail:$("#agM").checked,metShiften:$("#agS").checked};
