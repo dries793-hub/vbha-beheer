@@ -10,13 +10,16 @@ export const testOpvang = new AsyncLocalStorage();
 export const smtpConfigured = () => !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 // standaard antwoordadres (Reply-To) van alle mails; facturen geven hun eigen adres mee
 export const ANTWOORD = () => String(process.env.MAIL_ANTWOORD ?? "dries@vbha.be").trim();
-export const BCC = () => String(process.env.MAIL_BCC ?? "dries.uyttersprot@telenet.be").trim().toLowerCase();
+export const BCC = () => String(process.env.MAIL_BCC ?? "dries@vbha.be").trim().toLowerCase();
 /* Facturen vertrekken vanaf een eigen mailbox (standaard boekhouding@vbha.be). Nodig in Vercel: SMTP_FACTUUR_PASS
    (en eventueel SMTP_FACTUUR_USER). Zonder wachtwoord vertrekken facturen vanaf het gewone adres, met antwoorden naar de boekhouding. */
 export const FACTUUR_ADRES = () => String(process.env.SMTP_FACTUUR_USER || "boekhouding@vbha.be").trim();
 const factuurLogin = () => process.env.SMTP_FACTUUR_PASS ? { user: FACTUUR_ADRES(), pass: process.env.SMTP_FACTUUR_PASS } : null;
 export const factuurAfzender = () => factuurLogin() ? { email: FACTUUR_ADRES(), naam: String(process.env.MAIL_FROM_NAAM || "").trim() } : afzender();
-export const afzender = () => ({ email: String(process.env.SMTP_FROM || process.env.SMTP_USER || "").trim(), naam: String(process.env.MAIL_FROM_NAAM || "").trim() });
+/* Gewone mails vertrekken vanaf noreply@vbha.be zodra SMTP_NOREPLY_PASS in Vercel staat (eventueel SMTP_NOREPLY_USER); anders vanaf SMTP_USER. */
+const NOREPLY = () => String(process.env.SMTP_NOREPLY_USER || "noreply@vbha.be").trim();
+const gewoneLogin = () => process.env.SMTP_NOREPLY_PASS ? { user: NOREPLY(), pass: process.env.SMTP_NOREPLY_PASS } : { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS };
+export const afzender = () => ({ email: String(process.env.SMTP_NOREPLY_PASS ? NOREPLY() : (process.env.SMTP_FROM || process.env.SMTP_USER || "")).trim(), naam: String(process.env.MAIL_FROM_NAAM || "").trim() });
 
 const b64 = s => Buffer.from(String(s), "utf8").toString("base64");
 const hdr = s => /^[\x20-\x7e]*$/.test(s) ? s : "=?UTF-8?B?" + b64(s) + "?=";
@@ -45,7 +48,7 @@ export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan, b
     ...(Array.isArray(cc) && cc.length ? ["Cc: " + cc.join(", ")] : []),
     ...((antwoordAan || ANTWOORD()) ? ["Reply-To: " + (antwoordAan || ANTWOORD())] : []),
     // Afmeldlink in de kop: Gmail, Outlook en Apple Mail tonen dan een nette "Afmelden"-knop in plaats van "Spam melden".
-    "List-Unsubscribe: <mailto:" + (process.env.MAIL_AFMELDEN || van.email) + "?subject=Afmelden%20mails%20VBHA>",
+    "List-Unsubscribe: <mailto:" + (process.env.MAIL_AFMELDEN || ANTWOORD() || van.email) + "?subject=Afmelden%20mails%20VBHA>",
     "X-Auto-Response-Suppress: OOF, AutoReply",
     "Subject: " + hdr(onderwerp),
     "Date: " + new Date().toUTCString().replace("GMT", "+0000"),
@@ -72,7 +75,7 @@ export async function verstuur(berichten, { factuur = false } = {}) {
   const T = testOpvang.getStore();
   if (T) { for (const m of berichten) T.push(m); return berichten.map(() => ({ ok: true })); }
   const host = process.env.SMTP_HOST, port = Number(process.env.SMTP_PORT) || 465;
-  const login = (factuur && factuurLogin()) || { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS };
+  const login = (factuur && factuurLogin()) || gewoneLogin();
   const sock = tls.connect({ host, port, servername: host });
   sock.setEncoding("utf8");
   let buf = "", wacht = null;
