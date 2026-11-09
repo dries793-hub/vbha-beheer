@@ -5564,10 +5564,11 @@ function stDonut(st,actief){const K=["GOUD","ZILVER","BRONS"],R=54,C=2*Math.PI*R
   const seg=K.map(k=>{const f=actief?st[k]/actief:0,len=f*C;const s=f>0?`<circle r="${R}" cx="70" cy="70" fill="none" stroke="var(--${k.toLowerCase()})" stroke-width="22" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 70 70)"><title>${k.charAt(0)+k.slice(1).toLowerCase()}: ${st[k]}</title></circle>`:"";off+=len;return s}).join("");
   return `<div class="st-donut"><svg viewBox="0 0 140 140" role="img" aria-label="Status van ${actief} actieve leden: ${K.map(k=>k.toLowerCase()+" "+st[k]).join(", ")}"><circle r="${R}" cx="70" cy="70" fill="none" stroke="var(--line)" stroke-width="22"/>${seg}<text x="70" y="68" text-anchor="middle" class="st-dn">${actief}</text><text x="70" y="86" text-anchor="middle" class="st-dl">actief</text></svg>
    <div class="st-leg">${K.map(k=>`<div><i style="background:var(--${k.toLowerCase()})"></i><span>${k.charAt(0)+k.slice(1).toLowerCase()}</span><b>${st[k]}</b><small>${actief?Math.round(st[k]/actief*100):0}%</small></div>`).join("")}</div></div>`}
-{const s=document.createElement("style");s.textContent=`.st-donut{display:flex;align-items:center;gap:24px;flex-wrap:wrap}.st-donut svg{width:150px;height:150px;flex:none}
+{const s=document.createElement("style");s.textContent=`.st-donut{display:flex;align-items:center;gap:24px}.st-donut svg{width:150px;height:150px;flex:none}
 .st-dn{font-size:26px;font-weight:700;fill:var(--ink);font-variant-numeric:tabular-nums}.st-dl{font-size:11px;fill:var(--muted)}
-.st-leg{flex:1;min-width:160px;display:flex;flex-direction:column;gap:10px}.st-leg div{display:grid;grid-template-columns:12px 1fr auto 44px;gap:10px;align-items:center;font-size:14.5px}
-.st-leg i{width:12px;height:12px;border-radius:3px}.st-leg b{font-variant-numeric:tabular-nums}.st-leg small{color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}`;document.head.appendChild(s)}
+.st-leg{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}.st-leg div{display:grid;grid-template-columns:12px 1fr auto 44px;gap:10px;align-items:center;font-size:14.5px}
+.st-leg i{width:12px;height:12px;border-radius:3px}.st-leg b{font-variant-numeric:tabular-nums}.st-leg small{color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:640px){.st-donut{flex-wrap:nowrap;gap:16px}.st-donut svg{width:112px;height:112px}.st-leg{gap:8px}.st-leg div{grid-template-columns:10px 1fr auto 36px;gap:8px;font-size:14px}.st-leg i{width:10px;height:10px}}`;document.head.appendChild(s)}
 
 /* ============ Financiën › Begroting ============
    Per boekjaar één document config/"begroting_<jaar>": {tabs:[{id,naam,categorie,personen,winst,posten:[{id,soort:"kost"|"opbrengst",naam,aantal,prijs,pp}]}]}
