@@ -5401,7 +5401,7 @@ function sgPills(s){const g=sgG(s),L=[];
   if(g.kalender)L.push('<span class="pill ok">Kalender</span>');
   if(!g.kaarten&&g.uitnodiging)L.push(`<span class="pill warn" title="${esc("Uitnodiging gemaild op "+sgD(g.uitnodiging.op)+", nog niet aangevraagd")}">Uitgenodigd</span>`);
   if(g.kaarten)L.push(`<span class="pill ok" title="${g.kaarten.papier?"Op papier gegeven":esc("Gemaild"+(g.kaarten.mail?" op "+sgD(g.kaarten.mail.op)+" naar "+g.kaarten.mail.aan:" (nog niet verstuurd)"))}">Kaarten${g.kaarten.ticketId&&!g.kaarten.mail?" (mail mislukt)":""}</span>`);
-  return L.join(" ")||'<span class="pill neutral">nog niets</span>'}
+  return L.join(" ")}
 async function sgZet(id,patch){const s=S.sponsors.get(id);if(!s)return;const G={...(s.geschenk||{})};G[JAAR]={...(G[JAAR]||{}),...patch};
   for(const k of Object.keys(G[JAAR]))if(G[JAAR][k]==null)delete G[JAAR][k];
   await write("sponsors",id,{geschenk:G},{merge:true})}
@@ -5437,7 +5437,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-sg]"
 },true);
 /* kolom in de sponsorlijst */
 {const _s=VIEWS.sponsors;const n=function(){const v=_s.apply(this,arguments);const b=v.body;v.body=function(){let h=b.apply(this,arguments);
-  h=h.replace(/(<thead><tr>(?:(?!<\/thead>)[\s\S])*?Bedrijf(?:(?!<\/thead>)[\s\S])*?)(<\/tr><\/thead>)/,(m,a,c)=>a+`<th>Return</th>`+c).replace('colspan="7" class="empty">Geen sponsors.','colspan="8" class="empty">Geen sponsors.');
+  h=h.replace(/(<thead><tr>(?:(?!<\/thead>)[\s\S])*?Bedrijf(?:(?!<\/thead>)[\s\S])*?)(<\/tr><\/thead>)/,(m,a,c)=>a+`<th>Ontvangen</th>`+c).replace('colspan="7" class="empty">Geen sponsors.','colspan="8" class="empty">Geen sponsors.');
   h=h.replace(/(<tr class="click" data-act="toonSponsor" data-id="([^"]*)">[\s\S]*?)(<\/tr>)/g,(m,a,id,c)=>{const s=S.sponsors.get(id.replace(/&amp;/g,"&").replace(/&quot;/g,'"'));return a.replace(/<td class="muted">/g,'<td class="muted nowrap">')+`<td data-l="Return">${s?sgPills(s):""}</td>`+c});
   return h};return v};Object.assign(n,_s);VIEWS.sponsors=n}
 
