@@ -5749,6 +5749,7 @@ document.addEventListener("click",e=>{const b=e.target.closest('[data-wsact="pub
    Opslag (bucket documenten, afgeschermd): Albums/<id>/bron (max 1920 px, zonder watermerk),
      mini (400 px, voor de beheerapp), pub (1600 px met watermerk) en klein (640 px met watermerk).
    Het openbare album (vbha.be/album?c=<id>.<token>) toont enkel pub/klein, via tijdelijke links. */
+ICON.delen='<path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>';
 const FA={id:null,a:null,urls:{},logo:{},sel:null,busy:null,t:null,focus:null};
 const FA_POS=[["lt","linksboven"],["ct","boven"],["rt","rechtsboven"],["lm","links"],["cm","midden"],["rm","rechts"],["lb","linksonder"],["cb","onder"],["rb","rechtsonder"]];
 const faId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -5809,7 +5810,7 @@ async function faCovers(){if(!FA.ruimteGeladen){FA.ruimteGeladen=true;faR2Aan().
 /* ---------- editor ---------- */
 function faEditor(){const a=FA.a,d=canWrite?"":" disabled",n=a.fotos.length,wm=a.watermerk||faWmDef(),logos=faLogos(),pub=a.status==="gepubliceerd",link=faLink(a),gew=faGewijzigd(a);
   return `<div class="bar fa-bar"><button class="btn" data-fa="terug">← Alle albums</button><span class="grow"></span>${pub?(gew?'<span class="pill warn">gepubliceerd · niet-gepubliceerde wijzigingen</span>':'<span class="pill ok">gepubliceerd</span>'):'<span class="pill neutral">concept</span>'}</div>
-  ${pub?`<div class="panel fa-link"><div class="panel-b"><div class="fa-lk"><span class="muted small">Deelbare link</span><a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a></div><div class="fa-lkb"><button class="btn sm" data-fa="kopie">${ic("copy")}Link kopiëren</button><button class="btn sm" data-fa="deel">${ic("deel")}Delen</button><a class="btn sm" href="mailto:?subject=${encodeURIComponent("Foto's: "+(a.titel||""))}&body=${encodeURIComponent("Hallo,\n\nDe foto's van "+(a.titel||"")+" staan online:\n"+link+"\n\nVriendenkring Brandweer Hoofdpost Aalst")}">${ic("mails")}Mail</a></div></div></div>`:""}
+  ${pub?`<div class="panel fa-link"><div class="panel-b"><div class="fa-lk"><span class="muted small">Deelbare link</span><a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a></div><div class="fa-lkb"><button class="btn sm" data-fa="kopie">${ic("copy")}Link kopiëren</button><button class="btn sm" data-fa="deel">${ic("delen")}Delen</button></div></div></div>`:""}
   <div class="grid g2" style="align-items:start">
   <div class="panel"><div class="panel-h"><h2>Album</h2></div><div class="panel-b"><div class="form">
     ${fld("faT","Titel",`<input id="faT" data-faf="titel" maxlength="120" value="${esc(a.titel||"")}" placeholder="bv. Banket 2026"${d}>`,"full")}
