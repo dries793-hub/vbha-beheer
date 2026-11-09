@@ -9,7 +9,7 @@ export const testOpvang = new AsyncLocalStorage();
 
 export const smtpConfigured = () => !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 // standaard antwoordadres (Reply-To) van alle mails; facturen geven hun eigen adres mee
-export const ANTWOORD = () => String(process.env.MAIL_ANTWOORD ?? "dries@vbha.be").trim();
+export const ANTWOORD = () => String(process.env.MAIL_ANTWOORD ?? "info@vbha.be").trim();
 export const BCC = () => String(process.env.MAIL_BCC ?? "dries@vbha.be").trim().toLowerCase();
 /* Facturen vertrekken vanaf een eigen mailbox (standaard boekhouding@vbha.be). Nodig in Vercel: SMTP_FACTUUR_PASS
    (en eventueel SMTP_FACTUUR_USER). Zonder wachtwoord vertrekken facturen vanaf het gewone adres, met antwoorden naar de boekhouding. */
