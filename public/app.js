@@ -6740,8 +6740,8 @@ function rmPanel(){const L=rmLijst();if(!L.length)return"";
   return `<div class="panel rm-p"><div class="panel-h"><h2>Meldingen te controleren <span class="rm-n">${L.length}</span></h2><span class="grow"></span>${canWrite&&L.length>1?`<button class="btn sm primary" data-rm="alles">Alles goedkeuren</button>`:""}</div>
    <div class="panel-b rm-l">${L.map(m=>`<div class="rm-i" data-rmid="${esc(m.id)}"><div class="rm-t"><b>${esc(m.toon||m.naam||"?")}</b><span class="pill ${m.soort==="done"?"ok":"info"}">${m.soort==="done"?"bedeeld":"gereserveerd"}</span><small>${esc(rmDT(m.op))}</small></div>
      <div class="rm-s">${(m.straten||[]).map(id=>{const a=krAll()[id];return `<span${a?` title="Staat al op de kaart als ${a.status==="done"?"bedeeld":"gereserveerd"}${a.by?" door "+esc(a.by):""}" class="al"`:""}>${esc(rmNaam(id))}${a?" ⚠":""}</span>`}).join("")}</div>
-     <div class="rm-a"><button class="btn sm" data-rm="toon">${ic("kaart")}Op de kaart</button>${canWrite?`<span class="grow"></span><button class="btn sm ghost danger" data-rm="weiger">Weigeren</button><button class="btn sm primary" data-rm="ok">Goedkeuren</button>`:""}</div></div>`).join("")}
-   <p class="muted small" style="margin:6px 0 0">Gemelde straten staan op de kaart hieronder al met een oranje stippellijn. Pas na goedkeuren komen ze op de openbare kaart. ⚠ = straat stond al aangeduid.</p></div></div>`}
+     <div class="rm-a"><button class="btn sm" data-rm="toon" title="Op de kaart tonen">${ic("kaart")}<span class="rm-kt">Op de kaart</span></button>${canWrite?`<span class="grow"></span><button class="btn sm ghost danger" data-rm="weiger">Weigeren</button><button class="btn sm primary" data-rm="ok">Goedkeuren</button>`:""}</div></div>`).join("")}
+</div></div>`}
 async function rmKeur(m,ok){if(!canWrite||!m)return;const {id,...d}=m;
   if(ok){const A=krAll(),nu=new Date().toISOString(),l=m.lidId&&S.leden.get(m.lidId),by=l?naamVol(l).trim():(m.naam||"");let n=0;
     for(const sid of m.straten||[]){const cur=A[sid];if(cur&&cur.status==="done"&&m.soort!=="done")continue; // al bedeeld: niet terug op gereserveerd
@@ -6769,7 +6769,9 @@ function rmMelding(){if(!(ROL==="admin"||(typeof recht==="function"&&recht("rond
 {const st=document.createElement("style");st.textContent=`.rm-p{border-color:#f59e0b}.rm-n{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:#f59e0b;color:#fff;font-size:12.5px;margin-left:6px;vertical-align:2px}
 .rm-l{display:flex;flex-direction:column;gap:10px}.rm-i{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .rm-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rm-t small{color:var(--muted);margin-left:auto}.rm-s{display:flex;flex-wrap:wrap;gap:6px}.rm-s span{background:var(--soft,#f2f2f3);border-radius:99px;padding:3px 10px;font-size:13px}.rm-s span.al{background:#fff4e5;color:#b45309}
-.rm-a{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.rm-a svg{width:15px;height:15px}`;document.head.appendChild(st)}
+.rm-a{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.rm-a svg{width:15px;height:15px}
+@media(max-width:640px){.rm-l{gap:8px}.rm-i{padding:10px 12px;gap:6px}.rm-t{gap:6px}.rm-t small{flex-basis:100%;margin-left:0;font-size:12px}.rm-a{flex-wrap:nowrap;gap:6px}.rm-a .btn{padding:0 10px}.rm-kt{display:none}
+ .kr-wijk{grid-template-columns:minmax(0,1fr)}.kr-wijk span{white-space:normal}.kr-wijk b{font-size:13.5px}}`;document.head.appendChild(st)}
 /* tabbladen: de hoofdtitel van de pagina blijft die van het eerste tabblad (bv. "Kalenders" ook op Kalenderronde en Controle) */
 {const _nt=navTitel,TABHOOFD=()=>{const m={verwerken:"boekingen",inkomend:"facturen"};if(typeof KAL_TABS!=="undefined")for(const [k] of KAL_TABS)if(k!=="kalenders")m[k]="kalenders";return m};
   navTitel=function(id){const h=TABHOOFD()[id];return (h&&_nt(h))||_nt(id)}}
