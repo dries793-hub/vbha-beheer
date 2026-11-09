@@ -37,7 +37,7 @@ export default async function smsApi(req, res) {
     }
     if (req.method === "GET") { await requireUser(req); return res.status(200).json({ aan: smsAan(), afzender: afzender() }); }
     if (req.method !== "POST") throw httpErr(405, "Niet toegelaten");
-    await requireUser(req, { write: true, functie: "agenda" });
+    await requireUser(req, { write: true, functie: "shiften" });
     if (!smsAan()) throw httpErr(503, "De sms-dienst is nog niet ingesteld.");
     let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
     const L = (Array.isArray(b.berichten) ? b.berichten : []).slice(0, 40);
