@@ -6344,6 +6344,7 @@ function shIngedeeld(a){const m=new Map();for(const s of a.shiften||[])for(const
 function shTegel(a,h,van,dubbel){const sel=SHF.sel&&SHF.sel.id===h.id&&SHF.sel.van===van;
   return `<div class="sh-tg${h.lid?"":" ext"}${sel?" sel":""}${dubbel?" dub":""}" ${canWrite?'draggable="true" tabindex="0"':""} data-hid="${esc(h.id)}" data-van="${esc(van)}" title="${esc(h.naam+(h.telTxt?" · "+h.telTxt:"")+(h.info?" · "+h.info:""))}">
     <span class="sh-av">${esc((h.voornaam||h.naam||"?").charAt(0).toUpperCase())}</span><span class="sh-tn"><b>${esc(h.naam)}</b><small>${h.lid?"":"geen lid"+(h.info?" · "+esc(h.info):"")}${!h.tel?`${h.lid?"":" · "}<span class="sh-nonr">geen gsm</span>`:""}</small></span>
+    ${canWrite?`<button type="button" class="sh-tm" data-shmulti="${esc(h.id)}" aria-label="Shiften van ${esc(h.naam)} kiezen" title="Op meerdere shifts">${ic("shiften")}</button>`:""}
     ${canWrite?`<button type="button" class="sh-tx" data-shx="${esc(h.id)}" data-van="${esc(van)}" aria-label="${van==="pool"?"Helper verwijderen":"Terug naar de pool"}" title="${van==="pool"?"Helper verwijderen":"Terug naar de pool"}">${ic("x")}</button>`:""}</div>`}
 /* ---------- weergave ---------- */
 VIEWS.shiften=()=>({title:"Shiften",sub:"Wie helpt waar en wanneer",
@@ -6633,6 +6634,18 @@ function shMailVraag(a,s){const L=shMailLijst(a,s);
   modal("Mail: "+(s.taak||"shift"),`<p style="margin:0">Niemand in deze shift heeft een gsm-nummer. ${L.length} ${L.length===1?"persoon krijgt":"personen krijgen"} wel een mail met de info over de shift.</p>`,
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="shMailOk">${ic("mails")}Mail versturen</button>`);
   $("#shMailOk").onclick=async()=>{const b=$("#shMailOk");b.disabled=true;b.textContent="Bezig…";const r=await shMail(a,s);modal("Mail versturen",shMailUitslag(r)||"",`<button class="btn primary" data-act="closeModal">Sluiten</button>`)}}
+
+/* ---------- helper op meerdere shifts ---------- */
+document.addEventListener("click",e=>{const b=e.target.closest("[data-shmulti]");if(!b||!canWrite)return;e.stopPropagation();const a=shAct(),h=a&&shHelper(a,b.dataset.shmulti);if(!h)return;
+  const S2=a.shiften||[];if(!S2.length){toast("Maak eerst een shift.",true);return}
+  modal("Shiften van "+h.naam,`<p class="muted small" style="margin:0 0 10px">Duid alle shiften aan waarop ${esc(h.voornaam||h.naam)} komt werken.</p><div class="sh-ml">${S2.map(s=>{const n=Number(s.nodig)||0,c=(s.leden||[]).length,in_=(s.leden||[]).includes(h.id);
+    return `<label class="cbx sh-mli"><input type="checkbox" data-shmk="${esc(s.id)}"${in_?" checked":""}><span><b>${esc(s.taak||"Shift")}</b> <span class="muted">${esc(s.van&&s.tot?s.van+" – "+s.tot:s.van||"")}</span></span><span class="muted small">${c}${n?" / "+n:""}</span></label>`}).join("")}</div>`,
+    `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="shMkOk">Bewaren</button>`);
+  $("#shMkOk").onclick=async()=>{const W=new Set($$("[data-shmk]").filter(x=>x.checked).map(x=>x.dataset.shmk));closeModal();const cur=S.activiteiten.get(a.id)||a;
+    const sh=(cur.shiften||[]).map(s=>{let l=(s.leden||[]).filter(x=>x!==h.id);if(W.has(s.id))l.push(h.id);return{...s,leden:l}});const pool=shPool(cur);if(!pool.includes(h.id))pool.push(h.id);
+    await shBewaar(a,{shiften:sh,helpers:pool});toast(W.size?`${h.voornaam||h.naam} staat op ${W.size} ${W.size===1?"shift":"shiften"}.`:`${h.voornaam||h.naam} staat op geen enkele shift.`)}});
+{const st=document.createElement("style");st.textContent=`.sh-tm{border:0;background:none;color:var(--muted);padding:4px;border-radius:6px;cursor:pointer;display:grid;place-items:center}.sh-tm:hover{background:var(--soft,#f2f2f3);color:var(--ink)}.sh-tm svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sh-ml{display:flex;flex-direction:column;gap:6px}.sh-mli{display:flex!important;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px}.sh-mli>span:nth-of-type(1){flex:1}`;document.head.appendChild(st)}
 
 /* ============ Activiteiten › Familiedag ============
    Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
