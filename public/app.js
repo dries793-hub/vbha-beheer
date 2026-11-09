@@ -4819,6 +4819,10 @@ const ADRES_FOUT="Vul een volledig adres in: straat, huisnummer, postcode en gem
     return _c&&_c.call(this,ev)}}}
 // ledenlijst: de inschrijfpagina voor nieuwe leden staat altijd open -> zelfde groen bolletje als op de andere pagina's
 {const _l=VIEWS.leden;if(_l){const n=function(){const v=_l.apply(this,arguments);if(v&&typeof v.actions==="string")v.actions=v.actions.replace(/(href="\/inschrijven"[^>]*>[\s\S]*?Inschrijfpagina)(<\/a>)/,'$1<span class="spi-dot open" title="Inschrijfpagina open" aria-label="open"></span>$2');return v};Object.assign(n,_l);VIEWS.leden=n}}
+/* erewacht: geen e-mailadres van de zone (@zonezuidoost.be) meer */
+{const _r=readLid;readLid=function(){const d=_r.apply(this,arguments);if(!d)return d;
+  if(String(d.categorie||"")==="Erewacht"&&/@zonezuidoost\.be\s*$/i.test(String(d.email||""))){const e=$("#lidErr");if(e)e.textContent="Een lid van de erewacht mag geen e-mailadres van @zonezuidoost.be hebben. Vul een privé-adres in.";const m=$('#fLid [name="email"]');if(m)m.focus();return null}
+  return d}}
 
 /* Mails nasturen naar nieuwe leden: een bulkmail (bv. uitnodiging activiteiten) gaat automatisch ook naar wie zich daarna inschrijft.
    Config "nastuur": {regels:{<tplId>:{naam,onderwerp,html,tot,sinds,door}}}. De html is een momentopname met @@VOORNAAM@@ en @@NAAM@@;
