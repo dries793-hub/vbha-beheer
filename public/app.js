@@ -5148,8 +5148,8 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-katab]");i
 function kaTabBody(act,zonderKnoppen){const jaar=kaJaar(act),L=kaTrans(act,jaar),T=kaTot(L),c=kaCfg(),actief=(KA_ACTS[c.actief]?c.actief:"fuif")===act,adm=kaAdm();
   const tijd=s=>new Date(s).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
   const toon=KA_UI.alles?L:T.B,per=[...T.per.entries()].sort((a,b)=>b[1].b-a[1].b);
-  return `<div class="ka-kop"><div><span class="pill ${actief?"ok":"neutral"}">${actief?"Kassa staat op "+esc(KA_ACTS[act]):"Kassa staat op "+esc(KA_ACTS[c.actief]||KA_ACTS.fuif)}</span> <span class="muted small">${kaTegels(act).length} tegels · ${jaar}</span></div>
-    <div class="ka-kop-b">${zonderKnoppen?"":`${adm?`<button class="btn" data-ka="inst" data-act="${act}">${ic("instellingen")}Tegels en instellingen</button>`:""}<button class="btn primary" data-ka="open" data-act="${act}">${ic("kassa")}Kassa openen</button>`}</div></div>
+  return `${zonderKnoppen?"":`<div class="ka-kop"><div></div>
+    <div class="ka-kop-b">${adm?`<button class="btn" data-ka="inst" data-act="${act}">${ic("instellingen")}Tegels en instellingen</button>`:""}<button class="btn primary" data-ka="open" data-act="${act}">${ic("kassa")}Kassa openen</button></div></div>`}
   <div class="tiles"><div class="tile hero"><span class="lbl">Totaal kassa</span><span class="val">${kaEur(T.tot)}</span><span class="hint">${T.B.length} ${T.B.length===1?"verkoop":"verkopen"}</span></div>
     <div class="tile"><span class="lbl">Bancontact</span><span class="val">${kaEur(T.bc)}</span><span class="hint">${T.B.filter(t=>t.betaalwijze!=="cash").length} verkopen</span></div>
     <div class="tile"><span class="lbl">Cash</span><span class="val">${kaEur(T.cash)}</span><span class="hint">${T.B.filter(t=>t.betaalwijze==="cash").length} verkopen</span></div></div>
