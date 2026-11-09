@@ -5469,12 +5469,11 @@ function kfkTile(){const K=kfKost();const gem=K.cadeaus-K.zonder>0?K.tot/(K.cade
 function kfkPaneel(){const K=kfKost();const R=K.rij.filter(g=>g.n||g.prijs!=null);
   if(!R.length&&!K.zonder)return "";
   const rows=R.map(g=>`<tr><td><b>${esc(g.label)}</b><div class="muted small">${esc(g.tekst)}</div></td><td class="num">${g.n}</td><td class="num">${g.prijs!=null?eur(g.prijs):'<span class="pill warn">geen bedrag</span>'}</td><td class="num"><b>${g.prijs!=null?eur(g.n*g.prijs):"–"}</b></td></tr>`).join("")
-   +(K.los.n?`<tr><td><b>Geboortejaar niet in een groep</b></td><td class="num">${K.los.n}</td><td class="num"><span class="pill warn">geen bedrag</span></td><td class="num">–</td></tr>`:"")
    +(K.onb.n?`<tr><td><b>Geboortedatum onbekend</b></td><td class="num">${K.onb.n}</td><td class="num"><span class="pill warn">geen bedrag</span></td><td class="num">–</td></tr>`:"");
   return `<div class="panel"><div class="panel-h"><h2>Voorziene kost cadeaus</h2><span class="grow"></span>${canWrite?`<button class="btn sm" data-act="kfInst">${ic("instellingen")}Bedragen</button>`:""}</div>
    <div class="tw"><table class="rcards"><thead><tr><th>Geboortejaar</th><th class="num">Cadeaus</th><th class="num">Per kind</th><th class="num">Totaal</th></tr></thead><tbody>${rows}</tbody>
    <tfoot><tr><td><b>Totaal</b></td><td class="num"><b>${K.cadeaus}</b></td><td></td><td class="num"><b>${eur(K.tot)}</b></td></tr></tfoot></table></div>
-   <div class="panel-b muted small">De bedragen komen uit <b>Waarde per geboortejaar</b> in de instellingen van het kinderfeest.${K.rij.some(g=>g.vbha)?` Cadeaus voorzien door VBHA: ${K.vb!=null?eur(K.vb)+" per kind":"vul nog een bedrag in"}.`:""}</div></div>`}
+   </div>`}
 {const _v=VIEWS.kinderfeest;VIEWS.kinderfeest=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=String(b.apply(this,arguments));
   h=h.replace(/(<div class="tiles"><div class="tile hero">[\s\S]*?<\/span><\/div>)/,m=>m+kfkTile());
   const i=h.indexOf('<div class="bar"><div class="search">');if(i>=0)h=h.slice(0,i)+kfkPaneel()+h.slice(i);return h};return v};Object.assign(VIEWS.kinderfeest,_v)}
