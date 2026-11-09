@@ -783,7 +783,7 @@ function puntTable(){
 /* ---------- kalenders ---------- */
 function kalStats(C){const rows=[...S.jaarleden.values()].filter(j=>j.jaar===C.Y&&j.kal&&((j.kalOpgehaald||0)>0||(j.kalUitgevoerd||0)>0||j.kalToegevoegd));const omloop=rows.reduce((s,j)=>s+(j.kalOpgehaald||0),0),uit=rows.reduce((s,j)=>s+(j.kalUitgevoerd||0),0);return{rows,omloop,uit,stock:C.c.kalenderStock-omloop-uit}}
 VIEWS.kalenders=()=>({title:"Kalenders "+JAAR,sub:"Verdeling en verkoop van de kalenderdozen",
-  actions:'<a class="btn" href="/kaart" target="_blank" rel="noopener" title="Openbare kaart van de kalenderronde">'+ic("kaart")+'Kaart openen</a>'+'<button class="btn primary" data-w data-act="kalToevoegen">'+ic("plus")+'Persoon toevoegen</button>',body(){
+  actions:'<button class="btn primary" data-w data-act="kalToevoegen">'+ic("plus")+'Persoon toevoegen</button>',body(){
   const C=ctx(),k=kalStats(C);
   const inLijst=new Set(k.rows.map(j=>j.lidId).filter(Boolean));
   const ontbreekt=C.leden.filter(l=>l.categorie!=="Erewacht"&&C.rows.get(l.id).lg.ok&&!inLijst.has(l.id));
@@ -4717,7 +4717,7 @@ function kcData(){const C=ctx(),pd=Number(jaarCfg(JAAR).perDoos)||100,P=new Map(
 const KC_ST={ok:["ok","Klopt"],bezig:["info","Nog bezig"],res:["info","Enkel gereserveerd"],geenkaart:["warn","Afgewerkt, niets op de kaart"],geendoos:["warn","Op de kaart, geen dozen meegegeven"],minder:["warn","Minder op de kaart dan afgewerkt"],meer:["warn","Meer op de kaart dan meegegeven"]};
 const kcN=n=>Number.isInteger(n)?String(n):n.toLocaleString("nl-BE",{maximumFractionDigits:1});
 VIEWS.kalcontrole=()=>({title:"Kalenders "+JAAR,sub:"Controle: dozen naast de aanduidingen op de kaart",
-  actions:'<a class="btn" href="/kaart" target="_blank" rel="noopener" title="Openbare kaart van de kalenderronde">'+ic("kaart")+'Kaart openen</a>',
+  actions:'',
   body(){const {L,pd}=kcData(),af=L.filter(p=>KC_ST[p.st][0]==="warn").length;
     const T=k=>L.reduce((t,p)=>t+p[k],0);
     return kalTabs("kalcontrole")+`<div class="tiles"><div class="tile"><span class="lbl">Afgewerkte dozen</span><span class="val">${T("uit")}</span><span class="hint">volgens de verdeling</span></div>
