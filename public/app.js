@@ -462,7 +462,7 @@ VIEWS.leden=()=>({title:"Leden",sub:"Ledenadministratie en lidgeld "+JAAR,
     <select class="sel" id="ledenCat" data-change="ledenCat"><option value="">Alle categorieën</option>${c.ledenCategorieen.map(k=>`<option${UI.ledenCat===k?" selected":""}>${esc(k)}</option>`).join("")}</select>
     <div class="seg" role="group" aria-label="Lidgeldfilter">${[["alle","Alle"],["ok","Betaald"],["nok","Niet betaald"]].map(([k,l])=>`<button data-act="ledenF" data-v="${k}" class="${UI.ledenF===k?"on":""}">${l}</button>`).join("")}</div>
     ${stJaarSeg()}
-    <select class="sel only-sm" data-change="ledenSortSel" aria-label="Sorteren">${selOpts([["naam","Sorteren: achternaam"],["voornaam","Sorteren: voornaam"],["status","Sorteren: status"],["lidgeld","Sorteren: lidgeld"],["categorie","Sorteren: categorie"],["lidSinds","Sorteren: lid sinds"]],ledenSort().k)}</select></div>
+    <select class="sel only-sm" data-change="ledenSortSel" aria-label="Sorteren">${selOpts([["naam","Sorteren: achternaam"],["voornaam","Sorteren: voornaam"],["status","Sorteren: status"],["lidgeld","Sorteren: lidgeld"],["categorie","Sorteren: categorie"],["lidSinds","Sorteren: lid sinds"],["email","Sorteren: e-mail"]],ledenSort().k)}</select></div>
     <div class="panel" id="ledenList">${ledenTable()}</div>`},
   });
 VIEWS.leden.after=null;
@@ -475,7 +475,7 @@ function ledenTable(){
   if(q)list=list.filter(r=>norm([r.lid.naam,r.lid.voornaam,r.lid.adres,r.lid.email,r.lid.telefoon,r.lid.info].join(" ")).includes(q));
   const LS=ledenSort(),vn=LS.k==="voornaam";
   const STR={GOUD:3,ZILVER:2,BRONS:1};
-  const key={naam:r=>[r.lid.naam,r.lid.voornaam],voornaam:r=>[r.lid.voornaam,r.lid.naam],status:r=>[r.huidig?(STR[stL(r)]||0):-1],lidgeld:r=>[r.huidig?(r.lg.ok?1:0):-1],categorie:r=>[r.lid.categorie||""],lidSinds:r=>[+r.lid.lidSinds||9999]}[LS.k];
+  const key={naam:r=>[r.lid.naam,r.lid.voornaam],voornaam:r=>[r.lid.voornaam,r.lid.naam],status:r=>[r.huidig?(STR[stL(r)]||0):-1],lidgeld:r=>[r.huidig?(r.lg.ok?1:0):-1],categorie:r=>[r.lid.categorie||""],lidSinds:r=>[+r.lid.lidSinds||9999],email:r=>[String(r.lid.email||"").trim()?0:1,String(r.lid.email||"").trim().toLowerCase()]}[LS.k];
   const cmp=(a,b)=>{const x=key(a),y=key(b);for(let i=0;i<x.length;i++){const c=typeof x[i]==="number"?x[i]-y[i]:String(x[i]||"").localeCompare(String(y[i]||""),"nl");if(c)return c*LS.d}return (a.lid.naam||"").localeCompare(b.lid.naam||"","nl")||(a.lid.voornaam||"").localeCompare(b.lid.voornaam||"","nl")};
   list.sort(cmp);
   const th=(k,l,cls="")=>{const on=LS.k===k||(k==="naam"&&vn);return `<th${cls?` class="${cls}"`:""}><button type="button" class="thsort${on?" on":""}" data-act="ledenSort" data-v="${k}" title="${k==="naam"?(LS.k==="naam"?"Klik om te sorteren op voornaam":"Sorteren op achternaam"):"Sorteren op "+l.toLowerCase()}">${k==="naam"&&vn?"Voornaam":l} <span>${on?(LS.d>0?"▲":"▼"):""}</span></button></th>`};
@@ -485,7 +485,7 @@ function ledenTable(){
     return `<button type="button" class="ml-row" role="listitem" data-act="toonLid" data-id="${esc(r.lid.id)}"><span class="ml-av ${r.huidig?(r.lg.ok?"ok":"nok"):"oud"}" aria-hidden="true">${esc(((vn?r.lid.voornaam:r.lid.naam)||"?").charAt(0).toUpperCase())}</span>
       <span class="ml-m"><span class="ml-n">${nm}${r.lid.bestuur?BST_IC:""}${r.lid.nieuw?' <span class="pill info">nieuw</span>':""}</span><span class="ml-s">${sub}</span></span>
       <span class="ml-r">${r.huidig?(r.lg.ok?'<span class="pill ok">✓ Betaald</span>':'<span class="pill nok">Open</span>'):`<span class="pill neutral">${r.lid.geenLid?"geen lid":"oud-lid"}</span>`}</span><span class="ml-chev" aria-hidden="true">›</span></button>`}).join("")}</div>`;
-  return mob+`<div class="tw dsk-only"><table class="rcards"><thead><tr>${th("naam","Naam")}${th("status","Status "+(UI.ledenStJ==="volgend"?JAAR+1:JAAR))}${th("lidgeld","Lidgeld "+JAAR)}${th("categorie","Categorie")}${th("lidSinds","Lid sinds","num")}<th>E-mail</th><th>Telefoon</th></tr></thead><tbody>
+  return mob+`<div class="tw dsk-only"><table class="rcards"><thead><tr>${th("naam","Naam")}${th("status","Status "+(UI.ledenStJ==="volgend"?JAAR+1:JAAR))}${th("lidgeld","Lidgeld "+JAAR)}${th("categorie","Categorie")}${th("lidSinds","Lid sinds","num")}${th("email","E-mail")}<th>Telefoon</th></tr></thead><tbody>
   ${list.map(r=>`<tr class="click" data-act="toonLid" data-id="${esc(r.lid.id)}"><td class="nm">${vn?`<b>${esc(r.lid.voornaam)}</b> ${esc(r.lid.naam)}`:`<b>${esc(r.lid.naam)}</b> ${esc(r.lid.voornaam)}`}${r.lid.bestuur?BST_IC:""}${r.huidig?"":` <span class="pill neutral">${r.lid.geenLid?"geen lid":"oud-lid"}</span>`}${r.lid.nieuw?' <span class="pill info">nieuw</span>':""}</td>
     <td>${r.huidig?medal(stL(r)):""}</td><td>${r.huidig?lgPill(r):""}</td><td>${esc(r.lid.categorie)}</td><td class="num">${esc(r.lid.lidSinds||"")}</td>
     <td class="trunc">${esc(r.lid.email)||'<span class="pill warn">geen e-mail</span>'}</td><td style="white-space:nowrap">${esc(r.lid.telefoon)}</td></tr>`).join("")}
