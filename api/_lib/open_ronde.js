@@ -39,6 +39,16 @@ async function melding(req, res) {
   const A = await algemeen(sb);
   const lid = (await actieveLeden(sb, A.jaar)).find(l => l.id === String(b.lidId || ""));
   if (!lid) throw httpErr(400, "Kies je naam uit de ledenlijst.");
+  // al bedeelde straten kunnen niet meer gemeld worden; gereserveerde enkel nog als bedeeld
+  { const st = {}, W = new Set(straten);
+    for (let from = 0; ; from += 1000) {
+      const { data: cur, error: e0 } = await sb.from("ronde").select("data").eq("data->>jaar", String(A.jaar)).range(from, from + 999);
+      if (e0) throw e0;
+      for (const r of cur) { const d = r.data || {}; if (d.straat && W.has(d.straat)) st[d.straat] = d.status === "reserved" ? "r" : "d"; }
+      if (cur.length < 1000) break;
+    }
+    if (straten.some(s => st[s] === "d")) throw httpErr(400, "Een of meer straten zijn al bedeeld. Haal ze uit je selectie.");
+    if (soort === "reserved" && straten.some(s => st[s] === "r")) throw httpErr(400, "Een of meer straten zijn al gereserveerd. Die kan je enkel nog als bedeeld doorgeven."); }
   const id = "m" + Date.now().toString(36) + crypto.randomBytes(3).toString("hex");
   const toon = lid.voornaam && lid.an ? `${lid.voornaam} ${lid.an}` : lid.naam;
   const { error } = await sb.from("rondemeldingen").insert({ id, data: { jaar: A.jaar, straten, soort, lidId: lid.id, naam: lid.naam, toon, op: new Date().toISOString(), stand: "open" } });
