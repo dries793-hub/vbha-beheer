@@ -1052,6 +1052,7 @@ krLive();
       <div class="km-a"><button type="button" data-km="x">Annuleren</button><button type="button" class="prim" data-km="ok">Doorsturen</button></div></div>`;
     document.body.appendChild(bg);const inp=bg.querySelector("#kmN"),box=bg.querySelector("#kmL"),err=bg.querySelector("#kmE");
     const alRes=krAlRes();if(alRes){soort="d";const sg=bg.querySelector('[data-ks="r"]');if(sg){sg.disabled=true;sg.title="Een gekozen straat is al gereserveerd: die kan je enkel nog als bedeeld doorgeven."}}
+    if(alRes)fetch("/api/ronde?wie="+encodeURIComponent(ids.join(",")),{cache:"no-store"}).then(r=>r.ok?r.json():[]).then(W=>{if(W&&W[0]&&!lid&&!inp.value.trim())kies(W[0])}).catch(()=>{});
     const zet=s=>{if(alRes&&s==="r")return;soort=s;bg.querySelectorAll("[data-ks]").forEach(b=>b.classList.toggle("on",b.dataset.ks===s))};zet(soort);
     const dicht=()=>bg.remove();
     const teken=()=>{if(!L.length){box.hidden=true;return}box.innerHTML=L.map((l,i)=>`<button type="button" data-i="${i}" class="${i===sel?"on":""}">${e2(l.toon||l.naam)}</button>`).join("");box.hidden=false};

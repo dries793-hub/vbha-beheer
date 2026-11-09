@@ -1,6 +1,6 @@
 import { admin, sendError, httpErr } from "./sb.js";
 import crypto from "node:crypto";
-import { algemeen, actieveLeden, rateLimit } from "./publiek.js";
+import { algemeen, actieveLeden, rateLimit, norm } from "./publiek.js";
 import { meldPush } from "./push.js";
 
 // Openbare stand van de kalenderronde voor de kaart op /kaart: status en datum per straat (zonder namen).
@@ -9,6 +9,7 @@ export default async function handler(req, res) {
   try {
     if (req.method === "POST") return await melding(req, res);
     if (req.method !== "GET") throw httpErr(405, "Gebruik GET");
+    if (req.query && req.query.wie) return await wieReserveerde(req, res);
     const sb = admin();
     const A = await algemeen(sb);
     const out = [];
@@ -55,4 +56,28 @@ async function melding(req, res) {
   if (error) throw error;
   try { await meldPush(sb, "admin", { titel: "Kalenderronde: melding te controleren", tekst: `${toon} meldt ${straten.length} ${straten.length === 1 ? "straat" : "straten"} als ${soort === "done" ? "gedaan" : "gereserveerd"}`, url: "/#ronde" }); } catch (e) {}
   return res.status(200).json({ ok: true });
+}
+
+/* GET /api/ronde?wie=straat1,straat2: wie reserveerde deze straten (om bij "bedeeld" de naam al in te vullen).
+   Geeft enkel id en naam van het lid terug, zoals de naamsuggesties in het meldvenster. */
+async function wieReserveerde(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+  const W = new Set(String(req.query.wie).split(",").map(s => s.trim()).filter(s => /^[\w.~-]{1,80}$/.test(s)).slice(0, 60));
+  if (!W.size) return res.status(200).json([]);
+  const sb = admin(), A = await algemeen(sb), rows = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from("ronde").select("data").eq("data->>jaar", String(A.jaar)).range(from, from + 999);
+    if (error) throw error;
+    for (const r of data) { const d = r.data || {}; if (d.straat && W.has(d.straat) && d.status === "reserved") rows.push(d); }
+    if (data.length < 1000) break;
+  }
+  if (!rows.length) return res.status(200).json([]);
+  const L = await actieveLeden(sb, A.jaar), out = [], gezien = new Set();
+  const nm = x => norm(x).replace(/\s+/g, " ");
+  for (const d of rows) {
+    const l = (d.lidId && L.find(x => x.id === d.lidId)) || (d.by && L.find(x => nm(x.naam) === nm(d.by) || nm(x.voornaam + " " + x.an) === nm(d.by)));
+    if (!l || gezien.has(l.id)) continue; gezien.add(l.id);
+    out.push({ id: l.id, toon: l.voornaam && l.an ? `${l.voornaam} ${l.an}` : l.naam, naam: l.naam });
+  }
+  res.status(200).json(out);
 }
