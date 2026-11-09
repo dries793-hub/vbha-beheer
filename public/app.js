@@ -775,7 +775,7 @@ function puntTable(){
       ${open?`<div class="pm-d"><div class="pm-g"><div class="pm-c"><span>Kalenderdozen</span><b class="pm-v">${r.jl.kalUitgevoerd||0}</b></div>${det.map(([l,f])=>`<div class="pm-c"><span>${l}</span>${inp(r,f)}</div>`).join("")}</div>
         <div class="pm-x"><span>Extra inspanningen</span>${extraHtml(r,dis)}</div></div>`:""}</div>`}).join("")||'<div class="empty">Geen actieve leden gevonden.</div>'}</div>`;
   return mob+`<div class="tw dsk-only"><table class="rcards ptab"><thead><tr><th><button type="button" class="thsort" data-act="puntNaam" title="Klik om te sorteren op ${vn?"achternaam":"voornaam"}">${vn?"Voornaam":"Naam"} <span>${UI.puntSort==="totaal"?"":"▲"}</span></button></th><th>Kalenderdozen</th><th>Kaarten</th><th>Shifts</th><th>Vergaderingen</th><th>Extra inspanningen</th><th class="num">Totaal</th><th>Status</th></tr></thead><tbody>
-  ${list.map(r=>`<tr><td class="nm" style="white-space:nowrap">${vn?`<b>${esc(r.lid.voornaam)}</b> ${esc(r.lid.naam)}`:`<b>${esc(r.lid.naam)}</b> ${esc(r.lid.voornaam)}`}</td><td class="num">${r.jl.kalUitgevoerd||0}</td><td class="num">${inp(r,"kaarten")}</td><td class="num">${inp(r,"shifts")}</td><td class="num">${inp(r,"vergaderingen")}</td>
+  ${list.map(r=>`<tr><td class="nm" style="white-space:nowrap"><button type="button" class="pt-lid" data-act="toonLid" data-id="${esc(r.lid.id)}" title="Gegevens van dit lid">${vn?`<b>${esc(r.lid.voornaam)}</b> ${esc(r.lid.naam)}`:`<b>${esc(r.lid.naam)}</b> ${esc(r.lid.voornaam)}`}</button></td><td class="num">${r.jl.kalUitgevoerd||0}</td><td class="num">${inp(r,"kaarten")}</td><td class="num">${inp(r,"shifts")}</td><td class="num">${inp(r,"vergaderingen")}</td>
   <td class="xcell">${extraHtml(r,dis)}</td><td class="num"><b>${r.p.totaal}</b></td><td>${medal(r.status)}</td></tr>`).join("")||'<tr><td colspan="8" class="empty">Geen actieve leden gevonden.</td></tr>'}
   </tbody></table></div>`;
 }
@@ -6279,6 +6279,7 @@ document.addEventListener("click",e=>{if(!e.target.closest('[data-act="stGoud"]'
     const list=b.list.filter(r=>{const x=r.lidId&&C.rows.get(r.lidId);return x&&String(x[veld]||"").toUpperCase()===s});
     extra.push({...b,sect:"Status",id:"st:"+jaar+":"+s,label:`Status ${jaar}: ${nm[s]}${jaar===JAAR?"":" (tussenstand)"}`,list,geblokt:[]})}
   const i=G.findIndex(g=>g.sect!=="Leden");G.splice(i<0?G.length:i,0,...extra);return G}}
+{const st=document.createElement("style");st.textContent=".pt-lid{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}.pt-lid:hover{color:var(--accent);text-decoration:underline}";document.head.appendChild(st)}
 
 /* ============ Activiteiten › Shiften: bord met helpers als tegels ============
    Op de activiteit (collectie "activiteiten"):
