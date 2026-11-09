@@ -5794,7 +5794,7 @@ function faSluit(){if(FA.t)faSave(true);FA.id=null;FA.a=null;renderBody()}
 
 /* ---------- overzicht: eigen albums + links naar externe galerijen ---------- */
 ftKaarten=function(){const L=ftLijst();
-  if(!L.length)return `<div class="panel"><div class="empty">${FT.q?"Geen albums gevonden.":"Nog geen fotoalbums."}${canWrite&&!FT.q?`<div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn primary" data-act="faNieuw">${ic("plus")}Album maken</button><button class="btn" data-act="ftNieuw">${ic("link")}Link toevoegen</button></div>`:""}</div></div>`;
+  if(!L.length)return `<div class="panel"><div class="empty">${FT.q?"Geen albums gevonden.":"Nog geen fotoalbums."}${canWrite&&!FT.q?`<div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn primary" data-act="faNieuw">${ic("plus")}Album maken</button></div>`:""}</div></div>`;
   return `<div class="ft-grid">${L.map(a=>{if(a.soort==="eigen"){const n=(a.fotos||[]).length,sub=[a.datum?fmtDate(a.datum):a.jaar,n+" foto"+(n===1?"":"'s")].filter(Boolean).join(" · ");
       return `<div class="ft-card"><button type="button" class="ft-hit" data-act="faOpen" data-id="${esc(a.id)}" aria-label="${esc(a.titel||"Album")} openen" style="border:0;background:none;padding:0"></button><div class="ft-img leeg" data-facover="${esc(a.id)}"><span>${ic("fotos")}</span></div>
         <div class="ft-b"><div class="ft-t"><b>${esc(a.titel||"Album")}</b>${sub?`<span>${esc(sub)}</span>`:""}</div>
@@ -5835,7 +5835,7 @@ function faEditor(){const a=FA.a,d=canWrite?"":" disabled",n=a.fotos.length,wm=a
 {const _v=VIEWS.fotos;VIEWS.fotos=function(){const v=_v.apply(this,arguments);
   if(FA.id&&FA.a)return{title:FA.a.titel||"Fotoalbum",actions:"",body:faEditor};
   const _b=v.body;v.body=function(){return `<div id="faMeterBox">${faMeter()}</div>`+String(_b.apply(this,arguments))};
-  return{...v,actions:canWrite?`<button class="btn" data-w data-act="ftNieuw">${ic("link")}Link toevoegen</button><button class="btn primary" data-w data-act="faNieuw">${ic("plus")}Album maken</button>`:""}};Object.assign(VIEWS.fotos,_v);
+  return{...v,actions:canWrite?`<button class="btn primary" data-w data-act="faNieuw">${ic("plus")}Album maken</button>`:""}};Object.assign(VIEWS.fotos,_v);
   VIEWS.fotos.after=()=>{if(!(FA.id&&FA.a)){faCovers();return}faMinis();faWmVoorbeeld();
     if(FA.focus){const el=$(FA.focus.sel);if(el&&document.activeElement!==el){el.focus();try{el.setSelectionRange(FA.focus.pos,FA.focus.pos)}catch(e){}}}}}
 // als iemand anders het album wijzigt terwijl het openstaat: niet overschrijven wat hier geopend is
