@@ -2099,7 +2099,7 @@ VIEWS.kinderfeest=()=>({title:"Kinderfeest",sub:"Inschrijvingen kinderfeest",
   actions:`<a class="btn" href="${KF_PUBLIEK}" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen met de leden (${esc(insStatus(kfCfg(),JAAR+"-12-07").label)})">${ic("link")}Inschrijfpagina${insPill(insStatus(kfCfg(),JAAR+"-12-07"))}</a><button class="btn primary" data-w data-act="kfNieuw">${ic("plus")}Nieuwe inschrijving</button><button class="btn iconbtn" data-w data-act="kfInst" title="Instellingen kinderfeest" aria-label="Instellingen kinderfeest">${ic("instellingen")}</button>`,
   body(){const st=kfStats(),c=st.c;const q=norm(KFQ);const dub=kfDubbel(st.L);
     const list=q?st.L.filter(r=>norm([r.lid,r.email,r.opmerking,...(r.kinderen||[]).map(k=>k.naam)].join(" ")).includes(q)):st.L;
-    const max=Math.max(1,...st.per.values());const ages=[];for(let a=0;a<=c.leeftijd;a++)ages.push(a);
+    const max=Math.max(1,...st.per.values());const ages=[];for(let a=0;a<=c.leeftijd;a++)if(st.per.get(a))ages.push(a);
     return `
     <div class="tiles"><div class="tile hero"><span class="lbl">Ingeschreven kinderen</span><span class="val">${st.kids}</span><span class="hint">${st.L.length} ${st.L.length===1?"inschrijving":"inschrijvingen"}</span></div>
       </div>
