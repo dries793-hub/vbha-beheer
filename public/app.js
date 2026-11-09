@@ -1233,8 +1233,7 @@ function insVelden(c,def,d){const tot=insTot(c,def),st=spiStatus(c.open!==false,
    <div class="spi-st-d"><label for="insTot">Open tot en met</label><input id="insTot" type="date" value="${esc(tot)}"${d}></div></div><div class="spi-st-i" id="insStI">${st.html}</div></div>`}
 const insLees=()=>({inschrijvenTot:$("#insTot").value,open:$("#insOpen").checked});
 function bkInst(){const bc=bkCfg(),d=canWrite?"":" disabled";const ontv=ctx().boek.filter(b=>b.categorie==="Banket"&&b.richting!=="uit").reduce((s,b)=>s+b.bedrag,0);
-  modal("Instellingen banket",`<form id="fBkI2" class="form">${insVelden(bc,JAAR+"-12-01",d)}${fld("bkP","Kostprijs per persoon (€)",inp("bkP",bc.prijs,'inputmode="decimal"'+d))}${fld("bkDt","Datum banket",`<input id="bkDt" type="date" value="${esc(bc.datum||"")}"${d}>`)}
-   <p class="pi-note full" style="margin:0">Ontvangen met categorie Banket in ${JAAR}: <b>${eur(ontv)}</b></p></form>`,
+  modal("Instellingen banket",`<form id="fBkI2" class="form">${insVelden(bc,JAAR+"-12-01",d)}${fld("bkP","Kostprijs per persoon (€)",inp("bkP",bc.prijs,'inputmode="decimal"'+d))}${fld("bkDt","Datum banket",`<input id="bkDt" type="date" value="${esc(bc.datum||"")}"${d}>`)}</form>`,
    `<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="bkIOk">Bewaren</button>':""}`);
   const ok=$("#bkIOk");if(!ok)return;
   ok.onclick=async()=>{const ins=insLees();const r={prijs:num($("#bkP").value)||65,deadline:/^\d{4}-\d{2}-\d{2}$/.test(ins.inschrijvenTot)?insTekst(ins.inschrijvenTot):bc.deadline,datum:$("#bkDt").value};closeModal();
@@ -4317,7 +4316,7 @@ kfExport=async function(){const st=kfStats(),c=st.c,M=kfMailCfg(),G=kfGroepenC(M
 function bkKortingRegel(kost){const k=jaarCfg(JAAR).korting,b=num(kost)||0,f=p=>eur(Math.round(b*(100-p))/100);
   return `<span>${medal("BRONS")} ${k.brons}% · <b>${f(k.brons)}</b></span><span>${medal("ZILVER")} ${k.zilver}% · <b>${f(k.zilver)}</b></span><span>${medal("GOUD")} ${k.goud}% · <b>${f(k.goud)}</b></span>`}
 {const _i=bkInst;bkInst=function(){_i.apply(this,arguments);const p=$("#bkP");if(!p)return;const bc=bkCfg(),d=canWrite?"":" disabled";
-  const f=p.closest(".fld");f.insertAdjacentHTML("afterend",`<label class="sp-nat full" for="bkKa"><input type="checkbox" id="bkKa"${bc.kortingAan?" checked":""}${d}><span><b>Korting volgens het puntensysteem</b><small>De kostprijs min de korting van het lid volgens zijn status (punten van ${JAAR-1}; erewacht = goud). Elke persoon op de inschrijving krijgt dezelfde prijs.</small></span></label>
+  const f=p.closest(".fld");f.insertAdjacentHTML("afterend",`<label class="sp-nat full" for="bkKa"><input type="checkbox" id="bkKa"${bc.kortingAan?" checked":""}${d}><span><b>Korting volgens het puntensysteem</b></span></label>
    <div class="full bk-kr" id="bkKr"${bc.kortingAan?"":" hidden"}>${bkKortingRegel(bc.prijs)}<a href="#punten" data-act="closeModal" class="small">Kortingen aanpassen in het reglement</a></div>`);
   const ok=$("#bkIOk");if(!ok||!ok.onclick)return;const _o=ok.onclick,oud={aan:!!bc.kortingAan,prijs:num(bc.prijs)};
   ok.onclick=async function(ev){const aan=$("#bkKa").checked,prijs=num($("#bkP").value)||65,cur=S.config.get("banket")||{};S.config.set("banket",{...cur,id:"banket",kortingAan:aan});
@@ -4446,7 +4445,7 @@ function bhCfg(){const c=S.config.get("betaalherinnering")||{},nu=todayISO(),Y=+
 const bhSel=(id,v,opts,suf,d)=>`<select id="${id}" class="sel"${d}>${opts.map(n=>`<option value="${n}"${n===Number(v)?" selected":""}>${suf(n)}</option>`).join("")}</select>`;
 const bhDg=n=>n+" "+(n===1?"dag":"dagen");
 function bhSec(soort){const c=bhCfg(),d=canWrite?"":" disabled",B=c.banket,L=c.lidgeld,R=soort==="banket"?B:L,k=soort==="banket"?"B":"L";
-  const uitleg=soort==="banket"?`Wie na de inschrijvingsdeadline nog niet betaald heeft, krijgt automatisch een herinnering met de betaalgegevens. Vanaf de dag van het banket worden geen herinneringen meer verstuurd.`
+  const uitleg=soort==="banket"?`Wie na de inschrijvingsdeadline nog niet betaald heeft, krijgt automatisch een herinnering met de betaalgegevens.`
     :`Leden die het lidgeld van het gekozen werkjaar na de vervaldatum nog niet betaalden, krijgen automatisch een herinnering met een betaalknop. Nieuwe leden: 14 dagen na hun inschrijving.`;
   return `<div class="pi-sec bh-sec" data-bhs="${soort}"><h4>Betalingsherinnering</h4><div class="form">
     <label class="sp-nat full" for="bh${k}a"><input type="checkbox" id="bh${k}a"${R.aan?" checked":""}${d}><span><b>Automatisch een herinnering mailen</b><small>${uitleg}</small></span></label>
