@@ -1583,7 +1583,7 @@ function toonLid(id){
   const b=r.lg.boeking;
   const body=`<div class="grid g2"><dl class="kv"><dt>Adres</dt><dd>${esc(l.adres)||"–"}</dd><dt>E-mail</dt><dd>${esc(l.email)||"–"}</dd><dt>Telefoon</dt><dd>${esc(l.telefoon)||"–"}</dd><dt>Categorie</dt><dd>${esc(l.categorie)}</dd><dt>Lid sinds</dt><dd>${esc(l.lidSinds||"–")}${r.jaren!=null?" ("+r.jaren+" jaar)":""}</dd>${l.info?`<dt>Info</dt><dd>${esc(l.info)}</dd>`:""}${l.lidTot?`<dt>Lid tot</dt><dd>${l.lidTot}</dd>`:""}${l.bestuur?`<dt>Rol</dt><dd><span class="pill info">Bestuurslid</span></dd>`:""}${l.geenLid?`<dt>Status</dt><dd><span class="pill neutral">Geen lid</span></dd>`:""}</dl>
    <div style="display:flex;flex-direction:column;gap:10px"><div><b>Lidgeld ${JAAR}</b> &nbsp;${lgPill(r)} <span style="color:var(--muted)">${eur(r.bedrag)}</span></div>
-   <div style="font-size:13.5px;color:var(--muted)">${b?`Gevonden in transactie ${b.nr??""} van ${fmtDate(b.datum)}: “${esc(b.mededeling)}”`:esc(r.lg.bron)||"Geen betaling gevonden met naam, voornaam en het woord lidgeld in de mededeling."}</div>
+
    <div class="fld" data-w><label for="lgOv">Lidgeldstatus</label><select id="lgOv" data-lgov="${esc(id)}">${selOpts([["","Automatisch (uit de boekhouding)"],["OK","Manueel: betaald"],["NOK","Manueel: niet betaald"]],r.jl.lidgeld||"")}</select></div>
    ${!r.lg.ok?`<button class="btn primary" data-w data-act="lidgeldBetaald" data-id="${esc(id)}" style="align-self:flex-start">Lidgeld ontvangen boeken</button>`:""}
    ${l.categorie!=="Erewacht"?`<div><b>Punten ${JAAR}</b>: ${r.p.totaal} &nbsp;${medal(r.status)}${r.jl&&r.jl.vrijstelling?` <span class="pill info" title="${esc(r.jl.vrijstelling.reden||"")}">vrijgesteld</span>`:""}</div>${vrijHtml(l,id,r)}`:""}</div></div>`+lidgeldHistHtml(l,r);
@@ -1614,7 +1614,7 @@ function lidgeldHistHtml(l,r){
   const dubHtml=dub.length>1?`<div class="note info" style="margin:0 0 10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px"><span style="flex:1 1 260px"><b>${dub.length} lidgeldbetalingen in ${JAAR}.</b> Werd er dubbel betaald? Laat één betaling meetellen als lidgeld voor ${JAAR+1}.</span>${dub.slice(1).map(x=>`<button class="btn sm" style="white-space:normal;text-align:left;max-width:100%" data-w data-act="lgNaarVolgend" data-id="${esc(x.id)}">Betaling van ${fmtDate(x.datum)} (${eur(x.bedrag)}) gebruiken voor ${JAAR+1}</button>`).join("")}</div>`:"";
   return dubHtml+`<div><div style="display:flex;align-items:baseline;gap:10px;margin:6px 0 8px"><b>Lidgeld per jaar</b><span style="color:var(--muted);font-size:13px">${ok} van ${H.length} jaar in orde</span></div>
   <div class="tw" style="max-height:300px;border:1px solid var(--line);border-radius:8px"><table class="rcards"><thead><tr><th>Jaar</th><th>Status</th><th>Datum</th><th class="num">Bedrag</th><th>Mededeling</th></tr></thead><tbody>${rows}</tbody></table></div>
-  <div style="color:var(--muted);font-size:12.5px;margin-top:6px">Gezocht op naam, voornaam en "lidgeld" in de boekhouding van alle jaren. Een betaling met een ander jaartal in de mededeling (bv. "lidgeld 2024" betaald in januari 2025) telt voor dat jaar.</div></div>`;
+  </div>`;
 }
 function lidgeldBetaald(id){
   const C=ctx(),r=C.rows.get(id),l=r.lid;
@@ -5500,7 +5500,7 @@ function sgBulk(){const c=typeof fuCfg==="function"?fuCfg():{};
    (de punten van werkjaar J bepalen de status en kortingen in J+1). */
 function vrijHtml(l,id,r){const v=r&&r.jl&&r.jl.vrijstelling,w=typeof canWrite==="undefined"||canWrite;
   if(!w&&!v)return "";
-  return `<label class="sp-nat vrij-l" for="vrijC" style="margin-top:8px"><input type="checkbox" id="vrijC" data-vrij="${esc(id)}"${v?" checked":""}${w?"":" disabled"}><span><b>Vrijstelling puntensysteem ${JAAR}</b><small>Bv. ziekte of tijdelijke werkonderbreking. Het lid telt als <b>goud</b> voor de kortingen in ${JAAR+1}, ongeacht de punten.${v&&v.op?` Gegeven op ${esc(fmtDate(String(v.op).slice(0,10)))}${v.door?" door "+esc(v.door):""}.`:""}</small></span></label>
+  return `<label class="sp-nat vrij-l" for="vrijC" style="margin-top:8px"><input type="checkbox" id="vrijC" data-vrij="${esc(id)}"${v?" checked":""}${w?"":" disabled"}><span><b>Vrijstelling puntensysteem</b><small>Bv. ziekte.${v&&v.op?` Gegeven op ${esc(fmtDate(String(v.op).slice(0,10)))}${v.door?" door "+esc(v.door):""}.`:""}</small></span></label>
    <input type="text" id="vrijR" data-vrijr="${esc(id)}" placeholder="Reden (optioneel), bv. langdurig ziek" value="${esc((v&&v.reden)||"")}" maxlength="120" style="margin-top:8px;width:100%;padding:9px 12px;border:1px solid var(--line-strong);border-radius:8px;font:inherit;background:var(--surface);color:var(--ink)"${v&&w?"":" hidden"}>`}
 document.addEventListener("change",async e=>{const t=e.target;
   if(t.dataset&&t.dataset.vrij){const id=t.dataset.vrij,aan=t.checked,r=$("#vrijR");
