@@ -6213,7 +6213,7 @@ document.addEventListener("click",e=>{if(!FA.a)return;
    "lezen" toont ze zonder te kunnen wijzigen, "bewerken" laat wijzigen toe. De database dwingt het bewerken af (functie mag()).
    Een administrator heeft altijd alle rechten. */
 var RECHTEN=null;
-const FUNC=[["leden","Ledenlijst",["leden"]],["punten","Puntensysteem",["punten"]],["financien","Financiën",["boekhouding","boekingen","verwerken","historiek","begroting","facturen","inkomend"]],
+const FUNC=[["leden","Ledenlijst",["leden"]],["punten","Puntensysteem",["punten"]],["financien","Financiën",["boekhouding","boekingen","verwerken","historiek","facturen","inkomend"]],["begroting","Begroting",["begroting"]],
   ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"]],["kalverdeling","Kalenders: personen en dozen meegeven",[]],["banket","Banket",["banket"]],["kinderfeest","Kinderfeest",["kinderfeest"]],["fuif","In Vier en Vlam",["fuif"]],["kassa","Kassa",["kassa"]],
   ["jaarmarkt","Jaarmarkt",["jaarmarkt"]],["webshop","Webshop",["webshop"]],["agenda","Agenda en verslagen",["agenda","verslagen"]],["shiften","Shiften",["shiften"]],["documenten","Documenten",["documenten"]],["fotos","Fotoalbums",["fotos"]],
   ["sponsors","Sponsors",["sponsors"]],["mails","Mails",["mails"]],["website","Website",["website"]]];
