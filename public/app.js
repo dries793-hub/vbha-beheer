@@ -5599,7 +5599,7 @@ function bgTotaal(){const D=bgDoc();let k=0,o=0;const rows=D.tabs.map(t=>{const 
 VIEWS.begroting=()=>({title:"Begroting",sub:"Begroting per activiteit "+JAAR,
   actions:'<button class="btn" data-act="bgPrint">'+ic("download")+'Afdrukken</button>',
   body(){const D=bgDoc(),t=bgTab();const vorig=S.config.get("begroting_"+(JAAR-1));
-    const tabs=`<div class="ka-tabs bg-tabs" role="tablist">${D.tabs.map(x=>`<button type="button" role="tab" class="${x.id===BG.tab?"on":""}" data-bgact="tab" data-id="${esc(x.id)}">${esc(x.naam)}</button>`).join("")}<button type="button" role="tab" class="${BG.tab==="__tot"?"on":""}" data-bgact="tab" data-id="__tot">Totaal</button>${bgMag()?`<button type="button" class="bg-plus" data-bgact="tabNieuw" title="Activiteit toevoegen" aria-label="Activiteit toevoegen">${ic("plus")}</button>`:""}</div>`;
+    const tabs=`<div class="bg-tabbar"><div class="bg-tl" role="tablist" aria-label="Activiteiten">${D.tabs.map(x=>`<button type="button" role="tab" aria-selected="${x.id===BG.tab}" class="bg-t1${x.id===BG.tab?" on":""}" data-bgact="tab" data-id="${esc(x.id)}">${esc(x.naam)}</button>`).join("")}<span class="bg-sep" aria-hidden="true"></span><button type="button" role="tab" aria-selected="${BG.tab==="__tot"}" class="bg-t1 bg-tot${BG.tab==="__tot"?" on":""}" data-bgact="tab" data-id="__tot">${ic("boekhouding")}Totaal</button></div>${bgMag()?`<button type="button" class="btn sm bg-plus" data-bgact="tabNieuw">${ic("plus")}Activiteit</button>`:""}</div>`;
     const tip=D.nieuw&&vorig&&bgMag()?`<div class="panel"><div class="panel-b" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span class="grow">Er is nog geen begroting voor ${JAAR}.</span><button class="btn sm" data-bgact="kopie">Begroting ${JAAR-1} overnemen</button></div></div>`:"";
     if(BG.tab==="__tot")return tabs+tip+bgTotaal();
     if(!t)return tabs+'<div class="panel"><div class="empty">Nog geen activiteiten. Voeg er een toe met +.</div></div>';
@@ -5642,7 +5642,13 @@ document.addEventListener("click",e=>{if(!e.target.closest('[data-act="bgPrint"]
     <tr><th>Opbrengsten</th><th></th><th></th><th></th></tr>${rij("opbrengst")}<tr class="t"><td colspan="3">Totaal opbrengsten</td><td class="n">${eur(s.o)}</td></tr><tr class="t"><td colspan="3">Begroot resultaat</td><td class="n">${bgE(s.r)}</td></tr></table>`};
   w.document.write(`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Begroting ${JAAR}</title><style>body{font:13px/1.5 system-ui,sans-serif;margin:28px;color:#111}h1{font-size:20px}h2{font-size:15px;margin:22px 0 6px}table{border-collapse:collapse;width:100%}td,th{padding:4px 6px;border-bottom:1px solid #ddd;text-align:left}.n{text-align:right}.t td{font-weight:700}</style></head><body><h1>Begroting ${JAAR}</h1>${D.tabs.map(tab).join("")}<script>print()<\/script></body></html>`);w.document.close()});
 {const st=document.createElement("style");st.textContent=`
-.bg-tabs{flex-wrap:wrap}.bg-tabs button{background:none;border:0;font:inherit;cursor:pointer}.bg-plus{display:inline-flex;align-items:center;padding:6px 10px!important}.bg-plus svg{width:16px;height:16px}
+.bg-tabbar{display:flex;align-items:flex-end;gap:12px;border-bottom:1px solid var(--line);margin:0 0 18px}
+.bg-tl{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;-webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent);padding-right:24px}.bg-tl::-webkit-scrollbar{display:none}
+.bg-t1{flex:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;background:none;border:0;border-bottom:2.5px solid transparent;margin-bottom:-1px;padding:10px 14px;font:inherit;font-size:14.5px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:8px 8px 0 0}
+.bg-t1:hover{color:var(--ink);background:var(--soft,#f1f1f2)}.bg-t1.on{color:var(--ink);font-weight:650;border-bottom-color:var(--accent,#c0161f)}
+.bg-t1 svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.bg-sep{flex:none;width:1px;background:var(--line);margin:10px 6px}
+.bg-plus{flex:none;margin-bottom:6px;display:inline-flex;align-items:center;gap:6px}.bg-plus svg{width:15px;height:15px}
+@media (max-width:640px){.bg-tabbar{flex-direction:column-reverse;align-items:stretch;gap:8px}.bg-plus{align-self:flex-start;margin:0}}
 .bg-list{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
 .bg-r{display:grid;grid-template-columns:minmax(0,1fr) auto 76px 104px 92px 32px;gap:8px;align-items:center;width:100%}
 .bg-r input{width:100%;min-width:0}.bg-l{display:none}.bg-t{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -5671,6 +5677,8 @@ async function bgKopieer(){const {tit,rows,extra}=bgKopieData();
     toast("Gekopieerd. Plak het in je verslag: in Word of Google Docs komt het als tabel.")}catch(e){prompt("Kopieer de begroting:",txt)}}
 {const _v=VIEWS.begroting;VIEWS.begroting=function(){const v=_v.apply(this,arguments);v.actions='<button class="btn" data-act="bgKopie">'+ic("copy")+'Kopiëren</button>'+v.actions;return v};Object.assign(VIEWS.begroting,_v)}
 document.addEventListener("click",e=>{if(e.target.closest('[data-act="bgKopie"]'))bgKopieer()});
+// actief tabblad in beeld houden als de rij horizontaal scrolt
+{const _a=VIEWS.begroting.after;VIEWS.begroting.after=function(){const r=_a&&_a.apply(this,arguments);const on=document.querySelector(".bg-tl .bg-t1.on");if(on){const L=on.parentElement;const x=on.offsetLeft-L.offsetLeft;if(x<L.scrollLeft||x+on.offsetWidth>L.scrollLeft+L.clientWidth)L.scrollLeft=x-16}return r}}
 
 /* ============ Administratie › Website (startpagina vbha.be) ============
    config/"website": {blokken:{viv,kalender,steun,sponsors}, kal_titel, kal_tekst, viv_titel, viv_datum, viv_tekst, fotos:{kalender|viv:{pad,v,w,h}}}
