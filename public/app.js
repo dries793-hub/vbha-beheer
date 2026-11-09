@@ -5374,7 +5374,7 @@ const NW_MAP={bkToon:"banket",kfToon:"kinderfeest",toonLid:"leden",toonSponsor:"
 const nwDag=d=>new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Brussels",year:"numeric",month:"2-digit",day:"2-digit"}).format(d);
 function nwIsNieuw(r){const t=r&&(r.aangemeld||r.ingeschreven);if(!t)return false;const d=new Date(t);return !isNaN(d)&&nwDag(d)===nwDag(new Date())}
 function nwLabels(){const root=$("#main");if(!root)return;
-  root.querySelectorAll('[data-act][data-id],[data-fu="toon"][data-id]').forEach(el=>{if(el.querySelector(".nw-tag"))return;
+  root.querySelectorAll('[data-act][data-id],[data-fu="toon"][data-id]').forEach(el=>{if(el.querySelector(".nw-tag")||el.closest(".nmeld"))return;
     const col=el.dataset.fu==="toon"?"tickets":NW_MAP[el.dataset.act];if(!col||!S[col])return;
     if(!nwIsNieuw(S[col].get(el.dataset.id)))return;
     const b=el.querySelector(".ml-n b,td b,b");if(!b)return;b.insertAdjacentHTML("afterend",'<span class="nw-tag" title="Vandaag ingeschreven">Nieuw</span>')})}
