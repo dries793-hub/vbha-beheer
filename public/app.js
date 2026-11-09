@@ -346,7 +346,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   const jub=cur.filter(r=>r.jaren===25).sort((a,b)=>(a.lid.naam||"").localeCompare(b.lid.naam||"","nl"));
   const cats=Object.entries(C.perCat).map(([k,v])=>({k,net:v.in-v.uit,...v})).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net));
   const maxNet=Math.max(1,...cats.map(c=>Math.abs(c.net)));
-  const top=cur.filter(r=>r.lg.ok&&r.lid.categorie!=="Erewacht"&&r.p.totaal>0).sort((a,b)=>b.p.totaal-a.p.totaal).slice(0,8);
+  const top=cur.filter(r=>r.lg.ok&&r.lid.categorie!=="Erewacht"&&r.p.totaal>0).sort((a,b)=>b.p.totaal-a.p.totaal).slice(0,10);
   const recent=C.boek.slice(-6).reverse();
   const sgn=v=>(v>=0?"+":"−")+eur(Math.abs(v));
   const sec=(icon,titel,link,label)=>`<div class="dsec-h"><span class="dsec-ic">${ic(icon)}</span><h2>${titel}</h2><span class="grow"></span><a class="btn sm ghost" href="#${link}">${label} ›</a></div>`;
@@ -362,7 +362,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
         ${jub.length?jub.map(r=>`<div class="li"><span class="grow trunc"><b>${esc(naamVol(r.lid))}</b></span><span class="muted">lid sinds ${r.lid.lidSinds}</span></div>`).join(""):'<div class="empty" style="padding:8px 0">Geen jubilarissen dit jaar.</div>'}
       </div></div></div>
     </div>
-    <div class="panel"><div class="panel-h"><h2>Meeste punten</h2></div><div class="panel-b"><div class="list">
+    <div class="panel"><div class="panel-h"><h2>Meeste punten</h2></div><div class="panel-b ag-top"><div class="list">
       ${top.length?top.map((r,i)=>`<div class="li${i>=5?" top-x":""}"><span class="rank">${i+1}</span><span class="grow trunc"><b>${esc(naamVol(r.lid))}</b></span>${medal(r.status)}<b style="width:48px;text-align:right">${r.p.totaal}</b></div>`).join(""):'<div class="empty">Nog geen punten ingevoerd.</div>'}
     </div></div></div>
   </div></section>
@@ -373,7 +373,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
     <a class="tile" href="#boekingen" data-act="filterRek" data-v="Kas"><span class="lbl">Kas</span><span class="val">${eur(C.kas)}</span></a>
   </div>
   <div class="grid g2 eq">
-    <div class="panel"><div class="panel-h"><h2>Saldo afgelopen 12 maanden</h2></div><div class="panel-b">${saldoChart(C)}</div></div>
+    <div class="panel"><div class="panel-h"><h2>Saldo afgelopen 12 maanden</h2></div><div class="panel-b">${(window.DASH_NCAT=cats.length,saldoChart(C))}</div></div>
     <div class="panel bk-cats"><div class="panel-h"><h2>Resultaat per categorie</h2></div><div class="panel-b">
       ${cats.length?`<div class="dcats">${cats.map(c=>`<a class="dcat" href="#boekingen" data-act="filterCat" data-v="${esc(c.k)}"><span class="trunc">${esc(c.k)}</span><span class="dtrack"><span style="width:${Math.max(1.5,Math.abs(c.net)/maxNet*100)}%;background:var(--${c.net>=0?"good":"bad"})"></span></span><b class="${c.net>=0?"in":"out"}">${sgn(c.net)}</b></a>`).join("")}
       <div class="dcat tot"><span>Resultaat ${JAAR}</span><span></span><b class="${C.tin-C.tuit>=0?"in":"out"}">${sgn(C.tin-C.tuit)}</b></div></div>`:'<div class="empty">Nog geen transacties in '+JAAR+'.</div>'}
@@ -412,7 +412,7 @@ function saldoReeks(){
 function saldoChart(C){
   const R0=saldoReeks();if(!R0||R0.pts.length<2)return '<div class="empty">Nog geen transacties.</div>';
   const {pts,tS,tE}=R0;
-  const narrow=window.innerWidth<640;const W=narrow?360:640,H=narrow?230:300,P=narrow?38:54,R=narrow?8:14,T=22,B=26;
+  const narrow=window.innerWidth<640;const W=narrow?360:640,H=narrow?230:Math.max(300,Math.min(600,130+(window.DASH_NCAT||5)*34)),P=narrow?38:54,R=narrow?8:14,T=22,B=26;
   const vals=pts.map(p=>p[2]);const top=Math.max(1,...vals);const lo=Math.min(0,...vals);
   const stepV=[500,1000,2000,2500,5000,10000,20000,25000,50000].find(s=>(top-lo)/s<=5)||100000;const hi=Math.ceil(top/stepV)*stepV;const lo2=Math.floor(lo/stepV)*stepV;
   const x=t=>P+(t-tS)/(tE-tS)*(W-P-R),y=v=>T+(hi-v)/(hi-lo2)*(H-T-B);
@@ -5647,6 +5647,7 @@ function stDonut(st,actief){const K=["GOUD","ZILVER","BRONS"],R=54,C=2*Math.PI*R
 @media (max-width:640px){.st-donut{flex-wrap:nowrap;gap:16px}.st-donut svg{width:112px;height:112px}.st-leg{gap:8px}.st-leg div{grid-template-columns:10px 1fr auto 36px;gap:8px;font-size:14px}.st-leg i{width:10px;height:10px}}`;document.head.appendChild(s)}
 {const s=document.createElement("style");s.textContent=`@media (max-width:640px){.st-donut{gap:12px}.st-donut svg{width:96px;height:96px}.st-leg{gap:6px}
  .st-leg .st-r{padding:5px 10px;gap:3px;border-left-width:3px;border-radius:8px}.st-leg .st-rt{font-size:13px}.st-leg .st-rt b{font-size:15px}.st-leg .st-rb i{height:4px}.st-leg .st-rb small{font-size:11px;width:30px}}`;document.head.appendChild(s)}
+{const s=document.createElement("style");s.textContent=`.eq>.stackcol{display:flex;flex-direction:column;gap:16px}.eq>.stackcol>.panel:last-child{flex:1}`;document.head.appendChild(s)}
 
 /* ============ Financiën › Begroting ============
    Per boekjaar één document config/"begroting_<jaar>": {tabs:[{id,naam,categorie,personen,winst,posten:[{id,soort:"kost"|"opbrengst",naam,aantal,prijs,pp}]}]}
