@@ -2691,7 +2691,7 @@ function mlStijl(inner){
     const m=d.createElement("div");m.setAttribute("data-knop",String(knoppen.length));knoppen.push(mlKnop(t,href));p.replaceWith(m)});
   R.querySelectorAll('[data-blok="kader"]').forEach(k=>{k.querySelectorAll("h2").forEach(h=>h.setAttribute("style",`${ML_FONT}color:${ML_INK};font-size:17px;line-height:1.3;font-weight:bold;margin:0 0 10px 0;`));
     k.querySelectorAll("p").forEach(p=>{if(!p.closest("table"))p.setAttribute("style","margin:0 0 6px 0;")});
-    const tb=d.createElement("div");tb.innerHTML=`<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 22px 0;border-collapse:separate"><tr><td class="vb-k" bgcolor="${ML_ZACHT}" style="padding:18px 22px;border-left:4px solid ${ML_ROOD};border-radius:10px;background-color:${ML_ZACHT};${ML_FONT}font-size:15px;color:${ML_INK};line-height:1.55"></td></tr></table>`;
+    const tb=d.createElement("div");tb.innerHTML=`<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 22px 0;border-collapse:separate"><tr><td class="vb-k" bgcolor="${ML_ZACHT}" style="padding:18px 22px;border-left:5px solid #C1A057;border-radius:10px;background-color:${ML_ZACHT};${ML_FONT}font-size:15px;color:${ML_INK};line-height:1.55"></td></tr></table>`;
     const td=tb.querySelector("td");while(k.firstChild)td.appendChild(k.firstChild);k.replaceWith(tb.firstChild)});
   st("h3",`${ML_FONT}color:${ML_INK};font-size:17px;line-height:1.3;font-weight:bold;margin:24px 0 10px 0;`);
   st("h2:not([style])",`${ML_FONT}color:${ML_INK};font-size:20px;line-height:1.3;font-weight:bold;margin:24px 0 12px 0;`);

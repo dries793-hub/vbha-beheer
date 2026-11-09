@@ -22,10 +22,10 @@ const site = () => String(process.env.SITE_URL || "https://vbha-beheer.vercel.ap
 const p = (t, st = "margin:0 0 16px") => `<p style="${st}">${t}</p>`;
 /* ---------- huisstijl van de mails (2026): hoofding zoals op de facturen, inhoud in de stijl van de website ----------
    Werkt in Gmail, Apple Mail, Outlook (ook 2010-2019 via de VML-knop en vaste breedte) en op gsm. */
-const INK = "#1a1b1e", MUTED = "#686b71", ROOD = "#b30000", ZACHT = "#f5f5f6", LIJN = "#e5e6e8";
+const INK = "#1a1b1e", MUTED = "#686b71", ROOD = "#b30000", GOUD = "#C1A057", ZACHT = "#f5f5f6", LIJN = "#e5e6e8";
 const rij = (k, v) => v === "" || v == null ? "" : `<tr><td class="vb-l" style="padding:4px 16px 4px 0;color:${MUTED};vertical-align:top;white-space:nowrap;${F}font-size:15px">${esc(k)}</td><td style="padding:4px 0;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;${F}font-size:15px;color:${INK}">${v}</td></tr>`;
 const tabel = rows => `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="${F}font-size:15px;color:${INK};line-height:1.5">${rows.join("")}</table>`;
-const kaderBlok = (titel, inner, kleur = ROOD, bg = ZACHT) => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 22px;border-collapse:separate"><tr><td class="vb-k" bgcolor="${bg}" style="padding:18px 22px;border-left:4px solid ${kleur};border-radius:10px;${F}font-size:15px;color:${INK};line-height:1.55"><h2 style="${F}color:${INK};font-size:17px;line-height:1.3;font-weight:bold;margin:0 0 10px">${titel}</h2>${inner}</td></tr></table>`;
+const kaderBlok = (titel, inner, kleur = GOUD, bg = ZACHT) => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 22px;border-collapse:separate"><tr><td class="vb-k" bgcolor="${bg}" style="padding:18px 22px;border-left:5px solid ${kleur};border-radius:10px;${F}font-size:15px;color:${INK};line-height:1.55"><h2 style="${F}color:${INK};font-size:17px;line-height:1.3;font-weight:bold;margin:0 0 10px">${titel}</h2>${inner}</td></tr></table>`;
 const knop = (t, href) => { const w = Math.min(520, Math.max(220, Math.round(String(t).length * 9.5 + 64)));
   return `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 22px"><tr><td align="center" bgcolor="${ROOD}" style="border-radius:8px">`
   + `<!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${esc(href)}" style="height:48px;v-text-anchor:middle;width:${w}px" arcsize="17%" stroke="f" fillcolor="${ROOD}"><w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold">${esc(t)}</center></v:roundrect><![endif]-->`
@@ -35,7 +35,7 @@ const modern = s => String(s)
   .replace(/font-family:Helvetica,Arial,sans-serif;?/g, F)
   .replace(/color:#222222/gi, "color:" + INK).replace(/color:#666666/gi, "color:" + MUTED)
   .replace(/<h2 style="color:#b30000;/gi, `<h2 style="${F}color:${INK};`).replace(/<h3 style="color:#b30000;/gi, `<h3 style="${F}color:${INK};`)
-  .replace(/bgcolor="#fff9f9"/gi, `bgcolor="${ZACHT}"`).replace(/border-left:5px solid #C1A057;?/gi, `border-left:4px solid ${ROOD};border-radius:10px;`);
+  .replace(/bgcolor="#fff9f9"/gi, `bgcolor="${ZACHT}"`).replace(/border-left:5px solid #C1A057;?/gi, `border-left:5px solid ${GOUD};border-radius:10px;`);
 const HOOFD = (titel) => `<!DOCTYPE html><html lang="nl" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><title>${titel}</title>
 <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><style>td,p,a,h1,h2,h3,li,span{font-family:'Segoe UI',Arial,sans-serif!important}</style><![endif]-->
 <style>@media only screen and (max-width:520px){.vb-in{padding:26px 20px 20px!important}.vb-k{padding:16px 16px!important}.vb-l{padding-right:10px!important}}</style></head>`;
