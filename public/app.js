@@ -724,7 +724,7 @@ function finInst(){const j=jaarCfg(JAAR),c=cfg();const d=canWrite?"":" disabled"
   <div class="pi-sec"><h4>Rekening</h4><div class="form"><div class="fld full"><label for="fiIban">Rekeningnummer</label><input id="fiIban" class="jb-ro" value="${esc(c.rekeningnummer)}" readonly tabindex="-1"></div></div></div>
   <div class="pi-sec"><h4>Categorieën</h4><div class="form"><div class="fld full"><span class="lbl">Categorieën boekhouding</span>${catEditor("fiCat",c.boekCategorieen)}<span class="help">Een categorie verwijderen verandert niets aan bestaande transacties.</span></div></div></div>
   ${wjInstHtml(c)}
-  <div class="pi-sec"><h4>Bank</h4><div class="bar" style="margin:0"><a class="btn" href="#bank" data-act="closeModal">${ic("upload")}Bankimport en koppeling</a><a class="btn" href="#regels" data-act="closeModal">Automatische regels</a></div></div>`,
+`,
   `<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="fiOk">Bewaren</button>':""}`);
   const ok=$("#fiOk");if(!ok)return;
   ok.onclick=async()=>{const v=id=>r2(num($("#"+id).value));const cats=catVals($("#fiCat"));
@@ -5558,6 +5558,8 @@ setInterval(async()=>{try{if(typeof ROL==="undefined"||ROL!=="admin"||!S.jaren.s
     if(Math.abs((Number(j.beginKas)||0)-a.beginKas)>0.004||Math.abs((Number(j.beginRekening)||0)-a.beginRekening)>0.004){const {id,...rest}=j;await write("jaren",k,{...rest,beginKas:a.beginKas,beginRekening:a.beginRekening})}}}catch(e){}},20000);
 {const st=document.createElement("style");st.textContent=".jb-v{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--soft,#f4f4f5);font-weight:600;font-variant-numeric:tabular-nums;text-align:right}";document.head.appendChild(st)}
 {const st=document.createElement("style");st.textContent=".jb-ro{background:var(--soft,#f4f4f5)!important;color:var(--ink)!important;border-color:var(--line)!important;font-weight:600;pointer-events:none;box-shadow:none!important}";document.head.appendChild(st)}
+/* Instellingen (profielicoon, enkel administrator): blok Bank */
+{const _v=VIEWS.instellingen;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){return `<div class="panel"><div class="panel-h"><h2>Bank</h2></div><div class="panel-b"><div class="bar" style="margin:0"><a class="btn" href="#bank">${ic("upload")}Bankimport en koppeling</a><a class="btn" href="#regels">Automatische regels</a></div></div></div>`+String(b.apply(this,arguments))};return v};Object.assign(n,_v);VIEWS.instellingen=n}
 
 /* ---------- Kinderfeest: voorziene kost van de cadeaus volgens de inschrijvingen ----------
    Bedragen komen uit "Waarde per geboortejaar" (bevestigingsmail), bv. "2016-2020: 50,00 EUR per kind".
