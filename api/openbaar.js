@@ -13,14 +13,15 @@ import kassa from "./_lib/kassa.js";
 import shop from "./_lib/shop.js";
 import site from "./_lib/open_site.js";
 import album from "./_lib/open_album.js";
+import familiedag from "./_lib/open_familiedag.js";
 
 // Eén serverfunctie voor de openbare pagina's (Vercel Hobby laat maximaal 12 functies toe).
 // vercel.json stuurt /api/banket, /api/kinderfeest en /api/ronde hierheen met ?f=...
-const H = { banket, kinderfeest, ronde, leden, sponsor, status, reglement: status, deel, adres, kalender, fuif, kassa, shop, site, sitefoto: site, album };
+const H = { banket, kinderfeest, ronde, leden, sponsor, status, reglement: status, deel, adres, kalender, fuif, kassa, shop, site, sitefoto: site, album, familiedag };
 
 export default async function handler(req, res) {
   let f = String(req.query?.f || "");
-  if (!H[f]) { const m = String(req.url || "").match(/\/api\/(banket|kinderfeest|ronde|leden|sponsor|status|reglement|deel|adres|kalender|fuif|kassa|shop|album)\b/); if (m) f = m[1]; }
+  if (!H[f]) { const m = String(req.url || "").match(/\/api\/(banket|kinderfeest|ronde|leden|sponsor|status|reglement|deel|adres|kalender|fuif|kassa|shop|album|familiedag)\b/); if (m) f = m[1]; }
   if (!H[f]) return sendError(res, httpErr(404, "Niet gevonden"));
   return H[f](req, res);
 }

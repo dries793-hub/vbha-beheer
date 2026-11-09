@@ -5967,3 +5967,171 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-rg],[data-
 .rg-r{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px}.rg-r>span{font-weight:600;font-size:13.5px;line-height:1.25}.rg-seg{flex-wrap:nowrap}.rg-seg button{font-size:12px;padding:5px 8px}
 .rg-snel{display:flex;gap:6px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
 #rgWrap .seg button:disabled{cursor:default}`;document.head.appendChild(st)}
+
+/* ============ Puntensysteem: tussenstand-mail en automatische proficiat-mail bij goud ============
+   Velden voor de mails: {status_volgend} (goud/zilver/brons volgens de punten van dit jaar) en {status_tussenstand}
+   (persoonlijke zin: al goud, of met hoeveel dozen kalenders het lid nog goud haalt). Geen punten in de mail.
+   De proficiat-mail verstuurt de server automatisch (api/_lib/goudmail.js); aan/uit via config algemeen.goudMail.aan. */
+ML_VELDEN.push(["Puntensysteem",[["status_volgend","Status volgend jaar"],["status_tussenstand","Tussenstand (persoonlijke zin)"]]]);
+function stTussen(lidId){const C=ctx(),r=C.rows.get(lidId);if(!r)return{st:"",zin:""};const c=C.c||cfg(),dr=(c.drempels||{zilver:65,goud:100}),w=(c.gewichten||{kalenders:25});
+  const V=JAAR+1;if(r.lid.categorie==="Erewacht")return{st:"goud",zin:`Als lid van de erewacht heb je altijd de goudstatus.`};
+  const t=r.p.totaal;const st=t>=dr.goud?"goud":t>=dr.zilver?"zilver":"brons";
+  if(st==="goud")return{st,zin:`Proficiat: je hebt de goudstatus voor ${V} al behaald. Je geniet volgend jaar van de maximale korting op onze betalende activiteiten.`};
+  const n=Math.max(1,Math.ceil((dr.goud-t)/(w.kalenders||25)));
+  return{st,zin:`Je staat momenteel op ${st} voor ${V}. Met nog ${n===1?"slechts 1 doos":n+" dozen"} kalenders bedelen haal je de goudstatus en geniet je volgend jaar van de maximale korting op onze betalende activiteiten.`}}
+{const _m=mlMap;mlMap=function(r){const o=_m.apply(this,arguments);if(r&&r.lidId){const x=stTussen(r.lidId);o.status_volgend=x.st;o.status_tussenstand=x.zin}else{o.status_volgend="";o.status_tussenstand=""}return o}}
+// paneel op de pagina Puntensysteem
+const goudCfg=()=>((S.config.get("algemeen")||{}).goudMail)||{};
+function stMailPaneel(){const g=goudCfg(),aan=g.aan!==false,d=ROL==="admin"?"":" disabled";const tpl=[...S.templates.values()].find(t=>t.id==="tpl-tussenstand");
+  return `<div class="panel"><div class="panel-h"><h2>Mails puntensysteem</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:14px">
+   <label class="ws-row"><span class="ws-sw"><input type="checkbox" data-goudaan${aan?" checked":""}${d}><i></i></span><span><b>Proficiat-mail bij goudstatus</b><small>Zodra een lid met de punten van ${JAAR} de goudstatus voor ${JAAR+1} haalt, krijgt het automatisch een mail. Niet voor de erewacht. Leden die al goud waren bij de start krijgen geen mail.</small></span></label>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="grow"><b>Tussenstand status ${JAAR+1}</b><br><span class="muted small">Persoonlijke mail met de status (zonder punten) en hoeveel dozen nog nodig zijn voor goud.</span></span>
+   ${tpl?`<button class="btn" data-act="stTussen">${ic("mails")}Mail openen</button>`:'<span class="muted small">Sjabloon "Tussenstand status" ontbreekt.</span>'}</div></div></div>`}
+{const _v=VIEWS.punten;VIEWS.punten=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){return String(b.apply(this,arguments))+stMailPaneel()};return v};Object.assign(VIEWS.punten,_v)}
+document.addEventListener("change",async e=>{if(e.target.dataset&&e.target.dataset.goudaan!==undefined){const c=S.config.get("algemeen")||{};try{await write("config","algemeen",{...stripId(c),goudMail:{...(c.goudMail||{}),aan:e.target.checked}});toast(e.target.checked?"Proficiat-mail staat aan.":"Proficiat-mail staat uit.")}catch(x){e.target.checked=!e.target.checked}}});
+document.addEventListener("click",e=>{if(!e.target.closest('[data-act="stTussen"]'))return;MAIL=null;UI.mailTpl="tpl-tussenstand";UI.mailGroep="betaald-niet-ere";saveUI();location.hash="#mails"});
+
+/* ============ Activiteiten › Shiften: leden indelen en verwittigen via sms (eigen gsm) ============
+   Op de activiteit (collectie "activiteiten"): shiften:[{id,taak,van,tot,nodig,leden:[lidId]}], smsTekst, shiftenToegekend
+   SMS: een sms:-link opent de sms-app van je gsm met alle nummers en de tekst al ingevuld; jij drukt op verzenden. Gratis, vanaf je eigen nummer. */
+{const a=NAV.find(n=>n.id==="administratie");if(a&&!a.items.some(i=>i[0]==="shiften"))a.items.push(["shiften","Shiften"]);}
+if(!ROUTES.some(r=>r[0]==="shiften"))ROUTES.push(["shiften","Shiften"]);
+if(typeof FUNC_VAN!=="undefined")FUNC_VAN.shiften="agenda";
+ICON.shiften='<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
+const SHF={id:null};
+const SH_TEKST="Hallo {voornaam}, bedankt om te helpen op {activiteit} ({datum}). Je shift: {taak} van {van} tot {tot}. Graag 10 minuten op voorhand aanwezig. Groeten, VBHA";
+const shId=()=>Math.random().toString(36).slice(2,9);
+function shTel(t){let d=String(t||"").replace(/[^\d+]/g,"");if(!d)return"";if(d.startsWith("00"))d="+"+d.slice(2);else if(d.startsWith("0")&&d.length>=9)d="+32"+d.slice(1);else if(/^32\d{8,9}$/.test(d))d="+"+d;return /^\+\d{9,14}$/.test(d)?d:""}
+const shApple=()=>/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+function shSmsLink(nrs,tekst){const b=encodeURIComponent(tekst);if(!nrs.length)return"";if(shApple())return nrs.length===1?`sms:${nrs[0]}&body=${b}`:`sms:/open?addresses=${nrs.join(",")}&body=${b}`;return `sms:${nrs.join(",")}?body=${b}`}
+function shActs(){const v=new Date().toISOString().slice(0,10);return [...S.activiteiten.values()].filter(a=>a.datum).sort((a,b)=>String(a.datum).localeCompare(String(b.datum))).map(a=>({...a,toekomst:a.datum>=v}))}
+function shAct(){const L=shActs();let a=SHF.id&&S.activiteiten.get(SHF.id);if(!a){a=L.find(x=>x.toekomst&&(x.shiften||[]).length)||L.find(x=>x.toekomst)||L[L.length-1]||null;SHF.id=a&&a.id}return a}
+function shVul(t,a,s,lid){const d=a.datum?fmtDate(a.datum):"";return String(t||SH_TEKST).replace(/\{voornaam\}/g,lid?lid.voornaam||"":"").replace(/\{activiteit\}/g,a.titel||"de activiteit").replace(/\{datum\}/g,d).replace(/\{taak\}/g,s.taak||"").replace(/\{van\}/g,s.van||"").replace(/\{tot\}/g,s.tot||"").replace(/\{locatie\}/g,a.locatie||"")
+  .replace(/Hallo\s+,/g,"Hallo,").replace(/\s+,/g,",").replace(/\s{2,}/g," ").trim()}
+async function shBewaar(a,wijz){const cur=S.activiteiten.get(a.id)||a;const {id,toekomst,...rest}={...cur,...wijz};await write("activiteiten",a.id,rest)}
+function shKaart(a,s){const L=(s.leden||[]).map(id=>S.leden.get(id)).filter(Boolean),d=canWrite?"":" disabled";const nrs=[...new Set(L.map(l=>shTel(l.telefoon)).filter(Boolean))],zonder=L.filter(l=>!shTel(l.telefoon));
+  const vol=s.nodig&&L.length>=s.nodig;
+  return `<div class="panel sh-k" data-shid="${esc(s.id)}"><div class="panel-h"><div style="min-width:0"><h2>${esc(s.taak||"Shift")}</h2><span class="muted small">${esc([s.van&&s.tot?s.van+" – "+s.tot:s.van||"",s.nodig?`${L.length} van ${s.nodig} personen`:`${L.length} ${L.length===1?"persoon":"personen"}`].filter(Boolean).join(" · "))}</span></div><span class="grow"></span>
+    ${s.nodig?`<span class="pill ${vol?"ok":"warn"}">${vol?"volzet":"nog "+(s.nodig-L.length)}</span>`:""}${canWrite?`<button class="btn sm iconbtn" data-sh="bewerk" aria-label="Shift wijzigen" title="Wijzigen">${ic("potlood")}</button>`:""}</div>
+   <div class="panel-b"><div class="sh-l">${L.map(l=>{const t=shTel(l.telefoon);return `<div class="sh-p" data-lid="${esc(l.id)}"><span class="grow"><b>${esc(naamVol(l))}</b><br><span class="muted small">${t?`<a href="tel:${esc(t)}">${esc(l.telefoon)}</a>`:'<span class="pill warn">geen gsm-nummer</span>'}</span></span>
+      ${t?`<a class="btn sm iconbtn" href="${esc(shSmsLink([t],shVul(a.smsTekst,a,s,l)))}" title="Persoonlijke sms" aria-label="Sms naar ${esc(l.voornaam||"")}">${ic("mails")}</a>`:""}${canWrite?`<button class="btn sm iconbtn ghost" data-sh="weg" aria-label="Uit de shift halen" title="Uit de shift halen">${ic("x")}</button>`:""}</div>`}).join("")||'<p class="muted small" style="margin:0">Nog niemand ingedeeld.</p>'}</div>
+    ${canWrite?`<div class="sh-add"><input list="shLeden" data-shadd placeholder="Lid toevoegen: begin te typen…" aria-label="Lid toevoegen"${d}><button class="btn sm" data-sh="add">${ic("plus")}Toevoegen</button></div>`:""}
+    ${nrs.length?`<a class="btn primary sh-sms" href="${esc(shSmsLink(nrs,shVul(a.smsTekst,a,s,null)))}">${ic("mails")}Sms naar ${nrs.length===1?"deze persoon":"alle "+nrs.length+" in deze shift"}</a>`:""}
+    ${zonder.length?`<p class="muted small" style="margin:6px 0 0">${zonder.length} zonder gsm-nummer: vul het nummer in bij de ledenlijst.</p>`:""}</div></div>`}
+VIEWS.shiften=()=>({title:"Shiften",sub:"Wie helpt wanneer, en verwittigen via sms",
+  actions:canWrite?'<button class="btn primary" data-sh="nieuw">'+ic("plus")+'Shift toevoegen</button>':"",
+  body(){const L=shActs(),a=shAct();
+    if(!a)return '<div class="panel"><div class="empty">Er staan nog geen activiteiten in de agenda. Voeg eerst een activiteit toe bij Agenda.</div></div>';
+    const S2=a.shiften||[],tot=S2.reduce((n,s)=>n+(s.leden||[]).length,0),d=canWrite?"":" disabled";
+    const leden=[...S.leden.values()].filter(l=>!l.geenLid).sort((x,y)=>naamVol(x).localeCompare(naamVol(y),"nl"));
+    return `<div class="bar"><select class="sel" data-shkies aria-label="Activiteit">${L.map(x=>`<option value="${esc(x.id)}"${x.id===a.id?" selected":""}>${esc(fmtDate(x.datum)+" · "+(x.titel||"Activiteit"))}${(x.shiften||[]).length?" ("+x.shiften.length+" shiften)":""}${x.toekomst?"":" – voorbij"}</option>`).join("")}</select></div>
+    <div class="panel"><div class="panel-b sh-top"><div class="grow"><b style="font-size:17px">${esc(a.titel||"Activiteit")}</b><br><span class="muted">${esc([fmtDate(a.datum),a.uur,a.locatie].filter(Boolean).join(" · "))}</span></div>
+      <span class="muted small">${S2.length} ${S2.length===1?"shift":"shiften"} · ${tot} ingedeeld</span></div>
+      <details class="panel-b sh-tekst"><summary><b>Tekst van de sms</b> <span class="muted small">(${a.smsTekst?"aangepast":"standaard"})</span></summary>
+      <textarea data-shtekst rows="3" maxlength="600"${d}>${esc(a.smsTekst||SH_TEKST)}</textarea><span class="help">Velden: {voornaam} {activiteit} {datum} {taak} {van} {tot} {locatie}. Bij een sms naar de hele shift valt {voornaam} weg.</span>
+      ${canWrite?`<div style="display:flex;gap:8px;margin-top:8px"><button class="btn sm" data-sh="tekstBewaar">Bewaren</button><button class="btn sm ghost" data-sh="tekstStandaard">Standaardtekst</button></div>`:""}</details></div>
+    <datalist id="shLeden">${leden.map(l=>`<option value="${esc(naamVol(l))}">`).join("")}</datalist>
+    ${S2.length?`<div class="sh-grid">${S2.map(s=>shKaart(a,s)).join("")}</div>`:`<div class="panel"><div class="empty">Nog geen shiften voor deze activiteit.${canWrite?`<div style="margin-top:12px"><button class="btn primary" data-sh="nieuw">${ic("plus")}Shift toevoegen</button></div>`:""}</div></div>`}
+    ${S2.length&&canWrite?`<div class="panel"><div class="panel-b" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><span class="grow small muted">${a.shiftenToegekend?`De shiften zijn toegekend in het puntensysteem (${esc(fmtDate(String(a.shiftenToegekend).slice(0,10)))}).`:"Na de activiteit: geef elke ingedeelde persoon 1 shift in het puntensysteem."}</span>
+      <button class="btn" data-sh="punten"${a.shiftenToegekend?" disabled":""}>Shiften toekennen in puntensysteem</button></div></div>`:""}
+    <p class="muted small">Een sms naar meerdere personen wordt op een iPhone een groepsgesprek: iedereen ziet dan de antwoorden. Wil je dat niet, gebruik dan het sms-icoontje naast elke naam.</p>`}});
+function shForm(a,s){s=s||{taak:"",van:a.uur||"",tot:"",nodig:""};
+  modal(s.id?"Shift wijzigen":"Shift toevoegen",`<form class="form" id="fSh">${fld("shT","Taak",inp("shT",s.taak,'maxlength="80" placeholder="bv. Bar, Kassa, Opbouw"'),"full")}
+    ${fld("shV","Van",`<input id="shV" type="time" value="${esc(s.van||"")}">`)}${fld("shTo","Tot",`<input id="shTo" type="time" value="${esc(s.tot||"")}">`)}
+    ${fld("shN","Aantal personen nodig",inp("shN",s.nodig||"",'type="number" min="0" max="99" inputmode="numeric" placeholder="optioneel"'))}<div class="err full" id="shErr"></div></form>`,
+    `${s.id?'<button class="btn danger" id="shDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="shOk">Bewaren</button>`);
+  $("#shOk").onclick=async()=>{const n={taak:$("#shT").value.trim(),van:$("#shV").value,tot:$("#shTo").value,nodig:Math.max(0,parseInt($("#shN").value,10)||0)};if(!n.taak){$("#shErr").textContent="Geef de taak een naam.";return}
+    const L=[...(a.shiften||[])];if(s.id){const i=L.findIndex(x=>x.id===s.id);L[i]={...L[i],...n}}else L.push({id:shId(),...n,leden:[]});L.sort((x,y)=>String(x.van||"").localeCompare(String(y.van||""))||String(x.taak).localeCompare(String(y.taak),"nl"));
+    closeModal();await shBewaar(a,{shiften:L})};
+  const del=$("#shDel");if(del)del.onclick=()=>confirmBox(`Shift <b>${esc(s.taak)}</b> verwijderen?`,"Verwijderen",async()=>{closeModal();await shBewaar(a,{shiften:(a.shiften||[]).filter(x=>x.id!==s.id)})})}
+function shLidVan(v){const n=norm(v);if(!n)return null;for(const l of S.leden.values())if(norm(naamVol(l))===n||norm((l.voornaam||"")+" "+(l.naam||""))===n)return l;return null}
+async function shVoegToe(k){const a=shAct();const inp=k.querySelector("[data-shadd]");const l=shLidVan(inp.value);if(!l){toast("Kies een lid uit de lijst.",true);inp.focus();return}
+  const id=k.dataset.shid;const L=(a.shiften||[]).map(s=>s.id===id?{...s,leden:[...new Set([...(s.leden||[]),l.id])]}:s);
+  const ander=(a.shiften||[]).find(s=>s.id!==id&&(s.leden||[]).includes(l.id));await shBewaar(a,{shiften:L});if(ander)toast(`${l.voornaam} staat ook al in de shift ${ander.taak}.`)}
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-sh]");if(!b||route()!=="shiften")return;const a=shAct();if(!a)return;const k=b.closest("[data-shid]"),s=k&&(a.shiften||[]).find(x=>x.id===k.dataset.shid);
+  switch(b.dataset.sh){
+    case"nieuw":if(canWrite)shForm(a,null);break;
+    case"bewerk":if(canWrite&&s)shForm(a,s);break;
+    case"add":if(canWrite)shVoegToe(k);break;
+    case"weg":{if(!canWrite)break;const lid=b.closest("[data-lid]").dataset.lid;await shBewaar(a,{shiften:a.shiften.map(x=>x.id===s.id?{...x,leden:(x.leden||[]).filter(i=>i!==lid)}:x)});break}
+    case"tekstBewaar":{const t=$("[data-shtekst]").value.trim();await shBewaar(a,{smsTekst:t&&t!==SH_TEKST?t:""});toast("Tekst bewaard.");break}
+    case"tekstStandaard":$("[data-shtekst]").value=SH_TEKST;break;
+    case"punten":{const tel={};for(const x of a.shiften||[])for(const id of x.leden||[])tel[id]=(tel[id]||0)+1;const ids=Object.keys(tel);if(!ids.length){toast("Er is nog niemand ingedeeld.",true);break}
+      const Y=Number(String(a.datum).slice(0,4))||JAAR;
+      confirmBox(`${ids.length} ${ids.length===1?"lid krijgt":"leden krijgen"} ${Object.values(tel).reduce((x,y)=>x+y,0)} shift(en) bij in het puntensysteem van ${Y}. Doorgaan?`,"Toekennen",async()=>{closeModal();
+        for(const id of ids){const k2=Y+"_"+id,cur=S.jaarleden.get(k2)||{jaar:Y,lidId:id};const {id:_i,...rest}=cur;await write("jaarleden",k2,{...rest,jaar:Y,lidId:id,shifts:(Number(cur.shifts)||0)+tel[id]})}
+        await shBewaar(a,{shiftenToegekend:new Date().toISOString()});toast("Shiften toegekend in het puntensysteem.")});break}}});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.dataset&&e.target.dataset.shadd!==undefined){e.preventDefault();shVoegToe(e.target.closest("[data-shid]"))}});
+document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.shkies!==undefined){SHF.id=e.target.value;renderBody()}});
+{const st=document.createElement("style");st.textContent=`.sh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;align-items:start}.sh-top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.sh-tekst summary{cursor:pointer}.sh-tekst textarea{width:100%;margin-top:8px}.sh-l{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}.sh-p{display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:8px}
+.sh-add{display:flex;gap:8px;margin-bottom:10px}.sh-add input{flex:1;min-width:0}.sh-sms{width:100%;justify-content:center}`;document.head.appendChild(st)}
+
+/* ============ Activiteiten › Familiedag ============
+   Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
+   Instellingen per jaar in config "fd_<jaar>": {titel, datum, uur, locatie, info, open, inschrijvenTot, nietLeden, prijzen:[{id,naam,uitleg,prijs,lidGratis}]}
+   Openbare pagina: /familiedag (met Bancontact; geen betaling als het totaal 0 is). */
+if(!COLS.includes("familiedag"))COLS.push("familiedag");S.familiedag=S.familiedag||new Map();
+{const a=NAV.find(n=>n.id==="administratie");if(a&&!a.items.some(i=>i[0]==="familiedag")){const k=a.items.findIndex(i=>i[0]==="kinderfeest");a.items.splice(k>=0?k+1:a.items.length,0,["familiedag","Familiedag"])}}
+if(!ROUTES.some(r=>r[0]==="familiedag"))ROUTES.push(["familiedag","Familiedag"]);
+if(typeof FUNC!=="undefined"&&!FUNC.some(f=>f[0]==="familiedag")){FUNC.splice(FUNC.findIndex(f=>f[0]==="kinderfeest")+1,0,["familiedag","Familiedag",["familiedag"]]);FUNC_VAN.familiedag="familiedag"}
+ICON.familiedag='<circle cx="7" cy="6.5" r="2.3"/><circle cx="17" cy="6.5" r="2.3"/><circle cx="12" cy="11" r="1.8"/><path d="M3.5 20v-4.5a3.5 3.5 0 0 1 7 0V20M13.5 20v-4.5a3.5 3.5 0 0 1 7 0V20M9.5 20v-2.5a2.5 2.5 0 0 1 5 0V20"/>';
+const FD_DEF_PRIJZEN=[{id:"volw",naam:"Volwassene",uitleg:"",prijs:15,lidGratis:false},{id:"kind",naam:"Kind",uitleg:"3 tot 12 jaar",prijs:8,lidGratis:false},{id:"klein",naam:"Kind onder 3 jaar",uitleg:"",prijs:0,lidGratis:false}];
+const fdCfg=()=>{const c=S.config.get("fd_"+JAAR)||{};return{titel:"Familiedag "+JAAR,datum:"",uur:"",locatie:"",info:"",nietLeden:false,...c,prijzen:Array.isArray(c.prijzen)&&c.prijzen.length?c.prijzen:FD_DEF_PRIJZEN}};
+const fdLijst=()=>[...S.familiedag.values()].filter(r=>Number(r.jaar)===JAAR).sort((a,b)=>String(b.aangemeld||"").localeCompare(String(a.aangemeld||"")));
+const fdBetaald=r=>!(r.teBetalen>0)||(r.betaling&&r.betaling.status==="SUCCEEDED")||r.betaald==="OK";
+const fdStatus=r=>!(r.teBetalen>0)?'<span class="pill neutral">gratis</span>':fdBetaald(r)?'<span class="pill ok">✓ betaald</span>':r.betaling&&!["EXPIRED","FAILED","CANCELLED","AUTHORIZATION_FAILED"].includes(r.betaling.status)?'<span class="pill warn">betaling bezig</span>':'<span class="pill nok">open</span>';
+let FDQ="";
+VIEWS.familiedag=()=>({title:"Familiedag",sub:"Inschrijvingen familiedag "+JAAR,
+  actions:`<a class="btn" href="/familiedag" target="_blank" rel="noopener" title="Openbare inschrijfpagina, om te delen">${ic("link")}Inschrijfpagina${typeof insPill==="function"?insPill(insStatus(fdCfg(),fdCfg().datum||JAAR+"-12-31")):""}</a><button class="btn" data-act="fdExport">${ic("download")}Exporteren</button><button class="btn iconbtn" data-w data-act="fdInst" title="Instellingen familiedag" aria-label="Instellingen familiedag">${ic("instellingen")}</button>`,
+  body(){const c=fdCfg(),L=fdLijst();const per={};let pers=0,te=0,ont=0,gratis=0;
+    for(const r of L){pers+=r.personen||0;te+=r.teBetalen||0;if(fdBetaald(r))ont+=r.teBetalen||0;for(const l of r.lijnen||[]){per[l.id]=per[l.id]||{naam:l.naam,n:0};per[l.id].n+=l.aantal;if(l.gratis)gratis+=l.aantal}}
+    const q=norm(FDQ),list=q?L.filter(r=>norm([r.naam,r.email,r.opmerking].join(" ")).includes(q)):L;
+    return `${c.datum?"":`<div class="note">Stel eerst de datum, de locatie en de prijzen in via het tandwiel. Daarna kan je de inschrijfpagina delen.</div>`}
+    <div class="tiles"><div class="tile hero"><span class="lbl">Ingeschreven personen</span><span class="val">${pers}</span><span class="hint">${L.length} ${L.length===1?"inschrijving":"inschrijvingen"}</span></div>
+      <div class="tile"><span class="lbl">Te ontvangen</span><span class="val">${eur(te)}</span><span class="hint">${eur(ont)} ontvangen${gratis?` · ${gratis} gratis voor leden`:""}</span></div></div>
+    <div class="panel"><div class="panel-h"><h2>Per soort</h2></div><div class="panel-b fd-soort">${c.prijzen.map(p=>`<div><b>${per[p.id]?per[p.id].n:0}</b><span>${esc(p.naam)}</span></div>`).join("")}</div></div>
+    <div class="bar"><div class="search">${ic("search")}<input data-fdq placeholder="Zoek op naam of e-mail" value="${esc(FDQ)}"></div></div>
+    <div class="panel"><div class="tw">${list.length?`<table class="rcards"><thead><tr><th>Naam</th><th>Personen</th><th class="num">Bedrag</th><th>Betaling</th><th>Ingeschreven</th></tr></thead><tbody>
+      ${list.map(r=>`<tr class="click" data-act="fdToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b>${r.lidId?"":' <span class="pill neutral">geen lid</span>'}${r.opmerking?`<div class="muted small">${esc(r.opmerking)}</div>`:""}</td>
+        <td>${(r.lijnen||[]).map(l=>`${l.aantal}× ${esc(l.naam)}`).join(", ")}</td><td class="num">${r.teBetalen>0?eur(r.teBetalen):"–"}</td><td>${fdStatus(r)}</td><td class="nowrap">${r.aangemeld?esc(fmtDate(String(r.aangemeld).slice(0,10))):""}</td></tr>`).join("")}</tbody></table>`
+      :`<div class="empty">${FDQ?"Geen inschrijvingen gevonden.":"Nog geen inschrijvingen voor "+JAAR+"."}</div>`}</div></div>`}});
+function fdInst(){const c=fdCfg(),d=canWrite?"":" disabled";
+  const rij=(p,i)=>`<div class="fd-pr" data-i="${i}"><input data-fp="naam" value="${esc(p.naam)}" placeholder="bv. Volwassene" maxlength="60"${d}><input data-fp="uitleg" value="${esc(p.uitleg||"")}" placeholder="uitleg (optioneel)" maxlength="80"${d}>
+    <div class="sfx"><span>€</span><input data-fp="prijs" inputmode="decimal" value="${esc(p.prijs)}"${d}></div><label class="fd-g"><input type="checkbox" data-fp="lidGratis"${p.lidGratis?" checked":""}${d}> gratis voor leden</label>
+    <button type="button" class="bg-x" data-fdpr="weg" aria-label="Prijs verwijderen"${d}>${ic("x")}</button></div>`;
+  modal("Familiedag "+JAAR,`<form id="fFd" class="form">${typeof insVelden==="function"?insVelden(c,c.datum||JAAR+"-12-31",""):""}
+    ${fld("fdT","Titel",inp("fdT",c.titel,'maxlength="80"'),"full")}
+    ${fld("fdD","Datum",`<input id="fdD" type="date" value="${esc(c.datum||"")}">`)}${fld("fdU","Uur",inp("fdU",c.uur,'placeholder="bv. 11u00"'))}
+    ${fld("fdL","Locatie",inp("fdL",c.locatie,'placeholder="bv. Kazerne Aalst, Vrijheidstraat 55, Aalst"'),"full")}
+    ${fld("fdI","Info op de inschrijfpagina",`<textarea id="fdI" rows="3" maxlength="800">${esc(c.info||"")}</textarea>`,"full")}
+    <div class="fld full"><span class="lbl">Prijzen</span><div id="fdPr" class="fd-prl">${c.prijzen.map(rij).join("")}</div>
+      ${canWrite?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="btn sm" data-fdpr="nieuw">${ic("plus")}Prijs toevoegen</button><button type="button" class="btn sm ghost" data-fdpr="allesGratis">Alles gratis voor leden</button></div>`:""}
+      <span class="help">Met <b>gratis voor leden</b> betaalt een lid niets voor die soort (op kosten van de vriendenkring). Is het totaal 0, dan is er geen betaling.</span></div>
+    <label class="sp-nat full"><input type="checkbox" id="fdN"${c.nietLeden?" checked":""}><span><b>Ook niet-leden kunnen inschrijven</b><small>Zij vullen hun naam en e-mailadres in en betalen de gewone prijs.</small></span></label>
+    <div class="err full" id="fdErr"></div></form>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="fdOk">Bewaren</button>`,{wide:true});
+  const lees=()=>$$("#fdPr .fd-pr").map((el,i)=>{const g=k=>el.querySelector(`[data-fp="${k}"]`);return{id:(c.prijzen[+el.dataset.i]||{}).id||("p"+Date.now().toString(36)+i),naam:g("naam").value.trim(),uitleg:g("uitleg").value.trim(),prijs:Math.max(0,num(g("prijs").value)),lidGratis:g("lidGratis").checked}}).filter(p=>p.naam);
+  $("#fFd").addEventListener("click",e=>{const b=e.target.closest("[data-fdpr]");if(!b)return;
+    if(b.dataset.fdpr==="nieuw"){c.prijzen=[...lees(),{id:"p"+Date.now().toString(36),naam:"",uitleg:"",prijs:0,lidGratis:false}];$("#fdPr").innerHTML=c.prijzen.map(rij).join("");const x=$$("#fdPr [data-fp=naam]").pop();if(x)x.focus()}
+    if(b.dataset.fdpr==="weg"){const i=+b.closest(".fd-pr").dataset.i;c.prijzen=lees().filter((_,k)=>k!==i);$("#fdPr").innerHTML=c.prijzen.map(rij).join("")}
+    if(b.dataset.fdpr==="allesGratis")$$('#fdPr [data-fp="lidGratis"]').forEach(x=>x.checked=true)});
+  $("#fdOk").onclick=async()=>{const P=lees();if(!P.length){$("#fdErr").textContent="Voeg minstens één prijs toe.";return}const ins=typeof insLees==="function"?insLees():{};
+    const n={...stripId(S.config.get("fd_"+JAAR)||{}),titel:$("#fdT").value.trim()||"Familiedag "+JAAR,datum:$("#fdD").value,uur:$("#fdU").value.trim(),locatie:$("#fdL").value.trim(),info:$("#fdI").value.trim(),nietLeden:$("#fdN").checked,prijzen:P,
+      ...(ins.open!==undefined?{open:ins.open}:{}),...(/^\d{4}-\d{2}-\d{2}$/.test(ins.inschrijvenTot||"")?{inschrijvenTot:ins.inschrijvenTot}:{})};
+    closeModal();await write("config","fd_"+JAAR,n);toast("Instellingen familiedag bewaard.")}}
+function fdToon(id){const r=S.familiedag.get(id);if(!r)return;
+  modal(r.naam,`<dl class="kv"><dt>Naam</dt><dd>${esc(r.naam)}${r.lidId?"":" (geen lid)"}</dd><dt>E-mail</dt><dd>${esc(r.email||"–")}</dd>
+    ${(r.lijnen||[]).map(l=>`<dt>${esc(l.naam)}</dt><dd>${l.aantal} × ${l.gratis?"gratis voor leden":eur(l.prijs)}</dd>`).join("")}<dt>Bedrag</dt><dd>${r.teBetalen>0?eur(r.teBetalen):"gratis"} ${fdStatus(r)}</dd>
+    ${r.opmerking?`<dt>Opmerking</dt><dd>${esc(r.opmerking)}</dd>`:""}<dt>Ingeschreven</dt><dd>${esc(r.aangemeld?fmtDate(String(r.aangemeld).slice(0,10)):"")}</dd></dl>`,
+    `${canWrite?'<button class="btn danger" id="fdDel" style="margin-right:auto">Verwijderen</button>':""}${canWrite&&r.teBetalen>0&&!fdBetaald(r)?'<button class="btn" id="fdOkB">Op betaald zetten</button>':""}<button class="btn primary" data-act="closeModal">Sluiten</button>`);
+  const b=$("#fdOkB");if(b)b.onclick=async()=>{closeModal();const {id:_i,...rest}=r;await write("familiedag",id,{...rest,betaald:"OK",betaaldManueel:new Date().toISOString()});toast("Op betaald gezet.")};
+  const d=$("#fdDel");if(d)d.onclick=()=>confirmBox(`Inschrijving van <b>${esc(r.naam)}</b> verwijderen?`,"Verwijderen",async()=>{closeModal();await write("familiedag",id,null,{del:true});toast("Verwijderd.")})}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;const a=t.dataset.act;
+  if(a==="fdInst")fdInst();else if(a==="fdToon")fdToon(t.dataset.id);
+  else if(a==="fdExport"){const L=fdLijst(),c=fdCfg();const rows=L.map(r=>{const o={Naam:r.naam,Lid:r.lidId?"ja":"nee","E-mail":r.email||""};for(const p of c.prijzen)o[p.naam]=((r.lijnen||[]).find(l=>l.id===p.id)||{}).aantal||0;Object.assign(o,{Personen:r.personen||0,Bedrag:r.teBetalen||0,Betaald:fdBetaald(r)?"ja":"nee",Opmerking:r.opmerking||""});return o});
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Familiedag");XLSX.writeFile(wb,`Familiedag_${JAAR}.xlsx`)}});
+document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.fdq!==undefined){FDQ=e.target.value;renderBody();const i=$("[data-fdq]");if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}}});
+{const st=document.createElement("style");st.textContent=`.fd-soort{display:flex;gap:18px;flex-wrap:wrap}.fd-soort div{display:flex;flex-direction:column}.fd-soort b{font-size:22px}.fd-soort span{color:var(--muted);font-size:13px}
+.fd-prl{display:flex;flex-direction:column;gap:8px}.fd-pr{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) 100px auto 32px;gap:8px;align-items:center}.fd-pr input{min-width:0;width:100%}.fd-g{display:inline-flex;gap:6px;align-items:center;font-size:13px;white-space:nowrap}.fd-g input{width:auto}
+@media (max-width:700px){.fd-pr{grid-template-columns:1fr 100px 32px;border:1px solid var(--line);border-radius:10px;padding:8px}.fd-pr [data-fp=naam]{grid-column:1/3}.fd-pr [data-fp=uitleg]{grid-column:1/4;grid-row:2}.fd-pr .sfx{grid-row:3;grid-column:2}.fd-g{grid-row:3;grid-column:1}.fd-pr .bg-x{grid-row:1;grid-column:3}}`;document.head.appendChild(st)}
+// dashboardmelding nieuwe inschrijvingen: familiedag meetellen is niet nodig; pushmelding volstaat

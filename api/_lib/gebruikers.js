@@ -48,7 +48,7 @@ export function welkomMail({ naam, email, rol, wachtwoord, url, reset }) {
   return { aan: email, aanNaam: naam || "", onderwerp: reset ? "VBHA - Nieuw tijdelijk wachtwoord" : "VBHA - Je toegang tot de beheeromgeving", html };
 }
 
-export const FUNCTIES = ["leden", "punten", "financien", "kalenders", "banket", "kinderfeest", "fuif", "kassa", "jaarmarkt", "webshop", "agenda", "documenten", "fotos", "sponsors", "mails", "website"];
+export const FUNCTIES = ["leden", "punten", "financien", "kalenders", "banket", "kinderfeest", "familiedag", "fuif", "kassa", "jaarmarkt", "webshop", "agenda", "documenten", "fotos", "sponsors", "mails", "website"];
 export async function gebruikers(req, res) {
   res.setHeader("Cache-Control", "no-store");
   const { user, sb } = await requireUser(req, { write: true });

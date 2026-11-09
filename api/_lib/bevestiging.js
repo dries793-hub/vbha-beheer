@@ -121,14 +121,29 @@ export async function mailKinderfeest(sb, row) {
   const M = { ...kfMailDef(jaar, c.datum || jaar + "-12-19"), ...(c.mail || {}) }, cc = String(M.kopie || "").split(/[,;\s]+/).map(x => x.trim().toLowerCase()).filter(x => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x)).slice(0, 5);
   return { aan, aanNaam: d.lid || "", cc, onderwerp: `VBHA - Bevestiging inschrijving kinderfeest ${jaar}`, html: huisstijl(html, A.vereniging), betaald: true };
 }
+export async function mailFamiliedag(sb, row) {
+  const d = row.data, A = await algemeen(sb), jaar = d.jaar || A.jaar, c = await configDoc(sb, "fd_" + jaar), aan = String(d.email || "").trim();
+  if (!aan) return null;
+  const bedrag = d.teBetalen || 0, betaald = bedrag > 0 && BETAALD(d, bedrag), ins = inschrijving(c, c.datum || jaar + "-12-31");
+  let voornaam = String(d.naam || "").split(" ").slice(-1)[0];
+  if (d.lidId) { const { data: l } = await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle(); if (l && l.data && l.data.voornaam) voornaam = l.data.voornaam; }
+  const titel = c.titel || "Familiedag " + jaar;
+  const html = p(`Beste ${esc(voornaam)},`) + p(`Bedankt voor je inschrijving voor de ${esc(titel.toLowerCase().startsWith("familiedag") ? titel.toLowerCase() : titel)}. Hieronder vind je nog eens alle gegevens.`)
+    + kaderBlok(esc(titel), tabel([rij("Wanneer", c.datum ? esc(lang(c.datum)) + (c.uur ? " om " + esc(c.uur) : "") : ""), rij("Waar", esc(c.locatie || "")), rij("Op naam van", esc(d.naam)),
+      ...(d.lijnen || []).map(l => rij(l.naam, `${l.aantal} &times; ${l.gratis ? "gratis voor leden" : eur(l.prijs)}`)), rij("Opmerking", esc(d.opmerking || "")), rij("Totaal", `<b>${bedrag > 0 ? eur(bedrag) : "gratis"}</b>`)]))
+    + (bedrag > 0 ? betaalBlok({ betaald, betaling: d.betaling, bedrag, rekeningnummer: A.rekeningnummer || DEF_IBAN, begunstigde: A.vereniging, mededeling: `${d.naam} Familiedag ${jaar}`, tegen: ins.tot }) : kaderBlok("Niets te betalen", p("Deze familiedag is gratis voor leden: de vriendenkring trakteert. Je hoeft niets te betalen.", "margin:0"), "#1a7f45", "#f1faf4"))
+    + (c.info ? p(esc(c.info).replace(/\n/g, "<br>")) : "") + p("We kijken ernaar uit om er samen een fijne dag van te maken!");
+  return { aan, aanNaam: d.naam || "", onderwerp: `VBHA - Bevestiging inschrijving ${titel}`, html: huisstijl(html, A.vereniging), betaald: betaald || bedrag === 0 };
+}
 export async function mailBetaald(sb, tabel, row) {
   const d = row.data, A = await algemeen(sb), b = d.betaling || {};
   let aan = "", voornaam = "", wat = "";
   if (tabel === "leden") { aan = d.email; voornaam = d.voornaam; wat = `je lidgeld ${b.jaar || ""}`.trim(); }
+  else if (tabel === "familiedag") { aan = d.email; voornaam = String(d.naam || "").split(" ").slice(-1)[0]; wat = `de familiedag ${d.jaar || ""}`.trim(); }
   else { const { data: lid } = d.lidId ? await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle() : { data: null }; aan = lid && lid.data && lid.data.email; voornaam = lid && lid.data && lid.data.voornaam; wat = `het banket ${d.jaar || ""}`.trim(); }
   aan = String(aan || "").trim(); if (!aan) return null;
   const html = p(`Beste ${esc(voornaam || "")},`.replace(" ,", ",")) + betaalBlok({ betaald: true, betaling: b, bedrag: b.bedrag })
-    + p(tabel === "leden" ? "Je lidgeld is in orde. Bedankt en tot op een van onze activiteiten!" : "Je inschrijving voor het banket is nu volledig in orde. Tot dan!");
+    + p(tabel === "leden" ? "Je lidgeld is in orde. Bedankt en tot op een van onze activiteiten!" : tabel === "familiedag" ? "Je inschrijving voor de familiedag is nu volledig in orde. Tot dan!" : "Je inschrijving voor het banket is nu volledig in orde. Tot dan!");
   return { aan, aanNaam: voornaam || "", onderwerp: `VBHA - Betaling ontvangen voor ${wat}`, html: huisstijl(html, A.vereniging), betaald: true };
 }
 
@@ -136,7 +151,7 @@ export async function mailBetaald(sb, tabel, row) {
 async function haal(sb, tabel, id) { const { data } = await sb.from(tabel).select("id,data").eq("id", id).maybeSingle(); return data; }
 async function zet(sb, tabel, id, patch) { const r = await haal(sb, tabel, id); if (!r) return; const { error } = await sb.from(tabel).update({ data: { ...r.data, ...patch } }).eq("id", id); if (error) throw error; }
 async function stuur(m) { if (!m || !smtpConfigured()) return false; const cc = (m.cc || []).filter(c => c && c.toLowerCase() !== String(m.aan).toLowerCase()); const [r] = await verstuur([{ aan: m.aan, aanNaam: m.aanNaam, onderwerp: m.onderwerp, html: m.html, van: afzender(), ...(cc.length ? { cc } : {}) }]); return !!(r && r.ok); }
-const MAKER = { banket: mailBanket, leden: mailNieuwLid, kinderfeest: mailKinderfeest };
+const MAKER = { banket: mailBanket, leden: mailNieuwLid, kinderfeest: mailKinderfeest, familiedag: mailFamiliedag };
 
 export async function wachtOpBetaling(sb, tabel, id) { await zet(sb, tabel, id, { bevestiging: { status: "wacht", sinds: new Date().toISOString() } }); }
 export async function stuurBevestiging(sb, tabel, id) {
@@ -187,7 +202,7 @@ export async function bevestigingenCron(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (!(await isDbCron(req))) throw httpErr(403, "Geen toegang");
   const sb = admin(), grens = new Date(Date.now() - 20 * 60 * 1000).toISOString(), uit = [];
-  for (const tabel of ["banket", "leden"]) {
+  for (const tabel of ["banket", "leden", "familiedag"]) {
     const { data } = await sb.from(tabel).select("id,data").eq("data->bevestiging->>status", "wacht").limit(25);
     for (const r of data || []) {
       try { if (r.data.betaling && r.data.betaling.id) await controleerBetaling(sb, tabel, r); } catch (e) { console.error("controle", e); }
@@ -208,7 +223,9 @@ export async function bevestigingenCron(req, res) {
   try { kassa = await (await import("./kassa.js")).kassaCron(sb); } catch (e) { console.error("kassa", e); kassa = { fout: e.message }; }
   let shop = null;
   try { shop = await (await import("./shop.js")).shopCron(sb); } catch (e) { console.error("shop", e); shop = { fout: e.message }; }
-  res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend, betaalherinnering, fuif, kassa, shop });
+  let goud = null;
+  try { goud = await (await import("./goudmail.js")).goudCron(sb); } catch (e) { console.error("goud", e); goud = { fout: e.message }; }
+  res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend, betaalherinnering, fuif, kassa, shop, goud });
 }
 // gedeeld met de facturatie (api/_lib/factuur.js)
 export { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, kort, lang, vandaag, plusDagen, site };
