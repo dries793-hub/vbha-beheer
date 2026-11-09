@@ -329,7 +329,7 @@ const EMBLEM='<img class="emblem emblem-l" alt="" width="47" height="52" src="da
 /* ---------- dashboard ---------- */
 function nieuweInschr(){return [...S.banket.values(),...S.kinderfeest.values()].filter(r=>r.nieuw&&Number(r.jaar)===JAAR)}
 function inschrMelding(){const L=nieuweInschr();if(!L.length)return"";const b=L.filter(r=>S.banket.has(r.id)).length,k=L.filter(r=>S.kinderfeest.has(r.id)).length;
-  const it=(v,n,t)=>n?`<a class="nm-i" href="#${v}"><b>${t}</b><span>${n} ${n===1?"nieuwe inschrijving":"nieuwe inschrijvingen"}</span></a>`:"";
+  const _ids=c=>L.filter(r=>S[c].has(r.id)).map(r=>r.id).sort().join(",");const it=(v,n,t)=>n?`<a class="nm-i" href="#${v}" data-id="${esc(_ids(v))}"><b>${t}</b><span>${n} ${n===1?"nieuwe inschrijving":"nieuwe inschrijvingen"}</span></a>`:"";
   return `<div class="nmeld" role="status"><span class="nm-ic">${ic("deel")}</span><div class="nm-body"><b>${L.length===1?"Er is een nieuwe inschrijving":L.length+" nieuwe inschrijvingen"} binnengekomen</b>
   <div class="nm-l">${it("banket",b,"Banket")}${it("kinderfeest",k,"Kinderfeest")}</div></div>${canWrite?`<button type="button" class="nm-x" data-act="inschrGezien" aria-label="Melding sluiten" title="Melding sluiten">${ic("x")}</button>`:""}</div>`}
 function nieuweLeden(){return [...S.leden.values()].filter(l=>l.nieuw).sort((a,b)=>String(b.aangemeld||"").localeCompare(String(a.aangemeld||"")))}
