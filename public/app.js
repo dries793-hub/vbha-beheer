@@ -5578,7 +5578,7 @@ function kfkPaneel(){const K=kfKost();const R=K.rij.filter(g=>g.n||g.prijs!=null
   if(!R.length&&!K.zonder)return "";
   const rows=R.map(g=>`<tr><td><b>${esc(g.label)}</b><div class="muted small">${esc(g.tekst)}</div></td><td class="num">${g.n}</td><td class="num">${g.prijs!=null?eur(g.prijs):'<span class="pill warn">geen bedrag</span>'}</td><td class="num"><b>${g.prijs!=null?eur(g.n*g.prijs):"–"}</b></td></tr>`).join("")
    +(K.onb.n?`<tr><td><b>Geboortedatum onbekend</b></td><td class="num">${K.onb.n}</td><td class="num"><span class="pill warn">geen bedrag</span></td><td class="num">–</td></tr>`:"");
-  return `<div class="panel"><div class="panel-h"><h2>Voorziene kost cadeaus</h2><span class="grow"></span>${canWrite?`<button class="btn sm" data-act="kfInst">${ic("instellingen")}Bedragen</button>`:""}</div>
+  return `<div class="panel"><div class="panel-h"><h2>Voorziene kost cadeaus</h2></div>
    <div class="tw"><table class="rcards"><thead><tr><th>Geboortejaar</th><th class="num">Cadeaus</th><th class="num">Per kind</th><th class="num">Totaal</th></tr></thead><tbody>${rows}</tbody>
    <tfoot><tr><td><b>Totaal</b></td><td class="num"><b>${K.cadeaus}</b></td><td></td><td class="num"><b>${eur(K.tot)}</b></td></tr></tfoot></table></div>
    </div>`}
