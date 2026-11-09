@@ -767,7 +767,7 @@ function puntTable(){
   if(UI.puntSort==="totaal")list.sort((a,b)=>b.p.totaal-a.p.totaal);
   else if(vn)list.sort((a,b)=>(a.lid.voornaam||"").localeCompare(b.lid.voornaam||"","nl")||(a.lid.naam||"").localeCompare(b.lid.naam||"","nl"));
   const dis=canWrite?"":" disabled";
-  const inp=(r,f)=>stepper("jl",f,r.lid.id,r.jl[f]||0,f+" "+naamVol(r.lid));
+  const inp=(r,f)=>(f==="shifts"||f==="vergaderingen")?ptVast(r,f):stepper("jl",f,r.lid.id,r.jl[f]||0,f+" "+naamVol(r.lid));
   const mob=`<div class="mlist" role="list">${list.map(r=>{const id=r.lid.id,open=PT_OPEN.has(id);const nm=vn?`<b>${esc(r.lid.voornaam)}</b> ${esc(r.lid.naam)}`:`<b>${esc(r.lid.naam)}</b> ${esc(r.lid.voornaam)}`;
     const det=[["Kaarten","kaarten"],["Shifts","shifts"],["Vergaderingen","vergaderingen"]];
     return `<div class="pm${open?" open":""}" role="listitem"><button type="button" class="ml-row" data-act="ptOpen" data-id="${esc(id)}" aria-expanded="${open}">
@@ -6280,6 +6280,14 @@ document.addEventListener("click",e=>{if(!e.target.closest('[data-act="stGoud"]'
     extra.push({...b,sect:"Status",id:"st:"+jaar+":"+s,label:`Status ${jaar}: ${nm[s]}${jaar===JAAR?"":" (tussenstand)"}`,list,geblokt:[]})}
   const i=G.findIndex(g=>g.sect!=="Leden");G.splice(i<0?G.length:i,0,...extra);return G}}
 {const st=document.createElement("style");st.textContent=".pt-lid{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}.pt-lid:hover{color:var(--accent);text-decoration:underline}";document.head.appendChild(st)}
+/* shifts en vergaderingen: enkel het getal; een administrator kan erop klikken om het manueel aan te passen */
+function ptVast(r,f){const v=Number(r.jl[f])||0;return ROL_ECHT==="admin"&&ROL==="admin"?`<button type="button" class="pt-vast adm" data-act="ptAanpas" data-id="${esc(r.lid.id)}" data-f="${f}" title="Manueel aanpassen (enkel administrator)">${v}</button>`:`<span class="pt-vast">${v}</span>`}
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="ptAanpas"]');if(!b||ROL!=="admin")return;e.stopPropagation();const id=b.dataset.id,f=b.dataset.f,l=S.leden.get(id);const k=JAAR+"_"+id,cur=S.jaarleden.get(k)||{jaar:JAAR,lidId:id};
+  modal(`${f==="shifts"?"Shifts":"Vergaderingen"} ${JAAR}: ${esc(l?naamVol(l):"")}`,`<p class="muted small" style="margin:0 0 10px">Dit getal komt normaal automatisch uit ${f==="shifts"?"de shiftenmodule":"de verslagen"}. Pas het enkel aan als er iets niet klopt.</p><div class="fld"><label for="ptAv">Aantal</label><input id="ptAv" type="number" min="0" max="99" inputmode="numeric" value="${Number(cur[f])||0}"></div>`,
+    `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="ptAok">Bewaren</button>`);
+  setTimeout(()=>{const i=$("#ptAv");if(i){i.focus();i.select()}},40);
+  $("#ptAok").onclick=async()=>{const n=Math.max(0,Math.min(99,parseInt($("#ptAv").value,10)||0));closeModal();const {id:_i,...rest}=cur;await write("jaarleden",k,{...rest,jaar:JAAR,lidId:id,[f]:n});renderBody();toast("Aangepast.")}},true);
+{const st=document.createElement("style");st.textContent=".pt-vast{display:inline-block;min-width:40px;text-align:center;font-weight:600;font-variant-numeric:tabular-nums}.pt-vast.adm{border:1px dashed transparent;background:none;border-radius:8px;padding:5px 10px;font:inherit;font-weight:600;cursor:pointer;color:inherit}.pt-vast.adm:hover{border-color:var(--line-strong,#ccc);background:var(--soft,#f4f4f5)}";document.head.appendChild(st)}
 
 /* ============ Activiteiten › Shiften: bord met helpers als tegels ============
    Op de activiteit (collectie "activiteiten"):
