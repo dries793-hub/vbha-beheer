@@ -6570,7 +6570,7 @@ function shRooster(a){const S2=a.shiften||[],met=S2.map(s=>({s,p:shSpan(s)})).fi
 {const _v=VIEWS.shiften;VIEWS.shiften=function(){const v=_v.apply(this,arguments),b=v.body;
   v.body=function(){const h=String(b.apply(this,arguments)),a=shAct(),k=h.indexOf('<div class="panel sh-poolp">');if(!a||k<0)return h;
     const tabs=`<div class="ka-tabs sh-wtabs" role="tablist"><button type="button" role="tab" data-shw="bord" class="${SHF.weerg==="rooster"?"":"on"}">Bord</button><button type="button" role="tab" data-shw="rooster" class="${SHF.weerg==="rooster"?"on":""}">Rooster</button></div>`;
-    return h.slice(0,k)+tabs+(SHF.weerg==="rooster"?shRooster(a):h.slice(k))};return v};Object.assign(VIEWS.shiften,_v)}
+    return tabs+h.slice(0,k)+(SHF.weerg==="rooster"?shRooster(a):h.slice(k))};return v};Object.assign(VIEWS.shiften,_v)}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-shw]");if(t){SHF.weerg=t.dataset.shw;renderBody();return}
   const q=e.target.closest("[data-shredit]");if(q&&canWrite){const a=shAct(),s=a&&(a.shiften||[]).find(x=>x.id===q.dataset.shredit);if(s)shForm(a,s)}});
 // slepen en de randen verslepen (muis en touch)
@@ -6586,7 +6586,7 @@ document.addEventListener("pointerdown",e=>{const bl=e.target.closest(".shr-b");
     try{await shBewaar(a,{shiften:L});toast(`${s.taak||"Shift"}: ${shHHMM(nv)} – ${shHHMM(nt)}`)}catch(x){toast("Bewaren lukte niet.",true)}renderBody()};
   bl.addEventListener("pointermove",mv);bl.addEventListener("pointerup",up);bl.addEventListener("pointercancel",up)});
 {const st=document.createElement("style");st.textContent=`
-.sh-wtabs{margin:4px 0 14px}.shr{padding:12px 0 8px}.shr-sc{overflow-x:auto;padding:0 12px}.shr-w{position:relative}
+.sh-wtabs{margin:0 0 16px}.shr{padding:12px 0 8px}.shr-sc{overflow-x:auto;padding:0 12px}.shr-w{position:relative}
 .shr-kop{display:flex;position:sticky;top:0;z-index:4;background:var(--surface,#fff)}.shr-kop .shr-as{flex:0 0 56px}.shr-kh{flex:1;min-width:150px;padding:6px 8px 8px;font-weight:700;font-size:14px;text-align:center;border-bottom:1px solid var(--line)}
 .shr-lijf{display:flex;position:relative;margin:10px 0 12px}.shr-lijf>.shr-as{flex:0 0 56px;position:relative}.shr-lijf>.shr-as span{position:absolute;right:8px;transform:translateY(-50%);font-size:12px;color:var(--muted)}
 .shr-k{flex:1;min-width:150px;position:relative;border-left:1px solid var(--line)}.shr-k:last-child{border-right:1px solid var(--line)}.shr-k i{position:absolute;left:0;right:0;border-top:1px dashed var(--line)}
