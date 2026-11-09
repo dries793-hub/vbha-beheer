@@ -3104,7 +3104,7 @@ function kalTable(){
   const C=ctx(),k=kalStats(C),q=norm(UI.kalQ),w=C.c.gewichten.kalenders;
   let list=k.rows.map(j=>({j,n:kalNaam(j)}));if(q)list=list.filter(x=>norm(x.n).includes(q));
   list.sort((a,b)=>(b.j.kalUitgevoerd||0)-(a.j.kalUitgevoerd||0)||(b.j.kalOpgehaald||0)-(a.j.kalOpgehaald||0)||a.n.localeCompare(b.n,"nl"));
-  const knoppen=(j,cls)=>canWrite?`<button class="btn ${cls}" data-act="kalOphalen" data-id="${esc(j.id)}">${ic("plus")}Meegeven</button><button class="btn ${cls} primary" data-act="kalKlaar" data-id="${esc(j.id)}"${(j.kalOpgehaald||0)>0?"":" disabled"}>${ic("check")}Afgewerkt</button>`:"";
+  const knoppen=(j,cls)=>canWrite?`<button class="btn ${cls}" data-act="kalOphalen" data-id="${esc(j.id)}">${ic("plus")}Meegeven</button>${kalBeperkt()?"":`<button class="btn ${cls} primary" data-act="kalKlaar" data-id="${esc(j.id)}"${(j.kalOpgehaald||0)>0?"":" disabled"}>${ic("check")}Afgewerkt</button>`}`:"";
   const laatst=j=>{const l=kalLaatste(j);return l?`${KAL_T[l.t]||""} ${l.t==="corr"?"":kalDoos(l.n)} · ${kalDt(l.at)}`:""};
   const mob=`<div class="mlist" role="list">${list.map((x,i)=>{const id=x.j.id,open=KAL_OPEN.has(id),op=x.j.kalOpgehaald||0,ui=x.j.kalUitgevoerd||0;
     return `<div class="pm${open?" open":""}" role="listitem"><button type="button" class="ml-row" data-act="kalOpen" data-id="${esc(id)}" aria-expanded="${open}"><span class="ml-rank">${i+1}</span>
@@ -3144,7 +3144,7 @@ function kalMee(id){const j=S.jaarleden.get(id);if(!j||!canWrite)return;const C=
   const upd=()=>{const n=kalLees("kalN");$("#kalVoor").innerHTML=n?`<div><span>${esc(naam)} heeft dan</span><b>${kalDoos(op+n)}</b><small>in handen (nu ${op})</small></div><div><span>Stock</span><b>${k.stock-n}</b><small>dozen (nu ${k.stock})</small></div>`:"";$("#kalOk").textContent=n?`${kalDoos(n)} meegeven`:"Meegeven";$("#kalOk").disabled=!n};
   $("#kalN").addEventListener("input",upd);upd();setTimeout(()=>$("#kalN").select(),40);
   $("#kalOk").onclick=()=>{const n=kalLees("kalN");if(!n)return;closeModal();kalBeweeg(id,"mee",n)}}
-function kalKlaarForm(id){const j=S.jaarleden.get(id);if(!j||!canWrite)return;const naam=kalNaam(j),op=j.kalOpgehaald||0,ui=j.kalUitgevoerd||0,w=ctx().c.gewichten.kalenders;if(!op)return;
+function kalKlaarForm(id){const j=S.jaarleden.get(id);if(!j||!canWrite||kalBeperkt())return;const naam=kalNaam(j),op=j.kalOpgehaald||0,ui=j.kalUitgevoerd||0,w=ctx().c.gewichten.kalenders;if(!op)return;
   modal("Dozen terugmelden",`<div class="stack kal-dlg"><p style="margin:0"><b>${esc(naam)}</b> heeft ${kalDoos(op)} in handen.</p>
    <div class="seg kal-soort" role="radiogroup"><button type="button" class="on" data-ks="klaar">Volledig afgewerkt</button><button type="button" data-ks="terug">Onaangeroerd terug</button></div>
    ${kalAantal("kalN",op===1?1:1,op)}<div class="kal-voor" id="kalVoor"></div></div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kalOk">Bevestigen</button>`);
@@ -3157,8 +3157,8 @@ function kalKlaarForm(id){const j=S.jaarleden.get(id);if(!j||!canWrite)return;co
 function kalLogForm(id){const j=S.jaarleden.get(id);if(!j)return;const naam=kalNaam(j),L=[...(j.kalLog||[])].reverse();
   modal(naam,`<div class="stack" style="gap:14px"><div class="kal-voor"><div><span>In handen</span><b>${j.kalOpgehaald||0}</b><small>dozen</small></div><div><span>Afgewerkt</span><b>${j.kalUitgevoerd||0}</b><small>dozen</small></div></div>
    <div><div class="lbl" style="margin-bottom:6px">Geschiedenis</div>${L.length?`<div class="kal-log">${L.map((l,i)=>`<div><span class="kal-lt ${l.t}">${KAL_T[l.t]||l.t}</span><b>${l.t==="corr"&&l.van&&l.naar?`in handen ${l.van.op}→${l.naar.op}, afgewerkt ${l.van.ui}→${l.naar.ui}`:kalDoos(l.n)}</b><span class="muted">${esc(kalDt(l.at))}${l.door?" · "+esc(l.door):""}${l.reden?" · "+esc(l.reden):""}</span></div>`).join("")}</div>`:'<div class="muted small">Nog geen bewegingen geregistreerd (aantallen van voor dit systeem).</div>'}</div>
-   ${canWrite?`<details class="kal-corr"><summary>Aantallen corrigeren</summary><div class="form" style="margin-top:10px">${fld("kcO","In handen",`<input id="kcO" type="number" min="0" inputmode="numeric" value="${j.kalOpgehaald||0}">`)}${fld("kcU","Afgewerkt",`<input id="kcU" type="number" min="0" inputmode="numeric" value="${j.kalUitgevoerd||0}">`)}${fld("kcR","Reden",'<input id="kcR" maxlength="120" placeholder="bv. telfout bij het meegeven">',"full")}<div class="full"><button type="button" class="btn" id="kcOk">Correctie bewaren</button></div></div></details>`:""}</div>`,
-   `${canWrite&&L.length&&L[0].van?'<button class="btn" id="kalUndoB" style="margin-right:auto">Laatste ongedaan maken</button>':""}<button class="btn primary" data-act="closeModal">Sluiten</button>`);
+   ${canWrite&&!kalBeperkt()?`<details class="kal-corr"><summary>Aantallen corrigeren</summary><div class="form" style="margin-top:10px">${fld("kcO","In handen",`<input id="kcO" type="number" min="0" inputmode="numeric" value="${j.kalOpgehaald||0}">`)}${fld("kcU","Afgewerkt",`<input id="kcU" type="number" min="0" inputmode="numeric" value="${j.kalUitgevoerd||0}">`)}${fld("kcR","Reden",'<input id="kcR" maxlength="120" placeholder="bv. telfout bij het meegeven">',"full")}<div class="full"><button type="button" class="btn" id="kcOk">Correctie bewaren</button></div></div></details>`:""}</div>`,
+   `${canWrite&&!kalBeperkt()&&L.length&&L[0].van?'<button class="btn" id="kalUndoB" style="margin-right:auto">Laatste ongedaan maken</button>':""}<button class="btn primary" data-act="closeModal">Sluiten</button>`);
   const u=$("#kalUndoB");if(u)u.onclick=()=>{closeModal();kalUndo(id)};
   const c=$("#kcOk");if(c)c.onclick=()=>{const o=Math.max(0,parseInt($("#kcO").value,10)||0),ui=Math.max(0,parseInt($("#kcU").value,10)||0),r=$("#kcR").value.trim();if(o===(j.kalOpgehaald||0)&&ui===(j.kalUitgevoerd||0)){closeModal();return}closeModal();kalBeweeg(id,"corr",0,{op:o,ui,reden:r})}}
 
@@ -6138,7 +6138,7 @@ document.addEventListener("click",e=>{if(!FA.a)return;
    Een administrator heeft altijd alle rechten. */
 var RECHTEN=null;
 const FUNC=[["leden","Ledenlijst",["leden"]],["punten","Puntensysteem",["punten"]],["financien","Financiën",["boekhouding","boekingen","verwerken","historiek","begroting","facturen","inkomend"]],
-  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"]],["banket","Banket",["banket"]],["kinderfeest","Kinderfeest",["kinderfeest"]],["fuif","In Vier en Vlam",["fuif"]],["kassa","Kassa",["kassa"]],
+  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"]],["kalverdeling","Kalenders: personen en dozen meegeven",[]],["banket","Banket",["banket"]],["kinderfeest","Kinderfeest",["kinderfeest"]],["fuif","In Vier en Vlam",["fuif"]],["kassa","Kassa",["kassa"]],
   ["jaarmarkt","Jaarmarkt",["jaarmarkt"]],["webshop","Webshop",["webshop"]],["agenda","Agenda en verslagen",["agenda","verslagen"]],["documenten","Documenten",["documenten"]],["fotos","Foto's",["fotos"]],
   ["sponsors","Sponsors",["sponsors"]],["mails","Mails",["mails"]],["website","Website",["website"]]];
 const FUNC_VAN={};for(const [f,,rs] of FUNC)for(const r of rs)FUNC_VAN[r]=f;
@@ -6203,6 +6203,11 @@ gbSimKies=async function(){closeAcct();const U=await gbSimLijst();
     if(v.startsWith("u:")){const u=U.find(x=>"u:"+x.id===v);if(u){gbSim(u.rol==="admin"?"lezer":u.rol,false,u);return}}gbSim(v)}};
 {const _st=gbSimStart;gbSimStart=async function(){let id=null;try{id=sessionStorage.getItem("vbhaSimU")}catch(e){}
   if(id&&ROL_ECHT==="admin"){const U=await gbSimLijst();const u=U.find(x=>x.id===id);if(u){gbSim(u.rol,true,u);return}}return _st.apply(this,arguments)}}
+
+/* ---------- deelrecht "kalverdeling": enkel op Kalenders › Verdeling personen toevoegen en dozen meegeven ---------- */
+function rechtRuw(f){if(ROL==="admin")return"bewerken";const R=(typeof SIM_U!=="undefined"&&SIM_U&&ROL!==ROL_ECHT&&SIM_U.rechten)||(RECHTEN&&ROL===ROL_ECHT?RECHTEN:null);return R?(R[f]||"geen"):null}
+function kalBeperkt(){return rechtRuw("kalenders")!=="bewerken"&&rechtRuw("kalverdeling")==="bewerken"&&ROL!=="admin"}
+{const _r=recht;recht=function(r){const v=_r.apply(this,arguments);if(r==="kalenders"&&v!=="bewerken"&&rechtRuw("kalverdeling")==="bewerken")return"bewerken";return v}}
 
 /* ============ Puntensysteem: tussenstand-mail en automatische proficiat-mail bij goud ============
    Velden voor de mails: {status_volgend} (goud/zilver/brons volgens de punten van dit jaar) en {status_tussenstand}
