@@ -6273,7 +6273,9 @@ function stMailPaneel(){const g=goudCfg(),aan=g.aan!==false,d=ROL==="admin"?"":"
    ${tpl?`<button class="btn" data-act="stTussen">${ic("mails")}Mail openen</button>`:'<span class="muted small">Sjabloon "Tussenstand status" ontbreekt.</span>'}</div>
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="grow"><b>Proficiat goudstatus (in bulk)</b><br><span class="muted small">Naar alle leden die de goudstatus voor ${JAAR+1} al haalden en nog geen proficiat-mail kregen.</span></span>
    <button class="btn" data-act="stGoud">${ic("mails")}Mail openen</button></div></div></div>`}
-{const _v=VIEWS.punten;VIEWS.punten=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){return String(b.apply(this,arguments))+stMailPaneel()};return v};Object.assign(VIEWS.punten,_v)}
+// proficiat-mail aan/uit staat in de instellingen (tandwiel) van het puntensysteem
+{const _pi=puntInst;puntInst=function(){const r=_pi.apply(this,arguments);const g=goudCfg(),aan=g.aan!==false,d=ROL==="admin"?"":" disabled";const secs=$$("#modal .pi-sec"),laatste=secs[secs.length-1];
+  if(laatste)laatste.insertAdjacentHTML("afterend",`<div class="pi-sec"><h4>Mails</h4><label class="ws-row"><span class="ws-sw"><input type="checkbox" data-goudaan${aan?" checked":""}${d}><i></i></span><span><b>Proficiat-mail bij goudstatus</b><small>Zodra een lid de goudstatus haalt, krijgt het automatisch een mail.</small></span></label></div>`);return r}}
 document.addEventListener("change",async e=>{if(e.target.dataset&&e.target.dataset.goudaan!==undefined){const c=S.config.get("algemeen")||{};try{await write("config","algemeen",{...stripId(c),goudMail:{...(c.goudMail||{}),aan:e.target.checked}});toast(e.target.checked?"Proficiat-mail staat aan.":"Proficiat-mail staat uit.")}catch(x){e.target.checked=!e.target.checked}}});
 document.addEventListener("click",e=>{if(!e.target.closest('[data-act="stTussen"]'))return;MAIL=null;UI.mailTpl="tpl-tussenstand";UI.mailGroep="tussenstand";saveUI();location.hash="#mails"});
 // doelgroep tussenstand: actieve leden zonder erewacht en zonder vrijstelling van het puntensysteem (bv. ziekte) dit jaar
