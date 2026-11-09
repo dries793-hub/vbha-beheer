@@ -343,7 +343,7 @@ async function verstuurFactuur(sb, row, cfg, soort, aanExtra) {
 export async function factuurActie(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
-  const { sb } = await requireUser(req, { boek: true });
+  const { sb } = await requireUser(req, { boek: true, functie: "facturen" });
   const b = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
   const cfg = await fcConfig(sb);
   let row = await haal(sb, String(b.id || ""));
