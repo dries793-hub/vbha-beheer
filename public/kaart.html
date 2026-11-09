@@ -173,7 +173,7 @@ html.kr-vol-aan,html.kr-vol-aan body{overflow:hidden}
 <div class="kr-slot"><div class="kr-host">
   <div class="kr-map" id="krMap" role="application" aria-label="Kaart van de straten van de kalenderronde"></div>
   <button type="button" class="kr-search" id="krSearchOpen" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span>Zoek een straat…</span></button>
-  <div class="kr-leg"><span><i style="background:var(--good)"></i>Bedeeld</span><span><i style="background:var(--info)"></i>Gereserveerd</span><span><i style="background:var(--kr-todo)"></i>Nog te doen</span><small id="krStand"></small></div>
+  <div class="kr-leg"><span><i style="background:var(--good)"></i>Bedeeld</span><span><i style="background:var(--info)"></i>Gereserveerd</span><span><i style="background:repeating-linear-gradient(90deg,#f59e0b 0 5px,transparent 5px 8px)"></i>In behandeling</span><span><i style="background:var(--kr-todo)"></i>Nog te doen</span><small id="krStand"></small></div>
   <div class="kr-zoom"><button type="button" id="krZin" aria-label="Inzoomen">+</button><button type="button" id="krZout" aria-label="Uitzoomen">−</button><button type="button" id="krFit" aria-label="Hele kaart tonen" title="Hele kaart tonen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button></div>
   <section class="kr-card" id="krCard" hidden aria-labelledby="krCardT"><div class="kr-card-h"><div class="kr-card-t"><h3 id="krCardT"></h3><span id="krCardM"></span></div><button type="button" class="btn ghost sm" id="krCardX" aria-label="Sluiten"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="kr-adr" id="krOne"><b id="krCardA"></b><span id="krCardAl"></span></div><div class="kr-multi" id="krMulti" hidden></div><div class="kr-meld" id="krMeld"><button type="button" class="btn sm" data-krmeld="r">Ik reserveer</button><button type="button" class="btn sm prim" data-krmeld="d">Ik heb bedeeld</button></div></section>
@@ -832,7 +832,7 @@ const KR_STREETS=(()=>{const el=document.getElementById("krData");if(!el)return[
   return uit.filter(s=>s.g.length)})();
 let PER_DOOS=100;
 /* Stand van de aanduidingen uit VBHA Beheer (status en datum), bijgewerkt op 6/11/2026 12:10. d = gedaan, r = gereserveerd. */
-let KR_STAND={},KR_DOOR={},KR_OP={},KR_STAND_OP="";
+let KR_STAND={},KR_DOOR={},KR_OP={},KR_PEND={},KR_STAND_OP="";
 const KR={ss:new Set(),map:null,lines:new Map(),labels:null,labelAt:null,sel:null,byId:new Map(KR_STREETS.map(s=>[s.id,s]))};
 /* Straatdelen: een straat wordt opgedeeld van kruispunt tot kruispunt. Een kruispunt is een punt dat de straat deelt met een andere straat.
    Punten van eenzelfde straat die minder dan 40 m van elkaar liggen tellen als één kruispunt, zodat de twee rijrichtingen van een
@@ -913,6 +913,7 @@ function krBgStyle(){if(!KR.bg)return;const c={};
 function krStyleAll(){const todo=krVar("--kr-todo"),sel=krVar("--accent");const w=krDikte(KR.map?KR.map.getZoom():15);
   const dn=krVar("--good"),rs=krVar("--info");
   for(const [id,line] of KR.lines){const s=KR.ss.has(id),m=KR_STAND[id];line.setStyle({color:s?sel:m==="d"?dn:m==="r"?rs:todo,weight:s?w[2]:m?w[1]:w[0],opacity:1})}
+  for(const [id,line] of KR.lines){const p=KR_PEND[id];if(p&&!KR.ss.has(id)&&KR_STAND[id]!=="d"){line.setStyle({color:"#f59e0b",weight:w[1],dashArray:"7 6"});line.bringToFront()}else if(line.options.dashArray)line.setStyle({dashArray:null})}
   for(const id in KR_STAND){const l=KR.lines.get(id);if(l)l.bringToFront()}
   for(const id of KR.ss){const l=KR.lines.get(id);if(l)l.bringToFront()}
   /* delen van een straat (tot een kruispunt) */
@@ -921,14 +922,15 @@ function krStyleAll(){const todo=krVar("--kr-todo"),sel=krVar("--accent");const 
     L.polyline(x.g,{renderer:KR.renderer,interactive:false,weight:w[1],color:KR_STAND[id]==="r"?rs:dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}}
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const krDeelTekst=sid=>{const t=krDeelStand(sid);return t.d||t.r?"deels: "+[t.d?t.d+" van "+t.n+" stukken bedeeld":"",t.r?t.r+" gereserveerd":""].filter(Boolean).join(", "):""};
-const krWie=id=>(KR_STAND[id]==="d"?"al bedeeld":"gereserveerd")+(KR_OP[id]?" · "+KR_OP[id]:"");
+const krWie=id=>KR_STAND[id]!=="d"&&KR_PEND[id]?"melding in behandeling":(KR_STAND[id]==="d"?"al bedeeld":"gereserveerd")+(KR_OP[id]?" · "+KR_OP[id]:"");
+const krHeeft=id=>!!(KR_STAND[id]||KR_PEND[id]);
 function krCard(){const c=$("#krCard"),ids=[...KR.ss].filter(id=>KR.byId.has(id));if(!ids.length){c.hidden=true;return}c.hidden=false;
   const one=ids.length===1;$("#krOne").hidden=!one;$("#krMulti").hidden=one;c.classList.toggle("multi",!one);
-  if(one){const s=KR.byId.get(ids[0]);$("#krCardT").textContent=s.n;$("#krCardM").textContent=[s.w==="Centrum"?"":s.w,KR_STAND[s.id]?krWie(s.id):krDeelTekst(s.id),"tik nog een straat aan om op te tellen"].filter(Boolean).join(" · ");$("#krCardA").textContent=krNum(s.a);$("#krCardAl").textContent=krAdr(s.a);return}
+  if(one){const s=KR.byId.get(ids[0]);$("#krCardT").textContent=s.n;$("#krCardM").textContent=[s.w==="Centrum"?"":s.w,krHeeft(s.id)?krWie(s.id):krDeelTekst(s.id),"tik nog een straat aan om op te tellen"].filter(Boolean).join(" · ");$("#krCardA").textContent=krNum(s.a);$("#krCardAl").textContent=krAdr(s.a);return}
   const L=ids.map(id=>KR.byId.get(id)),tot=L.reduce((t,x)=>t+x.a,0),doz=Math.ceil(tot/PER_DOOS);
   $("#krCardT").textContent=ids.length+" straten geselecteerd";$("#krCardM").textContent="Tik een straat aan om ze toe te voegen, nog eens om ze weg te halen.";
   $("#krMulti").innerHTML=`<div class="kr-sum"><div><b>${krNum(tot)}</b><span>adressen</span></div><div><b>${krNum(doz)}</b><span>${doz===1?"doos":"dozen"} <small>(${PER_DOOS} per doos)</small></span></div></div>
-  <ul class="kr-ml">${L.map(x=>`<li><span class="kr-ml-n">${esc(x.n)}${KR_STAND[x.id]?`<small>${esc(krWie(x.id))}</small>`:""}</span><span class="kr-ml-a">${krNum(x.a)}</span></li>`).join("")}</ul>`}
+  <ul class="kr-ml">${L.map(x=>`<li><span class="kr-ml-n">${esc(x.n)}${krHeeft(x.id)?`<small>${esc(krWie(x.id))}</small>`:""}</span><span class="kr-ml-a">${krNum(x.a)}</span></li>`).join("")}</ul>`}
 function krSelect(id){KR.ss=new Set(id?[id]:[]);KR.sel=id||null;if(KR.map)krStyleAll();krCard()}
 function krToggle(id){if(!KR.ss.has(id)&&KR_STAND[id]==="d"){krMelding((KR.byId.get(id)||{}).n?KR.byId.get(id).n+" is al bedeeld.":"Deze straat is al bedeeld.");return}if(KR.ss.has(id))KR.ss.delete(id);else KR.ss.add(id);KR.sel=KR.ss.size?id:null;if(KR.map)krStyleAll();krCard()}
 function krZoomTo(id){const l=KR.lines.get(id);if(l&&KR.map)KR.map.fitBounds(l.getBounds(),{maxZoom:17,paddingTopLeft:[40,80],paddingBottomRight:[70,200]})}
@@ -988,7 +990,7 @@ krInit();
 const krDag=t=>{const d=new Date(t);if(isNaN(d))return /^\d{1,2}\/\d{1,2}\/\d{4}/.test(t)?t.split(" ")[0]:"";const p=new Intl.DateTimeFormat("nl-BE",{timeZone:"Europe/Brussels",day:"numeric",month:"numeric",year:"numeric"}).formatToParts(d),g=k=>p.find(x=>x.type===k).value;return g("day")+"/"+g("month")+"/"+g("year")};
 async function krLive(){try{const r=await fetch("/api/ronde",{cache:"no-store"});if(!r.ok)throw 0;const j=await r.json();
   const st={},dr={},op={};for(const x of j.straten||[]){st[x.s]=x.st;const d=x.at?krDag(x.at):"";if(d)op[x.s]=d}
-  KR_STAND=st;KR_DOOR=dr;KR_OP=op;PER_DOOS=Number(j.perDoos)||100;
+  KR_STAND=st;KR_DOOR=dr;KR_OP=op;KR_PEND={};for(const x of j.open||[])if(st[x.s]!=="d")KR_PEND[x.s]=x.st;PER_DOOS=Number(j.perDoos)||100;
   if(j.jaar){document.title="Kalenders "+j.jaar+" VBHA";document.querySelectorAll("[data-krjaar]").forEach(e=>e.textContent="Kalenders "+j.jaar)}
   const n=new Date(j.nu||Date.now());KR_STAND_OP=krDag(n)+" "+n.toLocaleTimeString("nl-BE",{timeZone:"Europe/Brussels",hour:"2-digit",minute:"2-digit"});
   $("#krStand").textContent="Bijgewerkt "+KR_STAND_OP;if(KR.map){krStyleAll();krCard()}}
@@ -1065,7 +1067,7 @@ krLive();
       if(!lid){err.textContent="Kies je naam uit de lijst.";inp.focus();return}a.disabled=true;a.textContent="Versturen…";
       try{const r=await fetch("/api/ronde",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({straten:ids,soort,lidId:lid.id,website:bg.querySelector("#kmW").value})});const j=await r.json().catch(()=>({}));
         if(!r.ok)throw new Error(j.error||"Versturen lukte niet");
-        bg.querySelector(".km").innerHTML=`<h3>Bedankt, ${e2(String(lid.toon||lid.naam).split(" ")[0])}!</h3><p>Je melding is doorgestuurd. Zodra het bestuur ze nagekeken heeft, staan de straten op de kaart als ${soort==="d"?"bedeeld":"gereserveerd"}.</p><div class="km-a"><button type="button" class="prim" data-km="x">Sluiten</button></div>`;krSelect(null)}
+        bg.querySelector(".km").innerHTML=`<h3>Bedankt, ${e2(String(lid.toon||lid.naam).split(" ")[0])}!</h3><p>Je melding is doorgestuurd. Ze staan op de kaart met een oranje stippellijn tot het bestuur ze nagekeken heeft. Daarna worden ze ${soort==="d"?"groen (bedeeld)":"blauw (gereserveerd)"}.</p><div class="km-a"><button type="button" class="prim" data-km="x">Sluiten</button></div>`;for(const id of ids)KR_PEND[id]=soort==="d"?"d":"r";krSelect(null)}
       catch(x){err.textContent=x.message;a.disabled=false;a.textContent="Doorsturen"}});
     document.addEventListener("keydown",function k(e){if(e.key==="Escape"){dicht();document.removeEventListener("keydown",k)}});setTimeout(()=>inp.focus(),50)}
   document.addEventListener("click",e=>{const b=e.target.closest("[data-krmeld]");if(b)open(b.dataset.krmeld)});
