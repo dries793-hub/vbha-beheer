@@ -6535,6 +6535,63 @@ function tijd24(id,v){const m=/^(\d{1,2}):(\d{2})/.exec(String(v||""));const h=m
 document.addEventListener("change",e=>{const t=e.target.closest("[data-t24]");if(!t)return;const id=t.dataset.t24,w=t.closest(".t24"),h=w.querySelector('[data-d="h"]'),m=w.querySelector('[data-d="m"]');
   if(h.value&&!m.value)m.value="00";if(!h.value)m.value="";document.getElementById(id).value=h.value?h.value+":"+m.value:""});
 {const st=document.createElement("style");st.textContent=".t24{display:flex;align-items:center;gap:6px}.t24 select{flex:1;min-width:0}.t24 b{font-weight:600}";document.head.appendChild(st)}
+/* ---------- dagrooster: shiften als blokken op een tijdlijn; slepen = verschuiven, randen = inkorten of verlengen ---------- */
+SHF.weerg=SHF.weerg||"bord";
+const shMin=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(String(t||""));return m?Number(m[1])*60+Number(m[2]):null};
+const shHHMM=m=>{m=((Math.round(m)%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")};
+function shSpan(s){const v=shMin(s.van);if(v==null)return null;let t=shMin(s.tot);if(t==null)t=v+60;if(t<=v)t+=1440;return{v,t}}
+function shRooster(a){const S2=a.shiften||[],met=S2.map(s=>({s,p:shSpan(s)})).filter(x=>x.p),zonder=S2.filter(s=>!shSpan(s));
+  if(!S2.length)return `<div class="panel"><div class="empty">Nog geen shiften voor deze activiteit.${canWrite?`<div style="margin-top:12px"><button class="btn primary" data-sh="nieuw">${ic("plus")}Shift toevoegen</button></div>`:""}</div></div>`;
+  const ev=shMin(a.uur);let lo=Math.min(...met.map(x=>x.p.v),ev??Infinity),hi=Math.max(...met.map(x=>x.p.t),ev!=null?ev+240:-Infinity);
+  if(!isFinite(lo)){lo=8*60;hi=24*60}lo=Math.max(0,Math.floor(lo/60)*60-60);hi=Math.min(48*60,Math.ceil(hi/60)*60+60);if(hi-lo<6*60)hi=lo+6*60;
+  SHF.rr={lo,hi};const span=hi-lo,pc=m=>((m-lo)/span*100).toFixed(3)+"%";
+  // rijen per taak; overlappende shiften van dezelfde taak onder elkaar
+  const rijen=new Map();for(const x of met.sort((p,q)=>p.p.v-q.p.v)){const k=String(x.s.taak||"Shift").trim().toLowerCase();if(!rijen.has(k))rijen.set(k,{naam:x.s.taak||"Shift",banen:[]});const r=rijen.get(k);
+    let b=r.banen.find(L=>L[L.length-1].p.t<=x.p.v);if(!b){b=[];r.banen.push(b)}b.push(x)}
+  const uren=[];for(let m=lo;m<=hi;m+=60)uren.push(m);
+  const blok=(x,top)=>{const s=x.s,H=(s.leden||[]).map(id=>shHelper(a,id)).filter(Boolean),n=Number(s.nodig)||0,vol=n&&H.length>=n;
+    return `<div class="shr-b${canWrite?" mag":""}" data-shrb="${esc(s.id)}" style="top:${top}px;left:${pc(x.p.v)};width:${pc(lo+x.p.t-x.p.v)}" title="${esc((s.taak||"Shift")+" "+s.van+" – "+(s.tot||""))}">
+      ${canWrite?'<span class="shr-h l" data-shrh="l"></span><span class="shr-h r" data-shrh="r"></span>':""}
+      <div class="shr-in"><b>${esc(s.taak||"Shift")}</b><span class="shr-t">${esc(shHHMM(x.p.v))} – ${esc(shHHMM(x.p.t))}</span><span class="shr-n ${n?(vol?"ok":"warn"):""}">${H.length}${n?" / "+n:""}</span>
+      <small>${H.map(h=>esc(h.voornaam||h.naam)).join(", ")}</small></div></div>`};
+  return `<div class="panel shr"><div class="shr-sc"><div class="shr-w" style="min-width:${Math.max(640,span/60*70)}px">
+    <div class="shr-as"><div class="shr-l"></div><div class="shr-tr">${uren.map(m=>`<span style="left:${pc(m)}">${shHHMM(m).slice(0,2)}u</span>`).join("")}</div></div>
+    ${[...rijen.values()].map(r=>`<div class="shr-r"><div class="shr-l">${esc(r.naam)}</div><div class="shr-tr">${uren.map(m=>`<i style="left:${pc(m)}"></i>`).join("")}${ev!=null?`<em class="shr-ev" style="left:${pc(ev)}" title="Start activiteit"></em>`:""}
+      <div class="shr-bn" style="height:${r.banen.length*64}px">${r.banen.map((b,i)=>b.map(x=>blok(x,i*64)).join("")).join("")}</div></div></div>`).join("")}
+  </div></div>${canWrite?'<p class="muted small shr-tip">Sleep een blok om de shift te verschuiven, of sleep aan de linker- of rechterrand om in te korten of te verlengen. Tik op een blok om het te wijzigen.</p>':""}</div>
+  ${zonder.length?`<div class="panel"><div class="panel-b"><span class="muted small">Zonder uren (niet op het rooster): </span>${zonder.map(s=>`<button class="btn sm" data-shredit="${esc(s.id)}">${esc(s.taak||"Shift")}</button>`).join(" ")}</div></div>`:""}`}
+{const _v=VIEWS.shiften;VIEWS.shiften=function(){const v=_v.apply(this,arguments),b=v.body;
+  v.body=function(){const h=String(b.apply(this,arguments)),a=shAct(),k=h.indexOf('<div class="panel sh-poolp">');if(!a||k<0)return h;
+    const tabs=`<div class="ka-tabs sh-wtabs" role="tablist"><button type="button" role="tab" data-shw="bord" class="${SHF.weerg==="rooster"?"":"on"}">Bord</button><button type="button" role="tab" data-shw="rooster" class="${SHF.weerg==="rooster"?"on":""}">Dagrooster</button></div>`;
+    return h.slice(0,k)+tabs+(SHF.weerg==="rooster"?shRooster(a):h.slice(k))};return v};Object.assign(VIEWS.shiften,_v)}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-shw]");if(t){SHF.weerg=t.dataset.shw;renderBody();return}
+  const q=e.target.closest("[data-shredit]");if(q&&canWrite){const a=shAct(),s=a&&(a.shiften||[]).find(x=>x.id===q.dataset.shredit);if(s)shForm(a,s)}});
+// slepen en de randen verslepen (muis en touch)
+document.addEventListener("pointerdown",e=>{const bl=e.target.closest(".shr-b");if(!bl||!canWrite||e.button>0)return;const a=shAct(),s=a&&(a.shiften||[]).find(x=>x.id===bl.dataset.shrb);if(!s)return;
+  const p=shSpan(s),tr=bl.closest(".shr-tr"),W=tr.getBoundingClientRect().width,{lo,hi}=SHF.rr,perPx=(hi-lo)/W,mode=(e.target.closest("[data-shrh]")||{}).dataset?.shrh||"m",x0=e.clientX;
+  let nv=p.v,nt=p.t,bewogen=false;bl.setPointerCapture(e.pointerId);bl.classList.add("drag");e.preventDefault();
+  const zet=()=>{bl.style.left=((nv-lo)/(hi-lo)*100)+"%";bl.style.width=((nt-nv)/(hi-lo)*100)+"%";const t=bl.querySelector(".shr-t");if(t)t.textContent=shHHMM(nv)+" – "+shHHMM(nt)};
+  const mv=ev=>{const d=Math.round((ev.clientX-x0)*perPx/15)*15;if(Math.abs(ev.clientX-x0)>4)bewogen=true;const len=p.t-p.v;
+    if(mode==="m"){nv=Math.min(Math.max(lo,p.v+d),hi-len);nt=nv+len}else if(mode==="l"){nv=Math.min(Math.max(lo,p.v+d),p.t-15);nt=p.t}else{nt=Math.max(Math.min(hi,p.t+d),p.v+15);nv=p.v}zet()};
+  const up=async()=>{bl.removeEventListener("pointermove",mv);bl.removeEventListener("pointerup",up);bl.removeEventListener("pointercancel",up);bl.classList.remove("drag");
+    if(!bewogen){shForm(a,s);return}if(nv===p.v&&nt===p.t)return;
+    const L=(a.shiften||[]).map(x=>x.id===s.id?{...x,van:shHHMM(nv),tot:shHHMM(nt)}:x).sort((x,y)=>String(x.van||"").localeCompare(String(y.van||""))||String(x.taak).localeCompare(String(y.taak),"nl"));
+    try{await shBewaar(a,{shiften:L});toast(`${s.taak||"Shift"}: ${shHHMM(nv)} – ${shHHMM(nt)}`)}catch(x){toast("Bewaren lukte niet.",true)}renderBody()};
+  bl.addEventListener("pointermove",mv);bl.addEventListener("pointerup",up);bl.addEventListener("pointercancel",up)});
+{const st=document.createElement("style");st.textContent=`
+.sh-wtabs{margin:4px 0 14px}.shr{padding:12px 0 8px}.shr-sc{overflow-x:auto;padding:0 12px}.shr-w{position:relative}
+.shr-as,.shr-r{display:flex;align-items:stretch}.shr-l{flex:0 0 120px;padding:8px 10px 8px 4px;font-weight:600;font-size:14px;overflow-wrap:anywhere}
+.shr-tr{position:relative;flex:1}.shr-as .shr-tr{height:22px}.shr-as span{position:absolute;transform:translateX(-50%);font-size:12px;color:var(--muted);top:2px}
+.shr-r{border-top:1px solid var(--line)}.shr-r .shr-tr i{position:absolute;top:0;bottom:0;border-left:1px dashed var(--line)}
+.shr-ev{position:absolute;top:0;bottom:0;border-left:2px solid #c0161f;opacity:.5}
+.shr-bn{position:relative;margin:6px 0}
+.shr-b{position:absolute;height:58px;border-radius:10px;background:#fff;border:1px solid var(--line);border-left:4px solid #c0161f;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden;touch-action:none;user-select:none}
+.shr-b.mag{cursor:grab}.shr-b.drag{cursor:grabbing;box-shadow:0 6px 18px rgba(0,0,0,.18);z-index:3}
+.shr-in{padding:5px 10px 5px 8px;display:grid;grid-template-columns:1fr auto;column-gap:6px;font-size:12.5px;line-height:1.3}
+.shr-in b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.shr-t{grid-column:1;color:var(--muted);white-space:nowrap}.shr-n{grid-row:1;grid-column:2;font-weight:700;font-size:12px}.shr-n.warn{color:#b45309}.shr-n.ok{color:#15803d}
+.shr-in small{grid-column:1/-1;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shr-h{position:absolute;top:0;bottom:0;width:10px;z-index:2;cursor:ew-resize}.shr-h.l{left:-4px}.shr-h.r{right:0}.shr-h:hover{background:rgba(192,22,31,.15)}
+.shr-tip{margin:8px 16px 0}@media(max-width:640px){.shr-l{flex-basis:76px;font-size:13px}}`;document.head.appendChild(st)}
 
 /* ============ Activiteiten › Familiedag ============
    Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
