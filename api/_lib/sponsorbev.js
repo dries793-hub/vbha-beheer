@@ -114,7 +114,7 @@ async function volgNr(sb, jaar) {
 export async function sponsorBevestiging(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
-  const { sb, user } = await requireUser(req, { boek: true });
+  const { sb, user } = await requireUser(req, { boek: true, functie: "sponsors" });
   const b0 = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
   const { data: row } = await sb.from("sponsors").select("id,data").eq("id", String(b0.sponsorId || "")).maybeSingle();
   if (!row) throw httpErr(404, "Sponsor niet gevonden.");

@@ -124,7 +124,7 @@ export async function kassaCron(sb) {
 // app (admin): POST /api/mail?f=kassa {actie:"wis", id}
 export async function kassaApi(req, res) {
   res.setHeader("Cache-Control", "no-store");
-  const { sb, rol } = await requireUser(req, { write: true }), b = body(req);
+  const { sb, rol } = await requireUser(req, { write: true, functie: "kassa" }), b = body(req);
   if (b.actie === "wis") {
     if (!["admin", "bewerker"].includes(rol)) throw httpErr(403, "Enkel een administrator kan transacties wissen.");
     const { error } = await sb.from("kassa").delete().eq("id", String(b.id || "")); if (error) throw error;

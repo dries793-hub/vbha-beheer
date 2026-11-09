@@ -48,6 +48,7 @@ export function welkomMail({ naam, email, rol, wachtwoord, url, reset }) {
   return { aan: email, aanNaam: naam || "", onderwerp: reset ? "VBHA - Nieuw tijdelijk wachtwoord" : "VBHA - Je toegang tot de beheeromgeving", html };
 }
 
+export const FUNCTIES = ["leden", "punten", "financien", "kalenders", "banket", "kinderfeest", "fuif", "kassa", "jaarmarkt", "webshop", "agenda", "documenten", "fotos", "sponsors", "mails", "website"];
 export async function gebruikers(req, res) {
   res.setHeader("Cache-Control", "no-store");
   const { user, sb } = await requireUser(req, { write: true });
@@ -55,10 +56,10 @@ export async function gebruikers(req, res) {
   const h = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim().toLowerCase();
   const url = "https://" + (/^(vbha-beheer\.vercel\.app|beheer\.vbha\.be)$/.test(h) ? h : "vbha-beheer.vercel.app");
   if (req.method === "GET") {
-    const [{ data: rijen, error }, users] = await Promise.all([sb.from("bestuur").select("user_id,email,naam,rol,created_at"), alleGebruikers(sb)]);
+    const [{ data: rijen, error }, users] = await Promise.all([sb.from("bestuur").select("user_id,email,naam,rol,rechten,created_at"), alleGebruikers(sb)]);
     if (error) throw error;
     const U = new Map(users.map(u => [u.id, u]));
-    const lijst = rijen.map(r => { const u = U.get(r.user_id) || {}; return { id: r.user_id, email: u.email || r.email, naam: r.naam || "", rol: r.rol === "bewerker" ? "admin" : r.rol, laatst: u.last_sign_in_at || null, tijdelijk: !!(u.user_metadata && u.user_metadata.tijdelijk), ik: r.user_id === user.id }; });
+    const lijst = rijen.map(r => { const u = U.get(r.user_id) || {}; return { id: r.user_id, email: u.email || r.email, naam: r.naam || "", rol: r.rol === "bewerker" ? "admin" : r.rol, rechten: r.rechten || null, laatst: u.last_sign_in_at || null, tijdelijk: !!(u.user_metadata && u.user_metadata.tijdelijk), ik: r.user_id === user.id }; });
     lijst.sort((a, b) => ROLLEN.indexOf(a.rol) - ROLLEN.indexOf(b.rol) || (a.naam || a.email).localeCompare(b.naam || b.email, "nl"));
     return res.status(200).json({ gebruikers: lijst, mail: smtpConfigured() });
   }
@@ -99,6 +100,14 @@ export async function gebruikers(req, res) {
   if (b.actie === "wijzig") {
     if (rol && !isAdminRol(rol) && isAdminRol(rij.rol) && (await admins()).length <= 1) throw httpErr(400, "Er moet minstens één administrator blijven.");
     const upd = {}; if (rol) upd.rol = rol; if (naam !== undefined) upd.naam = naam || null;
+    if (b.rechten !== undefined) {
+      // null = volgens het profiel; anders per functie "geen", "lezen" of "bewerken"
+      if (b.rechten === null) upd.rechten = null;
+      else {
+        const R = {}; for (const f of FUNCTIES) { const v = b.rechten && b.rechten[f]; R[f] = ["geen", "lezen", "bewerken"].includes(v) ? v : "geen"; }
+        upd.rechten = R;
+      }
+    }
     const { error } = await sb.from("bestuur").update(upd).eq("user_id", id);
     if (error) throw error;
     return res.status(200).json({ ok: true });

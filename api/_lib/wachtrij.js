@@ -15,7 +15,7 @@ const geldig = a => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(a);
 
 // POST /api/mail {wachtrij: "<batch>", berichten:[...]} -> berichten in de wachtrij (links ondertekend)
 export async function inWachtrij(req, res, b) {
-  await requireUser(req, { write: true });
+  await requireUser(req, { write: true, functie: "mails" });
   if (!smtpConfigured()) throw httpErr(501, "Versturen is niet ingesteld.");
   const batch = String(b.wachtrij || "").slice(0, 80); if (!/^[\w.-]+$/.test(batch)) throw httpErr(400, "Ongeldige wachtrij.");
   const L = (Array.isArray(b.berichten) ? b.berichten : []).slice(0, 25)

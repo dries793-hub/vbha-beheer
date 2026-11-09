@@ -39,7 +39,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "bevestigingen") return await bevestigingenCron(req, res); // geplande taak: bevestigingen na 20 min zonder online betaling
     if (req.method === "GET") { await requireUser(req); return res.status(200).json({ ingesteld: smtpConfigured(), van: afzender() }); }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
-    await requireUser(req, { write: true });
+    await requireUser(req, { write: true, functie: "mails" });
     if (!smtpConfigured()) throw httpErr(501, "Versturen is niet ingesteld (SMTP_HOST, SMTP_USER, SMTP_PASS in Vercel).");
     const b = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
     if (b.wachtrij) return await inWachtrij(req, res, b); // bulkmail: in de wachtrij, de server verstuurt ze gespreid

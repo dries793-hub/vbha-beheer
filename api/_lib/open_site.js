@@ -24,13 +24,27 @@ async function sjabloon(req) {
   TPL = await r.text(); return TPL;
 }
 
+const tekst = (v, max) => typeof v === "string" ? v.trim().slice(0, max) : "";
+// enkel veilige links: https/http, een pad op de eigen site, mail of telefoon
+export const veiligeUrl = u => { u = String(u || "").trim(); return /^(https?:\/\/[^\s"'<>]+|\/[^\s"'<>]*|mailto:[^\s"'<>]+|tel:[+\d\s()-]+)$/i.test(u) && !/^\/\//.test(u) ? u.slice(0, 500) : ""; };
+const knoppen = L => (Array.isArray(L) ? L : []).slice(0, 4).map(k => ({ label: tekst(k && k.label, 60), url: veiligeUrl(k && k.url), stijl: k && k.stijl === "rand" ? "rand" : "rood" })).filter(k => k.label && k.url);
+const knopHtml = L => L.length ? `<div class="btns">${L.map(k => `<a class="${k.stijl === "rand" ? "btn-rand" : "btn-red"}" href="${esc(k.url)}">${esc(k.label)}</a>`).join("")}</div>` : "";
+function eigenHtml(e, c) {
+  const f = c.fotos[e.id];
+  return `<section class="hero eigen${f ? "" : " zonder"}" id="${esc(e.id)}">${f ? `<figure class="photo"><img data-s-img="${esc(e.id)}" src="/api/openbaar?f=sitefoto&amp;k=${esc(e.id)}&amp;v=${esc(f.v)}" alt="" width="${f.w}" height="${f.h}" loading="lazy"></figure>` : ""}<div>`
+    + (e.kicker ? `<p class="kicker">${esc(e.kicker)}</p>` : "") + (e.titel ? `<h2 class="h2g">${esc(e.titel)}</h2>` : "") + (e.tekst ? `<p class="lead">${esc(e.tekst)}</p>` : "") + knopHtml(e.knoppen) + `</div></section>`;
+}
 export function schoon(c) {
   c = c && typeof c === "object" ? c : {};
   const o = { blokken: { ...SITE_DEF.blokken } };
   for (const k of BLOKKEN) if (c.blokken && k in c.blokken) o.blokken[k] = !!c.blokken[k];
   for (const [k, max] of Object.entries(TEKST)) if (typeof c[k] === "string" && c[k].trim()) o[k] = c[k].trim().slice(0, max);
+  o.kal_knoppen = knoppen(c.kal_knoppen); o.viv_knoppen = knoppen(c.viv_knoppen);
+  o.eigen = (Array.isArray(c.eigen) ? c.eigen : []).slice(0, 12).filter(e => e && /^e[\w]{3,24}$/.test(e.id)).map(e => ({
+    id: e.id, aan: e.aan !== false, plaats: ["boven", "midden", "onder"].includes(e.plaats) ? e.plaats : "midden",
+    kicker: tekst(e.kicker, 120), titel: tekst(e.titel, 140), tekst: tekst(e.tekst, 1500), knoppen: knoppen(e.knoppen) }));
   o.fotos = {};
-  for (const k of ["kalender", "viv"]) { const f = c.fotos && c.fotos[k]; if (f && typeof f.pad === "string" && f.pad.startsWith("Website/")) o.fotos[k] = { pad: f.pad, v: String(f.v || "1").replace(/\W/g, "").slice(0, 20), w: Number(f.w) || 1600, h: Number(f.h) || 1067 }; }
+  for (const k of ["kalender", "viv", ...o.eigen.map(e => e.id)]) { const f = c.fotos && c.fotos[k]; if (f && typeof f.pad === "string" && f.pad.startsWith("Website/")) o.fotos[k] = { pad: f.pad, v: String(f.v || "1").replace(/\W/g, "").slice(0, 20), w: Number(f.w) || 1600, h: Number(f.h) || 1067 }; }
   return o;
 }
 
@@ -38,6 +52,10 @@ export function bouw(tpl, c, basis) {
   let s = tpl;
   for (const k of BLOKKEN) if (!c.blokken[k]) s = s.replace(new RegExp(`<!--blok:${k}-->[\\s\\S]*?<!--/blok:${k}-->`), "");
   for (const k of Object.keys(TEKST)) if (c[k]) s = s.replace(new RegExp(`(<[^>]*\\bdata-s="${k}"[^>]*>)[\\s\\S]*?(</)`), (m, a, b) => a + esc(c[k]) + b);
+  // extra knoppen bij In Vier en Vlam en de kalenders, en de eigen onderdelen
+  if (c.viv_knoppen.length) s = s.replace(/(<section class="hero viv[\s\S]*?<\/a>)(\s*<\/div>\s*<\/section>)/, (m, a, b) => a + knopHtml(c.viv_knoppen).replace('<div class="btns">', '<div class="btns extra">') + b);
+  if (c.kal_knoppen.length) s = s.replace(/(<!--blok:kalender-->[\s\S]*?<\/a>)(\s*<\/div>\s*<\/section>)/, (m, a, b) => a + knopHtml(c.kal_knoppen).replace('<div class="btns">', '<div class="btns extra">') + b);
+  for (const p of ["boven", "midden", "onder"]) s = s.replace(`<!--eigen:${p}-->`, c.eigen.filter(e => e.aan && e.plaats === p && (e.titel || e.tekst || c.fotos[e.id])).map(e => eigenHtml(e, c)).join("\n"));
   let og = null;
   for (const k of ["viv", "kalender"]) {
     const f = c.fotos[k];
@@ -67,7 +85,7 @@ export default async function site(req, res) {
     const sb = admin();
     if (req.query.f === "sitefoto") {
       const k = String(req.query.k || "");
-      if (!["kalender", "viv"].includes(k)) throw httpErr(404, "Niet gevonden");
+      if (!["kalender", "viv"].includes(k) && !/^e[\w]{3,24}$/.test(k)) throw httpErr(404, "Niet gevonden");
       const c = await leesCfg(sb), f = c.fotos[k];
       if (!f) throw httpErr(404, "Geen foto");
       const { data, error } = await sb.storage.from("documenten").download(f.pad);
@@ -80,16 +98,16 @@ export default async function site(req, res) {
     }
     const basis = "https://" + String(req.headers.host || "vbha.be");
     if (req.method === "POST") {
-      await requireUser(req, { write: true });
+      await requireUser(req, { write: true, functie: "website" });
       let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
       const huidig = await leesCfg(sb), c = schoon(b.cfg);
       // nieuwe (nog niet bewaarde) foto's toont het voorbeeld via een tijdelijke link
-      for (const k of ["kalender", "viv"]) if (c.fotos[k] && (!huidig.fotos[k] || huidig.fotos[k].pad !== c.fotos[k].pad)) {
+      for (const k of Object.keys(c.fotos)) if (!huidig.fotos[k] || huidig.fotos[k].pad !== c.fotos[k].pad) {
         const { data } = await sb.storage.from("documenten").createSignedUrl(c.fotos[k].pad, 600);
         if (data) c.fotos[k].tijdelijk = data.signedUrl;
       }
       let html = bouw(await sjabloon(req), c, basis);
-      for (const k of ["kalender", "viv"]) if (c.fotos[k] && c.fotos[k].tijdelijk) html = html.replace(`src="/api/openbaar?f=sitefoto&k=${k}&v=${c.fotos[k].v}"`, `src="${esc(c.fotos[k].tijdelijk)}"`);
+      for (const k of Object.keys(c.fotos)) if (c.fotos[k].tijdelijk) html = html.split(`src="/api/openbaar?f=sitefoto&k=${k}&v=${c.fotos[k].v}"`).join(`src="${esc(c.fotos[k].tijdelijk)}"`).split(`src="/api/openbaar?f=sitefoto&amp;k=${k}&amp;v=${c.fotos[k].v}"`).join(`src="${esc(c.fotos[k].tijdelijk)}"`);
       html = html.replace("<head>", `<head><base href="${basis}/">`).replace("<body>", '<body><div style="position:sticky;top:0;z-index:99;background:#111;color:#fff;text-align:center;padding:8px;font:600 14px system-ui">Voorbeeld – nog niet gepubliceerd</div>');
       return res.status(200).json({ html });
     }

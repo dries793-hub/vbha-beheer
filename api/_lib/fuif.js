@@ -342,7 +342,7 @@ export async function fuifApi(req, res) {
     const { user, sb } = await requireUser(req);
     return res.status(200).json(await scanTicket(sb, b.code, user.email || "", actie === "bekijk"));
   }
-  const { sb, user, rol } = await requireUser(req, { write: true });
+  const { sb, user, rol } = await requireUser(req, { write: true, functie: "fuif" });
   if (actie === "sponsor") return res.status(200).json(await sponsorKaarten(sb, b, user));
   if (actie === "sponsoruitnodiging") return res.status(200).json(await sponsorUitnodigen(sb, b, user));
   if (actie === "gast") return res.status(200).json(await gastBewaar(sb, b, user));

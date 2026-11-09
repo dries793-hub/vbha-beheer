@@ -77,7 +77,7 @@ export async function herinneringen(req, res) {
 export async function herinneringTest(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
-  const { user, sb } = await requireUser(req, { write: true });
+  const { user, sb } = await requireUser(req, { write: true, functie: "agenda" });
   if (!smtpConfigured()) throw httpErr(501, "Versturen is niet ingesteld");
   const cfg = await instellingen(admin()), nu = vandaagISO();
   const { data } = await admin().from("vergaderingen").select("id,data").gte("data->>datum", nu).order("data->>datum", { ascending: true }).limit(1);
