@@ -3099,7 +3099,7 @@ function kalTable(){
   const C=ctx(),k=kalStats(C),q=norm(UI.kalQ),w=C.c.gewichten.kalenders;
   let list=k.rows.map(j=>({j,n:kalNaam(j)}));if(q)list=list.filter(x=>norm(x.n).includes(q));
   list.sort((a,b)=>(b.j.kalUitgevoerd||0)-(a.j.kalUitgevoerd||0)||(b.j.kalOpgehaald||0)-(a.j.kalOpgehaald||0)||a.n.localeCompare(b.n,"nl"));
-  const knoppen=(j,cls)=>canWrite?`<button class="btn ${cls}" data-act="kalOphalen" data-id="${esc(j.id)}">${ic("plus")}Meegeven</button>${kalBeperkt()?"":`<button class="btn ${cls} primary" data-act="kalKlaar" data-id="${esc(j.id)}"${(j.kalOpgehaald||0)>0?"":" disabled"}>${ic("check")}Afgewerkt</button>`}`:"";
+  const knoppen=(j,cls)=>canWrite?`<button class="btn ${cls}" data-act="kalOphalen" data-id="${esc(j.id)}">${ic("plus")}Meegeven</button>${kalBeperkt()?"":(j.kalOpgehaald||0)>0?`<button class="btn ${cls} kal-bezig" data-act="kalKlaar" data-id="${esc(j.id)}" title="Nog ${j.kalOpgehaald} ${j.kalOpgehaald===1?"doos":"dozen"} in handen: tik om af te werken">${ic("shiften")}Bezig</button>`:(j.kalUitgevoerd||0)>0?`<span class="btn ${cls} kal-klaar" aria-disabled="true">${ic("check")}Afgewerkt</span>`:""}`:"";
   const laatst=j=>{const l=kalLaatste(j);return l?`${KAL_T[l.t]||""} ${l.t==="corr"?"":kalDoos(l.n)} · ${kalDt(l.at)}`:""};
   const mob=`<div class="mlist" role="list">${list.map((x,i)=>{const id=x.j.id,open=KAL_OPEN.has(id),op=x.j.kalOpgehaald||0,ui=x.j.kalUitgevoerd||0;
     return `<div class="pm${open?" open":""}" role="listitem"><button type="button" class="ml-row" data-act="kalOpen" data-id="${esc(id)}" aria-expanded="${open}"><span class="ml-rank">${i+1}</span>
@@ -3191,6 +3191,8 @@ function kalToevoegen(){
 }
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;
   ({kalLog:()=>kalLogForm(t.dataset.id),kalUndo:()=>{$("#toast").hidden=true;kalUndo(t.dataset.id)}})[t.dataset.act]?.()});
+{const st=document.createElement("style");st.textContent=`.kal-bezig{color:#1d4ed8!important;border-color:#93c5fd!important;background:#eff6ff!important}.kal-bezig:hover{background:#dbeafe!important}
+.kal-klaar{color:#15803d!important;border-color:#86efac!important;background:#f0fdf4!important;cursor:default;pointer-events:none}.kal-bezig svg,.kal-klaar svg{width:15px;height:15px}.kal-bezig,.kal-klaar{min-width:112px;justify-content:center}`;document.head.appendChild(st)}
 
 /* ============ Sponsors: betalingen bekijken en manueel toewijzen ============ */
 function spBetHtml(id){const C=ctx(),K=spKoppel(C),k=K.per.get(id),s=S.sponsors.get(id)||{};const L=k?k.L:[];
