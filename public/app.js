@@ -1222,7 +1222,7 @@ VIEWS.banket=()=>({title:"Banket "+JAAR,sub:"Inschrijvingen en betalingen",
    <div class="tile"><span class="lbl">Betaald</span><span class="val in">${eur(paid)}</span></div></div>
   
   <div class="bar"><div class="search">${ic("search")}<input id="bkQ" data-live data-input="bkQ" placeholder="Zoek op naam of opmerking" value="${esc(UI.bkQ||"")}"></div>
-   <div class="seg">${[["alle","Alle"],["open","Open"],["ok","Betaald"],["veg","Vegetarisch"]].map(([v,l])=>`<button type="button" data-act="bkF" data-v="${v}" class="${F===v?"on":""}">${l}</button>`).join("")}</div></div>
+   <div class="seg">${[["alle","Alle"],["open","Open"],["ok","Betaald"]].map(([v,l])=>`<button type="button" data-act="bkF" data-v="${v}" class="${F===v?"on":""}">${l}</button>`).join("")}</div></div>
   <div class="panel" id="bkList">${bkTable()}</div>`}});
 const INS_MAAND=["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
 const insTot=(c,def)=>/^\d{4}-\d{2}-\d{2}$/.test(String(c.inschrijvenTot||""))?c.inschrijvenTot:def;
