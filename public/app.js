@@ -6526,7 +6526,7 @@ function shTabBody(r){const a=shZoekAct(r);if(!a)return `<div class="panel"><div
   return `<div class="sh-tab"><div class="sh-tabbar"><span class="grow"></span>${v.actions||""}</div>${v.body()}</div>`}
 for(const [r,eerste] of [["fuif","Tickets"],["jaarmarkt","Kassa"]]){const _v=VIEWS[r];if(!_v)continue;
   const n=function(){const v=_v.apply(this,arguments),b=v.body;
-    v.body=function(){const op=!!SH_TAB[r];return `<div class="ka-tabs" role="tablist"><button type="button" role="tab" data-shtab="${r}" data-v="" class="${op?"":"on"}">${esc(eerste)}</button><button type="button" role="tab" data-shtab="${r}" data-v="1" class="${op?"on":""}">${ic("shiften")}Shiften</button></div>`+(op?shTabBody(r):String(b.apply(this,arguments)))};return v};
+    v.body=function(){const op=!!SH_TAB[r];return `<div class="ka-tabs" role="tablist"><button type="button" role="tab" data-shtab="${r}" data-v="" class="${op?"":"on"}">${esc(eerste)}</button><button type="button" role="tab" data-shtab="${r}" data-v="1" class="${op?"on":""}">Shiften</button></div>`+(op?shTabBody(r):String(b.apply(this,arguments)))};return v};
   Object.assign(n,_v);VIEWS[r]=n}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-shtab]");if(!b)return;SH_TAB[b.dataset.shtab]=!!b.dataset.v;renderBody()});
 {const st=document.createElement("style");st.textContent=`.sh-tab [data-shkies]{display:none}.sh-tabbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px}`;document.head.appendChild(st)}
