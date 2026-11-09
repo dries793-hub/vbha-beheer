@@ -6314,7 +6314,7 @@ function shTegel(a,h,van,dubbel){const sel=SHF.sel&&SHF.sel.id===h.id&&SHF.sel.v
     ${canWrite?`<button type="button" class="sh-tx" data-shx="${esc(h.id)}" data-van="${esc(van)}" aria-label="${van==="pool"?"Helper verwijderen":"Terug naar de pool"}" title="${van==="pool"?"Helper verwijderen":"Terug naar de pool"}">${ic("x")}</button>`:""}</div>`}
 /* ---------- weergave ---------- */
 VIEWS.shiften=()=>({title:"Shiften",sub:"Wie helpt waar en wanneer",
-  actions:canWrite?'<button class="btn primary" data-sh="nieuw">'+ic("plus")+'Shift toevoegen</button><button class="btn iconbtn" data-sh="instellingen" title="Instellingen sms" aria-label="Instellingen sms">'+ic("instellingen")+'</button>':"",
+  actions:'<button class="btn" data-sh="print">'+ic("download")+'Afdrukken</button>'+(canWrite?'<button class="btn primary" data-sh="nieuw">'+ic("plus")+'Shift toevoegen</button><button class="btn iconbtn" data-sh="instellingen" title="Instellingen sms" aria-label="Instellingen sms">'+ic("instellingen")+'</button>':""),
   body(){const L=shActs(),a=shAct();
     if(!a)return '<div class="panel"><div class="empty">Er staan nog geen activiteiten in de agenda. Voeg eerst een activiteit toe bij Agenda.</div></div>';
     const S2=a.shiften||[],pool=shPool(a),ing=shIngedeeld(a),vrij=pool.filter(id=>!ing.has(id)).map(id=>shHelper(a,id)).filter(Boolean).sort((x,y)=>x.naam.localeCompare(y.naam,"nl"));
@@ -6409,6 +6409,7 @@ async function shSms(a,s){const H=(s.leden||[]).map(id=>shHelper(a,id)).filter(h
 /* ---------- knoppen ---------- */
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-sh]");if(!b||route()!=="shiften")return;const a=shAct();if(!a)return;const k=b.closest("[data-shid]"),s=k&&(a.shiften||[]).find(x=>x.id===k.dataset.shid);
   switch(b.dataset.sh){
+    case"print":shPrint(a);break;
     case"nieuw":if(canWrite)shForm(a,null);break;
     case"instellingen":if(canWrite)shInstellingen(a);break;
     case"bewerk":if(canWrite&&s)shForm(a,s);break;
@@ -6450,6 +6451,33 @@ document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.shk
 .sh-vb{background:var(--soft,#f4f4f5);border-radius:14px;padding:10px 12px;white-space:pre-wrap;font-size:14px}
 .sh-sl{display:flex;flex-direction:column;gap:6px}.sh-sli{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink)}.sh-sli svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8}.sh-sli span{flex:1}.sh-sli small{color:#16733c}.sh-sli.ok{background:#f1faf4;border-color:#bfe5cd}
 @media (max-width:640px){.sh-kop .sel{max-width:none;width:100%}.sh-bord{grid-template-columns:1fr}}`;document.head.appendChild(st)}
+
+/* ---------- afdrukken: A4 liggend in de huisstijl ---------- */
+function shPrint(a){const S2=a.shiften||[];if(!S2.length){toast("Er zijn nog geen shiften om af te drukken.",true);return}
+  const w=window.open("","_blank");if(!w){toast("Je browser blokkeerde het nieuwe venster.",true);return}
+  const e=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const ing=shIngedeeld(a),vrij=shPool(a).filter(id=>!ing.has(id)).map(id=>shHelper(a,id)).filter(Boolean);
+  const kol=S2.map(s=>{const H=(s.leden||[]).map(id=>shHelper(a,id)).filter(Boolean).sort((x,y)=>x.naam.localeCompare(y.naam,"nl")),n=Number(s.nodig)||0,leeg=Math.max(0,n-H.length);
+    return `<section class="k"><header><b>${e(s.taak||"Shift")}</b><span>${e(s.van&&s.tot?s.van+" – "+s.tot:s.van||"")}</span><i>${H.length}${n?" / "+n:""}</i></header>
+      <ol>${H.map(h=>`<li><span class="n">${e(h.naam)}${h.lid?"":` <small>(${e(h.info||"geen lid")})</small>`}</span><span class="t">${e(h.telTxt||"")}</span></li>`).join("")}${"<li class=\"open\"><span class=\"n\">&nbsp;</span><span class=\"t\"></span></li>".repeat(leeg)}</ol></section>`}).join("");
+  const datum=a.datum?fmtDate(a.datum):"",nu=new Date().toLocaleDateString("nl-BE");
+  w.document.write(`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Shiften ${e(a.titel||"")}</title><link rel="stylesheet" href="${location.origin}/fonts/inter.css">
+<style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{margin:0;font:11pt/1.35 "Inter",system-ui,Arial,sans-serif;color:#1a1b1e;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.kop{display:flex;align-items:center;gap:16px;background:#18191c;color:#fff;padding:10px 16px;border-radius:10px 10px 0 0}.kop img{height:34px}.kop .t{flex:1}.kop h1{margin:0;font-size:17pt;font-weight:700;color:#fff}.kop p{margin:2px 0 0;color:#c9cacd;font-size:10pt}
+.rood{height:4px;background:#c0161f;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:repeat(${Math.min(4,S2.length)},1fr);gap:8px}
+.k{border:1px solid #d9dadd;border-radius:8px;overflow:hidden;break-inside:avoid}.k header{display:flex;align-items:baseline;gap:8px;background:#f5f5f6;padding:7px 10px;border-bottom:2px solid #c0161f}
+.k header b{font-size:12pt}.k header span{color:#686b71;font-size:9.5pt;flex:1}.k header i{font-style:normal;font-weight:700;font-size:9.5pt}
+ol{list-style:none;margin:0;padding:0}li{display:flex;gap:8px;justify-content:space-between;padding:5px 10px;border-bottom:1px solid #eee;min-height:24px}li:last-child{border-bottom:0}.n{font-weight:600}.n small{font-weight:400;color:#686b71}.t{color:#686b71;font-size:9.5pt;white-space:nowrap}
+li.open .n{flex:1;border-bottom:1px dashed #bbb}
+.vrij{margin-top:10px;font-size:9.5pt;color:#686b71}.vrij b{color:#1a1b1e}
+.voet{margin-top:8px;font-size:8.5pt;color:#9a9ca1;display:flex;justify-content:space-between}
+@media screen{body{background:#eee;padding:20px}.blad{background:#fff;width:277mm;margin:0 auto;padding:10mm;box-shadow:0 4px 20px rgba(0,0,0,.15)}}</style></head><body><div class="blad">
+<div class="kop"><img src="${location.origin}/w/logo.png" alt="VBHA"><div class="t"><h1>Shiften ${e(a.titel||"")}</h1><p>${e([datum,a.uur,a.locatie].filter(Boolean).join(" · "))}</p></div></div><div class="rood"></div>
+<div class="grid">${kol}</div>
+${vrij.length?`<p class="vrij"><b>Nog niet ingedeeld:</b> ${vrij.map(h=>e(h.naam)).join(", ")}</p>`:""}
+<div class="voet"><span>Vriendenkring Brandweer Hoofdpost Aalst</span><span>Afgedrukt op ${e(nu)}</span></div></div>
+<script>window.onload=()=>{const i=document.querySelector(".kop img");const go=()=>setTimeout(()=>window.print(),250);if(i&&!i.complete){i.onload=go;i.onerror=()=>{i.remove();go()}}else go()}<\/script></body></html>`);w.document.close()}
 
 /* ============ Activiteiten › Familiedag ============
    Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
