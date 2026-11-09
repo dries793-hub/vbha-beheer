@@ -4710,10 +4710,12 @@ function kcData(){const C=ctx(),pd=Number(jaarCfg(JAAR).perDoos)||100,P=new Map(
     else if(dz<p.uit-1){st="minder";verschil=p.uit-dz}
     else if(dz>p.mee+1){st="meer";verschil=dz-p.mee}
     else st=p.hand?"bezig":"ok";
-    return{...p,dz,verschil,st}});
+    const sig=[p.mee,p.uit,p.hand,p.dA,p.rA].join("|"),ak=kcAkkoord()[p.k];if(KC_ST[st][0]==="warn"&&ak&&ak.sig===sig)st="akkoord";
+    return{...p,dz,verschil,st,sig}});
   L.sort((a,b)=>(KC_ST[a.st][0]!=="warn")-(KC_ST[b.st][0]!=="warn")||b.verschil-a.verschil||a.naam.localeCompare(b.naam,"nl"));
   return{L,pd}}
-const KC_ST={ok:["ok","Klopt"],bezig:["info","Nog bezig"],res:["info","Enkel gereserveerd"],geenkaart:["warn","Afgewerkt, niets op de kaart"],geendoos:["warn","Op de kaart, geen dozen meegegeven"],minder:["warn","Minder op de kaart dan afgewerkt"],meer:["warn","Meer op de kaart dan meegegeven"]};
+const kcAkkoord=()=>((S.config.get("kalcontrole_"+JAAR)||{}).ok)||{};
+const KC_ST={akkoord:["ok","Klopt (nagekeken)"],ok:["ok","Klopt"],bezig:["info","Nog bezig"],res:["info","Enkel gereserveerd"],geenkaart:["warn","Afgewerkt, niets op de kaart"],geendoos:["warn","Op de kaart, geen dozen meegegeven"],minder:["warn","Minder op de kaart dan afgewerkt"],meer:["warn","Meer op de kaart dan meegegeven"]};
 const kcN=n=>Number.isInteger(n)?String(n):n.toLocaleString("nl-BE",{maximumFractionDigits:1});
 VIEWS.kalcontrole=()=>({title:"Kalenders "+JAAR,sub:"Controle: dozen naast de aanduidingen op de kaart",
   actions:'',
@@ -4725,11 +4727,11 @@ VIEWS.kalcontrole=()=>({title:"Kalenders "+JAAR,sub:"Controle: dozen naast de aa
     <div class="tile"><span class="lbl">Na te kijken</span><span class="val">${af}</span></div></div>
     <div class="panel"><div class="tw"><table class="rcards kc-t"><thead><tr><th>Persoon</th><th class="num">Meegegeven</th><th class="num">Afgewerkt</th><th class="num">In handen</th><th class="num">Bedeeld op kaart</th><th class="num">≈ dozen</th><th class="num">Gereserveerd</th><th>Controle</th></tr></thead><tbody>
     ${L.map(p=>{const [c,t]=KC_ST[p.st];const vs=p.verschil?` <small class="muted">${kcN(p.verschil)} ${p.verschil<1.5?"doos":"dozen"} verschil</small>`:"";
-      return `<tr><td data-l="Persoon"><b>${esc(p.naam)}</b>${p.lid||!p.j?"":'<div class="small muted">geen lid</div>'}${!p.j&&(p.dA||p.rA)?'<div class="small muted">niet in de verdeling</div>':""}</td>
+      return `<tr><td data-l="Persoon">${p.j&&canWrite?`<button type="button" class="kr-link" data-act="kalLog" data-id="${esc(p.j.id)}" title="Aantallen bekijken of aanpassen"><b>${esc(p.naam)}</b></button>`:`<b>${esc(p.naam)}</b>`}${p.lid||!p.j?"":'<div class="small muted">geen lid</div>'}${!p.j&&(p.dA||p.rA)?'<div class="small muted">niet in de verdeling</div>':""}</td>
       <td class="num" data-l="Meegegeven">${p.mee||"–"}</td><td class="num" data-l="Afgewerkt">${p.uit||"–"}</td><td class="num" data-l="In handen">${p.hand||"–"}</td>
       <td class="num" data-l="Bedeeld op kaart">${p.dA?krNum(p.dA)+` <small class="muted">${p.dS} ${p.dS===1?"straat":"str."}</small>`:"–"}</td><td class="num" data-l="≈ dozen">${p.dA?kcN(p.dz):"–"}</td>
       <td class="num" data-l="Gereserveerd">${p.rA?krNum(p.rA)+` <small class="muted">≈ ${kcN(p.rA/pd)} d.</small>`:"–"}</td>
-      <td data-l="Controle"><span class="pill ${c}">${t}</span>${vs}</td></tr>`}).join("")||'<tr><td colspan="8" class="empty">Nog geen dozen of aanduidingen dit jaar.</td></tr>'}
+      <td data-l="Controle"><span class="pill ${c}">${t}</span>${p.st==="akkoord"?"":vs}${ROL==="admin"?(c==="warn"?` <button type="button" class="btn sm kc-ok" data-kcok="${esc(p.k)}" data-sig="${esc(p.sig)}" title="Aanduiden dat dit klopt">${ic("check")}Klopt</button>`:p.st==="akkoord"?` <button type="button" class="linkbtn small" data-kcweg="${esc(p.k)}">ongedaan</button>`:""):""}</td></tr>`}).join("")||'<tr><td colspan="8" class="empty">Nog geen dozen of aanduidingen dit jaar.</td></tr>'}
     </tbody></table></div></div>`}});
 
 /* ---- Kalenderinstellingen (dozen dit jaar, kalenders per doos) achter het tandwiel op de pagina Kalenders ---- */
@@ -4760,6 +4762,12 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="kalIn
 {const _l=ledenInst;ledenInst=function(){_l.apply(this,arguments);return; /* blok "Inschrijfformulier voor nieuwe leden" niet meer tonen (op vraag) */const c=$("#liCat");const sec=c&&c.closest(".pi-sec");if(!sec)return;const u=location.origin+"/inschrijven";
   sec.insertAdjacentHTML("afterend",`<div class="pi-sec"><h4>Inschrijfformulier voor nieuwe leden</h4><p class="pi-note" style="margin:0 0 8px">Deel deze link met wie lid wil worden. Iedereen kan het formulier invullen zonder aan te melden. Nieuwe leden komen meteen in de ledenlijst en je krijgt een melding op het dashboard.</p>
    <div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(u)}" aria-label="Link naar het inschrijfformulier" onclick="this.select()"><button type="button" class="btn" data-act="kopieerLink" data-v="${esc(u)}">${ic("copy")}Kopiëren</button><a class="btn" href="/inschrijven" target="_blank" rel="noopener">Openen</a></div></div>`)}}
+
+/* admin: een verschil aanduiden als nagekeken (geldt zolang de aantallen niet veranderen) */
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-kcok],[data-kcweg]");if(!b||ROL!=="admin")return;const id="kalcontrole_"+JAAR,cur=S.config.get(id)||{},ok={...(cur.ok||{})};
+  if(b.dataset.kcok)ok[b.dataset.kcok]={sig:b.dataset.sig,door:ME_NAME||"",op:new Date().toISOString()};else delete ok[b.dataset.kcweg];
+  const d={...stripId(cur),ok};S.config.set(id,{...d,id});dirty=true;renderBody();try{await write("config",id,d)}catch(x){toast("Bewaren lukte niet.",true)}});
+{const st=document.createElement("style");st.textContent=".kc-ok{margin-left:6px;vertical-align:middle}.kc-ok svg{width:14px;height:14px}";document.head.appendChild(st)}
 
 /* ============ Instellingen enkel voor de administrator ============
    Andere profielen zien geen tandwieltjes of instellingenpagina's. Wat iedereen wel kan: "Meldingen op dit toestel" (eigen pagina).
