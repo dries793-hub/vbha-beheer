@@ -6522,6 +6522,11 @@ for(const [r,eerste] of [["fuif","Tickets"],["jaarmarkt","Kassa"]]){const _v=VIE
   Object.assign(n,_v);VIEWS[r]=n}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-shtab]");if(!b)return;SH_TAB[b.dataset.shtab]=!!b.dataset.v;renderBody()});
 {const st=document.createElement("style");st.textContent=`.sh-tab [data-shkies]{display:none}.sh-tabbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px}`;document.head.appendChild(st)}
+/* shift al volzet: toch toevoegen na bevestiging */
+{const _vp=shVerplaats;shVerplaats=function(id,van,naar){const a=shAct(),s=a&&(a.shiften||[]).find(x=>x.id===naar),n=s?Number(s.nodig)||0:0;
+  if(s&&n&&van!==naar&&!(s.leden||[]).includes(id)&&(s.leden||[]).length>=n){const h=shHelper(a,id);
+    return new Promise(ok=>confirmBox(`De shift <b>${esc(s.taak||"Shift")}</b> is al opgevuld (${(s.leden||[]).length} / ${n}). Wil je <b>${esc(h?h.naam:"deze persoon")}</b> toch toevoegen?`,"Toch toevoegen",async()=>{closeModal();await _vp(id,van,naar);ok()}))}
+  return _vp.apply(this,arguments)}}
 
 /* ============ Activiteiten › Familiedag ============
    Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
