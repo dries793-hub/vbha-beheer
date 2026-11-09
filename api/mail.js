@@ -13,6 +13,7 @@ import { fuifApi } from "./_lib/fuif.js";
 import { kassaApi } from "./_lib/kassa.js";
 import { shopApi } from "./_lib/shop.js";
 import r2Api from "./_lib/r2.js";
+import smsApi from "./_lib/sms.js";
 
 // Mails versturen vanuit Communicatie › Mails (enkel voor bewerkers).
 // GET  -> {ingesteld, van}
@@ -31,6 +32,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "betaalherinnering") return await betaalHerinneringApi(req, res); // voorbeeld automatische betalingsherinneringen
     if (req.query && req.query.f === "sponsorbev") return await sponsorBevestiging(req, res); // sponsorbevestiging (PDF / mail)
     if (req.query && req.query.f === "kf-voorbeeld") return await kfVoorbeeld(req, res); // voorbeeld bevestigingsmail kinderfeest
+    if (req.query && req.query.f === "sms") return await smsApi(req, res); // sms via BudgetSMS (shiften)
     if (req.query && req.query.f === "r2") return await r2Api(req, res); // fotoalbums: tijdelijke links naar Cloudflare R2
     if (req.query && req.query.f === "shop") return await shopApi(req, res); // webshop: status van een bestelling, mails
     if (req.query && req.query.f === "kassa") return await kassaApi(req, res); // kassa: transacties wissen of nakijken
