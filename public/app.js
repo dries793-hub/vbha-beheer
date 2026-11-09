@@ -4502,7 +4502,7 @@ const mlParse=t=>{const out=[];for(const part of String(t||"").split(/\n|;|,(?=(
   return out};
 const mlTekst=L=>(L.leden||[]).map(p=>p.naam?`"${p.naam}" <${p.email}>`:p.email).join("\n");
 function mlLijstBeheer(){const L=mlLijsten();
-  modal("Mailinglijsten",`<p class="muted small" style="margin:0 0 12px">Eigen lijsten met e-mailadressen, bv. voor persberichten. Eén adres per regel, met of zonder naam: <span class="kbd">"Naam" &lt;adres@voorbeeld.be&gt;</span>. Je kiest ze daarna bij <b>Ontvangers</b> onder "Mailinglijsten".</p>
+  modal("Mailinglijsten",`
    <div id="mlL">${L.map((x,i)=>`<div class="pi-sec ml-ls" data-i="${i}"><div class="form"><div class="fld"><label>Naam van de lijst</label><input class="mlN" value="${esc(x.naam)}" maxlength="60"></div><div class="fld" style="align-self:end"><button type="button" class="btn ghost danger sm" data-mll="weg">Lijst verwijderen</button></div>
      <div class="fld full"><label>Adressen <span class="muted small mlC">(${(x.leden||[]).length})</span></label><textarea class="mlT" rows="7" style="font-size:13px">${esc(mlTekst(x))}</textarea></div></div></div>`).join("")}</div>
    <button type="button" class="btn sm" data-mll="nieuw">${ic("plus")}Nieuwe lijst</button>`,
