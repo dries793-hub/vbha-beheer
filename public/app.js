@@ -6205,7 +6205,7 @@ document.addEventListener("click",e=>{if(!FA.a)return;
 var RECHTEN=null;
 const FUNC=[["leden","Ledenlijst",["leden"]],["punten","Puntensysteem",["punten"]],["financien","Financiën",["boekhouding","boekingen","verwerken","historiek","begroting","facturen","inkomend"]],
   ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"]],["kalverdeling","Kalenders: personen en dozen meegeven",[]],["banket","Banket",["banket"]],["kinderfeest","Kinderfeest",["kinderfeest"]],["fuif","In Vier en Vlam",["fuif"]],["kassa","Kassa",["kassa"]],
-  ["jaarmarkt","Jaarmarkt",["jaarmarkt"]],["webshop","Webshop",["webshop"]],["agenda","Agenda en verslagen",["agenda","verslagen"]],["shiften","Shiften",["shiften"]],["documenten","Documenten",["documenten"]],["fotos","Foto's",["fotos"]],
+  ["jaarmarkt","Jaarmarkt",["jaarmarkt"]],["webshop","Webshop",["webshop"]],["agenda","Agenda en verslagen",["agenda","verslagen"]],["shiften","Shiften",["shiften"]],["documenten","Documenten",["documenten"]],["fotos","Fotoalbums",["fotos"]],
   ["sponsors","Sponsors",["sponsors"]],["mails","Mails",["mails"]],["website","Website",["website"]]];
 const FUNC_VAN={};for(const [f,,rs] of FUNC)for(const r of rs)FUNC_VAN[r]=f;
 const RECHT_LBL={geen:"Verborgen",lezen:"Lezen",bewerken:"Bewerken"};
@@ -6804,3 +6804,6 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-lidmail]")
   if(typeof MAIL!=="undefined"&&MAIL&&MAIL.dirty)confirmBox("Je hebt in Mails nog niet-bewaarde wijzigingen. Toch een nieuwe mail beginnen?","Nieuwe mail",go);else go()});
 {const st=document.createElement("style");st.textContent=`.kr-tg h3{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.kr-tg{margin-bottom:14px}
 .tiles.kr-t4{grid-template-columns:repeat(4,minmax(0,1fr))}.tiles.kr-t4 .tile.hero{grid-column:auto}@media(max-width:640px){.tiles.kr-t4{grid-template-columns:repeat(2,minmax(0,1fr))}}`;document.head.appendChild(st)}
+/* menu: Shiften en Fotoalbums onder Administratie */
+{const doel=NAV.find(n=>n.id==="communicatie");if(doel)for(const [id,lbl] of [["shiften","Shiften"],["fotos","Fotoalbums"]]){for(const g of NAV)if(g.items)g.items=g.items.filter(i=>i[0]!==id);doel.items.push([id,lbl])}
+  const r=ROUTES.find(x=>x[0]==="fotos");if(r)r[1]="Fotoalbums";}
