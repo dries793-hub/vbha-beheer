@@ -5810,7 +5810,7 @@ function wsFotoBlok(k,lbl){const W=wsWerk(),f=W.fotos[k],d=canWrite?"":" disable
   return `<div class="fld full"><span class="lbl">${lbl}</span><div class="ws-foto"><div class="ws-fi" data-wsimg="${k}">${f?'<span class="muted small">laden…</span>':k==="kalender"?'<img src="/w/kalender-2027.jpg" alt="">':'<span class="muted small">Geen foto: de tekst staat dan over de volle breedte.</span>'}</div>
    <div class="ws-fk"><label class="btn sm${canWrite?"":" disabled"}">${ic("upload")}Foto opladen<input type="file" accept="image/*" data-wsup="${k}" hidden${d}></label>${f?`<button type="button" class="btn sm ghost" data-wsact="fotoWeg" data-k="${k}"${d}>Foto verwijderen</button>`:""}<span class="help">JPG of PNG. Wordt automatisch verkleind tot 1600 px.</span></div></div></div>`}
 VIEWS.website=()=>({title:"Website",sub:"Startpagina vbha.be",
-  actions:`<a class="btn" href="https://vbha.be" target="_blank" rel="noopener">${ic("link")}vbha.be openen</a>`,
+  actions:`<a class="btn" href="https://vbha.be" target="_blank" rel="noopener">${ic("link")}Website openen</a>`,
   body(){const W=wsWerk(),d=canWrite?"":" disabled";const ta=(id,k,max)=>`<textarea id="${id}" data-wsk="${k}" maxlength="${max}" rows="3"${d}>${esc(W[k]||"")}</textarea>`;
     return `<div class="panel"><div class="panel-h"><h2>Wat staat er op de startpagina?</h2></div><div class="panel-b ws-bl">
       ${WS_BLOKKEN.map(([k,t,u])=>`<label class="ws-row"><span class="ws-sw"><input type="checkbox" data-wsblok="${k}"${W.blokken[k]?" checked":""}${d}><i></i></span><span><b>${t}</b><small>${u}</small></span></label>`).join("")}
