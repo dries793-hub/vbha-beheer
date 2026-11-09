@@ -12,7 +12,7 @@ import { admin, httpErr, sendError, requireUser } from "./sb.js";
 
 export const SITE_DEF = { blokken: { viv: false, kalender: true, steun: true, sponsors: true } };
 const BLOKKEN = ["viv", "kalender", "steun", "sponsors"];
-const TEKST = { kal_titel: 140, kal_tekst: 600, viv_titel: 140, viv_datum: 120, viv_tekst: 800, viv_knop_klein: 60 };
+const TEKST = { kal_titel: 140, kal_tekst: 600, viv_titel: 140, viv_datum: 120, viv_tekst: 800, viv_knop_klein: 60, spo_titel: 120, spo_tekst: 400 };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 let TPL = null;
