@@ -6817,3 +6817,5 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-lidmail]")
 /* menu: Shiften en Fotoalbums onder Administratie */
 {const doel=NAV.find(n=>n.id==="communicatie");if(doel)for(const [id,lbl] of [["shiften","Shiften"],["fotos","Fotoalbums"]]){for(const g of NAV)if(g.items)g.items=g.items.filter(i=>i[0]!==id);doel.items.push([id,lbl])}
   const r=ROUTES.find(x=>x[0]==="fotos");if(r)r[1]="Fotoalbums";}
+/* gsm: staan er bovenaan enkel icoonknoppen (bv. tandwiel), dan rechts naast de titel */
+{const st=document.createElement("style");st.textContent="@media (max-width:760px){.top:not(:has(>.btn:not(.iconbtn))):has(>.btn.iconbtn){flex-wrap:nowrap}.top:not(:has(>.btn:not(.iconbtn))):has(>.btn.iconbtn)>div:not(.grow){flex:1 1 0}}";document.head.appendChild(st)}
