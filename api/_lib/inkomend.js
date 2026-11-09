@@ -1,3 +1,4 @@
+import { FACTUUR_ADRES } from "./smtp.js";
 import crypto from "node:crypto";
 import { admin, requireUser, httpErr } from "./sb.js";
 import { Imap, leesMail, kopTekst, adres, koppen } from "./imap.js";
@@ -12,7 +13,7 @@ import { meldPush } from "./push.js";
    Wachtwoord: afgeschermde tabel inkomend_geheim (enkel via deze server). Reserve: INKOMEND_IMAP_USER / INKOMEND_IMAP_PASS in Vercel. */
 
 const MAP = "Inkomende facturen", BUCKET = "documenten";
-export const INK_DEF = { adres: "vbha@telenet.be", host: "imap.telenet.be", port: 993, map: "INBOX", filter: { aan: true, woorden: "factuur, invoice, rekening, nota, creditnota", afzenders: "" } };
+export const INK_DEF = { adres: "boekhouding@vbha.be", host: "imap.one.com", port: 993, map: "INBOX", filter: { aan: true, woorden: "factuur, invoice, rekening, nota, creditnota", afzenders: "" } };
 const HOSTS = { "telenet.be": "imap.telenet.be", "vbha.be": "imap.one.com", "gmail.com": "imap.gmail.com", "outlook.com": "outlook.office365.com", "hotmail.com": "outlook.office365.com", "skynet.be": "imap.proximus.be", "proximus.be": "imap.proximus.be" };
 export const hostVoor = a => HOSTS[String(a || "").split("@")[1]?.toLowerCase()] || "";
 
@@ -29,7 +30,9 @@ async function instellingen(sb) {
   if (g) g.wachtwoord = ontsleutel(g.wachtwoord);
   const adresEnv = process.env.INKOMEND_IMAP_USER || "", passEnv = process.env.INKOMEND_IMAP_PASS || "";
   const r = { ...INK_DEF, ...c, filter: { ...INK_DEF.filter, ...(c.filter || {}) } };
-  r.pass = (g && g.wachtwoord) || (adresEnv && adresEnv === r.adres ? passEnv : "") || (!c.adres && passEnv ? passEnv : "");
+  // boekhouding@vbha.be: hetzelfde wachtwoord als voor het versturen van de facturen (SMTP_FACTUUR_PASS in Vercel)
+  const fcEigen = String(r.adres || "").trim().toLowerCase() === FACTUUR_ADRES().toLowerCase() && process.env.SMTP_FACTUUR_PASS ? process.env.SMTP_FACTUUR_PASS : "";
+  r.pass = fcEigen || (g && g.wachtwoord) || (adresEnv && adresEnv === r.adres ? passEnv : "") || (!c.adres && passEnv ? passEnv : "");
   if (!c.adres && adresEnv) r.adres = adresEnv;
   r.host = r.host || hostVoor(r.adres) || "imap.one.com"; r.port = Number(r.port) || 993;
   return r;

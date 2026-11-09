@@ -4010,7 +4010,7 @@ function inkUitleg(){const s=INK.srv;
 function inkInstel(){const s=INK.srv||{},F=s.filter||{aan:true,woorden:"",afzenders:""};
   modal("Instellingen inkomende facturen",`<form id="fInk" class="form" autocomplete="off">
    <p class="full muted small" style="margin:0">De app kijkt elke 10 minuten in deze mailbox naar nieuwe mails met een PDF-factuur. Ze wijzigt niets in de mailbox: mails blijven ongelezen en worden niet verplaatst of verwijderd.</p>
-   ${fld("ikA","E-mailadres van de mailbox",inp("ikA",s.adres||"vbha@telenet.be",'type="email" inputmode="email"'),"full")}
+   ${fld("ikA","E-mailadres van de mailbox",inp("ikA",s.adres||"boekhouding@vbha.be",'type="email" inputmode="email"'),"full")}
    ${fld("ikP","Wachtwoord",`<input id="ikP" type="password" autocomplete="new-password" placeholder="${s.wachtwoordGezet?"•••••••• (ongewijzigd laten)":"Wachtwoord van de mailbox"}">`,"full")}
    <div class="help full muted small" style="margin-top:-6px">Het wachtwoord wordt afgeschermd bewaard op de server en kan nergens teruggelezen worden.</div>
    ${fld("ikH","IMAP-server",inp("ikH",s.host||"imap.telenet.be",'placeholder="imap.telenet.be"'))}${fld("ikPo","Poort",inp("ikPo",s.port||993,'inputmode="numeric"'))}
