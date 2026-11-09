@@ -1,6 +1,6 @@
 import { admin, isDbCron, httpErr, requireUser } from "./sb.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
-import { algemeen, configDoc, inschrijving, DEF_IBAN } from "./publiek.js";
+import { algemeen, configDoc, inschrijving, DEF_IBAN, lidgeldBoekingen, norm } from "./publiek.js";
 import { controleerBetaling } from "./betaal.js";
 import { teken, ondertekenLinks } from "./lidlink.js";
 
@@ -191,8 +191,11 @@ export async function nastuur(sb, id) {
   const { data: bl } = await sb.from("config").select("data").eq("id", "mail").maybeSingle();
   if (bl && bl.data && bl.data.geblokkeerd && bl.data.geblokkeerd[aan]) return 0;
   const al = { ...(d.nastuur || {}) }, rijen = [];
-  for (const [tpl, R] of Object.entries(regels)) {
-    if (!R || !R.html || !R.tot || R.tot < nu || al[tpl]) continue;
+  const actief = Object.entries(regels).filter(([tpl, R]) => R && R.html && R.tot && R.tot >= nu && !al[tpl] && !(R.na && String(d.aangemeld || "") <= R.na));
+  if (!actief.length) return 0;
+  // pas nasturen als het lidgeld ontvangen is
+  if (!(await lidgeldOntvangen(sb, id, d))) return 0;
+  for (const [tpl, R] of actief) {
     const vn = esc(d.voornaam || ""), nm = esc([d.voornaam, d.naam].filter(Boolean).join(" "));
     const vulIn = (t, h) => String(t).split("@@VOORNAAM@@").join(h ? vn : d.voornaam || "").split("@@NAAM@@").join(h ? nm : [d.voornaam, d.naam].filter(Boolean).join(" ")).replace(/Beste\s+,/g, "Beste,");
     rijen.push({ batch: "nastuur-" + tpl.replace(/[^\w.-]/g, "") + "-" + Date.now().toString(36), data: { aan, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" "), onderwerp: vulIn(R.onderwerp, false), html: ondertekenLinks(vulIn(R.html, true)), label: "Nagestuurd: " + (R.naam || tpl) } });
@@ -203,6 +206,29 @@ export async function nastuur(sb, id) {
   await zet(sb, "leden", id, { nastuur: al });
   return rijen.length;
 }
+/* lidgeld ontvangen? Dezelfde regels als de app: online betaald, manueel OK, of een lidgeldtransactie op naam */
+async function lidgeldOntvangen(sb, id, d) {
+  if (d.betaling && d.betaling.status === "SUCCEEDED") return true;
+  if (d.lidgeldBedrag != null && !(Number(d.lidgeldBedrag) > 0)) return true;
+  const J = Number((d.betaling && d.betaling.jaar) || d.lidSinds || new Date().getFullYear());
+  const { data: j } = await sb.from("jaarleden").select("data").eq("id", J + "_" + id).maybeSingle();
+  const lg = j && j.data && j.data.lidgeld;
+  if (lg === "OK") return true; if (lg === "NOK") return false;
+  const n1 = norm(d.naam), n2 = norm(d.voornaam);
+  return (await lidgeldBoekingen(sb, J)).some(r => { const b = r.data || {}, m = norm(b.mededeling), c = norm(b.categorie);
+    return b.lidId === id || (n1 && n2 && (m.includes("lidgeld") || c.startsWith("lidgeld")) && m.includes(n1) && m.includes(n2)); });
+}
+/* geplande taak: nieuwe leden die nog op een nagestuurde mail wachten (bv. omdat hun lidgeld pas later binnenkwam) */
+async function nastuurCron(sb) {
+  const { data: c } = await sb.from("config").select("data").eq("id", "nastuur").maybeSingle();
+  const nu = vandaag(), R = Object.values((c && c.data && c.data.regels) || {}).filter(R => R && R.html && R.tot && R.tot >= nu);
+  if (!R.length) return [];
+  const vanaf = R.map(x => x.na || x.sinds || "").sort()[0] || new Date(Date.now() - 60 * 864e5).toISOString();
+  const { data } = await sb.from("leden").select("id,data").gt("data->>aangemeld", vanaf).eq("data->bevestiging->>status", "verstuurd").limit(100);
+  const uit = [];
+  for (const r of data || []) { try { if (await nastuur(sb, r.id)) uit.push(r.id); } catch (e) { console.error("nastuur", r.id, e); } }
+  return uit;
+}
 /* opgeroepen zodra een online betaling gelukt is */
 export async function betalingGelukt(sb, tabel, id) {
   if (!smtpConfigured()) return;
@@ -212,6 +238,7 @@ export async function betalingGelukt(sb, tabel, id) {
   if (bev && bev.status === "wacht") { await stuurBevestiging(sb, tabel, id); }
   else if (!(bev && bev.status === "verstuurd" && bev.betaald && bev.voor === b.id)) { const m = await mailBetaald(sb, tabel, r); if (m) await stuur(m); }
   await zet(sb, tabel, id, { betaling: { ...((await haal(sb, tabel, id)) || r).data.betaling, bevestigd: true } });
+  if (tabel === "leden") { try { await nastuur(sb, id); } catch (e) { console.error("nastuur", e); } }
 }
 /* geplande taak: bevestigingen die langer dan 20 minuten op een betaling wachten */
 export async function bevestigingenCron(req, res) {
@@ -239,9 +266,11 @@ export async function bevestigingenCron(req, res) {
   try { kassa = await (await import("./kassa.js")).kassaCron(sb); } catch (e) { console.error("kassa", e); kassa = { fout: e.message }; }
   let shop = null;
   try { shop = await (await import("./shop.js")).shopCron(sb); } catch (e) { console.error("shop", e); shop = { fout: e.message }; }
+  let nagestuurd = null;
+  try { nagestuurd = await nastuurCron(sb); } catch (e) { console.error("nastuur", e); nagestuurd = { fout: e.message }; }
   let goud = null;
   try { goud = await (await import("./goudmail.js")).goudCron(sb); } catch (e) { console.error("goud", e); goud = { fout: e.message }; }
-  res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend, betaalherinnering, fuif, kassa, shop, goud });
+  res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend, betaalherinnering, fuif, kassa, shop, goud, nagestuurd });
 }
 // gedeeld met de facturatie (api/_lib/factuur.js)
 export { huisstijl, modern, kaderBlok, knop, tabel, rij, p, esc, eur, kort, lang, vandaag, plusDagen, site };

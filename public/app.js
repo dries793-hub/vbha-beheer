@@ -4853,21 +4853,24 @@ const ADRES_FOUT="Vul een volledig adres in: straat, huisnummer, postcode en gem
    de server vult die in en zet de mail in de wachtrij zodra de bevestigingsmail van een nieuw lid vertrokken is (api/_lib/bevestiging.js). */
 const nsCfg=()=>((S.config&&S.config.get("nastuur"))||{}).regels||{};
 const nsLaatst=tpl=>[...(S.mailings||new Map()).values()].filter(x=>x.sjabloonId===tpl&&!/^Losse|^Nagestuurd/.test(x.groep||"")).sort((a,b)=>String(b.datum||"").localeCompare(String(a.datum||"")))[0]||null;
-function nsNieuwe(tpl){const m=nsLaatst(tpl);if(!m)return[];const B=mlGeblok(),alle=(groepen().find(g=>g.id==="alle")||{list:[]}).list;
-  const ids=new Set([...S.leden.values()].filter(l=>!l.geenLid&&l.email&&String(l.aangemeld||"")>String(m.datum)&&!(l.nastuur&&l.nastuur[tpl])&&!B[String(l.email).trim().toLowerCase()]).map(l=>l.id));
+function nsNieuwe(tpl,betaald=true){const m=nsLaatst(tpl);if(!m)return[];const B=mlGeblok(),alle=(groepen().find(g=>g.id==="alle")||{list:[]}).list;
+  const ids=new Set([...S.leden.values()].filter(l=>!l.geenLid&&l.email&&String(l.aangemeld||"")>String(m.datum)&&!(l.nastuur&&l.nastuur[tpl])&&!B[String(l.email).trim().toLowerCase()]&&(betaald==null||nsBetaald(l)===betaald)).map(l=>l.id));
   return alle.filter(r=>ids.has(r.lidId))}
+/* nasturen pas als het lidgeld ontvangen is (online betaald, manueel OK of een lidgeldtransactie) */
+function nsBetaald(l){if(l.betaling&&l.betaling.status==="SUCCEEDED")return true;const x=ctx().rows.get(l.id);return !!x&&(x.lg.ok||!(x.bedrag>0))}
 function mlNastuurUI(){const M=MAIL;if(!M||!M.tplId||!canWrite)return "";const R=nsCfg()[M.tplId],m=nsLaatst(M.tplId);if(!m&&!R)return "";
-  const nu=todayISO(),aan=R&&R.tot>=nu,N=nsNieuwe(M.tplId);
+  const nu=todayISO(),aan=R&&R.tot>=nu,N=nsNieuwe(M.tplId),W=nsNieuwe(M.tplId,false);
   const tot=(R&&R.tot)||(()=>{const L=typeof mlAgendaItems==="function"?mlAgendaItems():[];return L.length?L[L.length-1].datum:new Date(Date.now()+90*864e5).toISOString().slice(0,10)})();
   return `<div class="panel"><div class="panel-h"><h2>Nieuwe leden</h2>${aan?'<span class="grow"></span><span class="pill ok">Aan</span>':""}</div><div class="panel-b stack" style="gap:10px">
-    <p class="muted small" style="margin:0">${m?`Deze mail werd verstuurd op ${esc(fmtDate(String(m.datum).slice(0,10)))} naar ${esc(m.groep||"")}.`:""} Wie zich daarna als lid inschrijft, kan ze automatisch ook krijgen, kort na de bevestigingsmail van zijn inschrijving.</p>
+    <p class="muted small" style="margin:0">${m?`Deze mail werd verstuurd op ${esc(fmtDate(String(m.datum).slice(0,10)))} naar ${esc(m.groep||"")}.`:""} Wie zich daarna als lid inschrijft, krijgt ze automatisch ook, zodra zijn lidgeld ontvangen is.</p>
     <label class="sp-nat"><input type="checkbox" id="nsAan"${aan?" checked":""}><span><b>Automatisch sturen naar nieuwe leden</b><small>Tot en met <input type="date" id="nsTot" value="${esc(tot)}" style="font:inherit;padding:2px 6px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink)">. Bij wijzigingen aan het sjabloon: opnieuw aanvinken om de nieuwe versie te gebruiken.</small></span></label>
     ${R&&R.sinds?`<div class="muted small">Versie van ${esc(fmtDate(String(R.sinds).slice(0,10)))}${R.door?" door "+esc(R.door):""}.</div>`:""}
-    ${N.length?`<div class="note info" style="margin:0"><b>${N.length} ${N.length===1?"nieuw lid kreeg":"nieuwe leden kregen"} deze mail nog niet:</b> ${N.slice(0,8).map(r=>esc(r.label)).join(", ")}${N.length>8?" …":""}<div style="margin-top:8px"><button class="btn sm primary" data-ns="nu">Nu naar ${N.length===1?"hem of haar":"hen"} sturen</button></div></div>`:m?'<div class="muted small">Alle leden die zich na het versturen inschreven, kregen deze mail al.</div>':""}
+    ${N.length?`<div class="note info" style="margin:0"><b>${N.length} ${N.length===1?"nieuw lid kreeg":"nieuwe leden kregen"} deze mail nog niet:</b> ${N.slice(0,8).map(r=>esc(r.label)).join(", ")}${N.length>8?" …":""}<div style="margin-top:8px"><button class="btn sm primary" data-ns="nu">Nu naar ${N.length===1?"hem of haar":"hen"} sturen</button></div></div>`:m&&!W.length?'<div class="muted small">Alle leden die zich na het versturen inschreven, kregen deze mail al.</div>':""}
+    ${W.length?`<div class="muted small"><b>Wacht op lidgeld:</b> ${W.slice(0,8).map(r=>esc(r.label)).join(", ")}${W.length>8?" …":""}</div>`:""}
   </div></div>`}
 async function nsBewaar(aan){const M=MAIL,c=(S.config&&S.config.get("nastuur"))||{},regels={...(c.regels||{})};
   if(aan){const r={voornaam:"@@VOORNAAM@@",naam:"@@NAAM@@",email:"",lidId:"",bedrag:"",mededeling:"",label:""};
-    regels[M.tplId]={naam:M.naam||"",onderwerp:vul(M.onderwerp,r),html:mailHtml(r,M),tot:($("#nsTot")||{}).value||todayISO(),sinds:new Date().toISOString(),door:ME_NAME||""}}
+    regels[M.tplId]={naam:M.naam||"",onderwerp:vul(M.onderwerp,r),html:mailHtml(r,M),tot:($("#nsTot")||{}).value||todayISO(),na:String((nsLaatst(M.tplId)||{}).datum||""),sinds:new Date().toISOString(),door:ME_NAME||""}}
   else delete regels[M.tplId];
   const d={...stripId(c),regels};S.config.set("nastuur",{...d,id:"nastuur"});await write("config","nastuur",d);
   toast(aan?"Nieuwe leden krijgen deze mail automatisch tot "+fmtDate(regels[M.tplId].tot)+".":"Nasturen naar nieuwe leden staat uit.");renderBody()}
