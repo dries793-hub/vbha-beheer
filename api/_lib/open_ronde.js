@@ -70,7 +70,8 @@ async function wieReserveerde(req, res) {
   res.setHeader("Cache-Control", "no-store");
   const W = new Set(String(req.query.wie).split(",").map(s => s.trim()).filter(s => /^[\w.~-]{1,80}$/.test(s)).slice(0, 60));
   if (!W.size) return res.status(200).json([]);
-  const sb = admin(), A = await algemeen(sb), rows = [];
+  const sb = admin(); await rateLimit(sb, req, "rondewie", 60, 600, httpErr);
+  const A = await algemeen(sb), rows = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await sb.from("ronde").select("data").eq("data->>jaar", String(A.jaar)).range(from, from + 999);
     if (error) throw error;
