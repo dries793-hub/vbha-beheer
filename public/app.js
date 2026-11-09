@@ -5175,8 +5175,7 @@ VIEWS.kassa=()=>({title:"Kassa",sub:"Verkoop aan de kassa",
     const kaart=act=>{const T=kaTot(kaTrans(act,kaJaar(act))),r=act==="fuif"?"fuif":act;return `<a class="ka-ov" href="#${r}" data-katoon="${act}"><span class="ka-ov-i">${ic(act==="fuif"?"fuif":act==="kinderfeest"?"kinderfeest":"jaarmarkt")}</span><span class="ka-ov-m"><b>${esc(KA_ACTS[act])}${act===actief?' <span class="pill ok">actief</span>':""}</b><small>${kaJaar(act)} · ${T.B.length} ${T.B.length===1?"verkoop":"verkopen"} · Bancontact ${kaEur(T.bc)} · cash ${kaEur(T.cash)}</small></span><span class="ka-ov-t">${kaEur(T.tot)}</span><span class="ml-chev" aria-hidden="true">›</span></a>`};
     return `<div class="tiles ka-st2"><div class="tile"><span class="lbl">Actieve activiteit</span><span class="val">${esc(KA_ACTS[actief])}</span></div>
       <div class="tile"><span class="lbl">Kassacode</span>${code&&tot>Date.now()?`<span class="val" style="font-family:ui-monospace,Menlo,monospace;letter-spacing:.12em">${esc(code.code)}</span><span class="hint">tot ${esc(new Date(tot).toLocaleString("nl-BE",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))}</span>`:'<span class="val">geen</span>'}</div></div>
-    <div class="panel"><div class="panel-h"><h2>Overzicht per activiteit</h2></div><div class="ka-ovl">${Object.keys(KA_ACTS).map(kaart).join("")}</div></div>
-    <p class="muted small" style="margin:4px 2px">Tik op een activiteit voor de transacties en wat er per tegel verkocht is.</p>`}});
+    <div class="panel"><div class="panel-h"><h2>Overzicht per activiteit</h2></div><div class="ka-ovl">${Object.keys(KA_ACTS).map(kaart).join("")}</div></div>`}});
 
 /* ---------- instellingen: activiteit, scannen, kassacode en tegels ---------- */
 const KA_ED={act:"fuif",tegels:{},open:null};
