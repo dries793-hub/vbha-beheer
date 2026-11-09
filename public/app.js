@@ -3949,7 +3949,7 @@ var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.inkomend
 {const b=NAV.find(n=>n.id==="boekhouding");if(b)b.items=b.items.filter(i=>i[0]!=="inkomend")}
 function fcOpenTeller(){try{return S.facturen?[...S.facturen.values()].filter(f=>["open","deels","vervallen"].includes(fcStatus(f))).length:0}catch(e){return 0}}
 function fcTabs(act){const nU=typeof fcOpenTeller==="function"?fcOpenTeller():0,nI=inkMag()?inkDocs().filter(d=>!inkBoekVan(d.id).length).length:0;
-  return `<nav class="tabs fc-tabs" aria-label="Soort facturen"><a href="#facturen" class="${act==="facturen"?"on":""}"${act==="facturen"?' aria-current="page"':""}>${ic("verslagen")}Uitgaande facturen${nU?`<span class="cnt">${nU}</span>`:""}</a><a href="#inkomend" class="${act==="inkomend"?"on":""}"${act==="inkomend"?' aria-current="page"':""}>${ic("inkomend")}Inkomende facturen${nI?`<span class="cnt">${nI}</span>`:""}</a></nav>`}
+  return `<nav class="ka-tabs" aria-label="Soort facturen"><a href="#facturen" class="${act==="facturen"?"on":""}"${act==="facturen"?' aria-current="page"':""}>${ic("verslagen")}Uitgaande facturen${nU?`<span class="cnt">${nU}</span>`:""}</a><a href="#inkomend" class="${act==="inkomend"?"on":""}"${act==="inkomend"?' aria-current="page"':""}>${ic("inkomend")}Inkomende facturen${nI?`<span class="cnt">${nI}</span>`:""}</a></nav>`}
 {const _f=VIEWS.facturen;const n=function(){const v=_f.apply(this,arguments);const b=v.body;v.sub="Onze facturen en creditnota's, met automatische opvolging van de betalingen";v.body=function(){return fcTabs("facturen")+b.apply(this,arguments)};return v};Object.assign(n,_f);VIEWS.facturen=n}
 if(typeof BOEK_ROUTES!=="undefined")BOEK_ROUTES.add("inkomend");
 ICON.inkomend='<path d="M4 13h4l2 3h4l2-3h4"/><path d="M4 13l2.5-7h11L20 13v6H4z"/><path d="M12 3v7m-3-3l3 3 3-3"/>';
@@ -5505,12 +5505,15 @@ function wjPaneel(){const o=wjCfg();const Y=JAAR;const all=[...S.boekingen.value
   if(!rows.length)return"";
   return `<div class="panel"><div class="panel-h"><h2>Resultaat per werkjaar</h2><span class="grow"></span><span class="muted small">Overlopend: ${esc(o.cats.join(", "))} · vóór 1 ${WJ_MND[o.maand-1]} = vorig werkjaar</span></div><div class="tw"><table class="rcards"><thead><tr><th>Werkjaar</th><th>Geboekt in</th><th class="num">Totaal</th></tr></thead><tbody>${rows.join("")}</tbody></table></div></div>`}
 function wjInstHtml(c){const o=wjCfg();const d=canWrite?"":" disabled";
-  return `<div class="pi-sec"><h4>Overlopende werkjaren</h4><div class="form"><div class="fld full"><span class="lbl">Categorieën die over de jaargrens lopen</span><div class="bar" style="margin:0;flex-wrap:wrap;gap:6px 14px" id="wjCats">${c.boekCategorieen.map(k=>`<label style="display:inline-flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" value="${esc(k)}"${o.cats.includes(k)?" checked":""}${d}> ${esc(k)}</label>`).join("")}</div><span class="help">Transacties van deze categorieën vóór de grensdatum tellen nog bij het vorige werkjaar (bv. kalenders van vorig jaar die in het voorjaar nog betaald worden). Per transactie kan je het werkjaar ook zelf kiezen.</span></div>
+  return `<div class="pi-sec"><h4>Overlopende werkjaren</h4><div class="form"><div class="fld full"><span class="lbl">Categorieën die over de jaargrens lopen</span><div class="wj-cats" id="wjCats">${c.boekCategorieen.map(k=>`<label class="wj-cat"><input type="checkbox" value="${esc(k)}"${o.cats.includes(k)?" checked":""}${d}><span>${esc(k)}</span></label>`).join("")}</div><span class="help">Transacties van deze categorieën vóór de grensdatum tellen nog bij het vorige werkjaar (bv. kalenders van vorig jaar die in het voorjaar nog betaald worden). Per transactie kan je het werkjaar ook zelf kiezen.</span></div>
   <div class="fld"><label for="wjMaand">Nieuw werkjaar vanaf</label><select id="wjMaand"${d}>${WJ_MND.map((m,i)=>`<option value="${i+1}"${o.maand===i+1?" selected":""}>1 ${m}</option>`).join("")}</select></div></div></div>`}
 function wjInstVals(){const el=$("#wjCats");if(!el)return null;return{cats:[...el.querySelectorAll("input:checked")].map(i=>i.value),maand:Number($("#wjMaand").value)||5}}
 
 // paneel "Resultaat per werkjaar" verborgen op de boekhoudpagina (op vraag); de toewijzing per werkjaar blijft gelden
 wjPaneel=function(){return ""};
+{const st=document.createElement("style");st.textContent=`.wj-cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;margin:6px 0 4px}
+.wj-cat{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-weight:400!important;font-size:14px;cursor:pointer;background:var(--surface,#fff);min-width:0}
+.wj-cat input{flex:none;margin:0;width:auto}.wj-cat span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wj-cat:has(input:checked){border-color:var(--accent,#c0161f);background:var(--accent-soft,#fcebec)}`;document.head.appendChild(st)}
 
 /* ---------- Kinderfeest: voorziene kost van de cadeaus volgens de inschrijvingen ----------
    Bedragen komen uit "Waarde per geboortejaar" (bevestigingsmail), bv. "2016-2020: 50,00 EUR per kind".
