@@ -8,7 +8,7 @@ async function info(sb) {
   const A = await algemeen(sb);
   const c = await configDoc(sb, "kf_" + A.jaar);
   const ins = inschrijving(c, A.jaar + "-12-07");
-  return { open: ins.open, tot: ins.tot, totTekst: ins.totTekst, gesloten: ins.gesloten, jaar: A.jaar, datum: c.datum || A.jaar + "-12-19", tijd: c.tijd || "14u30", locatie: c.locatie || "VTI - Sinte Annalaan 99b, Aalst", leeftijd: Number(c.leeftijd) || 12 };
+  return { open: ins.open, tot: ins.tot, totTekst: ins.totTekst, gesloten: ins.gesloten, jaar: A.jaar, datum: c.datum || A.jaar + "-12-19", tijd: c.tijd || "14u30", locatie: c.locatie || "VTI - Sinte Annalaan 99b, Aalst", leeftijd: Number.isFinite(Number(c.leeftijd)) && c.leeftijd !== "" && c.leeftijd != null ? Number(c.leeftijd) : 11 };
 }
 
 export default async function handler(req, res) {
@@ -40,6 +40,10 @@ export default async function handler(req, res) {
       .filter(k => k.naam);
     if (!kinderen.length) throw httpErr(400, "Voeg minstens één kind toe.");
     if (kinderen.some(k => !k.geb)) throw httpErr(400, "Vul voor elk kind een geldige geboortedatum in.");
+    { const [Y, M, D] = String(I.datum).split("-").map(Number);
+      const lft = g => { const [y, m, d] = g.split("-").map(Number); let x = Y - y; if (M < m || (M === m && D < d)) x--; return x; };
+      const te = kinderen.find(k => lft(k.geb) > I.leeftijd);
+      if (te) throw httpErr(400, `${te.naam} is op de dag van het feest al ${lft(te.geb)} jaar en kan niet meer ingeschreven worden.`); }
     const d = { jaar: I.jaar, lid, lidId: lidRij.id, email, opmerking: clean(b.opmerking, 400), kinderen, bron: "formulier", aangemeld: new Date().toISOString(), nieuw: true };
     const kid = nieuwId("web");
     const { error } = await sb.from("kinderfeest").insert({ id: kid, data: d });

@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}.logo-a{display:block;flex:none;line-height:0;border-radius:4px}.logo-a:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.age.te{color:#b91c1c;font-weight:600}
 </style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Kinderfeest · VBHA</title>
 <link rel="icon" href="/favicon.png">
@@ -153,7 +154,7 @@ html,body{overflow-x:hidden}
   <p class="lead">De kerstman verrast alle kinderen met cadeautjes. Voor groot en klein zijn er drankjes en pannenkoeken. Schrijf je kinderen hier in.</p>
   <div class="facts" id="facts"><div class="fact"><span>Wanneer</span><b id="kWan">Za 19 december 2026</b><small id="kUur">om 14u30</small></div>
     <div class="fact"><span>Waar</span><b id="kWaar">VTI Aalst</b><small id="kAdr">Sinte Annalaan 99b, Aalst</small></div>
-    <div class="fact"><span>Voor wie</span><b>Kinderen van leden</b><small id="kLft">cadeautje t.e.m. 12 jaar</small></div></div></section>
+    <div class="fact"><span>Voor wie</span><b>Kinderen van leden</b><small id="kLft">jonger dan 12 jaar</small></div></div></section>
   <div id="box"><form class="card" id="f" novalidate>
     <div class="grid">
       <div class="full"><label for="lid">Naam van het lid</label><input type="text" id="lid" placeholder="Begin je naam te typen…" maxlength="100"></div>
@@ -173,23 +174,23 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const eur=n=>"€"+Number(n).toLocaleString("nl-BE",{minimumFractionDigits:0,maximumFractionDigits:2});
 document.addEventListener("click",async e=>{const b=e.target.closest(".cp");if(!b)return;try{await navigator.clipboard.writeText(b.dataset.cp);const t=b.textContent;b.textContent="Gekopieerd";b.classList.add("ok");setTimeout(()=>{b.textContent=t;b.classList.remove("ok")},1600)}catch(x){}});
 
-let CFG={datum:"2026-12-19",leeftijd:12,max:8},KIDS=[{naam:"",geb:""}];
+let CFG={datum:"2026-12-19",leeftijd:11,max:8},KIDS=[{naam:"",geb:""}];
 function gesloten(wat,j){$("#box").innerHTML=`<div class="card bevestig"><div class="ic" style="background:var(--sunken);color:var(--muted)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
   <h2>De inschrijvingen zijn afgesloten</h2><p class="lead2">${j.gesloten==="verlopen"&&j.totTekst?"Inschrijven voor "+wat+" kon tot en met "+esc(j.totTekst)+".":"Je kan je op dit moment niet inschrijven voor "+wat+"."} Neem voor vragen contact op met iemand van het bestuur.</p></div>`}
 fetch("/api/kinderfeest").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;CFG={...CFG,...j};
   $("#h1").textContent="Kinderfeest "+j.jaar;document.title="Kinderfeest "+j.jaar+" · VBHA";
   const d=new Date(j.datum+"T12:00");if(!isNaN(d))$("#kWan").textContent=d.toLocaleDateString("nl-BE",{weekday:"short",day:"numeric",month:"long",year:"numeric"});
   if(j.tijd)$("#kUur").textContent="om "+j.tijd;if(j.locatie){const p=j.locatie.split(" - ");$("#kWaar").textContent=p[0];$("#kAdr").textContent=p.slice(1).join(" - ")}
-  $("#kLft").textContent="cadeautje t.e.m. "+j.leeftijd+" jaar";draw();if(j.totTekst){const l=$(".lead");if(l&&!l.dataset.tot){l.dataset.tot=1;l.insertAdjacentHTML("beforeend"," Inschrijven kan tot en met <b>"+esc(j.totTekst)+"</b>.")}}if(j.open===false)gesloten("het kinderfeest",j)}).catch(()=>{});
+  $("#kLft").textContent="jonger dan "+(Number(j.leeftijd)+1)+" jaar";draw();if(j.totTekst){const l=$(".lead");if(l&&!l.dataset.tot){l.dataset.tot=1;l.insertAdjacentHTML("beforeend"," Inschrijven kan tot en met <b>"+esc(j.totTekst)+"</b>.")}}if(j.open===false)gesloten("het kinderfeest",j)}).catch(()=>{});
 function lft(g){if(!/^\d{4}-\d{2}-\d{2}$/.test(g))return null;const [y,m,d]=g.split("-").map(Number),[Y,M,D]=CFG.datum.split("-").map(Number);let a=Y-y;if(M<m||(M===m&&D<d))a--;return a}
-function ageTxt(g){const a=lft(g);if(a==null)return "";if(a<0)return "Deze datum ligt na het feest.";return (a===0?"Jonger dan 1 jaar":a+" jaar")+" op het feest"+(a>CFG.leeftijd?" (geen cadeautje meer)":"")}
+function ageTxt(g){const a=lft(g);if(a==null)return "";if(a<0)return "Deze datum ligt na het feest.";return a>CFG.leeftijd?"Op het feest al "+a+" jaar: dit kind kan niet meer ingeschreven worden.":(a===0?"Jonger dan 1 jaar":a+" jaar")+" op het feest"}
 function read(){KIDS=$$("#kids .kid").map(el=>({naam:el.querySelector(".kn").value,geb:el.querySelector(".kg").value}))}
 function draw(focus){$("#kids").innerHTML=KIDS.map((k,i)=>`<div class="kid"><div><label for="kn${i}">Kind ${i+1}: voornaam en naam</label><input type="text" class="kn" id="kn${i}" value="${esc(k.naam)}" autocomplete="off" maxlength="80"></div>
-  <div><label for="kg${i}">Geboortedatum</label><input type="date" class="kg" id="kg${i}" value="${esc(k.geb)}" min="2000-01-01" max="${CFG.datum}"></div>${KIDS.length>1?`<button type="button" class="kdel" data-del="${i}" aria-label="Kind ${i+1} verwijderen">Verwijderen</button>`:"<span></span>"}<div class="age" id="ka${i}">${esc(ageTxt(k.geb))}</div></div>`).join("");
+  <div><label for="kg${i}">Geboortedatum</label><input type="date" class="kg" id="kg${i}" value="${esc(k.geb)}" min="2000-01-01" max="${CFG.datum}"></div>${KIDS.length>1?`<button type="button" class="kdel" data-del="${i}" aria-label="Kind ${i+1} verwijderen">Verwijderen</button>`:"<span></span>"}<div class="age${(lft(k.geb)??-1)>CFG.leeftijd?" te":""}" id="ka${i}">${esc(ageTxt(k.geb))}</div></div>`).join("");
   $("#add").hidden=KIDS.length>=CFG.max;if(focus){const n=$$("#kids .kn");n[n.length-1].focus()}}
 $("#add").addEventListener("click",()=>{read();KIDS.push({naam:"",geb:""});draw(true)});
 $("#kids").addEventListener("click",e=>{const b=e.target.closest("[data-del]");if(!b)return;read();KIDS.splice(+b.dataset.del,1);draw()});
-$("#kids").addEventListener("input",e=>{if(e.target.classList.contains("kg"))$("#ka"+e.target.id.slice(2)).textContent=ageTxt(e.target.value)});
+$("#kids").addEventListener("input",e=>{if(e.target.classList.contains("kg")){const el=$("#ka"+e.target.id.slice(2)),a=lft(e.target.value);el.textContent=ageTxt(e.target.value);el.classList.toggle("te",a!=null&&a>CFG.leeftijd)}});
 function alMeld(inp,t){let m=document.getElementById("alMeld");const go=$("#go");
   if(!t){if(m)m.remove();if(go&&go.dataset.al){go.disabled=false;delete go.dataset.al}return}
   if(!m){m=document.createElement("div");m.id="alMeld";m.setAttribute("role","alert");m.style.cssText="margin:8px 0 0;padding:10px 12px;border-radius:10px;background:#fdecea;color:#8a1c12;border:1px solid #f5c2bd;font-size:14.5px;line-height:1.45";
@@ -203,7 +204,8 @@ $("#f").addEventListener("submit",async e=>{e.preventDefault();read();const er=$
   if(!auto&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)){er.textContent="Vul een geldig e-mailadres in.";$("#mail").focus();return}
   KIDS=KIDS.filter((k,i)=>i===0||k.naam.trim()||k.geb);draw();
   for(let i=0;i<KIDS.length;i++){const k=KIDS[i];if(!k.naam.trim()){er.textContent="Vul de naam van kind "+(i+1)+" in.";$("#kn"+i).focus();return}
-    const a=lft(k.geb);if(a==null||a<0){er.textContent="Vul een geldige geboortedatum in voor "+k.naam.trim()+".";$("#kg"+i).focus();return}}
+    const a=lft(k.geb);if(a==null||a<0){er.textContent="Vul een geldige geboortedatum in voor "+k.naam.trim()+".";$("#kg"+i).focus();return}
+    if(a>CFG.leeftijd){er.textContent=k.naam.trim()+" is op de dag van het feest al "+a+" jaar en kan niet meer ingeschreven worden. Verwijder dit kind om verder te gaan.";$("#kg"+i).focus();return}}
   const b=$("#go");b.disabled=true;b.textContent="Bezig…";
   try{const r=await fetch("/api/kinderfeest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({lid,lidId,email:auto?"":mail,lidMail:auto,kinderen:KIDS,opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0})});
     const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Inschrijven lukte niet.");
