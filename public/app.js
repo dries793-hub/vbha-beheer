@@ -1336,19 +1336,19 @@ function histRows(rows,metJaar){
   <td class="num in nowrap">${b.richting!=="uit"?eur(b.bedrag):""}</td><td class="num out nowrap">${b.richting==="uit"?eur(b.bedrag):""}</td>${metJaar?"":`<td class="num nowrap${b.rekening==="Kas"?" hsel":" muted"}">${eur(b._kas)}</td><td class="num nowrap${b.rekening!=="Kas"?" hsel":" muted"}">${eur(b._rek)}</td>`}</tr>`).join("")||`<tr><td colspan="${cols.length}" class="empty">Geen transacties gevonden.</td></tr>`}</tbody></table></div>`;
 }
 function histChart(L){
-  const W=900,H=230,P=46,B=26,n=L.length;const vals=L.map(j=>j.eindKas+j.eindRek);const hi=Math.max(1,...vals)*1.12;
+  const M=matchMedia("(max-width:640px)").matches,W=M?360:900,H=M?200:230,P=M?30:46,B=26,n=L.length;const vals=L.map(j=>j.eindKas+j.eindRek);const hi=Math.max(1,...vals)*1.12;
   const step=(W-P-10)/n,bw=Math.min(46,step*.62),y=v=>12+(hi-v)/hi*(H-B-12);
   const ticks=[0,hi/2/1.12,hi/1.12].map(v=>Math.round(v/1000)*1000);
   const k1=v=>(Math.round(v/100)/10).toLocaleString("nl-BE")+"k";
-  return `<div class="tw"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="Saldo op 31 december per jaar, kas en rekening">
-  ${ticks.map(v=>`<line x1="${P}" x2="${W-6}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${P-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${Math.round(v/1000)}k</text>`).join("")}
+  return `<div class="tw"><svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Saldo op 31 december per jaar, kas en rekening">
+  ${ticks.map(v=>`<line x1="${P}" x2="${W-6}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${P-6}" y="${y(v)+4}" text-anchor="end" font-size="${M?10:11}" fill="var(--muted)">${Math.round(v/1000)}k</text>`).join("")}
   ${L.map((j,i)=>{const x=P+i*step+(step-bw)/2,v=vals[i],k=Math.max(0,j.eindKas),r=Math.max(0,j.eindRek);const on=j.jaar===UI.histJaar||(!UI.histJaar&&i===n-1);const o=on?1:.5;
     return `<g data-act="histJaar" data-v="${j.jaar}" style="cursor:pointer"><title>${j.jaar}: kas ${eur(j.eindKas)}, rekening ${eur(j.eindRek)}, totaal ${eur(v)}</title>
     <rect x="${x}" y="${y(k)}" width="${bw}" height="${Math.max(0,y(0)-y(k))}" fill="var(--hk-kas)" fill-opacity="${o}"/>
     <rect x="${x}" y="${y(k+r)}" width="${bw}" height="${Math.max(1,y(k)-y(k+r))}" fill="var(--accent)" fill-opacity="${o}"/>
-    <text x="${x+bw/2}" y="${H-8}" text-anchor="middle" font-size="11.5" fill="${on?"var(--ink)":"var(--muted)"}" font-weight="${on?700:400}">${j.jaar}</text>
-    <text x="${x+bw/2}" y="${y(v)-6}" text-anchor="middle" font-size="10.5" fill="var(--ink)" font-weight="${on?700:400}">${k1(v)}</text></g>`}).join("")}
-  </svg></div><div class="hk-leg"><span><i style="background:var(--accent)"></i>Rekening</span><span><i style="background:var(--hk-kas)"></i>Kas</span><span class="muted">Het getal boven elke staaf is het totaal. Klik op een jaar voor de details.</span></div>`;
+    <text x="${x+bw/2}" y="${H-8}" text-anchor="middle" font-size="${M?10:11.5}" fill="${on?"var(--ink)":"var(--muted)"}" font-weight="${on?700:400}">${M?"'"+String(j.jaar).slice(2):j.jaar}</text>
+    ${!M||on?`<text x="${x+bw/2}" y="${y(v)-6}" text-anchor="middle" font-size="10.5" fill="var(--ink)" font-weight="${on?700:400}">${k1(v)}</text>`:""}</g>`}).join("")}
+  </svg></div><div class="hk-leg"><span><i style="background:var(--accent)"></i>Rekening</span><span><i style="background:var(--hk-kas)"></i>Kas</span></div>`;
 }
 function exportHist(){
   const L=alleJaren(),wb=XLSX.utils.book_new();
@@ -5669,7 +5669,7 @@ function bgPP(t){const S2=bgSom(t),N=Number(t.personen)||0,W=Number(t.winst)||0,
 function bgTiles(t){const S2=bgSom(t),W=bgWerkelijk(t);
   return `<div class="tiles" data-bgtiles><div class="tile"><span class="lbl">Begrote kosten</span><span class="val out">${eur(S2.k)}</span></div><div class="tile"><span class="lbl">Begrote opbrengsten</span><span class="val in">${eur(S2.o)}</span></div>
    <div class="tile hero"><span class="lbl">Begroot resultaat</span><span class="val">${bgE(S2.r)}</span></div>
-   <div class="tile"><span class="lbl">Werkelijk ${JAAR}</span><span class="val ${W&&W.r<0?"out":"in"}">${W?bgE(W.r):"–"}</span><span class="hint">${W?`${W.n} transacties · ${eur(W.i)} in, ${eur(W.u)} uit`:"Kies een categorie bij de instellingen van dit tabblad"}</span></div></div>`}
+   <div class="tile"><span class="lbl">Werkelijk ${JAAR}</span><span class="val ${W&&W.r<0?"out":"in"}">${W?bgE(W.r):"–"}</span><span class="hint">${W?`${W.n} transacties`:"geen categorie gekozen"}</span></div></div>`}
 function bgTotaal(){const D=bgDoc();let k=0,o=0;const rows=D.tabs.map(t=>{const s=bgSom(t);k+=s.k;o+=s.o;const w=bgWerkelijk(t);return `<tr><td><b>${esc(t.naam)}</b></td><td class="num out">${eur(s.k)}</td><td class="num in">${eur(s.o)}</td><td class="num"><b>${bgE(s.r)}</b></td><td class="num">${w?bgE(w.r):"–"}</td></tr>`}).join("");
   return `<div class="panel"><div class="panel-h"><h2>Alle activiteiten ${JAAR}</h2></div><div class="tw"><table class="rcards"><thead><tr><th>Activiteit</th><th class="num">Kosten</th><th class="num">Opbrengsten</th><th class="num">Begroot</th><th class="num">Werkelijk</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td><b>Totaal</b></td><td class="num out">${eur(k)}</td><td class="num in">${eur(o)}</td><td class="num"><b>${bgE(o-k)}</b></td><td></td></tr></tfoot></table></div></div>`}
 VIEWS.begroting=()=>({title:"Begroting",sub:"Begroting per activiteit "+JAAR,
@@ -5747,8 +5747,11 @@ document.addEventListener("click",e=>{if(!e.target.closest('[data-act="bgPrint"]
 .bg-ppf{display:grid;grid-template-columns:repeat(2,minmax(0,220px));gap:12px;margin-bottom:12px}
 .bg-calc{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}.bg-calc>div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
 .bg-calc span{font-size:12.5px;color:var(--muted)}.bg-calc b{font-size:20px;font-variant-numeric:tabular-nums}.bg-calc small{font-size:11.5px;color:var(--muted)}.bg-calc .hl{border-color:var(--ink)}
-@media (max-width:760px){.bg-kop{display:none}.bg-r{grid-template-columns:1fr 1fr 34px;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--surface,#fff)}.bg-n{grid-column:1/3}.bg-x{grid-column:3;grid-row:1}
- .bg-pp{grid-column:1/4}.bg-a,.bg-p{display:flex;flex-direction:column;gap:3px}.bg-l{display:block;font-size:11.5px;color:var(--muted)}.bg-t{grid-column:1/4;text-align:right;font-size:15px;border-top:1px solid var(--line);padding-top:8px}.bg-ppf{grid-template-columns:1fr 1fr}}`;document.head.appendChild(st)}
+@media (max-width:760px){.bg-kop{display:none}
+ .bg-list{gap:0!important}.bg-r{grid-template-columns:auto 64px minmax(0,1fr) auto;grid-template-areas:"n n n x" "pp a p t";gap:6px 8px;padding:10px 0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none}
+ .bg-r:last-child{border-bottom:0}.bg-n{grid-area:n}.bg-x{grid-area:x}.bg-pp{grid-area:pp;align-self:center}.bg-a{grid-area:a}.bg-p{grid-area:p}.bg-t{grid-area:t;text-align:right;font-size:14.5px;white-space:nowrap;align-self:center}
+ .bg-l{display:none}.bg-r input:not([type=checkbox]){height:36px}.bg-pp span{font-size:12px;padding:3px 8px}.bg-ppf{grid-template-columns:1fr 1fr}
+ [data-bgtiles].tiles{grid-template-columns:1fr 1fr;gap:10px}[data-bgtiles] .tile.hero{grid-column:auto}[data-bgtiles] .tile{padding:12px 14px}[data-bgtiles] .val{font-size:21px}[data-bgtiles] .lbl{font-size:13px}}`;document.head.appendChild(st)}
 /* ---------- kopiëren (om in een verslag te plakken): als tabel (Word, Google Docs, mail) én als gewone tekst ---------- */
 function bgKopieData(){const D=bgDoc();const tabs=BG.tab==="__tot"?null:[bgTab()].filter(Boolean);const rows=[];const tit=tabs?`Begroting ${tabs[0].naam} ${JAAR}`:`Begroting ${JAAR} – alle activiteiten`;
   if(!tabs){rows.push(["Activiteit","Kosten","Opbrengsten","Begroot resultaat","Werkelijk"]);let k=0,o=0;for(const t of D.tabs){const s=bgSom(t),w=bgWerkelijk(t);k+=s.k;o+=s.o;rows.push([t.naam,eur(s.k),eur(s.o),bgE(s.r),w?bgE(w.r):"–"])}rows.push(["Totaal",eur(k),eur(o),bgE(o-k),""]);return{tit,rows,extra:[]}}
