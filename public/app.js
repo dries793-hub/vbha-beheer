@@ -5676,9 +5676,8 @@ function bgTotaal(){const D=bgDoc();let k=0,o=0;const rows=D.tabs.map(t=>{const 
 VIEWS.begroting=()=>({title:"Begroting",sub:"Begroting per activiteit "+JAAR,
   actions:'<button class="btn" data-act="bgPrint">'+ic("download")+'Afdrukken</button>'+(bgMag()?'<button class="btn iconbtn" data-bgact="beheer" title="Activiteiten beheren" aria-label="Activiteiten beheren">'+ic("instellingen")+'</button>':''),
   body(){const D=bgDoc(),t=bgTab();const vorig=S.config.get("begroting_"+(JAAR-1));
-    const tabs=`<div class="bg-tabbar"><div class="bg-tl" role="tablist" aria-label="Activiteiten">${D.tabs.map(x=>`<button type="button" role="tab" aria-selected="${x.id===BG.tab}" class="bg-t1${x.id===BG.tab?" on":""}" data-bgact="tab" data-id="${esc(x.id)}">${esc(x.naam)}</button>`).join("")}<span class="bg-sep" aria-hidden="true"></span><button type="button" role="tab" aria-selected="${BG.tab==="__tot"}" class="bg-t1 bg-tot${BG.tab==="__tot"?" on":""}" data-bgact="tab" data-id="__tot">${ic("boekhouding")}Totaal</button></div></div>`;
+    const tabs=`<div class="bg-tabbar"><div class="bg-tl" role="tablist" aria-label="Activiteiten">${D.tabs.map(x=>`<button type="button" role="tab" aria-selected="${x.id===BG.tab}" class="bg-t1${x.id===BG.tab?" on":""}" data-bgact="tab" data-id="${esc(x.id)}">${esc(x.naam)}</button>`).join("")}</div></div>`;
     const tip=D.nieuw&&vorig&&bgMag()?`<div class="panel"><div class="panel-b" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span class="grow">Er is nog geen begroting voor ${JAAR}.</span><button class="btn sm" data-bgact="kopie">Begroting ${JAAR-1} overnemen</button></div></div>`:"";
-    if(BG.tab==="__tot")return tabs+tip+bgTotaal();
     if(!t)return tabs+'<div class="panel"><div class="empty">Nog geen activiteiten. Voeg er een toe via het tandwieltje rechtsboven.</div></div>';
     return tabs+tip+`<div class="bar" style="margin:0"><b style="font-size:17px">${esc(t.naam)}</b><span class="grow"></span></div>`
       +bgTiles(t)+`<div class="bg-blokken">${bgBlok(t,"kost","Kosten")}${bgBlok(t,"opbrengst","Opbrengsten")}</div>`+bgPP(t)}});
