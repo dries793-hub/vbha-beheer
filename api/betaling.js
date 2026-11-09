@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     if (b.sp) return await sponsorLink(req, res, b, { startBetaling, controleerBetaling }); // betaallink sponsoring (zonder factuur)
     if (b.fa) return await factuurPubliek(req, res, b, { onlineConfigured, startBetaling, controleerBetaling }); // betaallink uit een factuurmail
     if (!onlineConfigured()) throw httpErr(501, "Online betalen is niet ingesteld");
-    const tabel = ["leden", "banket", "tickets", "shop_orders"].includes(b.t) ? b.t : "leden";
+    const tabel = ["leden", "banket", "tickets", "shop_orders", "familiedag"].includes(b.t) ? b.t : "leden";
     const id = String(b.id || ""), token = String(b.token || "");
     if (!id || !token) throw httpErr(400, "Ontbrekende gegevens");
     const sb = admin();

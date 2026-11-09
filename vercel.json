@@ -107,6 +107,10 @@
     {
       "source": "/api/album",
       "destination": "/api/openbaar?f=album"
+    },
+    {
+      "source": "/api/familiedag",
+      "destination": "/api/openbaar?f=familiedag"
     }
   ],
   "regions": [
