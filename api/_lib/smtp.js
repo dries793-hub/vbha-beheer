@@ -11,6 +11,11 @@ export const smtpConfigured = () => !!(process.env.SMTP_HOST && process.env.SMTP
 // standaard antwoordadres (Reply-To) van alle mails; facturen geven hun eigen adres mee
 export const ANTWOORD = () => String(process.env.MAIL_ANTWOORD ?? "dries@vbha.be").trim();
 export const BCC = () => String(process.env.MAIL_BCC ?? "dries.uyttersprot@telenet.be").trim().toLowerCase();
+/* Facturen vertrekken vanaf een eigen mailbox (standaard boekhouding@vbha.be). Nodig in Vercel: SMTP_FACTUUR_PASS
+   (en eventueel SMTP_FACTUUR_USER). Zonder wachtwoord vertrekken facturen vanaf het gewone adres, met antwoorden naar de boekhouding. */
+export const FACTUUR_ADRES = () => String(process.env.SMTP_FACTUUR_USER || "boekhouding@vbha.be").trim();
+const factuurLogin = () => process.env.SMTP_FACTUUR_PASS ? { user: FACTUUR_ADRES(), pass: process.env.SMTP_FACTUUR_PASS } : null;
+export const factuurAfzender = () => factuurLogin() ? { email: FACTUUR_ADRES(), naam: String(process.env.MAIL_FROM_NAAM || "").trim() } : afzender();
 export const afzender = () => ({ email: String(process.env.SMTP_FROM || process.env.SMTP_USER || "").trim(), naam: String(process.env.MAIL_FROM_NAAM || "").trim() });
 
 const b64 = s => Buffer.from(String(s), "utf8").toString("base64");
@@ -63,10 +68,11 @@ export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan, b
 }
 
 // Opent één verbinding en verstuurt de berichten na elkaar. Geeft per bericht {ok, fout} terug.
-export async function verstuur(berichten) {
+export async function verstuur(berichten, { factuur = false } = {}) {
   const T = testOpvang.getStore();
   if (T) { for (const m of berichten) T.push(m); return berichten.map(() => ({ ok: true })); }
   const host = process.env.SMTP_HOST, port = Number(process.env.SMTP_PORT) || 465;
+  const login = (factuur && factuurLogin()) || { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS };
   const sock = tls.connect({ host, port, servername: host });
   sock.setEncoding("utf8");
   let buf = "", wacht = null;
@@ -87,9 +93,9 @@ export async function verstuur(berichten) {
     await cmd(null, 220);
     await cmd("EHLO vbha-beheer", 250);
     await cmd("AUTH LOGIN", 334);
-    await cmd(b64(process.env.SMTP_USER), 334);
-    await cmd(b64(process.env.SMTP_PASS), 235);
-    const van = afzender();
+    await cmd(b64(login.user), 334);
+    await cmd(b64(login.pass), 235);
+    const van = factuur ? factuurAfzender() : afzender();
     for (const m of berichten) {
       try {
         await cmd(`MAIL FROM:<${van.email}>`, 250);
