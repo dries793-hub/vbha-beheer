@@ -6660,6 +6660,9 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-shmulti]")
 .sh-ml{display:flex;flex-direction:column;gap:6px}.sh-mli{display:flex!important;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px}.sh-mli>span:nth-of-type(1){flex:1}`;document.head.appendChild(st)}
 
 {const st=document.createElement("style");st.textContent=`.sh-poolp>.sh-kop{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0}.sh-poolp>.sh-kop .sel{max-width:280px}.sh-poolp>.sh-kop .sh-cnt{margin-left:auto}.sh-hl{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}.sh-hl b{font-size:15px}`;document.head.appendChild(st)}
+{const st=document.createElement("style");st.textContent=`@media(max-width:640px){.sh-poolp>.sh-kop{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:12px 14px}.sh-poolp>.sh-kop .sel{max-width:none;width:100%}
+ .sh-poolp>.sh-kop .sh-info b{display:none}.sh-poolp>.sh-kop .sh-info span{font-size:13px}.sh-poolp>.sh-kop .sh-cnt{margin-left:0;gap:14px;font-size:13px}.sh-poolp>.sh-kop .sh-cnt b{font-size:15px}
+ .sh-poolp .panel-b{padding:12px 14px}.sh-add{gap:8px}.sh-add input{min-width:0}.sh-pool .sh-hint{font-size:12.5px;padding:2px 4px}}`;document.head.appendChild(st)}
 
 /* ============ Activiteiten › Familiedag ============
    Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
