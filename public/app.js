@@ -2101,7 +2101,7 @@ VIEWS.kinderfeest=()=>({title:"Kinderfeest",sub:"Inschrijvingen kinderfeest",
     const list=q?st.L.filter(r=>norm([r.lid,r.email,r.opmerking,...(r.kinderen||[]).map(k=>k.naam)].join(" ")).includes(q)):st.L;
     const max=Math.max(1,...st.per.values());const ages=[];for(let a=0;a<=c.leeftijd;a++)if(st.per.get(a))ages.push(a);
     return `
-    <div class="tiles"><div class="tile hero"><span class="lbl">Ingeschreven kinderen</span><span class="val">${st.kids}</span><span class="hint">${st.L.length} ${st.L.length===1?"inschrijving":"inschrijvingen"}</span></div>
+    <div class="tiles"><div class="tile hero"><span class="lbl">Ingeschreven kinderen</span><span class="val">${st.kids}</span></div>
       </div>
     <div class="panel"><div class="panel-h"><h2>Cadeautjes per leeftijd</h2></div><div class="panel-b"><div class="kf-ages">
       ${ages.map(a=>{const n=st.per.get(a)||0;return `<div class="kf-age${n?"":" zero"}"><b>${n}</b><i><em style="width:${Math.round(n/max*100)}%"></em></i><span>${a===0?"&lt; 1":a}<small> jaar</small></span></div>`}).join("")}
@@ -4285,7 +4285,7 @@ kfTable=function(list,dub,c){list=KFC.f==="nog"?list.filter(r=>!kfcAan(r)):KFC.f
     <td class="nowrap">${kfcVink(r)}</td></tr>`}).join("")||`<tr><td colspan="6" class="empty">${leeg}</td></tr>`}
   </tbody></table>`};
 {const _v=VIEWS.kinderfeest;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=b.apply(this,arguments);const L=kfLijst(),ok=L.filter(kfcAan).length;
-    const tile=`<div class="tile"><span class="lbl">Cadeaus doorgegeven</span><span class="val">${ok}<small class="muted" style="font-size:.55em"> / ${L.length}</small></span><span class="hint">${L.length-ok?(L.length-ok)+" nog niet":"iedereen is in orde"}</span></div>`;
+    const tile=`<div class="tile"><span class="lbl">Cadeaus doorgegeven</span><span class="val">${ok}<small class="muted" style="font-size:.55em"> / ${L.length}</small></span></div>`;
     const seg=`<div class="seg" role="group" aria-label="Filter cadeaus">${[["alle","Alle"],["nog","Nog niet doorgegeven"],["ok","Doorgegeven"]].map(([k,l])=>`<button type="button" data-kfcf="${k}" class="${KFC.f===k?"on":""}">${l}</button>`).join("")}</div>`;
     h=h.replace(/(<span class="hint">[^<]*<\/span><\/div>)(\s*<\/div>\s*<div class="panel"><div class="panel-h"><h2>Cadeautjes)/,"$1"+tile.replace(/\$/g,"$$$$")+"$2");
     h=h.replace(/(<input id="kfQ"[^>]*><\/div>)(<\/div>)/,"$1"+seg.replace(/\$/g,"$$$$")+"$2");return h};return v};Object.assign(n,_v);VIEWS.kinderfeest=n}
@@ -5573,7 +5573,7 @@ function kfKost(){const c=kfCfg(),st=kfStats(),M=typeof kfMailCfg==="function"?k
   let tot=0,zonder=0;for(const g of rij){if(!g.n)continue;if(g.prijs==null)zonder+=g.n;else tot+=g.n*g.prijs}zonder+=los.n+onb.n;
   return{rij,los,onb,tot:Math.round(tot*100)/100,zonder,cadeaus:st.cadeau,vb}}
 function kfkTile(){const K=kfKost();const gem=K.cadeaus-K.zonder>0?K.tot/(K.cadeaus-K.zonder):0;
-  return `<div class="tile"><span class="lbl">Voorziene kost cadeaus</span><span class="val">${eur(K.tot)}</span><span class="hint">${K.cadeaus} ${K.cadeaus===1?"cadeau":"cadeaus"}${gem?` · gemiddeld ${eur(gem)}`:""}${K.zonder?` · <b style="color:var(--warn,#b45309)">${K.zonder} zonder bedrag</b>`:""}</span></div>`}
+  return `<div class="tile"><span class="lbl">Voorziene kost cadeaus</span><span class="val">${eur(K.tot)}</span>${K.zonder?`<span class="hint"><b style="color:var(--warn,#b45309)">${K.zonder} zonder bedrag</b></span>`:""}</div>`}
 function kfkPaneel(){const K=kfKost();const R=K.rij.filter(g=>g.n||g.prijs!=null);
   if(!R.length&&!K.zonder)return "";
   const rows=R.map(g=>`<tr><td><b>${esc(g.label)}</b><div class="muted small">${esc(g.tekst)}</div></td><td class="num">${g.n}</td><td class="num">${g.prijs!=null?eur(g.prijs):'<span class="pill warn">geen bedrag</span>'}</td><td class="num"><b>${g.prijs!=null?eur(g.n*g.prijs):"–"}</b></td></tr>`).join("")
