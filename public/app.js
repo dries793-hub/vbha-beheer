@@ -3971,7 +3971,10 @@ function inkAnalyse(t){const tekst=String(t||""),bedragen=[],tot=[];
   const ogm=(tekst.match(/\+{3}\s*(\d{3})\s*\/\s*(\d{4})\s*\/\s*(\d{5})\s*\+{3}/)||[]).slice(1).join("");
   const nr=(tekst.match(/factuur\s*(?:nummer|nr\.?|n°|no\.?)?\s*[:#]?\s*([A-Z]{0,4}[-\/]?\d[\dA-Z\-\/]{2,})/i)||[])[1]||"";
   const totaal=tot.length?Math.max(...tot):bedragen.length?Math.max(...bedragen):null;
-  return{tekst:norm(tekst),bedragen:[...new Set(bedragen)],totaal,ogm,nr}}
+  // factuurdatum: eerst na "factuurdatum"/"datum", anders de eerste datum in de tekst
+  const dRe=/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](20\d{2})/;const dm=tekst.match(new RegExp("(?:factuur\\s*datum|datum\\s*factuur|invoice\\s*date|date\\s*de\\s*facture|datum)\\s*[:]?\\s*"+dRe.source,"i"))||tekst.match(dRe);
+  let datum="";if(dm){const n=dm.length-3,dd=+dm[n],mm=+dm[n+1],yy=+dm[n+2];if(dd>=1&&dd<=31&&mm>=1&&mm<=12)datum=`${yy}-${String(mm).padStart(2,"0")}-${String(dd).padStart(2,"0")}`}
+  return{tekst:norm(tekst),bedragen:[...new Set(bedragen)],totaal,ogm,nr,datum}}
 function inkVoorstel(d){const A=INK.txt.get(d.id);if(!A||A.fout)return[];const dag=inkDatum(d),t0=new Date(dag+"T12:00").getTime();const lev=norm(inkVan(d));
   return [...S.boekingen.values()].filter(b=>b.richting==="uit"&&!b.documentId).map(b=>{let sc=0;const w=[];
     if(A.totaal&&Math.abs(b.bedrag-A.totaal)<0.005){sc+=5;w.push("zelfde bedrag")}else if(A.bedragen.some(v=>Math.abs(v-b.bedrag)<0.005)){sc+=3;w.push("bedrag in de factuur")}
@@ -4088,6 +4091,20 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ink]
     if(A.length)x+=`<div class="nmeld dm-b" role="status"><span class="nm-ic">${ic("inkomend")}</span><div class="nm-body"><b>${A.length===1?"Een inkomende factuur":A.length+" inkomende facturen"} automatisch gekoppeld</b><div class="nm-l">${A.slice(0,5).map(({d,b})=>`<a class="nm-i" href="#inkomend"><b>${esc(inkVan(d)||d.naam)}</b><span>${eur(b.bedrag)} · transactie ${fmtDate(b.datum)}</span></a>`).join("")}</div></div><button type="button" class="nm-x" data-ink="autoGezien" data-id="${esc(A.map(x=>x.d.id).join(","))}" title="Gezien" aria-label="Gezien">${ic("x")}</button></div>`;
     return x+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 document.addEventListener("input",e=>{if(e.target.id==="ikA"){const h=INK_HOSTS[(e.target.value.split("@")[1]||"").toLowerCase()];if(h&&$("#ikH"))$("#ikH").value=h}});
+
+/* ---------- bestandsnaam: Bedrijf_factuurnr_datum.pdf (na het lezen van de PDF, en opnieuw bij het koppelen aan een transactie) ---------- */
+const inkStuk=t=>String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\b(bvba|bv|nv|vzw|comm\.?v|sprl|srl|sa)\b\.?/gi,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40);
+function inkBedrijf(d,b){const i=d.inkomend||{};const x=i.leverancier||(b&&b.partij)||i.vanNaam||(i.van?String(i.van).split("@")[1]||i.van:"");return inkStuk(String(x).replace(/\.(be|com|nl|eu|net|org)$/i,""))||"Onbekend"}
+async function inkHernoem(d,b){if(!d||!inkMag())return;const A=INK.txt.get(d.id)||{};const i=d.inkomend||{};
+  if(i.hernoemd==="boeking"||(i.hernoemd&&!b))return;
+  const naam=`${inkBedrijf(d,b)}_${inkStuk(A.nr)||"zonder-nr"}_${A.datum||inkDatum(d)||"zonder-datum"}.pdf`;
+  if(naam===d.naam&&i.hernoemd){return}
+  let pad=d.pad;const nieuwPad=`${INK_MAP}/${d.id}-${naam}`;
+  if(d.pad&&d.pad!==nieuwPad){try{const {error}=await SB.storage.from(DOC_BUCKET).move(d.pad,nieuwPad);if(!error)pad=nieuwPad}catch(e){}}
+  const n={...stripId(d),naam,pad,inkomend:{...i,hernoemd:b?"boeking":"pdf",oudeNaam:i.oudeNaam||d.naam}};S.documenten.set(d.id,{...n,id:d.id});
+  try{await write("documenten",d.id,n)}catch(e){}}
+{const _l=inkLees;inkLees=async function(d){await _l.apply(this,arguments);try{const A=INK.txt.get(d.id);if(A&&!A.fout)await inkHernoem(S.documenten.get(d.id)||d,null)}catch(e){}}}
+{const _k=inkKoppel;inkKoppel=async function(did,bid){const r=await _k.apply(this,arguments);try{const d=S.documenten.get(did),b=S.boekingen.get(bid);if(d&&b&&!(d.inkomend&&d.inkomend.leverancier))await inkHernoem(d,b)}catch(e){}return r}}
 
 /* ============ Dashboard: meldingen voor de boekhouding ============
    - transacties die nog verwerkt moeten worden (na het inladen van de bankgegevens)
