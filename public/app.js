@@ -6205,7 +6205,7 @@ document.addEventListener("click",e=>{if(!FA.a)return;
 var RECHTEN=null;
 const FUNC=[["leden","Ledenlijst",["leden"]],["punten","Puntensysteem",["punten"]],["financien","Financiën",["boekhouding","boekingen","verwerken","historiek","begroting","facturen","inkomend"]],
   ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"]],["kalverdeling","Kalenders: personen en dozen meegeven",[]],["banket","Banket",["banket"]],["kinderfeest","Kinderfeest",["kinderfeest"]],["fuif","In Vier en Vlam",["fuif"]],["kassa","Kassa",["kassa"]],
-  ["jaarmarkt","Jaarmarkt",["jaarmarkt"]],["webshop","Webshop",["webshop"]],["agenda","Agenda en verslagen",["agenda","verslagen"]],["documenten","Documenten",["documenten"]],["fotos","Foto's",["fotos"]],
+  ["jaarmarkt","Jaarmarkt",["jaarmarkt"]],["webshop","Webshop",["webshop"]],["agenda","Agenda en verslagen",["agenda","verslagen"]],["shiften","Shiften",["shiften"]],["documenten","Documenten",["documenten"]],["fotos","Foto's",["fotos"]],
   ["sponsors","Sponsors",["sponsors"]],["mails","Mails",["mails"]],["website","Website",["website"]]];
 const FUNC_VAN={};for(const [f,,rs] of FUNC)for(const r of rs)FUNC_VAN[r]=f;
 const RECHT_LBL={geen:"Verborgen",lezen:"Lezen",bewerken:"Bewerken"};
@@ -6350,7 +6350,7 @@ document.addEventListener("click",e=>{const b=e.target.closest('[data-act="ptAan
    Tegels sleep je tussen de pool en de kolommen; op gsm: tik op een tegel en daarna op de kolom. */
 {const a=NAV.find(n=>n.id==="administratie");if(a&&!a.items.some(i=>i[0]==="shiften"))a.items.push(["shiften","Shiften"]);}
 if(!ROUTES.some(r=>r[0]==="shiften"))ROUTES.push(["shiften","Shiften"]);
-if(typeof FUNC_VAN!=="undefined")FUNC_VAN.shiften="agenda";
+
 ICON.shiften='<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
 const SHF={id:null,sel:null};
 const SH_TEKST="Hallo {voornaam}, je shift op {activiteit} ({datum}): {taak} van {van} tot {tot}. Graag 10 min vooraf aanwezig. Dank je! VBHA";
