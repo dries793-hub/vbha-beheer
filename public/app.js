@@ -1587,7 +1587,7 @@ function toonLid(id){
    <div class="fld" data-w><label for="lgOv">Lidgeldstatus</label><select id="lgOv" data-lgov="${esc(id)}">${selOpts([["","Automatisch (uit de boekhouding)"],["OK","Manueel: betaald"],["NOK","Manueel: niet betaald"]],r.jl.lidgeld||"")}</select></div>
    ${!r.lg.ok?`<button class="btn primary" data-w data-act="lidgeldBetaald" data-id="${esc(id)}" style="align-self:flex-start">Lidgeld ontvangen boeken</button>`:""}
    ${l.categorie!=="Erewacht"?`<div><b>Punten ${JAAR}</b>: ${r.p.totaal} &nbsp;${medal(r.status)}${r.jl&&r.jl.vrijstelling?` <span class="pill info" title="${esc(r.jl.vrijstelling.reden||"")}">vrijgesteld</span>`:""}</div>${vrijHtml(l,id,r)}`:""}</div></div>`+lidgeldHistHtml(l,r);
-  modal(naamVol(l),body,`<button class="btn ghost danger" data-w id="lidDel">Verwijderen</button><span class="grow"></span><button class="btn" data-act="closeModal">Sluiten</button><button class="btn primary" data-w id="lidEdit">Gegevens wijzigen</button>`,{wide:true});
+  modal(naamVol(l),body,`<button class="btn ghost danger" data-w id="lidDel">Verwijderen</button><span class="grow"></span>${l.email&&lidMailMag()?`<button class="btn" data-lidmail="${esc(l.email)}">${ic("mails")}Mail sturen</button>`:""}<button class="btn" data-act="closeModal">Sluiten</button><button class="btn primary" data-w id="lidEdit">Gegevens wijzigen</button>`,{wide:true});
   $("#lidEdit").onclick=()=>{modal("Lid wijzigen",lidForm(l),`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="lidOk">Bewaren</button>`);
     $("#lidOk").onclick=async()=>{const d=readLid();if(!d)return;closeModal();await write("leden",id,{...stripId(S.leden.get(id)||l),...d});toast(d.geenLid&&!l.geenLid?naamVol(d)+" staat niet meer in de ledenlijst.":"Gegevens bewaard.")}};
   $("#lidDel").onclick=()=>confirmBox(`<b>${esc(naamVol(l))}</b> definitief verwijderen? Wil je iemand enkel niet meer als lid tonen, vul dan beter "Lid tot en met" in.`,"Verwijderen",async()=>{await write("leden",id,null,{del:true});toast("Lid verwijderd.")});
@@ -2655,7 +2655,7 @@ function groepen(){
   if(typeof kfLijst==="function")add("Kinderfeest","kf","Ingeschreven voor het kinderfeest",kfLijst().map(r=>{const l=r.lidId&&S.leden.get(r.lidId);
     return{email:r.email||(l&&l.email)||"",voornaam:l?l.voornaam:"",naam:l?naamVol(l):(r.lid||""),bedrag:"",mededeling:"",label:l?naamVol(l):(r.lid||r.email||"")}}));
   add("Andere","sponsors","Alle sponsors",[...S.sponsors.values()].map(s=>({email:s.email,voornaam:s.voornaam||"",naam:s.naam||"",bedrijf:spNaam(s),bedrag:num(s.bedrag),mededeling:"",label:spNaam(s)||s.naam||""})));
-  add("Andere","los","Losse e-mailadressen",mlLos().map(e=>({email:e,voornaam:"",naam:"",bedrag:"",mededeling:"",label:e})));
+  add("Andere","los","Losse e-mailadressen",mlLos().map(e=>{const l=[...S.leden.values()].find(x=>String(x.email||"").trim().toLowerCase()===e);return {email:e,voornaam:l?l.voornaam||"":"",naam:l?naamVol(l):"",bedrag:"",mededeling:"",label:l?naamVol(l)+" ("+e+")":e}}));
   return G;
 }
 const mlGeblok=()=>(S.config.get("mail")||{}).geblokkeerd||{};
@@ -6625,3 +6625,8 @@ function rmMelding(){if(!(ROL==="admin"||(typeof recht==="function"&&recht("rond
 /* tabbladen: de hoofdtitel van de pagina blijft die van het eerste tabblad (bv. "Kalenders" ook op Kalenderronde en Controle) */
 {const _nt=navTitel,TABHOOFD=()=>{const m={verwerken:"boekingen",inkomend:"facturen"};if(typeof KAL_TABS!=="undefined")for(const [k] of KAL_TABS)if(k!=="kalenders")m[k]="kalenders";return m};
   navTitel=function(id){const h=TABHOOFD()[id];return (h&&_nt(h))||_nt(id)}}
+/* lidfiche: "Mail sturen" -> Mails, ontvangers = los adres van dit lid, sjabloon "Lege mail" */
+function lidMailMag(){try{if(typeof rolVerbergt==="function"&&rolVerbergt("mails"))return false;if(typeof recht==="function"&&recht("mails")==="geen")return false}catch(e){}return !!VIEWS.mails}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-lidmail]");if(!b)return;const adr=b.dataset.lidmail;
+  const go=()=>{closeModal();UI.mailGroep="los";UI.mailLos=adr;const t=S.templates.get("tpl-leeg");MAIL=t?mlVanTpl(t):{...mlVanTpl(null),naam:"Lege mail",onderwerp:"VBHA - ",body:"<p>Beste {voornaam},</p><p><br></p><p>Vriendelijke groeten,<br>Het bestuur</p>"};UI.mailTpl=t?t.id:"";saveUI();if(location.hash==="#mails")render(true);else location.hash="#mails"};
+  if(typeof MAIL!=="undefined"&&MAIL&&MAIL.dirty)confirmBox("Je hebt in Mails nog niet-bewaarde wijzigingen. Toch een nieuwe mail beginnen?","Nieuwe mail",go);else go()});
