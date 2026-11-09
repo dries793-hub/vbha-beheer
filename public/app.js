@@ -489,7 +489,7 @@ function ledenTable(){
   ${list.map(r=>`<tr class="click" data-act="toonLid" data-id="${esc(r.lid.id)}"><td class="nm">${vn?`<b>${esc(r.lid.voornaam)}</b> ${esc(r.lid.naam)}`:`<b>${esc(r.lid.naam)}</b> ${esc(r.lid.voornaam)}`}${r.lid.bestuur?BST_IC:""}${r.huidig?"":` <span class="pill neutral">${r.lid.geenLid?"geen lid":"oud-lid"}</span>`}${r.lid.nieuw?' <span class="pill info">nieuw</span>':""}</td>
     <td>${r.huidig?medal(stL(r)):""}</td><td>${r.huidig?lgPill(r):""}</td><td>${esc(r.lid.categorie)}</td><td class="num">${esc(r.lid.lidSinds||"")}</td>
     <td class="trunc">${esc(r.lid.email)||'<span class="pill warn">geen e-mail</span>'}</td><td style="white-space:nowrap">${esc(r.lid.telefoon)}</td></tr>`).join("")}
-  </tbody></table></div><div style="padding:10px 16px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)">${list.length} leden getoond</div>`;
+  </tbody></table></div>`;
 }
 function lgPill(r){return r.lg.ok?'<span class="pill ok" title="'+esc(r.lg.bron)+'">✓ Betaald</span>':'<span class="pill nok">Niet betaald</span>'}
 
