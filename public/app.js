@@ -1199,7 +1199,9 @@ function bkTable(){
   let R=bkRows();if(q)R=R.filter(x=>norm([x.r.naam,x.r.opmerking,x.r.menu1,x.r.menu2].join(" ")).includes(q));
   if(F==="open")R=R.filter(x=>!x.p.ok);else if(F==="ok")R=R.filter(x=>x.p.ok);else if(F==="veg")R=R.filter(x=>x.r.menu1==="Vegetarisch"||(x.r.personen===2&&x.r.menu2==="Vegetarisch"));
   const pers=R.reduce((s,x)=>s+(x.r.personen===2?2:1),0);
-  return `<div class="tw"><table class="rcards"><thead><tr><th>Naam</th><th>Formule</th><th>Categorie</th><th>Menu</th><th>Opmerking</th><th class="num">Bedrag</th><th>Betaling</th></tr></thead><tbody>
+  if(UI.bkSort==="cat")R=[...R].sort((a,b)=>String((a.lid&&a.lid.categorie)||"~").localeCompare(String((b.lid&&b.lid.categorie)||"~"),"nl")||(a.r.naam||"").localeCompare(b.r.naam||"","nl"));
+  const bkTh=(k,l)=>`<th><button type="button" class="thsort" data-bksort="${k}" title="Sorteren op ${l.toLowerCase()}">${l} <span>${(UI.bkSort||"naam")===k?"▲":""}</span></button></th>`;
+  return `<div class="tw"><table class="rcards"><thead><tr>${bkTh("naam","Naam")}<th>Formule</th>${bkTh("cat","Categorie")}<th>Menu</th><th>Opmerking</th><th class="num">Bedrag</th><th>Betaling</th></tr></thead><tbody>
   ${R.map(x=>{const r=x.r;const menu=r.personen===2?esc(r.menu1)+" + "+esc(r.menu2||"?"):esc(r.menu1);
     const pill=x.p.ok?`<span class="pill ok" title="${esc(x.p.bron)}">Betaald</span>`:x.p.deel?`<span class="pill warn" title="${esc(x.p.bron)}">Deels: ${eur(x.p.bedrag)}</span>`:`<span class="pill nok">Open</span>`;
     return `<tr class="click" data-act="bkToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b>${x.lid?"":'<div class="small muted">niet gevonden in ledenlijst</div>'}</td><td class="nowrap">${r.personen===2?"Met partner":"Alleen"}</td><td class="nowrap">${x.lid&&x.lid.categorie?esc(x.lid.categorie):'<span class="muted">–</span>'}</td><td>${menu}</td><td class="trunc">${esc(r.opmerking||"")}</td><td class="num">${eur(x.due)}</td><td>${pill}</td></tr>`}).join("")||'<tr><td colspan="7" class="empty">Nog geen inschrijvingen'+(q||F!=="alle"?" voor deze filter":"")+'.</td></tr>'}
@@ -6828,3 +6830,5 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-lidmail]")
   const r=ROUTES.find(x=>x[0]==="fotos");if(r)r[1]="Fotoalbums";}
 /* gsm: staan er bovenaan enkel icoonknoppen (bv. tandwiel), dan rechts naast de titel */
 {const st=document.createElement("style");st.textContent="@media (max-width:760px){.top:not(:has(>.btn:not(.iconbtn))):has(>.btn.iconbtn){flex-wrap:nowrap}.top:not(:has(>.btn:not(.iconbtn))):has(>.btn.iconbtn)>div:not(.grow){flex:1 1 0}}";document.head.appendChild(st)}
+/* banket: sorteren op naam of categorie */
+document.addEventListener("click",e=>{const b=e.target.closest("[data-bksort]");if(!b)return;UI.bkSort=b.dataset.bksort;try{saveUI()}catch(x){}renderBody()});
