@@ -26,10 +26,10 @@ const INK = "#1a1b1e", MUTED = "#686b71", ROOD = "#b30000", GOUD = "#C1A057", ZA
 const rij = (k, v) => v === "" || v == null ? "" : `<tr><td class="vb-l" style="padding:4px 16px 4px 0;color:${MUTED};vertical-align:top;white-space:nowrap;${F}font-size:15px">${esc(k)}</td><td style="padding:4px 0;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;${F}font-size:15px;color:${INK}">${v}</td></tr>`;
 const tabel = rows => `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="${F}font-size:15px;color:${INK};line-height:1.5">${rows.join("")}</table>`;
 const kaderBlok = (titel, inner, kleur = GOUD, bg = ZACHT) => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 22px;border-collapse:separate"><tr><td class="vb-k" bgcolor="${bg}" style="padding:18px 22px;border-left:5px solid ${kleur};border-radius:10px;${F}font-size:15px;color:${INK};line-height:1.55"><h2 style="${F}color:${INK};font-size:17px;line-height:1.3;font-weight:bold;margin:0 0 10px">${titel}</h2>${inner}</td></tr></table>`;
-const knop = (t, href) => { const w = Math.min(520, Math.max(220, Math.round(String(t).length * 9.5 + 64)));
-  return `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 22px"><tr><td align="center" bgcolor="${ROOD}" style="border-radius:8px">`
-  + `<!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${esc(href)}" style="height:48px;v-text-anchor:middle;width:${w}px" arcsize="17%" stroke="f" fillcolor="${ROOD}"><w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold">${esc(t)}</center></v:roundrect><![endif]-->`
-  + `<!--[if !mso]><!--><a href="${esc(href)}" target="_blank" style="${F}display:inline-block;padding:14px 26px;font-size:16px;font-weight:bold;line-height:20px;color:#ffffff;text-decoration:none;border-radius:8px;background:${ROOD}">${esc(t)}</a><!--<![endif]--></td></tr></table>`; };
+const knop = (t, href) => { const w = Math.min(480, Math.max(180, Math.round(String(t).length * 8.6 + 44)));
+  return `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 22px"><tr><td align="center" bgcolor="#ffffff" style="border-radius:8px">`
+  + `<!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${esc(href)}" style="height:40px;v-text-anchor:middle;width:${w}px" arcsize="20%" strokecolor="${ROOD}" strokeweight="1.25pt" fillcolor="#ffffff"><w:anchorlock/><center style="color:${ROOD};font-family:Arial,sans-serif;font-size:15px;font-weight:bold">${esc(t)}</center></v:roundrect><![endif]-->`
+  + `<!--[if !mso]><!--><a href="${esc(href)}" target="_blank" style="${F}display:inline-block;padding:9px 18px;font-size:15px;font-weight:600;line-height:20px;color:${ROOD};text-decoration:none;border:1.5px solid ${ROOD};border-radius:8px;background:#ffffff">${esc(t)} &rarr;</a><!--<![endif]--></td></tr></table>`; };
 // oudere opmaak in teksten van de afzonderlijke mails meteen in de nieuwe stijl zetten
 const modern = s => String(s)
   .replace(/font-family:Helvetica,Arial,sans-serif;?/g, F)
@@ -46,7 +46,7 @@ function huisstijl(inner, ver, { groet = true, voet = "" } = {}) {
 <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;border-collapse:separate">
 <tr><td align="center" bgcolor="#f7f7f7" style="padding:20px"><img src="${LOGO}" alt="${esc(ver)}" width="220" height="84" style="display:block;width:220px;height:84px;border:0"></td></tr>
 <tr><td class="vb-in" bgcolor="#ffffff" style="border-top:8px solid ${ROOD};border-bottom:8px solid ${ROOD};border-radius:14px;${F}font-size:15px;line-height:1.6;color:${INK};padding:32px 40px 26px">${modern(inner)}${groet ? p("Met vriendelijke groeten,<br><b>Het bestuur</b>", "margin:8px 0 0") : ""}</td></tr>
-<tr><td align="center" bgcolor="#f7f7f7" style="${F}font-size:12.5px;color:${MUTED};line-height:1.6;padding:16px 20px"><b style="color:${INK}">${esc(ver)}</b><br><a href="https://www.vbha.be" style="color:${MUTED};text-decoration:underline">www.vbha.be</a> &middot; Vragen? Antwoord gewoon op deze mail.${voet ? "<br>" + voet : ""}</td></tr>
+<tr><td align="center" style="${F}font-size:11.5px;color:#9a9ca1;line-height:1.6;padding:14px 20px">${esc(ver)} &middot; <a href="https://www.vbha.be" style="color:#9a9ca1;text-decoration:underline">vbha.be</a>${voet ? " &middot; " + voet : ""}</td></tr>
 </table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table></body></html>`;
