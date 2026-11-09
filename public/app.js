@@ -4901,9 +4901,8 @@ VIEWS.fuif=()=>({title:fuCfg().naam||"In Vier en Vlam",sub:"Tickets fuif",
     return `<div class="tiles">
       <div class="tile hero"><span class="lbl">Tickets verkocht</span><span class="val">${st.tk-fuG.sp.t-fuG.gast.t+st.kT}${c.max?`<small style="font-size:.5em;color:var(--muted)"> / ${c.max} online</small>`:""}</span>${fuG.sp.t+fuG.gast.t?`<span class="hint">+ ${fuG.sp.t+fuG.gast.t} gratis (sponsors en genodigden)</span>`:""}</div>
       <div class="tile"><span class="lbl">Ontvangen</span><span class="val">${fuEur(st.omzet+st.kBc+st.kCash)}</span></div>
-      <div class="tile"><span class="lbl">Binnen</span><span class="val">${st.bin+st.kT}</span></div>
-      <div class="tile"><span class="lbl">Drankkaarten</span><span class="val">${[...st.dk.values(),...st.kDk.values()].reduce((a,b)=>a+b,0)}</span></div>
-      <div class="tile"><span class="lbl">Via leden</span><span class="val">${[...st.via.values()].reduce((a,b)=>a+b,0)}</span></div></div>
+      <div class="tile"><span class="lbl">Inkom</span><span class="val">${st.bin+st.kT}</span></div>
+      <div class="tile"><span class="lbl">Drankkaarten</span><span class="val">${[...st.dk.values(),...st.kDk.values()].reduce((a,b)=>a+b,0)}</span></div></div>
       ${fuGebruikHtml(fuG)}
         ${zonder.length?`<div class="note">${zonder.length} ${zonder.length===1?"bestelling vermeldt":"bestellingen vermelden"} een lid dat we niet automatisch vonden. Open de bestelling en kies het juiste lid, dan tellen de tickets mee in het puntensysteem.</div>`:""}
     <div class="grid g2" style="align-items:start">
