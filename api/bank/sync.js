@@ -3,6 +3,7 @@ import { admin, requireUser, isCron, isDbCron, sendError, selectAll, httpErr } f
 import { configured, eb, mapTransaction } from "../_lib/enable.js";
 import { norm, suggest, partijIndex, findLid } from "../_lib/regels.js";
 import { meldPush } from "../_lib/push.js";
+import { splitsBulk } from "../_lib/bcsplit.js";
 
 const slug = s => norm(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "x";
 const r2 = n => Math.round(n * 100) / 100;
@@ -77,6 +78,8 @@ export async function syncAll(sb, { manueel = false } = {}) {
     }
     await sb.from("bank_koppelingen").update({ data: { ...d, laatste_sync: nu.toISOString() } }).eq("id", k.id);
   }
+  // Bancontact-bulkstortingen meteen opsplitsen volgens de online betalingen van die dag (rest: Kalenders)
+  try { const sp = await splitsBulk(sb); if (sp.gesplitst) totaal.gesplitst = sp.gesplitst; } catch (e) { console.error("splitsBulk", e); }
   if (totaal.nieuw || totaal.fouten.length) {
     await sb.from("imports").insert({ id: crypto.randomUUID(), data: { tijd: nu.toISOString(), bestand: "Enable Banking", bron: "api", jaar: nu.getFullYear(), nieuw: totaal.nieuw, dubbel: totaal.dubbel, open: totaal.open, fouten: totaal.fouten } });
   }

@@ -5339,6 +5339,14 @@ function bkTabs(act){let n=0;try{n=teVerwerken(ctx()).length}catch(e){}
 for(const r of ["boekingen","verwerken"]){const _v=VIEWS[r];if(!_v)continue;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){return bkTabs(r)+String(b.apply(this,arguments))};return v};Object.assign(n,_v);VIEWS[r]=n}
 {const st=document.createElement("style");st.textContent=`.vw-t{table-layout:fixed;width:100%}.vw-t td.desc{min-width:0}.vw-t .d1,.vw-t .d2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vw-t select{width:100%}.vw-why{font-size:11.5px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vw-t td:last-child .btn{vertical-align:middle}.vw-t .iconbtn svg{width:15px;height:15px}`;document.head.appendChild(st)}
+/* Te verwerken: Bancontact-bulkstortingen opsplitsen volgens de online betalingen van die dag (rest naar Kalenders) */
+const bcIsBulk=b=>b&&b.rekening!=="Kas"&&b.richting!=="uit"&&/bancontact|payconiq/i.test(b.partij||"")&&/^\d{8}-.*bulkrecon/i.test(String(b.mededeling||"").trim());
+{const _a=VIEWS.verwerken.after;VIEWS.verwerken.after=function(){const r=_a&&_a.apply(this,arguments);try{const L=teVerwerken(ctx()).filter(bcIsBulk);const bar=document.querySelector("#main .bar, .bar");
+  if(L.length&&canWrite&&bar&&!document.getElementById("bcSplit"))bar.insertAdjacentHTML("beforeend",`<button class="btn" id="bcSplit" data-ids="${esc(L.map(b=>b.id).join(","))}" title="Bancontact stort online betalingen per dag samen. De app splitst ze op volgens de betalingen van die dag; de rest gaat naar Kalenders.">${ic("bank")}Bancontact opsplitsen (${L.length})</button>`)}catch(e){}return r}}
+document.addEventListener("click",async e=>{const b=e.target.closest("#bcSplit");if(!b)return;b.disabled=true;
+  try{const j=await api("/api/mail?f=bcsplit",{method:"POST",body:JSON.stringify({ids:b.dataset.ids.split(",")})});
+    toast(j.gesplitst?`${j.gesplitst} ${j.gesplitst===1?"storting":"stortingen"} opgesplitst in ${j.gesplitst+j.delen} delen.`:"Niets opgesplitst."+(j.overgeslagen&&j.overgeslagen.length?" "+j.overgeslagen[0].reden:""),!j.gesplitst)}
+  catch(x){toast("Opsplitsen lukte niet: "+(x.message||x),true);b.disabled=false}});
 
 /* ============ Zoekbalken: kruisje rechts om leeg te maken ============ */
 (function(){
