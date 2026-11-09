@@ -27,7 +27,7 @@ export async function kassaCfg(sb) {
   const code = k.code && k.code.code ? k.code : (f.kassa && f.kassa.code ? f.kassa : null); // oude kassacode van de fuif
   const acts = k.activiteiten || {};
   const tegels = (Array.isArray(acts[actief] && acts[actief].tegels) ? acts[actief].tegels : standaardTegels(actief, f))
-    .map(t => ({ id: String(t.id), naam: String(t.naam || "").slice(0, 40), prijs: Math.round(Math.max(0, Number(t.prijs) || 0) * 100) / 100, kleur: t.kleur || "grijs", icoon: t.icoon || "", inkom: !!t.inkom })).filter(t => t.naam && t.prijs > 0);
+    .map(t => ({ id: String(t.id), naam: String(t.naam || "").slice(0, 40), prijs: Math.round(Math.max(0, Number(t.prijs) || 0) * 100) / 100, kleur: t.kleur || "grijs", icoon: t.icoon || "", inkom: !!t.inkom })).filter(t => t.naam && t.prijs >= 0);
   const jaar = actief === "fuif" ? (Number(String(f.datum || "").slice(0, 4)) || A.jaar) : A.jaar;
   return { k, actief, naam: actief === "fuif" ? (f.naam || ACTS.fuif) : ACTS[actief], tegels, scan: k.scan !== false && actief === "fuif", code, jaar };
 }
@@ -73,11 +73,12 @@ export default async function kassaPubliek(req, res) {
     }
     if (b.actie === "scan") { if (!K.scan) throw httpErr(403, "Scannen staat uit."); const { scanTicket } = await import("./fuif.js"); return res.status(200).json(await scanTicket(sb, b.code, "kassa (gast)", false)); }
     if (b.actie === "verkoop") {
-      const want = b.items || {}, cash = b.betaalwijze === "cash";
+      const want = b.items || {};let cash = b.betaalwijze === "cash";
       const items = K.tegels.map(t => ({ id: t.id, naam: t.naam, prijs: t.prijs, aantal: Math.max(0, Math.min(200, Math.floor(Number(want[t.id])) || 0)), ...(t.inkom ? { inkom: true } : {}) })).filter(i => i.aantal);
       if (!items.length) throw httpErr(400, "Kies minstens één item.");
       const bedrag = rond(items.reduce((n, i) => n + i.aantal * i.prijs, 0));
       if (b.bedrag != null && Math.abs(Number(b.bedrag) - bedrag) > 0.001) throw httpErr(409, "De prijzen werden intussen aangepast. Herlaad de kassa.");
+      if (bedrag === 0) cash = true; // enkel gratis items (bv. inkom met kaart): meteen afgerond, geen betaling
       const id = "k" + Date.now().toString(36) + crypto.randomBytes(3).toString("hex"), token = crypto.randomBytes(18).toString("base64url"), nu = new Date().toISOString();
       const row = { id, data: { activiteit: K.actief, jaar: K.jaar, items, bedrag, betaalwijze: cash ? "cash" : "bancontact", status: cash ? "betaald" : "wacht", aangemeld: nu, betaalToken: token, ...(cash ? { betaaldOp: nu, ontvangen: Number(b.ontvangen) || null } : {}) } };
       if (!cash && !onlineConfigured()) throw httpErr(501, "Bancontact is niet ingesteld.");
