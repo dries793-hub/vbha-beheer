@@ -6007,7 +6007,11 @@ function stMailPaneel(){const g=goudCfg(),aan=g.aan!==false,d=ROL==="admin"?"":"
    ${tpl?`<button class="btn" data-act="stTussen">${ic("mails")}Mail openen</button>`:'<span class="muted small">Sjabloon "Tussenstand status" ontbreekt.</span>'}</div></div></div>`}
 {const _v=VIEWS.punten;VIEWS.punten=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){return String(b.apply(this,arguments))+stMailPaneel()};return v};Object.assign(VIEWS.punten,_v)}
 document.addEventListener("change",async e=>{if(e.target.dataset&&e.target.dataset.goudaan!==undefined){const c=S.config.get("algemeen")||{};try{await write("config","algemeen",{...stripId(c),goudMail:{...(c.goudMail||{}),aan:e.target.checked}});toast(e.target.checked?"Proficiat-mail staat aan.":"Proficiat-mail staat uit.")}catch(x){e.target.checked=!e.target.checked}}});
-document.addEventListener("click",e=>{if(!e.target.closest('[data-act="stTussen"]'))return;MAIL=null;UI.mailTpl="tpl-tussenstand";UI.mailGroep="betaald-niet-ere";saveUI();location.hash="#mails"});
+document.addEventListener("click",e=>{if(!e.target.closest('[data-act="stTussen"]'))return;MAIL=null;UI.mailTpl="tpl-tussenstand";UI.mailGroep="tussenstand";saveUI();location.hash="#mails"});
+// doelgroep tussenstand: actieve leden zonder erewacht en zonder vrijstelling van het puntensysteem (bv. ziekte) dit jaar
+{const _g=groepen;groepen=function(){const G=_g.apply(this,arguments);const b=G.find(g=>g.id==="betaald-niet-ere");if(!b||G.some(g=>g.id==="tussenstand"))return G;
+  const vrij=r=>{const jl=r.lidId&&S.jaarleden.get(JAAR+"_"+r.lidId);return !!(jl&&jl.vrijstelling)};
+  const list=b.list.filter(r=>!vrij(r));G.splice(G.indexOf(b)+1,0,{...b,id:"tussenstand",label:"Actieve leden zonder erewacht en zonder vrijstelling",list,geblokt:b.geblokt||[]});return G}}
 
 /* ============ Activiteiten › Shiften: leden indelen en verwittigen via sms (eigen gsm) ============
    Op de activiteit (collectie "activiteiten"): shiften:[{id,taak,van,tot,nodig,leden:[lidId]}], smsTekst, shiftenToegekend
