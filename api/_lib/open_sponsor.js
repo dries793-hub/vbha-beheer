@@ -76,7 +76,7 @@ export function bevestigingMail(d, ins, C, { factuur, link, mededeling, nieuw })
     + kaderBlok("Uw sponsoring", tabel([rij("Bedrijf", `<b>${esc(d.bedrijf)}</b>`), rij("Formule", esc(ins.formuleNaam)), rij("Bedrag", `<b>${eur(ins.bedrag)}</b>`), rij("Kalender", String(ins.kj))]));
   if (factuur) html += p(`In bijlage vindt u factuur <b>${esc(factuur.nr)}</b>.`);
   html += kaderBlok("Betalen", tabel([rij("Bedrag", `<b>${eur(ins.bedrag)}</b>`), rij("Rekening", `<b>${esc(String(C.iban).replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim())}</b>`), rij("Begunstigde", esc(C.vereniging)), rij("Mededeling", `<b>${esc(mededeling)}</b>`), rij("Te betalen vóór", `<b>${esc(datumTekst(C.deadline))}</b>`)])
-    + p("Gebruik exact deze mededeling, dan wordt uw betaling automatisch herkend.", "margin:10px 0 0;font-size:13.5px;color:#666666"))
+    + p("Gebruik exact deze mededeling, dan wordt uw betaling automatisch herkend.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2")
     + knop("Online betalen met Bancontact of QR-code", link)
     + (ins.logo ? p("We ontvingen ook uw <b>logo</b>. Hartelijk dank!")
       : p(`<b>We ontvingen nog geen logo.</b> Stuur uw logo (liefst in hoge resolutie of als vectorbestand) nog door naar <a href="mailto:${esc(C.logoMail)}">${esc(C.logoMail)}</a>, of antwoord gewoon op deze mail.`));

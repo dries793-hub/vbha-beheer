@@ -85,7 +85,7 @@ export function banketMail(x, A) {
     + p(`Bedankt voor je inschrijving voor ons banket van ${esc(lang(x.feest))}. Volgens onze gegevens hebben we je betaling nog niet ontvangen.`)
     + p(`Pas wanneer je betaling binnen is, is je inschrijving definitief. Mogen we je vragen het bedrag zo snel mogelijk over te schrijven?`)
     + kaderBlok("Nog te betalen", tabel([rij("Bedrag", `<b>${eur(x.bedrag)}</b>`), rij("Rekening", `<b>${esc(A.rekeningnummer || DEF_IBAN)}</b>`), rij("Begunstigde", esc(A.vereniging)), rij("Mededeling", `<b>${esc(meded)}</b>`)])
-      + p("Gebruik exact deze mededeling, dan wordt je betaling automatisch herkend.", "margin:10px 0 0;font-size:13.5px;color:#666666"))
+      + p("Gebruik exact deze mededeling, dan wordt je betaling automatisch herkend.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2")
     + p("Heb je intussen al betaald? Dan kruisten onze berichten elkaar en mag je deze herinnering als niet verzonden beschouwen. Kan je toch niet komen? Laat het ons dan weten door op deze mail te antwoorden.", "margin:0 0 15px;font-size:13.5px;color:#666666");
   return { onderwerp: `VBHA - Herinnering betaling banket ${x.jaar}`, html: huisstijl(html, A.vereniging) };
 }
