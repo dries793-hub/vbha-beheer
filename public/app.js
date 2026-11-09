@@ -5798,6 +5798,8 @@ const WS_DEF={blokken:{viv:false,kalender:true,steun:true,sponsors:true},kal_tit
 let WS=null; // werkversie (niet bewaard)
 function wsCfg(){const c=S.config.get("website")||{};return {...WS_DEF,...stripId(c),blokken:{...WS_DEF.blokken,...(c.blokken||{})},fotos:{...(c.fotos||{})}}}
 function wsWerk(){if(!WS)WS=JSON.parse(JSON.stringify(wsCfg()));return WS}
+function wsVolg(W){const B=WS_BLOKKEN.map(b=>b[0]),v=(Array.isArray(W.volgorde)?W.volgorde:[]).filter((k,i,L)=>B.includes(k)&&L.indexOf(k)===i);return [...v,...B.filter(k=>!v.includes(k))]}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-wsvolg]");if(!b||!canWrite)return;const W=wsWerk(),L=wsVolg(W),i=L.indexOf(b.dataset.wsvolg),j=i+Number(b.dataset.r);if(i<0||j<0||j>=L.length)return;[L[i],L[j]]=[L[j],L[i]];W.volgorde=L;renderBody()});
 const wsGewijzigd=()=>WS&&JSON.stringify(WS)!==JSON.stringify(wsCfg());
 /* Foto verkleinen in de browser (ook gebruikt door de fotoalbums): max. zijde in px, JPEG-kwaliteit; houdt rekening met de draaiing (EXIF). */
 async function fotoVerklein(file,max=1600,q=0.85){let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:"from-image"})}catch(e){bmp=await new Promise((ok,nok)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>nok(new Error("Dit bestand is geen geldige foto."));i.src=URL.createObjectURL(file)})}
@@ -5813,8 +5815,7 @@ VIEWS.website=()=>({title:"Website",sub:"Startpagina vbha.be",
   actions:`<a class="btn" href="https://vbha.be" target="_blank" rel="noopener">${ic("link")}Website openen</a>`,
   body(){const W=wsWerk(),d=canWrite?"":" disabled";const ta=(id,k,max)=>`<textarea id="${id}" data-wsk="${k}" maxlength="${max}" rows="3"${d}>${esc(W[k]||"")}</textarea>`;
     return `<div class="panel"><div class="panel-h"><h2>Wat staat er op de startpagina?</h2></div><div class="panel-b ws-bl">
-      ${WS_BLOKKEN.map(([k,t,u])=>`<label class="ws-row"><span class="ws-sw"><input type="checkbox" data-wsblok="${k}"${W.blokken[k]?" checked":""}${d}><i></i></span><span><b>${t}</b><small>${u}</small></span></label>`).join("")}
-      <p class="muted small" style="margin:4px 0 0">Staan zowel In Vier en Vlam als de kalenders aan, dan komt In Vier en Vlam bovenaan.</p></div></div>
+      ${wsVolg(W).map((k,i,L)=>{const t=WS_BLOKKEN.find(b=>b[0]===k)[1];return `<div class="ws-vr"><label class="ws-row"><span class="ws-sw"><input type="checkbox" data-wsblok="${k}"${W.blokken[k]?" checked":""}${d}><i></i></span><span><b>${t}</b></span></label>${canWrite?`<span class="ws-pijl"><button type="button" class="btn sm iconbtn" data-wsvolg="${k}" data-r="-1" title="Hoger" aria-label="${t} hoger"${i?"":" disabled"}>▲</button><button type="button" class="btn sm iconbtn" data-wsvolg="${k}" data-r="1" title="Lager" aria-label="${t} lager"${i<L.length-1?"":" disabled"}>▼</button></span>`:""}</div>`}).join("")}</div></div>
     <div class="grid g2" style="align-items:start">
     <div class="panel${W.blokken.viv?"":" ws-uit"}"><div class="panel-h"><h2>In Vier en Vlam</h2>${W.blokken.viv?'<span class="pill ok">aan</span>':'<span class="pill neutral">uit</span>'}</div><div class="panel-b"><div class="form">
       ${fld("wsVd","Bovenregel (datum, plaats)",`<input id="wsVd" data-wsk="viv_datum" maxlength="120" value="${esc(W.viv_datum||"")}" placeholder="bv. Zaterdag 24 april 2027 · Kazerne Aalst"${d}>`,"full")}
@@ -5855,7 +5856,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-wsac
       const oud=Object.values(wsCfg().fotos||{}).map(f=>f.pad),nu=Object.values(W.fotos).map(f=>f.pad);const weg=oud.filter(p=>!nu.includes(p));if(weg.length)SB.storage.from(DOC_BUCKET).remove(weg).catch(()=>{});
       S.config.set("website",{...W,id:"website"});WS=null;renderBody();toast("Gepubliceerd. De website is binnen een minuut bijgewerkt.")}catch(x){}finally{b.disabled=false}}});
 {const st=document.createElement("style");st.textContent=`
-.ws-bl{display:flex;flex-direction:column;gap:12px}.ws-row{display:flex;gap:14px;align-items:flex-start;cursor:pointer}.ws-row b{display:block}.ws-row small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.ws-bl{display:flex;flex-direction:column;gap:12px}.ws-vr{display:flex;align-items:center;gap:10px}.ws-vr .ws-row{flex:1;align-items:center}.ws-pijl{display:flex;gap:4px}.ws-pijl .btn{font-size:11px;min-width:30px}.ws-row{display:flex;gap:14px;align-items:flex-start;cursor:pointer}.ws-row b{display:block}.ws-row small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
 .ws-sw{position:relative;flex:0 0 auto;width:44px;height:26px;margin-top:1px}.ws-sw input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}.ws-sw i{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:background .15s}
 .ws-sw i::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
 .ws-sw input:checked+i{background:var(--ok,#16a34a)}.ws-sw input:checked+i::after{transform:translateX(18px)}.ws-sw input:focus-visible+i{outline:2px solid var(--ink);outline-offset:2px}

@@ -39,6 +39,7 @@ export function schoon(c) {
   const o = { blokken: { ...SITE_DEF.blokken } };
   for (const k of BLOKKEN) if (c.blokken && k in c.blokken) o.blokken[k] = !!c.blokken[k];
   for (const [k, max] of Object.entries(TEKST)) if (typeof c[k] === "string" && c[k].trim()) o[k] = c[k].trim().slice(0, max);
+  { const v = (Array.isArray(c.volgorde) ? c.volgorde : []).filter((k, i, L) => BLOKKEN.includes(k) && L.indexOf(k) === i); o.volgorde = [...v, ...BLOKKEN.filter(k => !v.includes(k))]; }
   o.kal_knoppen = knoppen(c.kal_knoppen); o.viv_knoppen = knoppen(c.viv_knoppen);
   o.eigen = (Array.isArray(c.eigen) ? c.eigen : []).slice(0, 12).filter(e => e && /^e[\w]{3,24}$/.test(e.id)).map(e => ({
     id: e.id, aan: e.aan !== false, plaats: ["boven", "midden", "onder"].includes(e.plaats) ? e.plaats : "midden",
@@ -50,7 +51,10 @@ export function schoon(c) {
 
 export function bouw(tpl, c, basis) {
   let s = tpl;
-  for (const k of BLOKKEN) if (!c.blokken[k]) s = s.replace(new RegExp(`<!--blok:${k}-->[\\s\\S]*?<!--/blok:${k}-->`), "");
+  // onderdelen in de gekozen volgorde: elk blok krijgt de plaats van het blok dat daar oorspronkelijk stond
+  const volg = c.volgorde || BLOKKEN, stuk = {};
+  BLOKKEN.forEach((k, i) => { s = s.replace(new RegExp(`<!--blok:${k}-->[\\s\\S]*?<!--/blok:${k}-->`), m => { stuk[k] = m; return `<!--slot:${i}-->`; }); });
+  BLOKKEN.forEach((k, i) => { const n = volg[i]; s = s.replace(`<!--slot:${i}-->`, () => c.blokken[n] && stuk[n] ? stuk[n] : ""); });
   for (const k of Object.keys(TEKST)) if (c[k]) s = s.replace(new RegExp(`(<[^>]*\\bdata-s="${k}"[^>]*>)[\\s\\S]*?(</)`), (m, a, b) => a + esc(c[k]) + b);
   // extra knoppen bij In Vier en Vlam en de kalenders, en de eigen onderdelen
   if (c.viv_knoppen.length) s = s.replace(/(<section class="hero viv[\s\S]*?<\/a>)(\s*<\/div>\s*<\/section>)/, (m, a, b) => a + knopHtml(c.viv_knoppen).replace('<div class="btns">', '<div class="btns extra">') + b);
@@ -70,8 +74,9 @@ export function bouw(tpl, c, basis) {
   }
   if (og) s = s.replace(/<meta property="og:image" content="[^"]*">/, `<meta property="og:image" content="${esc(og)}">`);
   // de eerste zichtbare titel is de h1
-  if (c.blokken.viv && c.blokken.kalender) s = s.replace(/<h1 data-s="kal_titel">([\s\S]*?)<\/h1>/, '<h2 data-s="kal_titel" style="font-size:clamp(1.8rem,3vw,2.4rem);line-height:1.15;font-weight:700">$1</h2>');
-  if (c.blokken.viv && !c.blokken.kalender) s = s.replace(/<h2 style="[^"]*" data-s="viv_titel">([\s\S]*?)<\/h2>/, '<h1 data-s="viv_titel">$1</h1>');
+  const vivEerst = volg.indexOf("viv") < volg.indexOf("kalender");
+  if (c.blokken.viv && c.blokken.kalender && vivEerst) s = s.replace(/<h1 data-s="kal_titel">([\s\S]*?)<\/h1>/, '<h2 data-s="kal_titel" style="font-size:clamp(1.8rem,3vw,2.4rem);line-height:1.15;font-weight:700">$1</h2>');
+  if (c.blokken.viv && (!c.blokken.kalender || vivEerst)) s = s.replace(/<h2 style="[^"]*" data-s="viv_titel">([\s\S]*?)<\/h2>/, '<h1 data-s="viv_titel">$1</h1>');
   return s;
 }
 
