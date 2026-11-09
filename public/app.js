@@ -6400,7 +6400,7 @@ function shExtern(a,naam){modal("Helper die geen lid is",`<form class="form" id=
 /* ---------- shift toevoegen / wijzigen ---------- */
 function shForm(a,s){s=s||{taak:"",van:a.uur||"",tot:"",nodig:""};
   modal(s.id?"Shift wijzigen":"Shift toevoegen",`<form class="form" id="fSh">${fld("shT","Taak of locatie",inp("shT",s.taak,'maxlength="80" placeholder="bv. Bar, Kassa, Opbouw"'),"full")}
-    ${fld("shV","Van",`<input id="shV" type="time" value="${esc(s.van||"")}">`)}${fld("shTo","Tot",`<input id="shTo" type="time" value="${esc(s.tot||"")}">`)}
+    ${fld("shV","Van",tijd24("shV",s.van))}${fld("shTo","Tot",tijd24("shTo",s.tot))}
     ${fld("shN","Aantal personen nodig",inp("shN",s.nodig||"",'type="number" min="0" max="99" inputmode="numeric" placeholder="optioneel"'))}<div class="err full" id="shErr"></div></form>`,
     `${s.id?'<button class="btn danger" id="shDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="shOk">Bewaren</button>`);
   $("#shOk").onclick=async()=>{const n={taak:$("#shT").value.trim(),van:$("#shV").value,tot:$("#shTo").value,nodig:Math.max(0,parseInt($("#shN").value,10)||0)};if(!n.taak){$("#shErr").textContent="Geef de shift een naam.";return}
@@ -6527,6 +6527,14 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-shtab]");i
   if(s&&n&&van!==naar&&!(s.leden||[]).includes(id)&&(s.leden||[]).length>=n){const h=shHelper(a,id);
     return new Promise(ok=>confirmBox(`De shift <b>${esc(s.taak||"Shift")}</b> is al opgevuld (${(s.leden||[]).length} / ${n}). Wil je <b>${esc(h?h.naam:"deze persoon")}</b> toch toevoegen?`,"Toch toevoegen",async()=>{closeModal();await _vp(id,van,naar);ok()}))}
   return _vp.apply(this,arguments)}}
+
+/* tijd kiezen in 24-uursnotatie (uur + minuten), onafhankelijk van de taal van de browser; het verborgen veld #id bevat "HH:MM" */
+function tijd24(id,v){const m=/^(\d{1,2}):(\d{2})/.exec(String(v||""));const h=m?m[1].padStart(2,"0"):"",mi=m?m[2]:"";
+  const mins=[...new Set([...Array(12)].map((_,i)=>String(i*5).padStart(2,"0")).concat(mi?[mi]:[]))].sort();
+  return `<span class="t24"><input type="hidden" id="${id}" value="${h&&mi?h+":"+mi:""}"><select class="sel" data-t24="${id}" data-d="h" aria-label="Uur"><option value="">--</option>${[...Array(24)].map((_,i)=>{const x=String(i).padStart(2,"0");return `<option${x===h?" selected":""}>${x}</option>`}).join("")}</select><b>:</b><select class="sel" data-t24="${id}" data-d="m" aria-label="Minuten"><option value="">--</option>${mins.map(x=>`<option${x===mi?" selected":""}>${x}</option>`).join("")}</select></span>`}
+document.addEventListener("change",e=>{const t=e.target.closest("[data-t24]");if(!t)return;const id=t.dataset.t24,w=t.closest(".t24"),h=w.querySelector('[data-d="h"]'),m=w.querySelector('[data-d="m"]');
+  if(h.value&&!m.value)m.value="00";if(!h.value)m.value="";document.getElementById(id).value=h.value?h.value+":"+m.value:""});
+{const st=document.createElement("style");st.textContent=".t24{display:flex;align-items:center;gap:6px}.t24 select{flex:1;min-width:0}.t24 b{font-weight:600}";document.head.appendChild(st)}
 
 /* ============ Activiteiten › Familiedag ============
    Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
