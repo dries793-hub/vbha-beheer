@@ -2301,10 +2301,10 @@ function agForm(a,id){const d=canWrite?"":" disabled";a=a||{};
    ${fld("agT","Wat",inp("agT",a.titel,'maxlength="120" placeholder="bv. Jaarmarkt, Paasmaandagwandeling"'+d),"full")}
    ${fld("agD","Datum",`<input id="agD" type="date" value="${esc(a.datum||AG.dag||todayISO())}"${d}>`)}${fld("agU","Uur",inp("agU",a.uur,'maxlength="20" placeholder="bv. 14u00"'+d))}
    ${fld("agL","Waar",inp("agL",a.locatie,'maxlength="160"'+d),"full")}
-   ${fld("agI","Meer info",`<textarea id="agI" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false)}<div class="err full" id="agErr"></div></form>`,
+   ${fld("agI","Meer info",`<textarea id="agI" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false)}<label class="sp-nat full" for="agS"><input type="checkbox" id="agS"${a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length)?" checked":""}${canWrite?"":" disabled"}><span><b>Gebruiken in shiften</b><small>De activiteit verschijnt bij Shiften om helpers in te delen.</small></span></label><div class="err full" id="agErr"></div></form>`,
    `${id&&canWrite?'<button class="btn danger" id="agDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="agOk">Bewaren</button>':""}`);
   if(!canWrite)return;
-  $("#agOk").onclick=async()=>{const r={titel:$("#agT").value.trim(),datum:$("#agD").value,uur:$("#agU").value.trim(),locatie:$("#agL").value.trim(),info:$("#agI").value.trim(),inMail:$("#agM").checked};
+  $("#agOk").onclick=async()=>{const r={titel:$("#agT").value.trim(),datum:$("#agD").value,uur:$("#agU").value.trim(),locatie:$("#agL").value.trim(),info:$("#agI").value.trim(),inMail:$("#agM").checked,metShiften:$("#agS").checked};
     if(!r.titel){$("#agErr").textContent="Vul in wat er te doen is.";return}if(!/^\d{4}-\d{2}-\d{2}$/.test(r.datum)){$("#agErr").textContent="Kies een datum.";return}
     closeModal();await write("activiteiten",id||agId("act"),{...(id?stripId(S.activiteiten.get(id)||{}):{}),...r});toast("Activiteit bewaard.")};
   const del=$("#agDel");if(del)del.onclick=()=>confirmBox(`<b>${esc(a.titel||"Deze activiteit")}</b> verwijderen?`,"Verwijderen",async()=>{await write("activiteiten",id,null,{del:true});toast("Activiteit verwijderd.")})}
@@ -5169,7 +5169,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-ka]");if(!
 function kaMetTab(route,act,eerste){const _v=VIEWS[route];if(!_v)return;const n=function(){const v=_v.apply(this,arguments),b=v.body;
   v.body=function(){return kaTabBar(route,act,eerste)+((KA_UI.tab[route]||"hoofd")==="kassa"?kaTabBody(act):String(b.apply(this,arguments)))};return v};Object.assign(n,_v);VIEWS[route]=n}
 // kassa enkel nog via Financiën › Kassa (geen tabblad Kassa meer op de activiteitenpagina's)
-VIEWS.jaarmarkt=()=>({title:"Jaarmarkt",sub:"Kassa jaarmarkt",actions:`<button class="btn primary" data-ka="open" data-act="jaarmarkt">${ic("kassa")}Kassa openen</button>${kaAdm()?`<button class="btn iconbtn" data-ka="inst" data-act="jaarmarkt" aria-label="Instellingen kassa" title="Instellingen kassa">${ic("instellingen")}</button>`:""}`,body(){return kaTabBody("jaarmarkt",true)}});
+VIEWS.jaarmarkt=()=>({title:"Jaarmarkt",sub:"Kassa jaarmarkt",actions:`${kaAdm()?`<button class="btn iconbtn" data-ka="inst" data-act="jaarmarkt" aria-label="Instellingen kassa" title="Instellingen kassa">${ic("instellingen")}</button>`:""}`,body(){return kaTabBody("jaarmarkt",true)}});
 
 /* ---------- Financiën › Kassa ---------- */
 VIEWS.kassa=()=>({title:"Kassa",sub:"Verkoop aan de kassa",
@@ -6340,7 +6340,8 @@ const shId=()=>Math.random().toString(36).slice(2,9);
 function shTel(t){let d=String(t||"").replace(/[^\d+]/g,"");if(!d)return"";if(d.startsWith("00"))d="+"+d.slice(2);else if(d.startsWith("0")&&d.length>=9)d="+32"+d.slice(1);else if(/^32\d{8,9}$/.test(d))d="+"+d;return /^\+\d{9,14}$/.test(d)?d:""}
 const shApple=()=>/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
 function shSmsLink(nrs,tekst){const b=encodeURIComponent(tekst);if(!nrs.length)return"";if(shApple())return nrs.length===1?`sms:${nrs[0]}&body=${b}`:`sms:/open?addresses=${nrs.join(",")}&body=${b}`;return `sms:${nrs.join(",")}?body=${b}`}
-function shActs(){const v=new Date().toISOString().slice(0,10);return [...S.activiteiten.values()].filter(a=>a.datum).sort((a,b)=>String(a.datum).localeCompare(String(b.datum))).map(a=>({...a,toekomst:a.datum>=v}))}
+const shAan=a=>a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length>0);
+function shActs(){const v=new Date().toISOString().slice(0,10);return [...S.activiteiten.values()].filter(a=>a.datum&&shAan(a)).sort((a,b)=>String(a.datum).localeCompare(String(b.datum))).map(a=>({...a,toekomst:a.datum>=v}))}
 function shAct(){const L=shActs();let a=SHF.id&&S.activiteiten.get(SHF.id);if(!a){a=L.find(x=>x.toekomst&&(x.shiften||[]).length)||L.find(x=>x.toekomst)||L[L.length-1]||null;SHF.id=a&&a.id}return a}
 function shVul(t,a,s,h){const d=a.datum?fmtDate(a.datum):"";return String(t||SH_TEKST).replace(/\{voornaam\}/g,h?h.voornaam||"":"").replace(/\{activiteit\}/g,a.titel||"de activiteit").replace(/\{datum\}/g,d).replace(/\{taak\}/g,s.taak||"").replace(/\{van\}/g,s.van||"").replace(/\{tot\}/g,s.tot||"").replace(/\{locatie\}/g,a.locatie||"")
   .replace(/Hallo\s+,/g,"Hallo,").replace(/\s+,/g,",").replace(/\s{2,}/g," ").trim()}
@@ -6359,15 +6360,14 @@ function shTegel(a,h,van,dubbel){const sel=SHF.sel&&SHF.sel.id===h.id&&SHF.sel.v
 VIEWS.shiften=()=>({title:"Shiften",sub:"Wie helpt waar en wanneer",
   actions:'<button class="btn" data-sh="print">'+ic("download")+'Afdrukken</button>'+(canWrite?'<button class="btn primary" data-sh="nieuw">'+ic("plus")+'Shift toevoegen</button><button class="btn iconbtn" data-sh="instellingen" title="Instellingen shiften" aria-label="Instellingen shiften">'+ic("instellingen")+'</button>':""),
   body(){const L=shActs(),a=shAct();
-    if(!a)return '<div class="panel"><div class="empty">Er staan nog geen activiteiten in de agenda. Voeg eerst een activiteit toe bij Agenda.</div></div>';
+    if(!a)return '<div class="panel"><div class="empty">Er is nog geen activiteit voor de shiften. Open de activiteit in de <a href="#agenda">Agenda</a> en vink <b>Gebruiken in shiften</b> aan.</div></div>';
     const S2=a.shiften||[],pool=shPool(a),ing=shIngedeeld(a),vrij=pool.filter(id=>!ing.has(id)).map(id=>shHelper(a,id)).filter(Boolean).sort((x,y)=>x.naam.localeCompare(y.naam,"nl"));
     const leden=[...S.leden.values()].filter(l=>!l.geenLid).sort((x,y)=>naamVol(x).localeCompare(naamVol(y),"nl"));
     const nodig=S2.reduce((n,s)=>n+(Number(s.nodig)||0),0),bezet=S2.reduce((n,s)=>n+(s.leden||[]).length,0);
-    return `<div class="sh-kop"><select class="sel" data-shkies aria-label="Activiteit">${L.map(x=>`<option value="${esc(x.id)}"${x.id===a.id?" selected":""}>${esc(fmtDate(x.datum)+" · "+(x.titel||"Activiteit"))}${x.toekomst?"":" – voorbij"}</option>`).join("")}</select>
+    return `<div class="panel sh-poolp"><div class="panel-h sh-kop"><select class="sel" data-shkies aria-label="Activiteit">${L.map(x=>`<option value="${esc(x.id)}"${x.id===a.id?" selected":""}>${esc(fmtDate(x.datum)+" · "+(x.titel||"Activiteit"))}${x.toekomst?"":" – voorbij"}</option>`).join("")}</select>
       <div class="sh-info"><b>${esc(a.titel||"Activiteit")}</b><span>${esc([fmtDate(a.datum),a.uur,a.locatie].filter(Boolean).join(" · "))}</span></div>
       <div class="sh-cnt"><span><b>${pool.length}</b> helpers</span><span><b>${bezet}</b>${nodig?" / "+nodig:""} plaatsen ingevuld</span></div></div>
-    <div class="panel sh-poolp"><div class="panel-h"><h2>Helpers</h2><span class="muted small">${vrij.length?vrij.length+" nog niet ingedeeld":pool.length?"iedereen is ingedeeld":""}</span><span class="grow"></span></div>
-      <div class="panel-b">${canWrite?`<div class="sh-add"><input list="shLeden" data-shadd placeholder="Naam van een lid of iemand anders (bv. partner)…" aria-label="Helper toevoegen"><button class="btn" data-sh="add">${ic("plus")}Helper</button></div>`:""}
+      <div class="panel-b"><div class="sh-hl"><b>Helpers</b><span class="muted small">${vrij.length?vrij.length+" nog niet ingedeeld":pool.length?"iedereen is ingedeeld":""}</span></div>${canWrite?`<div class="sh-add"><input list="shLeden" data-shadd placeholder="Naam van een lid of iemand anders (bv. partner)…" aria-label="Helper toevoegen"><button class="btn" data-sh="add">${ic("plus")}Helper</button></div>`:""}
       <div class="sh-zone sh-pool" data-zone="pool">${vrij.map(h=>shTegel(a,h,"pool")).join("")||`<span class="sh-hint">${pool.length?"Sleep een tegel hierheen om iemand uit een shift te halen.":"Voeg hierboven de helpers toe. Daarna sleep je ze naar een shift."}</span>`}</div></div></div>
     <datalist id="shLeden">${leden.map(l=>`<option value="${esc(naamVol(l))}">`).join("")}</datalist>
     ${S2.length?`<div class="sh-bord">${S2.map(s=>{const H=(s.leden||[]).map(id=>shHelper(a,id)).filter(Boolean),n=Number(s.nodig)||0,vol=n&&H.length>=n;
@@ -6530,10 +6530,6 @@ function shZoekAct(r){const re=r==="fuif"?/vier\s*en\s*vlam|fuif/i:/jaarmarkt/i;
 function shTabBody(r){const a=shZoekAct(r);if(!a)return `<div class="panel"><div class="empty">Er staat nog geen activiteit "${r==="fuif"?"In Vier en Vlam":"Jaarmarkt"}" in de agenda. Voeg ze eerst toe bij Agenda.</div></div>`;
   SHF.id=a.id;const v=VIEWS.shiften();
   return `<div class="sh-tab"><div class="sh-tabbar"><span class="grow"></span>${v.actions||""}</div>${v.body()}</div>`}
-for(const [r,eerste] of [["fuif","Tickets"],["jaarmarkt","Kassa"]]){const _v=VIEWS[r];if(!_v)continue;
-  const n=function(){const v=_v.apply(this,arguments),b=v.body;
-    v.body=function(){const op=!!SH_TAB[r];return `<div class="ka-tabs" role="tablist"><button type="button" role="tab" data-shtab="${r}" data-v="" class="${op?"":"on"}">${esc(eerste)}</button><button type="button" role="tab" data-shtab="${r}" data-v="1" class="${op?"on":""}">Shiften</button></div>`+(op?shTabBody(r):String(b.apply(this,arguments)))};return v};
-  Object.assign(n,_v);VIEWS[r]=n}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-shtab]");if(!b)return;SH_TAB[b.dataset.shtab]=!!b.dataset.v;renderBody()});
 {const st=document.createElement("style");st.textContent=`.sh-tab [data-shkies]{display:none}.sh-tabbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px}`;document.head.appendChild(st)}
 /* shift al volzet: toch toevoegen na bevestiging */
@@ -6579,7 +6575,7 @@ function shRooster(a){const S2=a.shiften||[],met=S2.map(s=>({s,p:shSpan(s)})).fi
 {const _v=VIEWS.shiften;VIEWS.shiften=function(){const v=_v.apply(this,arguments),b=v.body;
   v.body=function(){const h=String(b.apply(this,arguments)),a=shAct(),k=h.indexOf('<div class="panel sh-poolp">');if(!a||k<0)return h;
     const tabs=`<div class="ka-tabs sh-wtabs" role="tablist"><button type="button" role="tab" data-shw="bord" class="${SHF.weerg==="rooster"?"":"on"}">Bord</button><button type="button" role="tab" data-shw="rooster" class="${SHF.weerg==="rooster"?"on":""}">Rooster</button></div>`;
-    return tabs+h.slice(0,k)+(SHF.weerg==="rooster"?shRooster(a):h.slice(k))};return v};Object.assign(VIEWS.shiften,_v)}
+    if(SHF.weerg!=="rooster")return tabs+h;const e=h.indexOf('<div class="panel-b"><div class="sh-hl">',k);return tabs+h.slice(k,e)+'</div>'+shRooster(a)};return v};Object.assign(VIEWS.shiften,_v)}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-shw]");if(t){SHF.weerg=t.dataset.shw;renderBody();return}
   const q=e.target.closest("[data-shredit]");if(q&&canWrite){const a=shAct(),s=a&&(a.shiften||[]).find(x=>x.id===q.dataset.shredit);if(s)shForm(a,s)}});
 // slepen en de randen verslepen (muis en touch)
@@ -6655,6 +6651,8 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-shmulti]")
     await shBewaar(a,{shiften:sh,helpers:pool});toast(W.size?`${h.voornaam||h.naam} staat op ${W.size} ${W.size===1?"shift":"shiften"}.`:`${h.voornaam||h.naam} staat op geen enkele shift.`)}});
 {const st=document.createElement("style");st.textContent=`.sh-tm{border:0;background:none;color:var(--muted);padding:4px;border-radius:6px;cursor:pointer;display:grid;place-items:center}.sh-tm:hover{background:var(--soft,#f2f2f3);color:var(--ink)}.sh-tm svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .sh-ml{display:flex;flex-direction:column;gap:6px}.sh-mli{display:flex!important;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px}.sh-mli>span:nth-of-type(1){flex:1}`;document.head.appendChild(st)}
+
+{const st=document.createElement("style");st.textContent=`.sh-poolp>.sh-kop{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0}.sh-poolp>.sh-kop .sel{max-width:280px}.sh-poolp>.sh-kop .sh-cnt{margin-left:auto}.sh-hl{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}.sh-hl b{font-size:15px}`;document.head.appendChild(st)}
 
 /* ============ Activiteiten › Familiedag ============
    Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
