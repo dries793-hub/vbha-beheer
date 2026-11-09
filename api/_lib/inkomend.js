@@ -114,7 +114,7 @@ export async function inkomendApi(req, res) {
     return res.status(200).json({ ingesteld: !!(C.adres && C.pass), wachtwoordGezet: !!C.pass, adres: C.adres, host: C.host, port: C.port, map: C.map, filter: C.filter, laatsteKeer: C.laatsteKeer || null, fout: C.fout || null, log: (C.log || []).slice(0, 15) });
   }
   if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
-  const { sb } = await requireUser(req, { boek: true });
+  const { sb } = await requireUser(req, { boek: true, functie: "facturen" });
   const b = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
   if (b.actie === "instellingen") {
     const a = String(b.adres || "").trim().toLowerCase();

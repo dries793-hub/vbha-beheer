@@ -6216,13 +6216,14 @@ document.addEventListener("click",e=>{if(!FA.a)return;
    "lezen" toont ze zonder te kunnen wijzigen, "bewerken" laat wijzigen toe. De database dwingt het bewerken af (functie mag()).
    Een administrator heeft altijd alle rechten. */
 var RECHTEN=null;
-const FUNC=[["leden","Ledenlijst",["leden"]],["punten","Puntensysteem",["punten"]],["financien","Financiën",["boekhouding","boekingen","verwerken","historiek","facturen","inkomend"]],["begroting","Begroting",["begroting"]],
-  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"]],["kalverdeling","Kalenders: personen en dozen meegeven",[]],["banket","Banket",["banket"]],["kinderfeest","Kinderfeest",["kinderfeest"]],["fuif","In Vier en Vlam",["fuif"]],["kassa","Kassa",["kassa"]],
-  ["jaarmarkt","Jaarmarkt",["jaarmarkt"]],["webshop","Webshop",["webshop"]],["agenda","Agenda en verslagen",["agenda","verslagen"]],["shiften","Shiften",["shiften"]],["documenten","Documenten",["documenten"]],["fotos","Fotoalbums",["fotos"]],
-  ["sponsors","Sponsors",["sponsors"]],["mails","Mails",["mails"]],["website","Website",["website"]]];
+const FUNC=[["leden","Ledenlijst",["leden"],"Leden"],["punten","Puntensysteem",["punten"],"Leden"],
+  ["overzicht","Overzicht",["boekhouding"],"Financiën"],["financien","Transacties",["boekingen","verwerken"],"Financiën"],["facturen","Facturen",["facturen","inkomend"],"Financiën"],["begroting","Begroting",["begroting"],"Financiën"],["historiek","Historiek",["historiek"],"Financiën"],["kassa","Kassa",["kassa"],"Financiën"],
+  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"],"Activiteiten"],["kalverdeling","Kalenders: personen en dozen meegeven",[],"Activiteiten"],["fuif","In Vier en Vlam",["fuif"],"Activiteiten"],["banket","Banket",["banket"],"Activiteiten"],["kinderfeest","Kinderfeest",["kinderfeest"],"Activiteiten"],["familiedag","Familiedag",["familiedag"],"Activiteiten"],["jaarmarkt","Jaarmarkt",["jaarmarkt"],"Activiteiten"],
+  ["agenda","Agenda en verslagen",["agenda","verslagen"],"Administratie"],["mails","Mails",["mails"],"Administratie"],["sponsors","Sponsors",["sponsors"],"Administratie"],["documenten","Documenten",["documenten"],"Administratie"],["website","Website",["website"],"Administratie"],["shiften","Shiften",["shiften"],"Administratie"],["fotos","Fotoalbums",["fotos"],"Administratie"],
+  ["webshop","Webshop",["webshop"],"Webshop"]];
 const FUNC_VAN={};for(const [f,,rs] of FUNC)for(const r of rs)FUNC_VAN[r]=f;
 const RECHT_LBL={geen:"Verborgen",lezen:"Lezen",bewerken:"Bewerken"};
-function rechtenVanProfiel(rol){const o={};for(const [f] of FUNC)o[f]=rol==="admin"?"bewerken":rol==="boekhouder"&&f==="financien"?"bewerken":"lezen";return o}
+function rechtenVanProfiel(rol){const o={};for(const [f] of FUNC)o[f]=rol==="admin"?"bewerken":rol==="boekhouder"&&["financien","facturen","overzicht","historiek","begroting"].includes(f)?"bewerken":"lezen";return o}
 function recht(r){r=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS[r])||r;if(ROL==="admin")return "bewerken";const f=FUNC_VAN[r];if(!f)return "lezen";
   if(RECHTEN&&ROL===ROL_ECHT)return RECHTEN[f]||"geen";return ROL==="boekhouder"&&BOEK_ROUTES.has(r)?"bewerken":"lezen"}
 magSchrijven=function(r){return recht(r||route())==="bewerken"};
@@ -6240,7 +6241,7 @@ function rgHtml(u){const R=u.rechten||rechtenVanProfiel(u.rol),eigen=!!u.rechten
   return `<div class="fld full" id="rgWrap"><span class="lbl">Wat mag ${esc((u.naam||"deze persoon").split(" ")[0])} zien en doen?</span>
    <div class="seg" role="group" aria-label="Soort rechten" style="margin-bottom:10px"><button type="button" data-rg="profiel" class="${eigen?"":"on"}">Volgens profiel</button><button type="button" data-rg="eigen" class="${eigen?"on":""}">Per functie</button></div>
    <p class="help rg-adm" style="margin:0 0 8px">Een administrator heeft altijd alle rechten. Kies hierboven een ander profiel om per functie te kiezen.</p>
-   <div class="rg-tab"${eigen?"":" hidden"}>${FUNC.map(([f,l])=>`<div class="rg-r"><span>${esc(l)}</span><div class="seg rg-seg" role="radiogroup" aria-label="${esc(l)}">${["geen","lezen","bewerken"].map(v=>`<button type="button" role="radio" data-rgf="${f}" data-v="${v}" aria-checked="${R[f]===v}" class="${R[f]===v?"on":""}">${RECHT_LBL[v]}</button>`).join("")}</div></div>`).join("")}
+   <div class="rg-tab"${eigen?"":" hidden"}>${FUNC.map(([f,l,,g],i)=>`${g&&g!==(FUNC[i-1]||[])[3]?`<div class="rg-g">${esc(g)}</div>`:""}<div class="rg-r${f==="kalverdeling"?" rg-sub":""}"><span>${esc(l)}</span><div class="seg rg-seg" role="radiogroup" aria-label="${esc(l)}">${["geen","lezen","bewerken"].map(v=>`<button type="button" role="radio" data-rgf="${f}" data-v="${v}" aria-checked="${R[f]===v}" class="${R[f]===v?"on":""}">${RECHT_LBL[v]}</button>`).join("")}</div></div>`).join("")}
    <div class="rg-snel"><span class="muted small">Alles op:</span>${["geen","lezen","bewerken"].map(v=>`<button type="button" class="btn sm ghost" data-rgall="${v}">${RECHT_LBL[v]}</button>`).join("")}</div></div>
    <span class="help">Verborgen: niet in het menu. Lezen: bekijken zonder te wijzigen. Bewerken: ook wijzigen. Het dashboard en je eigen meldingen ziet iedereen.</span></div>`}
 function rgLees(){const w=$("#rgWrap");if(!w)return undefined;if(!w.querySelector('[data-rg="eigen"]').classList.contains("on"))return null;const o={};for(const [f] of FUNC){const b=w.querySelector(`[data-rgf="${f}"].on`);o[f]=b?b.dataset.v:"geen"}return o}
@@ -6287,6 +6288,8 @@ gbSimKies=async function(){closeAcct();const U=await gbSimLijst();
 function rechtRuw(f){if(ROL==="admin")return"bewerken";const R=(typeof SIM_U!=="undefined"&&SIM_U&&ROL!==ROL_ECHT&&SIM_U.rechten)||(RECHTEN&&ROL===ROL_ECHT?RECHTEN:null);return R?(R[f]||"geen"):null}
 function kalBeperkt(){return rechtRuw("kalenders")!=="bewerken"&&rechtRuw("kalverdeling")==="bewerken"&&ROL!=="admin"}
 {const _r=recht;recht=function(r){const v=_r.apply(this,arguments);if(r==="kalenders"&&v!=="bewerken"&&rechtRuw("kalverdeling")==="bewerken")return"bewerken";return v}}
+
+{const st=document.createElement("style");st.textContent=".rg-g{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}.rg-g:first-child{margin-top:0}.rg-sub>span{padding-left:14px;font-size:13.5px}";document.head.appendChild(st)}
 
 /* ============ Puntensysteem: tussenstand-mail en automatische proficiat-mail bij goud ============
    Velden voor de mails: {status_volgend} (goud/zilver/brons volgens de punten van dit jaar) en {status_tussenstand}
