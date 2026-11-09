@@ -56,7 +56,7 @@ const UI=Object.assign({ledenQ:"",ledenCat:"",ledenF:"alle",oudLeden:false,boekQ
 if(UI.puntSort==="voornaam")UI.puntSort="naam";UI.ledenSort={k:"naam",d:1};
 const saveUI=()=>{const {ledenQ,boekQ,puntQ,kalQ,spQ,histQ,...rest}=UI;ls.set("ui",rest)};
 const cfg=()=>Object.assign({},DEF_CONFIG,(S.config.get("algemeen")||{}));
-const jaarCfg=Y=>{const j=S.jaren.get(String(Y))||{};return{...DEF_JAAR,...j,gewichten:{...DEF_JAAR.gewichten,...(j.gewichten||{})},drempels:{...DEF_JAAR.drempels,...(j.drempels||{})},korting:{...DEF_JAAR.korting,...(j.korting||{})},lidgeld:{...DEF_JAAR.lidgeld,...(j.lidgeld||{})}}};
+const jaarCfg=Y=>{const j=S.jaren.get(String(Y))||{};return{...DEF_JAAR,...j,...(typeof jbAuto==="function"?jbAuto(Y):{}),gewichten:{...DEF_JAAR.gewichten,...(j.gewichten||{})},drempels:{...DEF_JAAR.drempels,...(j.drempels||{})},korting:{...DEF_JAAR.korting,...(j.korting||{})},lidgeld:{...DEF_JAAR.lidgeld,...(j.lidgeld||{})}}};
 const jaren=()=>[...S.jaren.keys()].map(Number).sort((a,b)=>a-b);
 const naamVol=l=>(l.voornaam||"")+" "+(l.naam||"");
 const isEreVoorzitter=l=>norm(l.info).includes("ere-voorzitter");
@@ -719,9 +719,9 @@ function ledenInst(){const c=cfg();
     await write("config","algemeen",{...stripId(S.config.get("algemeen")||{}),ledenCategorieen:cats});closeModal();toast("Categorieën leden bewaard.")}}
 function finInst(){const j=jaarCfg(JAAR),c=cfg();const d=canWrite?"":" disabled";
   const n=(id,l,v,suf,h)=>`<div class="fld"><label for="${id}">${l}</label><div class="sfx"><input id="${id}" type="number" step="0.01" inputmode="decimal" value="${v}"${d}><span>${suf}</span></div>${h?`<span class="help">${h}</span>`:""}</div>`;
-  modal("Financiële instellingen",`<div class="pi-sec"><h4>Beginsaldo boekjaar ${JAAR}</h4><div class="form">${n("fiKas","Kas",j.beginKas,"€")}${n("fiRek","Rekening",j.beginRekening,"€")}</div></div>
+  modal("Financiële instellingen",`<div class="pi-sec"><h4>Beginsaldo boekjaar ${JAAR}</h4><div class="form">${jbIsAuto(JAAR)?`<div class="fld"><label>Kas</label><div class="jb-v">${eur(j.beginKas)}</div></div><div class="fld"><label>Rekening</label><div class="jb-v">${eur(j.beginRekening)}</div></div><input type="hidden" id="fiKas" value="${j.beginKas}"><input type="hidden" id="fiRek" value="${j.beginRekening}"><p class="pi-note full" style="margin:0">Automatisch het eindsaldo van ${JAAR-1}.</p>`:n("fiKas","Kas",j.beginKas,"€")+n("fiRek","Rekening",j.beginRekening,"€")}</div></div>
   <div class="pi-sec"><h4>Lidgeld ${JAAR}</h4><div class="form">${n("fiLg","Gewoon lid",j.lidgeld.gewoon,"€")}${n("fiLe","Erewacht",j.lidgeld.erewacht,"€")}</div></div>
-  <div class="pi-sec"><h4>Rekening</h4><div class="form"><div class="fld full"><label for="fiIban">Rekeningnummer</label><input id="fiIban" value="${esc(c.rekeningnummer)}" placeholder="BE.. .... .... ...."${d}><span class="help">Staat op de betaal-QR's, de inschrijfpagina's en in de mails.</span></div></div></div>
+  <div class="pi-sec"><h4>Rekening</h4><div class="form"><div class="fld full"><label for="fiIban">Rekeningnummer</label><input id="fiIban" class="jb-ro" value="${esc(c.rekeningnummer)}" readonly tabindex="-1"></div></div></div>
   <div class="pi-sec"><h4>Categorieën</h4><div class="form"><div class="fld full"><span class="lbl">Categorieën boekhouding</span>${catEditor("fiCat",c.boekCategorieen)}<span class="help">Een categorie verwijderen verandert niets aan bestaande transacties.</span></div></div></div>
   ${wjInstHtml(c)}
   <div class="pi-sec"><h4>Bank</h4><div class="bar" style="margin:0"><a class="btn" href="#bank" data-act="closeModal">${ic("upload")}Bankimport en koppeling</a><a class="btn" href="#regels" data-act="closeModal">Automatische regels</a></div></div>`,
@@ -4751,7 +4751,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="kalIn
 
 /* ---- naam van de vereniging: tandwiel Boekhouding (Financiële instellingen); link inschrijfformulier: tandwiel Ledenlijst ---- */
 {const _f=finInst;finInst=function(){_f.apply(this,arguments);const iban=$("#fiIban");const sec=iban&&iban.closest(".pi-sec");if(!sec)return;const d=canWrite?"":" disabled";
-  sec.insertAdjacentHTML("beforebegin",`<div class="pi-sec"><h4>Vereniging</h4><div class="form"><div class="fld full"><label for="fiNaam">Naam vereniging</label><input id="fiNaam" value="${esc(cfg().vereniging||"")}"${d}><span class="help">Staat op facturen, betaalpagina's en in alle mails.</span></div></div></div>`);
+  sec.insertAdjacentHTML("beforebegin",`<div class="pi-sec"><h4>Vereniging</h4><div class="form"><div class="fld full"><label for="fiNaam">Naam vereniging</label><input id="fiNaam" class="jb-ro" value="${esc(cfg().vereniging||"")}" readonly tabindex="-1"></div></div></div>`);
   const ok=$("#fiOk");if(!ok||!ok.onclick)return;const _o=ok.onclick;
   ok.onclick=async function(ev){const n=$("#fiNaam").value.trim();if(!n){toast("Vul de naam van de vereniging in.",true);return}
     const cur=S.config.get("algemeen")||{};S.config.set("algemeen",{...cur,id:"algemeen",vereniging:n});return _o.call(this,ev)}}}
@@ -5532,7 +5532,7 @@ function wjPaneel(){const o=wjCfg();const Y=JAAR;const all=[...S.boekingen.value
   if(!rows.length)return"";
   return `<div class="panel"><div class="panel-h"><h2>Resultaat per werkjaar</h2><span class="grow"></span><span class="muted small">Overlopend: ${esc(o.cats.join(", "))} · vóór 1 ${WJ_MND[o.maand-1]} = vorig werkjaar</span></div><div class="tw"><table class="rcards"><thead><tr><th>Werkjaar</th><th>Geboekt in</th><th class="num">Totaal</th></tr></thead><tbody>${rows.join("")}</tbody></table></div></div>`}
 function wjInstHtml(c){const o=wjCfg();const d=canWrite?"":" disabled";
-  return `<div class="pi-sec"><h4>Overlopende werkjaren</h4><div class="form"><div class="fld full"><span class="lbl">Categorieën die over de jaargrens lopen</span><div class="wj-cats" id="wjCats">${c.boekCategorieen.map(k=>`<label class="wj-cat"><input type="checkbox" value="${esc(k)}"${o.cats.includes(k)?" checked":""}${d}><span>${esc(k)}</span></label>`).join("")}</div><span class="help">Transacties van deze categorieën vóór de grensdatum tellen nog bij het vorige werkjaar (bv. kalenders van vorig jaar die in het voorjaar nog betaald worden). Per transactie kan je het werkjaar ook zelf kiezen.</span></div>
+  return `<div class="pi-sec"><h4>Overlopende werkjaren</h4><div class="form"><div class="fld full"><span class="lbl">Categorieën die over de jaargrens lopen</span><div class="wj-cats" id="wjCats">${c.boekCategorieen.map(k=>`<label class="wj-cat"><input type="checkbox" value="${esc(k)}"${o.cats.includes(k)?" checked":""}${d}><span>${esc(k)}</span></label>`).join("")}</div></div>
   <div class="fld"><label for="wjMaand">Nieuw werkjaar vanaf</label><select id="wjMaand"${d}>${WJ_MND.map((m,i)=>`<option value="${i+1}"${o.maand===i+1?" selected":""}>1 ${m}</option>`).join("")}</select></div></div></div>`}
 function wjInstVals(){const el=$("#wjCats");if(!el)return null;return{cats:[...el.querySelectorAll("input:checked")].map(i=>i.value),maand:Number($("#wjMaand").value)||5}}
 
@@ -5541,6 +5541,23 @@ wjPaneel=function(){return ""};
 {const st=document.createElement("style");st.textContent=`.wj-cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;margin:6px 0 4px}
 .wj-cat{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-weight:400!important;font-size:14px;cursor:pointer;background:var(--surface,#fff);min-width:0}
 .wj-cat input{flex:none;margin:0;width:auto}.wj-cat span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wj-cat:has(input:checked){border-color:var(--accent,#c0161f);background:var(--accent-soft,#fcebec)}`;document.head.appendChild(st)}
+
+/* ---------- beginsaldo automatisch: beginsaldo(J) = beginsaldo(J-1) + resultaat kas/rekening van J-1 ----------
+   Enkel het eerste boekjaar in de app heeft een ingegeven beginsaldo. */
+const JB={cache:new Map(),net:null};
+const jbBasis=()=>{const Y=[...S.jaren.keys()].map(Number).filter(Boolean);return Y.length?Math.min(...Y):null};
+const jbIsAuto=Y=>{const b=jbBasis();return b!=null&&Number(Y)>b&&S.jaren.has(String(Number(Y)-1))};
+function jbNet(){if(JB.net)return JB.net;const m=new Map();for(const b of S.boekingen.values()){const y=Number(b.jaar);if(!y)continue;const x=m.get(y)||{kas:0,rek:0};const v=(b.richting==="uit"?-1:1)*(Number(b.bedrag)||0);if(b.rekening==="Kas")x.kas+=v;else x.rek+=v;m.set(y,x)}JB.net=m;return m}
+function jbAuto(Y){Y=Number(Y);if(!jbIsAuto(Y))return{};if(JB.cache.has(Y))return JB.cache.get(Y);
+  const vorig=jaarCfg(Y-1),n=jbNet().get(Y-1)||{kas:0,rek:0};
+  const r={beginKas:Math.round(((Number(vorig.beginKas)||0)+n.kas)*100)/100,beginRekening:Math.round(((Number(vorig.beginRekening)||0)+n.rek)*100)/100};JB.cache.set(Y,r);return r}
+{const _r=render;render=function(){JB.cache.clear();JB.net=null;return _r.apply(this,arguments)}}
+// de database bijwerken als het opgeslagen beginsaldo afwijkt (enkel een administrator; zo rekent ook de server met hetzelfde bedrag)
+setInterval(async()=>{try{if(typeof ROL==="undefined"||ROL!=="admin"||!S.jaren.size||!S.boekingen.size)return;JB.cache.clear();JB.net=null;
+  for(const k of [...S.jaren.keys()].sort()){const Y=Number(k);if(!jbIsAuto(Y))continue;const a=jbAuto(Y),j=S.jaren.get(k)||{};
+    if(Math.abs((Number(j.beginKas)||0)-a.beginKas)>0.004||Math.abs((Number(j.beginRekening)||0)-a.beginRekening)>0.004){const {id,...rest}=j;await write("jaren",k,{...rest,beginKas:a.beginKas,beginRekening:a.beginRekening})}}}catch(e){}},20000);
+{const st=document.createElement("style");st.textContent=".jb-v{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--soft,#f4f4f5);font-weight:600;font-variant-numeric:tabular-nums;text-align:right}";document.head.appendChild(st)}
+{const st=document.createElement("style");st.textContent=".jb-ro{background:var(--soft,#f4f4f5)!important;color:var(--ink)!important;border-color:var(--line)!important;font-weight:600;pointer-events:none;box-shadow:none!important}";document.head.appendChild(st)}
 
 /* ---------- Kinderfeest: voorziene kost van de cadeaus volgens de inschrijvingen ----------
    Bedragen komen uit "Waarde per geboortejaar" (bevestigingsmail), bv. "2016-2020: 50,00 EUR per kind".
