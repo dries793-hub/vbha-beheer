@@ -2243,7 +2243,7 @@ const vgBestuur=v=>/bestuur/i.test((v&&v.soort)||"");
 const vgInMail=v=>vgBestuur(v)?false:typeof v.inMail==="boolean"?v.inMail:/algemene/i.test(v.soort||"");
 const agMailVink=(id,aan)=>`<label class="sp-nat full" for="${id}"><input type="checkbox" id="${id}"${aan?" checked":""}${canWrite?"":" disabled"}><span><b>Opnemen in de activiteitenmail</b></span></label>`;
 function agItems(){const out=[];
-  for(const a of S.activiteiten.values())if(a.datum)out.push({id:a.id,t:"act",datum:a.datum,uur:a.uur||"",titel:a.titel||"Activiteit",locatie:a.locatie||"",info:a.info||"",inMail:a.inMail!==false});
+  for(const a of S.activiteiten.values())if(a.datum)out.push({id:a.id,t:"act",datum:a.datum,uur:a.uur||"",titel:a.titel||"Activiteit",locatie:a.locatie||"",info:a.info||"",inMail:a.inMail!==false,shift:a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length>0)});
   for(const v of S.vergaderingen.values())if(v.datum)out.push({id:v.id,t:"verg",datum:v.datum,uur:v.uur||"",titel:v.titel||v.soort||"Vergadering",locatie:v.locatie||"",inMail:vgInMail(v)});
   try{const k=kfCfg();if(k.datum)out.push({id:"kf",t:"auto",href:"kinderfeest",datum:k.datum,uur:k.tijd||"",titel:"Kinderfeest",locatie:k.locatie||"",info:k.info||"",inMail:k.inMail!==false})}catch(e){}
   const b=bkCfg();if(b.datum)out.push({id:"bk",t:"auto",href:"banket",datum:b.datum,uur:b.uur||"",titel:"Banket",locatie:b.locatie||"",info:b.info||"",inMail:b.inMail!==false});
@@ -2252,7 +2252,7 @@ const agSoort=x=>x.t==="verg"?["verg","Vergadering"]:["act","Activiteit"];
 const agAttr=x=>`data-act="${x.t==="verg"?"vgToon":x.t==="auto"?"agAuto":"agToon"}" data-id="${esc(x.id)}"`;
 function agRij(x){const d=agD(x.datum),[c,l]=agSoort(x);const w=agWanneer(x.datum);
   return `<a class="ag-r" ${agAttr(x)}><span class="ag-dt ${c}"><b>${d.getDate()}</b><span>${d.toLocaleDateString("nl-BE",{month:"short"}).replace(".","")}</span></span>
-  <span class="ag-m"><b class="trunc">${esc(x.titel)}${x.inMail?`<span class="ag-mail" title="Komt in de activiteitenmail" aria-label="Komt in de activiteitenmail">${ic("mails")}</span>`:""}</b><span class="trunc">${esc([agKort(x.datum),x.uur,x.locatie].filter(Boolean).join(" · "))}</span></span></a>`}
+  <span class="ag-m"><b class="trunc">${esc(x.titel)}${x.inMail?`<span class="ag-mail" title="Komt in de activiteitenmail" aria-label="Komt in de activiteitenmail">${ic("mails")}</span>`:""}${x.shift?`<span class="ag-mail" title="Gebruikt in shiften" aria-label="Gebruikt in shiften">${ic("shiften")}</span>`:""}</b><span class="trunc">${esc([agKort(x.datum),x.uur,x.locatie].filter(Boolean).join(" · "))}</span></span></a>`}
 
 /* ---------- dashboard: mini-kalender en volgende vergadering ---------- */
 function agMaand(L){const t=todayISO();const m=AG.m||t.slice(0,7);const [Y,M]=m.split("-").map(Number);
