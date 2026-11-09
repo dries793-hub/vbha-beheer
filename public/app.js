@@ -740,7 +740,7 @@ function puntInst(){const c=jaarCfg(JAAR),w=c.gewichten,dr=c.drempels,k=c.kortin
   <span>${medal("BRONS")}</span><span class="pi-fix">0 pt</span><div class="sfx"><input id="piKb" type="number" min="0" max="100" inputmode="numeric" value="${k.brons}" aria-label="Korting brons"><span>%</span></div>
   <span>${medal("ZILVER")}</span><div class="sfx"><input id="piZ" type="number" min="0" inputmode="numeric" value="${dr.zilver}" aria-label="Zilver vanaf"><span>pt</span></div><div class="sfx"><input id="piKz" type="number" min="0" max="100" inputmode="numeric" value="${k.zilver}" aria-label="Korting zilver"><span>%</span></div>
   <span>${medal("GOUD")}</span><div class="sfx"><input id="piG" type="number" min="0" inputmode="numeric" value="${dr.goud}" aria-label="Goud vanaf"><span>pt</span></div><div class="sfx"><input id="piKg" type="number" min="0" max="100" inputmode="numeric" value="${k.goud}" aria-label="Korting goud"><span>%</span></div></div></div>
-  <p class="pi-note">Geldt voor boekjaar ${JAAR}. Een nieuw boekjaar neemt deze waarden over.</p>`,
+  `,
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="piOk">Bewaren</button>`);
   $("#piOk").onclick=async()=>{const g=id=>Math.max(0,Math.round(num($("#"+id).value)));const z=g("piZ"),go=g("piG");
     if(go<=z){toast("Goud moet hoger liggen dan zilver.",true);return}
