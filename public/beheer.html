@@ -1318,10 +1318,11 @@ html{touch-action:manipulation}
 .fu-x{flex:none;width:34px;height:34px;border-radius:8px;border:1px solid transparent;background:none;color:var(--bad,#c0161f);font-size:22px;line-height:1;cursor:pointer}
 .fu-x:hover{background:var(--sunken);border-color:var(--line)}
 /* kassa */
-.ka-tabs{display:flex;gap:4px;background:var(--sunken);border-radius:12px;padding:4px;margin:0 0 16px;max-width:420px}
-.ka-tabs button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;background:none;padding:9px 10px;border-radius:9px;font:600 14.5px var(--f,inherit);color:var(--muted);cursor:pointer}
+.ka-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:0 0 18px;overflow-x:auto;scrollbar-width:none}.ka-tabs::-webkit-scrollbar{display:none}
+.ka-tabs button,.ka-tabs a{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;border:0;border-bottom:2.5px solid transparent;margin-bottom:-1px;background:none;padding:10px 14px;border-radius:8px 8px 0 0;font:500 14.5px var(--f,inherit);color:var(--muted);cursor:pointer;text-decoration:none}
+.ka-tabs button:hover,.ka-tabs a:hover{color:var(--ink);background:var(--soft,#f1f1f2)}
 .ka-tabs button svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8}
-.ka-tabs button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.ka-tabs button.on,.ka-tabs a.on{background:none;color:var(--ink);font-weight:650;border-bottom-color:var(--accent,#c0161f);box-shadow:none}
 .ka-kop{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px}
 .ka-kop-b{display:flex;gap:8px;flex-wrap:wrap}
 .ka-status{display:grid;grid-template-columns:1fr 1fr;gap:16px}.ka-status>div{display:flex;flex-direction:column;gap:2px}.ka-status b{font-size:18px}
@@ -1355,8 +1356,7 @@ html{touch-action:manipulation}
 .btn>.spi-dot,.btn>.fu-dot{position:static!important;display:inline-block;flex:none;width:9px!important;height:9px!important;min-width:0!important;padding:0!important;margin:0 0 0 2px!important;font-size:0!important;line-height:0!important;border-radius:50%!important;background:#1a7f45!important;box-shadow:0 0 0 3px rgba(26,127,69,.2)!important;color:transparent!important;overflow:hidden}
 .btn>.spi-dot.dicht,.btn>.spi-dot.verlopen,.btn>.fu-dot:not(.open){background:#9a9ca1!important;box-shadow:0 0 0 3px rgba(154,156,161,.22)!important}
 .nw-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--accent,#c0161f);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;vertical-align:2px;line-height:1.5}
-.ka-tabs a{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 10px;border-radius:9px;font:600 14.5px var(--f,inherit);color:var(--muted);text-decoration:none}
-.ka-tabs a.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
 .bt-n{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--accent,#c0161f);color:#fff;font-size:12px;font-weight:700;display:inline-grid;place-items:center}
 /* webshop */
 .sh-th{flex:none;width:48px;height:48px;border-radius:10px;background:var(--sunken) center/cover no-repeat;border:1px solid var(--line)}
