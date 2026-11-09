@@ -1,4 +1,4 @@
-import { requireUser, httpErr, sendError } from "./sb.js";
+import { requireUser, httpErr, sendError, isDbCron } from "./sb.js";
 
 /* Sms via BudgetSMS (https://www.budgetsms.net), HTTP API sendsms.
    Nodig in Vercel: BUDGETSMS_USERNAME, BUDGETSMS_USERID, BUDGETSMS_HANDLE; optioneel BUDGETSMS_FROM (afzender, max. 11 letters/cijfers, standaard VBHA,
@@ -27,6 +27,14 @@ export async function stuurSms(to, msg) {
 /* /api/mail?f=sms   GET → {aan, afzender}   POST {berichten:[{tel, tekst, label}]} → {resultaten:[{label, ok, fout}], kost} */
 export default async function smsApi(req, res) {
   try {
+    // controle door de beheerder (geplande-taaksleutel): enkel het tegoed opvragen, er wordt niets verstuurd
+    if (req.method === "POST" && await isDbCron(req)) {
+      if (!smsAan()) return res.status(200).json({ aan: false });
+      const q = new URLSearchParams({ username: env("BUDGETSMS_USERNAME"), userid: env("BUDGETSMS_USERID"), handle: env("BUDGETSMS_HANDLE") });
+      const t = (await (await fetch("https://api.budgetsms.net/checkcredit/?" + q.toString())).text()).trim();
+      const e = (t.match(/^ERR\s+(\d+)/) || [])[1];
+      return res.status(200).json({ aan: true, afzender: afzender(), antwoord: /^OK/.test(t) ? "OK, tegoed " + t.replace(/^OK\s*/, "") : (FOUT[e] || t.slice(0, 60)) });
+    }
     if (req.method === "GET") { await requireUser(req); return res.status(200).json({ aan: smsAan(), afzender: afzender() }); }
     if (req.method !== "POST") throw httpErr(405, "Niet toegelaten");
     await requireUser(req, { write: true, functie: "agenda" });
