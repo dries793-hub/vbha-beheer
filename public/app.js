@@ -787,10 +787,10 @@ VIEWS.kalenders=()=>({title:"Kalenders "+JAAR,sub:"Verdeling en verkoop van de k
   const C=ctx(),k=kalStats(C);
   const inLijst=new Set(k.rows.map(j=>j.lidId).filter(Boolean));
   const ontbreekt=C.leden.filter(l=>l.categorie!=="Erewacht"&&C.rows.get(l.id).lg.ok&&!inLijst.has(l.id));
-  return kalTabs("kalenders")+`<div class="tiles"><div class="tile"><span class="lbl">Nog in stock</span><span class="val">${k.stock}</span><span class="hint">van ${C.c.kalenderStock} dozen</span></div>
-    <div class="tile"><span class="lbl">In omloop</span><span class="val">${k.omloop}</span><span class="hint">opgehaald, nog niet klaar</span></div>
-    <div class="tile"><span class="lbl">Uitgevoerd</span><span class="val">${k.uit}</span><span class="hint">${k.uit*C.c.gewichten.kalenders} punten in totaal</span></div>
-    <div class="tile"><span class="lbl">Personen in lijst</span><span class="val">${k.rows.length}</span><span class="hint">met kalenders in ${JAAR}</span></div></div>
+  return kalTabs("kalenders")+`<div class="tiles"><div class="tile"><span class="lbl">Nog in stock</span><span class="val">${k.stock}</span></div>
+    <div class="tile"><span class="lbl">In omloop</span><span class="val">${k.omloop}</span></div>
+    <div class="tile"><span class="lbl">Uitgevoerd</span><span class="val">${k.uit}</span></div>
+    <div class="tile"><span class="lbl">Personen in lijst</span><span class="val">${k.rows.length}</span></div></div>
   <div class="bar"><div class="search">${ic("search")}<input id="kalQ" data-live data-input="kalQ" placeholder="Zoek persoon" value="${esc(UI.kalQ)}"></div></div>
   <div class="panel" id="kalList">${kalTable()}</div>`}});
 function kalNaam(j){if(j.lidId){const l=S.leden.get(j.lidId);return l?naamVol(l):j.lidId}return j.naam||"?"}
