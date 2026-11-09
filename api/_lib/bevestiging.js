@@ -10,7 +10,7 @@ import { teken, ondertekenLinks } from "./lidlink.js";
      Lukt de Bancontact-betaling, dan vertrekt de bevestiging meteen met "betaling ontvangen".
      Is er na 20 minuten nog niet betaald, dan stuurt de geplande taak (elke 10 minuten) de bevestiging met de gegevens om over te schrijven.
    - Wie later toch online betaalt, of een bestaand lid dat via de lidgeldlink betaalt, krijgt een korte mail "betaling ontvangen". */
-const F = "font-family:Helvetica,Arial,sans-serif;";
+const F = "font-family:'Inter','Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;";
 const LOGO = "https://impro.usercontent.one/appid/oneComWsb/domain/vbha.be/media/vbha.be/onewebmedia/logo%20VBHA%201.png";
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const eur = n => "€" + Number(n || 0).toLocaleString("nl-BE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -19,21 +19,39 @@ const kort = iso => { if (!iso) return ""; const [y, m, d] = String(iso).slice(0
 const plusDagen = (iso, n) => { const [y, m, d] = String(iso).slice(0, 10).split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
 const vandaag = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 const site = () => String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, "");
-const p = (t, st = "margin:0 0 15px") => `<p style="${st}">${t}</p>`;
-const rij = (k, v) => v === "" || v == null ? "" : `<tr><td class="vb-l" style="padding:4px 14px 4px 0;color:#666666;vertical-align:top;white-space:nowrap">${esc(k)}</td><td style="padding:4px 0;vertical-align:top;word-break:break-word;overflow-wrap:anywhere">${v}</td></tr>`;
-const tabel = rows => `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="${F}font-size:15px;color:#222222;line-height:1.45">${rows.join("")}</table>`;
-const kaderBlok = (titel, inner, kleur = "#C1A057", bg = "#fff9f9") => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 18px;border-collapse:collapse"><tr><td class="vb-k" bgcolor="${bg}" style="padding:16px 22px;border-left:5px solid ${kleur};${F}font-size:15px;color:#222222;line-height:1.5"><h2 style="color:#b30000;font-size:17px;font-weight:bold;margin:0 0 10px">${titel}</h2>${inner}</td></tr></table>`;
-const knop = (t, href) => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 18px"><tr><td align="center"><table role="presentation" border="0" cellspacing="0" cellpadding="0"><tr><td bgcolor="#b30000" style="border-radius:4px;padding:12px 26px;text-align:center"><a href="${esc(href)}" style="${F}font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none">${esc(t)}</a></td></tr></table></td></tr></table>`;
-function huisstijl(inner, ver) {
-  return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>@media only screen and (max-width:520px){.vb-in{padding:22px 18px 18px!important}.vb-k{padding:14px 14px!important}.vb-l{padding-right:10px!important}}</style></head><body style="margin:0;padding:0;background:#f7f7f7">
+const p = (t, st = "margin:0 0 16px") => `<p style="${st}">${t}</p>`;
+/* ---------- huisstijl van de mails (2026): hoofding zoals op de facturen, inhoud in de stijl van de website ----------
+   Werkt in Gmail, Apple Mail, Outlook (ook 2010-2019 via de VML-knop en vaste breedte) en op gsm. */
+const INK = "#1a1b1e", MUTED = "#686b71", ROOD = "#b30000", ZACHT = "#f5f5f6", LIJN = "#e5e6e8";
+const rij = (k, v) => v === "" || v == null ? "" : `<tr><td class="vb-l" style="padding:4px 16px 4px 0;color:${MUTED};vertical-align:top;white-space:nowrap;${F}font-size:15px">${esc(k)}</td><td style="padding:4px 0;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;${F}font-size:15px;color:${INK}">${v}</td></tr>`;
+const tabel = rows => `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="${F}font-size:15px;color:${INK};line-height:1.5">${rows.join("")}</table>`;
+const kaderBlok = (titel, inner, kleur = ROOD, bg = ZACHT) => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 22px;border-collapse:separate"><tr><td class="vb-k" bgcolor="${bg}" style="padding:18px 22px;border-left:4px solid ${kleur};border-radius:10px;${F}font-size:15px;color:${INK};line-height:1.55"><h2 style="${F}color:${INK};font-size:17px;line-height:1.3;font-weight:bold;margin:0 0 10px">${titel}</h2>${inner}</td></tr></table>`;
+const knop = (t, href) => { const w = Math.min(520, Math.max(220, Math.round(String(t).length * 9.5 + 64)));
+  return `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 22px"><tr><td align="center" bgcolor="${ROOD}" style="border-radius:8px">`
+  + `<!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${esc(href)}" style="height:48px;v-text-anchor:middle;width:${w}px" arcsize="17%" stroke="f" fillcolor="${ROOD}"><w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold">${esc(t)}</center></v:roundrect><![endif]-->`
+  + `<!--[if !mso]><!--><a href="${esc(href)}" target="_blank" style="${F}display:inline-block;padding:14px 26px;font-size:16px;font-weight:bold;line-height:20px;color:#ffffff;text-decoration:none;border-radius:8px;background:${ROOD}">${esc(t)}</a><!--<![endif]--></td></tr></table>`; };
+// oudere opmaak in teksten van de afzonderlijke mails meteen in de nieuwe stijl zetten
+const modern = s => String(s)
+  .replace(/font-family:Helvetica,Arial,sans-serif;?/g, F)
+  .replace(/color:#222222/gi, "color:" + INK).replace(/color:#666666/gi, "color:" + MUTED)
+  .replace(/<h2 style="color:#b30000;/gi, `<h2 style="${F}color:${INK};`).replace(/<h3 style="color:#b30000;/gi, `<h3 style="${F}color:${INK};`)
+  .replace(/bgcolor="#fff9f9"/gi, `bgcolor="${ZACHT}"`).replace(/border-left:5px solid #C1A057;?/gi, `border-left:4px solid ${ROOD};border-radius:10px;`);
+const HOOFD = (titel) => `<!DOCTYPE html><html lang="nl" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><title>${titel}</title>
+<!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><style>td,p,a,h1,h2,h3,li,span{font-family:'Segoe UI',Arial,sans-serif!important}</style><![endif]-->
+<style>@media only screen and (max-width:520px){.vb-in{padding:26px 20px 20px!important}.vb-k{padding:16px 16px!important}.vb-l{padding-right:10px!important}}</style></head>`;
+function huisstijl(inner, ver, { groet = true, voet = "" } = {}) {
+  return `${HOOFD(esc(ver))}<body style="margin:0;padding:0;background:#f7f7f7;-webkit-text-size-adjust:100%">
 <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#f7f7f7"><tr><td align="center" style="padding:25px 10px">
-<table role="presentation" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="width:100%;max-width:640px;border-collapse:collapse">
+<!--[if mso]><table role="presentation" width="640" border="0" cellspacing="0" cellpadding="0" align="center"><tr><td><![endif]-->
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="width:100%;max-width:640px;border-collapse:collapse">
 <tr><td align="center" bgcolor="#f7f7f7" style="padding:20px"><img src="${LOGO}" alt="${esc(ver)}" width="220" height="84" style="display:block;width:220px;height:84px;border:0"></td></tr>
-<tr><td style="border-top:8px solid #b30000;padding:0"></td></tr>
-<tr><td class="vb-in" style="${F}font-size:15px;line-height:1.5;color:#222222;padding:28px 40px 22px">${inner}${p("Met vriendelijke groeten,<br><b>Het bestuur</b>", "margin:0")}</td></tr>
-<tr><td style="border-top:8px solid #b30000;padding:0"></td></tr>
-<tr><td align="center" bgcolor="#f7f7f7" style="${F}font-size:12px;color:#888888;line-height:1.5;padding:14px 20px">${esc(ver)} &middot; Vragen? Antwoord gewoon op deze mail.</td></tr>
-</table></td></tr></table></body></html>`;
+<tr><td style="border-top:8px solid ${ROOD};padding:0;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td class="vb-in" bgcolor="#ffffff" style="${F}font-size:15px;line-height:1.6;color:${INK};padding:32px 40px 26px">${modern(inner)}${groet ? p("Met vriendelijke groeten,<br><b>Het bestuur</b>", "margin:8px 0 0") : ""}</td></tr>
+<tr><td style="border-top:8px solid ${ROOD};padding:0;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td align="center" bgcolor="#f7f7f7" style="${F}font-size:12.5px;color:${MUTED};line-height:1.6;padding:16px 20px"><b style="color:${INK}">${esc(ver)}</b><br><a href="https://www.vbha.be" style="color:${MUTED};text-decoration:underline">www.vbha.be</a> &middot; Vragen? Antwoord gewoon op deze mail.${voet ? "<br>" + voet : ""}</td></tr>
+</table>
+<!--[if mso]></td></tr></table><![endif]-->
+</td></tr></table></body></html>`;
 }
 function betaalBlok({ betaald, betaling, bedrag, rekeningnummer, begunstigde, mededeling, tegen, link }) {
   if (betaald) {
@@ -228,7 +246,7 @@ export async function bevestigingenCron(req, res) {
   res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend, betaalherinnering, fuif, kassa, shop, goud });
 }
 // gedeeld met de facturatie (api/_lib/factuur.js)
-export { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, kort, lang, vandaag, plusDagen, site };
+export { huisstijl, modern, kaderBlok, knop, tabel, rij, p, esc, eur, kort, lang, vandaag, plusDagen, site };
 
 /* voorbeeld van de bevestigingsmail kinderfeest (app: Kinderfeest › tandwiel › Voorbeeld) */
 export async function kfVoorbeeld(req, res) {

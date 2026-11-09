@@ -2600,7 +2600,7 @@ const mlGsm=()=>UI.mlDev?UI.mlDev==="gsm":innerWidth<760;
 {const c=NAV.find(n=>n.id==="communicatie");if(c){const m=c.items.findIndex(i=>i[0]==="mails");if(m>=0){const [it]=c.items.splice(m,1);const a=c.items.findIndex(i=>i[0]==="agenda");c.items.splice(a+1,0,it)}}}
 const ML_CATS=["Lidgeld","Activiteiten","Kalenders","Banket","Kinderfeest","Algemeen"];
 const ML_LOGO="https://impro.usercontent.one/appid/oneComWsb/domain/vbha.be/media/vbha.be/onewebmedia/logo%20VBHA%201.png";
-const ML_FONT="font-family:Helvetica,Arial,sans-serif;";
+const ML_FONT="font-family:'Inter','Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;";
 const ML_VELDEN=[
   ["Persoon",[["voornaam","Voornaam"],["naam","Volledige naam"],["bedrag","Bedrag"],["mededeling","Mededeling"],["bedrijf","Bedrijf (sponsors)"]]],
   ["Vereniging",[["jaar","Jaar"],["volgend_jaar","Volgend jaar"],["rekeningnummer","Rekeningnummer"]]],
@@ -2674,35 +2674,47 @@ function mlAgendaHtml(){const L=mlAgendaItems();if(!L.length)return"<p><em>Er st
       if(st.open)extra+=`<p>Inschrijven kan tot en met ${esc(mlKort(st.tot))}.</p><p data-blok="knop"><a href="${location.origin}/${x.id==="bk"?"banket":"kinderfeest"}">Inschrijven ${x.id==="bk"?"banket":"kinderfeest"}</a></p>`}
     return `<div data-blok="kader"><h2>${esc(x.titel)}</h2>${rij.map(p=>"<p>"+p+"</p>").join("")}${extra}</div>`}).join("")}
 
-/* ---------- huisstijl ---------- */
+/* ---------- huisstijl (2026): hoofding zoals op de facturen, inhoud in de stijl van de website ----------
+   Werkt in Gmail, Apple Mail, Outlook (ook 2010-2019: VML-knop en vaste breedte) en op gsm. */
+const ML_INK="#1a1b1e",ML_MUTED="#686b71",ML_ROOD="#b30000",ML_ZACHT="#f5f5f6";
+function mlKnop(t,href){const w=Math.min(520,Math.max(220,Math.round(String(t).length*9.5+64)));
+  return `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 22px 0"><tr><td align="center" bgcolor="${ML_ROOD}" style="border-radius:8px">`
+  +`<!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${esc(href)}" style="height:48px;v-text-anchor:middle;width:${w}px" arcsize="17%" stroke="f" fillcolor="${ML_ROOD}"><w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold">${esc(t)}</center></v:roundrect><![endif]-->`
+  +`<!--[if !mso]><!--><a href="${esc(href)}" target="_blank" style="${ML_FONT}display:inline-block;padding:14px 26px;font-size:16px;font-weight:bold;line-height:20px;color:#ffffff;text-decoration:none;border-radius:8px;background:${ML_ROOD}">${esc(t)}</a><!--<![endif]--></td></tr></table>`}
 function mlStijl(inner){
   const d=new DOMParser().parseFromString("<div id=r>"+inner+"</div>","text/html");const R=d.getElementById("r");
   R.querySelectorAll("script,style,iframe,object,embed,link,meta,form,input,button").forEach(n=>n.remove());
   R.querySelectorAll("*").forEach(n=>{for(const a of [...n.attributes])if(/^on/i.test(a.name))n.removeAttribute(a.name)});
   const st=(sel,css)=>R.querySelectorAll(sel).forEach(n=>n.setAttribute("style",css+(n.getAttribute("style")||"")));
-  st("a","color:#b30000;text-decoration:underline;");
-  R.querySelectorAll('[data-blok="knop"]').forEach(p=>{const a=p.querySelector("a");const href=a?a.getAttribute("href"):"#";const t=(a||p).textContent.trim();
-    const tb=d.createElement("div");tb.innerHTML=`<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;margin:10px 0 20px 0;border-collapse:collapse"><tr><td align="center" style="text-align:center;padding:0"><table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center" style="margin:0 auto;border-collapse:separate"><tr><td align="center" bgcolor="#b30000" style="border-radius:4px;padding:13px 28px;text-align:center;min-width:200px"><a href="${esc(href)}" target="_blank" style="${ML_FONT}font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;display:inline-block;text-align:center">${esc(t)}</a></td></tr></table></td></tr></table>`;p.replaceWith(tb.firstChild)});
-  R.querySelectorAll('[data-blok="kader"]').forEach(k=>{k.querySelectorAll("h2").forEach(h=>h.setAttribute("style","color:#b30000;font-size:18px;font-weight:bold;margin:0 0 10px 0;"));
-    k.querySelectorAll("p").forEach(p=>{if(!p.closest("table"))p.setAttribute("style","margin:0 0 5px 0;")});
-    const tb=d.createElement("div");tb.innerHTML=`<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 18px 0;border-collapse:collapse"><tr><td bgcolor="#fff9f9" style="padding:18px 24px;border-left:5px solid #C1A057;background-color:#fff9f9;${ML_FONT}font-size:15px;color:#222222;line-height:1.5"></td></tr></table>`;
+  st("a",`color:${ML_ROOD};text-decoration:underline;`);
+  const knoppen=[];R.querySelectorAll('[data-blok="knop"]').forEach(p=>{const a=p.querySelector("a");const href=a?a.getAttribute("href"):"#";const t=(a||p).textContent.trim();
+    const m=d.createElement("div");m.setAttribute("data-knop",String(knoppen.length));knoppen.push(mlKnop(t,href));p.replaceWith(m)});
+  R.querySelectorAll('[data-blok="kader"]').forEach(k=>{k.querySelectorAll("h2").forEach(h=>h.setAttribute("style",`${ML_FONT}color:${ML_INK};font-size:17px;line-height:1.3;font-weight:bold;margin:0 0 10px 0;`));
+    k.querySelectorAll("p").forEach(p=>{if(!p.closest("table"))p.setAttribute("style","margin:0 0 6px 0;")});
+    const tb=d.createElement("div");tb.innerHTML=`<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 22px 0;border-collapse:separate"><tr><td class="vb-k" bgcolor="${ML_ZACHT}" style="padding:18px 22px;border-left:4px solid ${ML_ROOD};border-radius:10px;background-color:${ML_ZACHT};${ML_FONT}font-size:15px;color:${ML_INK};line-height:1.55"></td></tr></table>`;
     const td=tb.querySelector("td");while(k.firstChild)td.appendChild(k.firstChild);k.replaceWith(tb.firstChild)});
-  st("h3","color:#b30000;font-size:17px;font-weight:bold;margin:22px 0 10px 0;");
-  st("h2:not([style])","color:#b30000;font-size:18px;font-weight:bold;margin:22px 0 10px 0;");
-  R.querySelectorAll("p:not([style])").forEach(p=>p.setAttribute("style","margin:0 0 15px 0;"));
-  st("ul,ol","margin:0 0 15px 0;padding-left:22px;");st("li","margin:0 0 6px 0;");
-  return R.innerHTML;
+  st("h3",`${ML_FONT}color:${ML_INK};font-size:17px;line-height:1.3;font-weight:bold;margin:24px 0 10px 0;`);
+  st("h2:not([style])",`${ML_FONT}color:${ML_INK};font-size:20px;line-height:1.3;font-weight:bold;margin:24px 0 12px 0;`);
+  R.querySelectorAll("p:not([style])").forEach(p=>p.setAttribute("style","margin:0 0 16px 0;"));
+  st("ul,ol","margin:0 0 16px 0;padding-left:22px;");st("li","margin:0 0 6px 0;");
+  // knoppen pas na de andere opmaak invoegen (de Outlook-knop zit in een HTML-commentaar)
+  return R.innerHTML.replace(/<div data-knop="(\d+)"><\/div>/g,(_,i)=>knoppen[Number(i)]);
 }
 function mlKader(inner){const c=cfg();const ver=esc(c.vereniging||"Vriendenkring Brandweer Hoofdpost Aalst");const afm=esc((MAILSMTP&&MAILSMTP.van&&MAILSMTP.van.email)||"dries@vbha.be");
-  return `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${ver}</title></head><body style="margin:0;padding:0;background:#f7f7f7">
+  return `<!DOCTYPE html><html lang="nl" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><title>${ver}</title>
+<!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><style>td,p,a,h1,h2,h3,li,span{font-family:'Segoe UI',Arial,sans-serif!important}</style><![endif]-->
+<style>@media only screen and (max-width:520px){.vb-in{padding:26px 20px 20px!important}.vb-k{padding:16px 16px!important}}</style></head><body style="margin:0;padding:0;background:#f7f7f7;-webkit-text-size-adjust:100%">
 <table role="presentation" border="0" width="100%" cellspacing="0" cellpadding="0" bgcolor="#f7f7f7" style="margin:0;padding:0"><tr><td align="center" valign="top" style="padding:25px 10px">
-<table role="presentation" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="width:100%;max-width:680px;border-collapse:collapse">
+<!--[if mso]><table role="presentation" width="640" border="0" cellspacing="0" cellpadding="0" align="center"><tr><td><![endif]-->
+<table role="presentation" border="0" width="100%" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="width:100%;max-width:640px;border-collapse:collapse">
 <tr><td align="center" bgcolor="#f7f7f7" style="padding:20px"><img src="${ML_LOGO}" alt="${ver}" width="220" height="84" style="display:block;width:220px;height:84px;border:0;outline:none;text-decoration:none"></td></tr>
-<tr><td style="border-top:8px solid #b30000;padding:0"></td></tr>
-<tr><td bgcolor="#ffffff" style="${ML_FONT}font-size:15px;color:#222222;line-height:1.5;padding:28px 40px 22px">${inner}</td></tr>
-<tr><td style="border-top:8px solid #b30000;padding:0"></td></tr>
-<tr><td align="center" bgcolor="#f7f7f7" style="${ML_FONT}font-size:12px;color:#888888;line-height:1.5;padding:14px 20px">${ver} &middot; <a href="https://www.vbha.be" style="color:#888888;text-decoration:underline">www.vbha.be</a><br>Liever geen mails meer van ons? <a href="mailto:${afm}?subject=Afmelden%20mails%20VBHA" style="color:#888888;text-decoration:underline">Meld je af</a>.</td></tr>
-</table></td></tr></table></body></html>`}
+<tr><td style="border-top:8px solid ${ML_ROOD};padding:0;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td class="vb-in" bgcolor="#ffffff" style="${ML_FONT}font-size:15px;color:${ML_INK};line-height:1.6;padding:32px 40px 26px">${inner}</td></tr>
+<tr><td style="border-top:8px solid ${ML_ROOD};padding:0;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td align="center" bgcolor="#f7f7f7" style="${ML_FONT}font-size:12.5px;color:${ML_MUTED};line-height:1.6;padding:16px 20px"><b style="color:${ML_INK}">${ver}</b><br><a href="https://www.vbha.be" style="color:${ML_MUTED};text-decoration:underline">www.vbha.be</a> &middot; Vragen? Antwoord gewoon op deze mail.<br>Liever geen mails meer van ons? <a href="mailto:${afm}?subject=Afmelden%20mails%20VBHA" style="color:${ML_MUTED};text-decoration:underline">Meld je af</a>.</td></tr>
+</table>
+<!--[if mso]></td></tr></table><![endif]-->
+</td></tr></table></body></html>`}
 function mailHtml(r,M){
   if(M.opmaak==="huisstijl")return mlKader(mlStijl(vul(M.body,r,true)));
   if(M.isHtml)return vul(M.body,r,true);
