@@ -6336,7 +6336,7 @@ function shVul(t,a,s,h){const d=a.datum?fmtDate(a.datum):"";return String(t||SH_
   .replace(/Hallo\s+,/g,"Hallo,").replace(/\s+,/g,",").replace(/\s{2,}/g," ").trim()}
 async function shBewaar(a,wijz){const cur=S.activiteiten.get(a.id)||a;const {id,toekomst,...rest}={...cur,...wijz};await write("activiteiten",a.id,rest)}
 /* ---------- helpers ---------- */
-function shHelper(a,id){if(String(id).startsWith("x:")){const x=(a.extern||[]).find(e=>e.id===id);if(!x)return null;return{id,naam:x.naam,voornaam:String(x.naam||"").split(" ")[0],tel:shTel(x.tel),telTxt:x.tel||"",info:x.info||"",lid:false}}
+function shHelper(a,id){if(String(id).startsWith("x:")){const x=(a.extern||[]).find(e=>e.id===id);if(!x)return null;return{id,naam:x.naam,voornaam:String(x.naam||"").split(" ")[0],tel:shTel(x.tel),telTxt:x.tel||"",info:x.info||(x.via&&S.leden.get(x.via)?"via "+S.leden.get(x.via).voornaam:""),via:x.via||null,lid:false}}
   const l=S.leden.get(id);if(!l)return null;return{id,naam:naamVol(l),voornaam:l.voornaam||"",tel:shTel(l.telefoon),telTxt:l.telefoon||"",info:"",lid:true,l}}
 function shPool(a){const ids=[...(a.helpers||[])];for(const s of a.shiften||[])for(const id of s.leden||[])if(!ids.includes(id))ids.push(id);return ids}
 function shIngedeeld(a){const m=new Map();for(const s of a.shiften||[])for(const id of s.leden||[])m.set(id,(m.get(id)||[]).concat(s.id));return m}
@@ -6367,7 +6367,7 @@ VIEWS.shiften=()=>({title:"Shiften",sub:"Wie helpt waar en wanneer",
         <div class="sh-zone" data-zone="${esc(s.id)}">${H.map(h=>shTegel(a,h,s.id,(ing.get(h.id)||[]).length>1)).join("")||'<span class="sh-hint">Sleep helpers hierheen</span>'}</div>
         </div>`}).join("")}</div>`
       :`<div class="panel"><div class="empty">Nog geen shiften voor deze activiteit. Maak per taak of locatie een shift, bv. Bar, Kassa of Opbouw.${canWrite?`<div style="margin-top:12px"><button class="btn primary" data-sh="nieuw">${ic("plus")}Shift toevoegen</button></div>`:""}</div></div>`}
-    ${S2.length&&canWrite?`<div class="panel"><div class="panel-b sh-pt"><span class="grow small muted">${a.shiftenToegekend?`De shiften zijn toegekend in het puntensysteem (${esc(fmtDate(String(a.shiftenToegekend).slice(0,10)))}).`:"Na de activiteit: geef elk ingedeeld lid 1 shift in het puntensysteem (helpers die geen lid zijn tellen niet mee)."}</span>
+    ${S2.length&&canWrite?`<div class="panel"><div class="panel-b sh-pt"><span class="grow small muted">${a.shiftenToegekend?`De shiften zijn toegekend in het puntensysteem (${esc(fmtDate(String(a.shiftenToegekend).slice(0,10)))}).`:"Na de activiteit: geef elk ingedeeld lid 1 shift in het puntensysteem. Een helper die geen lid is, telt mee voor het lid dat hem of haar aanbracht."}</span>
       <button class="btn" data-sh="punten"${a.shiftenToegekend?" disabled":""}>Shiften toekennen in puntensysteem</button></div></div>`:""}`}});
 /* ---------- verplaatsen ---------- */
 async function shVerplaats(id,van,naar){const a=shAct();if(!a||van===naar)return;const sh=(a.shiften||[]).map(s=>{let l=[...(s.leden||[])];if(s.id===van)l=l.filter(x=>x!==id);if(s.id===naar&&!l.includes(id))l.push(id);return{...s,leden:l}});
@@ -6393,9 +6393,9 @@ function shLidVan(v){const n=norm(v);if(!n)return null;for(const l of S.leden.va
 async function shVoegToe(){const a=shAct();const inp=$("[data-shadd]");const v=inp.value.trim();if(!v){inp.focus();return}const l=shLidVan(v);
   if(l){if(shPool(a).includes(l.id)){toast(`${l.voornaam} staat al bij de helpers.`,true);return}await shBewaar(a,{helpers:[...shPool(a),l.id]});setTimeout(()=>{const i=$("[data-shadd]");if(i)i.focus()},60);return}
   shExtern(a,v)}
-function shExtern(a,naam){modal("Helper die geen lid is",`<form class="form" id="fShx">${fld("shxN","Naam",inp("shxN",naam,'maxlength="80"'),"full")}${fld("shxT","Gsm-nummer",inp("shxT","",'type="tel" placeholder="optioneel, voor de sms"'))}${fld("shxI","Info",inp("shxI","",'maxlength="60" placeholder="bv. partner van Jan"'))}<div class="err full" id="shxErr"></div></form>`,
+function shExtern(a,naam){modal("Helper die geen lid is",`<form class="form" id="fShx">${fld("shxN","Naam",inp("shxN",naam,'maxlength="80"'),"full")}${fld("shxT","Gsm-nummer",inp("shxT","",'type="tel" placeholder="optioneel, voor de sms"'))}${fld("shxV","Aangebracht door (lid)",`<input id="shxV" list="shxLeden" autocomplete="off" placeholder="bv. Dries Uyttersprot"><datalist id="shxLeden">${[...S.leden.values()].filter(l=>!l.geenLid).sort((x,y)=>naamVol(x).localeCompare(naamVol(y),"nl")).map(l=>`<option value="${esc(naamVol(l))}">`).join("")}</datalist>`,"full")}${fld("shxI","Info",inp("shxI","",'maxlength="60" placeholder="bv. partner"'))}<div class="err full" id="shxErr"></div></form>`,
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="shxOk">Toevoegen</button>`);setTimeout(()=>{const t=$("#shxT");if(t)t.focus()},50);
-  $("#shxOk").onclick=async()=>{const n=$("#shxN").value.trim();if(!n){$("#shxErr").textContent="Geef een naam.";return}const x={id:"x:"+shId(),naam:n,tel:$("#shxT").value.trim(),info:$("#shxI").value.trim()};
+  $("#shxOk").onclick=async()=>{const n=$("#shxN").value.trim();if(!n){$("#shxErr").textContent="Geef een naam.";return}const vv=$("#shxV").value.trim(),vl=vv?shLidVan(vv):null;if(vv&&!vl){$("#shxErr").textContent="Kies het lid dat deze helper aanbracht uit de lijst.";return}const x={id:"x:"+shId(),naam:n,tel:$("#shxT").value.trim(),info:$("#shxI").value.trim(),via:vl?vl.id:null};
     closeModal();await shBewaar(a,{extern:[...(a.extern||[]),x],helpers:[...shPool(a),x.id]});const i=$("[data-shadd]");if(i){i.value="";i.focus()}}}
 /* ---------- shift toevoegen / wijzigen ---------- */
 function shForm(a,s){s=s||{taak:"",van:a.uur||"",tot:"",nodig:""};
@@ -6446,7 +6446,8 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-sh]"
     case"bewerk":if(canWrite&&s)shForm(a,s);break;
     case"add":if(canWrite)shVoegToe();break;
     case"sms":if(s)shSms(a,s);break;
-    case"punten":{const tel={};for(const x of a.shiften||[])for(const id of x.leden||[])if(!String(id).startsWith("x:")&&S.leden.get(id))tel[id]=(tel[id]||0)+1;const ids=Object.keys(tel);if(!ids.length){toast("Er is nog geen lid ingedeeld.",true);break}
+    case"punten":{const zv=[...new Set((a.shiften||[]).flatMap(x=>x.leden||[]))].filter(id=>String(id).startsWith("x:")).map(id=>(a.extern||[]).find(e=>e.id===id)).filter(e=>e&&!(e.via&&S.leden.get(e.via)));if(zv.length){shViaKies(a,zv);break}
+      const tel={};for(const x of a.shiften||[])for(const id of x.leden||[]){const e=String(id).startsWith("x:")?(a.extern||[]).find(q=>q.id===id):null,lid=e?e.via:id;if(lid&&S.leden.get(lid))tel[lid]=(tel[lid]||0)+1}const ids=Object.keys(tel);if(!ids.length){toast("Er is nog geen lid ingedeeld.",true);break}
       const Y=Number(String(a.datum).slice(0,4))||JAAR;
       confirmBox(`${ids.length} ${ids.length===1?"lid krijgt":"leden krijgen"} ${Object.values(tel).reduce((x,y)=>x+y,0)} shift(en) bij in het puntensysteem van ${Y}. Doorgaan?`,"Toekennen",async()=>{closeModal();
         for(const id of ids){const k2=Y+"_"+id,cur=S.jaarleden.get(k2)||{jaar:Y,lidId:id};const {id:_i,...rest}=cur;await write("jaarleden",k2,{...rest,jaar:Y,lidId:id,shifts:(Number(cur.shifts)||0)+tel[id]})}
@@ -6592,6 +6593,14 @@ document.addEventListener("pointerdown",e=>{const bl=e.target.closest(".shr-b");
 .shr-in small{grid-column:1/-1;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shr-h{position:absolute;top:0;bottom:0;width:10px;z-index:2;cursor:ew-resize}.shr-h.l{left:-4px}.shr-h.r{right:0}.shr-h:hover{background:rgba(192,22,31,.15)}
 .shr-tip{margin:8px 16px 0}@media(max-width:640px){.shr-l{flex-basis:76px;font-size:13px}}`;document.head.appendChild(st)}
+
+/* bij het toekennen: voor ingedeelde helpers zonder lid "aangebracht door" eerst het lid kiezen */
+function shViaKies(a,L){const dl=`<datalist id="shvLeden">${[...S.leden.values()].filter(l=>!l.geenLid).sort((x,y)=>naamVol(x).localeCompare(naamVol(y),"nl")).map(l=>`<option value="${esc(naamVol(l))}">`).join("")}</datalist>`;
+  modal("Wie bracht deze helpers aan?",`<p class="muted small" style="margin:0 0 12px">Een helper die geen lid is, telt als shift voor het lid dat hem of haar aanbracht.</p><form class="form" id="fShv">${L.map((e,i)=>fld("shv"+i,esc(e.naam),`<input id="shv${i}" list="shvLeden" autocomplete="off" placeholder="Naam van het lid">`,"full")).join("")}${dl}<div class="err full" id="shvErr"></div></form>`,
+  `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="shvOk">Bewaren en verder</button>`);
+  $("#shvOk").onclick=async()=>{const via={};for(let i=0;i<L.length;i++){const v=$("#shv"+i).value.trim(),l=v?shLidVan(v):null;if(!l){$("#shvErr").textContent=`Kies voor ${L[i].naam} een lid uit de lijst.`;$("#shv"+i).focus();return}via[L[i].id]=l.id}
+    closeModal();const cur=S.activiteiten.get(a.id)||a;await shBewaar(a,{extern:(cur.extern||[]).map(e=>via[e.id]?{...e,via:via[e.id]}:e)});
+    setTimeout(()=>{const b=document.querySelector('[data-sh="punten"]');if(b)b.click()},150)}}
 
 /* ============ Activiteiten › Familiedag ============
    Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
