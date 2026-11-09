@@ -27,7 +27,10 @@
   .hero{display:grid;grid-template-columns:1.8fr 1fr;gap:40px;align-items:center}
   .tag{display:inline-block;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:5px 10px;border-radius:6px;margin-bottom:16px}
   h1{font-size:clamp(1.8rem,3vw,2.4rem);line-height:1.15;letter-spacing:-.01em;font-weight:700}
-  .lead{margin-top:14px;color:var(--muted);font-size:1.08rem;max-width:42ch}
+  .kicker{color:var(--accent);font-weight:700;font-size:.95rem;letter-spacing:.02em;margin-bottom:8px}
+  .hero.zonder{grid-template-columns:1fr}
+  .hero + .hero{margin-top:56px}
+  .lead{white-space:pre-line;margin-top:14px;color:var(--muted);font-size:1.08rem;max-width:42ch}
   .photo img{width:100%;height:auto;display:block;border-radius:12px;border:1px solid var(--line)}
 
   .steun{margin-top:56px;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;border-top:1px solid var(--line);padding-top:48px}
@@ -133,20 +136,39 @@
 </header>
 
 <main>
-  <section class="hero">
-    <figure class="photo">
-      <img src="/w/kalender-2027.jpg" alt="Stapel brandweerkalenders 2027 van Brandweer Aalst met een groepsfoto van het korps voor een ladderwagen" width="1600" height="1372">
+<!--blok:viv-->
+  <section class="hero viv" id="vierenvlam">
+    <figure class="photo" data-s-fig="viv">
+      <img data-s-img="viv" src="/w/kalender-2027.jpg" alt="Sfeerbeeld In Vier en Vlam" width="1600" height="1067">
     </figure>
     <div>
-      <h1>De nieuwe brandweerkalender 2027 wordt nu bedeeld</h1>
-      <p class="lead">De komende weken brengen onze brandweermensen de kalender van Brandweer Aalst bij je langs. Bedankt om de Vriendenkring te steunen!</p>
+      <p class="kicker" data-s="viv_datum">De fuif van de Vriendenkring</p>
+      <h2 style="font-size:clamp(1.8rem,3vw,2.4rem);line-height:1.15;font-weight:700" data-s="viv_titel">In Vier en Vlam</h2>
+      <p class="lead" data-s="viv_tekst">De fuif van de Vriendenkring Brandweer Hoofdpost Aalst. Bestel nu je tickets!</p>
+      <a class="btn-red" href="/fuif">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v2.5a2.5 2.5 0 0 0 0 5V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2.5a2.5 2.5 0 0 0 0-5z"/><path d="M14 5v12" stroke-dasharray="2 2"/></svg>
+        <span class="bt"><small data-s="viv_knop_klein">In Vier en Vlam</small> <b>Bestel je tickets</b></span>
+      </a>
+    </div>
+  </section>
+<!--/blok:viv-->
+<!--blok:kalender-->
+  <section class="hero">
+    <figure class="photo" data-s-fig="kalender">
+      <img data-s-img="kalender" src="/w/kalender-2027.jpg" alt="Stapel brandweerkalenders 2027 van Brandweer Aalst met een groepsfoto van het korps voor een ladderwagen" width="1600" height="1372">
+    </figure>
+    <div>
+      <h1 data-s="kal_titel">De nieuwe brandweerkalender 2027 wordt nu bedeeld</h1>
+      <p class="lead" data-s="kal_tekst">De komende weken brengen onze brandweermensen de kalender van Brandweer Aalst bij je langs. Bedankt om de Vriendenkring te steunen!</p>
       <a class="btn-red" href="/kalender">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20H4z"/><path d="M9.5 20v-5h5v5"/></svg>
         <span class="bt"><small>Kalender zeker in je bus?</small> <b>Geef je adres door</b></span>
       </a>
     </div>
   </section>
+<!--/blok:kalender-->
 
+<!--blok:steun-->
   <section class="steun" id="steun">
     <div>
       <h2>Steun de Vriendenkring</h2>
@@ -186,6 +208,8 @@
       <p class="small">Je gaat naar de beveiligde betaalpagina van de Vriendenkring.</p>
     </form>
   </section>
+<!--/blok:steun-->
+<!--blok:sponsors-->
   <section class="sponsors" id="sponsors">
     <div class="head">
       <div>
@@ -198,6 +222,7 @@
       <div class="band-in"><img src="/w/sponsors-band.jpg" alt="" width="3660" height="80"><img src="/w/sponsors-band.jpg" alt="" width="3660" height="80"></div>
     </div>
   </section>
+<!--/blok:sponsors-->
 </main>
 
 <footer>

@@ -42,7 +42,7 @@
           "value": "(www\\.)?vbha\\.be"
         }
       ],
-      "destination": "/site"
+      "destination": "/api/openbaar?f=site"
     },
     {
       "source": "/",
@@ -103,6 +103,10 @@
     {
       "source": "/api/kalender",
       "destination": "/api/openbaar?f=kalender"
+    },
+    {
+      "source": "/api/album",
+      "destination": "/api/openbaar?f=album"
     }
   ],
   "regions": [
