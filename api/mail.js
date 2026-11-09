@@ -12,6 +12,7 @@ import { inWachtrij, wachtrijCron } from "./_lib/wachtrij.js";
 import { fuifApi } from "./_lib/fuif.js";
 import { kassaApi } from "./_lib/kassa.js";
 import { shopApi } from "./_lib/shop.js";
+import r2Api from "./_lib/r2.js";
 
 // Mails versturen vanuit Communicatie › Mails (enkel voor bewerkers).
 // GET  -> {ingesteld, van}
@@ -30,6 +31,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "betaalherinnering") return await betaalHerinneringApi(req, res); // voorbeeld automatische betalingsherinneringen
     if (req.query && req.query.f === "sponsorbev") return await sponsorBevestiging(req, res); // sponsorbevestiging (PDF / mail)
     if (req.query && req.query.f === "kf-voorbeeld") return await kfVoorbeeld(req, res); // voorbeeld bevestigingsmail kinderfeest
+    if (req.query && req.query.f === "r2") return await r2Api(req, res); // fotoalbums: tijdelijke links naar Cloudflare R2
     if (req.query && req.query.f === "shop") return await shopApi(req, res); // webshop: status van een bestelling, mails
     if (req.query && req.query.f === "kassa") return await kassaApi(req, res); // kassa: transacties wissen of nakijken
     if (req.query && req.query.f === "fuif") return await fuifApi(req, res); // fuif: tickets scannen en bestellingen beheren
