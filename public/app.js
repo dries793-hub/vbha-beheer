@@ -5383,15 +5383,13 @@ function sgBulk(){const c=typeof fuCfg==="function"?fuCfg():{};
   let toon=false;
   function zuiver(){
     if(toon||!document.querySelector(".nmeld"))return;
-    const G=new Set(lees());let weg=0;
+    const G=new Set(lees());
     document.querySelectorAll(".nmeld").forEach(m=>{
       if(m.closest(".modal"))return;
       const I=[...m.querySelectorAll(".nm-i")];
-      if(I.length){I.forEach(i=>{if(G.has(sig(i))){i.remove();weg++}});if(!m.querySelector(".nm-i")){m.remove()}}
-      else if(G.has(sig(m))){m.remove();weg++}
+      if(I.length){I.forEach(i=>{if(G.has(sig(i)))i.remove()});if(!m.querySelector(".nm-i")){m.remove()}}
+      else if(G.has(sig(m)))m.remove()
     });
-    if(weg&&!document.getElementById("glTerug")){const host=document.querySelector(".nmeld")?.parentElement||document.querySelector("#main .page, #main, main");
-      if(host&&typeof route==="function"&&route()==="dashboard"){host.insertAdjacentHTML("beforeend",`<p class="small muted" id="glTerug" style="margin:4px 0 0"><button type="button" class="linkbtn" data-gl="toon">Gelezen meldingen opnieuw tonen</button></p>`)}}
   }
   window.addEventListener("click",e=>{
     const g=e.target.closest("[data-gl]");if(g){e.preventDefault();toon=true;if(typeof render==="function")render();setTimeout(()=>{toon=false},800);return}
