@@ -52,6 +52,12 @@ export async function controleerBetaling(sb, tabel, row) {
   if (cur.status === "SUCCEEDED") return cur;
   const p = await haalBetaling(cur.id);
   const betaling = { ...cur, status: p.status, betaaldOp: p.betaaldOp || cur.betaaldOp || null };
+  // de overgang naar "betaald" maar één keer verwerken: Bancontact (callback) en de terugkeerpagina controleren vaak tegelijk
+  if (p.status === "SUCCEEDED") {
+    const { data: eerst, error: ce } = await sb.rpc("vbha_claim", { t: tabel, i: String(row.id), pad: ["betaling", "status"], nieuw: "SUCCEEDED", niet: "SUCCEEDED" });
+    if (ce) console.warn("vbha_claim", ce.message); // valt terug op de gewone werking
+    else if (!eerst) return betaling;
+  }
   if (p.status !== cur.status) await bewaar(sb, tabel, row.id, { ...d, betaling });
   if (p.status === "SUCCEEDED" && tabel === "leden") await zetLidgeldBetaald(sb, row.id, cur.jaar, p);
   if (p.status === "SUCCEEDED" && cur.status !== "SUCCEEDED") { try { if (tabel === "shop_orders") await (await import("./shop.js")).shopBetaald(sb, row.id); else if (tabel === "kassa") await (await import("./kassa.js")).kassaBetaald(sb, row.id); else if (tabel === "tickets") await (await import("./fuif.js")).fuifBetaald(sb, row.id); else if (tabel === "facturen") await (await import("./factuur.js")).factuurOnlineBetaald(sb, row.id); else if (tabel === "sponsors") await (await import("./open_sponsor.js")).sponsorBetaald(sb, row.id); else await betalingGelukt(sb, tabel, row.id); } catch (e) { console.error("bevestiging", e); } }
