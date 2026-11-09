@@ -71,7 +71,7 @@ export async function actieveLeden(sb, jaar) {
     else if (j.lidgeld === "NOK") ok = false;
     else { const n1 = nm(l.naam), n2 = nm(l.voornaam); ok = lidBoek.some(b => b.lidId === r.id || (n1 && n2 && b.m.includes("lidgeld") && b.m.includes(n1) && b.m.includes(n2))); }
     if (!ok) continue;
-    L.push({ id: r.id, naam: `${l.naam} ${l.voornaam || ""}`.replace(/\s+/g, " ").trim(), voornaam: String(l.voornaam || "").trim(), em: String(l.email || "").trim().toLowerCase() });
+    L.push({ id: r.id, naam: `${l.naam} ${l.voornaam || ""}`.replace(/\s+/g, " ").trim(), voornaam: String(l.voornaam || "").trim(), an: String(l.naam || "").trim(), em: String(l.email || "").trim().toLowerCase() });
   }
   L.sort((a, b) => a.naam.localeCompare(b.naam, "nl"));
   LEDEN_CACHE = { jaar, t: Date.now(), L };
@@ -83,7 +83,7 @@ export function masker(e) { const m = /^([^@\s]+)@([^@\s]+\.[^@\s]+)$/.exec(Stri
 export function zoekLeden(L, q) {
   const t = norm(q).split(/\s+/).filter(Boolean);
   if (!t.length || norm(q).replace(/\s/g, "").length < 3) return []; // min. 3 letters: de ledenlijst mag niet af te lopen zijn
-  return L.filter(l => { const n = norm(l.naam); return t.every(x => n.split(/[\s'-]+/).some(w => w.startsWith(x)) || n.includes(x)); }).slice(0, 8).map(l => ({ id: l.id, naam: l.naam, mail: masker(l.em) }));
+  return L.filter(l => { const n = norm(l.naam); return t.every(x => n.split(/[\s'-]+/).some(w => w.startsWith(x)) || n.includes(x)); }).slice(0, 8).map(l => ({ id: l.id, naam: l.naam, toon: l.voornaam && l.an ? `${l.voornaam} ${l.an}` : l.naam, mail: masker(l.em) }));
 }
 
 // Inschrijvingen open of gesloten: manueel (open:false) of na de laatste dag (tot en met "tot", Belgische tijd).
