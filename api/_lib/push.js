@@ -165,7 +165,7 @@ export async function pushVanDaag(sb, cfg, vandaag, uurNu) {
 
 /* ---------- meteen een melding bij nieuwe dashboardmeldingen ----------
    groep "iedereen" (alle bestuursleden) of "boek" (admin, bewerker, boekhouder). Fouten breken nooit de eigenlijke actie. */
-const GROEP = { iedereen: null, boek: ["admin", "bewerker", "boekhouder"] };
+const GROEP = { iedereen: null, boek: ["admin", "bewerker", "boekhouder"], admin: ["admin", "bewerker"] };
 export async function meldPush(sb, groep, bericht) {
   try {
     const { data: c } = await sb.from("config").select("data").eq("id", "herinneringen").maybeSingle();

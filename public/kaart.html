@@ -176,7 +176,7 @@ html.kr-vol-aan,html.kr-vol-aan body{overflow:hidden}
   <div class="kr-leg"><span><i style="background:var(--good)"></i>Bedeeld</span><span><i style="background:var(--info)"></i>Gereserveerd</span><span><i style="background:var(--kr-todo)"></i>Nog te doen</span><small id="krStand"></small></div>
   <div class="kr-zoom"><button type="button" id="krZin" aria-label="Inzoomen">+</button><button type="button" id="krZout" aria-label="Uitzoomen">−</button><button type="button" id="krFit" aria-label="Hele kaart tonen" title="Hele kaart tonen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button></div>
   <section class="kr-card" id="krCard" hidden aria-labelledby="krCardT"><div class="kr-card-h"><div class="kr-card-t"><h3 id="krCardT"></h3><span id="krCardM"></span></div><button type="button" class="btn ghost sm" id="krCardX" aria-label="Sluiten"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-  <div class="kr-adr" id="krOne"><b id="krCardA"></b><span id="krCardAl"></span></div><div class="kr-multi" id="krMulti" hidden></div></section>
+  <div class="kr-adr" id="krOne"><b id="krCardA"></b><span id="krCardAl"></span></div><div class="kr-multi" id="krMulti" hidden></div><div class="kr-meld" id="krMeld"><button type="button" class="btn sm" data-krmeld="r">Ik reserveer</button><button type="button" class="btn sm prim" data-krmeld="d">Ik heb bedeeld</button></div></section>
 </div></div>
 <section class="kr-sp" id="krSp" hidden role="dialog" aria-modal="true" aria-label="Zoek een straat"><div class="kr-sp-bar"><button type="button" id="krSpBack" aria-label="Terug naar de kaart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><input id="krSpIn" type="search" placeholder="Zoek een straat…" autocomplete="off" enterkeyhint="go" aria-label="Zoek een straat"></div><p class="empty" id="krSpEmpty" hidden>Geen straat gevonden.</p><ul id="krSpList"></ul></section>
 <script src="/lib/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -1021,6 +1021,50 @@ krLive();
   document.addEventListener("input",e=>{const t=e.target;if(t&&t.dataset&&t.dataset.zx)zet(t)},true);
   let q=0;new MutationObserver(()=>{if(q)return;q=1;requestAnimationFrame(()=>{q=0;scan()})}).observe(document.documentElement,{childList:true,subtree:true});
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",scan);else scan();
+})();
+</script>
+
+<script>
+/* ============ Leden melden zelf straten als gereserveerd of bedeeld; het bestuur controleert eerst ============ */
+(function(){
+  const st=document.createElement("style");st.textContent=`.kr-meld{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.kr-meld .btn{flex:1;justify-content:center}.kr-meld .prim{background:var(--accent);color:#fff;border-color:var(--accent)}
+.km-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:3000;display:flex;align-items:flex-end;justify-content:center}@media(min-width:640px){.km-bg{align-items:center}}
+.km{background:var(--surface,#fff);color:var(--ink,#111);width:100%;max-width:440px;border-radius:18px 18px 0 0;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,.25);max-height:90vh;overflow:auto}@media(min-width:640px){.km{border-radius:18px}}
+.km h3{margin:0 0 4px;font-size:18px}.km p{margin:0 0 12px;color:var(--muted,#666);font-size:14px}
+.km-st{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}.km-st span{background:var(--soft,#f2f2f3);border-radius:99px;padding:4px 10px;font-size:13px}
+.km-seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 14px}.km-seg button{padding:10px;border:1.5px solid var(--line,#ddd);border-radius:10px;background:none;font:inherit;font-weight:600;cursor:pointer;color:inherit}.km-seg button.on{border-color:var(--accent);background:var(--accent);color:#fff}
+.km label{display:block;font-weight:600;font-size:14px;margin:0 0 6px}.km-w{position:relative}.km input[type=text]{width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--line,#ccc);border-radius:10px;font:inherit;font-size:16px;background:var(--surface,#fff);color:inherit}
+.km input.ok{border-color:var(--good,#16a34a)}.km-l{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--surface,#fff);border:1px solid var(--line,#ddd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:2;max-height:220px;overflow:auto}
+.km-l button{display:block;width:100%;text-align:left;padding:10px 12px;border:0;background:none;font:inherit;cursor:pointer;color:inherit}.km-l button:hover,.km-l button.on{background:var(--soft,#f2f2f3)}
+.km-a{display:flex;gap:8px;margin-top:16px}.km-a button{flex:1;padding:12px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer;border:1px solid var(--line,#ccc);background:none;color:inherit}.km-a .prim{background:var(--accent);border-color:var(--accent);color:#fff}.km-a .prim:disabled{opacity:.5}
+.km-e{color:var(--bad,#b91c1c);font-size:13.5px;margin:8px 0 0;min-height:1em}.km-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}`;document.head.appendChild(st);
+  const _c=krCard;krCard=function(){_c.apply(this,arguments);const m=$("#krMeld");if(m)m.hidden=!KR.ss.size};
+  const e2=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  function open(soort){const ids=[...KR.ss].filter(id=>KR.byId.has(id));if(!ids.length)return;let lid=null,L=[],sel=-1,T=null;
+    const bg=document.createElement("div");bg.className="km-bg";bg.innerHTML=`<div class="km" role="dialog" aria-modal="true" aria-labelledby="kmT"><h3 id="kmT">Straten melden</h3><p>Het bestuur kijkt je melding na. Daarna verschijnt ze op de kaart.</p>
+      <div class="km-st">${ids.map(id=>`<span>${e2(KR.byId.get(id).n)}</span>`).join("")}</div>
+      <div class="km-seg"><button type="button" data-ks="r">Gereserveerd</button><button type="button" data-ks="d">Bedeeld</button></div>
+      <label for="kmN">Jouw naam</label><div class="km-w"><input type="text" id="kmN" autocomplete="off" placeholder="Begin je naam te typen…"><div class="km-l" id="kmL" hidden></div></div>
+      <div class="km-hp" aria-hidden="true"><input type="text" id="kmW" tabindex="-1" autocomplete="off"></div><p class="km-e" id="kmE"></p>
+      <div class="km-a"><button type="button" data-km="x">Annuleren</button><button type="button" class="prim" data-km="ok">Doorsturen</button></div></div>`;
+    document.body.appendChild(bg);const inp=bg.querySelector("#kmN"),box=bg.querySelector("#kmL"),err=bg.querySelector("#kmE");
+    const zet=s=>{soort=s;bg.querySelectorAll("[data-ks]").forEach(b=>b.classList.toggle("on",b.dataset.ks===s))};zet(soort);
+    const dicht=()=>bg.remove();
+    const teken=()=>{if(!L.length){box.hidden=true;return}box.innerHTML=L.map((l,i)=>`<button type="button" data-i="${i}" class="${i===sel?"on":""}">${e2(l.toon||l.naam)}</button>`).join("");box.hidden=false};
+    const kies=l=>{lid=l;inp.value=l.toon||l.naam;inp.classList.add("ok");box.hidden=true;err.textContent=""};
+    inp.addEventListener("input",()=>{lid=null;inp.classList.remove("ok");clearTimeout(T);const q=inp.value.trim();if(q.replace(/\s/g,"").length<3){L=[];teken();return}
+      T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[]}catch(e){L=[]}sel=-1;teken()},250)});
+    inp.addEventListener("keydown",e=>{if(box.hidden)return;if(e.key==="ArrowDown"){sel=Math.min(L.length-1,sel+1);teken();e.preventDefault()}else if(e.key==="ArrowUp"){sel=Math.max(0,sel-1);teken();e.preventDefault()}else if(e.key==="Enter"&&sel>=0){kies(L[sel]);e.preventDefault()}});
+    bg.addEventListener("click",async e=>{if(e.target===bg)return dicht();const k=e.target.closest("[data-ks]");if(k)return zet(k.dataset.ks);const o=e.target.closest(".km-l [data-i]");if(o)return kies(L[+o.dataset.i]);
+      const a=e.target.closest("[data-km]");if(!a)return;if(a.dataset.km==="x")return dicht();
+      if(!lid){err.textContent="Kies je naam uit de lijst.";inp.focus();return}a.disabled=true;a.textContent="Versturen…";
+      try{const r=await fetch("/api/ronde",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({straten:ids,soort,lidId:lid.id,website:bg.querySelector("#kmW").value})});const j=await r.json().catch(()=>({}));
+        if(!r.ok)throw new Error(j.error||"Versturen lukte niet");
+        bg.querySelector(".km").innerHTML=`<h3>Bedankt, ${e2(String(lid.toon||lid.naam).split(" ")[0])}!</h3><p>Je melding is doorgestuurd. Zodra het bestuur ze nagekeken heeft, staan de straten op de kaart als ${soort==="d"?"bedeeld":"gereserveerd"}.</p><div class="km-a"><button type="button" class="prim" data-km="x">Sluiten</button></div>`;krSelect(null)}
+      catch(x){err.textContent=x.message;a.disabled=false;a.textContent="Doorsturen"}});
+    document.addEventListener("keydown",function k(e){if(e.key==="Escape"){dicht();document.removeEventListener("keydown",k)}});setTimeout(()=>inp.focus(),50)}
+  document.addEventListener("click",e=>{const b=e.target.closest("[data-krmeld]");if(b)open(b.dataset.krmeld)});
+  try{krCard()}catch(e){}
 })();
 </script>
 </body></html>
