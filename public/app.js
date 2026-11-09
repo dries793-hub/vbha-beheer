@@ -5560,7 +5560,8 @@ setInterval(async()=>{try{if(typeof ROL==="undefined"||ROL!=="admin"||!S.jaren.s
 {const st=document.createElement("style");st.textContent=".jb-v{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--soft,#f4f4f5);font-weight:600;font-variant-numeric:tabular-nums;text-align:right}";document.head.appendChild(st)}
 {const st=document.createElement("style");st.textContent=".jb-ro{background:var(--soft,#f4f4f5)!important;color:var(--ink)!important;border-color:var(--line)!important;font-weight:600;pointer-events:none;box-shadow:none!important}";document.head.appendChild(st)}
 /* Instellingen (profielicoon, enkel administrator): blok Bank */
-{const _v=VIEWS.instellingen;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){return `<div class="panel"><div class="panel-h"><h2>Bank</h2></div><div class="panel-b"><div class="bar" style="margin:0"><a class="btn" href="#bank">${ic("upload")}Bankimport en koppeling</a><a class="btn" href="#regels">Automatische regels</a></div></div></div>`+String(b.apply(this,arguments))};return v};Object.assign(n,_v);VIEWS.instellingen=n}
+// blok "Bank" op Instellingen weggelaten (Bankimport en Automatische regels staan al als tabblad)
+// {const _v=VIEWS.instellingen;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){return `<div class="panel"><div class="panel-h"><h2>Bank</h2></div><div class="panel-b"><div class="bar" style="margin:0"><a class="btn" href="#bank">${ic("upload")}Bankimport en koppeling</a><a class="btn" href="#regels">Automatische regels</a></div></div></div>`+String(b.apply(this,arguments))};return v};Object.assign(n,_v);VIEWS.instellingen=n}
 
 /* ---------- Kinderfeest: voorziene kost van de cadeaus volgens de inschrijvingen ----------
    Bedragen komen uit "Waarde per geboortejaar" (bevestigingsmail), bv. "2016-2020: 50,00 EUR per kind".
