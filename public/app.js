@@ -5663,9 +5663,9 @@ function bgPP(t){const S2=bgSom(t),N=Number(t.personen)||0,W=Number(t.winst)||0,
     <div class="fld"><label for="bgN">Aantal personen</label><input id="bgN" data-bgt="personen" inputmode="numeric" value="${esc(t.personen||"")}" placeholder="bv. 250"${d}></div>
     <div class="fld"><label for="bgW">Gewenste winst</label><div class="sfx"><span>€</span><input id="bgW" data-bgt="winst" inputmode="decimal" value="${esc(t.winst||"")}" placeholder="0"${d}></div></div></div>
     <div class="bg-calc" data-bgcalc>${N?`<div><span>Kost per persoon</span><b>${eur(S2.k/N)}</b></div>
-      <div><span>Prijs om quitte te spelen</span><b>${eur(Math.max(0,be))}</b><small>kosten min de andere opbrengsten (${eur(S2.oVast)}), gedeeld door ${N}</small></div>
+      <div><span>Prijs om quitte te spelen</span><b>${eur(Math.max(0,be))}</b></div>
       ${W?`<div class="hl"><span>Prijs voor ${eur(W)} winst</span><b>${eur(Math.max(0,doel))}</b></div>`:""}
-      ${S2.ppPrijs?`<div><span>Met je prijs van ${eur(S2.ppPrijs)} per persoon</span><b class="${S2.r>=0?"in":"out"}">${bgE(S2.r)}</b><small>begroot resultaat</small></div>`:""}`
+      ${S2.ppPrijs?`<div><span>Met je prijs van ${eur(S2.ppPrijs)} per persoon</span><b class="${S2.r>=0?"in":"out"}">${bgE(S2.r)}</b></div>`:""}`
       :`<p class="muted small" style="margin:0">Vul het aantal personen in om de prijs per persoon te berekenen. Een post met <span class="bg-chipt">per persoon</span> aangeduid telt dan automatisch mee met dat aantal.</p>`}</div></div></div>`}
 function bgTiles(t){const S2=bgSom(t),W=bgWerkelijk(t);
   return `<div class="tiles" data-bgtiles><div class="tile"><span class="lbl">Begrote kosten</span><span class="val out">${eur(S2.k)}</span></div><div class="tile"><span class="lbl">Begrote opbrengsten</span><span class="val in">${eur(S2.o)}</span></div>
