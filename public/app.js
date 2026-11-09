@@ -5687,7 +5687,17 @@ const faWmDef=()=>({docId:"",pos:"rb",grootte:18,dekking:85});
 const faLogos=()=>[...S.documenten.values()].filter(d=>(d.map==="Logo"||String(d.map||"").startsWith("Logo/"))&&/^image\/(png|jpe?g|webp|gif|svg)/i.test(d.type||"")).sort((a,b)=>String(a.naam).localeCompare(String(b.naam),"nl"));
 const faWmKey=a=>JSON.stringify(a.watermerk&&a.watermerk.docId?a.watermerk:null);
 const faGewijzigd=a=>a.status==="gepubliceerd"&&(JSON.stringify((a.publiek&&a.publiek.fotos||[]).map(f=>f.id))!==JSON.stringify(a.fotos.map(f=>f.id))||a.fotos.some(f=>f.pubKey!==faWmKey(a)));
-async function faUrls(paden){const nodig=paden.filter(p=>!FA.urls[p]);for(let i=0;i<nodig.length;i+=100){const {data}=await SB.storage.from(DOC_BUCKET).createSignedUrls(nodig.slice(i,i+100),3600);for(const d of data||[])if(d.signedUrl)FA.urls[d.path]=d.signedUrl}return paden.map(p=>FA.urls[p]||"")}
+/* opslag per album: "r2" (Cloudflare R2, via tijdelijke links van de server) of standaard Supabase */
+const faR2=p=>{const m=/^Albums\/([^/]+)\//.exec(p);if(!m)return false;const a=(FA.a&&FA.a.id===m[1])?FA.a:S.fotoalbums.get(m[1]);return !!(a&&a.opslag==="r2")};
+async function faR2Api(actie,paden){return api("/api/mail?f=r2",{method:"POST",body:JSON.stringify({actie,paden})})}
+let FA_R2=null;async function faR2Aan(){if(FA_R2!==null)return FA_R2;try{const j=await api("/api/mail?f=r2");FA_R2=!!j.aan}catch(e){FA_R2=false}return FA_R2}
+async function faUrls(paden){const nodig=paden.filter(p=>!FA.urls[p]);const r2=nodig.filter(faR2),sb=nodig.filter(p=>!faR2(p));
+  for(let i=0;i<r2.length;i+=400){try{const j=await faR2Api("lees",r2.slice(i,i+400));Object.assign(FA.urls,j.urls||{})}catch(e){}}
+  for(let i=0;i<sb.length;i+=100){const {data}=await SB.storage.from(DOC_BUCKET).createSignedUrls(sb.slice(i,i+100),3600);for(const d of data||[])if(d.signedUrl)FA.urls[d.path]=d.signedUrl}return paden.map(p=>FA.urls[p]||"")}
+async function faUp(pad,blob){if(faR2(pad)){const j=await faR2Api("schrijf",[pad]);const u=j.urls&&j.urls[pad];if(!u)throw new Error("Geen link om op te laden");
+    const r=await fetch(u,{method:"PUT",body:blob,headers:{"Content-Type":"image/jpeg"}});if(!r.ok)throw new Error("Opladen naar Cloudflare mislukt ("+r.status+")");delete FA.urls[pad];return}
+  const {error}=await SB.storage.from(DOC_BUCKET).upload(pad,blob,{contentType:"image/jpeg",upsert:true});if(error)throw error;delete FA.urls[pad]}
+async function faWis(paden){const r2=paden.filter(faR2),sb=paden.filter(p=>!faR2(p));try{if(r2.length)await faR2Api("wis",r2)}catch(e){}for(let i=0;i<sb.length;i+=100)await SB.storage.from(DOC_BUCKET).remove(sb.slice(i,i+100)).catch(()=>{})}
 async function faLogo(docId){if(!docId)return null;if(FA.logo[docId])return FA.logo[docId];const d=S.documenten.get(docId);if(!d)return null;
   const [u]=await faUrls([d.pad]);const b=await (await fetch(u)).blob();const bmp=await createImageBitmap(b);FA.logo[docId]={bmp,url:URL.createObjectURL(b)};return FA.logo[docId]}
 function faWmTeken(ctx,W,H,logo,wm){if(!logo||!wm)return;const lw=W*wm.grootte/100,lh=lw*logo.height/logo.width,m=0.03*Math.min(W,H);
@@ -5714,7 +5724,7 @@ async function faCovers(){const els=$$("[data-facover]");const P=[];for(const el
 
 /* ---------- editor ---------- */
 function faEditor(){const a=FA.a,d=canWrite?"":" disabled",n=a.fotos.length,wm=a.watermerk||faWmDef(),logos=faLogos(),pub=a.status==="gepubliceerd",link=faLink(a),gew=faGewijzigd(a);
-  return `<div class="bar fa-bar"><button class="btn" data-fa="terug">← Alle albums</button><span class="grow"></span>${pub?(gew?'<span class="pill warn">gepubliceerd · niet-gepubliceerde wijzigingen</span>':'<span class="pill ok">gepubliceerd</span>'):'<span class="pill neutral">concept</span>'}</div>
+  return `<div class="bar fa-bar"><button class="btn" data-fa="terug">← Alle albums</button><span class="grow"></span><span class="pill neutral" title="Waar de foto's van dit album bewaard worden">${a.opslag==="r2"?"Cloudflare R2":"Supabase"}</span>${pub?(gew?'<span class="pill warn">gepubliceerd · niet-gepubliceerde wijzigingen</span>':'<span class="pill ok">gepubliceerd</span>'):'<span class="pill neutral">concept</span>'}</div>
   ${pub?`<div class="panel fa-link"><div class="panel-b"><div class="fa-lk"><span class="muted small">Deelbare link</span><a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a></div><div class="fa-lkb"><button class="btn sm" data-fa="kopie">${ic("copy")}Link kopiëren</button><button class="btn sm" data-fa="deel">${ic("deel")}Delen</button><a class="btn sm" href="mailto:?subject=${encodeURIComponent("Foto's: "+(a.titel||""))}&body=${encodeURIComponent("Hallo,\n\nDe foto's van "+(a.titel||"")+" staan online:\n"+link+"\n\nVriendenkring Brandweer Hoofdpost Aalst")}">${ic("mails")}Mail</a></div></div></div>`:""}
   <div class="grid g2" style="align-items:start">
   <div class="panel"><div class="panel-h"><h2>Album</h2></div><div class="panel-b"><div class="form">
@@ -5755,8 +5765,7 @@ async function faOpladen(files){const a=FA.a;if(!a||!files.length)return;files=[
   FA.busy={t:"Foto's opladen",i:0,n:files.length};renderBody();let fout=0;const nieuw=[];let k=0;
   const werk=async()=>{while(k<files.length){const file=files[k++];try{const r=await fotoVerklein(file,1920,0.86);const id=faId();
       const m=document.createElement("canvas"),s=Math.min(1,400/Math.max(r.w,r.h));m.width=Math.round(r.w*s);m.height=Math.round(r.h*s);m.getContext("2d").drawImage(r.canvas,0,0,m.width,m.height);const mb=await new Promise(ok=>m.toBlob(ok,"image/jpeg",0.8));
-      let e=(await SB.storage.from(DOC_BUCKET).upload(faPad(a.id,"bron",id),r.blob,{contentType:"image/jpeg",upsert:true})).error;if(e)throw e;
-      e=(await SB.storage.from(DOC_BUCKET).upload(faPad(a.id,"mini",id),mb,{contentType:"image/jpeg",upsert:true})).error;if(e)throw e;
+      await faUp(faPad(a.id,"bron",id),r.blob);await faUp(faPad(a.id,"mini",id),mb);
       nieuw.push({id,naam:String(file.name||"").slice(0,120),w:r.w,h:r.h,_t:file.lastModified||0})}catch(x){fout++;console.error(x)}
     FA.busy.i++;const p=$(".fa-prog");if(p){p.querySelector("span").textContent=FA.busy.i+" / "+FA.busy.n;p.querySelector("em").style.width=Math.round(FA.busy.i/FA.busy.n*100)+"%"}}};
   await Promise.all([werk(),werk(),werk()]);
@@ -5770,13 +5779,12 @@ async function faPubliceer(){const a=FA.a;if(!a||!a.fotos.length)return;const ke
       const s=Math.min(1,1600/Math.max(im.width,im.height)),W=Math.round(im.width*s),H=Math.round(im.height*s);const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(im,0,0,W,H);if(wm)faWmTeken(x,W,H,L.bmp,wm);
       const g=await new Promise(ok=>c.toBlob(ok,"image/jpeg",0.84));const c2=document.createElement("canvas"),s2=Math.min(1,640/Math.max(W,H));c2.width=Math.round(W*s2);c2.height=Math.round(H*s2);const x2=c2.getContext("2d");x2.imageSmoothingQuality="high";x2.drawImage(c,0,0,c2.width,c2.height);
       const kl=await new Promise(ok=>c2.toBlob(ok,"image/jpeg",0.8));
-      let e=(await SB.storage.from(DOC_BUCKET).upload(faPad(a.id,"pub",f.id),g,{contentType:"image/jpeg",upsert:true})).error;if(e)throw e;
-      e=(await SB.storage.from(DOC_BUCKET).upload(faPad(a.id,"klein",f.id),kl,{contentType:"image/jpeg",upsert:true})).error;if(e)throw e;
+      await faUp(faPad(a.id,"pub",f.id),g);await faUp(faPad(a.id,"klein",f.id),kl);
       f.pubKey=key;f.pw=W;f.ph=H}catch(x){fout++;console.error(x)}
     FA.busy.i++;const p=$(".fa-prog");if(p){p.querySelector("span").textContent=FA.busy.i+" / "+FA.busy.n;p.querySelector("em").style.width=Math.round(FA.busy.i/FA.busy.n*100)+"%"}}};
   await Promise.all([werk(),werk(),werk()]);FA.busy=null;
   if(fout){await faSave(true);renderBody();toast(fout+" foto's konden niet verwerkt worden. Probeer opnieuw te publiceren.",true);return}
-  const weg=(a.weg||[]).flatMap(id=>["pub","klein"].map(s=>faPad(a.id,s,id)));if(weg.length)await SB.storage.from(DOC_BUCKET).remove(weg).catch(()=>{});a.weg=[];
+  const weg=(a.weg||[]).flatMap(id=>["pub","klein"].map(s=>faPad(a.id,s,id)));if(weg.length)await faWis(weg);a.weg=[];
   a.publiek={token:(a.publiek&&a.publiek.token)||faTok(),op:new Date().toISOString(),door:ME_NAME||"",fotos:a.fotos.map(f=>({id:f.id,w:f.pw||f.w,h:f.ph||f.h}))};a.status="gepubliceerd";
   await faSave(true);renderBody();toast("Album gepubliceerd. Kopieer de link om ze te delen.")}
 async function faVoorbeeld(){const a=FA.a;const w=window.open("/album?voorbeeld=1","_blank");if(!w){toast("Je browser blokkeerde het nieuwe venster.",true);return}
@@ -5786,11 +5794,11 @@ async function faVoorbeeld(){const a=FA.a;const w=window.open("/album?voorbeeld=
   let klaar=false;const h=e=>{if(e.source===w&&e.data&&e.data.soort==="vbhaAlbumKlaar"){klaar=true;w.postMessage(data,location.origin);removeEventListener("message",h)}};addEventListener("message",h);
   setTimeout(()=>{if(!klaar)try{w.postMessage(data,location.origin)}catch(e){}},2500)}
 async function faVerwijder(){const a=FA.a;confirmBox(`Album <b>${esc(a.titel||"")}</b> met alle ${a.fotos.length} foto's verwijderen? De deelbare link werkt dan niet meer.`,"Verwijderen",async()=>{closeModal();
-  const P=[];for(const s of ["bron","mini","pub","klein"]){const {data}=await SB.storage.from(DOC_BUCKET).list(`Albums/${a.id}/${s}`,{limit:1000});for(const o of data||[])P.push(`Albums/${a.id}/${s}/${o.name}`)}
-  for(let i=0;i<P.length;i+=100)await SB.storage.from(DOC_BUCKET).remove(P.slice(i,i+100)).catch(()=>{});
+  const ids=[...new Set([...a.fotos.map(f=>f.id),...(a.weg||[]),...((a.publiek&&a.publiek.fotos)||[]).map(f=>f.id)])];
+  await faWis(ids.flatMap(id=>["bron","mini","pub","klein"].map(s=>faPad(a.id,s,id))));
   await write("fotoalbums",a.id,null,{del:true});FA.id=null;FA.a=null;renderBody();toast("Album verwijderd.")})}
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-act]");if(t){
-  if(t.dataset.act==="faNieuw"){const id="album-"+faId();const a={soort:"eigen",titel:"",datum:"",jaar:JAAR,fotograaf:"",omschrijving:"",fotos:[],watermerk:null,status:"concept",aangemaakt:new Date().toISOString(),door:ME_NAME||""};
+  if(t.dataset.act==="faNieuw"){if(t.disabled)return;t.disabled=true;const r2=await faR2Aan();t.disabled=false;const id="album-"+faId();const a={soort:"eigen",opslag:r2?"r2":"supabase",titel:"",datum:"",jaar:JAAR,fotograaf:"",omschrijving:"",fotos:[],watermerk:null,status:"concept",aangemaakt:new Date().toISOString(),door:ME_NAME||""};
     S.fotoalbums.set(id,{...a,id});FA.id=id;FA.a={...a,id};FA.sel=null;faSave(true);renderBody();setTimeout(()=>{const i=$("#faT");if(i)i.focus()},60);return}
   if(t.dataset.act==="faOpen"){faOpen(t.dataset.id);return}}
   const b=e.target.closest("[data-fa]");if(!b||!FA.a)return;const a=FA.a,act=b.dataset.fa,it=b.closest("[data-faid]"),fid=it&&it.dataset.faid,i=a.fotos.findIndex(f=>f.id===fid);
@@ -5804,8 +5812,8 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-act]
   if(act==="links"&&i>0){[a.fotos[i-1],a.fotos[i]]=[a.fotos[i],a.fotos[i-1]];faSave();renderBody();return}
   if(act==="rechts"&&i<a.fotos.length-1){[a.fotos[i+1],a.fotos[i]]=[a.fotos[i],a.fotos[i+1]];faSave();renderBody();return}
   if(act==="weg"){a.fotos.splice(i,1);if(a.cover===fid)a.cover=a.fotos[0]?a.fotos[0].id:null;if(FA.sel===fid)FA.sel=null;
-    SB.storage.from(DOC_BUCKET).remove([faPad(a.id,"bron",fid),faPad(a.id,"mini",fid)]).catch(()=>{});
-    if(a.status==="gepubliceerd")(a.weg=a.weg||[]).push(fid);else SB.storage.from(DOC_BUCKET).remove([faPad(a.id,"pub",fid),faPad(a.id,"klein",fid)]).catch(()=>{});
+    faWis([faPad(a.id,"bron",fid),faPad(a.id,"mini",fid)]);
+    if(a.status==="gepubliceerd")(a.weg=a.weg||[]).push(fid);else faWis([faPad(a.id,"pub",fid),faPad(a.id,"klein",fid)]);
     faSave(true);renderBody();return}
   if(act==="publiceer"){if(!(a.titel||"").trim()){toast("Geef het album eerst een titel.",true);const x=$("#faT");if(x)x.focus();return}b.disabled=true;await faPubliceer();return}
   if(act==="depubliceer"){confirmBox("Album offline halen? De deelbare link toont dan een melding. Publiceer je later opnieuw, dan werkt dezelfde link weer.","Offline halen",async()=>{closeModal();a.status="concept";await faSave(true);renderBody();toast("Het album staat offline.")});return}

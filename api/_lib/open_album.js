@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { admin, sendError, httpErr } from "./sb.js";
 import { rateLimit } from "./publiek.js";
+import { r2Aan, r2Url } from "./r2.js";
 
 /* Openbaar fotoalbum (Activiteiten › Foto's › eigen album). GET ?f=album&c=<albumId>.<token>
    Enkel gepubliceerde albums met het juiste token. De foto's staan in de afgeschermde opslag;
@@ -21,7 +22,10 @@ export default async function album(req, res) {
     const F = (a.publiek.fotos || []).filter(f => f && /^[\w-]{3,40}$/.test(f.id));
     const paden = F.flatMap(f => [`Albums/${id}/pub/${f.id}.jpg`, `Albums/${id}/klein/${f.id}.jpg`]);
     const urls = {};
-    for (let k = 0; k < paden.length; k += 200) {
+    if (a.opslag === "r2") {
+      if (!r2Aan()) throw httpErr(503, "De foto's zijn tijdelijk niet beschikbaar.");
+      for (const p of paden) urls[p] = r2Url("GET", p, 6 * 3600);
+    } else for (let k = 0; k < paden.length; k += 200) {
       const { data, error } = await sb.storage.from("documenten").createSignedUrls(paden.slice(k, k + 200), 6 * 3600);
       if (error) throw error;
       for (const d of data || []) if (d.signedUrl) urls[d.path] = d.signedUrl;
