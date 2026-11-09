@@ -2677,10 +2677,10 @@ function mlAgendaHtml(){const L=mlAgendaItems();if(!L.length)return"<p><em>Er st
 /* ---------- huisstijl (2026): hoofding zoals op de facturen, inhoud in de stijl van de website ----------
    Werkt in Gmail, Apple Mail, Outlook (ook 2010-2019: VML-knop en vaste breedte) en op gsm. */
 const ML_INK="#1a1b1e",ML_MUTED="#686b71",ML_ROOD="#b30000",ML_ZACHT="#f5f5f6";
-function mlKnop(t,href){const w=Math.min(520,Math.max(220,Math.round(String(t).length*9.5+64)));
-  return `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 22px 0"><tr><td align="center" bgcolor="${ML_ROOD}" style="border-radius:8px">`
-  +`<!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${esc(href)}" style="height:48px;v-text-anchor:middle;width:${w}px" arcsize="17%" stroke="f" fillcolor="${ML_ROOD}"><w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold">${esc(t)}</center></v:roundrect><![endif]-->`
-  +`<!--[if !mso]><!--><a href="${esc(href)}" target="_blank" style="${ML_FONT}display:inline-block;padding:14px 26px;font-size:16px;font-weight:bold;line-height:20px;color:#ffffff;text-decoration:none;border-radius:8px;background:${ML_ROOD}">${esc(t)}</a><!--<![endif]--></td></tr></table>`}
+function mlKnop(t,href){const w=Math.min(480,Math.max(180,Math.round(String(t).length*8.6+44)));
+  return `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 22px 0"><tr><td align="center" bgcolor="#ffffff" style="border-radius:8px">`
+  +`<!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${esc(href)}" style="height:40px;v-text-anchor:middle;width:${w}px" arcsize="20%" strokecolor="${ML_ROOD}" strokeweight="1.25pt" fillcolor="#ffffff"><w:anchorlock/><center style="color:${ML_ROOD};font-family:Arial,sans-serif;font-size:15px;font-weight:bold">${esc(t)}</center></v:roundrect><![endif]-->`
+  +`<!--[if !mso]><!--><a href="${esc(href)}" target="_blank" style="${ML_FONT}display:inline-block;padding:9px 18px;font-size:15px;font-weight:600;line-height:20px;color:${ML_ROOD};text-decoration:none;border:1.5px solid ${ML_ROOD};border-radius:8px;background:#ffffff">${esc(t)} &rarr;</a><!--<![endif]--></td></tr></table>`}
 function mlStijl(inner){
   const d=new DOMParser().parseFromString("<div id=r>"+inner+"</div>","text/html");const R=d.getElementById("r");
   R.querySelectorAll("script,style,iframe,object,embed,link,meta,form,input,button").forEach(n=>n.remove());
@@ -2709,7 +2709,7 @@ function mlKader(inner){const c=cfg();const ver=esc(c.vereniging||"Vriendenkring
 <table role="presentation" border="0" width="100%" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;border-collapse:separate">
 <tr><td align="center" bgcolor="#f7f7f7" style="padding:20px"><img src="${ML_LOGO}" alt="${ver}" width="220" height="84" style="display:block;width:220px;height:84px;border:0;outline:none;text-decoration:none"></td></tr>
 <tr><td class="vb-in" bgcolor="#ffffff" style="border-top:8px solid ${ML_ROOD};border-bottom:8px solid ${ML_ROOD};border-radius:14px;${ML_FONT}font-size:15px;color:${ML_INK};line-height:1.6;padding:32px 40px 26px">${inner}</td></tr>
-<tr><td align="center" bgcolor="#f7f7f7" style="${ML_FONT}font-size:12.5px;color:${ML_MUTED};line-height:1.6;padding:16px 20px"><b style="color:${ML_INK}">${ver}</b><br><a href="https://www.vbha.be" style="color:${ML_MUTED};text-decoration:underline">www.vbha.be</a> &middot; Vragen? Antwoord gewoon op deze mail.<br>Liever geen mails meer van ons? <a href="mailto:${afm}?subject=Afmelden%20mails%20VBHA" style="color:${ML_MUTED};text-decoration:underline">Meld je af</a>.</td></tr>
+<tr><td align="center" style="${ML_FONT}font-size:11.5px;color:#9a9ca1;line-height:1.6;padding:14px 20px">${ver} &middot; <a href="https://www.vbha.be" style="color:#9a9ca1;text-decoration:underline">vbha.be</a> &middot; <a href="mailto:${afm}?subject=Afmelden%20mails%20VBHA" style="color:#9a9ca1;text-decoration:underline">afmelden</a></td></tr>
 </table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table></body></html>`}
@@ -6102,6 +6102,14 @@ document.addEventListener("click",e=>{if(!e.target.closest('[data-act="stGoud"]'
 {const _s=mlSend;mlSend=function(){const r=_s.apply(this,arguments);try{if(mlGroep().id!=="goud-volgend")return r;const b=$("#msGo");if(!b)return r;
   b.addEventListener("click",()=>{const L=mailRecips();setTimeout(async()=>{const nu=new Date().toISOString();for(const x of L){if(!x.lidId)continue;const k=JAAR+"_"+x.lidId,cur=S.jaarleden.get(k)||{jaar:JAAR,lidId:x.lidId};const {id:_i,...rest}=cur;
     try{await write("jaarleden",k,{...rest,goudMail:{...(cur.goudMail||{}),op:nu,verstuurd:true,via:"bulk"}})}catch(e){}}},0)},{once:true})}catch(e){}return r}}
+
+// doelgroepen per status (actieve leden): status die nu geldt (punten vorig jaar) en status voor volgend jaar (punten dit jaar)
+{const _g=groepen;groepen=function(){const G=_g.apply(this,arguments);const b=G.find(g=>g.id==="betaald");if(!b||G.some(g=>g.id.startsWith("st:")))return G;
+  const C=ctx(),nm={GOUD:"goud",ZILVER:"zilver",BRONS:"brons"},extra=[];
+  for(const [veld,jaar] of [["statusNu",JAAR],["status",JAAR+1]])for(const s of ["GOUD","ZILVER","BRONS"]){
+    const list=b.list.filter(r=>{const x=r.lidId&&C.rows.get(r.lidId);return x&&String(x[veld]||"").toUpperCase()===s});
+    extra.push({...b,sect:"Status",id:"st:"+jaar+":"+s,label:`Status ${jaar}: ${nm[s]}${jaar===JAAR?"":" (tussenstand)"}`,list,geblokt:[]})}
+  const i=G.findIndex(g=>g.sect!=="Leden");G.splice(i<0?G.length:i,0,...extra);return G}}
 
 /* ============ Activiteiten › Shiften: leden indelen en verwittigen via sms (eigen gsm) ============
    Op de activiteit (collectie "activiteiten"): shiften:[{id,taak,van,tot,nodig,leden:[lidId]}], smsTekst, shiftenToegekend
