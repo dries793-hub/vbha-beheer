@@ -374,7 +374,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   </div>
   <div class="grid g2 eq">
     <div class="panel"><div class="panel-h"><h2>Saldo afgelopen 12 maanden</h2></div><div class="panel-b">${saldoChart(C)}</div></div>
-    <div class="panel"><div class="panel-h"><h2>Resultaat per categorie</h2></div><div class="panel-b">
+    <div class="panel bk-cats"><div class="panel-h"><h2>Resultaat per categorie</h2></div><div class="panel-b">
       ${cats.length?`<div class="dcats">${cats.map(c=>`<a class="dcat" href="#boekingen" data-act="filterCat" data-v="${esc(c.k)}"><span class="trunc">${esc(c.k)}</span><span class="dtrack"><span style="width:${Math.max(1.5,Math.abs(c.net)/maxNet*100)}%;background:var(--${c.net>=0?"good":"bad"})"></span></span><b class="${c.net>=0?"in":"out"}">${sgn(c.net)}</b></a>`).join("")}
       <div class="dcat tot"><span>Resultaat ${JAAR}</span><span></span><b class="${C.tin-C.tuit>=0?"in":"out"}">${sgn(C.tin-C.tuit)}</b></div></div>`:'<div class="empty">Nog geen transacties in '+JAAR+'.</div>'}
     </div></div>
@@ -543,7 +543,7 @@ VIEWS.boekhouding=()=>({title:"Boekhouding",sub:"Overzicht boekjaar "+JAAR,actio
   const C=ctx();const tv=teVerwerken(C).length;const res=C.tin-C.tuit;
   const cats=Object.entries(C.perCat).map(([k,v])=>({k,...v,net:v.in-v.uit})).sort((a,b)=>(b.in+b.uit)-(a.in+a.uit));
   const max=Math.max(1,...cats.map(c=>Math.max(c.in,c.uit)));
-  const recent=C.boek.slice(-8).reverse();
+  const recent=C.boek.slice(-60).reverse();
   return boekTabs("boekhouding")+`<div class="tiles six">
     <div class="tile hero"><span class="lbl">Totaal saldo</span><span class="val">${eur(r2(C.kas+rekToon(C).v))}</span></div>
     <div class="tile"><span class="lbl">Rekening</span><span class="val">${eur(rekToon(C).v)}</span>${rekToon(C).sub}</div>
@@ -554,13 +554,13 @@ VIEWS.boekhouding=()=>({title:"Boekhouding",sub:"Overzicht boekjaar "+JAAR,actio
   </div>
   <div class="panel"><div class="panel-h"><h2>Inkomsten en uitgaven per maand</h2><span class="grow"></span><span class="legend"><i style="background:var(--good)"></i>In <i style="background:var(--bad)"></i>Uit</span></div><div class="panel-b">${maandChart(C)}</div></div>
   <div class="grid g2" style="align-items:start">
-    <div class="panel"><div class="panel-h"><h2>Resultaat per categorie</h2></div><div class="mlist" role="list">${cats.map(c=>`<button type="button" class="ml-row" role="listitem" data-act="filterCat" data-v="${esc(c.k)}"><span class="ml-m"><span class="ml-n"><b>${esc(c.k)}</b></span><span class="ml-s">${c.in?`<span class="in">in ${eur(c.in)}</span>`:""}${c.in&&c.uit?'<span class="ml-dot">·</span>':""}${c.uit?`<span class="out">uit ${eur(c.uit)}</span>`:""}</span><span class="ml-bar"><span style="width:${c.in/max*100}%;background:var(--good)"></span><span style="width:${c.uit/max*100}%;background:var(--bad)"></span></span></span><span class="ml-r ml-amt ${c.net>=0?"in":"out"}">${c.net>=0?"+":"−"}${eur(Math.abs(c.net))}</span><span class="ml-chev" aria-hidden="true">›</span></button>`).join("")||'<div class="empty">Nog geen transacties in '+JAAR+'.</div>'}
+    <div class="panel bk-cats"><div class="panel-h"><h2>Resultaat per categorie</h2></div><div class="mlist" role="list">${cats.map(c=>`<button type="button" class="ml-row" role="listitem" data-act="filterCat" data-v="${esc(c.k)}"><span class="ml-m"><span class="ml-n"><b>${esc(c.k)}</b></span><span class="ml-s">${c.in?`<span class="in">in ${eur(c.in)}</span>`:""}${c.in&&c.uit?'<span class="ml-dot">·</span>':""}${c.uit?`<span class="out">uit ${eur(c.uit)}</span>`:""}</span><span class="ml-bar"><span style="width:${c.in/max*100}%;background:var(--good)"></span><span style="width:${c.uit/max*100}%;background:var(--bad)"></span></span></span><span class="ml-r ml-amt ${c.net>=0?"in":"out"}">${c.net>=0?"+":"−"}${eur(Math.abs(c.net))}</span><span class="ml-chev" aria-hidden="true">›</span></button>`).join("")||'<div class="empty">Nog geen transacties in '+JAAR+'.</div>'}
       <div class="ml-row ml-tot"><span class="ml-m"><span class="ml-n"><b>Totaal</b></span><span class="ml-s"><span class="in">in ${eur(C.tin)}</span><span class="ml-dot">·</span><span class="out">uit ${eur(C.tuit)}</span></span></span><span class="ml-r ml-amt ${res>=0?"in":"out"}">${res>=0?"+":"−"}${eur(Math.abs(res))}</span></div></div>
       <div class="tw dsk-only"><table class="rcards"><thead><tr><th>Categorie</th><th class="num">In</th><th class="num">Uit</th><th class="num">Netto</th><th style="width:24%"></th></tr></thead><tbody>
       ${cats.map(c=>`<tr class="click" data-act="filterCat" data-v="${esc(c.k)}" title="Toon de transacties van ${esc(c.k)}"><td><span class="cat">${esc(c.k)}</span></td><td class="num in">${c.in?eur(c.in):""}</td><td class="num out">${c.uit?eur(c.uit):""}</td><td class="num"><b class="${c.net>=0?"in":"out"}">${c.net>=0?"+":"−"}${eur(Math.abs(c.net))}</b></td>
         <td><div class="track2"><span style="width:${c.in/max*100}%;background:var(--good)"></span><span style="width:${c.uit/max*100}%;background:var(--bad)"></span></div></td></tr>`).join("")||'<tr><td colspan="5" class="empty">Nog geen transacties in '+JAAR+'.</td></tr>'}
       </tbody><tfoot><tr><td>Totaal</td><td class="num in">${eur(C.tin)}</td><td class="num out">${eur(C.tuit)}</td><td class="num ${res>=0?"in":"out"}">${res>=0?"+":"−"}${eur(Math.abs(res))}</td><td></td></tr></tfoot></table></div></div>
-    <div class="panel"><div class="panel-h"><h2>Laatste transacties</h2><span class="grow"></span><a class="btn sm" href="#boekingen">Alle transacties</a></div><div class="list" style="padding:4px 20px">
+    <div class="panel bk-recent"><div class="panel-h"><h2>Laatste transacties</h2><span class="grow"></span><a class="btn sm" href="#boekingen">Alle transacties</a></div><div class="list" style="padding:4px 20px">
       ${recent.map(b=>`<div class="li click" data-act="toonBoeking" data-id="${esc(b.id)}"><span class="muted nowrap" style="width:84px">${fmtDate(b.datum)}</span><span class="grow trunc">${esc(b.partij||b.mededeling)}<br><span class="muted small">${b.categorie?esc(b.categorie):"Te verwerken"}</span></span>${bedragCel(b)}</div>`).join("")||'<div class="empty">Nog geen transacties.</div>'}
     </div></div>
   </div>${wjPaneel()}`}});
@@ -573,7 +573,7 @@ function maandChart(C){
   ${m.map((x,i)=>{const x0=P+i*step+(step-2*bw-3)/2;return `<g class="mbar" data-act="filterMaand" data-v="${String(i+1).padStart(2,"0")}" style="cursor:pointer"><title>${MAANDEN_VOL[i]}: in ${eur(x.in)}, uit ${eur(x.uit)}</title><rect x="${P+i*step}" y="6" width="${step}" height="${H-B-6}" fill="transparent"/>
     <rect x="${x0}" y="${y(x.in)}" width="${bw}" height="${Math.max(0,y(0)-y(x.in))}" fill="var(--good)" rx="2"/><rect x="${x0+bw+3}" y="${y(x.uit)}" width="${bw}" height="${Math.max(0,y(0)-y(x.uit))}" fill="var(--bad)" rx="2"/>
     <text x="${P+i*step+step/2}" y="${H-7}" text-anchor="middle" font-size="11.5" fill="var(--muted)">${MAANDEN[i]}</text></g>`}).join("")}
-  </svg></div><div class="muted small" style="margin-top:6px">Klik op een maand om de transacties ervan te zien.</div>`;
+  </svg></div>`;
 }
 
 /* journaal */
@@ -4656,6 +4656,15 @@ function rekToon(C){if(!BANK&&!BANK_DASH){BANK_DASH=1;api("/api/bank/status").th
   const c=bkSaldoCheck((BANK&&BANK.koppelingen)||[]);if(!c||JAAR!==Number(todayISO().slice(0,4)))return{v:C.rek,sub:""};
   return{v:c.bank,sub:""}}
 {const st=document.createElement("style");st.textContent=".tile-sub{display:block;font-size:12px;color:var(--muted);margin-top:2px;font-weight:500}";document.head.appendChild(st)}
+
+/* Boekhouding: "Laatste transacties" even lang maken als "Resultaat per categorie" (enkel als ze naast elkaar staan) */
+function bkRecentFit(){const L=document.querySelector(".bk-cats"),R=document.querySelector(".bk-recent");if(!L||!R)return;
+  const items=[...R.querySelectorAll(".li")];items.forEach((x,i)=>x.hidden=i>=8);
+  const naast=Math.abs(L.getBoundingClientRect().top-R.getBoundingClientRect().top)<4&&window.innerWidth>=900;if(!naast)return;
+  const doel=L.offsetHeight;items.forEach(x=>x.hidden=false);
+  for(let i=items.length-1;i>=4&&R.offsetHeight>doel;i--)items[i].hidden=true}
+{const _a=VIEWS.boekhouding.after;VIEWS.boekhouding.after=function(){const r=_a&&_a.apply(this,arguments);bkRecentFit();return r}}
+{let t;addEventListener("resize",()=>{clearTimeout(t);t=setTimeout(()=>{if(route()==="boekhouding")bkRecentFit()},150)})}
 
 /* ============ Kalenders › Controle ============
    Louter ter controle: per persoon de dozen uit de verdeling (meegegeven / afgewerkt / in handen) naast wat op de kaart
