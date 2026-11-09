@@ -4568,7 +4568,7 @@ function kaPanel(){const L0=kaLijst(),open=L0.filter(a=>a.status!=="gedaan").len
   return `<div class="panel ka-panel"><div class="panel-h"><h2>Kalender aan huis gevraagd</h2>${L0.length?`<span class="cnt">${L0.length}</span>`:""}${open?`<span class="pill nok">${open} open</span>`:""}<span class="grow"></span>
     <label class="ka-sw small"><input type="checkbox" data-ka="laag"${KA.toon?" checked":""}> Stippen op de kaart</label>${canWrite?`<button type="button" class="btn sm" data-ka="nieuw">${ic("plus")}Adres toevoegen</button>`:""}</div>
     ${L0.length?`<div class="mlist" role="list">${L0.map(mob).join("")}</div><div class="tw dsk-only" style="max-height:440px"><table class="rcards"><thead><tr><th>Adres</th><th>Gevraagd</th><th></th></tr></thead><tbody>${L0.map(rij).join("")}</tbody></table></div>`
-      :`<div class="empty">Nog niemand vroeg dit jaar een kalender aan huis. De link naar de aanvraagpagina vind je onder het tandwiel bovenaan.</div>`}</div>`}
+      :`<div class="empty">Nog niemand vroeg dit jaar een kalender aan huis.</div>`}</div>`}
 function kaNieuw(){modal("Adres toevoegen",`<form id="fKa" class="form" onsubmit="return false">${fld("kaA","Adres *",'<input id="kaA" data-adres placeholder="Begin te typen: straat en nummer" maxlength="160">',"full")}<div class="err full" id="kaErr"></div></form>`,
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kaOk">Toevoegen</button>`);
   $("#kaOk").onclick=async()=>{const adres=$("#kaA").value.trim();if(!/\d/.test(adres)){$("#kaErr").textContent="Vul het volledige adres in, met huisnummer.";return}
