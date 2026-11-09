@@ -4720,10 +4720,10 @@ VIEWS.kalcontrole=()=>({title:"Kalenders "+JAAR,sub:"Controle: dozen naast de aa
   actions:'',
   body(){const {L,pd}=kcData(),af=L.filter(p=>KC_ST[p.st][0]==="warn").length;
     const T=k=>L.reduce((t,p)=>t+p[k],0);
-    return kalTabs("kalcontrole")+`<div class="tiles"><div class="tile"><span class="lbl">Afgewerkte dozen</span><span class="val">${T("uit")}</span><span class="hint">volgens de verdeling</span></div>
-    <div class="tile"><span class="lbl">Bedeeld op de kaart</span><span class="val">${krNum(T("dA"))}</span><span class="hint">adressen · ≈ ${kcN(T("dA")/pd)} dozen</span></div>
-    <div class="tile"><span class="lbl">Dozen in handen</span><span class="val">${T("hand")}</span><span class="hint">${krNum(T("rA"))} adressen gereserveerd</span></div>
-    <div class="tile"><span class="lbl">Na te kijken</span><span class="val">${af}</span><span class="hint">${af===1?"persoon":"personen"} met een verschil</span></div></div>
+    return kalTabs("kalcontrole")+`<div class="tiles"><div class="tile"><span class="lbl">Afgewerkte dozen</span><span class="val">${T("uit")}</span></div>
+    <div class="tile"><span class="lbl">Bedeeld op de kaart</span><span class="val">${krNum(T("dA"))}</span></div>
+    <div class="tile"><span class="lbl">Dozen in handen</span><span class="val">${T("hand")}</span></div>
+    <div class="tile"><span class="lbl">Na te kijken</span><span class="val">${af}</span></div></div>
     <div class="panel"><div class="tw"><table class="rcards kc-t"><thead><tr><th>Persoon</th><th class="num">Meegegeven</th><th class="num">Afgewerkt</th><th class="num">In handen</th><th class="num">Bedeeld op kaart</th><th class="num">≈ dozen</th><th class="num">Gereserveerd</th><th>Controle</th></tr></thead><tbody>
     ${L.map(p=>{const [c,t]=KC_ST[p.st];const vs=p.verschil?` <small class="muted">${kcN(p.verschil)} ${p.verschil<1.5?"doos":"dozen"} verschil</small>`:"";
       return `<tr><td data-l="Persoon"><b>${esc(p.naam)}</b>${p.lid||!p.j?"":'<div class="small muted">geen lid</div>'}${!p.j&&(p.dA||p.rA)?'<div class="small muted">niet in de verdeling</div>':""}</td>
