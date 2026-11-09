@@ -33,6 +33,12 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "sponsorbev") return await sponsorBevestiging(req, res); // sponsorbevestiging (PDF / mail)
     if (req.query && req.query.f === "kf-voorbeeld") return await kfVoorbeeld(req, res); // voorbeeld bevestigingsmail kinderfeest
     if (req.query && req.query.f === "sms") return await smsApi(req, res); // sms via BudgetSMS (shiften)
+    if (req.query && req.query.f === "bcsplit") { // Bancontact-bulkstortingen opsplitsen (knop in de app of beheerder met geplande-taaksleutel)
+      const { requireUser, isDbCron, admin } = await import("./_lib/sb.js"); const { splitsBulk } = await import("./_lib/bcsplit.js");
+      let sb; if (req.method === "POST" && await isDbCron(req)) sb = admin(); else { if (req.method !== "POST") return res.status(405).json({ error: "Gebruik POST" }); await requireUser(req, { boek: true }); sb = admin(); }
+      let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+      return res.status(200).json(await splitsBulk(sb, { ids: Array.isArray(b.ids) ? b.ids.slice(0, 50).map(String) : null, proef: !!b.proef }));
+    }
     if (req.query && req.query.f === "r2") return await r2Api(req, res); // fotoalbums: tijdelijke links naar Cloudflare R2
     if (req.query && req.query.f === "shop") return await shopApi(req, res); // webshop: status van een bestelling, mails
     if (req.query && req.query.f === "kassa") return await kassaApi(req, res); // kassa: transacties wissen of nakijken
