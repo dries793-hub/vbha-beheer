@@ -4231,12 +4231,12 @@ kfTable=function(list,dub,c){list=KFC.f==="nog"?list.filter(r=>!kfcAan(r)):KFC.f
   const mob=`<div class="mlist" role="list">${list.map(r=>{const l=kfLidVan(r.lid);const kids=r.kinderen||[];
     return `<div class="ml-row kfc-row" role="listitem"><button type="button" class="kfc-open" data-act="kfToon" data-id="${esc(r.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(r.lid)}</b>${l?"":' <span class="pill warn">niet in ledenlijst</span>'}${dub[norm(r.email)]>1?' <span class="pill warn">dubbel?</span>':""}</span>
       <span class="ml-s kf-ms">${kidsH(r)||"geen kinderen"}</span></span><span class="pm-tot"><b>${kids.length}</b><small>${kids.length===1?"kind":"kinderen"}</small></span></button>${kfcVink(r)}</div>`}).join("")||`<div class="empty">${leeg}</div>`}</div>`;
-  return mob+`<table class="rcards dsk-only"><thead><tr><th>Lid</th><th>E-mail</th><th>Kinderen</th><th class="num">Aantal</th><th>Bron</th><th>Cadeaus</th></tr></thead><tbody>
+  return mob+`<table class="rcards dsk-only"><thead><tr><th>Lid</th><th>E-mail</th><th>Kinderen</th><th class="num">Aantal</th><th>Cadeaus</th></tr></thead><tbody>
   ${list.map(r=>{const l=kfLidVan(r.lid);const kids=r.kinderen||[];
     return `<tr class="click" data-act="kfToon" data-id="${esc(r.id)}"><td><b>${esc(r.lid)}</b>${l?"":' <span class="pill warn">niet in ledenlijst</span>'}${dub[norm(r.email)]>1?' <span class="pill warn">mogelijk dubbel</span>':""}${r.opmerking?`<div class="muted small">${esc(r.opmerking)}</div>`:""}</td>
     <td class="trunc">${esc(r.email)}</td><td><div class="kf-kl">${kidsH(r)}</div></td>
     <td class="num">${kids.length}</td>
-    <td>${r.bron==="formulier"?'<span class="pill info">Formulier</span>':'<span class="pill neutral">Manueel</span>'}</td><td class="nowrap">${kfcVink(r)}</td></tr>`}).join("")||`<tr><td colspan="7" class="empty">${leeg}</td></tr>`}
+    <td class="nowrap">${kfcVink(r)}</td></tr>`}).join("")||`<tr><td colspan="6" class="empty">${leeg}</td></tr>`}
   </tbody></table>`};
 {const _v=VIEWS.kinderfeest;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=b.apply(this,arguments);const L=kfLijst(),ok=L.filter(kfcAan).length;
     const tile=`<div class="tile"><span class="lbl">Cadeaus doorgegeven</span><span class="val">${ok}<small class="muted" style="font-size:.55em"> / ${L.length}</small></span><span class="hint">${L.length-ok?(L.length-ok)+" nog niet":"iedereen is in orde"}</span></div>`;
@@ -5079,7 +5079,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-ka]");if(!
 // tabs op de activiteitenpagina's
 function kaMetTab(route,act,eerste){const _v=VIEWS[route];if(!_v)return;const n=function(){const v=_v.apply(this,arguments),b=v.body;
   v.body=function(){return kaTabBar(route,act,eerste)+((KA_UI.tab[route]||"hoofd")==="kassa"?kaTabBody(act):String(b.apply(this,arguments)))};return v};Object.assign(n,_v);VIEWS[route]=n}
-kaMetTab("fuif","fuif","Tickets");kaMetTab("kinderfeest","kinderfeest","Inschrijvingen");
+// kassa enkel nog via Financiën › Kassa (geen tabblad Kassa meer op de activiteitenpagina's)
 VIEWS.jaarmarkt=()=>({title:"Jaarmarkt",sub:"Kassa jaarmarkt",actions:`<button class="btn primary" data-ka="open" data-act="jaarmarkt">${ic("kassa")}Kassa openen</button>${kaAdm()?`<button class="btn iconbtn" data-ka="inst" data-act="jaarmarkt" aria-label="Instellingen kassa" title="Instellingen kassa">${ic("instellingen")}</button>`:""}`,body(){return kaTabBody("jaarmarkt",true)}});
 
 /* ---------- Financiën › Kassa ---------- */
