@@ -20,7 +20,13 @@ export default async function handler(req, res) {
       if (data.length < 1000) break;
     }
     const { data: pd } = await sb.from("jaren").select("data").eq("id", String(A.jaar)).maybeSingle();
-    res.status(200).json({ jaar: A.jaar, perDoos: Number(pd?.data?.perDoos) || 100, straten: out, nu: new Date().toISOString() });
+    // meldingen die het bestuur nog moet nakijken (zonder namen): oranje stippellijn op de kaart
+    const open = {};
+    try {
+      const { data: M } = await sb.from("rondemeldingen").select("data").eq("data->>jaar", String(A.jaar)).eq("data->>stand", "open").limit(500);
+      for (const r of M || []) { const d = r.data || {}; for (const s of d.straten || []) if (open[s] !== "d") open[s] = d.soort === "done" ? "d" : "r"; }
+    } catch (e) { /* tabel niet bereikbaar: geen meldingen tonen */ }
+    res.status(200).json({ jaar: A.jaar, perDoos: Number(pd?.data?.perDoos) || 100, straten: out, open: Object.entries(open).map(([s, st]) => ({ s, st })), nu: new Date().toISOString() });
   } catch (e) { sendError(res, e); }
 }
 
