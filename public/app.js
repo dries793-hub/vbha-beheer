@@ -357,9 +357,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   </div>
   <div class="grid g2 eq">
     <div class="stackcol">
-      <div class="panel"><div class="panel-h"><h2>Status leden</h2></div><div class="panel-b"><div class="dcats">
-        ${["GOUD","ZILVER","BRONS"].map(k=>`<div class="dcat st"><span>${medal(k)}</span><span class="dtrack"><span style="width:${actief?st[k]/actief*100:0}%;background:var(--${k.toLowerCase()})"></span></span><b>${st[k]}<span class="muted small" style="font-weight:400"> · ${actief?Math.round(st[k]/actief*100):0}%</span></b></div>`).join("")}
-      </div></div></div>
+      <div class="panel"><div class="panel-h"><h2>Status leden</h2></div><div class="panel-b">${stDonut(st,actief)}</div></div>
       <div class="panel"><div class="panel-h"><h2>Jubilarissen ${JAAR}</h2><span class="grow"></span><span class="pill warn">25 jaar lid</span></div><div class="panel-b"><div class="list">
         ${jub.length?jub.map(r=>`<div class="li"><span class="grow trunc"><b>${esc(naamVol(r.lid))}</b></span><span class="muted">lid sinds ${r.lid.lidSinds}</span></div>`).join(""):'<div class="empty" style="padding:8px 0">Geen jubilarissen dit jaar.</div>'}
       </div></div></div>
@@ -4656,7 +4654,7 @@ function bankMelding(){if(!(ROL==="admin"||ROL==="boekhouder"))return"";
 /* saldo "Rekening" in de tegels: het werkelijke saldo bij de bank (Argenta), voor het lopende jaar */
 function rekToon(C){if(!BANK&&!BANK_DASH){BANK_DASH=1;api("/api/bank/status").then(r=>{BANK=r;if(["dashboard","boekhouding"].includes(route()))renderBody()}).catch(()=>{})}
   const c=bkSaldoCheck((BANK&&BANK.koppelingen)||[]);if(!c||JAAR!==Number(todayISO().slice(0,4)))return{v:C.rek,sub:""};
-  return{v:c.bank,sub:`<small class="tile-sub">bij ${esc(c.bankNaam)} op ${fmtDate(c.datum)}</small>`}}
+  return{v:c.bank,sub:""}}
 {const st=document.createElement("style");st.textContent=".tile-sub{display:block;font-size:12px;color:var(--muted);margin-top:2px;font-weight:500}";document.head.appendChild(st)}
 
 /* ============ Kalenders › Controle ============
@@ -5546,6 +5544,16 @@ const stL=r=>UI.ledenStJ==="volgend"?r.status:(r.statusNu||r.status);
 function stJaarSeg(){return `<div class="seg" role="group" aria-label="Status van welk jaar" title="Huidig: status die nu geldt (punten van ${JAAR-1}). Volgend jaar: status die het lid met de punten van ${JAAR} al verdiende.">${[["nu","Status "+JAAR],["volgend","Status "+(JAAR+1)]].map(([k,l])=>`<button data-act="ledenStJ" data-v="${k}" class="${UI.ledenStJ===k?"on":""}">${l}</button>`).join("")}</div>`}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="ledenStJ"]');if(!t)return;UI.ledenStJ=t.dataset.v;render(true)});
 
+/* dashboard: status leden als taartdiagram */
+function stDonut(st,actief){const K=["GOUD","ZILVER","BRONS"],R=54,C=2*Math.PI*R;let off=0;
+  const seg=K.map(k=>{const f=actief?st[k]/actief:0,len=f*C;const s=f>0?`<circle r="${R}" cx="70" cy="70" fill="none" stroke="var(--${k.toLowerCase()})" stroke-width="22" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 70 70)"><title>${k.charAt(0)+k.slice(1).toLowerCase()}: ${st[k]}</title></circle>`:"";off+=len;return s}).join("");
+  return `<div class="st-donut"><svg viewBox="0 0 140 140" role="img" aria-label="Status van ${actief} actieve leden: ${K.map(k=>k.toLowerCase()+" "+st[k]).join(", ")}"><circle r="${R}" cx="70" cy="70" fill="none" stroke="var(--line)" stroke-width="22"/>${seg}<text x="70" y="68" text-anchor="middle" class="st-dn">${actief}</text><text x="70" y="86" text-anchor="middle" class="st-dl">actief</text></svg>
+   <div class="st-leg">${K.map(k=>`<div><i style="background:var(--${k.toLowerCase()})"></i><span>${k.charAt(0)+k.slice(1).toLowerCase()}</span><b>${st[k]}</b><small>${actief?Math.round(st[k]/actief*100):0}%</small></div>`).join("")}</div></div>`}
+{const s=document.createElement("style");s.textContent=`.st-donut{display:flex;align-items:center;gap:24px;flex-wrap:wrap}.st-donut svg{width:150px;height:150px;flex:none}
+.st-dn{font-size:26px;font-weight:700;fill:var(--ink);font-variant-numeric:tabular-nums}.st-dl{font-size:11px;fill:var(--muted)}
+.st-leg{flex:1;min-width:160px;display:flex;flex-direction:column;gap:10px}.st-leg div{display:grid;grid-template-columns:12px 1fr auto 44px;gap:10px;align-items:center;font-size:14.5px}
+.st-leg i{width:12px;height:12px;border-radius:3px}.st-leg b{font-variant-numeric:tabular-nums}.st-leg small{color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}`;document.head.appendChild(s)}
+
 /* ============ Financiën › Begroting ============
    Per boekjaar één document config/"begroting_<jaar>": {tabs:[{id,naam,categorie,personen,winst,posten:[{id,soort:"kost"|"opbrengst",naam,aantal,prijs,pp}]}]}
    Een post "per persoon" telt het aantal personen van de activiteit i.p.v. een eigen aantal.
@@ -5597,12 +5605,12 @@ function bgTiles(t){const S2=bgSom(t),W=bgWerkelijk(t);
 function bgTotaal(){const D=bgDoc();let k=0,o=0;const rows=D.tabs.map(t=>{const s=bgSom(t);k+=s.k;o+=s.o;const w=bgWerkelijk(t);return `<tr><td><b>${esc(t.naam)}</b></td><td class="num out">${eur(s.k)}</td><td class="num in">${eur(s.o)}</td><td class="num"><b>${bgE(s.r)}</b></td><td class="num">${w?bgE(w.r):"–"}</td></tr>`}).join("");
   return `<div class="panel"><div class="panel-h"><h2>Alle activiteiten ${JAAR}</h2></div><div class="tw"><table class="rcards"><thead><tr><th>Activiteit</th><th class="num">Kosten</th><th class="num">Opbrengsten</th><th class="num">Begroot</th><th class="num">Werkelijk</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td><b>Totaal</b></td><td class="num out">${eur(k)}</td><td class="num in">${eur(o)}</td><td class="num"><b>${bgE(o-k)}</b></td><td></td></tr></tfoot></table></div></div>`}
 VIEWS.begroting=()=>({title:"Begroting",sub:"Begroting per activiteit "+JAAR,
-  actions:'<button class="btn" data-act="bgPrint">'+ic("download")+'Afdrukken</button>',
+  actions:'<button class="btn" data-act="bgPrint">'+ic("download")+'Afdrukken</button>'+(bgMag()?'<button class="btn iconbtn" data-bgact="beheer" title="Activiteiten beheren" aria-label="Activiteiten beheren">'+ic("instellingen")+'</button>':''),
   body(){const D=bgDoc(),t=bgTab();const vorig=S.config.get("begroting_"+(JAAR-1));
-    const tabs=`<div class="bg-tabbar"><div class="bg-tl" role="tablist" aria-label="Activiteiten">${D.tabs.map(x=>`<button type="button" role="tab" aria-selected="${x.id===BG.tab}" class="bg-t1${x.id===BG.tab?" on":""}" data-bgact="tab" data-id="${esc(x.id)}">${esc(x.naam)}</button>`).join("")}<span class="bg-sep" aria-hidden="true"></span><button type="button" role="tab" aria-selected="${BG.tab==="__tot"}" class="bg-t1 bg-tot${BG.tab==="__tot"?" on":""}" data-bgact="tab" data-id="__tot">${ic("boekhouding")}Totaal</button></div>${bgMag()?`<button type="button" class="btn sm bg-plus" data-bgact="tabNieuw">${ic("plus")}Activiteit</button>`:""}</div>`;
+    const tabs=`<div class="bg-tabbar"><div class="bg-tl" role="tablist" aria-label="Activiteiten">${D.tabs.map(x=>`<button type="button" role="tab" aria-selected="${x.id===BG.tab}" class="bg-t1${x.id===BG.tab?" on":""}" data-bgact="tab" data-id="${esc(x.id)}">${esc(x.naam)}</button>`).join("")}<span class="bg-sep" aria-hidden="true"></span><button type="button" role="tab" aria-selected="${BG.tab==="__tot"}" class="bg-t1 bg-tot${BG.tab==="__tot"?" on":""}" data-bgact="tab" data-id="__tot">${ic("boekhouding")}Totaal</button></div></div>`;
     const tip=D.nieuw&&vorig&&bgMag()?`<div class="panel"><div class="panel-b" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span class="grow">Er is nog geen begroting voor ${JAAR}.</span><button class="btn sm" data-bgact="kopie">Begroting ${JAAR-1} overnemen</button></div></div>`:"";
     if(BG.tab==="__tot")return tabs+tip+bgTotaal();
-    if(!t)return tabs+'<div class="panel"><div class="empty">Nog geen activiteiten. Voeg er een toe met +.</div></div>';
+    if(!t)return tabs+'<div class="panel"><div class="empty">Nog geen activiteiten. Voeg er een toe via het tandwieltje rechtsboven.</div></div>';
     return tabs+tip+`<div class="bar" style="margin:0"><b style="font-size:17px">${esc(t.naam)}</b>${t.categorie?`<span class="pill neutral">categorie ${esc(t.categorie)}</span>`:""}<span class="grow"></span>${bgMag()?`<button class="btn sm" data-bgact="tabInst">${ic("instellingen")}Tabblad</button>`:""}</div>`
       +bgTiles(t)+`<div class="bg-blokken">${bgBlok(t,"kost","Kosten")}${bgBlok(t,"opbrengst","Opbrengsten")}</div>`+bgPP(t)}});
 VIEWS.begroting.after=()=>{if(!BG.focus)return;const el=document.querySelector(BG.focus.sel);if(el&&document.activeElement!==el){el.focus();try{if(BG.focus.pos!=null)el.setSelectionRange(BG.focus.pos,BG.focus.pos)}catch(e){}}};
@@ -5625,7 +5633,8 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-bgact]");i
   if(a==="nieuw"&&t){const p={id:bgId(),soort:b.dataset.soort,naam:"",aantal:1,prijs:"",pp:false};(t.posten=t.posten||[]).push(p);BG.focus={sel:`[data-bgp="${p.id}"] [data-bgf="naam"]`};renderBody();bgBewaar();return}
   if(a==="weg"&&t){const id=b.closest("[data-bgp]").dataset.bgp;t.posten=t.posten.filter(p=>p.id!==id);BG.focus=null;renderBody();bgBewaar();return}
   if(a==="kopie"){const v=S.config.get("begroting_"+(JAAR-1));if(!v)return;D.tabs=JSON.parse(JSON.stringify(v.tabs||[]));delete D.nieuw;BG.tab=null;bgBewaar(true);renderBody();toast("Begroting "+(JAAR-1)+" overgenomen.");return}
-  if(a==="tabNieuw"||a==="tabInst")bgTabForm(a==="tabInst"?t:null)});
+  if(a==="tabNieuw"||a==="tabInst")bgTabForm(a==="tabInst"?t:null);
+  if(a==="beheer")bgBeheer()});
 function bgTabForm(t){const D=bgDoc(),cats=cfg().boekCategorieen||[];
   modal(t?"Tabblad "+t.naam:"Activiteit toevoegen",`<form id="fBg" class="form">${fld("bgTn","Naam",inp("bgTn",t?t.naam:"",'maxlength="60" placeholder="bv. In Vier en Vlam"'),"full")}
     ${fld("bgTc","Categorie in de boekhouding",`<select id="bgTc"><option value="">Geen (geen vergelijking met werkelijk)</option>${cats.map(k=>`<option${t&&t.categorie===k?" selected":""}>${esc(k)}</option>`).join("")}</select>`,"full")}
@@ -5693,6 +5702,28 @@ async function bgKopieer(){const {tit,rows,extra}=bgKopieData();
 document.addEventListener("click",e=>{if(e.target.closest('[data-act="bgKopie"]'))bgKopieer()});
 // actief tabblad in beeld houden als de rij horizontaal scrolt
 {const _a=VIEWS.begroting.after;VIEWS.begroting.after=function(){const r=_a&&_a.apply(this,arguments);const on=document.querySelector(".bg-tl .bg-t1.on");if(on){const L=on.parentElement;const x=on.offsetLeft-L.offsetLeft;if(x<L.scrollLeft||x+on.offsetWidth>L.scrollLeft+L.clientWidth)L.scrollLeft=x-16}return r}}
+
+/* ---------- tandwiel: activiteiten (tabbladen) toevoegen, wijzigen, verwijderen en ordenen ---------- */
+function bgBeheer(){const D=bgDoc();
+  const rij=(x,i)=>`<div class="bgb-r" data-bgb="${esc(x.id)}"><span class="bgb-n"><b>${esc(x.naam)}</b><small>${x.categorie?"categorie "+esc(x.categorie):"geen categorie"}${(x.posten||[]).length?" · "+x.posten.length+" post"+(x.posten.length===1?"":"en"):""}</small></span>
+    <button type="button" class="btn sm iconbtn" data-bgb-op="op" title="Naar voren"${i?"":" disabled"}>↑</button><button type="button" class="btn sm iconbtn" data-bgb-op="neer" title="Naar achteren"${i<D.tabs.length-1?"":" disabled"}>↓</button>
+    <button type="button" class="btn sm iconbtn" data-bgb-op="wijzig" title="Wijzigen">${ic("potlood")}</button><button type="button" class="btn sm iconbtn danger" data-bgb-op="weg" title="Verwijderen">${ic("x")}</button></div>`;
+  modal("Activiteiten "+JAAR,`<p class="muted small" style="margin:0 0 12px">Elke activiteit is een tabblad in de begroting.</p><div class="bgb-l">${D.tabs.map(rij).join("")||'<div class="bg-leeg">Nog geen activiteiten.</div>'}</div>
+    <div class="bgb-nw"><input id="bgbN" maxlength="60" placeholder="Nieuwe activiteit, bv. Familiedag"><button type="button" class="btn primary" id="bgbAdd">${ic("plus")}Toevoegen</button></div>`,
+    `<button class="btn" data-act="closeModal">Sluiten</button>`);
+  $("#bgbAdd").onclick=async()=>{const D=bgDoc();const n=$("#bgbN").value.trim();if(!n){$("#bgbN").focus();return}const cats=cfg().boekCategorieen||[];const c=cats.find(k=>norm(k)===norm(n))||"";
+    const x={id:bgId(),naam:n,categorie:c,personen:0,winst:0,posten:[]};D.tabs.push(x);BG.tab=x.id;await bgBewaar(true);renderBody();bgBeheer();setTimeout(()=>{const i=$("#bgbN");if(i)i.focus()},50)};
+  $("#bgbN").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("#bgbAdd").click()}};
+  document.querySelectorAll("[data-bgb-op]").forEach(b=>b.onclick=async()=>{const D=bgDoc();const id=b.closest("[data-bgb]").dataset.bgb,i=D.tabs.findIndex(x=>x.id===id),t=D.tabs[i],op=b.dataset.bgbOp;
+    if(op==="op"&&i>0){[D.tabs[i-1],D.tabs[i]]=[D.tabs[i],D.tabs[i-1]];await bgBewaar(true);renderBody();bgBeheer()}
+    else if(op==="neer"&&i<D.tabs.length-1){[D.tabs[i+1],D.tabs[i]]=[D.tabs[i],D.tabs[i+1]];await bgBewaar(true);renderBody();bgBeheer()}
+    else if(op==="wijzig"){bgTabForm(t)}
+    else if(op==="weg"){const n=(t.posten||[]).length;const doe=async()=>{closeModal();D.tabs.splice(i,1);if(BG.tab===id)BG.tab=null;await bgBewaar(true);renderBody();bgBeheer();toast(`"${t.naam}" verwijderd.`)};
+      if(n)confirmBox(`<b>${esc(t.naam)}</b> heeft ${n} post${n===1?"":"en"}. Toch verwijderen?`,"Verwijderen",doe);else doe()}})}
+{const st=document.createElement("style");st.textContent=`.bgb-l{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.bgb-r{display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface,#fff)}.bgb-n{flex:1;min-width:0;display:flex;flex-direction:column}.bgb-n small{color:var(--muted);font-size:12px}
+.bgb-r .iconbtn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.bgb-r .danger{color:var(--bad,#b91c1c)}
+.bgb-nw{display:flex;gap:8px}.bgb-nw input{flex:1;min-width:0;height:38px;padding:0 10px;border:1px solid var(--line-strong,#ccced2);border-radius:8px;font:inherit}`;document.head.appendChild(st)}
 
 /* ============ Administratie › Website (startpagina vbha.be) ============
    config/"website": {blokken:{viv,kalender,steun,sponsors}, kal_titel, kal_tekst, viv_titel, viv_datum, viv_tekst, fotos:{kalender|viv:{pad,v,w,h}}}
