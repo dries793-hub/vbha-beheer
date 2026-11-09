@@ -252,8 +252,8 @@ function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");co
   let T=0,L=[],sel=-1,laatste="";inp.setAttribute("autocomplete","off");inp.setAttribute("role","combobox");inp.setAttribute("aria-autocomplete","list");
   const mark=(n,q)=>{const t=q.trim().split(/\s+/).filter(Boolean);let h=esc(n);for(const x of t){const re=new RegExp("("+x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i");h=h.replace(re,"<b>$1</b>")}return h};
   const teken=q=>{if(!L.length){box.innerHTML=q.trim().length>=3?'<div class="lp-leeg">Geen lid gevonden met deze naam.</div>':"";box.hidden=q.trim().length<3;return}
-    box.innerHTML=L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${mark(l.naam,q)}</button>`).join("");box.hidden=false};
-  const kies=l=>{inp.value=l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.naam;lidPrijs(l.id)};
+    box.innerHTML=L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${mark(l.toon||l.naam,q)}</button>`).join("");box.hidden=false};
+  const kies=l=>{inp.value=l.toon||l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.toon||l.naam;lidPrijs(l.id)};
   inp.addEventListener("input",()=>{if(inp.dataset.id)lidPrijs(null);delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;
     if(q.trim().length<3){L=[];box.hidden=true;return}
     T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[];}catch(e){L=[]}if(inp.value===q)teken(q)},160)});

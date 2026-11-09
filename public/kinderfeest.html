@@ -184,7 +184,7 @@ fetch("/api/kinderfeest").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;CFG=
 function lft(g){if(!/^\d{4}-\d{2}-\d{2}$/.test(g))return null;const [y,m,d]=g.split("-").map(Number),[Y,M,D]=CFG.datum.split("-").map(Number);let a=Y-y;if(M<m||(M===m&&D<d))a--;return a}
 function ageTxt(g){const a=lft(g);if(a==null)return "";if(a<0)return "Deze datum ligt na het feest.";return (a===0?"Jonger dan 1 jaar":a+" jaar")+" op het feest"+(a>CFG.leeftijd?" (geen cadeautje meer)":"")}
 function read(){KIDS=$$("#kids .kid").map(el=>({naam:el.querySelector(".kn").value,geb:el.querySelector(".kg").value}))}
-function draw(focus){$("#kids").innerHTML=KIDS.map((k,i)=>`<div class="kid"><div><label for="kn${i}">Kind ${i+1}: naam en voornaam</label><input type="text" class="kn" id="kn${i}" value="${esc(k.naam)}" autocomplete="off" maxlength="80"></div>
+function draw(focus){$("#kids").innerHTML=KIDS.map((k,i)=>`<div class="kid"><div><label for="kn${i}">Kind ${i+1}: voornaam en naam</label><input type="text" class="kn" id="kn${i}" value="${esc(k.naam)}" autocomplete="off" maxlength="80"></div>
   <div><label for="kg${i}">Geboortedatum</label><input type="date" class="kg" id="kg${i}" value="${esc(k.geb)}" min="2000-01-01" max="${CFG.datum}"></div>${KIDS.length>1?`<button type="button" class="kdel" data-del="${i}" aria-label="Kind ${i+1} verwijderen">Verwijderen</button>`:"<span></span>"}<div class="age" id="ka${i}">${esc(ageTxt(k.geb))}</div></div>`).join("");
   $("#add").hidden=KIDS.length>=CFG.max;if(focus){const n=$$("#kids .kn");n[n.length-1].focus()}}
 $("#add").addEventListener("click",()=>{read();KIDS.push({naam:"",geb:""});draw(true)});
@@ -214,8 +214,8 @@ function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");co
   let T=0,L=[],sel=-1,laatste="";inp.setAttribute("autocomplete","off");inp.setAttribute("role","combobox");inp.setAttribute("aria-autocomplete","list");
   const mark=(n,q)=>{const t=q.trim().split(/\s+/).filter(Boolean);let h=esc(n);for(const x of t){const re=new RegExp("("+x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i");h=h.replace(re,"<b>$1</b>")}return h};
   const teken=q=>{if(!L.length){box.innerHTML=q.trim().length>=3?'<div class="lp-leeg">Geen lid gevonden met deze naam.</div>':"";box.hidden=q.trim().length<3;return}
-    box.innerHTML=L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${mark(l.naam,q)}</button>`).join("");box.hidden=false};
-  const kies=l=>{inp.value=l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.naam;alCheck(inp,l.id);
+    box.innerHTML=L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${mark(l.toon||l.naam,q)}</button>`).join("");box.hidden=false};
+  const kies=l=>{inp.value=l.toon||l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.toon||l.naam;alCheck(inp,l.id);
     const m=$("#mail");if(m&&(!m.value.trim()||m.dataset.auto)){if(l.mail){m.value=l.mail;m.dataset.auto="1";m.type="text";$("#mhint").hidden=false}else if(m.dataset.auto){m.value="";delete m.dataset.auto;m.type="email";$("#mhint").hidden=true}}};
   inp.addEventListener("input",()=>{if(inp.dataset.id){AC++;alMeld(inp,"")}delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;
     if(q.trim().length<3){L=[];box.hidden=true;return}

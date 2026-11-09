@@ -122,7 +122,7 @@ export default async function fuifPubliek(req, res) {
     }
     if (req.method === "GET" && q.zoek != null) {
       await rateLimit(sb, req, "fuifzoek", 120, 600, httpErr);
-      return res.status(200).json(zoekLeden(await fuifLeden(sb, c.jaar), String(q.zoek)).map(l => ({ id: l.id, naam: l.naam })));
+      return res.status(200).json(zoekLeden(await fuifLeden(sb, c.jaar), String(q.zoek)).map(l => ({ id: l.id, naam: l.naam, toon: l.toon })));
     }
     if (req.method === "GET") {
       const n = c.max ? await bezet(sb, c.jaar) : 0, vrij = c.max ? Math.max(0, c.max - n) : null;
