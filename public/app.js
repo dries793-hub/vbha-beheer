@@ -4476,7 +4476,7 @@ const mlLijsten=()=>((S.config.get("maillijsten")||{}).lijsten||[]);
 {const _g=groepen;groepen=function(){const G=_g.apply(this,arguments),B=mlGeblok(),extra=[];
   for(const L of mlLijsten()){const seen=new Set(),geblokt=[],list=[];
     for(const p of L.leden||[]){const k=String(p.email||"").trim().toLowerCase();if(!k||seen.has(k))continue;seen.add(k);const r={email:k,voornaam:"",naam:p.naam||"",bedrag:"",mededeling:"",label:mlEchteNaam(p.naam,k)?p.naam:k};if(B[k]){geblokt.push({...r,reden:B[k].reden});continue}list.push(r)}
-    extra.push({sect:"Mailinglijsten",id:"lijst:"+L.id,label:L.naam+` (${list.length})`,geblokt,list})}
+    extra.push({sect:"Mailinglijsten",id:"lijst:"+L.id,label:L.naam,geblokt,list})}
   const i=G.findIndex(x=>x.sect==="Andere");G.splice(i<0?G.length:i,0,...extra);return G}}
 const mlParse=t=>{const out=[];for(const part of String(t||"").split(/\n|;|,(?=(?:[^"]*"[^"]*")*[^"]*$)/)){const s=part.trim();if(!s)continue;
   const m=s.match(/^"?([^"<]*?)"?\s*<([^>]+)>$/)||s.match(/^()([^\s]+@[^\s]+)$/);if(!m)continue;const email=m[2].trim().toLowerCase();if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(email))continue;out.push({naam:m[1].trim(),email})}
@@ -4500,6 +4500,30 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-mll]");if(
 document.addEventListener("input",e=>{if(e.target.matches(".mlT")){const c=e.target.closest(".ml-ls").querySelector(".mlC");if(c)c.textContent="("+mlParse(e.target.value).length+")"}});
 {const _v=VIEWS.mails;const n=function(){const v=_v.apply(this,arguments);if(canWrite)v.actions=String(v.actions||"")+`<button class="btn" data-act="mlLijstBeheer" type="button">${ic("leden")}Mailinglijsten</button>`;return v};Object.assign(n,_v);VIEWS.mails=n}
 document.addEventListener("click",e=>{if(e.target.closest('[data-act="mlLijstBeheer"]')){e.preventDefault();e.stopPropagation();mlLijstBeheer()}},true);
+
+/* ---------- adressen van een mailinglijst rechtstreeks bij de ontvangers toevoegen en verwijderen ---------- */
+let ML_LIJST_OPEN=false;
+async function mlLijstZet(id,fn){const C=S.config.get("maillijsten")||{},N=(C.lijsten||[]).map(L=>L.id===id?{...L,leden:fn([...(L.leden||[])])}:L);
+  await write("config","maillijsten",{...stripId(C),lijsten:N});renderBody()}
+function mlLijstBewerk(){const g=mlGroep();if(!g||!String(g.id).startsWith("lijst:")||!canWrite)return;const id=g.id.slice(6);
+  const det=[...document.querySelectorAll("details.ml-lijst")].find(d=>/Ontvangers bekijken/.test(d.querySelector("summary").textContent));
+  if(det){if(ML_LIJST_OPEN)det.open=true;det.querySelectorAll(".ml-rl label").forEach(l=>{const k=l.querySelector("[data-mluit]").dataset.mluit;if(l.querySelector("[data-mlweg]"))return;
+    l.insertAdjacentHTML("beforeend",`<button type="button" class="ml-weg" data-mlweg="${esc(k)}" title="Uit de lijst verwijderen" aria-label="${esc(k)} uit de lijst verwijderen">✕</button>`)})}
+  if(document.getElementById("mlAdd"))return;
+  const box=`<div class="ml-add" id="mlAdd"><input type="email" id="mlAddE" placeholder="nieuw@adres.be" autocomplete="off"><input id="mlAddN" placeholder="Naam (optioneel)" maxlength="80"><button type="button" class="btn sm" data-mladd>${ic("plus")}Toevoegen aan lijst</button></div>`;
+  if(det)det.insertAdjacentHTML("beforebegin",box);else{const s=document.querySelector('[data-change="mlGroep"]');if(s)(s.closest(".fld")||s).insertAdjacentHTML("afterend",box)}
+}
+document.addEventListener("click",async e=>{const w=e.target.closest("[data-mlweg]");if(w){e.preventDefault();e.stopPropagation();const g=mlGroep(),k=w.dataset.mlweg;
+    confirmBox(`<b>${esc(k)}</b> uit de lijst "${esc(g.label)}" verwijderen?`,"Verwijderen",async()=>{closeModal();await mlLijstZet(g.id.slice(6),L=>L.filter(p=>String(p.email).toLowerCase()!==k));toast("Adres verwijderd.")});return}
+  if(e.target.closest("[data-mladd]")){const g=mlGroep(),em=$("#mlAddE").value.trim().toLowerCase(),nm=$("#mlAddN").value.trim();
+    if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(em)){toast("Dit e-mailadres klopt niet.",true);$("#mlAddE").focus();return}
+    const L=(mlLijsten().find(x=>x.id===g.id.slice(6))||{}).leden||[];if(L.some(p=>String(p.email).toLowerCase()===em)){toast("Dit adres staat al in de lijst.",true);return}
+    await mlLijstZet(g.id.slice(6),L=>[...L,{naam:nm,email:em}]);toast("Adres toegevoegd.");setTimeout(()=>{const i=$("#mlAddE");if(i)i.focus()},50)}});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.closest&&e.target.closest("#mlAdd")){e.preventDefault();const b=document.querySelector("[data-mladd]");if(b)b.click()}});
+{const _a=VIEWS.mails.after;VIEWS.mails.after=function(){const r=_a&&_a.apply(this,arguments);try{mlLijstBewerk()}catch(x){console.error(x)}return r}}
+{const st=document.createElement("style");st.textContent=`.ml-add{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.ml-add input{flex:1 1 180px;min-width:0;padding:8px 10px;border:1px solid var(--line-strong,#ccc);border-radius:8px;font:inherit}
+.ml-rl label{position:relative}.ml-weg{margin-left:auto;flex:none;border:0;background:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:6px}.ml-weg:hover{background:var(--soft,#eee);color:var(--bad,#b91c1c)}`;document.head.appendChild(st)}
+document.addEventListener("toggle",e=>{const d=e.target;if(d.matches&&d.matches("details.ml-lijst")&&/Ontvangers bekijken/.test(d.querySelector("summary").textContent))ML_LIJST_OPEN=d.open},true);
 
 /* ============ Kalender aan huis: aanvragen via /kalender ============
    Tabel kalenderaanvragen (data: jaar, adres, naam, email, opmerking, lat, lng, gevonden, status open|gedaan, nieuw).
