@@ -889,9 +889,9 @@ VIEWS.ronde=()=>({title:"Kalenderronde",
   const M=krMarks(),D=krDelen(),RS=krRes(),nRes=Object.keys(RS).length,tot=KR_STREETS.length,done=Object.keys(M).length,pct=tot?done/tot*100:0;
   const aTot=KR_STREETS.reduce((t,s)=>t+s.a,0),aDone=KR_STREETS.reduce((t,s)=>t+krAdrGedaan(s,M,D),0),aPct=aTot?aDone/aTot*100:0;
   const per=KR_WIJKEN.map(w=>{const ss=KR_STREETS.filter(s=>s.w===w),dd=ss.filter(s=>M[s.id]);return{w,n:ss.length,d:dd.length,an:ss.reduce((t,s)=>t+s.a,0),ad:ss.reduce((t,s)=>t+krAdrGedaan(s,M,D),0)}});
-  return kalTabs("ronde")+`<div class="tiles three"><div class="tile hero"><span class="lbl">Bedeelde adressen ${JAAR}</span><span class="val">${krNum(aDone)}</span><span class="hint">van ${krNum(aTot)} adressen · ${Math.round(aPct)}%</span></div>
-    <div class="tile"><span class="lbl">Nog te bedelen</span><span class="val">${krNum(aTot-aDone)}</span><span class="hint">adressen in ${tot-done} straten</span></div>
-    <div class="tile"><span class="lbl">Afgewerkte straten</span><span class="val">${done}</span><span class="hint">van ${tot} straten · ${Math.round(pct)}%${nRes?` · ${nRes} gereserveerd`:""}</span></div></div>
+  const tg=(l,v,c)=>`<div class="tile${c?" "+c:""}"><span class="lbl">${l}</span><span class="val">${v}</span></div>`,todo=tot-done-nRes;
+  return kalTabs("ronde")+`<div class="kr-tg"><h3>Adressen</h3><div class="tiles kr-t4">${tg("Bedeeld",krNum(aDone),"hero")}${tg("Nog te bedelen",krNum(aTot-aDone))}${tg("Totaal",krNum(aTot))}${tg("Bedeeld in %",Math.round(aPct)+"%")}</div></div>
+  <div class="kr-tg"><h3>Straten</h3><div class="tiles kr-t4">${tg("Afgewerkt",krNum(done))}${tg("Gereserveerd",krNum(nRes))}${tg("Nog te doen",krNum(Math.max(0,todo)))}${tg("Totaal",krNum(tot))}</div></div>
   <div class="panel"><div class="panel-b kr-prog">
     <div class="kr-prog-main"><div class="kr-prog-t"><b>${Math.round(aPct)}%</b>van de verdeelregio bedeeld</div><span class="kr-track" aria-hidden="true"><span style="width:${aPct}%"></span></span></div>
     <div class="kr-wijken">${per.map(p=>`<button type="button" class="kr-wijk" data-act="krWijk" data-id="${esc(p.w)}" title="Zoom naar ${esc(p.w)}: ${p.d} van ${p.n} straten"><span>${esc(p.w)}</span><b>${krNum(p.ad)}/${krNum(p.an)}</b><i class="kr-track sm" aria-hidden="true"><span style="width:${p.an?p.ad/p.an*100:0}%"></span></i><small>${p.d}/${p.n} straten</small></button>`).join("")}</div>
@@ -6789,3 +6789,5 @@ function lidMailMag(){try{if(typeof rolVerbergt==="function"&&rolVerbergt("mails
 document.addEventListener("click",e=>{const b=e.target.closest("[data-lidmail]");if(!b)return;const adr=b.dataset.lidmail;
   const go=()=>{closeModal();UI.mailGroep="los";UI.mailLos=adr;const t=S.templates.get("tpl-leeg");MAIL=t?mlVanTpl(t):{...mlVanTpl(null),naam:"Lege mail",onderwerp:"VBHA - ",body:"<p>Beste {voornaam},</p><p><br></p><p>Vriendelijke groeten,<br>Het bestuur</p>"};UI.mailTpl=t?t.id:"";saveUI();if(location.hash==="#mails")render(true);else location.hash="#mails"};
   if(typeof MAIL!=="undefined"&&MAIL&&MAIL.dirty)confirmBox("Je hebt in Mails nog niet-bewaarde wijzigingen. Toch een nieuwe mail beginnen?","Nieuwe mail",go);else go()});
+{const st=document.createElement("style");st.textContent=`.kr-tg h3{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.kr-tg{margin-bottom:14px}
+.tiles.kr-t4{grid-template-columns:repeat(4,minmax(0,1fr))}.tiles.kr-t4 .tile.hero{grid-column:auto}@media(max-width:640px){.tiles.kr-t4{grid-template-columns:repeat(2,minmax(0,1fr))}}`;document.head.appendChild(st)}
