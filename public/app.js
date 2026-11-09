@@ -5267,7 +5267,7 @@ const shItems=()=>[...S.shop_items.values()].sort((a,b)=>(Number(a.volgorde)||0)
 const shOrders=()=>[...S.shop_orders.values()].sort((a,b)=>String(b.aangemeld||"").localeCompare(String(a.aangemeld||"")));
 const shOpen=o=>!["afgehaald","verzonden","geannuleerd"].includes(o.status);
 
-VIEWS.webshop=()=>({title:shCfg().naam||"Webshop",sub:"Webshop van de Vriendenkring",
+VIEWS.webshop=()=>({title:"Webshop",sub:"Webshop van de Vriendenkring",
   actions:`<a class="btn" href="/shop" target="_blank" rel="noopener">${ic("link")}Webshop<span class="fu-dot ${shCfg().open!==false?"open":""}" title="${shCfg().open!==false?"Webshop open":"Webshop gesloten"}"></span></a>${shAdm()?`<button class="btn primary" data-sh="nieuwItem">${ic("plus")}Artikel</button><button class="btn iconbtn" data-sh="inst" aria-label="Instellingen webshop" title="Instellingen webshop">${ic("instellingen")}</button>`:""}`,
   body(){const O=shOrders(),open=O.filter(shOpen);
     return `<div class="ka-tabs" role="tablist"><button type="button" data-sh="tab" data-v="best" class="${SH.tab==="best"?"on":""}">Bestellingen${open.length?` <span class="bt-n">${open.length}</span>`:""}</button><button type="button" data-sh="tab" data-v="art" class="${SH.tab==="art"?"on":""}">Artikelen</button></div>`+(SH.tab==="art"?shArtikelen():shBestellingen(O))}});
