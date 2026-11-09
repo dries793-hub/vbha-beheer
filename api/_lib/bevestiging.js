@@ -43,11 +43,9 @@ function huisstijl(inner, ver, { groet = true, voet = "" } = {}) {
   return `${HOOFD(esc(ver))}<body style="margin:0;padding:0;background:#f7f7f7;-webkit-text-size-adjust:100%">
 <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#f7f7f7"><tr><td align="center" style="padding:25px 10px">
 <!--[if mso]><table role="presentation" width="640" border="0" cellspacing="0" cellpadding="0" align="center"><tr><td><![endif]-->
-<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#ffffff" style="width:100%;max-width:640px;border-collapse:collapse">
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;border-collapse:separate">
 <tr><td align="center" bgcolor="#f7f7f7" style="padding:20px"><img src="${LOGO}" alt="${esc(ver)}" width="220" height="84" style="display:block;width:220px;height:84px;border:0"></td></tr>
-<tr><td style="border-top:8px solid ${ROOD};padding:0;font-size:0;line-height:0">&nbsp;</td></tr>
-<tr><td class="vb-in" bgcolor="#ffffff" style="${F}font-size:15px;line-height:1.6;color:${INK};padding:32px 40px 26px">${modern(inner)}${groet ? p("Met vriendelijke groeten,<br><b>Het bestuur</b>", "margin:8px 0 0") : ""}</td></tr>
-<tr><td style="border-top:8px solid ${ROOD};padding:0;font-size:0;line-height:0">&nbsp;</td></tr>
+<tr><td class="vb-in" bgcolor="#ffffff" style="border-top:8px solid ${ROOD};border-bottom:8px solid ${ROOD};border-radius:14px;${F}font-size:15px;line-height:1.6;color:${INK};padding:32px 40px 26px">${modern(inner)}${groet ? p("Met vriendelijke groeten,<br><b>Het bestuur</b>", "margin:8px 0 0") : ""}</td></tr>
 <tr><td align="center" bgcolor="#f7f7f7" style="${F}font-size:12.5px;color:${MUTED};line-height:1.6;padding:16px 20px"><b style="color:${INK}">${esc(ver)}</b><br><a href="https://www.vbha.be" style="color:${MUTED};text-decoration:underline">www.vbha.be</a> &middot; Vragen? Antwoord gewoon op deze mail.${voet ? "<br>" + voet : ""}</td></tr>
 </table>
 <!--[if mso]></td></tr></table><![endif]-->
