@@ -6481,7 +6481,8 @@ async function shSms(a,s){const H=(s.leden||[]).map(id=>shHelper(a,id)).filter(h
 /* ---------- knoppen ---------- */
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-sh]");if(!b||!shHier())return;const a=shAct();if(!a)return;const k=b.closest("[data-shid]"),s=k&&(a.shiften||[]).find(x=>x.id===k.dataset.shid);
   switch(b.dataset.sh){
-    case"print":shPrint(a);break;
+    case"print":if(!(a.shiften||[]).length){toast("Er zijn nog geen shiften om af te drukken.",true);break}
+      modal("Afdrukken",`<div class="sh-pk"><button type="button" class="sh-pko" data-shpr="vol"><b>Ingevulde lijst</b><small>Wie op welke shift staat.</small></button><button type="button" class="sh-pko" data-shpr="leeg"><b>Lege inschrijflijst</b><small>Om op te hangen in de kantine: leden schrijven zich op papier in.</small></button></div>`,`<button class="btn" data-act="closeModal">Annuleren</button>`);break;
     case"nieuw":if(canWrite)shForm(a,null);break;
     case"instellingen":if(canWrite)shInstellingen(a);break;
     case"bewerk":if(canWrite&&s)shForm(a,s);break;
@@ -6526,13 +6527,13 @@ document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.shk
 @media (max-width:640px){.sh-kop .sel{max-width:none;width:100%}.sh-bord{grid-template-columns:1fr}}`;document.head.appendChild(st)}
 
 /* ---------- afdrukken: A4 liggend in de huisstijl ---------- */
-function shPrint(a){const S2=a.shiften||[];if(!S2.length){toast("Er zijn nog geen shiften om af te drukken.",true);return}
+function shPrint(a,leeg){const S2=a.shiften||[];if(!S2.length){toast("Er zijn nog geen shiften om af te drukken.",true);return}
   const w=window.open("","_blank");if(!w){toast("Je browser blokkeerde het nieuwe venster.",true);return}
   const e=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const ing=shIngedeeld(a),vrij=shPool(a).filter(id=>!ing.has(id)).map(id=>shHelper(a,id)).filter(Boolean);
-  const kol=S2.map(s=>{const H=(s.leden||[]).map(id=>shHelper(a,id)).filter(Boolean).sort((x,y)=>x.naam.localeCompare(y.naam,"nl")),n=Number(s.nodig)||0,leeg=Math.max(0,n-H.length);
-    return `<section class="k"><header><b>${e(s.taak||"Shift")}</b><span>${e(s.van&&s.tot?s.van+" – "+s.tot:s.van||"")}</span><i>${H.length}${n?" / "+n:""}</i></header>
-      <ol>${H.map(h=>`<li><span class="n">${e(h.naam)}${h.lid?"":` <small>(${e(h.info||"geen lid")})</small>`}</span></li>`).join("")}${"<li class=\"open\"><span class=\"n\">&nbsp;</span></li>".repeat(leeg)}</ol></section>`}).join("");
+  const kol=S2.map(s=>{const H=leeg?[]:(s.leden||[]).map(id=>shHelper(a,id)).filter(Boolean).sort((x,y)=>x.naam.localeCompare(y.naam,"nl")),n=Number(s.nodig)||0,lijnen=leeg?Math.max(n,6):Math.max(0,n-H.length);
+    return `<section class="k"><header><b>${e(s.taak||"Shift")}</b><span>${e(s.van&&s.tot?s.van+" – "+s.tot:s.van||"")}</span><i>${leeg?(n?n+" plaatsen":""):H.length+(n?" / "+n:"")}</i></header>
+      <ol>${H.map(h=>`<li><span class="n">${e(h.naam)}${h.lid?"":` <small>(${e(h.info||"geen lid")})</small>`}</span></li>`).join("")}${(leeg?"<li class=\"open\"><span class=\"n\">&nbsp;</span><span class=\"g\">&nbsp;</span></li>":"<li class=\"open\"><span class=\"n\">&nbsp;</span></li>").repeat(lijnen)}</ol></section>`}).join("");
   const datum=a.datum?fmtDate(a.datum):"",emb=(EMBLEM.match(/src="([^"]+)"/)||[])[1]||"";
   w.document.write(`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Shiften ${e(a.titel||"")}</title><link rel="stylesheet" href="${location.origin}/fonts/inter.css">
 <style>@page{size:A4 landscape;margin:0}*{box-sizing:border-box}body{margin:0;font:11pt/1.35 "Inter",system-ui,Arial,sans-serif;color:#1a1b1e;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -6542,12 +6543,12 @@ function shPrint(a){const S2=a.shiften||[];if(!S2.length){toast("Er zijn nog gee
 .k{border:1px solid #d9dadd;border-radius:8px;overflow:hidden;break-inside:avoid}.k header{display:flex;align-items:baseline;gap:8px;background:#f5f5f6;padding:7px 10px;border-bottom:2px solid #c0161f}
 .k header b{font-size:12pt}.k header span{color:#686b71;font-size:9.5pt;flex:1}.k header i{font-style:normal;font-weight:700;font-size:9.5pt}
 ol{list-style:none;margin:0;padding:0}li{display:flex;gap:8px;justify-content:space-between;padding:5px 10px;border-bottom:1px solid #eee;min-height:24px}li:last-child{border-bottom:0}.n{font-weight:600}.n small{font-weight:400;color:#686b71}.t{color:#686b71;font-size:9.5pt;white-space:nowrap}
-li.open .n{flex:1;border-bottom:1px dashed #bbb}
+li.open .n{flex:1;border-bottom:1px dashed #bbb}li.open{min-height:36px;align-items:flex-end}li.open .g{flex:0 0 38%;border-bottom:1px dashed #bbb}.int{margin:0 0 12px;font-size:11pt}
 .vrij{margin-top:10px;font-size:9.5pt;color:#686b71}.vrij b{color:#1a1b1e}
 .voet{margin-top:8px;font-size:8.5pt;color:#9a9ca1;display:flex;justify-content:space-between}
 @media print{.blad{padding:10mm 12mm}}@media screen{body{background:#eee;padding:20px}.blad{background:#fff;width:277mm;margin:0 auto;padding:10mm;box-shadow:0 4px 20px rgba(0,0,0,.15)}}</style></head><body><div class="blad">
-<div class="kop">${emb?`<img src="${emb}" alt="VBHA">`:""}<div class="t"><h1>Shiften ${e(a.titel||"")}</h1><p>${e([datum,a.uur,a.locatie].filter(Boolean).join(" · "))}</p></div></div><div class="rood"></div>
-<div class="grid">${kol}</div>
+<div class="kop">${emb?`<img src="${emb}" alt="VBHA">`:""}<div class="t"><h1>${leeg?"Helpers gezocht: ":"Shiften "}${e(a.titel||"")}</h1><p>${e([datum,a.uur,a.locatie].filter(Boolean).join(" · "))}</p></div></div><div class="rood"></div>
+${leeg?`<p class="int">Help je mee? Schrijf je naam en gsm-nummer op een vrije lijn bij de shift van je keuze. Je kan je ook voor meerdere shiften inschrijven.</p>`:""}<div class="grid">${kol}</div>
 </div>
 <script>window.onload=()=>{const i=document.querySelector(".kop img");const go=()=>setTimeout(()=>window.print(),250);if(i&&!i.complete){i.onload=go;i.onerror=()=>{i.remove();go()}}else go()}<\/script></body></html>`);w.document.close()}
 
@@ -6684,6 +6685,8 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-shmulti]")
 {const st=document.createElement("style");st.textContent=`@media(max-width:640px){.sh-poolp>.sh-kop{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:12px 14px}.sh-poolp>.sh-kop .sel{max-width:none;width:100%}
  .sh-poolp>.sh-kop .sh-info b{display:none}.sh-poolp>.sh-kop .sh-info span{font-size:13px}.sh-poolp>.sh-kop .sh-cnt{margin-left:0;gap:14px;font-size:13px}.sh-poolp>.sh-kop .sh-cnt b{font-size:15px}
  .sh-poolp .panel-b{padding:12px 14px}.sh-add{gap:8px}.sh-add input{min-width:0}.sh-pool .sh-hint{font-size:12.5px;padding:2px 4px}}`;document.head.appendChild(st)}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-shpr]");if(!b)return;const a=shAct();closeModal();if(a)shPrint(a,b.dataset.shpr==="leeg")});
+{const st=document.createElement("style");st.textContent=".sh-pk{display:flex;flex-direction:column;gap:10px}.sh-pko{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff);cursor:pointer;text-align:left;font:inherit;color:inherit}.sh-pko:hover{border-color:var(--accent,#c0161f)}.sh-pko b{font-size:15px}.sh-pko small{color:var(--muted);font-size:13px}";document.head.appendChild(st)}
 
 /* ============ Activiteiten › Familiedag ============
    Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
