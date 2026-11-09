@@ -4724,7 +4724,12 @@ VIEWS.kalcontrole=()=>({title:"Kalenders "+JAAR,sub:"Controle: dozen naast de aa
     <div class="tile"><span class="lbl">Bedeeld op de kaart</span><span class="val">${krNum(T("dA"))}</span></div>
     <div class="tile"><span class="lbl">Dozen in handen</span><span class="val">${T("hand")}</span></div>
     <div class="tile"><span class="lbl">Na te kijken</span><span class="val">${af}</span></div></div>
-    <div class="panel"><div class="tw"><table class="rcards kc-t kal-t"><thead><tr><th class="c" style="width:56px">#</th><th>Persoon</th><th class="num">Meegegeven</th><th class="num">Afgewerkt</th><th class="num">In handen</th><th class="num">Bedeeld op kaart</th><th class="num">≈ dozen</th><th class="num">Gereserveerd</th><th>Controle</th></tr></thead><tbody>
+    <div class="panel kc-mob"><div class="mlist" role="list">${L.map((p,i)=>{const [c,t]=KC_ST[p.st];
+      const sub=[p.mee?`${p.uit}/${p.mee} afgewerkt`:"geen dozen",p.dA?`${kcN(p.dz)} d. op kaart`:"niets op kaart",p.rA?`${kcN(p.rA/pd)} d. gereserv.`:""].filter(Boolean).join(" · ");
+      return `<div class="kc-mr" role="listitem"><span class="ml-rank">${i+1}</span><div class="kc-mm">${p.j&&canWrite?`<button type="button" class="kr-link" data-act="kalLog" data-id="${esc(p.j.id)}">${esc(p.naam)}</button>`:`<span class="kc-nm">${esc(p.naam)}</span>`}
+        <small>${sub}</small><span class="pill ${c}">${t}${p.verschil&&p.st!=="akkoord"?" · "+kcN(p.verschil)+" d.":""}</span></div>
+        ${ROL==="admin"&&c==="warn"?`<button type="button" class="btn sm kc-ok" data-kcok="${esc(p.k)}" data-sig="${esc(p.sig)}" aria-label="Klopt">${ic("check")}</button>`:""}</div>`}).join("")||'<div class="empty">Nog geen dozen of aanduidingen dit jaar.</div>'}</div></div>
+    <div class="panel kc-dsk"><div class="tw"><table class="rcards kc-t kal-t"><thead><tr><th class="c" style="width:56px">#</th><th>Persoon</th><th class="num">Meegegeven</th><th class="num">Afgewerkt</th><th class="num">In handen</th><th class="num">Bedeeld op kaart</th><th class="num">≈ dozen</th><th class="num">Gereserveerd</th><th>Controle</th></tr></thead><tbody>
     ${L.map((p,i)=>{const [c,t]=KC_ST[p.st];const vs=p.verschil?` <small class="muted">${kcN(p.verschil)} ${p.verschil<1.5?"doos":"dozen"} verschil</small>`:"";
       return `<tr><td class="c muted" data-l="#">${i+1}</td><td data-l="Persoon">${p.j&&canWrite?`<button type="button" class="kr-link" data-act="kalLog" data-id="${esc(p.j.id)}" title="Aantallen bekijken of aanpassen"><b>${esc(p.naam)}</b></button>`:`<span class="kc-nm">${esc(p.naam)}</span>`}${p.lid||!p.j?"":' <span class="pill neutral">geen lid</span>'}${!p.j&&(p.dA||p.rA)?' <span class="pill neutral">niet in de verdeling</span>':""}</td>
       <td class="num" data-l="Meegegeven">${p.mee||"–"}</td><td class="num" data-l="Afgewerkt">${p.uit||"–"}</td><td class="num" data-l="In handen">${p.hand||"–"}</td>
@@ -4774,6 +4779,10 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-kcok
   const html=`<button class="btn ghost" data-kcweg="${esc(k)}" data-act="closeModal" title="Nagekeken op ${esc(new Date(ak.op).toLocaleDateString("nl-BE"))}${ak.door?" door "+esc(ak.door):""}">Controle "klopt" ongedaan maken</button>`;
   if(ft)ft.insertAdjacentHTML("afterbegin",html)}catch(e){}return r}}
 {const st=document.createElement("style");st.textContent=".kc-t .kc-nm{font-weight:600}.kc-t .kr-link b{font-weight:600}";document.head.appendChild(st)}
+{const st=document.createElement("style");st.textContent=`.kc-mob{display:none}@media(max-width:760px){.kc-mob{display:block}.kc-dsk{display:none}}
+.kc-mr{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line)}.kc-mr:first-child{border-top:0}
+.kc-mm{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}.kc-mm .kr-link,.kc-mm .kc-nm{font-weight:600;font-size:15px}.kc-mm small{color:var(--muted);font-size:12.5px}.kc-mm .pill{font-size:11.5px}
+.kc-mr .kc-ok{margin:0;flex:none;width:38px;height:38px;padding:0;justify-content:center}.kc-mr .kc-ok svg{width:17px;height:17px}`;document.head.appendChild(st)}
 
 /* ============ Instellingen enkel voor de administrator ============
    Andere profielen zien geen tandwieltjes of instellingenpagina's. Wat iedereen wel kan: "Meldingen op dit toestel" (eigen pagina).
