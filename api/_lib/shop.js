@@ -167,7 +167,7 @@ export async function shopCron(sb) {
 // app: POST /api/mail?f=shop {actie:"status", id, status, mail} | {actie:"mail", id, soort}
 export async function shopApi(req, res) {
   res.setHeader("Cache-Control", "no-store");
-  const { sb } = await requireUser(req, { write: true }), b = body(req);
+  const { sb } = await requireUser(req, { write: true, functie: "webshop" }), b = body(req);
   const { data: r } = await sb.from("shop_orders").select("id,data").eq("id", String(b.id || "")).maybeSingle(); if (!r) throw httpErr(404, "Bestelling niet gevonden.");
   if (b.actie === "status") {
     const st = String(b.status || ""); if (!["nieuw", "betaald", "verzonden", "klaar", "afgehaald", "geannuleerd"].includes(st)) throw httpErr(400, "Onbekende status.");

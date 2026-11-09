@@ -54,7 +54,7 @@ export default async function r2Api(req, res) {
     if (req.method !== "POST") throw httpErr(405, "Niet toegelaten");
     let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
     const actie = String(b.actie || ""), paden = Array.isArray(b.paden) ? b.paden.slice(0, 500) : [];
-    await requireUser(req, { write: actie !== "lees" });
+    await requireUser(req, { write: actie !== "lees", functie: "fotos" });
     if (!r2Aan()) throw httpErr(503, "Cloudflare R2 is nog niet ingesteld");
     if (actie === "lees" || actie === "schrijf") {
       const urls = {}; for (const p of paden) if (geldig(p)) urls[p] = r2Url(actie === "lees" ? "GET" : "PUT", p, actie === "lees" ? 3600 : 900);

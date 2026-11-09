@@ -223,9 +223,9 @@ let STARTED=false,PW_NIEUW=false;
 async function startApp(session){
   if(STARTED||!session)return;
   ME={email:session.user.email,id:session.user.id};
-  const {data:rol,error}=await SB.from("bestuur").select("rol,naam").eq("user_id",ME.id).maybeSingle();
+  const {data:rol,error}=await SB.from("bestuur").select("rol,naam,rechten").eq("user_id",ME.id).maybeSingle();
   if(error||!rol){authCard(`<h1>Geen toegang</h1><p style="margin:0">Je bent aangemeld als <b>${esc(ME.email)}</b>, maar dit adres staat niet in de lijst van bestuursleden.</p><button class="btn" data-act="logout">Afmelden</button>`);return}
-  ROL=rol.rol==="bewerker"?"admin":rol.rol;
+  ROL=rol.rol==="bewerker"?"admin":rol.rol;RECHTEN=rol.rechten&&typeof rol.rechten==="object"&&ROL!=="admin"?rol.rechten:null;
   if(session.user.user_metadata&&session.user.user_metadata.tijdelijk&&!PW_NIEUW)return showSetPassword("eerste");
   STARTED=true;document.body.classList.remove("anon");
   canWrite=magSchrijven();canWriteConfirmed=true;applyRO();
@@ -5596,6 +5596,24 @@ document.addEventListener("click",e=>{if(!e.target.closest('[data-act="bgPrint"]
 .bg-calc span{font-size:12.5px;color:var(--muted)}.bg-calc b{font-size:20px;font-variant-numeric:tabular-nums}.bg-calc small{font-size:11.5px;color:var(--muted)}.bg-calc .hl{border-color:var(--ink)}
 @media (max-width:760px){.bg-r{grid-template-columns:1fr 1fr 32px;border:1px solid var(--line);border-radius:12px;padding:10px}.bg-n{grid-column:1/3}.bg-x{grid-column:3;grid-row:1}
  .bg-pp{grid-column:1/4}.bg-a,.bg-p{display:flex;flex-direction:column;gap:2px}.bg-l{display:block;font-size:11.5px;color:var(--muted)}.bg-t{grid-column:1/4;text-align:left;font-size:15px}.bg-ppf{grid-template-columns:1fr 1fr}}`;document.head.appendChild(st)}
+/* ---------- kopiëren (om in een verslag te plakken): als tabel (Word, Google Docs, mail) én als gewone tekst ---------- */
+function bgKopieData(){const D=bgDoc();const tabs=BG.tab==="__tot"?null:[bgTab()].filter(Boolean);const rows=[];const tit=tabs?`Begroting ${tabs[0].naam} ${JAAR}`:`Begroting ${JAAR} – alle activiteiten`;
+  if(!tabs){rows.push(["Activiteit","Kosten","Opbrengsten","Begroot resultaat","Werkelijk"]);let k=0,o=0;for(const t of D.tabs){const s=bgSom(t),w=bgWerkelijk(t);k+=s.k;o+=s.o;rows.push([t.naam,eur(s.k),eur(s.o),bgE(s.r),w?bgE(w.r):"–"])}rows.push(["Totaal",eur(k),eur(o),bgE(o-k),""]);return{tit,rows,extra:[]}}
+  const t=tabs[0],s=bgSom(t),N=Number(t.personen)||0,W=Number(t.winst)||0;rows.push(["Omschrijving","Aantal","Prijs","Totaal"]);
+  for(const so of ["kost","opbrengst"]){const L=(t.posten||[]).filter(p=>(p.soort||"kost")===so);rows.push([so==="kost"?"KOSTEN":"OPBRENGSTEN","","",""]);
+    for(const p of L)rows.push([p.naam||"",p.pp?N+" pers.":String(p.aantal??""),eur(Number(p.prijs)||0),eur(bgLijn(p,t))]);rows.push([so==="kost"?"Totaal kosten":"Totaal opbrengsten","","",eur(so==="kost"?s.k:s.o)])}
+  rows.push(["Begroot resultaat","","",bgE(s.r)]);const extra=[];
+  if(N){extra.push(["Aantal personen",String(N)],["Kost per persoon",eur(s.k/N)],["Prijs om quitte te spelen",eur(Math.max(0,(s.k-s.oVast)/N))]);if(W)extra.push([`Prijs voor ${eur(W)} winst`,eur(Math.max(0,(s.k-s.oVast+W)/N))])}
+  const w=bgWerkelijk(t);if(w)extra.push([`Werkelijk resultaat ${JAAR}`,bgE(w.r)]);return{tit,rows,extra}}
+async function bgKopieer(){const {tit,rows,extra}=bgKopieData();
+  const kop=r=>/^(KOSTEN|OPBRENGSTEN|Totaal|Begroot resultaat|Omschrijving|Activiteit)/.test(r[0]);
+  const td=(v,i,b)=>`<td style="border:1px solid #bbb;padding:4px 8px;${i?"text-align:right;":""}${b?"font-weight:bold;":""}">${esc(v)}</td>`;
+  const html=`<p><b>${esc(tit)}</b></p><table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:10pt">${rows.map(r=>`<tr>${r.map((v,i)=>td(v,i,kop(r))).join("")}</tr>`).join("")}</table>${extra.length?`<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:10pt;margin-top:8px">${extra.map(r=>`<tr>${td(r[0],0,false)}${td(r[1],1,true)}</tr>`).join("")}</table>`:""}`;
+  const txt=[tit,"",...rows.map(r=>r.join("\t").replace(/\t+$/,"")),...(extra.length?["",...extra.map(r=>r.join(": "))]:[])].join("\n");
+  try{if(window.ClipboardItem&&navigator.clipboard.write){await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([txt],{type:"text/plain"})})])}else await navigator.clipboard.writeText(txt);
+    toast("Gekopieerd. Plak het in je verslag: in Word of Google Docs komt het als tabel.")}catch(e){prompt("Kopieer de begroting:",txt)}}
+{const _v=VIEWS.begroting;VIEWS.begroting=function(){const v=_v.apply(this,arguments);v.actions='<button class="btn" data-act="bgKopie">'+ic("copy")+'Kopiëren</button>'+v.actions;return v};Object.assign(VIEWS.begroting,_v)}
+document.addEventListener("click",e=>{if(e.target.closest('[data-act="bgKopie"]'))bgKopieer()});
 
 /* ============ Administratie › Website (startpagina vbha.be) ============
    config/"website": {blokken:{viv,kalender,steun,sponsors}, kal_titel, kal_tekst, viv_titel, viv_datum, viv_tekst, fotos:{kalender|viv:{pad,v,w,h}}}
@@ -5631,14 +5649,17 @@ VIEWS.website=()=>({title:"Website",sub:"Startpagina vbha.be",
       ${fld("wsVt","Titel",`<input id="wsVt" data-wsk="viv_titel" maxlength="140" value="${esc(W.viv_titel||"")}"${d}>`,"full")}
       ${fld("wsVx","Tekst",ta("wsVx","viv_tekst",800),"full")}
       ${wsFotoBlok("viv","Foto")}
+      ${wsKnoppen("viv_knoppen",W.viv_knoppen,"Extra knoppen (naast Bestel je tickets)")}
       <p class="full help" style="margin:0">De knop <b>Bestel je tickets</b> gaat naar de ticketpagina van de fuif (vbha.be/fuif).</p></div></div></div>
     <div class="panel${W.blokken.kalender?"":" ws-uit"}"><div class="panel-h"><h2>Bedeling kalenders</h2>${W.blokken.kalender?'<span class="pill ok">aan</span>':'<span class="pill neutral">uit</span>'}</div><div class="panel-b"><div class="form">
       ${fld("wsKt","Titel",`<input id="wsKt" data-wsk="kal_titel" maxlength="140" value="${esc(W.kal_titel||"")}"${d}>`,"full")}
       ${fld("wsKx","Tekst",ta("wsKx","kal_tekst",600),"full")}
-      ${wsFotoBlok("kalender","Foto")}</div></div></div></div>
+      ${wsFotoBlok("kalender","Foto")}
+      ${wsKnoppen("kal_knoppen",W.kal_knoppen,"Extra knoppen (naast Geef je adres door)")}</div></div></div></div>
+    ${wsEigenPaneel()}
     <div class="panel ws-save"><div class="panel-b" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><span class="grow muted small" id="wsStat">${wsGewijzigd()?"Je hebt wijzigingen die nog niet gepubliceerd zijn.":"Alles is gepubliceerd."}</span>
       <button class="btn" data-wsact="voorbeeld">${ic("search")}Voorbeeld</button>${canWrite?`<button class="btn ghost" data-wsact="herstel"${wsGewijzigd()?"":" disabled"}>Wijzigingen ongedaan maken</button><button class="btn primary" data-wsact="publiceer">Publiceren</button>`:""}</div></div>`}});
-VIEWS.website.after=()=>{const W=wsWerk();for(const k of ["viv","kalender"]){const f=W.fotos[k];if(!f)continue;const el=$(`[data-wsimg="${k}"]`);if(!el)continue;
+VIEWS.website.after=()=>{const W=wsWerk();for(const k of Object.keys(W.fotos||{})){const f=W.fotos[k];if(!f)continue;const el=$(`[data-wsimg="${k}"]`);if(!el)continue;
   const zet=u=>{if(u&&el.isConnected)el.innerHTML=`<img src="${esc(u)}" alt="">`};if(f.lokaal)zet(f.lokaal);else wsFotoUrl(f).then(zet)}};
 function wsStat(){const s=$("#wsStat");if(s)s.textContent=wsGewijzigd()?"Je hebt wijzigingen die nog niet gepubliceerd zijn.":"Alles is gepubliceerd.";const h=$('[data-wsact="herstel"]');if(h)h.disabled=!wsGewijzigd()}
 document.addEventListener("input",e=>{const k=e.target.dataset&&e.target.dataset.wsk;if(!k)return;wsWerk()[k]=e.target.value;wsStat()});
@@ -5669,6 +5690,50 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-wsac
 .ws-uit{opacity:.72}.ws-foto{display:flex;flex-direction:column;gap:10px}.ws-fi{border:1px dashed var(--line);border-radius:12px;min-height:90px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--soft,#f6f6f6)}
 .ws-fi img{display:block;width:100%;height:auto}.ws-fi span{padding:16px;text-align:center}.ws-fk{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.ws-fk .help{flex-basis:100%}
 @media (min-width:900px){.ws-save{position:sticky;bottom:12px;z-index:5;box-shadow:0 6px 24px rgba(0,0,0,.08)}}`;document.head.appendChild(st)}
+/* ---------- eigen onderdelen en knoppen ---------- */
+const WS_PLAATS=[["boven","Bovenaan"],["midden","Na de kalenders"],["onder","Onderaan"]];
+const wsUrlOk=u=>/^(https?:\/\/[^\s"'<>]+|\/[^\s"'<>]*|mailto:[^\s"'<>]+|tel:[+\d\s()-]+)$/i.test(String(u||"").trim())&&!/^\/\//.test(String(u).trim());
+function wsKnoppen(sleutel,L,lbl){L=L||[];const d=canWrite?"":" disabled";
+  return `<div class="fld full"><span class="lbl">${lbl}</span><div class="ws-kn" data-wskn="${esc(sleutel)}">${L.map((k,i)=>`<div class="ws-knr" data-i="${i}">
+    <input data-knf="label" maxlength="60" value="${esc(k.label||"")}" placeholder="Tekst op de knop" aria-label="Tekst op de knop"${d}>
+    <input data-knf="url" maxlength="500" value="${esc(k.url||"")}" placeholder="https://… of /pagina" aria-label="Link"${d} class="${k.url&&!wsUrlOk(k.url)?"fout":""}">
+    <select data-knf="stijl" aria-label="Stijl"${d}><option value="rood"${k.stijl!=="rand"?" selected":""}>Rood</option><option value="rand"${k.stijl==="rand"?" selected":""}>Rand</option></select>
+    ${canWrite?`<button type="button" class="bg-x" data-wsact="knWeg" aria-label="Knop verwijderen" title="Verwijderen">${ic("x")}</button>`:""}</div>`).join("")}
+    ${canWrite&&L.length<4?`<button type="button" class="btn sm" data-wsact="knNieuw">${ic("plus")}Knop toevoegen</button>`:""}</div>
+    ${L.length?'<span class="help">Link naar een andere site (https://…), een pagina van vbha.be (bv. /fuif of /steun), mailto: of tel:.</span>':""}</div>`}
+function wsKnopLijst(sleutel){const W=wsWerk();if(sleutel==="viv_knoppen"||sleutel==="kal_knoppen")return W[sleutel]=W[sleutel]||[];const e=(W.eigen||[]).find(x=>x.id===sleutel);return e?(e.knoppen=e.knoppen||[]):[]}
+function wsEigenPaneel(){const W=wsWerk(),L=W.eigen||[],d=canWrite?"":" disabled";
+  return `<div class="panel"><div class="panel-h"><h2>Eigen onderdelen</h2><span class="grow"></span>${canWrite&&L.length<12?`<button class="btn sm primary" data-wsact="eigenNieuw">${ic("plus")}Onderdeel toevoegen</button>`:""}</div><div class="panel-b ws-eig">
+    ${L.length?"":'<p class="muted small" style="margin:0">Voeg zelf een blok toe met een titel, tekst, foto en knoppen, bv. voor een wandeling, een oproep of nieuws.</p>'}
+    ${L.map((e,i)=>`<div class="ws-e${e.aan===false?" ws-uit":""}" data-wse="${esc(e.id)}"><div class="ws-eh"><label class="ws-row" style="align-items:center"><span class="ws-sw"><input type="checkbox" data-wsef="aan"${e.aan!==false?" checked":""}${d}><i></i></span><b>${esc(e.titel||"Nieuw onderdeel")}</b></label><span class="grow"></span>
+      ${canWrite?`<button type="button" class="btn sm ghost" data-wsact="eigenOp" aria-label="Naar boven"${i?"":" disabled"}>↑</button><button type="button" class="btn sm ghost" data-wsact="eigenNeer" aria-label="Naar beneden"${i<L.length-1?"":" disabled"}>↓</button><button type="button" class="btn sm danger ghost" data-wsact="eigenWeg">Verwijderen</button>`:""}</div>
+      <div class="form">${fld("wsP"+e.id,"Plaats op de pagina",`<select id="wsP${esc(e.id)}" data-wsef="plaats"${d}>${WS_PLAATS.map(([k,l])=>`<option value="${k}"${(e.plaats||"midden")===k?" selected":""}>${l}</option>`).join("")}</select>`)}
+      ${fld("wsK"+e.id,"Bovenregel",`<input id="wsK${esc(e.id)}" data-wsef="kicker" maxlength="120" value="${esc(e.kicker||"")}" placeholder="bv. Zondag 6 april"${d}>`)}
+      ${fld("wsT"+e.id,"Titel",`<input id="wsT${esc(e.id)}" data-wsef="titel" maxlength="140" value="${esc(e.titel||"")}"${d}>`,"full")}
+      ${fld("wsX"+e.id,"Tekst",`<textarea id="wsX${esc(e.id)}" data-wsef="tekst" maxlength="1500" rows="3"${d}>${esc(e.tekst||"")}</textarea>`,"full")}
+      ${wsFotoBlok(e.id,"Foto (optioneel)")}${wsKnoppen(e.id,e.knoppen,"Knoppen")}</div></div>`).join("")}</div></div>`}
+document.addEventListener("input",e=>{const t=e.target;
+  const r=t.closest&&t.closest(".ws-knr");if(r&&t.dataset.knf){const L=wsKnopLijst(r.closest("[data-wskn]").dataset.wskn);const k=L[+r.dataset.i];if(k){k[t.dataset.knf]=t.value;if(t.dataset.knf==="url")t.classList.toggle("fout",!!t.value&&!wsUrlOk(t.value))}wsStat();return}
+  const b=t.closest&&t.closest("[data-wse]");if(b&&t.dataset.wsef&&t.dataset.wsef!=="aan"){const x=(wsWerk().eigen||[]).find(y=>y.id===b.dataset.wse);if(x){x[t.dataset.wsef]=t.value;if(t.dataset.wsef==="titel"){const h=b.querySelector(".ws-eh b");if(h)h.textContent=t.value||"Nieuw onderdeel"}}wsStat()}});
+document.addEventListener("change",e=>{const t=e.target;const b=t.closest&&t.closest("[data-wse]");
+  if(b&&t.dataset.wsef==="aan"){const x=(wsWerk().eigen||[]).find(y=>y.id===b.dataset.wse);if(x){x.aan=t.checked;b.classList.toggle("ws-uit",!t.checked)}wsStat()}
+  if(t.closest&&t.closest(".ws-knr")&&t.dataset.knf==="stijl"){const r=t.closest(".ws-knr");const L=wsKnopLijst(r.closest("[data-wskn]").dataset.wskn);if(L[+r.dataset.i])L[+r.dataset.i].stijl=t.value;wsStat()}});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-wsact]");if(!b||!canWrite)return;const a=b.dataset.wsact,W=wsWerk();W.eigen=W.eigen||[];
+  const kn=b.closest("[data-wskn]"),se=b.closest("[data-wse]"),i=se?W.eigen.findIndex(x=>x.id===se.dataset.wse):-1;
+  if(a==="knNieuw"&&kn){const L=wsKnopLijst(kn.dataset.wskn);L.push({label:"",url:"",stijl:L.length?"rand":"rood"});renderBody();setTimeout(()=>{const r=$$(`[data-wskn="${kn.dataset.wskn}"] .ws-knr`).pop();if(r)r.querySelector("input").focus()},30);return}
+  if(a==="knWeg"&&kn){const L=wsKnopLijst(kn.dataset.wskn);L.splice(+b.closest(".ws-knr").dataset.i,1);renderBody();return}
+  if(a==="eigenNieuw"){const id="e"+Date.now().toString(36);W.eigen.push({id,aan:true,plaats:"midden",kicker:"",titel:"",tekst:"",knoppen:[]});renderBody();setTimeout(()=>{const x=$("#wsT"+id);if(x){x.scrollIntoView({block:"center"});x.focus()}},30);return}
+  if(a==="eigenWeg"&&i>=0){confirmBox(`Onderdeel <b>${esc(W.eigen[i].titel||"zonder titel")}</b> verwijderen? Pas na Publiceren verdwijnt het van de website.`,"Verwijderen",()=>{closeModal();delete W.fotos[W.eigen[i].id];W.eigen.splice(i,1);renderBody()});return}
+  if(a==="eigenOp"&&i>0){[W.eigen[i-1],W.eigen[i]]=[W.eigen[i],W.eigen[i-1]];renderBody();return}
+  if(a==="eigenNeer"&&i>=0&&i<W.eigen.length-1){[W.eigen[i+1],W.eigen[i]]=[W.eigen[i],W.eigen[i+1]];renderBody();return}},true);
+// bij publiceren: onvolledige of onveilige knoppen tegenhouden
+document.addEventListener("click",e=>{const b=e.target.closest('[data-wsact="publiceer"],[data-wsact="voorbeeld"]');if(!b)return;const W=wsWerk();
+  const alle=[...(W.viv_knoppen||[]),...(W.kal_knoppen||[]),...(W.eigen||[]).flatMap(x=>x.knoppen||[])];const fout=alle.find(k=>(k.label||k.url)&&!(k.label&&wsUrlOk(k.url)));
+  if(fout){e.stopImmediatePropagation();e.preventDefault();toast(`Knop "${fout.label||"zonder tekst"}": vul een tekst en een geldige link in (https://…, /pagina, mailto: of tel:).`,true)}},true);
+{const st=document.createElement("style");st.textContent=`.ws-kn{display:flex;flex-direction:column;gap:8px;align-items:flex-start}.ws-knr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) 92px 32px;gap:8px;width:100%;align-items:center}
+.ws-knr input,.ws-knr select{width:100%;min-width:0}.ws-knr input.fout{border-color:var(--bad,#b91c1c);background:#fff5f5}
+.ws-eig{display:flex;flex-direction:column;gap:14px}.ws-e{border:1px solid var(--line);border-radius:14px;padding:12px 14px}.ws-eh{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+@media (max-width:760px){.ws-knr{grid-template-columns:1fr 92px 32px;border:1px solid var(--line);border-radius:10px;padding:8px}.ws-knr input[data-knf="url"]{grid-column:1/4;grid-row:2}}`;document.head.appendChild(st)}
 
 /* ============ Foto's › eigen fotoalbums (opladen, watermerk, voorbeeld, publiceren) ============
    Rij in "fotoalbums": {soort:"eigen", titel, datum, jaar, fotograaf, omschrijving, cover:fid,
@@ -5847,3 +5912,58 @@ input[type=range]{width:100%;accent-color:var(--ink)}
 .fa-prog{margin-bottom:12px}.fa-prog div{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:6px}.fa-prog i{display:block;height:8px;border-radius:99px;background:var(--line);overflow:hidden}.fa-prog em{display:block;height:100%;background:var(--ink);transition:width .3s}
 @media (min-width:900px){.fa-save{position:sticky;bottom:12px;z-index:5;box-shadow:0 6px 24px rgba(0,0,0,.08)}}
 button.ft-hit{position:absolute;inset:0;z-index:1;cursor:pointer;width:100%}`;document.head.appendChild(st)}
+
+/* ============ Rechten per gebruiker en per functie ============
+   bestuur.rechten = null → volgens het profiel (admin / boekhouder / lezer)
+   bestuur.rechten = {functie:"geen"|"lezen"|"bewerken"} → "geen" verbergt de functie (menu + pagina),
+   "lezen" toont ze zonder te kunnen wijzigen, "bewerken" laat wijzigen toe. De database dwingt het bewerken af (functie mag()).
+   Een administrator heeft altijd alle rechten. */
+var RECHTEN=null;
+const FUNC=[["leden","Ledenlijst",["leden"]],["punten","Puntensysteem",["punten"]],["financien","Financiën",["boekhouding","boekingen","verwerken","historiek","begroting","facturen","inkomend"]],
+  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"]],["banket","Banket",["banket"]],["kinderfeest","Kinderfeest",["kinderfeest"]],["fuif","In Vier en Vlam",["fuif"]],["kassa","Kassa",["kassa"]],
+  ["jaarmarkt","Jaarmarkt",["jaarmarkt"]],["webshop","Webshop",["webshop"]],["agenda","Agenda en verslagen",["agenda","verslagen"]],["documenten","Documenten",["documenten"]],["fotos","Foto's",["fotos"]],
+  ["sponsors","Sponsors",["sponsors"]],["mails","Mails",["mails"]],["website","Website",["website"]]];
+const FUNC_VAN={};for(const [f,,rs] of FUNC)for(const r of rs)FUNC_VAN[r]=f;
+const RECHT_LBL={geen:"Verborgen",lezen:"Lezen",bewerken:"Bewerken"};
+function rechtenVanProfiel(rol){const o={};for(const [f] of FUNC)o[f]=rol==="admin"?"bewerken":rol==="boekhouder"&&f==="financien"?"bewerken":"lezen";return o}
+function recht(r){r=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS[r])||r;if(ROL==="admin")return "bewerken";const f=FUNC_VAN[r];if(!f)return "lezen";
+  if(RECHTEN&&ROL===ROL_ECHT)return RECHTEN[f]||"geen";return ROL==="boekhouder"&&BOEK_ROUTES.has(r)?"bewerken":"lezen"}
+magSchrijven=function(r){return recht(r||route())==="bewerken"};
+// menu en toegang: verborgen functies uit het menu halen en de pagina niet tonen
+let NAV_ORIG=null;
+function navFilter(){if(!NAV_ORIG)NAV_ORIG=NAV.map(n=>Array.isArray(n)?n:{...n,items:[...n.items]});
+  const nieuw=NAV_ORIG.map(n=>Array.isArray(n)?(recht(n[0])==="geen"?null:n):{...n,items:n.items.filter(i=>recht(i[0])!=="geen")}).filter(n=>n&&(Array.isArray(n)||n.items.length));
+  NAV.length=0;NAV.push(...nieuw)}
+{const _r=render;render=function(){if(typeof ROL!=="undefined"){navFilter();if(recht(route())==="geen"&&route()!=="dashboard"){location.hash="#dashboard";return}}return _r.apply(this,arguments)}}
+// ook de rechtstreekse tabbladen (bv. Transacties ↔ Te verwerken) volgen de rechten
+document.addEventListener("click",e=>{const a=e.target.closest('a[href^="#"]');if(!a)return;const r=a.getAttribute("href").slice(1);if(r&&recht(r)==="geen"){e.preventDefault();toast("Dit onderdeel is niet beschikbaar voor jou.",true)}},true);
+
+/* ---------- beheer: rechten per functie in het venster van een gebruiker ---------- */
+function rgHtml(u){const R=u.rechten||rechtenVanProfiel(u.rol),eigen=!!u.rechten;
+  return `<div class="fld full" id="rgWrap"><span class="lbl">Wat mag ${esc((u.naam||"deze persoon").split(" ")[0])} zien en doen?</span>
+   <div class="seg" role="group" aria-label="Soort rechten" style="margin-bottom:10px"><button type="button" data-rg="profiel" class="${eigen?"":"on"}">Volgens profiel</button><button type="button" data-rg="eigen" class="${eigen?"on":""}">Per functie</button></div>
+   <p class="help rg-adm" style="margin:0 0 8px">Een administrator heeft altijd alle rechten. Kies hierboven een ander profiel om per functie te kiezen.</p>
+   <div class="rg-tab"${eigen?"":" hidden"}>${FUNC.map(([f,l])=>`<div class="rg-r"><span>${esc(l)}</span><div class="seg rg-seg" role="radiogroup" aria-label="${esc(l)}">${["geen","lezen","bewerken"].map(v=>`<button type="button" role="radio" data-rgf="${f}" data-v="${v}" aria-checked="${R[f]===v}" class="${R[f]===v?"on":""}">${RECHT_LBL[v]}</button>`).join("")}</div></div>`).join("")}
+   <div class="rg-snel"><span class="muted small">Alles op:</span>${["geen","lezen","bewerken"].map(v=>`<button type="button" class="btn sm ghost" data-rgall="${v}">${RECHT_LBL[v]}</button>`).join("")}</div></div>
+   <span class="help">Verborgen: niet in het menu. Lezen: bekijken zonder te wijzigen. Bewerken: ook wijzigen. Het dashboard en je eigen meldingen ziet iedereen.</span></div>`}
+function rgLees(){const w=$("#rgWrap");if(!w)return undefined;if(!w.querySelector('[data-rg="eigen"]').classList.contains("on"))return null;const o={};for(const [f] of FUNC){const b=w.querySelector(`[data-rgf="${f}"].on`);o[f]=b?b.dataset.v:"geen"}return o}
+function rgAdmin(){const w=$("#rgWrap");if(!w)return;const rol=($('input[name="gbR"]:checked')||{}).value;const adm=rol==="admin";
+  w.querySelector(".rg-adm").hidden=!adm;w.querySelectorAll("[data-rg],[data-rgf],[data-rgall]").forEach(b=>b.disabled=adm);w.style.opacity=adm?.6:1}
+{const _e=gbEdit;gbEdit=function(id){_e.apply(this,arguments);const u=GB.gebruikers.find(x=>x.id===id);const f=$("#fGb");if(!u||!f)return;
+  const ww=f.querySelector("#gbReset");const anker=ww?ww.closest(".fld"):f.querySelector(".err");anker.insertAdjacentHTML("beforebegin",rgHtml(u));rgAdmin();
+  f.addEventListener("change",e=>{if(e.target.name==="gbR"){rgAdmin();const w=$("#rgWrap");if(w&&!w.querySelector('[data-rg="eigen"]').classList.contains("on")){const R=rechtenVanProfiel(e.target.value);w.querySelectorAll("[data-rgf]").forEach(b=>{const on=R[b.dataset.rgf]===b.dataset.v;b.classList.toggle("on",on);b.setAttribute("aria-checked",on)})}}});
+  const ok=$("#gbOk");ok.onclick=async()=>{const r={naam:$("#gbN").value.trim(),rol:($('input[name="gbR"]:checked')||{}).value};const rechten=r.rol==="admin"?null:rgLees();
+    try{await api("/api/gebruikers",{method:"POST",body:JSON.stringify({actie:"wijzig",id,...r,...(rechten!==undefined?{rechten}:{})})});closeModal();toast("Bewaard.");gbLaad()}catch(e){$("#gbErr").textContent=e.message}}}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-rg],[data-rgf],[data-rgall]");if(!b||b.disabled)return;const w=$("#rgWrap");if(!w)return;
+  if(b.dataset.rg){w.querySelectorAll("[data-rg]").forEach(x=>x.classList.toggle("on",x===b));w.querySelector(".rg-tab").hidden=b.dataset.rg!=="eigen";return}
+  if(b.dataset.rgall){w.querySelectorAll("[data-rgf]").forEach(x=>{const on=x.dataset.v===b.dataset.rgall;x.classList.toggle("on",on);x.setAttribute("aria-checked",on)});return}
+  b.closest(".rg-seg").querySelectorAll("[data-rgf]").forEach(x=>{const on=x===b;x.classList.toggle("on",on);x.setAttribute("aria-checked",on)})});
+// in de lijst: tonen wie eigen rechten heeft
+{const _v=VIEWS.gebruikers;if(_v){const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=String(b.apply(this,arguments));
+  if(GB&&GB.gebruikers)for(const u of GB.gebruikers)if(u.rechten&&u.rol!=="admin"){const n=Object.values(u.rechten).filter(x=>x!=="geen").length,w=Object.values(u.rechten).filter(x=>x==="bewerken").length;
+    h=h.replace(`data-act="gbEdit" data-id="${esc(u.id)}"`,`data-act="gbEdit" data-id="${esc(u.id)}" data-rgtip="1"`).replace(new RegExp(`(<button class="btn sm" data-act="gbEdit" data-id="${esc(u.id).replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}")`),`<span class="pill warn gb-rp" title="${n} functies zichtbaar, ${w} met bewerken">per functie</span>$1`)}
+  return h};return v};Object.assign(n,_v);VIEWS.gebruikers=n}}
+{const st=document.createElement("style");st.textContent=`.rg-tab{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:6px}
+.rg-r{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px}.rg-r>span{font-weight:600;font-size:13.5px;line-height:1.25}.rg-seg{flex-wrap:nowrap}.rg-seg button{font-size:12px;padding:5px 8px}
+.rg-snel{display:flex;gap:6px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
+#rgWrap .seg button:disabled{cursor:default}`;document.head.appendChild(st)}

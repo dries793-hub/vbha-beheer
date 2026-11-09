@@ -22,17 +22,25 @@ export const isBoekRol = r => isAdminRol(r) || r === "boekhouder";
 
 // Controleert het Supabase-token uit de Authorization-header en de rol in 'bestuur'.
 // write: enkel admin. boek: admin of boekhouder.
-export async function requireUser(req, { write = false, boek = false } = {}) {
+// functie: naam van een onderdeel (bv. "fuif"); wie voor dat onderdeel "bewerken" heeft (bestuur.rechten), mag ook.
+// Eigen rechten per functie vervangen het oude profiel boekhouder.
+export async function requireUser(req, { write = false, boek = false, functie = null } = {}) {
   const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
   if (!token) throw httpErr(401, "Niet aangemeld");
   const sb = admin();
   const { data, error } = await sb.auth.getUser(token);
   if (error || !data?.user) throw httpErr(401, "Niet aangemeld");
-  const { data: rol } = await sb.from("bestuur").select("rol").eq("user_id", data.user.id).maybeSingle();
+  const { data: rol } = await sb.from("bestuur").select("rol,rechten").eq("user_id", data.user.id).maybeSingle();
   if (!rol) throw httpErr(403, "Geen toegang");
-  if (write && !isAdminRol(rol.rol)) throw httpErr(403, "Je hebt hiervoor geen rechten");
-  if (boek && !isBoekRol(rol.rol)) throw httpErr(403, "Je hebt alleen leesrechten");
-  return { user: data.user, rol: rol.rol, sb };
+  const R = rol.rechten && typeof rol.rechten === "object" ? rol.rechten : null, adm = isAdminRol(rol.rol);
+  const boekOk = adm || (R ? R.financien === "bewerken" : rol.rol === "boekhouder");
+  const fOk = adm || !!(functie && R && R[functie] === "bewerken");
+  if (functie && (write || boek)) { if (!(fOk || (boek && boekOk))) throw httpErr(403, "Je hebt hiervoor geen rechten"); }
+  else {
+    if (write && !adm) throw httpErr(403, "Je hebt hiervoor geen rechten");
+    if (boek && !boekOk) throw httpErr(403, "Je hebt alleen leesrechten");
+  }
+  return { user: data.user, rol: rol.rol, rechten: R, sb };
 }
 
 export function isCron(req) {

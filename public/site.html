@@ -29,7 +29,11 @@
   h1{font-size:clamp(1.8rem,3vw,2.4rem);line-height:1.15;letter-spacing:-.01em;font-weight:700}
   .kicker{color:var(--accent);font-weight:700;font-size:.95rem;letter-spacing:.02em;margin-bottom:8px}
   .hero.zonder{grid-template-columns:1fr}
-  .hero + .hero{margin-top:56px}
+  .hero + .hero,.steun + .hero,.sponsors + .hero{margin-top:56px}
+  .h2g{font-size:clamp(1.6rem,2.6vw,2.1rem);line-height:1.15;font-weight:700;letter-spacing:-.01em}
+  .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}.btns .btn-red{margin-top:0}.btns.extra{margin-top:12px}
+  .btn-rand{display:inline-flex;align-items:center;gap:9px;padding:13px 21px;border-radius:8px;border:1.5px solid currentColor;color:var(--ink,#111);font-weight:600;font-size:16px;text-decoration:none}
+  .btn-rand:hover{background:rgba(0,0,0,.05)}
   .lead{white-space:pre-line;margin-top:14px;color:var(--muted);font-size:1.08rem;max-width:42ch}
   .photo img{width:100%;height:auto;display:block;border-radius:12px;border:1px solid var(--line)}
 
@@ -136,6 +140,7 @@
 </header>
 
 <main>
+<!--eigen:boven-->
 <!--blok:viv-->
   <section class="hero viv" id="vierenvlam">
     <figure class="photo" data-s-fig="viv">
@@ -167,6 +172,7 @@
     </div>
   </section>
 <!--/blok:kalender-->
+<!--eigen:midden-->
 
 <!--blok:steun-->
   <section class="steun" id="steun">
@@ -223,6 +229,7 @@
     </div>
   </section>
 <!--/blok:sponsors-->
+<!--eigen:onder-->
 </main>
 
 <footer>
