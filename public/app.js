@@ -1533,7 +1533,6 @@ VIEWS.instellingen=()=>({title:"Instellingen",sub:"Boekjaren, puntensysteem, lij
     <button class="btn" data-act="exportXlsx" style="align-self:flex-start">${ic("download")}Boekjaar ${JAAR} als Excel</button>
     <button class="btn" data-act="exportJson" style="align-self:flex-start">${ic("download")}Volledige back-up (.json)</button>
     <label class="btn" data-w for="restoreFile" style="align-self:flex-start;cursor:pointer">${ic("upload")}Back-up terugzetten (.json)</label><input type="file" id="restoreFile" accept=".json,application/json" hidden>
-    <button class="btn" data-w data-act="importExcel" style="align-self:flex-start">${ic("upload")}Oud VBHA Excel-bestand importeren</button>
     <span style="font-size:13px;color:var(--muted)">Maak af en toe een back-up en bewaar die op een veilige plaats.</span></div></div>
   </div></div>
   <div class="note info" style="margin:0">Beginsaldi, lidgeld, rekeningnummer en de categorieën van de boekhouding stel je in via het tandwiel op de pagina <a href="#boekhouding">Boekhouding</a>. De categorieën van de leden vind je onder het tandwiel op de <a href="#leden">Ledenlijst</a>.</div>
