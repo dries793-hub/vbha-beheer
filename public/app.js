@@ -6275,8 +6275,8 @@ function stTussen(lidId){const C=ctx(),r=C.rows.get(lidId);if(!r)return{st:"",zi
   const n=Math.max(1,Math.ceil((dr.goud-t)/(w.kalenders||25)));const jl=r.jl||{},open=Math.max(0,(Number(jl.kalOpgehaald)||0)-(Number(jl.kalUitgevoerd)||0));
   const dz=k=>k===1?"1 doos":k+" dozen";
   if(open>0){const rest=n-open;
-    return{st,zin:`Je staat momenteel op ${st} voor ${V}. Je haalde al ${dz(open)} kalenders op die nog niet als bedeeld zijn doorgegeven: die punten tellen pas mee zodra je laat weten dat ze bedeeld zijn. `+(rest<=0?`Zijn ze bedeeld, dan heb je de goudstatus en geniet je volgend jaar van de maximale korting op onze betalende activiteiten.`:`Zijn ze bedeeld, dan heb je daarna nog ${dz(rest)} nodig voor de goudstatus en de maximale korting op onze betalende activiteiten.`)}}
-  return{st,zin:`Je staat momenteel op ${st} voor ${V}. Met nog ${n===1?"slechts 1 doos":n+" dozen"} kalenders bedelen haal je de goudstatus en geniet je volgend jaar van de maximale korting op onze betalende activiteiten.`}}
+    return{st,zin:`Je haalde al ${dz(open)} kalenders op die nog niet als bedeeld zijn doorgegeven: die punten tellen pas mee zodra je laat weten dat ze bedeeld zijn. `+(rest<=0?`Zijn ze bedeeld, dan heb je de goudstatus en geniet je volgend jaar van de maximale korting op onze betalende activiteiten.`:`Zijn ze bedeeld, dan heb je daarna nog ${dz(rest)} nodig voor de goudstatus en de maximale korting op onze betalende activiteiten.`)}}
+  return{st,zin:`Met nog ${n===1?"slechts 1 doos":n+" dozen"} kalenders bedelen haal je de goudstatus en geniet je volgend jaar van de maximale korting op onze betalende activiteiten.`}}
 {const _m=mlMap;mlMap=function(r){const o=_m.apply(this,arguments);if(r&&r.lidId){const x=stTussen(r.lidId);o.status_volgend=x.st;o.status_tussenstand=x.zin;
   o.status_uitleg=x.st&&x.st!=="goud"?"Elke doos kalenders die je bedeelt, brengt je dichter bij de goudstatus. Als goudlid geniet je van de maximale korting op onze betalende activiteiten, zoals het banket.":""}else{o.status_volgend="";o.status_tussenstand="";o.status_uitleg=""}return o}}
 // lege alinea's (bv. {status_uitleg} bij goudleden) niet tonen
