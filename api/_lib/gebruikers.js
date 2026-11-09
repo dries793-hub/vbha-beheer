@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { requireUser, httpErr, isAdminRol } from "./sb.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
+import { huisstijl, knop } from "./bevestiging.js";
 
 // Gebruikersbeheer (enkel voor een admin).
 // GET                                           -> {gebruikers:[{id,email,naam,rol,laatst,tijdelijk,ik}], mail}
@@ -30,21 +31,15 @@ async function alleGebruikers(sb) {
 }
 export function welkomMail({ naam, email, rol, wachtwoord, url, reset }) {
   const groet = naam ? "Beste " + esc(String(naam).split(" ")[0]) + "," : "Hallo,";
-  const html = `<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#f7f7f7">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f7f7f7"><tr><td align="center" style="padding:25px 10px">
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="width:100%;max-width:600px">
-<tr><td style="border-top:8px solid #b30000;padding:0"></td></tr>
-<tr><td style="font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#222222;padding:28px 36px">
-<p style="margin:0 0 15px">${groet}</p>
+  const html = huisstijl(`<p style="margin:0 0 15px">${groet}</p>
 <p style="margin:0 0 15px">${reset ? "Er werd een nieuw tijdelijk wachtwoord voor je aangemaakt voor" : "Je hebt nu toegang tot"} de beheeromgeving van de Vriendenkring Brandweer Hoofdpost Aalst, met de rechten <b>${esc(ROL_NAAM[rol] || rol)}</b>.</p>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 18px"><tr><td bgcolor="#fff9f9" style="padding:16px 20px;border-left:5px solid #C1A057;font-family:Helvetica,Arial,sans-serif;font-size:15px;color:#222222">
-<p style="margin:0 0 5px"><b>Adres:</b> <a href="${esc(url)}" style="color:#b30000">${esc(url.replace(/^https?:\/\//, ""))}</a></p>
+<p style="margin:0 0 5px"><b>Adres:</b> <a href="${esc(url)}" style="color:#b30000;text-decoration:underline">${esc(url.replace(/^https?:\/\//, ""))}</a></p>
 <p style="margin:0 0 5px"><b>E-mailadres:</b> ${esc(email)}</p>
 <p style="margin:0"><b>Tijdelijk wachtwoord:</b> <span style="font-family:Consolas,Menlo,monospace;font-size:16px">${esc(wachtwoord)}</span></p></td></tr></table>
 <p style="margin:0 0 15px">Bij je eerste aanmelding kies je meteen je eigen wachtwoord. Het tijdelijke wachtwoord werkt daarna niet meer.</p>
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:6px auto 20px"><tr><td bgcolor="#b30000" style="border-radius:4px;padding:12px 24px"><a href="${esc(url)}" style="font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none">Aanmelden</a></td></tr></table>
-<p style="margin:0">Met vriendelijke groeten,<br><b>Het bestuur</b></p></td></tr>
-<tr><td style="border-top:8px solid #b30000;padding:0"></td></tr></table></td></tr></table></body></html>`;
+${knop("Aanmelden", url)}
+`, "Vriendenkring Brandweer Hoofdpost Aalst");
   return { aan: email, aanNaam: naam || "", onderwerp: reset ? "VBHA - Nieuw tijdelijk wachtwoord" : "VBHA - Je toegang tot de beheeromgeving", html };
 }
 
