@@ -5164,7 +5164,7 @@ VIEWS.kassa=()=>({title:"Kassa",sub:"Verkoop aan de kassa",
 const KA_ED={act:"fuif",tegels:{},open:null};
 function kassaInst(act){const c=kaCfg();KA_ED.act=act||(KA_ACTS[c.actief]?c.actief:"fuif");KA_ED.tegels={};for(const a of Object.keys(KA_ACTS))KA_ED.tegels[a]=kaTegels(a).map(t=>({...t}));KA_ED.open=null;KA_ED.actief=KA_ACTS[c.actief]?c.actief:"fuif";KA_ED.scan=c.scan!==false;
   modal("Instellingen kassa",`<div id="kaEd"></div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kaOk">Bewaren</button>`,{wide:true});kaEdTeken();
-  $("#kaOk").onclick=async()=>{const fout=[];for(const [a,L] of Object.entries(KA_ED.tegels))L.forEach((t,i)=>{if(!String(t.naam||"").trim())fout.push(`${KA_ACTS[a]}: tegel ${i+1} heeft geen naam`);if(!(Number(t.prijs)>0))fout.push(`${KA_ACTS[a]}: ${t.naam||"tegel "+(i+1)} heeft geen geldige prijs`)});
+  $("#kaOk").onclick=async()=>{const fout=[];for(const [a,L] of Object.entries(KA_ED.tegels))L.forEach((t,i)=>{if(!String(t.naam||"").trim())fout.push(`${KA_ACTS[a]}: tegel ${i+1} heeft geen naam`);if(String(t.prijs??"").trim()===""||!(Number(t.prijs)>=0))fout.push(`${KA_ACTS[a]}: ${t.naam||"tegel "+(i+1)} heeft geen geldige prijs`)});
     if(fout.length){$("#kaErr").innerHTML=fout.map(esc).join("<br>");return}
     const acts={};for(const [a,L] of Object.entries(KA_ED.tegels))acts[a]={tegels:L.map(t=>({id:t.id,naam:String(t.naam).trim().slice(0,40),prijs:Math.round(Number(t.prijs)*100)/100,kleur:t.kleur||"grijs",icoon:t.icoon||"",...(t.inkom?{inkom:true}:{})}))};
     closeModal();await kaBewaar({actief:KA_ED.actief,scan:KA_ED.scan,activiteiten:acts});toast("Kassa-instellingen bewaard. De kassa neemt ze binnen een minuut over.");render(true)}}

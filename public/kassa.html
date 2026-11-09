@@ -270,7 +270,7 @@ const kleur=k=>(window.KASSA_KLEUREN||{})[k]||["#55585e","#f0f1f2"];
 function kolommen(n){const w=innerWidth;if(n<=2)return n;if(n<=4)return 2;if(n<=6)return w<640?2:3;if(n<=9)return 3;if(n<=12)return w<640?3:4;return w>=900?5:w>=640?4:3}
 function verkoopScherm(){clearTimeout(naT);const T=ST.tegels||[],tot=T.reduce((n,x)=>n+(MAND[x.id]||0)*x.prijs,0),aantal=Object.values(MAND).reduce((a,b)=>a+b,0);
   $("#box").innerHTML=`<div class="vk">${tabs()}${T.length?`<div class="pos2" style="grid-template-columns:repeat(${kolommen(T.length)},minmax(0,1fr))">${T.map(x=>{const [k,b]=kleur(x.kleur),n=MAND[x.id]||0;return `<button type="button" class="pt" data-pt="${esc(x.id)}" style="--k:${k};--b:${b}"><i>${n||""}</i>${n?`<span class="min" data-min="${esc(x.id)}" role="button" aria-label="Eén minder">−</span>`:""}${typeof kassaIcoon==="function"?kassaIcoon(x.icoon,k):""}<b>${esc(x.naam)}</b><span>${eur(x.prijs)}</span></button>`}).join("")}</div>`:'<div class="card"><p style="margin:0">Nog geen tegels ingesteld.</p></div>'}
-   <div class="balk"><div class="tot"><b>${eur(tot)}</b>${aantal?`<button type="button" id="leeg">✕ wissen</button>`:""}</div><button class="btn" id="afr"${tot>0&&ST.online?"":" disabled"}>Bancontact</button><button class="btn sec" id="cash"${tot>0?"":" disabled"}>Cash</button></div></div>`}
+   <div class="balk"><div class="tot"><b>${eur(tot)}</b>${aantal?`<button type="button" id="leeg">✕ wissen</button>`:""}</div>${aantal&&!(tot>0)?`<button class="btn" id="cash">Registreren (gratis)</button>`:`<button class="btn" id="afr"${tot>0&&ST.online?"":" disabled"}>Bancontact</button><button class="btn sec" id="cash"${tot>0?"":" disabled"}>Cash</button>`}</div></div>`}
 function pasHoogte(){const v=$(".vk"),h=$(".ks-hdr");if(v&&h)v.style.height=(innerHeight-h.offsetHeight-18)+"px";
   // vierkante tegels: rijhoogte = kolombreedte (aspect-ratio werkt niet betrouwbaar in een scrollend grid op iPhone)
   const g=$(".pos2");if(g){const n=(getComputedStyle(g).gridTemplateColumns||"").split(" ").filter(Boolean).length||1,gap=parseFloat(getComputedStyle(g).columnGap)||0;const w=Math.floor((g.clientWidth-gap*(n-1))/n);if(w>0)g.style.gridAutoRows=w+"px"}}
@@ -286,7 +286,7 @@ document.addEventListener("click",e=>{if(e.target.closest("[data-min]")){const k
   if(id==="herlaad"){$("#menuL").hidden=true;laad().then(toon).catch(fout);return}
   if(id==="afmeld"){$("#menuL").hidden=true;login();return}
   if(id==="wgUit"){zetWG(false);cashBevestig();return}
-  if(id==="leeg"){MAND={};verkoopScherm()}else if(id==="afr")bancontact();else if(id==="cash")cashScherm();
+  if(id==="leeg"){MAND={};verkoopScherm()}else if(id==="afr")bancontact();else if(id==="cash"){if(!mandTot())gratisVerkoop();else cashScherm()}
   else if(id==="vkStop"){if(VK)post({actie:"stop",id:VK.id}).catch(()=>{});VK=null;clearTimeout(vkT);verkoopScherm()}
   else if(id==="vkNieuw")nieuweQr();else if(id==="vkVolgende"||id==="okVolgende")volgende();else if(id==="cashTerug")verkoopScherm();
   else if(id==="cashOk")cashBevestig();else if(e.target.closest("[data-wg]")){const v=e.target.closest("[data-wg]").dataset.wg;cashOntv=v==="gepast"?mandTot():Number(v);cashTeken()}});
@@ -294,7 +294,8 @@ const mandTot=()=>Math.round((ST.tegels||[]).reduce((n,x)=>n+(MAND[x.id]||0)*x.p
 function wat(){return (ST.tegels||[]).filter(x=>MAND[x.id]).map(x=>`${MAND[x.id]}× ${esc(x.naam)}`).join("<br>")}
 // Bancontact: QR meteen lokaal tekenen uit de betaallink (geen wachten op een afbeelding)
 function qrCanvas(txt){if(!window.qrcode)return null;const q=qrcode(0,"M");q.addData(txt);q.make();const n=q.getModuleCount(),px=8,r=2,cv=document.createElement("canvas");cv.width=cv.height=(n+r*2)*px;const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,cv.height);g.fillStyle="#000";for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(q.isDark(y,x))g.fillRect((x+r)*px,(y+r)*px,px,px);return cv}
-async function bancontact(){const b=$("#afr");b.disabled=true;b.textContent="QR maken…";
+async function gratisVerkoop(){try{const j=await post({actie:"verkoop",items:MAND,betaalwijze:"cash",bedrag:0});VK=j;gelukt(true)}catch(e){if(fout(e))return;if(e.status===409){await laad();MAND={};verkoopScherm()}alert(e.message)}}
+async function bancontact(){if(!mandTot())return gratisVerkoop();const b=$("#afr");b.disabled=true;b.textContent="QR maken…";
   try{const j=await post({actie:"verkoop",items:MAND,betaalwijze:"bancontact",bedrag:mandTot()});VK=j;toonQr();volgVk(1200)}
   catch(e){if(fout(e))return;if(e.status===409){await laad();MAND={};verkoopScherm()}alert(e.message);const x=$("#afr");if(x){x.disabled=false;x.textContent="Bancontact"}}}
 function toonQr(){$("#box").innerHTML=tabs()+`<div class="card bq"><div class="bedrag">${eur(VK.bedrag)}</div><div id="qrPlek"></div><p class="wacht" id="vkSt" style="margin-top:10px">Wachten…</p>
