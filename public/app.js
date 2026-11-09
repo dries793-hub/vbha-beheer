@@ -2085,7 +2085,7 @@ if(!ROUTES.some(r=>r[0]==="kinderfeest"))ROUTES.push(["kinderfeest","Kinderfeest
 S.kinderfeest=S.kinderfeest||new Map();
 const KF_PUBLIEK="/kinderfeest";
 const KF_FORM="https://docs.google.com/forms/d/1nSPBTS3L0th1wRGPxII_8p30y5pv4ZaSZ8lQMhA2-TM/edit#responses";
-const kfCfg=()=>Object.assign({datum:JAAR+"-12-19",tijd:"14u30",locatie:"VTI - Sinte Annalaan 99b, Aalst",leeftijd:12,formUrl:KF_PUBLIEK},S.config.get("kf_"+JAAR)||{});
+const kfCfg=()=>Object.assign({datum:JAAR+"-12-19",tijd:"14u30",locatie:"VTI - Sinte Annalaan 99b, Aalst",leeftijd:11,formUrl:KF_PUBLIEK},S.config.get("kf_"+JAAR)||{});
 let KFQ="";
 function kfLeeftijd(geb,op){if(!geb||!/^\d{4}-\d{2}-\d{2}$/.test(geb))return null;const [y,m,d]=geb.split("-").map(Number);const [Y,M,D]=op.split("-").map(Number);let a=Y-y;if(M<m||(M===m&&D<d))a--;return a}
 function kfLidVan(naam){const n=norm(naam);if(!n)return null;for(const l of S.leden.values()){const a=norm((l.voornaam||"")+" "+(l.naam||"")),b=norm((l.naam||"")+" "+(l.voornaam||""));if(n===a||n===b)return l}return null}
@@ -2142,6 +2142,7 @@ function kfForm(r,id){
   $("#kfOk").onclick=async()=>{const f={lid:$("#kfL").value,email:$("#kfE").value,opmerking:$("#kfO").value};const kids=kfKidsRead().filter(k=>k.naam||k.geb);
     if(!f.lid.trim()){$("#kfErr").textContent="Vul de naam van het lid in.";$("#kfL").focus();return}
     if(!kids.length){$("#kfErr").textContent="Voeg minstens één kind toe.";return}
+    {const c=kfCfg(),te=kids.find(k=>{const x=kfLeeftijd(k.geb,c.datum);return x!=null&&x>Number(c.leeftijd)});if(te){$("#kfErr").textContent=`${te.naam||"Dit kind"} is op het feest al ${kfLeeftijd(te.geb,c.datum)} jaar en kan niet meer ingeschreven worden.`;return}}
     if(kids.some(k=>!k.naam)){$("#kfErr").textContent="Elk kind heeft een naam nodig.";return}
     const l=kfLidVan(f.lid);
     const d={...stripId(r),jaar:r.jaar||JAAR,lid:f.lid.trim(),lidId:l?l.id:null,email:f.email.trim()||(l&&l.email)||"",opmerking:f.opmerking.trim(),kinderen:kids,bron:r.bron||"manueel",aangemeld:r.aangemeld||new Date().toISOString()};
@@ -2152,7 +2153,7 @@ function kfInst(){const c=kfCfg();
   modal("Kinderfeest "+JAAR,`<form id="fKfI" class="form">${insVelden(c,JAAR+"-12-07","")}
     ${fld("kiD","Datum feest",inp("kiD",c.datum,'name="datum" type="date"'))}${fld("kiT","Uur",inp("kiT",c.tijd,'name="tijd"'))}
     ${fld("kiL","Locatie",inp("kiL",c.locatie,'name="locatie"'),"full")}
-    ${fld("kiA","Cadeautje tot en met leeftijd",inp("kiA",c.leeftijd,'name="leeftijd" type="number" min="0" max="18"'))}
+    ${fld("kiA","Kinderen toegelaten tot en met leeftijd",inp("kiA",c.leeftijd,'name="leeftijd" type="number" min="0" max="18"'))}
     <div class="fld"><label>&nbsp;</label><span class="help">De leeftijd wordt berekend op de dag van het feest.</span></div>
 </form>`,
     `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="kiOk">Bewaren</button>`);
