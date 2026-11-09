@@ -86,7 +86,8 @@ function ctx(){
     p.totaal=p.kaarten+p.kalenders+p.shifts+p.vergaderingen+p.extra;
     const status=!lg.ok?"niet actief":(lid.categorie==="Erewacht"||jl.vrijstelling)?"GOUD":p.totaal<c.drempels.zilver?"BRONS":p.totaal<c.drempels.goud?"ZILVER":"GOUD";
     const bedrag=lid.categorie==="Erewacht"?c.lidgeld.erewacht:c.lidgeld.gewoon;
-    rows.set(lid.id,{lid,jl,lg,p,status,bedrag,huidig:leden.includes(lid),jaren:lid.lidSinds?Y-lid.lidSinds:null});
+    const statusNu=stNuVan(lid,lg,Y,c);
+    rows.set(lid.id,{lid,jl,lg,p,status,statusNu,bedrag,huidig:leden.includes(lid),jaren:lid.lidSinds?Y-lid.lidSinds:null});
   }
   const sortNaam=(a,b)=>(a.naam||"").localeCompare(b.naam||"","nl")||(a.voornaam||"").localeCompare(b.voornaam||"","nl");
   leden.sort(sortNaam);oud.sort(sortNaam);
@@ -462,6 +463,7 @@ VIEWS.leden=()=>({title:"Leden",sub:"Ledenadministratie en lidgeld "+JAAR,
   return `<div class="bar"><div class="search">${ic("search")}<input id="ledenQ" data-live data-input="ledenQ" placeholder="Zoek op naam, adres, e-mail of telefoon" value="${esc(UI.ledenQ)}"></div>
     <select class="sel" id="ledenCat" data-change="ledenCat"><option value="">Alle categorieën</option>${c.ledenCategorieen.map(k=>`<option${UI.ledenCat===k?" selected":""}>${esc(k)}</option>`).join("")}</select>
     <div class="seg" role="group" aria-label="Lidgeldfilter">${[["alle","Alle"],["ok","Betaald"],["nok","Niet betaald"]].map(([k,l])=>`<button data-act="ledenF" data-v="${k}" class="${UI.ledenF===k?"on":""}">${l}</button>`).join("")}</div>
+    ${stJaarSeg()}
     <select class="sel only-sm" data-change="ledenSortSel" aria-label="Sorteren">${selOpts([["naam","Sorteren: achternaam"],["voornaam","Sorteren: voornaam"],["status","Sorteren: status"],["lidgeld","Sorteren: lidgeld"],["categorie","Sorteren: categorie"],["lidSinds","Sorteren: lid sinds"]],ledenSort().k)}</select></div>
     <div class="panel" id="ledenList">${ledenTable()}</div>`},
   });
@@ -475,19 +477,19 @@ function ledenTable(){
   if(q)list=list.filter(r=>norm([r.lid.naam,r.lid.voornaam,r.lid.adres,r.lid.email,r.lid.telefoon,r.lid.info].join(" ")).includes(q));
   const LS=ledenSort(),vn=LS.k==="voornaam";
   const STR={GOUD:3,ZILVER:2,BRONS:1};
-  const key={naam:r=>[r.lid.naam,r.lid.voornaam],voornaam:r=>[r.lid.voornaam,r.lid.naam],status:r=>[r.huidig?(STR[r.status]||0):-1],lidgeld:r=>[r.huidig?(r.lg.ok?1:0):-1],categorie:r=>[r.lid.categorie||""],lidSinds:r=>[+r.lid.lidSinds||9999]}[LS.k];
+  const key={naam:r=>[r.lid.naam,r.lid.voornaam],voornaam:r=>[r.lid.voornaam,r.lid.naam],status:r=>[r.huidig?(STR[stL(r)]||0):-1],lidgeld:r=>[r.huidig?(r.lg.ok?1:0):-1],categorie:r=>[r.lid.categorie||""],lidSinds:r=>[+r.lid.lidSinds||9999]}[LS.k];
   const cmp=(a,b)=>{const x=key(a),y=key(b);for(let i=0;i<x.length;i++){const c=typeof x[i]==="number"?x[i]-y[i]:String(x[i]||"").localeCompare(String(y[i]||""),"nl");if(c)return c*LS.d}return (a.lid.naam||"").localeCompare(b.lid.naam||"","nl")||(a.lid.voornaam||"").localeCompare(b.lid.voornaam||"","nl")};
   list.sort(cmp);
   const th=(k,l,cls="")=>{const on=LS.k===k||(k==="naam"&&vn);return `<th${cls?` class="${cls}"`:""}><button type="button" class="thsort${on?" on":""}" data-act="ledenSort" data-v="${k}" title="${k==="naam"?(LS.k==="naam"?"Klik om te sorteren op voornaam":"Sorteren op achternaam"):"Sorteren op "+l.toLowerCase()}">${k==="naam"&&vn?"Voornaam":l} <span>${on?(LS.d>0?"▲":"▼"):""}</span></button></th>`};
   if(!list.length)return '<div class="empty">Geen leden gevonden'+(q?' voor “'+esc(UI.ledenQ)+'”':'')+'.</div>';
   const mob=`<div class="mlist" role="list">${list.map(r=>{const nm=vn?`<b>${esc(r.lid.voornaam)}</b> ${esc(r.lid.naam)}`:`<b>${esc(r.lid.naam)}</b> ${esc(r.lid.voornaam)}`;
-    const sub=[r.huidig&&r.status!=="niet actief"?`<span class="ml-st ${r.status}"><i></i>${esc(r.status.charAt(0)+r.status.slice(1).toLowerCase())}</span>`:"",esc(r.lid.categorie||"")].filter(Boolean).join('<span class="ml-dot">·</span>');
+    const sub=[r.huidig&&stL(r)!=="niet actief"?`<span class="ml-st ${stL(r)}"><i></i>${esc(stL(r).charAt(0)+stL(r).slice(1).toLowerCase())}</span>`:"",esc(r.lid.categorie||"")].filter(Boolean).join('<span class="ml-dot">·</span>');
     return `<button type="button" class="ml-row" role="listitem" data-act="toonLid" data-id="${esc(r.lid.id)}"><span class="ml-av ${r.huidig?(r.lg.ok?"ok":"nok"):"oud"}" aria-hidden="true">${esc(((vn?r.lid.voornaam:r.lid.naam)||"?").charAt(0).toUpperCase())}</span>
       <span class="ml-m"><span class="ml-n">${nm}${r.lid.bestuur?BST_IC:""}${r.lid.nieuw?' <span class="pill info">nieuw</span>':""}</span><span class="ml-s">${sub}</span></span>
       <span class="ml-r">${r.huidig?(r.lg.ok?'<span class="pill ok">✓ Betaald</span>':'<span class="pill nok">Open</span>'):`<span class="pill neutral">${r.lid.geenLid?"geen lid":"oud-lid"}</span>`}</span><span class="ml-chev" aria-hidden="true">›</span></button>`}).join("")}</div>`;
-  return mob+`<div class="tw dsk-only"><table class="rcards"><thead><tr>${th("naam","Naam")}${th("status","Status")}${th("lidgeld","Lidgeld "+JAAR)}${th("categorie","Categorie")}${th("lidSinds","Lid sinds","num")}<th>E-mail</th><th>Telefoon</th></tr></thead><tbody>
+  return mob+`<div class="tw dsk-only"><table class="rcards"><thead><tr>${th("naam","Naam")}${th("status","Status "+(UI.ledenStJ==="volgend"?JAAR+1:JAAR))}${th("lidgeld","Lidgeld "+JAAR)}${th("categorie","Categorie")}${th("lidSinds","Lid sinds","num")}<th>E-mail</th><th>Telefoon</th></tr></thead><tbody>
   ${list.map(r=>`<tr class="click" data-act="toonLid" data-id="${esc(r.lid.id)}"><td class="nm">${vn?`<b>${esc(r.lid.voornaam)}</b> ${esc(r.lid.naam)}`:`<b>${esc(r.lid.naam)}</b> ${esc(r.lid.voornaam)}`}${r.lid.bestuur?BST_IC:""}${r.huidig?"":` <span class="pill neutral">${r.lid.geenLid?"geen lid":"oud-lid"}</span>`}${r.lid.nieuw?' <span class="pill info">nieuw</span>':""}</td>
-    <td>${r.huidig?medal(r.status):""}</td><td>${r.huidig?lgPill(r):""}</td><td>${esc(r.lid.categorie)}</td><td class="num">${esc(r.lid.lidSinds||"")}</td>
+    <td>${r.huidig?medal(stL(r)):""}</td><td>${r.huidig?lgPill(r):""}</td><td>${esc(r.lid.categorie)}</td><td class="num">${esc(r.lid.lidSinds||"")}</td>
     <td class="trunc">${esc(r.lid.email)||'<span class="pill warn">geen e-mail</span>'}</td><td style="white-space:nowrap">${esc(r.lid.telefoon)}</td></tr>`).join("")}
   </tbody></table></div><div style="padding:10px 16px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)">${list.length} leden getoond</div>`;
 }
@@ -5441,3 +5443,156 @@ function wjInstHtml(c){const o=wjCfg();const d=canWrite?"":" disabled";
   return `<div class="pi-sec"><h4>Overlopende werkjaren</h4><div class="form"><div class="fld full"><span class="lbl">Categorieën die over de jaargrens lopen</span><div class="bar" style="margin:0;flex-wrap:wrap;gap:6px 14px" id="wjCats">${c.boekCategorieen.map(k=>`<label style="display:inline-flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" value="${esc(k)}"${o.cats.includes(k)?" checked":""}${d}> ${esc(k)}</label>`).join("")}</div><span class="help">Transacties van deze categorieën vóór de grensdatum tellen nog bij het vorige werkjaar (bv. kalenders van vorig jaar die in het voorjaar nog betaald worden). Per transactie kan je het werkjaar ook zelf kiezen.</span></div>
   <div class="fld"><label for="wjMaand">Nieuw werkjaar vanaf</label><select id="wjMaand"${d}>${WJ_MND.map((m,i)=>`<option value="${i+1}"${o.maand===i+1?" selected":""}>1 ${m}</option>`).join("")}</select></div></div></div>`}
 function wjInstVals(){const el=$("#wjCats");if(!el)return null;return{cats:[...el.querySelectorAll("input:checked")].map(i=>i.value),maand:Number($("#wjMaand").value)||5}}
+
+/* ---------- Kinderfeest: voorziene kost van de cadeaus volgens de inschrijvingen ----------
+   Bedragen komen uit "Waarde per geboortejaar" (bevestigingsmail), bv. "2016-2020: 50,00 EUR per kind".
+   Een groep zonder bedrag ("cadeau voorzien door VBHA") krijgt het bedrag uit kf_<jaar>.cadeauVbha. */
+function kfkGroepen(txt){const G=[];for(const l of String(txt||"").split(/\n+/)){const m=l.trim().match(/^(\d{4})(?:\s*[-–]\s*(\d{4}))?\s*:\s*(.*)$/);if(!m)continue;
+  const a=Number(m[1]),b=Number(m[2]||m[1]),t=m[3];const e=t.match(/(\d+(?:[.,]\d{1,2})?)\s*(?:eur|euro|€)/i)||t.match(/€\s*(\d+(?:[.,]\d{1,2})?)/);
+  G.push({van:Math.min(a,b),tot:Math.max(a,b),label:m[2]?Math.min(a,b)+"–"+Math.max(a,b):String(a),tekst:t.trim(),bedrag:e?Number(e[1].replace(",",".")):null,vbha:!e&&/vbha|voorzien/i.test(t)})}return G}
+function kfKost(){const c=kfCfg(),st=kfStats(),M=typeof kfMailCfg==="function"?kfMailCfg():{};const G=kfkGroepen(M.groepen);const vb=c.cadeauVbha!=null&&c.cadeauVbha!==""?Number(c.cadeauVbha):null;
+  const rij=G.map(g=>({...g,n:0,prijs:g.bedrag!=null?g.bedrag:g.vbha?vb:null}));const los={n:0,label:"Geen groep"},onb={n:0};
+  for(const r of st.L)for(const k of (r.kinderen||[])){const a=kfLeeftijd(k.geb,c.datum);if(a!=null&&a>c.leeftijd)continue;
+    if(!k.geb){onb.n++;continue}const y=Number(String(k.geb).slice(0,4));const g=rij.find(g=>y>=g.van&&y<=g.tot);if(g)g.n++;else los.n++}
+  let tot=0,zonder=0;for(const g of rij){if(!g.n)continue;if(g.prijs==null)zonder+=g.n;else tot+=g.n*g.prijs}zonder+=los.n+onb.n;
+  return{rij,los,onb,tot:Math.round(tot*100)/100,zonder,cadeaus:st.cadeau,vb}}
+function kfkTile(){const K=kfKost();const gem=K.cadeaus-K.zonder>0?K.tot/(K.cadeaus-K.zonder):0;
+  return `<div class="tile"><span class="lbl">Voorziene kost cadeaus</span><span class="val">${eur(K.tot)}</span><span class="hint">${K.cadeaus} ${K.cadeaus===1?"cadeau":"cadeaus"}${gem?` · gemiddeld ${eur(gem)}`:""}${K.zonder?` · <b style="color:var(--warn,#b45309)">${K.zonder} zonder bedrag</b>`:""}</span></div>`}
+function kfkPaneel(){const K=kfKost();const R=K.rij.filter(g=>g.n||g.prijs!=null);
+  if(!R.length&&!K.zonder)return "";
+  const rows=R.map(g=>`<tr><td><b>${esc(g.label)}</b><div class="muted small">${esc(g.tekst)}</div></td><td class="num">${g.n}</td><td class="num">${g.prijs!=null?eur(g.prijs):'<span class="pill warn">geen bedrag</span>'}</td><td class="num"><b>${g.prijs!=null?eur(g.n*g.prijs):"–"}</b></td></tr>`).join("")
+   +(K.los.n?`<tr><td><b>Geboortejaar niet in een groep</b></td><td class="num">${K.los.n}</td><td class="num"><span class="pill warn">geen bedrag</span></td><td class="num">–</td></tr>`:"")
+   +(K.onb.n?`<tr><td><b>Geboortedatum onbekend</b></td><td class="num">${K.onb.n}</td><td class="num"><span class="pill warn">geen bedrag</span></td><td class="num">–</td></tr>`:"");
+  return `<div class="panel"><div class="panel-h"><h2>Voorziene kost cadeaus</h2><span class="grow"></span>${canWrite?`<button class="btn sm" data-act="kfInst">${ic("instellingen")}Bedragen</button>`:""}</div>
+   <div class="tw"><table class="rcards"><thead><tr><th>Geboortejaar</th><th class="num">Cadeaus</th><th class="num">Per kind</th><th class="num">Totaal</th></tr></thead><tbody>${rows}</tbody>
+   <tfoot><tr><td><b>Totaal</b></td><td class="num"><b>${K.cadeaus}</b></td><td></td><td class="num"><b>${eur(K.tot)}</b></td></tr></tfoot></table></div>
+   <div class="panel-b muted small">De bedragen komen uit <b>Waarde per geboortejaar</b> in de instellingen van het kinderfeest.${K.rij.some(g=>g.vbha)?` Cadeaus voorzien door VBHA: ${K.vb!=null?eur(K.vb)+" per kind":"vul nog een bedrag in"}.`:""}</div></div>`}
+{const _v=VIEWS.kinderfeest;VIEWS.kinderfeest=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=String(b.apply(this,arguments));
+  h=h.replace(/(<div class="tiles"><div class="tile hero">[\s\S]*?<\/span><\/div>)/,m=>m+kfkTile());
+  const i=h.indexOf('<div class="bar"><div class="search">');if(i>=0)h=h.slice(0,i)+kfkPaneel()+h.slice(i);return h};return v};Object.assign(VIEWS.kinderfeest,_v)}
+{const _k=kfInst;kfInst=function(){_k.apply(this,arguments);const g=$("#kmG");if(!g)return;const c=kfCfg(),d=canWrite?"":" disabled";
+  g.closest(".fld").insertAdjacentHTML("afterend",`<div class="fld"><label for="kfVb">Kost cadeau voorzien door VBHA</label><div class="sfx"><input id="kfVb" type="number" min="0" step="0.01" inputmode="decimal" value="${c.cadeauVbha!=null?esc(c.cadeauVbha):""}"${d}><span>€ per kind</span></div><span class="help">Voor de groep waarvoor de vriendenkring zelf het cadeau koopt.</span></div>`);
+  const ok=$("#kiOk");if(!ok||!ok.onclick)return;const _o=ok.onclick;
+  ok.onclick=async function(ev){const v=$("#kfVb").value.trim();const k="kf_"+JAAR,cur=S.config.get(k)||{};S.config.set(k,{...cur,id:k,cadeauVbha:v===""?null:Math.max(0,num(v))});return _o.call(this,ev)}}}
+
+/* ---------- status huidig jaar / volgend jaar ----------
+   Huidig jaar J: volgens de punten van J-1 (zoals op de banketpagina en "status opvragen").
+   Volgend jaar J+1: volgens de punten die het lid dit jaar al verzamelde.
+   Het puntensysteem startte in 2026: voor de jaren ervoor geldt iedereen als goud. */
+const PUNTEN_START=()=>Number((S.config.get("algemeen")||{}).puntenStart)||2026;
+function stNuVan(lid,lg,Y,c){if(!lg||!lg.ok)return "niet actief";if(lid.categorie==="Erewacht"||isEreVoorzitter(lid))return "GOUD";
+  const V=Y-1;if(V<PUNTEN_START())return "GOUD";const jl=S.jaarleden.get(V+"_"+lid.id)||{};if(jl.vrijstelling)return "GOUD";
+  const w=c.gewichten;const t=(jl.kaarten||0)*w.kaarten+(jl.kalUitgevoerd||0)*w.kalenders+(jl.shifts||0)*w.shifts+(jl.vergaderingen||0)*w.vergaderingen+(jl.extraPunten||0);
+  return t<c.drempels.zilver?"BRONS":t<c.drempels.goud?"ZILVER":"GOUD"}
+UI.ledenStJ=UI.ledenStJ||"nu";
+const stL=r=>UI.ledenStJ==="volgend"?r.status:(r.statusNu||r.status);
+function stJaarSeg(){return `<div class="seg" role="group" aria-label="Status van welk jaar" title="Huidig: status die nu geldt (punten van ${JAAR-1}). Volgend jaar: status die het lid met de punten van ${JAAR} al verdiende.">${[["nu","Status "+JAAR],["volgend","Status "+(JAAR+1)]].map(([k,l])=>`<button data-act="ledenStJ" data-v="${k}" class="${UI.ledenStJ===k?"on":""}">${l}</button>`).join("")}</div>`}
+document.addEventListener("click",e=>{const t=e.target.closest('[data-act="ledenStJ"]');if(!t)return;UI.ledenStJ=t.dataset.v;render(true)});
+
+/* ============ Financiën › Begroting ============
+   Per boekjaar één document config/"begroting_<jaar>": {tabs:[{id,naam,categorie,personen,winst,posten:[{id,soort:"kost"|"opbrengst",naam,aantal,prijs,pp}]}]}
+   Een post "per persoon" telt het aantal personen van de activiteit i.p.v. een eigen aantal.
+   Werkelijk = transacties van die categorie die bij het werkjaar horen (zie werkjaar.js). */
+{const b=NAV.find(n=>n.id==="boekhouding");if(b&&!b.items.some(i=>i[0]==="begroting")){const k=b.items.findIndex(i=>i[0]==="historiek");b.items.splice(k>=0?k:b.items.length,0,["begroting","Begroting"])}}
+if(!ROUTES.some(r=>r[0]==="begroting"))ROUTES.push(["begroting","Begroting"]);
+if(typeof BOEK_ROUTES!=="undefined")BOEK_ROUTES.add("begroting");
+ICON.begroting='<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M8 18.5h6"/>';
+const BG={tab:null,focus:null,t:null,doc:null,jaar:null};
+const BG_ALG=new Set(["Lidgeld","Sponsoring","Andere kosten","Andere opbrengsten","Bank- en verzekeringskosten"]);
+const bgId=()=>Math.random().toString(36).slice(2,9);
+const bgMag=()=>canWrite;
+function bgStandaard(){const c=cfg();return (c.boekCategorieen||[]).filter(k=>!BG_ALG.has(k)).map(k=>({id:bgId(),naam:k,categorie:k,personen:0,winst:0,posten:[]}))}
+function bgDoc(){if(BG.jaar!==JAAR||!BG.doc){const d=S.config.get("begroting_"+JAAR);BG.doc=d&&Array.isArray(d.tabs)?JSON.parse(JSON.stringify({tabs:d.tabs})):{tabs:bgStandaard(),nieuw:true};BG.jaar=JAAR}return BG.doc}
+function bgTab(){const D=bgDoc();let t=D.tabs.find(x=>x.id===BG.tab);if(!t){t=D.tabs[0]||null;BG.tab=t&&t.id}return t}
+const bgLijn=(p,t)=>Math.round((p.pp?(Number(t.personen)||0):(Number(p.aantal)||0))*(Number(p.prijs)||0)*100)/100;
+function bgSom(t){let k=0,o=0,oPP=0,oVast=0,ppPrijs=0;for(const p of t.posten||[]){const v=bgLijn(p,t);if(p.soort==="opbrengst"){o+=v;if(p.pp){oPP+=v;ppPrijs+=Number(p.prijs)||0}else oVast+=v}else k+=v}
+  return{k:Math.round(k*100)/100,o:Math.round(o*100)/100,r:Math.round((o-k)*100)/100,oPP,oVast,ppPrijs}}
+function bgWerkelijk(t){if(!t.categorie)return null;let i=0,u=0,n=0;for(const b of S.boekingen.values()){if(b.categorie!==t.categorie)continue;if(wjVan(b)!==JAAR)continue;n++;if(b.richting==="uit")u+=b.bedrag;else i+=b.bedrag}
+  return{i:Math.round(i*100)/100,u:Math.round(u*100)/100,r:Math.round((i-u)*100)/100,n}}
+function bgBewaar(direct){clearTimeout(BG.t);const go=async()=>{BG.t=null;const D=bgDoc();delete D.nieuw;try{await write("config","begroting_"+JAAR,{tabs:D.tabs,gewijzigd:new Date().toISOString(),door:ME_NAME||""})}catch(e){}};if(direct)return go();BG.t=setTimeout(go,700)}
+const bgE=n=>`${n<0?"−":""}${eur(Math.abs(n))}`;
+function bgRij(p,t){const d=bgMag()?"":" disabled";const per=p.pp;
+  return `<div class="bg-r" data-bgp="${esc(p.id)}">
+    <input class="bg-n" data-bgf="naam" value="${esc(p.naam||"")}" placeholder="${p.soort==="opbrengst"?"bv. Inkom":"bv. Traiteur"}" aria-label="Omschrijving"${d}>
+    <label class="bg-pp" title="Aantal = aantal personen van de activiteit"><input type="checkbox" data-bgf="pp"${per?" checked":""}${d}><span>per persoon</span></label>
+    <div class="bg-a"><span class="bg-l">Aantal</span><input data-bgf="aantal" inputmode="decimal" value="${per?esc(t.personen||0):esc(p.aantal??"")}" aria-label="Aantal"${per?" disabled":d}></div>
+    <div class="bg-p"><span class="bg-l">Prijs</span><div class="sfx"><span>€</span><input data-bgf="prijs" inputmode="decimal" value="${esc(p.prijs??"")}" aria-label="Prijs per stuk"${d}></div></div>
+    <b class="bg-t" data-bgtot>${eur(bgLijn(p,t))}</b>
+    ${bgMag()?`<button type="button" class="bg-x" data-bgact="weg" aria-label="Post verwijderen" title="Verwijderen">${ic("x")}</button>`:"<span></span>"}</div>`}
+function bgBlok(t,soort,titel){const L=(t.posten||[]).filter(p=>(p.soort||"kost")===soort);const tot=L.reduce((s,p)=>s+bgLijn(p,t),0);
+  return `<div class="panel"><div class="panel-h"><h2>${titel}</h2><span class="grow"></span><b class="${soort==="kost"?"out":"in"}" data-bgsom="${soort}">${eur(tot)}</b></div><div class="panel-b bg-list">
+    ${L.map(p=>bgRij(p,t)).join("")||`<div class="muted small" style="padding:4px 0">Nog geen ${soort==="kost"?"kosten":"opbrengsten"}.</div>`}
+    ${bgMag()?`<button type="button" class="btn sm" data-bgact="nieuw" data-soort="${soort}">${ic("plus")}${soort==="kost"?"Kost":"Opbrengst"} toevoegen</button>`:""}</div></div>`}
+function bgPP(t){const S2=bgSom(t),N=Number(t.personen)||0,W=Number(t.winst)||0,d=bgMag()?"":" disabled";
+  const be=N?(S2.k-S2.oVast)/N:0,doel=N?(S2.k-S2.oVast+W)/N:0;
+  return `<div class="panel"><div class="panel-h"><h2>Prijs per persoon</h2></div><div class="panel-b"><div class="bg-ppf">
+    <div class="fld"><label for="bgN">Aantal personen</label><input id="bgN" data-bgt="personen" inputmode="numeric" value="${esc(t.personen||"")}" placeholder="bv. 250"${d}></div>
+    <div class="fld"><label for="bgW">Gewenste winst</label><div class="sfx"><span>€</span><input id="bgW" data-bgt="winst" inputmode="decimal" value="${esc(t.winst||"")}" placeholder="0"${d}></div></div></div>
+    <div class="bg-calc" data-bgcalc>${N?`<div><span>Kost per persoon</span><b>${eur(S2.k/N)}</b></div>
+      <div><span>Prijs om quitte te spelen</span><b>${eur(Math.max(0,be))}</b><small>kosten min de andere opbrengsten (${eur(S2.oVast)}), gedeeld door ${N}</small></div>
+      ${W?`<div class="hl"><span>Prijs voor ${eur(W)} winst</span><b>${eur(Math.max(0,doel))}</b></div>`:""}
+      ${S2.ppPrijs?`<div><span>Met je prijs van ${eur(S2.ppPrijs)} per persoon</span><b class="${S2.r>=0?"in":"out"}">${bgE(S2.r)}</b><small>begroot resultaat</small></div>`:""}`
+      :`<p class="muted small" style="margin:0">Vul het aantal personen in om de prijs per persoon te berekenen. Een post met <b>per persoon</b> aangevinkt telt dan automatisch mee met dat aantal.</p>`}</div></div></div>`}
+function bgTiles(t){const S2=bgSom(t),W=bgWerkelijk(t);
+  return `<div class="tiles" data-bgtiles><div class="tile"><span class="lbl">Begrote kosten</span><span class="val out">${eur(S2.k)}</span></div><div class="tile"><span class="lbl">Begrote opbrengsten</span><span class="val in">${eur(S2.o)}</span></div>
+   <div class="tile hero"><span class="lbl">Begroot resultaat</span><span class="val">${bgE(S2.r)}</span></div>
+   <div class="tile"><span class="lbl">Werkelijk ${JAAR}</span><span class="val ${W&&W.r<0?"out":"in"}">${W?bgE(W.r):"–"}</span><span class="hint">${W?`${W.n} transacties · ${eur(W.i)} in, ${eur(W.u)} uit`:"Kies een categorie bij de instellingen van dit tabblad"}</span></div></div>`}
+function bgTotaal(){const D=bgDoc();let k=0,o=0;const rows=D.tabs.map(t=>{const s=bgSom(t);k+=s.k;o+=s.o;const w=bgWerkelijk(t);return `<tr><td><b>${esc(t.naam)}</b></td><td class="num out">${eur(s.k)}</td><td class="num in">${eur(s.o)}</td><td class="num"><b>${bgE(s.r)}</b></td><td class="num">${w?bgE(w.r):"–"}</td></tr>`}).join("");
+  return `<div class="panel"><div class="panel-h"><h2>Alle activiteiten ${JAAR}</h2></div><div class="tw"><table class="rcards"><thead><tr><th>Activiteit</th><th class="num">Kosten</th><th class="num">Opbrengsten</th><th class="num">Begroot</th><th class="num">Werkelijk</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td><b>Totaal</b></td><td class="num out">${eur(k)}</td><td class="num in">${eur(o)}</td><td class="num"><b>${bgE(o-k)}</b></td><td></td></tr></tfoot></table></div></div>`}
+VIEWS.begroting=()=>({title:"Begroting",sub:"Begroting per activiteit "+JAAR,
+  actions:'<button class="btn" data-act="bgPrint">'+ic("download")+'Afdrukken</button>',
+  body(){const D=bgDoc(),t=bgTab();const vorig=S.config.get("begroting_"+(JAAR-1));
+    const tabs=`<div class="ka-tabs bg-tabs" role="tablist">${D.tabs.map(x=>`<button type="button" role="tab" class="${x.id===BG.tab?"on":""}" data-bgact="tab" data-id="${esc(x.id)}">${esc(x.naam)}</button>`).join("")}<button type="button" role="tab" class="${BG.tab==="__tot"?"on":""}" data-bgact="tab" data-id="__tot">Totaal</button>${bgMag()?`<button type="button" class="bg-plus" data-bgact="tabNieuw" title="Activiteit toevoegen" aria-label="Activiteit toevoegen">${ic("plus")}</button>`:""}</div>`;
+    const tip=D.nieuw&&vorig&&bgMag()?`<div class="panel"><div class="panel-b" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span class="grow">Er is nog geen begroting voor ${JAAR}.</span><button class="btn sm" data-bgact="kopie">Begroting ${JAAR-1} overnemen</button></div></div>`:"";
+    if(BG.tab==="__tot")return tabs+tip+bgTotaal();
+    if(!t)return tabs+'<div class="panel"><div class="empty">Nog geen activiteiten. Voeg er een toe met +.</div></div>';
+    return tabs+tip+`<div class="bar" style="margin:0"><b style="font-size:17px">${esc(t.naam)}</b>${t.categorie?`<span class="pill neutral">categorie ${esc(t.categorie)}</span>`:""}<span class="grow"></span>${bgMag()?`<button class="btn sm" data-bgact="tabInst">${ic("instellingen")}Tabblad</button>`:""}</div>`
+      +bgTiles(t)+`<div class="grid g2" style="align-items:start">${bgBlok(t,"kost","Kosten")}${bgBlok(t,"opbrengst","Opbrengsten")}</div>`+bgPP(t)}});
+VIEWS.begroting.after=()=>{if(!BG.focus)return;const el=document.querySelector(BG.focus.sel);if(el&&document.activeElement!==el){el.focus();try{if(BG.focus.pos!=null)el.setSelectionRange(BG.focus.pos,BG.focus.pos)}catch(e){}}};
+// alleen de totalen bijwerken tijdens het typen (geen volledige herteken, zodat de cursor blijft staan)
+function bgHerreken(){const t=bgTab();if(!t)return;const tl=$("[data-bgtiles]");if(tl)tl.outerHTML=bgTiles(t);
+  for(const el of $$("[data-bgp]")){const p=(t.posten||[]).find(x=>x.id===el.dataset.bgp);if(p){el.querySelector("[data-bgtot]").textContent=eur(bgLijn(p,t));if(p.pp)el.querySelector('[data-bgf="aantal"]').value=t.personen||0}}
+  for(const so of ["kost","opbrengst"]){const e=$(`[data-bgsom="${so}"]`);if(e)e.textContent=eur((t.posten||[]).filter(p=>(p.soort||"kost")===so).reduce((s,p)=>s+bgLijn(p,t),0))}
+  const c=$("[data-bgcalc]");if(c){const tmp=document.createElement("div");tmp.innerHTML=bgPP(t);c.innerHTML=tmp.querySelector("[data-bgcalc]").innerHTML}}
+document.addEventListener("focusin",e=>{const el=e.target;if(!el.closest||!el.closest("#body"))return;const r=el.closest("[data-bgp]");
+  BG.focus=el.dataset.bgf&&r?{sel:`[data-bgp="${r.dataset.bgp}"] [data-bgf="${el.dataset.bgf}"]`}:el.dataset.bgt?{sel:`[data-bgt="${el.dataset.bgt}"]`}:null});
+document.addEventListener("focusout",e=>{if(e.target.dataset&&(e.target.dataset.bgf||e.target.dataset.bgt))setTimeout(()=>{if(!document.activeElement||!(document.activeElement.dataset||{}).bgf&&!(document.activeElement.dataset||{}).bgt)BG.focus=null},0)});
+document.addEventListener("input",e=>{const el=e.target,t=bgTab();if(!t||route()!=="begroting")return;
+  if(el.dataset.bgt){t[el.dataset.bgt]=num(el.value);if(BG.focus)BG.focus.pos=el.selectionStart;bgHerreken();bgBewaar();return}
+  const r=el.closest&&el.closest("[data-bgp]");if(!r||!el.dataset.bgf)return;const p=(t.posten||[]).find(x=>x.id===r.dataset.bgp);if(!p)return;
+  const f=el.dataset.bgf;if(f==="naam")p.naam=el.value;else if(f==="pp"){p.pp=el.checked;renderBody();bgBewaar();return}else p[f]=el.value===""?"":num(el.value);
+  if(BG.focus)BG.focus.pos=el.selectionStart;bgHerreken();bgBewaar()});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-bgact]");if(!b)return;const D=bgDoc(),t=bgTab();const a=b.dataset.bgact;
+  if(a==="tab"){BG.tab=b.dataset.id;BG.focus=null;renderBody();return}
+  if(!bgMag())return;
+  if(a==="nieuw"&&t){const p={id:bgId(),soort:b.dataset.soort,naam:"",aantal:1,prijs:"",pp:false};(t.posten=t.posten||[]).push(p);BG.focus={sel:`[data-bgp="${p.id}"] [data-bgf="naam"]`};renderBody();bgBewaar();return}
+  if(a==="weg"&&t){const id=b.closest("[data-bgp]").dataset.bgp;t.posten=t.posten.filter(p=>p.id!==id);BG.focus=null;renderBody();bgBewaar();return}
+  if(a==="kopie"){const v=S.config.get("begroting_"+(JAAR-1));if(!v)return;D.tabs=JSON.parse(JSON.stringify(v.tabs||[]));delete D.nieuw;BG.tab=null;bgBewaar(true);renderBody();toast("Begroting "+(JAAR-1)+" overgenomen.");return}
+  if(a==="tabNieuw"||a==="tabInst")bgTabForm(a==="tabInst"?t:null)});
+function bgTabForm(t){const D=bgDoc(),cats=cfg().boekCategorieen||[];
+  modal(t?"Tabblad "+t.naam:"Activiteit toevoegen",`<form id="fBg" class="form">${fld("bgTn","Naam",inp("bgTn",t?t.naam:"",'maxlength="60" placeholder="bv. In Vier en Vlam"'),"full")}
+    ${fld("bgTc","Categorie in de boekhouding",`<select id="bgTc"><option value="">Geen (geen vergelijking met werkelijk)</option>${cats.map(k=>`<option${t&&t.categorie===k?" selected":""}>${esc(k)}</option>`).join("")}</select>`,"full")}
+    <p class="full help" style="margin:0">De categorie wordt gebruikt om de begroting te vergelijken met de werkelijke transacties van werkjaar ${JAAR}.</p><div class="err full" id="bgTerr"></div></form>`,
+    `${t?'<button class="btn danger" id="bgTdel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="bgTok">Bewaren</button>`);
+  $("#bgTok").onclick=()=>{const n=$("#bgTn").value.trim();if(!n){$("#bgTerr").textContent="Geef een naam.";return}const c=$("#bgTc").value;
+    if(t){t.naam=n;t.categorie=c}else{const x={id:bgId(),naam:n,categorie:c,personen:0,winst:0,posten:[]};D.tabs.push(x);BG.tab=x.id}closeModal();bgBewaar(true);renderBody()};
+  const del=$("#bgTdel");if(del)del.onclick=()=>confirmBox(`Tabblad <b>${esc(t.naam)}</b> met alle posten verwijderen?`,"Verwijderen",()=>{D.tabs=D.tabs.filter(x=>x!==t);BG.tab=null;closeModal();bgBewaar(true);renderBody()})}
+// realtime: als iemand anders de begroting aanpast en je bent niet aan het typen, de nieuwe versie tonen
+{const _r=render;render=function(f){const d=S.config.get("begroting_"+JAAR);if(d&&BG.doc&&BG.jaar===JAAR&&!BG.focus&&!BG.t){BG.doc=null}return _r.apply(this,arguments)}}
+document.addEventListener("click",e=>{if(!e.target.closest('[data-act="bgPrint"]'))return;const D=bgDoc();const w=window.open("","_blank");if(!w)return;
+  const tab=t=>{const s=bgSom(t);const rij=so=>(t.posten||[]).filter(p=>(p.soort||"kost")===so).map(p=>`<tr><td>${esc(p.naam||"")}</td><td class="n">${p.pp?esc(t.personen||0)+" p.":esc(p.aantal??"")}</td><td class="n">${eur(Number(p.prijs)||0)}</td><td class="n">${eur(bgLijn(p,t))}</td></tr>`).join("");
+    return `<h2>${esc(t.naam)}</h2><table><tr><th>Kosten</th><th class="n">Aantal</th><th class="n">Prijs</th><th class="n">Totaal</th></tr>${rij("kost")}<tr class="t"><td colspan="3">Totaal kosten</td><td class="n">${eur(s.k)}</td></tr>
+    <tr><th>Opbrengsten</th><th></th><th></th><th></th></tr>${rij("opbrengst")}<tr class="t"><td colspan="3">Totaal opbrengsten</td><td class="n">${eur(s.o)}</td></tr><tr class="t"><td colspan="3">Begroot resultaat</td><td class="n">${bgE(s.r)}</td></tr></table>`};
+  w.document.write(`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Begroting ${JAAR}</title><style>body{font:13px/1.5 system-ui,sans-serif;margin:28px;color:#111}h1{font-size:20px}h2{font-size:15px;margin:22px 0 6px}table{border-collapse:collapse;width:100%}td,th{padding:4px 6px;border-bottom:1px solid #ddd;text-align:left}.n{text-align:right}.t td{font-weight:700}</style></head><body><h1>Begroting ${JAAR}</h1>${D.tabs.map(tab).join("")}<script>print()<\/script></body></html>`);w.document.close()});
+{const st=document.createElement("style");st.textContent=`
+.bg-tabs{flex-wrap:wrap}.bg-tabs button{background:none;border:0;font:inherit;cursor:pointer}.bg-plus{display:inline-flex;align-items:center;padding:6px 10px!important}.bg-plus svg{width:16px;height:16px}
+.bg-list{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.bg-r{display:grid;grid-template-columns:minmax(0,1fr) auto 76px 104px 92px 32px;gap:8px;align-items:center;width:100%}
+.bg-r input{width:100%;min-width:0}.bg-l{display:none}.bg-t{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bg-pp{display:inline-flex;gap:5px;align-items:center;font-size:12.5px;color:var(--muted);white-space:nowrap}.bg-pp input{width:auto}
+.bg-x{border:0;background:none;color:var(--muted);cursor:pointer;padding:4px;border-radius:8px}.bg-x:hover{color:var(--bad,#b91c1c);background:var(--soft,#f3f4f6)}.bg-x svg{width:16px;height:16px}
+.bg-ppf{display:grid;grid-template-columns:repeat(2,minmax(0,220px));gap:12px;margin-bottom:12px}
+.bg-calc{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}.bg-calc>div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.bg-calc span{font-size:12.5px;color:var(--muted)}.bg-calc b{font-size:20px;font-variant-numeric:tabular-nums}.bg-calc small{font-size:11.5px;color:var(--muted)}.bg-calc .hl{border-color:var(--ink)}
+@media (max-width:760px){.bg-r{grid-template-columns:1fr 1fr 32px;border:1px solid var(--line);border-radius:12px;padding:10px}.bg-n{grid-column:1/3}.bg-x{grid-column:3;grid-row:1}
+ .bg-pp{grid-column:1/4}.bg-a,.bg-p{display:flex;flex-direction:column;gap:2px}.bg-l{display:block;font-size:11.5px;color:var(--muted)}.bg-t{grid-column:1/4;text-align:left;font-size:15px}.bg-ppf{grid-template-columns:1fr 1fr}}`;document.head.appendChild(st)}
