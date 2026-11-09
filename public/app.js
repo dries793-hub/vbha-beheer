@@ -6016,7 +6016,7 @@ function shKaart(a,s){const L=(s.leden||[]).map(id=>S.leden.get(id)).filter(Bool
    <div class="panel-b"><div class="sh-l">${L.map(l=>{const t=shTel(l.telefoon);return `<div class="sh-p" data-lid="${esc(l.id)}"><span class="grow"><b>${esc(naamVol(l))}</b><br><span class="muted small">${t?`<a href="tel:${esc(t)}">${esc(l.telefoon)}</a>`:'<span class="pill warn">geen gsm-nummer</span>'}</span></span>
       ${t?`<a class="btn sm iconbtn" href="${esc(shSmsLink([t],shVul(a.smsTekst,a,s,l)))}" title="Persoonlijke sms" aria-label="Sms naar ${esc(l.voornaam||"")}">${ic("mails")}</a>`:""}${canWrite?`<button class="btn sm iconbtn ghost" data-sh="weg" aria-label="Uit de shift halen" title="Uit de shift halen">${ic("x")}</button>`:""}</div>`}).join("")||'<p class="muted small" style="margin:0">Nog niemand ingedeeld.</p>'}</div>
     ${canWrite?`<div class="sh-add"><input list="shLeden" data-shadd placeholder="Lid toevoegen: begin te typen…" aria-label="Lid toevoegen"${d}><button class="btn sm" data-sh="add">${ic("plus")}Toevoegen</button></div>`:""}
-    ${nrs.length?`<a class="btn primary sh-sms" href="${esc(shSmsLink(nrs,shVul(a.smsTekst,a,s,null)))}">${ic("mails")}Sms naar ${nrs.length===1?"deze persoon":"alle "+nrs.length+" in deze shift"}</a>`:""}
+    ${shVolgKnop(a,s,L)}
     ${zonder.length?`<p class="muted small" style="margin:6px 0 0">${zonder.length} zonder gsm-nummer: vul het nummer in bij de ledenlijst.</p>`:""}</div></div>`}
 VIEWS.shiften=()=>({title:"Shiften",sub:"Wie helpt wanneer, en verwittigen via sms",
   actions:canWrite?'<button class="btn primary" data-sh="nieuw">'+ic("plus")+'Shift toevoegen</button>':"",
@@ -6034,7 +6034,16 @@ VIEWS.shiften=()=>({title:"Shiften",sub:"Wie helpt wanneer, en verwittigen via s
     ${S2.length?`<div class="sh-grid">${S2.map(s=>shKaart(a,s)).join("")}</div>`:`<div class="panel"><div class="empty">Nog geen shiften voor deze activiteit.${canWrite?`<div style="margin-top:12px"><button class="btn primary" data-sh="nieuw">${ic("plus")}Shift toevoegen</button></div>`:""}</div></div>`}
     ${S2.length&&canWrite?`<div class="panel"><div class="panel-b" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><span class="grow small muted">${a.shiftenToegekend?`De shiften zijn toegekend in het puntensysteem (${esc(fmtDate(String(a.shiftenToegekend).slice(0,10)))}).`:"Na de activiteit: geef elke ingedeelde persoon 1 shift in het puntensysteem."}</span>
       <button class="btn" data-sh="punten"${a.shiftenToegekend?" disabled":""}>Shiften toekennen in puntensysteem</button></div></div>`:""}
-    <p class="muted small">Een sms naar meerdere personen wordt op een iPhone een groepsgesprek: iedereen ziet dan de antwoorden. Wil je dat niet, gebruik dan het sms-icoontje naast elke naam.</p>`}});
+    <p class="muted small">Elke sms is persoonlijk (geen groepsgesprek): de knop opent telkens de sms voor de volgende persoon, jij drukt op verzenden en komt terug naar de app voor de volgende.</p>`}});
+/* persoonlijke sms'en één voor één: onthoudt (in dit venster) wie al aan de beurt kwam */
+const SHV={};
+function shVolgKnop(a,s,L){const met=L.filter(l=>shTel(l.telefoon));if(!met.length)return"";const al=SHV[s.id]||new Set(),rest=met.filter(l=>!al.has(l.id));
+  if(!rest.length)return `<div class="sh-klaar">${ic("check")}<span>Alle ${met.length} sms'en geopend</span><button type="button" class="btn sm ghost" data-shvolgreset="${esc(s.id)}">Opnieuw</button></div>`;
+  const l=rest[0],k=met.length-rest.length+1;
+  return `<a class="btn primary sh-sms" href="${esc(shSmsLink([shTel(l.telefoon)],shVul(a.smsTekst,a,s,l)))}" data-shvolg="${esc(s.id)}" data-lid="${esc(l.id)}">${ic("mails")}${met.length===1?"Sms naar "+esc(l.voornaam||naamVol(l)):`Sms ${k} van ${met.length}: ${esc(l.voornaam||naamVol(l))}`}</a>`}
+document.addEventListener("click",e=>{const v=e.target.closest("[data-shvolg]");if(v){(SHV[v.dataset.shvolg]=SHV[v.dataset.shvolg]||new Set()).add(v.dataset.lid);setTimeout(()=>{if(route()==="shiften")renderBody()},600);return}
+  const r=e.target.closest("[data-shvolgreset]");if(r){delete SHV[r.dataset.shvolgreset];renderBody()}
+  const p=e.target.closest(".sh-p a[href^='sms:']");if(p){const k=p.closest("[data-shid]"),id=p.closest("[data-lid]").dataset.lid;(SHV[k.dataset.shid]=SHV[k.dataset.shid]||new Set()).add(id);setTimeout(()=>{if(route()==="shiften")renderBody()},600)}});
 function shForm(a,s){s=s||{taak:"",van:a.uur||"",tot:"",nodig:""};
   modal(s.id?"Shift wijzigen":"Shift toevoegen",`<form class="form" id="fSh">${fld("shT","Taak",inp("shT",s.taak,'maxlength="80" placeholder="bv. Bar, Kassa, Opbouw"'),"full")}
     ${fld("shV","Van",`<input id="shV" type="time" value="${esc(s.van||"")}">`)}${fld("shTo","Tot",`<input id="shTo" type="time" value="${esc(s.tot||"")}">`)}
@@ -6065,7 +6074,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.dataset&&e.
 document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.shkies!==undefined){SHF.id=e.target.value;renderBody()}});
 {const st=document.createElement("style");st.textContent=`.sh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;align-items:start}.sh-top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .sh-tekst summary{cursor:pointer}.sh-tekst textarea{width:100%;margin-top:8px}.sh-l{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}.sh-p{display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:8px}
-.sh-add{display:flex;gap:8px;margin-bottom:10px}.sh-add input{flex:1;min-width:0}.sh-sms{width:100%;justify-content:center}`;document.head.appendChild(st)}
+.sh-add{display:flex;gap:8px;margin-bottom:10px}.sh-add input{flex:1;min-width:0}.sh-sms{width:100%;justify-content:center}.sh-klaar{display:flex;align-items:center;gap:8px;color:var(--ok,#16a34a);font-weight:600}.sh-klaar svg{width:18px;height:18px}.sh-klaar .btn{margin-left:auto}`;document.head.appendChild(st)}
 
 /* ============ Activiteiten › Familiedag ============
    Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
