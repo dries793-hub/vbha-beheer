@@ -154,7 +154,7 @@ html,body{overflow-x:hidden}
   <p class="lead">De kerstman verrast alle kinderen met cadeautjes. Voor groot en klein zijn er drankjes en pannenkoeken. Schrijf je kinderen hier in.</p>
   <div class="facts" id="facts"><div class="fact"><span>Wanneer</span><b id="kWan">Za 19 december 2026</b><small id="kUur">om 14u30</small></div>
     <div class="fact"><span>Waar</span><b id="kWaar">VTI Aalst</b><small id="kAdr">Sinte Annalaan 99b, Aalst</small></div>
-    <div class="fact"><span>Voor wie</span><b>Kinderen van leden</b><small id="kLft">cadeautje voor kinderen jonger dan 12 jaar</small></div></div></section>
+    <div class="fact"><span>Voor wie</span><b id="kLft">Kinderen jonger dan 12 jaar</b></div></div></section>
   <div id="box"><form class="card" id="f" novalidate>
     <div class="grid">
       <div class="full"><label for="lid">Naam van het lid</label><input type="text" id="lid" placeholder="Begin je naam te typen…" maxlength="100"></div>
@@ -181,7 +181,7 @@ fetch("/api/kinderfeest").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;CFG=
   $("#h1").textContent="Kinderfeest "+j.jaar;document.title="Kinderfeest "+j.jaar+" · VBHA";
   const d=new Date(j.datum+"T12:00");if(!isNaN(d))$("#kWan").textContent=d.toLocaleDateString("nl-BE",{weekday:"short",day:"numeric",month:"long",year:"numeric"});
   if(j.tijd)$("#kUur").textContent="om "+j.tijd;if(j.locatie){const p=j.locatie.split(" - ");$("#kWaar").textContent=p[0];$("#kAdr").textContent=p.slice(1).join(" - ")}
-  $("#kLft").textContent="cadeautje voor kinderen jonger dan "+(Number(j.leeftijd)+1)+" jaar";draw();if(j.totTekst){const l=$(".lead");if(l&&!l.dataset.tot){l.dataset.tot=1;l.insertAdjacentHTML("beforeend"," Inschrijven kan tot en met <b>"+esc(j.totTekst)+"</b>.")}}if(j.open===false)gesloten("het kinderfeest",j)}).catch(()=>{});
+  $("#kLft").textContent="Kinderen jonger dan "+(Number(j.leeftijd)+1)+" jaar";draw();if(j.totTekst){const l=$(".lead");if(l&&!l.dataset.tot){l.dataset.tot=1;l.insertAdjacentHTML("beforeend"," Inschrijven kan tot en met <b>"+esc(j.totTekst)+"</b>.")}}if(j.open===false)gesloten("het kinderfeest",j)}).catch(()=>{});
 function lft(g){if(!/^\d{4}-\d{2}-\d{2}$/.test(g))return null;const [y,m,d]=g.split("-").map(Number),[Y,M,D]=CFG.datum.split("-").map(Number);let a=Y-y;if(M<m||(M===m&&D<d))a--;return a}
 function ageTxt(g){const a=lft(g);if(a==null)return "";if(a<0)return "Deze datum ligt na het feest.";return a>CFG.leeftijd?"Op het feest al "+a+" jaar: dit kind kan niet meer ingeschreven worden.":(a===0?"Jonger dan 1 jaar":a+" jaar")+" op het feest"}
 function read(){KIDS=$$("#kids .kid").map(el=>({naam:el.querySelector(".kn").value,geb:el.querySelector(".kg").value}))}
