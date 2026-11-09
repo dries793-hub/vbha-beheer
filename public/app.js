@@ -5579,19 +5579,22 @@ function kfkTile(){const K=kfKost();const gem=K.cadeaus-K.zonder>0?K.tot/(K.cade
   return `<div class="tile"><span class="lbl">Voorziene kost cadeaus</span><span class="val">${eur(K.tot)}</span>${K.zonder?`<span class="hint"><b style="color:var(--warn,#b45309)">${K.zonder} zonder bedrag</b></span>`:""}</div>`}
 function kfkPaneel(){const K=kfKost();const R=K.rij.filter(g=>g.n||g.prijs!=null);
   if(!R.length&&!K.zonder)return "";
-  const rows=R.map(g=>`<tr><td><b>${esc(g.label)}</b><div class="muted small">${esc(g.tekst)}</div></td><td class="num">${g.n}</td><td class="num">${g.prijs!=null?eur(g.prijs):'<span class="pill warn">geen bedrag</span>'}</td><td class="num"><b>${g.prijs!=null?eur(g.n*g.prijs):"–"}</b></td></tr>`).join("")
-   +(K.onb.n?`<tr><td><b>Geboortedatum onbekend</b></td><td class="num">${K.onb.n}</td><td class="num"><span class="pill warn">geen bedrag</span></td><td class="num">–</td></tr>`:"");
-  return `<div class="panel"><div class="panel-h"><h2>Voorziene kost cadeaus</h2></div>
-   <div class="tw"><table class="rcards"><thead><tr><th>Geboortejaar</th><th class="num">Cadeaus</th><th class="num">Per kind</th><th class="num">Totaal</th></tr></thead><tbody>${rows}</tbody>
-   <tfoot><tr><td><b>Totaal</b></td><td class="num"><b>${K.cadeaus}</b></td><td></td><td class="num"><b>${eur(K.tot)}</b></td></tr></tfoot></table></div>
-   </div>`}
+  const rij=(t,sub,bedrag,warn)=>`<div class="kfk-r"><div><b>${t}</b><small>${sub}</small></div><span class="kfk-b">${warn?'<span class="pill warn">geen bedrag</span>':`<b>${bedrag}</b>`}</span></div>`;
+  const rows=R.map(g=>rij(esc(g.label),`${g.n} ${g.n===1?"cadeau":"cadeaus"}${g.prijs!=null?" × "+eur(g.prijs):""}${g.tekst&&!/eur|€/i.test(g.tekst)?" · "+esc(g.tekst):""}`,g.prijs!=null?eur(g.n*g.prijs):"",g.prijs==null&&g.n)).join("")
+   +(K.onb.n?rij("Geboortedatum onbekend",`${K.onb.n} ${K.onb.n===1?"cadeau":"cadeaus"}`,"",true):"");
+  return `<div class="panel"><div class="panel-h"><h2>Voorziene kost cadeaus</h2></div><div class="kfk">${rows}
+   <div class="kfk-r kfk-t"><div><b>Totaal</b><small>${K.cadeaus} ${K.cadeaus===1?"cadeau":"cadeaus"}</small></div><span class="kfk-b"><b>${eur(K.tot)}</b></span></div></div></div>`}
 {const _v=VIEWS.kinderfeest;VIEWS.kinderfeest=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=String(b.apply(this,arguments));
-  h=h.replace(/(<div class="tiles"><div class="tile hero">[\s\S]*?<\/span><\/div>)/,m=>m+kfkTile());
+  h=h.replace(/(<div class="tiles"><div class="tile hero">[\s\S]*?<\/span><\/div>)/,m=>m+kfkTile());h=h.replace('<div class="tiles"><div class="tile hero">','<div class="tiles kf-tl"><div class="tile hero">');
   const i=h.indexOf('<div class="bar"><div class="search">');if(i>=0)h=h.slice(0,i)+kfkPaneel()+h.slice(i);return h};return v};Object.assign(VIEWS.kinderfeest,_v)}
 {const _k=kfInst;kfInst=function(){_k.apply(this,arguments);const g=$("#kmG");if(!g)return;const c=kfCfg(),d=canWrite?"":" disabled";
   g.closest(".fld").insertAdjacentHTML("afterend",`<div class="fld"><label for="kfVb">Kost cadeau voorzien door VBHA</label><div class="sfx"><input id="kfVb" type="number" min="0" step="0.01" inputmode="decimal" value="${c.cadeauVbha!=null?esc(c.cadeauVbha):""}"${d}><span>€ per kind</span></div><span class="help">Voor de groep waarvoor de vriendenkring zelf het cadeau koopt.</span></div>`);
   const ok=$("#kiOk");if(!ok||!ok.onclick)return;const _o=ok.onclick;
   ok.onclick=async function(ev){const v=$("#kfVb").value.trim();const k="kf_"+JAAR,cur=S.config.get(k)||{};S.config.set(k,{...cur,id:k,cadeauVbha:v===""?null:Math.max(0,num(v))});return _o.call(this,ev)}}}
+{const st=document.createElement("style");st.textContent=`.kfk{display:flex;flex-direction:column}.kfk-r{display:flex;align-items:center;gap:12px;padding:12px 20px;border-top:1px solid var(--line)}.kfk-r:first-child{border-top:0}
+.kfk-r>div{flex:1;min-width:0}.kfk-r b{display:block}.kfk-r small{display:block;color:var(--muted);font-size:13px;margin-top:2px}.kfk-b{white-space:nowrap;text-align:right}.kfk-t{background:var(--soft,#f6f6f7)}
+.tiles.kf-tl{grid-template-columns:repeat(2,minmax(0,1fr))}.tiles.kf-tl .tile.hero{grid-column:auto}
+@media(max-width:640px){.kfk-r{padding:10px 16px}.tiles.kf-tl .val{font-size:26px}}`;document.head.appendChild(st)}
 
 /* ---------- status huidig jaar / volgend jaar ----------
    Huidig jaar J: volgens de punten van J-1 (zoals op de banketpagina en "status opvragen").
