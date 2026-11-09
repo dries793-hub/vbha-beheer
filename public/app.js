@@ -6503,3 +6503,46 @@ document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.fdq!
 .fd-prl{display:flex;flex-direction:column;gap:8px}.fd-pr{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) 100px auto 32px;gap:8px;align-items:center}.fd-pr input{min-width:0;width:100%}.fd-g{display:inline-flex;gap:6px;align-items:center;font-size:13px;white-space:nowrap}.fd-g input{width:auto}
 @media (max-width:700px){.fd-pr{grid-template-columns:1fr 100px 32px;border:1px solid var(--line);border-radius:10px;padding:8px}.fd-pr [data-fp=naam]{grid-column:1/3}.fd-pr [data-fp=uitleg]{grid-column:1/4;grid-row:2}.fd-pr .sfx{grid-row:3;grid-column:2}.fd-g{grid-row:3;grid-column:1}.fd-pr .bg-x{grid-row:1;grid-column:3}}`;document.head.appendChild(st)}
 // dashboardmelding nieuwe inschrijvingen: familiedag meetellen is niet nodig; pushmelding volstaat
+
+/* ============ Kalenderronde: meldingen van leden via de openbare kaart ============
+   Tabel rondemeldingen (data: jaar, straten:[id], soort reserved|done, lidId, naam, toon, op, stand open|goedgekeurd|geweigerd).
+   Open meldingen kleuren de kaart in de app al in (oranje stippellijn); pas na "Goedkeuren" komen ze in de ronde en op de openbare kaart. */
+if(!COLS.includes("rondemeldingen")){COLS.push("rondemeldingen");S.rondemeldingen=new Map()}
+const rmLijst=()=>[...(S.rondemeldingen||new Map()).values()].filter(m=>Number(m.jaar)===JAAR&&m.stand==="open").sort((a,b)=>String(a.op).localeCompare(String(b.op)));
+const rmNaam=id=>(typeof KR!=="undefined"&&KR.byId&&KR.byId.get(id)&&KR.byId.get(id).n)||(typeof KR_DEEL!=="undefined"&&KR_DEEL.get&&KR_DEEL.get(id)&&KR.byId&&KR.byId.get(KR_DEEL.get(id).sid)?KR.byId.get(KR_DEEL.get(id).sid).n+" (deel)":String(id));
+const rmDT=t=>{const d=new Date(t);return isNaN(d)?"":fmtDate(t.slice(0,10))+" "+d.toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})};
+function rmPending(){const m={};for(const x of rmLijst())for(const id of x.straten||[])m[id]=x.soort;return m}
+function rmPanel(){const L=rmLijst();if(!L.length)return"";
+  return `<div class="panel rm-p"><div class="panel-h"><h2>Meldingen te controleren <span class="rm-n">${L.length}</span></h2><span class="grow"></span>${canWrite&&L.length>1?`<button class="btn sm primary" data-rm="alles">Alles goedkeuren</button>`:""}</div>
+   <div class="panel-b rm-l">${L.map(m=>`<div class="rm-i" data-rmid="${esc(m.id)}"><div class="rm-t"><b>${esc(m.toon||m.naam||"?")}</b><span class="pill ${m.soort==="done"?"ok":"info"}">${m.soort==="done"?"bedeeld":"gereserveerd"}</span><small>${esc(rmDT(m.op))}</small></div>
+     <div class="rm-s">${(m.straten||[]).map(id=>{const a=krAll()[id];return `<span${a?` title="Staat al op de kaart als ${a.status==="done"?"bedeeld":"gereserveerd"}${a.by?" door "+esc(a.by):""}" class="al"`:""}>${esc(rmNaam(id))}${a?" ⚠":""}</span>`}).join("")}</div>
+     <div class="rm-a"><button class="btn sm" data-rm="toon">${ic("kaart")}Op de kaart</button>${canWrite?`<span class="grow"></span><button class="btn sm ghost danger" data-rm="weiger">Weigeren</button><button class="btn sm primary" data-rm="ok">Goedkeuren</button>`:""}</div></div>`).join("")}
+   <p class="muted small" style="margin:6px 0 0">Gemelde straten staan op de kaart hieronder al met een oranje stippellijn. Pas na goedkeuren komen ze op de openbare kaart. ⚠ = straat stond al aangeduid.</p></div></div>`}
+async function rmKeur(m,ok){if(!canWrite||!m)return;const {id,...d}=m;
+  if(ok){const A=krAll(),nu=new Date().toISOString(),l=m.lidId&&S.leden.get(m.lidId),by=l?naamVol(l).trim():(m.naam||"");let n=0;
+    for(const sid of m.straten||[]){const cur=A[sid];if(cur&&cur.status==="done"&&m.soort!=="done")continue; // al bedeeld: niet terug op gereserveerd
+      const doc={jaar:JAAR,straat:sid,status:m.soort==="done"?"done":"reserved",by,lidId:m.lidId||null,at:m.op||nu,viaMelding:id};
+      S.ronde.set(JAAR+"_"+sid,{...doc,id:JAAR+"_"+sid});try{await write("ronde",JAAR+"_"+sid,doc);n++}catch(e){}}
+    try{const weg=typeof krSegWeg==="function"?krSegWeg(m.straten||[]):[];if(weg.length)await writeMany(weg,()=>{})}catch(e){}
+    await write("rondemeldingen",id,{...d,stand:"goedgekeurd",gekeurd:nu,door:ME_NAME||""});toast(`${n} ${n===1?"straat":"straten"} aangeduid.`)}
+  else{await write("rondemeldingen",id,{...d,stand:"geweigerd",gekeurd:new Date().toISOString(),door:ME_NAME||""});toast("Melding geweigerd.")}
+  dirty=true;renderBody()}
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-rm]");if(!b)return;const it=b.closest("[data-rmid]"),m=it&&S.rondemeldingen.get(it.dataset.rmid);
+  if(b.dataset.rm==="toon"&&m){KR.ss=new Set((m.straten||[]).filter(id=>KR.byId&&KR.byId.has(id)));if(KR.map){krStyleAll();krCard();const ls=[...KR.ss].map(id=>KR.lines.get(id)).filter(Boolean);if(ls.length)KR.map.fitBounds(L.featureGroup(ls).getBounds(),{maxZoom:17,padding:[40,40]})}const s=$("#krSlot");if(s)s.scrollIntoView({block:"center",behavior:"smooth"});return}
+  if(b.dataset.rm==="ok"){b.disabled=true;await rmKeur(m,true);return}
+  if(b.dataset.rm==="weiger"){confirmBox(`De melding van <b>${esc(m.toon||m.naam||"")}</b> weigeren? De straten blijven zoals ze zijn.`,"Weigeren",async()=>{closeModal();await rmKeur(m,false)});return}
+  if(b.dataset.rm==="alles"){b.disabled=true;for(const x of rmLijst())await rmKeur(x,true)}});
+/* op de pagina Kalenderronde: paneel boven de kaart */
+{const _v=VIEWS.ronde;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){const h=String(b.apply(this,arguments)),p=rmPanel();const k='<div class="panel"><div class="kr-slot" id="krSlot"></div></div>';return p&&h.includes(k)?h.replace(k,p+k):p+h};return v};Object.assign(n,_v);VIEWS.ronde=n}
+/* kaart in de app: open meldingen al inkleuren met een oranje stippellijn */
+{const _s=krStyleAll;krStyleAll=function(){_s.apply(this,arguments);try{const P=rmPending(),A=krAll(),w=krDikte(KR.map?KR.map.getZoom():15);
+  for(const [id,line] of KR.lines){if(P[id]&&!(A[id]&&A[id].status==="done")&&!KR.ss.has(id)){line.setStyle({color:"#f59e0b",weight:w[1],dashArray:"7 6",opacity:1});line.bringToFront()}else if(line.options.dashArray)line.setStyle({dashArray:null})}}catch(e){}}}
+/* dashboard */
+function rmMelding(){if(!(ROL==="admin"||(typeof recht==="function"&&recht("ronde")==="bewerken")))return"";const L=rmLijst();if(!L.length)return"";
+  return `<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("kaart")}</span><div class="nm-body"><b>${L.length===1?"1 melding":L.length+" meldingen"} van de kalenderronde te controleren</b>
+   <div class="nm-l">${L.slice(0,5).map(m=>`<a class="nm-i" href="#ronde"><b>${esc(m.toon||m.naam||"")}</b><span>${(m.straten||[]).length} ${(m.straten||[]).length===1?"straat":"straten"} ${m.soort==="done"?"bedeeld":"gereserveerd"} · ${esc(rmDT(m.op))}</span></a>`).join("")}</div></div></div>`}
+{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return rmMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+{const st=document.createElement("style");st.textContent=`.rm-p{border-color:#f59e0b}.rm-n{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:#f59e0b;color:#fff;font-size:12.5px;margin-left:6px;vertical-align:2px}
+.rm-l{display:flex;flex-direction:column;gap:10px}.rm-i{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.rm-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rm-t small{color:var(--muted);margin-left:auto}.rm-s{display:flex;flex-wrap:wrap;gap:6px}.rm-s span{background:var(--soft,#f2f2f3);border-radius:99px;padding:3px 10px;font-size:13px}.rm-s span.al{background:#fff4e5;color:#b45309}
+.rm-a{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.rm-a svg{width:15px;height:15px}`;document.head.appendChild(st)}
