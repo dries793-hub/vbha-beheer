@@ -6337,8 +6337,8 @@ function shVul(t,a,s,h){const d=a.datum?fmtDate(a.datum):"";return String(t||SH_
   .replace(/Hallo\s+,/g,"Hallo,").replace(/\s+,/g,",").replace(/\s{2,}/g," ").trim()}
 async function shBewaar(a,wijz){const cur=S.activiteiten.get(a.id)||a;const {id,toekomst,...rest}={...cur,...wijz};await write("activiteiten",a.id,rest)}
 /* ---------- helpers ---------- */
-function shHelper(a,id){if(String(id).startsWith("x:")){const x=(a.extern||[]).find(e=>e.id===id);if(!x)return null;return{id,naam:x.naam,voornaam:String(x.naam||"").split(" ")[0],tel:shTel(x.tel),telTxt:x.tel||"",info:x.info||(x.via&&S.leden.get(x.via)?"via "+S.leden.get(x.via).voornaam:""),via:x.via||null,lid:false}}
-  const l=S.leden.get(id);if(!l)return null;return{id,naam:naamVol(l),voornaam:l.voornaam||"",tel:shTel(l.telefoon),telTxt:l.telefoon||"",info:"",lid:true,l}}
+function shHelper(a,id){if(String(id).startsWith("x:")){const x=(a.extern||[]).find(e=>e.id===id);if(!x)return null;return{id,naam:x.naam,voornaam:String(x.naam||"").split(" ")[0],tel:shTel(x.tel),telTxt:x.tel||"",info:x.info||(x.via&&S.leden.get(x.via)?"via "+S.leden.get(x.via).voornaam:""),via:x.via||null,mail:String(x.mail||"").trim(),lid:false}}
+  const l=S.leden.get(id);if(!l)return null;return{id,naam:naamVol(l),voornaam:l.voornaam||"",tel:shTel(l.telefoon),telTxt:l.telefoon||"",mail:String(l.email||"").trim(),info:"",lid:true,l}}
 function shPool(a){const ids=[...(a.helpers||[])];for(const s of a.shiften||[])for(const id of s.leden||[])if(!ids.includes(id))ids.push(id);return ids}
 function shIngedeeld(a){const m=new Map();for(const s of a.shiften||[])for(const id of s.leden||[])m.set(id,(m.get(id)||[]).concat(s.id));return m}
 function shTegel(a,h,van,dubbel){const sel=SHF.sel&&SHF.sel.id===h.id&&SHF.sel.van===van;
@@ -6393,9 +6393,9 @@ function shLidVan(v){const n=norm(v);if(!n)return null;for(const l of S.leden.va
 async function shVoegToe(){const a=shAct();const inp=$("[data-shadd]");const v=inp.value.trim();if(!v){inp.focus();return}const l=shLidVan(v);
   if(l){if(shPool(a).includes(l.id)){toast(`${l.voornaam} staat al bij de helpers.`,true);return}await shBewaar(a,{helpers:[...shPool(a),l.id]});setTimeout(()=>{const i=$("[data-shadd]");if(i)i.focus()},60);return}
   shExtern(a,v)}
-function shExtern(a,naam){modal("Helper die geen lid is",`<form class="form" id="fShx">${fld("shxN","Naam",inp("shxN",naam,'maxlength="80"'),"full")}${fld("shxT","Gsm-nummer",inp("shxT","",'type="tel" placeholder="optioneel, voor de sms"'))}${fld("shxV","Aangebracht door (lid)",`<input id="shxV" list="shxLeden" autocomplete="off" placeholder="bv. Dries Uyttersprot"><datalist id="shxLeden">${[...S.leden.values()].filter(l=>!l.geenLid).sort((x,y)=>naamVol(x).localeCompare(naamVol(y),"nl")).map(l=>`<option value="${esc(naamVol(l))}">`).join("")}</datalist>`,"full")}${fld("shxI","Info",inp("shxI","",'maxlength="60" placeholder="bv. partner"'))}<div class="err full" id="shxErr"></div></form>`,
+function shExtern(a,naam){modal("Helper die geen lid is",`<form class="form" id="fShx">${fld("shxN","Naam",inp("shxN",naam,'maxlength="80"'),"full")}${fld("shxT","Gsm-nummer",inp("shxT","",'type="tel" placeholder="optioneel, voor de sms"'))}${fld("shxM","E-mailadres",inp("shxM","",'type="email" placeholder="optioneel, voor de mail"'))}${fld("shxV","Aangebracht door (lid)",`<input id="shxV" list="shxLeden" autocomplete="off" placeholder="bv. Dries Uyttersprot"><datalist id="shxLeden">${[...S.leden.values()].filter(l=>!l.geenLid).sort((x,y)=>naamVol(x).localeCompare(naamVol(y),"nl")).map(l=>`<option value="${esc(naamVol(l))}">`).join("")}</datalist>`,"full")}${fld("shxI","Info",inp("shxI","",'maxlength="60" placeholder="bv. partner"'))}<div class="err full" id="shxErr"></div></form>`,
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="shxOk">Toevoegen</button>`);setTimeout(()=>{const t=$("#shxT");if(t)t.focus()},50);
-  $("#shxOk").onclick=async()=>{const n=$("#shxN").value.trim();if(!n){$("#shxErr").textContent="Geef een naam.";return}const vv=$("#shxV").value.trim(),vl=vv?shLidVan(vv):null;if(vv&&!vl){$("#shxErr").textContent="Kies het lid dat deze helper aanbracht uit de lijst.";return}const x={id:"x:"+shId(),naam:n,tel:$("#shxT").value.trim(),info:$("#shxI").value.trim(),via:vl?vl.id:null};
+  $("#shxOk").onclick=async()=>{const n=$("#shxN").value.trim();if(!n){$("#shxErr").textContent="Geef een naam.";return}const vv=$("#shxV").value.trim(),vl=vv?shLidVan(vv):null;if(vv&&!vl){$("#shxErr").textContent="Kies het lid dat deze helper aanbracht uit de lijst.";return}const x={id:"x:"+shId(),naam:n,tel:$("#shxT").value.trim(),mail:$("#shxM").value.trim(),info:$("#shxI").value.trim(),via:vl?vl.id:null};
     closeModal();await shBewaar(a,{extern:[...(a.extern||[]),x],helpers:[...shPool(a),x.id]});const i=$("[data-shadd]");if(i){i.value="";i.focus()}}}
 /* ---------- shift toevoegen / wijzigen ---------- */
 function shForm(a,s){s=s||{taak:"",van:a.uur||"",tot:"",nodig:""};
@@ -6425,19 +6425,20 @@ const SHV={};
 function shSmsEenVoorEen(a,s,H){const al=SHV[s.id]||new Set();
   modal("Sms: "+(s.taak||"shift"),`<p class="muted small" style="margin:0 0 10px">Tik op een naam: je sms-app opent met de tekst al ingevuld. Druk op verzenden en kom terug voor de volgende.</p>
     <div class="sh-sl">${H.map(h=>`<a class="sh-sli${al.has(h.id)?" ok":""}" href="${esc(shSmsLink([h.tel],shVul(a.smsTekst,a,s,h)))}" data-shsv="${esc(s.id)}" data-hid="${esc(h.id)}">${ic("mails")}<span>${esc(h.naam)}</span><small>${al.has(h.id)?"geopend":""}</small></a>`).join("")}</div>`,
-    `<button class="btn" data-act="closeModal">Sluiten</button>`)}
+    `${shMailLijst(a,s).length?`<button class="btn" id="shMailNu" style="margin-right:auto">${ic("mails")}Mail sturen (${shMailLijst(a,s).length})</button>`:""}<button class="btn" data-act="closeModal">Sluiten</button>`);
+  const mb=$("#shMailNu");if(mb)mb.onclick=async()=>{mb.disabled=true;mb.textContent="Bezig…";const r=await shMail(a,s);toast(shMailUitslag(r,true));mb.textContent=r&&r.ok?"Mail verstuurd":"Mail sturen";mb.disabled=!!(r&&r.ok)}}
 document.addEventListener("click",e=>{const v=e.target.closest("[data-shsv]");if(!v)return;(SHV[v.dataset.shsv]=SHV[v.dataset.shsv]||new Set()).add(v.dataset.hid);v.classList.add("ok");const sm=v.querySelector("small");if(sm)sm.textContent="geopend"});
-async function shSms(a,s){const H=(s.leden||[]).map(id=>shHelper(a,id)).filter(h=>h&&h.tel);if(!H.length){toast("Niemand in deze shift heeft een gsm-nummer.",true);return}
+async function shSms(a,s){const H=(s.leden||[]).map(id=>shHelper(a,id)).filter(h=>h&&h.tel);if(!H.length){if(shMailLijst(a,s).length){shMailVraag(a,s);return}toast("Niemand in deze shift heeft een gsm-nummer of e-mailadres.",true);return}
   await smsDienst();if(!SMSD||!SMSD.aan){shSmsEenVoorEen(a,s,H);return}
   const tekst=shVul(a.smsTekst,a,s,H[0]),delen=tekst.length<=160?1:Math.ceil(tekst.length/153);
   modal("Sms: "+(s.taak||"shift"),`<p style="margin:0 0 10px">${H.length} ${H.length===1?"persoon krijgt":"personen krijgen"} elk een eigen sms van <b>${esc(SMSD.afzender||"VBHA")}</b>. Voorbeeld voor ${esc(H[0].voornaam||"")}:</p>
-    <div class="sh-vb">${esc(tekst)}</div>`,
+    <div class="sh-vb">${esc(tekst)}</div>${shMailVink(a,s)}`,
     `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="shSmsOk">${ic("mails")}Versturen</button>`);
   $("#shSmsOk").onclick=async()=>{const k=$("#shSmsOk");k.disabled=true;k.textContent="Bezig…";
     try{const j=await api("/api/mail?f=sms",{method:"POST",body:JSON.stringify({berichten:H.map(h=>({tel:h.tel,tekst:shVul(a.smsTekst,a,s,h),label:h.naam}))})});
-      const ok=j.resultaten.filter(r=>r.ok).length,fout=j.resultaten.filter(r=>!r.ok);
+      const ok=j.resultaten.filter(r=>r.ok).length,fout=j.resultaten.filter(r=>!r.ok);const mr=$("#shMailJa")&&$("#shMailJa").checked?await shMail(a,s):null;
       await shBewaar(a,{shiften:(a.shiften||[]).map(x=>x.id===s.id?{...x,smsVerstuurd:{op:new Date().toISOString(),n:H.length,ok}}:x)});
-      modal("Sms versturen",`<p style="margin:0">${ok} van ${H.length} sms'en verstuurd${j.kost?` (kost ${eur(j.kost)})`:""}.</p>${fout.length?`<ul style="margin:10px 0 0">${fout.map(r=>`<li><b>${esc(r.label)}</b>: ${esc(r.fout||"mislukt")}</li>`).join("")}</ul>`:""}`,`<button class="btn primary" data-act="closeModal">Sluiten</button>`)}
+      modal("Sms versturen",`<p style="margin:0">${ok} van ${H.length} sms'en verstuurd${j.kost?` (kost ${eur(j.kost)})`:""}.</p>${fout.length?`<ul style="margin:10px 0 0">${fout.map(r=>`<li><b>${esc(r.label)}</b>: ${esc(r.fout||"mislukt")}</li>`).join("")}</ul>`:""}${shMailUitslag(mr)}`,`<button class="btn primary" data-act="closeModal">Sluiten</button>`)}
     catch(x){closeModal();toast("Versturen lukte niet: "+(x.message||x),true)}}}
 /* ---------- knoppen ---------- */
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-sh]");if(!b||!shHier())return;const a=shAct();if(!a)return;const k=b.closest("[data-shid]"),s=k&&(a.shiften||[]).find(x=>x.id===k.dataset.shid);
@@ -6604,6 +6605,34 @@ function shViaKies(a,L){const dl=`<datalist id="shvLeden">${[...S.leden.values()
   $("#shvOk").onclick=async()=>{const via={};for(let i=0;i<L.length;i++){const v=$("#shv"+i).value.trim(),l=v?shLidVan(v):null;if(!l){$("#shvErr").textContent=`Kies voor ${L[i].naam} een lid uit de lijst.`;$("#shv"+i).focus();return}via[L[i].id]=l.id}
     closeModal();const cur=S.activiteiten.get(a.id)||a;await shBewaar(a,{extern:(cur.extern||[]).map(e=>via[e.id]?{...e,via:via[e.id]}:e)});
     setTimeout(()=>{const b=document.createElement("button");b.dataset.sh="punten";b.hidden=true;document.body.appendChild(b);b.click();b.remove()},150)}}
+
+/* ---------- mail met de info over de shift (samen met de sms) ---------- */
+function shMailLijst(a,s){return (s.leden||[]).map(id=>shHelper(a,id)).filter(h=>h&&/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(h.mail||""))}
+function shMailVink(a,s){const n=shMailLijst(a,s).length;return n?`<label class="cbx" style="margin-top:12px"><input type="checkbox" id="shMailJa" checked> Ook een mail sturen met de info over de shift (${n} ${n===1?"persoon":"personen"} met een e-mailadres)</label>`:`<p class="muted small" style="margin:12px 0 0">Niemand in deze shift heeft een e-mailadres, dus er gaat geen mail mee.</p>`}
+function shMailUitslag(r,kort){if(!r)return"";if(r.fout&&!r.n)return kort?"Mail niet verstuurd: "+r.fout:`<p style="margin:10px 0 0">Mail niet verstuurd: ${esc(r.fout)}</p>`;
+  const t=`${r.ok} van ${r.n} mails verstuurd.`;return kort?t:`<p style="margin:10px 0 0">${t}${r.mis.length?` Niet gelukt: ${r.mis.map(esc).join(", ")}`:""}</p>`}
+function shMailHtml(a,s,h){const H=(s.leden||[]).map(id=>shHelper(a,id)).filter(Boolean),samen=H.filter(x=>x.id!==h.id).map(x=>x.naam);
+  const dat=a.datum?new Date(a.datum+"T12:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):"";
+  const rij=(k,v)=>v?`<tr><td style="padding:3px 14px 3px 0;color:#686b71;white-space:nowrap;vertical-align:top">${k}</td><td style="padding:3px 0"><b>${esc(v)}</b></td></tr>`:"";
+  const inner=`<p>Beste ${esc(h.voornaam||h.naam||"")},</p>
+<p>Fijn dat je komt helpen op <strong>${esc(a.titel||"onze activiteit")}</strong>! Hieronder vind je alle info over je shift.</p>
+<div data-blok="kader"><h2>${esc(s.taak||"Je shift")}</h2><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">${rij("Datum",dat)}${rij("Uur",s.van&&s.tot?s.van+" – "+s.tot:s.van||"")}${rij("Locatie",a.locatie||"")}${samen.length?rij("Samen met",samen.join(", ")):""}</table></div>
+<p>Wil je ongeveer 10 minuten voor het begin van je shift aanwezig zijn? Zo kunnen we rustig overdragen en op tijd starten.</p>
+<p>Lukt het toch niet? Laat het ons dan zo snel mogelijk weten door op deze mail te antwoorden, zodat we iemand anders kunnen zoeken.</p>
+<p>Alvast bedankt voor je hulp!</p>
+<p>Vriendelijke groeten,<br>Het bestuur</p>`;
+  return mlKader(mlStijl(inner))}
+async function shMail(a,s){const L=shMailLijst(a,s);if(!L.length)return{n:0,ok:0,mis:[],fout:"niemand heeft een e-mailadres"};
+  const dat=a.datum?fmtDate(a.datum):"",ond=`VBHA - Je shift op ${a.titel||"de activiteit"}${dat?" ("+dat+")":""}`;
+  const B=L.map(h=>({aan:h.mail,aanNaam:h.naam,onderwerp:ond,html:shMailHtml(a,s,h)}));let ok=0;const mis=[];
+  try{for(let i=0;i<B.length;i+=15){const j=await api("/api/mail",{method:"POST",body:JSON.stringify({berichten:B.slice(i,i+15)})});for(const r of j.resultaten||[]){if(r.ok)ok++;else mis.push((L.find(h=>h.mail===r.aan)||{}).naam||r.aan)}}}
+  catch(x){return{n:L.length,ok,mis,fout:x.message||String(x)}}
+  try{await shBewaar(a,{shiften:((S.activiteiten.get(a.id)||a).shiften||[]).map(x=>x.id===s.id?{...x,mailVerstuurd:{op:new Date().toISOString(),n:L.length,ok}}:x)})}catch(e){}
+  return{n:L.length,ok,mis}}
+function shMailVraag(a,s){const L=shMailLijst(a,s);
+  modal("Mail: "+(s.taak||"shift"),`<p style="margin:0">Niemand in deze shift heeft een gsm-nummer. ${L.length} ${L.length===1?"persoon krijgt":"personen krijgen"} wel een mail met de info over de shift.</p>`,
+  `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="shMailOk">${ic("mails")}Mail versturen</button>`);
+  $("#shMailOk").onclick=async()=>{const b=$("#shMailOk");b.disabled=true;b.textContent="Bezig…";const r=await shMail(a,s);modal("Mail versturen",shMailUitslag(r)||"",`<button class="btn primary" data-act="closeModal">Sluiten</button>`)}}
 
 /* ============ Activiteiten › Familiedag ============
    Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
