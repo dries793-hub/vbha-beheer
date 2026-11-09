@@ -266,7 +266,7 @@ export function factuurMail(f, cfg, soort = "factuur", status) {
   ]));
   if (!credit && open > 0) {
     html += kaderBlok("Betalen", tabel([rij("Bedrag", `<b>${eur(open)}</b>`), rij("Rekening", `<b>${esc(String(cfg.iban).replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim())}</b>`), rij("Begunstigde", esc(cfg.vereniging)), rij("Mededeling", `<b>${esc(ogmFmt(f.ogm) || f.nr)}</b>`)])
-      + p("Gebruik exact deze gestructureerde mededeling, dan wordt je betaling automatisch aan de factuur gekoppeld.", "margin:10px 0 0;font-size:13.5px;color:#666666"))
+      + p("Gebruik exact deze gestructureerde mededeling, dan wordt je betaling automatisch aan de factuur gekoppeld.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2")
       + knop("Online betalen met Bancontact of QR-code", betaalLink(f.id));
   }
   html += p(`Vragen over deze ${credit ? "creditnota" : "factuur"}? Antwoord gewoon op deze mail.`, "margin:0 0 15px;font-size:13.5px;color:#666666");

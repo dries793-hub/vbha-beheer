@@ -129,7 +129,7 @@ export async function shopMail(sb, id, soort) {
     const bet = d.betaald ? kaderBlok("&#10003; Betaling ontvangen", p(`We ontvingen je betaling van <b>${eur(d.totaal)}</b>.`, "margin:0"), "#1a7f45", "#f1faf4")
       : d.betaalwijze === "cash" ? kaderBlok("Betalen bij afhalen", p(`Je betaalt <b>${eur(d.totaal)}</b> cash wanneer je de bestelling afhaalt.`, "margin:0"))
       : kaderBlok("Nog te betalen", tabel([rij("Bedrag", `<b>${eur(d.totaal)}</b>`), rij("Rekening", `<b>${esc(iban)}</b>`), rij("Begunstigde", esc(A.vereniging)), rij("Mededeling", `<b>${esc(mededeling(d))}</b>`)])
-        + p("We verwerken je bestelling zodra je betaling binnen is.", "margin:10px 0 0;font-size:13.5px;color:#666666")) + knop("Betaalgegevens en QR-code bekijken", orderUrl(r.id, d.betaalToken));
+        + p("We verwerken je bestelling zodra je betaling binnen is.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2") + knop("Betaalgegevens en QR-code bekijken", orderUrl(r.id, d.betaalToken));
     ond = `Je bestelling ${d.nr} bij de VBHA webshop`;
     html = p(`Beste ${esc(d.klant.voornaam)},`) + p(`Bedankt voor je bestelling! Hieronder vind je een overzicht.`) + kaderBlok(`Bestelling ${esc(d.nr)}`, lijnen) + bet + p(lev) + (d.opmerking ? p(`<i>Jouw opmerking: ${esc(d.opmerking)}</i>`, "margin:0 0 15px;color:#666666") : "") + (c.info ? p(esc(c.info), "margin:0 0 15px;font-size:13.5px;color:#666666") : "");
   } else if (soort === "verzonden") {
