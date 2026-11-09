@@ -5571,14 +5571,14 @@ const bgE=n=>`${n<0?"−":""}${eur(Math.abs(n))}`;
 function bgRij(p,t){const d=bgMag()?"":" disabled";const per=p.pp;
   return `<div class="bg-r" data-bgp="${esc(p.id)}">
     <input class="bg-n" data-bgf="naam" value="${esc(p.naam||"")}" placeholder="${p.soort==="opbrengst"?"bv. Inkom":"bv. Traiteur"}" aria-label="Omschrijving"${d}>
-    <label class="bg-pp" title="Aantal = aantal personen van de activiteit"><input type="checkbox" data-bgf="pp"${per?" checked":""}${d}><span>per persoon</span></label>
+    <label class="bg-pp${per?" on":""}" title="Het aantal volgt automatisch het aantal personen van de activiteit"><input type="checkbox" data-bgf="pp"${per?" checked":""}${d}><span>per persoon</span></label>
     <div class="bg-a"><span class="bg-l">Aantal</span><input data-bgf="aantal" inputmode="decimal" value="${per?esc(t.personen||0):esc(p.aantal??"")}" aria-label="Aantal"${per?" disabled":d}></div>
     <div class="bg-p"><span class="bg-l">Prijs</span><div class="sfx"><span>€</span><input data-bgf="prijs" inputmode="decimal" value="${esc(p.prijs??"")}" aria-label="Prijs per stuk"${d}></div></div>
     <b class="bg-t" data-bgtot>${eur(bgLijn(p,t))}</b>
     ${bgMag()?`<button type="button" class="bg-x" data-bgact="weg" aria-label="Post verwijderen" title="Verwijderen">${ic("x")}</button>`:"<span></span>"}</div>`}
 function bgBlok(t,soort,titel){const L=(t.posten||[]).filter(p=>(p.soort||"kost")===soort);const tot=L.reduce((s,p)=>s+bgLijn(p,t),0);
   return `<div class="panel"><div class="panel-h"><h2>${titel}</h2><span class="grow"></span><b class="${soort==="kost"?"out":"in"}" data-bgsom="${soort}">${eur(tot)}</b></div><div class="panel-b bg-list">
-    ${L.map(p=>bgRij(p,t)).join("")||`<div class="muted small" style="padding:4px 0">Nog geen ${soort==="kost"?"kosten":"opbrengsten"}.</div>`}
+    ${L.length?`<div class="bg-r bg-kop" aria-hidden="true"><span>Omschrijving</span><span></span><span>Aantal</span><span>Prijs</span><span class="r">Totaal</span><span></span></div>`:""}${L.map(p=>bgRij(p,t)).join("")||`<div class="bg-leeg">Nog geen ${soort==="kost"?"kosten":"opbrengsten"} begroot.</div>`}
     ${bgMag()?`<button type="button" class="btn sm" data-bgact="nieuw" data-soort="${soort}">${ic("plus")}${soort==="kost"?"Kost":"Opbrengst"} toevoegen</button>`:""}</div></div>`}
 function bgPP(t){const S2=bgSom(t),N=Number(t.personen)||0,W=Number(t.winst)||0,d=bgMag()?"":" disabled";
   const be=N?(S2.k-S2.oVast)/N:0,doel=N?(S2.k-S2.oVast+W)/N:0;
@@ -5589,7 +5589,7 @@ function bgPP(t){const S2=bgSom(t),N=Number(t.personen)||0,W=Number(t.winst)||0,
       <div><span>Prijs om quitte te spelen</span><b>${eur(Math.max(0,be))}</b><small>kosten min de andere opbrengsten (${eur(S2.oVast)}), gedeeld door ${N}</small></div>
       ${W?`<div class="hl"><span>Prijs voor ${eur(W)} winst</span><b>${eur(Math.max(0,doel))}</b></div>`:""}
       ${S2.ppPrijs?`<div><span>Met je prijs van ${eur(S2.ppPrijs)} per persoon</span><b class="${S2.r>=0?"in":"out"}">${bgE(S2.r)}</b><small>begroot resultaat</small></div>`:""}`
-      :`<p class="muted small" style="margin:0">Vul het aantal personen in om de prijs per persoon te berekenen. Een post met <b>per persoon</b> aangevinkt telt dan automatisch mee met dat aantal.</p>`}</div></div></div>`}
+      :`<p class="muted small" style="margin:0">Vul het aantal personen in om de prijs per persoon te berekenen. Een post met <span class="bg-chipt">per persoon</span> aangeduid telt dan automatisch mee met dat aantal.</p>`}</div></div></div>`}
 function bgTiles(t){const S2=bgSom(t),W=bgWerkelijk(t);
   return `<div class="tiles" data-bgtiles><div class="tile"><span class="lbl">Begrote kosten</span><span class="val out">${eur(S2.k)}</span></div><div class="tile"><span class="lbl">Begrote opbrengsten</span><span class="val in">${eur(S2.o)}</span></div>
    <div class="tile hero"><span class="lbl">Begroot resultaat</span><span class="val">${bgE(S2.r)}</span></div>
@@ -5604,7 +5604,7 @@ VIEWS.begroting=()=>({title:"Begroting",sub:"Begroting per activiteit "+JAAR,
     if(BG.tab==="__tot")return tabs+tip+bgTotaal();
     if(!t)return tabs+'<div class="panel"><div class="empty">Nog geen activiteiten. Voeg er een toe met +.</div></div>';
     return tabs+tip+`<div class="bar" style="margin:0"><b style="font-size:17px">${esc(t.naam)}</b>${t.categorie?`<span class="pill neutral">categorie ${esc(t.categorie)}</span>`:""}<span class="grow"></span>${bgMag()?`<button class="btn sm" data-bgact="tabInst">${ic("instellingen")}Tabblad</button>`:""}</div>`
-      +bgTiles(t)+`<div class="grid g2" style="align-items:start">${bgBlok(t,"kost","Kosten")}${bgBlok(t,"opbrengst","Opbrengsten")}</div>`+bgPP(t)}});
+      +bgTiles(t)+`<div class="bg-blokken">${bgBlok(t,"kost","Kosten")}${bgBlok(t,"opbrengst","Opbrengsten")}</div>`+bgPP(t)}});
 VIEWS.begroting.after=()=>{if(!BG.focus)return;const el=document.querySelector(BG.focus.sel);if(el&&document.activeElement!==el){el.focus();try{if(BG.focus.pos!=null)el.setSelectionRange(BG.focus.pos,BG.focus.pos)}catch(e){}}};
 // alleen de totalen bijwerken tijdens het typen (geen volledige herteken, zodat de cursor blijft staan)
 function bgHerreken(){const t=bgTab();if(!t)return;const tl=$("[data-bgtiles]");if(tl)tl.outerHTML=bgTiles(t);
@@ -5649,16 +5649,30 @@ document.addEventListener("click",e=>{if(!e.target.closest('[data-act="bgPrint"]
 .bg-t1 svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.bg-sep{flex:none;width:1px;background:var(--line);margin:10px 6px}
 .bg-plus{flex:none;margin-bottom:6px;display:inline-flex;align-items:center;gap:6px}.bg-plus svg{width:15px;height:15px}
 @media (max-width:640px){.bg-tabbar{flex-direction:column-reverse;align-items:stretch;gap:8px}.bg-plus{align-self:flex-start;margin:0}}
-.bg-list{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
-.bg-r{display:grid;grid-template-columns:minmax(0,1fr) auto 76px 104px 92px 32px;gap:8px;align-items:center;width:100%}
-.bg-r input{width:100%;min-width:0}.bg-l{display:none}.bg-t{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.bg-pp{display:inline-flex;gap:5px;align-items:center;font-size:12.5px;color:var(--muted);white-space:nowrap}.bg-pp input{width:auto}
-.bg-x{border:0;background:none;color:var(--muted);cursor:pointer;padding:4px;border-radius:8px}.bg-x:hover{color:var(--bad,#b91c1c);background:var(--soft,#f3f4f6)}.bg-x svg{width:16px;height:16px}
+.bg-blokken{display:flex;flex-direction:column;gap:16px;margin-bottom:16px}.bg-blokken>.panel{margin:0}
+.bg-list{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.bg-r{display:grid;grid-template-columns:minmax(0,1fr) auto 72px 112px 96px 34px;gap:8px;align-items:center;width:100%}
+.bg-kop{font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:0 2px 2px}.bg-kop .r{text-align:right}
+.bg-r input:not([type=checkbox]){width:100%;min-width:0;height:38px;box-sizing:border-box;padding:0 10px;border:1px solid var(--line-strong,#ccced2);border-radius:8px;background:var(--surface,#fff);font:inherit;font-size:14.5px;color:var(--ink)}
+.bg-r input:not([type=checkbox]):focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px rgba(0,0,0,.06)}
+.bg-r input:disabled{background:var(--soft,#f4f4f5);color:var(--muted)}
+.bg-r [data-bgf=aantal],.bg-r [data-bgf=prijs]{text-align:right;font-variant-numeric:tabular-nums}
+.bg-r .sfx{position:relative;display:block}.bg-r .sfx span{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13.5px;pointer-events:none}.bg-r .sfx input{padding-left:24px}
+.bg-l{display:none}.bg-t{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:15px}
+.bg-pp{display:inline-flex;align-items:center;cursor:pointer;user-select:none}.bg-pp input{position:absolute;opacity:0;pointer-events:none}
+.bg-pp span{display:inline-block;padding:7px 10px;border:1px solid var(--line-strong,#ccced2);border-radius:99px;font-size:12.5px;font-weight:500;color:var(--muted);white-space:nowrap;line-height:1}
+.bg-pp.on span,.bg-pp input:checked+span{background:var(--accent-soft,#fcebec);border-color:var(--accent,#c0161f);color:var(--accent,#c0161f)}
+.bg-pp input:focus-visible+span{outline:2px solid var(--ink);outline-offset:2px}
+.bg-x{display:grid;place-items:center;width:34px;height:34px;border:0;background:none;color:var(--muted);cursor:pointer;border-radius:8px}.bg-x:hover{color:var(--bad,#b91c1c);background:var(--soft,#f3f4f6)}
+.bg-x svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.bg-leeg{width:100%;padding:14px;border:1px dashed var(--line-strong,#ccced2);border-radius:10px;color:var(--muted);font-size:13.5px;text-align:center}
+.bg-list>.btn{margin-top:4px}
+.bg-chipt{display:inline-block;padding:2px 8px;border-radius:99px;background:var(--accent-soft,#fcebec);color:var(--accent,#c0161f);font-size:12px;font-weight:600}
 .bg-ppf{display:grid;grid-template-columns:repeat(2,minmax(0,220px));gap:12px;margin-bottom:12px}
 .bg-calc{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}.bg-calc>div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
 .bg-calc span{font-size:12.5px;color:var(--muted)}.bg-calc b{font-size:20px;font-variant-numeric:tabular-nums}.bg-calc small{font-size:11.5px;color:var(--muted)}.bg-calc .hl{border-color:var(--ink)}
-@media (max-width:760px){.bg-r{grid-template-columns:1fr 1fr 32px;border:1px solid var(--line);border-radius:12px;padding:10px}.bg-n{grid-column:1/3}.bg-x{grid-column:3;grid-row:1}
- .bg-pp{grid-column:1/4}.bg-a,.bg-p{display:flex;flex-direction:column;gap:2px}.bg-l{display:block;font-size:11.5px;color:var(--muted)}.bg-t{grid-column:1/4;text-align:left;font-size:15px}.bg-ppf{grid-template-columns:1fr 1fr}}`;document.head.appendChild(st)}
+@media (max-width:760px){.bg-kop{display:none}.bg-r{grid-template-columns:1fr 1fr 34px;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--surface,#fff)}.bg-n{grid-column:1/3}.bg-x{grid-column:3;grid-row:1}
+ .bg-pp{grid-column:1/4}.bg-a,.bg-p{display:flex;flex-direction:column;gap:3px}.bg-l{display:block;font-size:11.5px;color:var(--muted)}.bg-t{grid-column:1/4;text-align:right;font-size:15px;border-top:1px solid var(--line);padding-top:8px}.bg-ppf{grid-template-columns:1fr 1fr}}`;document.head.appendChild(st)}
 /* ---------- kopiëren (om in een verslag te plakken): als tabel (Word, Google Docs, mail) én als gewone tekst ---------- */
 function bgKopieData(){const D=bgDoc();const tabs=BG.tab==="__tot"?null:[bgTab()].filter(Boolean);const rows=[];const tit=tabs?`Begroting ${tabs[0].naam} ${JAAR}`:`Begroting ${JAAR} – alle activiteiten`;
   if(!tabs){rows.push(["Activiteit","Kosten","Opbrengsten","Begroot resultaat","Werkelijk"]);let k=0,o=0;for(const t of D.tabs){const s=bgSom(t),w=bgWerkelijk(t);k+=s.k;o+=s.o;rows.push([t.naam,eur(s.k),eur(s.o),bgE(s.r),w?bgE(w.r):"–"])}rows.push(["Totaal",eur(k),eur(o),bgE(o-k),""]);return{tit,rows,extra:[]}}
