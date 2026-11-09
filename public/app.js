@@ -5992,7 +5992,10 @@ function stTussen(lidId){const C=ctx(),r=C.rows.get(lidId);if(!r)return{st:"",zi
   const V=JAAR+1;if(r.lid.categorie==="Erewacht")return{st:"goud",zin:`Als lid van de erewacht heb je altijd de goudstatus.`};
   const t=r.p.totaal;const st=t>=dr.goud?"goud":t>=dr.zilver?"zilver":"brons";
   if(st==="goud")return{st,zin:`Proficiat: je hebt de goudstatus voor ${V} al behaald. Je geniet volgend jaar van de maximale korting op onze betalende activiteiten.`};
-  const n=Math.max(1,Math.ceil((dr.goud-t)/(w.kalenders||25)));
+  const n=Math.max(1,Math.ceil((dr.goud-t)/(w.kalenders||25)));const jl=r.jl||{},open=Math.max(0,(Number(jl.kalOpgehaald)||0)-(Number(jl.kalUitgevoerd)||0));
+  const dz=k=>k===1?"1 doos":k+" dozen";
+  if(open>0){const rest=n-open;
+    return{st,zin:`Je staat momenteel op ${st} voor ${V}. Je haalde al ${dz(open)} kalenders op die nog niet als bedeeld zijn doorgegeven: die punten tellen pas mee zodra je laat weten dat ze bedeeld zijn. `+(rest<=0?`Zijn ze bedeeld, dan heb je de goudstatus en geniet je volgend jaar van de maximale korting op onze betalende activiteiten.`:`Zijn ze bedeeld, dan heb je daarna nog ${dz(rest)} nodig voor de goudstatus en de maximale korting op onze betalende activiteiten.`)}}
   return{st,zin:`Je staat momenteel op ${st} voor ${V}. Met nog ${n===1?"slechts 1 doos":n+" dozen"} kalenders bedelen haal je de goudstatus en geniet je volgend jaar van de maximale korting op onze betalende activiteiten.`}}
 {const _m=mlMap;mlMap=function(r){const o=_m.apply(this,arguments);if(r&&r.lidId){const x=stTussen(r.lidId);o.status_volgend=x.st;o.status_tussenstand=x.zin;
   o.status_uitleg=x.st&&x.st!=="goud"?"Elke doos kalenders die je bedeelt, brengt je dichter bij de goudstatus. Als goudlid geniet je van de maximale korting op onze betalende activiteiten, zoals het banket.":""}else{o.status_volgend="";o.status_tussenstand="";o.status_uitleg=""}return o}}
@@ -6004,7 +6007,9 @@ function stMailPaneel(){const g=goudCfg(),aan=g.aan!==false,d=ROL==="admin"?"":"
   return `<div class="panel"><div class="panel-h"><h2>Mails puntensysteem</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:14px">
    <label class="ws-row"><span class="ws-sw"><input type="checkbox" data-goudaan${aan?" checked":""}${d}><i></i></span><span><b>Proficiat-mail bij goudstatus</b><small>Zodra een lid met de punten van ${JAAR} de goudstatus voor ${JAAR+1} haalt, krijgt het automatisch een mail. Niet voor de erewacht. Leden die al goud waren bij de start krijgen geen mail.</small></span></label>
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="grow"><b>Tussenstand status ${JAAR+1}</b><br><span class="muted small">Persoonlijke mail met de status (zonder punten) en hoeveel dozen nog nodig zijn voor goud.</span></span>
-   ${tpl?`<button class="btn" data-act="stTussen">${ic("mails")}Mail openen</button>`:'<span class="muted small">Sjabloon "Tussenstand status" ontbreekt.</span>'}</div></div></div>`}
+   ${tpl?`<button class="btn" data-act="stTussen">${ic("mails")}Mail openen</button>`:'<span class="muted small">Sjabloon "Tussenstand status" ontbreekt.</span>'}</div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="grow"><b>Proficiat goudstatus (in bulk)</b><br><span class="muted small">Naar alle leden die de goudstatus voor ${JAAR+1} al haalden en nog geen proficiat-mail kregen.</span></span>
+   <button class="btn" data-act="stGoud">${ic("mails")}Mail openen</button></div></div></div>`}
 {const _v=VIEWS.punten;VIEWS.punten=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){return String(b.apply(this,arguments))+stMailPaneel()};return v};Object.assign(VIEWS.punten,_v)}
 document.addEventListener("change",async e=>{if(e.target.dataset&&e.target.dataset.goudaan!==undefined){const c=S.config.get("algemeen")||{};try{await write("config","algemeen",{...stripId(c),goudMail:{...(c.goudMail||{}),aan:e.target.checked}});toast(e.target.checked?"Proficiat-mail staat aan.":"Proficiat-mail staat uit.")}catch(x){e.target.checked=!e.target.checked}}});
 document.addEventListener("click",e=>{if(!e.target.closest('[data-act="stTussen"]'))return;MAIL=null;UI.mailTpl="tpl-tussenstand";UI.mailGroep="tussenstand";saveUI();location.hash="#mails"});
@@ -6012,6 +6017,17 @@ document.addEventListener("click",e=>{if(!e.target.closest('[data-act="stTussen"
 {const _g=groepen;groepen=function(){const G=_g.apply(this,arguments);const b=G.find(g=>g.id==="betaald-niet-ere");if(!b||G.some(g=>g.id==="tussenstand"))return G;
   const vrij=r=>{const jl=r.lidId&&S.jaarleden.get(JAAR+"_"+r.lidId);return !!(jl&&jl.vrijstelling)};
   const list=b.list.filter(r=>!vrij(r));G.splice(G.indexOf(b)+1,0,{...b,id:"tussenstand",label:"Actieve leden zonder erewacht en zonder vrijstelling",list,geblokt:b.geblokt||[]});return G}}
+
+// doelgroep: leden die de goudstatus voor volgend jaar al haalden en nog geen proficiat-mail kregen (geen erewacht, geen vrijstelling)
+{const _g=groepen;groepen=function(){const G=_g.apply(this,arguments);const b=G.find(g=>g.id==="betaald-niet-ere");if(!b||G.some(g=>g.id==="goud-volgend"))return G;
+  const C=ctx(),dr=(C.c&&C.c.drempels)||{goud:100};
+  const list=b.list.filter(r=>{const x=C.rows.get(r.lidId);if(!x||x.jl.vrijstelling)return false;if(x.p.totaal<dr.goud)return false;return !(x.jl.goudMail&&x.jl.goudMail.verstuurd)});
+  G.splice(G.indexOf(b)+1,0,{...b,id:"goud-volgend",label:"Goudstatus "+(JAAR+1)+" behaald (nog geen proficiat-mail)",list,geblokt:b.geblokt||[]});return G}}
+document.addEventListener("click",e=>{if(!e.target.closest('[data-act="stGoud"]'))return;MAIL=null;UI.mailTpl="tpl-goud";UI.mailGroep="goud-volgend";saveUI();location.hash="#mails"});
+// na het versturen naar "goud-volgend": de leden aanduiden als "proficiat-mail verstuurd" (zo krijgen ze ook geen automatische mail meer)
+{const _s=mlSend;mlSend=function(){const r=_s.apply(this,arguments);try{if(mlGroep().id!=="goud-volgend")return r;const b=$("#msGo");if(!b)return r;
+  b.addEventListener("click",()=>{const L=mailRecips();setTimeout(async()=>{const nu=new Date().toISOString();for(const x of L){if(!x.lidId)continue;const k=JAAR+"_"+x.lidId,cur=S.jaarleden.get(k)||{jaar:JAAR,lidId:x.lidId};const {id:_i,...rest}=cur;
+    try{await write("jaarleden",k,{...rest,goudMail:{...(cur.goudMail||{}),op:nu,verstuurd:true,via:"bulk"}})}catch(e){}}},0)},{once:true})}catch(e){}return r}}
 
 /* ============ Activiteiten › Shiften: leden indelen en verwittigen via sms (eigen gsm) ============
    Op de activiteit (collectie "activiteiten"): shiften:[{id,taak,van,tot,nodig,leden:[lidId]}], smsTekst, shiftenToegekend
