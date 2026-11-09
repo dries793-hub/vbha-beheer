@@ -2728,7 +2728,7 @@ function mlKader(inner){const c=cfg();const ver=esc(c.vereniging||"Vriendenkring
 <table role="presentation" border="0" width="100%" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;border-collapse:separate">
 <tr><td align="center" bgcolor="#f7f7f7" style="padding:20px"><img src="${ML_LOGO}" alt="${ver}" width="220" height="84" style="display:block;width:220px;height:84px;border:0;outline:none;text-decoration:none"></td></tr>
 <tr><td class="vb-in" bgcolor="#ffffff" style="border-top:8px solid ${ML_ROOD};border-bottom:8px solid ${ML_ROOD};border-radius:14px;${ML_FONT}font-size:15px;color:${ML_INK};line-height:1.6;padding:32px 40px 26px">${inner}</td></tr>
-<tr><td align="center" style="${ML_FONT}font-size:11.5px;color:#9a9ca1;line-height:1.6;padding:14px 20px">${ver} &middot; <a href="https://www.vbha.be" style="color:#9a9ca1;text-decoration:underline">vbha.be</a> &middot; <a href="mailto:${afm}?subject=Afmelden%20mails%20VBHA" style="color:#9a9ca1;text-decoration:underline">afmelden</a></td></tr>
+<tr><td align="center" style="${ML_FONT}font-size:11.5px;color:#9a9ca1;line-height:1.6;padding:14px 20px">${ver} &middot; <a href="https://www.vbha.be" style="color:#9a9ca1;text-decoration:underline">vbha.be</a></td></tr>
 </table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table></body></html>`}
