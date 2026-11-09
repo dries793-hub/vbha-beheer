@@ -622,11 +622,11 @@ VIEWS.verwerken=()=>({title:"Te verwerken",sub:"Transacties zonder categorie, of
   const C=ctx();const L=teVerwerken(C).slice().sort((a,b)=>(b.datum||"").localeCompare(a.datum||""));const cats=catList(C);
   if(!L.length)return boekTabs("verwerken")+'<div class="panel"><div class="empty"><b style="color:var(--ink)">Alles is verwerkt.</b><br>Bankregels waarvoor geen regel past, verschijnen hier na een import.</div></div>';
   return boekTabs("verwerken")+`<div class="bar"><span class="muted">${L.length} transacties wachten op een categorie of bevestiging.</span><span class="grow"></span><button class="btn" data-w data-act="regelsToepassen">Regels opnieuw toepassen</button><button class="btn primary" data-w data-act="alleBevestigen">Alle voorstellen bevestigen</button></div>
-  <div class="panel"><div class="tw"><table class="journal rcards" data-main="1"><thead><tr><th>Datum</th><th>Omschrijving</th><th class="num">Bedrag</th><th>Categorie</th><th>Waarom dit voorstel</th><th></th></tr></thead><tbody>
+  <div class="panel"><div class="tw"><table class="journal rcards vw-t" data-main="1"><colgroup><col style="width:104px"><col><col style="width:120px"><col style="width:240px"><col style="width:168px"></colgroup><thead><tr><th>Datum</th><th>Omschrijving</th><th class="num">Bedrag</th><th>Categorie</th><th></th></tr></thead><tbody>
   ${L.map(b=>{const s=b.categorie?null:suggest(b);const cat=b.categorie||(s&&s.categorie)||"";const why=b.categorie?(b.regelNaam||"Automatisch voorgesteld"):(s?s.naam:"Geen passende regel");
     return `<tr><td class="nowrap">${fmtDate(b.datum)}</td><td class="desc"><div class="d1">${esc(b.partij||b.mededeling||"—")}</div>${b.partij&&b.mededeling?`<div class="d2">${esc(b.mededeling)}</div>`:""}</td><td class="num">${bedragCel(b)}</td>
-    <td><select class="sel sm" data-vcat="${esc(b.id)}" aria-label="Categorie"${canWrite?"":" disabled"}><option value="">Kies…</option>${selOpts(cats,cat)}</select></td><td class="muted small">${esc(why)}</td>
-    <td class="nowrap" style="text-align:right"><button class="btn sm solid" data-w data-act="vOk" data-id="${esc(b.id)}">Bevestigen</button> <button class="btn sm ghost" data-w data-act="regelVan" data-id="${esc(b.id)}">Regel maken</button></td></tr>`}).join("")}
+    <td><select class="sel sm" data-vcat="${esc(b.id)}" aria-label="Categorie"${canWrite?"":" disabled"}><option value="">Kies…</option>${selOpts(cats,cat)}</select><div class="vw-why">${esc(why)}</div></td>
+    <td class="nowrap" style="text-align:right"><button class="btn sm solid" data-w data-act="vOk" data-id="${esc(b.id)}">Bevestigen</button> <button class="btn sm iconbtn" data-w data-act="regelVan" data-id="${esc(b.id)}" title="Regel maken voor gelijkaardige transacties" aria-label="Regel maken">${ic("regels")}</button></td></tr>`}).join("")}
   </tbody></table></div></div>`}});
 
 /* regels */
@@ -5337,6 +5337,8 @@ var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.verwerke
 function bkTabs(act){let n=0;try{n=teVerwerken(ctx()).length}catch(e){}
   return `<div class="ka-tabs" role="tablist"><a role="tab" href="#boekingen" class="${act==="boekingen"?"on":""}">Transacties</a><a role="tab" href="#verwerken" class="${act==="verwerken"?"on":""}">Te verwerken${n?` <span class="bt-n">${n}</span>`:""}</a></div>`}
 for(const r of ["boekingen","verwerken"]){const _v=VIEWS[r];if(!_v)continue;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){return bkTabs(r)+String(b.apply(this,arguments))};return v};Object.assign(n,_v);VIEWS[r]=n}
+{const st=document.createElement("style");st.textContent=`.vw-t{table-layout:fixed;width:100%}.vw-t td.desc{min-width:0}.vw-t .d1,.vw-t .d2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vw-t select{width:100%}.vw-why{font-size:11.5px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vw-t td:last-child .btn{vertical-align:middle}.vw-t .iconbtn svg{width:15px;height:15px}`;document.head.appendChild(st)}
 
 /* ============ Zoekbalken: kruisje rechts om leeg te maken ============ */
 (function(){
