@@ -6490,12 +6490,12 @@ function shPrint(a){const S2=a.shiften||[];if(!S2.length){toast("Er zijn nog gee
   const ing=shIngedeeld(a),vrij=shPool(a).filter(id=>!ing.has(id)).map(id=>shHelper(a,id)).filter(Boolean);
   const kol=S2.map(s=>{const H=(s.leden||[]).map(id=>shHelper(a,id)).filter(Boolean).sort((x,y)=>x.naam.localeCompare(y.naam,"nl")),n=Number(s.nodig)||0,leeg=Math.max(0,n-H.length);
     return `<section class="k"><header><b>${e(s.taak||"Shift")}</b><span>${e(s.van&&s.tot?s.van+" – "+s.tot:s.van||"")}</span><i>${H.length}${n?" / "+n:""}</i></header>
-      <ol>${H.map(h=>`<li><span class="n">${e(h.naam)}${h.lid?"":` <small>(${e(h.info||"geen lid")})</small>`}</span><span class="t">${e(h.telTxt||"")}</span></li>`).join("")}${"<li class=\"open\"><span class=\"n\">&nbsp;</span><span class=\"t\"></span></li>".repeat(leeg)}</ol></section>`}).join("");
-  const datum=a.datum?fmtDate(a.datum):"",nu=new Date().toLocaleDateString("nl-BE");
+      <ol>${H.map(h=>`<li><span class="n">${e(h.naam)}${h.lid?"":` <small>(${e(h.info||"geen lid")})</small>`}</span></li>`).join("")}${"<li class=\"open\"><span class=\"n\">&nbsp;</span></li>".repeat(leeg)}</ol></section>`}).join("");
+  const datum=a.datum?fmtDate(a.datum):"",emb=(EMBLEM.match(/src="([^"]+)"/)||[])[1]||"";
   w.document.write(`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Shiften ${e(a.titel||"")}</title><link rel="stylesheet" href="${location.origin}/fonts/inter.css">
-<style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{margin:0;font:11pt/1.35 "Inter",system-ui,Arial,sans-serif;color:#1a1b1e;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.kop{display:flex;align-items:center;gap:16px;background:#18191c;color:#fff;padding:10px 16px;border-radius:10px 10px 0 0}.kop img{height:34px}.kop .t{flex:1}.kop h1{margin:0;font-size:17pt;font-weight:700;color:#fff}.kop p{margin:2px 0 0;color:#c9cacd;font-size:10pt}
-.rood{height:4px;background:#c0161f;margin-bottom:10px}
+<style>@page{size:A4 landscape;margin:0}*{box-sizing:border-box}body{margin:0;font:11pt/1.35 "Inter",system-ui,Arial,sans-serif;color:#1a1b1e;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.kop{display:flex;align-items:center;gap:14px;padding:0 2px 8px}.kop img{height:46px}.kop .t{flex:1}.kop h1{margin:0;font-size:17pt;font-weight:700;color:#1a1b1e}.kop p{margin:2px 0 0;color:#686b71;font-size:10pt}
+.rood{height:3px;background:#c0161f;margin-bottom:12px}
 .grid{display:grid;grid-template-columns:repeat(${Math.min(4,S2.length)},1fr);gap:8px}
 .k{border:1px solid #d9dadd;border-radius:8px;overflow:hidden;break-inside:avoid}.k header{display:flex;align-items:baseline;gap:8px;background:#f5f5f6;padding:7px 10px;border-bottom:2px solid #c0161f}
 .k header b{font-size:12pt}.k header span{color:#686b71;font-size:9.5pt;flex:1}.k header i{font-style:normal;font-weight:700;font-size:9.5pt}
@@ -6503,11 +6503,10 @@ ol{list-style:none;margin:0;padding:0}li{display:flex;gap:8px;justify-content:sp
 li.open .n{flex:1;border-bottom:1px dashed #bbb}
 .vrij{margin-top:10px;font-size:9.5pt;color:#686b71}.vrij b{color:#1a1b1e}
 .voet{margin-top:8px;font-size:8.5pt;color:#9a9ca1;display:flex;justify-content:space-between}
-@media screen{body{background:#eee;padding:20px}.blad{background:#fff;width:277mm;margin:0 auto;padding:10mm;box-shadow:0 4px 20px rgba(0,0,0,.15)}}</style></head><body><div class="blad">
-<div class="kop"><img src="${location.origin}/w/logo.png" alt="VBHA"><div class="t"><h1>Shiften ${e(a.titel||"")}</h1><p>${e([datum,a.uur,a.locatie].filter(Boolean).join(" · "))}</p></div></div><div class="rood"></div>
+@media print{.blad{padding:10mm 12mm}}@media screen{body{background:#eee;padding:20px}.blad{background:#fff;width:277mm;margin:0 auto;padding:10mm;box-shadow:0 4px 20px rgba(0,0,0,.15)}}</style></head><body><div class="blad">
+<div class="kop">${emb?`<img src="${emb}" alt="VBHA">`:""}<div class="t"><h1>Shiften ${e(a.titel||"")}</h1><p>${e([datum,a.uur,a.locatie].filter(Boolean).join(" · "))}</p></div></div><div class="rood"></div>
 <div class="grid">${kol}</div>
-${vrij.length?`<p class="vrij"><b>Nog niet ingedeeld:</b> ${vrij.map(h=>e(h.naam)).join(", ")}</p>`:""}
-<div class="voet"><span>Vriendenkring Brandweer Hoofdpost Aalst</span><span>Afgedrukt op ${e(nu)}</span></div></div>
+</div>
 <script>window.onload=()=>{const i=document.querySelector(".kop img");const go=()=>setTimeout(()=>window.print(),250);if(i&&!i.complete){i.onload=go;i.onerror=()=>{i.remove();go()}}else go()}<\/script></body></html>`);w.document.close()}
 
 /* ---------- tabblad Shiften op de pagina's In Vier en Vlam en Jaarmarkt ---------- */
