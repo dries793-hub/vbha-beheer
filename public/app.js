@@ -5999,7 +5999,7 @@ if(!ROUTES.some(r=>r[0]==="shiften"))ROUTES.push(["shiften","Shiften"]);
 if(typeof FUNC_VAN!=="undefined")FUNC_VAN.shiften="agenda";
 ICON.shiften='<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
 const SHF={id:null};
-const SH_TEKST="Hallo {voornaam}, bedankt om te helpen op {activiteit} ({datum}). Je shift: {taak} van {van} tot {tot}. Graag 10 minuten op voorhand aanwezig. Groeten, VBHA";
+const SH_TEKST="Hallo {voornaam}, je shift op {activiteit} ({datum}): {taak} van {van} tot {tot}. Graag 10 min vooraf aanwezig. Dank je! VBHA";
 const shId=()=>Math.random().toString(36).slice(2,9);
 function shTel(t){let d=String(t||"").replace(/[^\d+]/g,"");if(!d)return"";if(d.startsWith("00"))d="+"+d.slice(2);else if(d.startsWith("0")&&d.length>=9)d="+32"+d.slice(1);else if(/^32\d{8,9}$/.test(d))d="+"+d;return /^\+\d{9,14}$/.test(d)?d:""}
 const shApple=()=>/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
@@ -6075,6 +6075,24 @@ document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.shk
 {const st=document.createElement("style");st.textContent=`.sh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;align-items:start}.sh-top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .sh-tekst summary{cursor:pointer}.sh-tekst textarea{width:100%;margin-top:8px}.sh-l{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}.sh-p{display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:8px}
 .sh-add{display:flex;gap:8px;margin-bottom:10px}.sh-add input{flex:1;min-width:0}.sh-sms{width:100%;justify-content:center}.sh-klaar{display:flex;align-items:center;gap:8px;color:var(--ok,#16a34a);font-weight:600}.sh-klaar svg{width:18px;height:18px}.sh-klaar .btn{margin-left:auto}`;document.head.appendChild(st)}
+/* ---------- sms-dienst (BudgetSMS): met één klik iedereen in de shift een eigen sms ---------- */
+let SMSD=null;async function smsDienst(){if(SMSD)return SMSD;SMSD={aan:false,laden:true};try{SMSD=await api("/api/mail?f=sms")}catch(e){SMSD={aan:false}}if(route()==="shiften")renderBody();return SMSD}
+{const _k=shVolgKnop;shVolgKnop=function(a,s,L){if(!SMSD)smsDienst();const met=L.filter(l=>shTel(l.telefoon));if(!SMSD||!SMSD.aan||!met.length)return _k.apply(this,arguments);
+  const v=s.smsVerstuurd;return `<button class="btn primary sh-sms" data-shdienst="${esc(s.id)}">${ic("mails")}Sms versturen naar ${met.length===1?esc(met[0].voornaam||naamVol(met[0])):"alle "+met.length+" (elk persoonlijk)"}</button>
+   ${v?`<p class="muted small" style="margin:6px 0 0">Laatst verstuurd op ${esc(fmtDate(String(v.op).slice(0,10)))} om ${esc(String(v.op).slice(11,16))}: ${v.ok} van ${v.n} gelukt.</p>`:""}
+   <details class="sh-alt"><summary class="muted small">Of één voor één via je eigen gsm</summary>${_k.apply(this,arguments)}</details>`}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-shdienst]");if(!b)return;const a=shAct(),s=(a.shiften||[]).find(x=>x.id===b.dataset.shdienst);if(!s)return;
+  const L=(s.leden||[]).map(id=>S.leden.get(id)).filter(l=>l&&shTel(l.telefoon));if(!L.length)return;const tekst=shVul(a.smsTekst,a,s,L[0]);const delen=tekst.length<=160?1:Math.ceil(tekst.length/153);
+  modal("Sms versturen",`<p style="margin:0 0 10px">${L.length} ${L.length===1?"persoon krijgt":"personen krijgen"} elk een eigen sms van <b>${esc(SMSD.afzender||"VBHA")}</b>. Voorbeeld voor ${esc(L[0].voornaam||"")}:</p>
+    <div class="sh-vb">${esc(tekst)}</div><p class="muted small" style="margin:10px 0 0">${tekst.length} tekens${delen>1?` (${delen} sms-delen per persoon)`:""} · ongeveer ${eur(L.length*delen*0.066)}${SMSD.afzender&&/^[A-Za-z]/.test(SMSD.afzender)?" · leden kunnen niet antwoorden op een sms met een naam als afzender":""}</p>`,
+    `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="shSmsOk">${ic("mails")}Versturen</button>`);
+  $("#shSmsOk").onclick=async()=>{const k=$("#shSmsOk");k.disabled=true;k.textContent="Bezig…";
+    try{const j=await api("/api/mail?f=sms",{method:"POST",body:JSON.stringify({berichten:L.map(l=>({tel:shTel(l.telefoon),tekst:shVul(a.smsTekst,a,s,l),label:naamVol(l)}))})});
+      const ok=j.resultaten.filter(r=>r.ok).length,fout=j.resultaten.filter(r=>!r.ok);
+      await shBewaar(a,{shiften:(a.shiften||[]).map(x=>x.id===s.id?{...x,smsVerstuurd:{op:new Date().toISOString(),n:L.length,ok}}:x)});
+      modal("Sms versturen",`<p style="margin:0">${ok} van ${L.length} sms'en verstuurd${j.kost?` (kost ${eur(j.kost)})`:""}.</p>${fout.length?`<ul style="margin:10px 0 0">${fout.map(r=>`<li><b>${esc(r.label)}</b>: ${esc(r.fout||"mislukt")}</li>`).join("")}</ul>`:""}`,`<button class="btn primary" data-act="closeModal">Sluiten</button>`)}
+    catch(x){closeModal();toast("Versturen lukte niet: "+(x.message||x),true)}}});
+{const st=document.createElement("style");st.textContent=`.sh-vb{background:var(--soft,#f4f4f5);border-radius:14px;padding:10px 12px;white-space:pre-wrap;font-size:14px}.sh-alt{margin-top:8px}.sh-alt summary{cursor:pointer}.sh-alt[open] .sh-sms{margin-top:8px}`;document.head.appendChild(st)}
 
 /* ============ Activiteiten › Familiedag ============
    Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
