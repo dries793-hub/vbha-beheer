@@ -6571,7 +6571,7 @@ function shRooster(a){const S2=a.shiften||[],met=S2.map(s=>({s,p:shSpan(s)})).fi
     <div class="shr-kop"><div class="shr-as"></div>${K.map(k=>`<div class="shr-kh">${esc(k.naam)}</div>`).join("")}</div>
     <div class="shr-lijf" style="height:${H}px"><div class="shr-as">${uren.map(m=>`<span style="top:${px(m)}px">${shHHMM(m)}</span>`).join("")}</div>
       ${K.map(k=>`<div class="shr-k" data-shrk>${uren.map(m=>`<i style="top:${px(m)}px"></i>`).join("")}${ev!=null?`<em class="shr-ev" style="top:${px(ev)}px" title="Start activiteit"></em>`:""}${k.banen.map((b,i)=>b.map(x=>blok(x,i,k.banen.length)).join("")).join("")}</div>`).join("")}</div>
-  </div></div>${canWrite?'<p class="muted small shr-tip">Sleep een blok om de shift te verschuiven, of sleep aan de boven- of onderrand om in te korten of te verlengen. Tik op een blok om het te wijzigen.</p>':""}</div>
+  </div></div></div>
   ${zonder.length?`<div class="panel"><div class="panel-b"><span class="muted small">Zonder uren (niet op het rooster): </span>${zonder.map(s=>`<button class="btn sm" data-shredit="${esc(s.id)}">${esc(s.taak||"Shift")}</button>`).join(" ")}</div></div>`:""}`}
 {const _v=VIEWS.shiften;VIEWS.shiften=function(){const v=_v.apply(this,arguments),b=v.body;
   v.body=function(){const h=String(b.apply(this,arguments)),a=shAct(),k=h.indexOf('<div class="panel sh-poolp">');if(!a||k<0)return h;
