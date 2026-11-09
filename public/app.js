@@ -5673,7 +5673,7 @@ VIEWS.begroting=()=>({title:"Begroting",sub:"Begroting per activiteit "+JAAR,
     const tip=D.nieuw&&vorig&&bgMag()?`<div class="panel"><div class="panel-b" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span class="grow">Er is nog geen begroting voor ${JAAR}.</span><button class="btn sm" data-bgact="kopie">Begroting ${JAAR-1} overnemen</button></div></div>`:"";
     if(BG.tab==="__tot")return tabs+tip+bgTotaal();
     if(!t)return tabs+'<div class="panel"><div class="empty">Nog geen activiteiten. Voeg er een toe via het tandwieltje rechtsboven.</div></div>';
-    return tabs+tip+`<div class="bar" style="margin:0"><b style="font-size:17px">${esc(t.naam)}</b>${t.categorie?`<span class="pill neutral">categorie ${esc(t.categorie)}</span>`:""}<span class="grow"></span>${bgMag()?`<button class="btn sm" data-bgact="tabInst">${ic("instellingen")}Tabblad</button>`:""}</div>`
+    return tabs+tip+`<div class="bar" style="margin:0"><b style="font-size:17px">${esc(t.naam)}</b><span class="grow"></span></div>`
       +bgTiles(t)+`<div class="bg-blokken">${bgBlok(t,"kost","Kosten")}${bgBlok(t,"opbrengst","Opbrengsten")}</div>`+bgPP(t)}});
 VIEWS.begroting.after=()=>{if(!BG.focus)return;const el=document.querySelector(BG.focus.sel);if(el&&document.activeElement!==el){el.focus();try{if(BG.focus.pos!=null)el.setSelectionRange(BG.focus.pos,BG.focus.pos)}catch(e){}}};
 // alleen de totalen bijwerken tijdens het typen (geen volledige herteken, zodat de cursor blijft staan)
