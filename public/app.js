@@ -890,12 +890,8 @@ VIEWS.ronde=()=>({title:"Kalenderronde",
   const aTot=KR_STREETS.reduce((t,s)=>t+s.a,0),aDone=KR_STREETS.reduce((t,s)=>t+krAdrGedaan(s,M,D),0),aPct=aTot?aDone/aTot*100:0;
   const per=KR_WIJKEN.map(w=>{const ss=KR_STREETS.filter(s=>s.w===w),dd=ss.filter(s=>M[s.id]);return{w,n:ss.length,d:dd.length,an:ss.reduce((t,s)=>t+s.a,0),ad:ss.reduce((t,s)=>t+krAdrGedaan(s,M,D),0)}});
   const tg=(l,v,c)=>`<div class="tile${c?" "+c:""}"><span class="lbl">${l}</span><span class="val">${v}</span></div>`,todo=tot-done-nRes;
-  return kalTabs("ronde")+`<div class="kr-tg"><h3>Adressen</h3><div class="tiles kr-t4">${tg("Bedeeld",krNum(aDone),"hero")}${tg("Nog te bedelen",krNum(aTot-aDone))}${tg("Totaal",krNum(aTot))}${tg("Bedeeld in %",Math.round(aPct)+"%")}</div></div>
+  return kalTabs("ronde")+`<div class="kr-tg"><h3>Adressen</h3><div class="tiles kr-t4">${tg("Bedeeld",krNum(aDone),"hero")}${tg("Nog te bedelen",krNum(aTot-aDone))}${tg("Totaal",krNum(aTot))}<div class="tile"><span class="lbl">Bedeeld in %</span><span class="val">${Math.round(aPct)}%</span><span class="kr-track" style="margin-top:8px" aria-hidden="true"><span style="width:${aPct}%"></span></span></div></div></div>
   <div class="kr-tg"><h3>Straten</h3><div class="tiles kr-t4">${tg("Afgewerkt",krNum(done))}${tg("Gereserveerd",krNum(nRes))}${tg("Nog te doen",krNum(Math.max(0,todo)))}${tg("Totaal",krNum(tot))}</div></div>
-  <div class="panel"><div class="panel-b kr-prog">
-    <div class="kr-prog-main"><div class="kr-prog-t"><b>${Math.round(aPct)}%</b>van de verdeelregio bedeeld</div><span class="kr-track" aria-hidden="true"><span style="width:${aPct}%"></span></span></div>
-    <div class="kr-wijken">${per.map(p=>`<button type="button" class="kr-wijk" data-act="krWijk" data-id="${esc(p.w)}" title="Zoom naar ${esc(p.w)}: ${p.d} van ${p.n} straten"><span>${esc(p.w)}</span><b>${krNum(p.ad)}/${krNum(p.an)}</b><i class="kr-track sm" aria-hidden="true"><span style="width:${p.an?p.ad/p.an*100:0}%"></span></i><small>${p.d}/${p.n} straten</small></button>`).join("")}</div>
-  </div></div>
   <div class="panel"><div class="kr-slot" id="krSlot"></div></div>
   <div class="panel"><div class="panel-h"><h2>Aangeduide straten</h2>${done?`<span class="cnt">${done}</span>`:""}${nRes?`<span class="pill info">${nRes} gereserveerd</span>`:""}<span class="grow"></span></div>${krHistory({...krAll(),...krDelen()})}</div>`}});
 VIEWS.ronde.after=krAfter;
