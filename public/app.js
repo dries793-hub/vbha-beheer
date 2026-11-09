@@ -6365,7 +6365,7 @@ VIEWS.shiften=()=>({title:"Shiften",sub:"Wie helpt waar en wanneer",
         ${H.some(h=>h.tel)?`<button type="button" class="btn sm iconbtn" data-sh="sms" title="Sms naar deze shift" aria-label="Sms naar ${esc(s.taak||"deze shift")}">${ic("mails")}</button>`:""}
         ${canWrite?`<button type="button" class="btn sm iconbtn" data-sh="bewerk" title="Shift wijzigen" aria-label="Shift wijzigen">${ic("potlood")}</button>`:""}</div>
         <div class="sh-zone" data-zone="${esc(s.id)}">${H.map(h=>shTegel(a,h,s.id,(ing.get(h.id)||[]).length>1)).join("")||'<span class="sh-hint">Sleep helpers hierheen</span>'}</div>
-        ${s.smsVerstuurd?`<div class="sh-kf">Sms verstuurd op ${esc(fmtDate(String(s.smsVerstuurd.op).slice(0,10)))} (${s.smsVerstuurd.ok}/${s.smsVerstuurd.n})</div>`:""}</div>`}).join("")}</div>`
+        </div>`}).join("")}</div>`
       :`<div class="panel"><div class="empty">Nog geen shiften voor deze activiteit. Maak per taak of locatie een shift, bv. Bar, Kassa of Opbouw.${canWrite?`<div style="margin-top:12px"><button class="btn primary" data-sh="nieuw">${ic("plus")}Shift toevoegen</button></div>`:""}</div></div>`}
     ${S2.length&&canWrite?`<div class="panel"><div class="panel-b sh-pt"><span class="grow small muted">${a.shiftenToegekend?`De shiften zijn toegekend in het puntensysteem (${esc(fmtDate(String(a.shiftenToegekend).slice(0,10)))}).`:"Na de activiteit: geef elk ingedeeld lid 1 shift in het puntensysteem (helpers die geen lid zijn tellen niet mee)."}</span>
       <button class="btn" data-sh="punten"${a.shiftenToegekend?" disabled":""}>Shiften toekennen in puntensysteem</button></div></div>`:""}`}});
