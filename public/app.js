@@ -5645,6 +5645,8 @@ function stDonut(st,actief){const K=["GOUD","ZILVER","BRONS"],R=54,C=2*Math.PI*R
 .st-leg{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}.st-leg>div:not(.st-r){display:grid;grid-template-columns:12px 1fr auto 44px;gap:10px;align-items:center;font-size:14.5px}
 .st-leg i{width:12px;height:12px;border-radius:3px}.st-leg b{font-variant-numeric:tabular-nums}.st-leg small{color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
 @media (max-width:640px){.st-donut{flex-wrap:nowrap;gap:16px}.st-donut svg{width:112px;height:112px}.st-leg{gap:8px}.st-leg div{grid-template-columns:10px 1fr auto 36px;gap:8px;font-size:14px}.st-leg i{width:10px;height:10px}}`;document.head.appendChild(s)}
+{const s=document.createElement("style");s.textContent=`@media (max-width:640px){.st-donut{gap:12px}.st-donut svg{width:96px;height:96px}.st-leg{gap:6px}
+ .st-leg .st-r{padding:5px 10px;gap:3px;border-left-width:3px;border-radius:8px}.st-leg .st-rt{font-size:13px}.st-leg .st-rt b{font-size:15px}.st-leg .st-rb i{height:4px}.st-leg .st-rb small{font-size:11px;width:30px}}`;document.head.appendChild(s)}
 
 /* ============ Financiën › Begroting ============
    Per boekjaar één document config/"begroting_<jaar>": {tabs:[{id,naam,categorie,personen,winst,posten:[{id,soort:"kost"|"opbrengst",naam,aantal,prijs,pp}]}]}
