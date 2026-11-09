@@ -4735,8 +4735,7 @@ VIEWS.kalcontrole=()=>({title:"Kalenders "+JAAR,sub:"Controle: dozen naast de aa
   Object.assign(n,_v);VIEWS.kalenders=n}
 function kalInst(){if(typeof ADM==="function"&&!ADM())return;const c=jaarCfg(JAAR);
   const f=(id,l,v,suf,h)=>`<div class="fld"><label for="${id}">${l}</label><div class="sfx"><input id="${id}" type="number" min="1" step="1" inputmode="numeric" value="${v}"><span>${suf}</span></div>${h?`<small class="muted">${h}</small>`:""}</div>`;
-  modal("Instellingen kalenders "+JAAR,`<div class="form">${f("kiS","Kalenderdozen dit jaar",c.kalenderStock,"dozen","Totale voorraad om te verdelen.")}${f("kiP","Kalenders per doos",c.perDoos||100,"stuks","Gebruikt om adressen op de kaart om te rekenen naar dozen.")}</div>
-   <p class="pi-note">De punten per afgewerkte doos stel je in bij het puntensysteem (tandwiel op de pagina Puntensysteem).</p>`,
+  modal("Instellingen kalenders "+JAAR,`<div class="form">${f("kiS","Kalenderdozen dit jaar",c.kalenderStock,"dozen")}${f("kiP","Kalenders per doos",c.perDoos||100,"stuks")}</div>`,
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kiOk">Bewaren</button>`);
   $("#kiOk").onclick=async()=>{const s=Math.round(num($("#kiS").value)),p=Math.round(num($("#kiP").value));
     if(!(s>=0)){toast("Vul het aantal dozen in.",true);return}if(!(p>=1)){toast("Vul het aantal kalenders per doos in.",true);return}
@@ -6623,3 +6622,6 @@ function rmMelding(){if(!(ROL==="admin"||(typeof recht==="function"&&recht("rond
 .rm-l{display:flex;flex-direction:column;gap:10px}.rm-i{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .rm-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rm-t small{color:var(--muted);margin-left:auto}.rm-s{display:flex;flex-wrap:wrap;gap:6px}.rm-s span{background:var(--soft,#f2f2f3);border-radius:99px;padding:3px 10px;font-size:13px}.rm-s span.al{background:#fff4e5;color:#b45309}
 .rm-a{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.rm-a svg{width:15px;height:15px}`;document.head.appendChild(st)}
+/* tabbladen: de hoofdtitel van de pagina blijft die van het eerste tabblad (bv. "Kalenders" ook op Kalenderronde en Controle) */
+{const _nt=navTitel,TABHOOFD=()=>{const m={verwerken:"boekingen",inkomend:"facturen"};if(typeof KAL_TABS!=="undefined")for(const [k] of KAL_TABS)if(k!=="kalenders")m[k]="kalenders";return m};
+  navTitel=function(id){const h=TABHOOFD()[id];return (h&&_nt(h))||_nt(id)}}
