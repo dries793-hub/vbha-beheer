@@ -5596,3 +5596,246 @@ document.addEventListener("click",e=>{if(!e.target.closest('[data-act="bgPrint"]
 .bg-calc span{font-size:12.5px;color:var(--muted)}.bg-calc b{font-size:20px;font-variant-numeric:tabular-nums}.bg-calc small{font-size:11.5px;color:var(--muted)}.bg-calc .hl{border-color:var(--ink)}
 @media (max-width:760px){.bg-r{grid-template-columns:1fr 1fr 32px;border:1px solid var(--line);border-radius:12px;padding:10px}.bg-n{grid-column:1/3}.bg-x{grid-column:3;grid-row:1}
  .bg-pp{grid-column:1/4}.bg-a,.bg-p{display:flex;flex-direction:column;gap:2px}.bg-l{display:block;font-size:11.5px;color:var(--muted)}.bg-t{grid-column:1/4;text-align:left;font-size:15px}.bg-ppf{grid-template-columns:1fr 1fr}}`;document.head.appendChild(st)}
+
+/* ============ Administratie › Website (startpagina vbha.be) ============
+   config/"website": {blokken:{viv,kalender,steun,sponsors}, kal_titel, kal_tekst, viv_titel, viv_datum, viv_tekst, fotos:{kalender|viv:{pad,v,w,h}}}
+   De server (api/_lib/open_site.js) stelt de pagina samen; wijzigingen staan binnen ongeveer een minuut online. */
+{const a=NAV.find(n=>n.id==="communicatie");if(a&&!a.items.some(i=>i[0]==="website"))a.items.push(["website","Website"]);}
+if(!ROUTES.some(r=>r[0]==="website"))ROUTES.push(["website","Website"]);
+ICON.website='<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.8 5.6 3.8 9s-1.2 6.4-3.8 9c-2.6-2.6-3.8-5.6-3.8-9S9.4 5.6 12 3z"/>';
+const WS_BLOKKEN=[["viv","In Vier en Vlam","Info over de fuif met een knop om tickets te bestellen. Zet aan zodra de kalenders bedeeld zijn."],["kalender","Bedeling kalenders","De nieuwe kalender, met de knop om je adres door te geven."],["steun","Steun de Vriendenkring","Bedrag kiezen en betalen met Bancontact, plus de overschrijvingsgegevens."],["sponsors","Onze sponsors","De bewegende band met de logo's van de sponsors."]];
+const WS_DEF={blokken:{viv:false,kalender:true,steun:true,sponsors:true},kal_titel:"De nieuwe brandweerkalender "+(new Date().getFullYear()+1)+" wordt nu bedeeld",kal_tekst:"De komende weken brengen onze brandweermensen de kalender van Brandweer Aalst bij je langs. Bedankt om de Vriendenkring te steunen!",viv_titel:"In Vier en Vlam",viv_datum:"De fuif van de Vriendenkring",viv_tekst:"De fuif van de Vriendenkring Brandweer Hoofdpost Aalst. Bestel nu je tickets!"};
+let WS=null; // werkversie (niet bewaard)
+function wsCfg(){const c=S.config.get("website")||{};return {...WS_DEF,...stripId(c),blokken:{...WS_DEF.blokken,...(c.blokken||{})},fotos:{...(c.fotos||{})}}}
+function wsWerk(){if(!WS)WS=JSON.parse(JSON.stringify(wsCfg()));return WS}
+const wsGewijzigd=()=>WS&&JSON.stringify(WS)!==JSON.stringify(wsCfg());
+/* Foto verkleinen in de browser (ook gebruikt door de fotoalbums): max. zijde in px, JPEG-kwaliteit; houdt rekening met de draaiing (EXIF). */
+async function fotoVerklein(file,max=1600,q=0.85){let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:"from-image"})}catch(e){bmp=await new Promise((ok,nok)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>nok(new Error("Dit bestand is geen geldige foto."));i.src=URL.createObjectURL(file)})}
+  const W=bmp.width,H=bmp.height,s=Math.min(1,max/Math.max(W,H)),w=Math.round(W*s),h=Math.round(H*s);
+  const cv=document.createElement("canvas");cv.width=w;cv.height=h;const x=cv.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(bmp,0,0,w,h);
+  const blob=await new Promise(ok=>cv.toBlob(ok,"image/jpeg",q));return{blob,w,h,canvas:cv,bron:bmp}}
+const WS_FOTO_URL={};
+async function wsFotoUrl(f){if(!f||!f.pad)return"";if(WS_FOTO_URL[f.pad])return WS_FOTO_URL[f.pad];const {data}=await SB.storage.from(DOC_BUCKET).createSignedUrl(f.pad,3600);WS_FOTO_URL[f.pad]=data?data.signedUrl:"";return WS_FOTO_URL[f.pad]}
+function wsFotoBlok(k,lbl){const W=wsWerk(),f=W.fotos[k],d=canWrite?"":" disabled";
+  return `<div class="fld full"><span class="lbl">${lbl}</span><div class="ws-foto"><div class="ws-fi" data-wsimg="${k}">${f?'<span class="muted small">laden…</span>':k==="kalender"?'<img src="/w/kalender-2027.jpg" alt="">':'<span class="muted small">Geen foto: de tekst staat dan over de volle breedte.</span>'}</div>
+   <div class="ws-fk"><label class="btn sm${canWrite?"":" disabled"}">${ic("upload")}Foto opladen<input type="file" accept="image/*" data-wsup="${k}" hidden${d}></label>${f?`<button type="button" class="btn sm ghost" data-wsact="fotoWeg" data-k="${k}"${d}>Foto verwijderen</button>`:""}<span class="help">JPG of PNG. Wordt automatisch verkleind tot 1600 px.</span></div></div></div>`}
+VIEWS.website=()=>({title:"Website",sub:"Startpagina vbha.be",
+  actions:`<a class="btn" href="https://vbha.be" target="_blank" rel="noopener">${ic("link")}vbha.be openen</a>`,
+  body(){const W=wsWerk(),d=canWrite?"":" disabled";const ta=(id,k,max)=>`<textarea id="${id}" data-wsk="${k}" maxlength="${max}" rows="3"${d}>${esc(W[k]||"")}</textarea>`;
+    return `<div class="panel"><div class="panel-h"><h2>Wat staat er op de startpagina?</h2></div><div class="panel-b ws-bl">
+      ${WS_BLOKKEN.map(([k,t,u])=>`<label class="ws-row"><span class="ws-sw"><input type="checkbox" data-wsblok="${k}"${W.blokken[k]?" checked":""}${d}><i></i></span><span><b>${t}</b><small>${u}</small></span></label>`).join("")}
+      <p class="muted small" style="margin:4px 0 0">Staan zowel In Vier en Vlam als de kalenders aan, dan komt In Vier en Vlam bovenaan.</p></div></div>
+    <div class="grid g2" style="align-items:start">
+    <div class="panel${W.blokken.viv?"":" ws-uit"}"><div class="panel-h"><h2>In Vier en Vlam</h2>${W.blokken.viv?'<span class="pill ok">aan</span>':'<span class="pill neutral">uit</span>'}</div><div class="panel-b"><div class="form">
+      ${fld("wsVd","Bovenregel (datum, plaats)",`<input id="wsVd" data-wsk="viv_datum" maxlength="120" value="${esc(W.viv_datum||"")}" placeholder="bv. Zaterdag 24 april 2027 · Kazerne Aalst"${d}>`,"full")}
+      ${fld("wsVt","Titel",`<input id="wsVt" data-wsk="viv_titel" maxlength="140" value="${esc(W.viv_titel||"")}"${d}>`,"full")}
+      ${fld("wsVx","Tekst",ta("wsVx","viv_tekst",800),"full")}
+      ${wsFotoBlok("viv","Foto")}
+      <p class="full help" style="margin:0">De knop <b>Bestel je tickets</b> gaat naar de ticketpagina van de fuif (vbha.be/fuif).</p></div></div></div>
+    <div class="panel${W.blokken.kalender?"":" ws-uit"}"><div class="panel-h"><h2>Bedeling kalenders</h2>${W.blokken.kalender?'<span class="pill ok">aan</span>':'<span class="pill neutral">uit</span>'}</div><div class="panel-b"><div class="form">
+      ${fld("wsKt","Titel",`<input id="wsKt" data-wsk="kal_titel" maxlength="140" value="${esc(W.kal_titel||"")}"${d}>`,"full")}
+      ${fld("wsKx","Tekst",ta("wsKx","kal_tekst",600),"full")}
+      ${wsFotoBlok("kalender","Foto")}</div></div></div></div>
+    <div class="panel ws-save"><div class="panel-b" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><span class="grow muted small" id="wsStat">${wsGewijzigd()?"Je hebt wijzigingen die nog niet gepubliceerd zijn.":"Alles is gepubliceerd."}</span>
+      <button class="btn" data-wsact="voorbeeld">${ic("search")}Voorbeeld</button>${canWrite?`<button class="btn ghost" data-wsact="herstel"${wsGewijzigd()?"":" disabled"}>Wijzigingen ongedaan maken</button><button class="btn primary" data-wsact="publiceer">Publiceren</button>`:""}</div></div>`}});
+VIEWS.website.after=()=>{const W=wsWerk();for(const k of ["viv","kalender"]){const f=W.fotos[k];if(!f)continue;const el=$(`[data-wsimg="${k}"]`);if(!el)continue;
+  const zet=u=>{if(u&&el.isConnected)el.innerHTML=`<img src="${esc(u)}" alt="">`};if(f.lokaal)zet(f.lokaal);else wsFotoUrl(f).then(zet)}};
+function wsStat(){const s=$("#wsStat");if(s)s.textContent=wsGewijzigd()?"Je hebt wijzigingen die nog niet gepubliceerd zijn.":"Alles is gepubliceerd.";const h=$('[data-wsact="herstel"]');if(h)h.disabled=!wsGewijzigd()}
+document.addEventListener("input",e=>{const k=e.target.dataset&&e.target.dataset.wsk;if(!k)return;wsWerk()[k]=e.target.value;wsStat()});
+document.addEventListener("change",async e=>{const t=e.target;
+  if(t.dataset&&t.dataset.wsblok){wsWerk().blokken[t.dataset.wsblok]=t.checked;renderBody();return}
+  if(t.dataset&&t.dataset.wsup){const k=t.dataset.wsup,f=t.files&&t.files[0];if(!f)return;const el=$(`[data-wsimg="${k}"]`);if(el)el.innerHTML='<span class="muted small">Foto verwerken…</span>';
+    try{const r=await fotoVerklein(f,1600,0.85);const v=Date.now().toString(36),pad=`Website/${k}-${v}.jpg`;
+      const {error}=await SB.storage.from(DOC_BUCKET).upload(pad,r.blob,{contentType:"image/jpeg",upsert:false});if(error)throw error;
+      const W=wsWerk();W.fotos[k]={pad,v,w:r.w,h:r.h,lokaal:URL.createObjectURL(r.blob)};renderBody();toast("Foto opgeladen. Klik op Publiceren om ze op de website te zetten.")}
+    catch(x){toast("Opladen mislukt: "+(x.message||x),true);renderBody()}}});
+const wsBewaarbaar=W=>{const o=JSON.parse(JSON.stringify(W));for(const k in o.fotos)delete o.fotos[k].lokaal;return o};
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-wsact]");if(!b)return;const a=b.dataset.wsact;
+  if(a==="fotoWeg"){delete wsWerk().fotos[b.dataset.k];renderBody();return}
+  if(a==="herstel"){WS=null;renderBody();return}
+  if(a==="voorbeeld"){const w=window.open("","_blank");b.disabled=true;
+    try{const j=await api("/api/openbaar?f=site",{method:"POST",body:JSON.stringify({cfg:wsBewaarbaar(wsWerk())})});const u=URL.createObjectURL(new Blob([j.html],{type:"text/html"}));if(w)w.location.href=u;else window.open(u,"_blank")}
+    catch(x){if(w)w.close();toast("Voorbeeld lukte niet: "+(x.message||x),true)}finally{b.disabled=false}return}
+  if(a==="publiceer"){const W=wsBewaarbaar(wsWerk());if(!Object.values(W.blokken).some(Boolean)){toast("Zet minstens één onderdeel aan.",true);return}
+    b.disabled=true;try{await write("config","website",{...W,gewijzigd:new Date().toISOString(),door:ME_NAME||""});
+      // oude, niet meer gebruikte foto's opruimen
+      const oud=Object.values(wsCfg().fotos||{}).map(f=>f.pad),nu=Object.values(W.fotos).map(f=>f.pad);const weg=oud.filter(p=>!nu.includes(p));if(weg.length)SB.storage.from(DOC_BUCKET).remove(weg).catch(()=>{});
+      S.config.set("website",{...W,id:"website"});WS=null;renderBody();toast("Gepubliceerd. De website is binnen een minuut bijgewerkt.")}catch(x){}finally{b.disabled=false}}});
+{const st=document.createElement("style");st.textContent=`
+.ws-bl{display:flex;flex-direction:column;gap:12px}.ws-row{display:flex;gap:14px;align-items:flex-start;cursor:pointer}.ws-row b{display:block}.ws-row small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.ws-sw{position:relative;flex:0 0 auto;width:44px;height:26px;margin-top:1px}.ws-sw input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}.ws-sw i{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:background .15s}
+.ws-sw i::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
+.ws-sw input:checked+i{background:var(--ok,#16a34a)}.ws-sw input:checked+i::after{transform:translateX(18px)}.ws-sw input:focus-visible+i{outline:2px solid var(--ink);outline-offset:2px}
+.ws-uit{opacity:.72}.ws-foto{display:flex;flex-direction:column;gap:10px}.ws-fi{border:1px dashed var(--line);border-radius:12px;min-height:90px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--soft,#f6f6f6)}
+.ws-fi img{display:block;width:100%;height:auto}.ws-fi span{padding:16px;text-align:center}.ws-fk{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.ws-fk .help{flex-basis:100%}
+@media (min-width:900px){.ws-save{position:sticky;bottom:12px;z-index:5;box-shadow:0 6px 24px rgba(0,0,0,.08)}}`;document.head.appendChild(st)}
+
+/* ============ Foto's › eigen fotoalbums (opladen, watermerk, voorbeeld, publiceren) ============
+   Rij in "fotoalbums": {soort:"eigen", titel, datum, jaar, fotograaf, omschrijving, cover:fid,
+     fotos:[{id,naam,w,h,pw,ph,pubKey}], watermerk:{docId,pos,grootte,dekking}|null,
+     status:"concept"|"gepubliceerd", publiek:{token,op,fotos:[{id,w,h}]}, weg:[fid…]}
+   Opslag (bucket documenten, afgeschermd): Albums/<id>/bron (max 1920 px, zonder watermerk),
+     mini (400 px, voor de beheerapp), pub (1600 px met watermerk) en klein (640 px met watermerk).
+   Het openbare album (vbha.be/album?c=<id>.<token>) toont enkel pub/klein, via tijdelijke links. */
+const FA={id:null,a:null,urls:{},logo:{},sel:null,busy:null,t:null,focus:null};
+const FA_POS=[["lt","linksboven"],["ct","boven"],["rt","rechtsboven"],["lm","links"],["cm","midden"],["rm","rechts"],["lb","linksonder"],["cb","onder"],["rb","rechtsonder"]];
+const faId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const faTok=()=>{const a=new Uint8Array(24);crypto.getRandomValues(a);return [...a].map(b=>"abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b%57]).join("")};
+const faPad=(id,s,f)=>`Albums/${id}/${s}/${f}.jpg`;
+const faLink=a=>a&&a.publiek&&a.publiek.token?`https://vbha.be/album?c=${encodeURIComponent(a.id)}.${a.publiek.token}`:"";
+const faWmDef=()=>({docId:"",pos:"rb",grootte:18,dekking:85});
+const faLogos=()=>[...S.documenten.values()].filter(d=>(d.map==="Logo"||String(d.map||"").startsWith("Logo/"))&&/^image\/(png|jpe?g|webp|gif|svg)/i.test(d.type||"")).sort((a,b)=>String(a.naam).localeCompare(String(b.naam),"nl"));
+const faWmKey=a=>JSON.stringify(a.watermerk&&a.watermerk.docId?a.watermerk:null);
+const faGewijzigd=a=>a.status==="gepubliceerd"&&(JSON.stringify((a.publiek&&a.publiek.fotos||[]).map(f=>f.id))!==JSON.stringify(a.fotos.map(f=>f.id))||a.fotos.some(f=>f.pubKey!==faWmKey(a)));
+async function faUrls(paden){const nodig=paden.filter(p=>!FA.urls[p]);for(let i=0;i<nodig.length;i+=100){const {data}=await SB.storage.from(DOC_BUCKET).createSignedUrls(nodig.slice(i,i+100),3600);for(const d of data||[])if(d.signedUrl)FA.urls[d.path]=d.signedUrl}return paden.map(p=>FA.urls[p]||"")}
+async function faLogo(docId){if(!docId)return null;if(FA.logo[docId])return FA.logo[docId];const d=S.documenten.get(docId);if(!d)return null;
+  const [u]=await faUrls([d.pad]);const b=await (await fetch(u)).blob();const bmp=await createImageBitmap(b);FA.logo[docId]={bmp,url:URL.createObjectURL(b)};return FA.logo[docId]}
+function faWmTeken(ctx,W,H,logo,wm){if(!logo||!wm)return;const lw=W*wm.grootte/100,lh=lw*logo.height/logo.width,m=0.03*Math.min(W,H);
+  const x=wm.pos[0]==="l"?m:wm.pos[0]==="r"?W-lw-m:(W-lw)/2,y=wm.pos[1]==="t"?m:wm.pos[1]==="b"?H-lh-m:(H-lh)/2;
+  ctx.save();ctx.globalAlpha=wm.dekking/100;ctx.imageSmoothingQuality="high";ctx.drawImage(logo,x,y,lw,lh);ctx.restore()}
+const faSave=(direct)=>{clearTimeout(FA.t);const go=async()=>{FA.t=null;const a=FA.a;if(!a)return;const {id,...rest}=a;try{await write("fotoalbums",a.id,{...rest,gewijzigd:new Date().toISOString()})}catch(e){}};if(direct)return go();FA.t=setTimeout(go,600)};
+function faOpen(id){const a=S.fotoalbums.get(id);if(!a)return;FA.id=id;FA.a=JSON.parse(JSON.stringify(a));FA.a.fotos=FA.a.fotos||[];FA.a.watermerk=FA.a.watermerk||null;FA.sel=null;window.scrollTo(0,0);renderBody()}
+function faSluit(){if(FA.t)faSave(true);FA.id=null;FA.a=null;renderBody()}
+
+/* ---------- overzicht: eigen albums + links naar externe galerijen ---------- */
+ftKaarten=function(){const L=ftLijst();
+  if(!L.length)return `<div class="panel"><div class="empty">${FT.q?"Geen albums gevonden.":"Nog geen fotoalbums."}${canWrite&&!FT.q?`<div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn primary" data-act="faNieuw">${ic("plus")}Album maken</button><button class="btn" data-act="ftNieuw">${ic("link")}Link toevoegen</button></div>`:""}</div></div>`;
+  return `<div class="ft-grid">${L.map(a=>{if(a.soort==="eigen"){const n=(a.fotos||[]).length,sub=[a.datum?fmtDate(a.datum):a.jaar,n+" foto"+(n===1?"":"'s")].filter(Boolean).join(" · ");
+      return `<div class="ft-card"><button type="button" class="ft-hit" data-act="faOpen" data-id="${esc(a.id)}" aria-label="${esc(a.titel||"Album")} openen" style="border:0;background:none;padding:0"></button><div class="ft-img leeg" data-facover="${esc(a.id)}"><span>${ic("fotos")}</span></div>
+        <div class="ft-b"><div class="ft-t"><b>${esc(a.titel||"Album")}</b>${sub?`<span>${esc(sub)}</span>`:""}</div>
+        <div class="ft-h">${a.status==="gepubliceerd"?(faGewijzigd(a)?'<span class="pill warn">gepubliceerd · wijzigingen</span>':'<span class="pill ok">gepubliceerd</span>'):'<span class="pill neutral">concept</span>'}</div></div></div>`}
+    const u=ftLink(a.link),c=ftLink(a.cover);const sub=[a.datum?fmtDate(a.datum):a.jaar,a.fotograaf].filter(Boolean).join(" · ");
+    return `<div class="ft-card">${u?`<a class="ft-hit" href="${esc(u)}" target="_blank" rel="noopener" aria-label="${esc(a.titel||"Album")} openen"></a>`:""}<div class="ft-img${c?"":" leeg"}" >${c?`<img src="${esc(c)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:`<span>${ic("fotos")}</span>`}</div>
+      <div class="ft-b"><div class="ft-t"><b>${esc(a.titel||"Album")}</b>${sub?`<span>${esc(sub)}</span>`:""}${a.omschrijving?`<span class="ft-o">${esc(a.omschrijving)}</span>`:""}</div>
+      ${canWrite?`<button type="button" class="btn sm iconbtn ft-edit" data-act="ftEdit" data-id="${esc(a.id)}" aria-label="Album wijzigen" title="Wijzigen">${ic("potlood")}</button>`:""}
+      ${u?`<div class="ft-h">${esc(ftHost(u))}</div>`:""}</div></div>`}).join("")}</div>`};
+async function faCovers(){const els=$$("[data-facover]");const P=[];for(const el of els){const a=S.fotoalbums.get(el.dataset.facover);const f=a&&(a.fotos||[]).find(x=>x.id===a.cover)||(a&&(a.fotos||[])[0]);if(f)P.push([el,faPad(a.id,"mini",f.id)])}
+  if(!P.length)return;const U=await faUrls(P.map(p=>p[1]));P.forEach(([el,_],i)=>{if(U[i]&&el.isConnected){el.classList.remove("leeg");el.innerHTML=`<img src="${esc(U[i])}" alt="" loading="lazy">`}})}
+
+/* ---------- editor ---------- */
+function faEditor(){const a=FA.a,d=canWrite?"":" disabled",n=a.fotos.length,wm=a.watermerk||faWmDef(),logos=faLogos(),pub=a.status==="gepubliceerd",link=faLink(a),gew=faGewijzigd(a);
+  return `<div class="bar fa-bar"><button class="btn" data-fa="terug">← Alle albums</button><span class="grow"></span>${pub?(gew?'<span class="pill warn">gepubliceerd · niet-gepubliceerde wijzigingen</span>':'<span class="pill ok">gepubliceerd</span>'):'<span class="pill neutral">concept</span>'}</div>
+  ${pub?`<div class="panel fa-link"><div class="panel-b"><div class="fa-lk"><span class="muted small">Deelbare link</span><a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a></div><div class="fa-lkb"><button class="btn sm" data-fa="kopie">${ic("copy")}Link kopiëren</button><button class="btn sm" data-fa="deel">${ic("deel")}Delen</button><a class="btn sm" href="mailto:?subject=${encodeURIComponent("Foto's: "+(a.titel||""))}&body=${encodeURIComponent("Hallo,\n\nDe foto's van "+(a.titel||"")+" staan online:\n"+link+"\n\nVriendenkring Brandweer Hoofdpost Aalst")}">${ic("mails")}Mail</a></div></div></div>`:""}
+  <div class="grid g2" style="align-items:start">
+  <div class="panel"><div class="panel-h"><h2>Album</h2></div><div class="panel-b"><div class="form">
+    ${fld("faT","Titel",`<input id="faT" data-faf="titel" maxlength="120" value="${esc(a.titel||"")}" placeholder="bv. Banket 2026"${d}>`,"full")}
+    ${fld("faD","Datum",`<input id="faD" type="date" data-faf="datum" value="${esc(a.datum||"")}"${d}>`)}${fld("faF","Fotograaf",`<input id="faF" data-faf="fotograaf" maxlength="120" value="${esc(a.fotograaf||"")}"${d}>`)}
+    ${fld("faO","Omschrijving",`<textarea id="faO" data-faf="omschrijving" maxlength="600" rows="3"${d}>${esc(a.omschrijving||"")}</textarea>`,"full")}</div></div></div>
+  <div class="panel"><div class="panel-h"><h2>Watermerk</h2></div><div class="panel-b"><div class="form">
+    ${fld("faWl","Logo",`<select id="faWl" data-fawm="docId"${d}><option value="">Geen watermerk</option>${logos.map(l=>`<option value="${esc(l.id)}"${wm.docId===l.id?" selected":""}>${esc(l.naam)}</option>`).join("")}</select>`,"full")}
+    ${logos.length?"":`<p class="full help" style="margin:0">Zet eerst een logo (PNG met transparante achtergrond) in Documenten › Logo.</p>`}
+    <div class="fld"><span class="lbl">Plaats</span><div class="fa-pos" role="radiogroup" aria-label="Plaats van het watermerk">${FA_POS.map(([k,l])=>`<button type="button" role="radio" aria-checked="${wm.pos===k}" aria-label="${l}" title="${l}" class="${wm.pos===k?"on":""}" data-fapos="${k}"${wm.docId?d:" disabled"}><i></i></button>`).join("")}</div></div>
+    <div class="fld"><label for="faWg">Grootte <b id="faWgV">${wm.grootte}%</b></label><input id="faWg" type="range" min="5" max="50" step="1" value="${wm.grootte}" data-fawm="grootte"${wm.docId?d:" disabled"}><span class="help">van de breedte van de foto</span>
+      <label for="faWd" style="margin-top:10px">Zichtbaarheid <b id="faWdV">${wm.dekking}%</b></label><input id="faWd" type="range" min="20" max="100" step="5" value="${wm.dekking}" data-fawm="dekking"${wm.docId?d:" disabled"}></div>
+    <div class="full fa-wmv"><canvas id="faWmC" width="800" height="533" aria-label="Voorbeeld van het watermerk"></canvas><span class="muted small" id="faWmT">${n?"Voorbeeld op "+(FA.sel?"de gekozen foto":"de omslagfoto")+". Klik op een foto hieronder om een andere te kiezen.":"Laad eerst foto's op."}</span></div></div></div></div></div>
+  <div class="panel"><div class="panel-h"><h2>Foto's <span class="muted" style="font-weight:500">${n}</span></h2><span class="grow"></span>${canWrite?`<label class="btn primary sm">${ic("upload")}Foto's opladen<input type="file" accept="image/*" multiple hidden data-faup></label>`:""}</div>
+    <div class="panel-b">${FA.busy?`<div class="fa-prog"><div><b>${esc(FA.busy.t)}</b><span>${FA.busy.i} / ${FA.busy.n}</span></div><i><em style="width:${FA.busy.n?Math.round(FA.busy.i/FA.busy.n*100):0}%"></em></i></div>`:""}
+    ${n?`<div class="fa-grid">${a.fotos.map((f,i)=>`<div class="fa-it${FA.sel===f.id?" sel":""}${a.cover===f.id||(!a.cover&&i===0)?" cov":""}" data-faid="${esc(f.id)}"><button type="button" class="fa-img" data-fa="kies" aria-label="Foto ${i+1} kiezen voor het voorbeeld"><img data-famini="${esc(f.id)}" alt="" loading="lazy"></button>
+      ${canWrite?`<div class="fa-ib"><button type="button" data-fa="cover" title="Als omslagfoto" aria-label="Als omslagfoto">★</button><button type="button" data-fa="links" title="Naar voren" aria-label="Naar voren"${i?"":" disabled"}>‹</button><button type="button" data-fa="rechts" title="Naar achteren" aria-label="Naar achteren"${i<n-1?"":" disabled"}>›</button><button type="button" data-fa="weg" title="Verwijderen" aria-label="Foto verwijderen">✕</button></div>`:""}</div>`).join("")}</div>`
+      :`<label class="fa-drop${canWrite?"":" uit"}" data-fadrop>${ic("upload")}<b>Sleep foto's hierheen of klik om op te laden</b><span>JPG, PNG of HEIC van je gsm. Ze worden automatisch verkleind.</span><input type="file" accept="image/*" multiple hidden data-faup${d}></label>`}</div></div>
+  <div class="panel fa-save"><div class="panel-b" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    ${canWrite?`<button class="btn danger ghost" data-fa="verwijder">Album verwijderen</button>`:""}<span class="grow"></span>
+    <button class="btn" data-fa="voorbeeld"${n?"":" disabled"}>${ic("search")}Voorbeeld album</button>
+    ${canWrite?(pub?`<button class="btn" data-fa="depubliceer">Offline halen</button><button class="btn primary" data-fa="publiceer"${gew&&!FA.busy?"":" disabled"}>Wijzigingen publiceren</button>`:`<button class="btn primary" data-fa="publiceer"${n&&!FA.busy?"":" disabled"}>Publiceren</button>`):""}</div></div>`}
+{const _v=VIEWS.fotos;VIEWS.fotos=function(){const v=_v.apply(this,arguments);
+  if(FA.id&&FA.a)return{title:FA.a.titel||"Fotoalbum",actions:"",body:faEditor};
+  return{...v,actions:canWrite?`<button class="btn" data-w data-act="ftNieuw">${ic("link")}Link toevoegen</button><button class="btn primary" data-w data-act="faNieuw">${ic("plus")}Album maken</button>`:""}};Object.assign(VIEWS.fotos,_v);
+  VIEWS.fotos.after=()=>{if(!(FA.id&&FA.a)){faCovers();return}faMinis();faWmVoorbeeld();
+    if(FA.focus){const el=$(FA.focus.sel);if(el&&document.activeElement!==el){el.focus();try{el.setSelectionRange(FA.focus.pos,FA.focus.pos)}catch(e){}}}}}
+// als iemand anders het album wijzigt terwijl het openstaat: niet overschrijven wat hier geopend is
+async function faMinis(){const a=FA.a;if(!a)return;const els=$$("[data-famini]");if(!els.length)return;const U=await faUrls(els.map(e=>faPad(a.id,"mini",e.dataset.famini)));els.forEach((e,i)=>{if(U[i])e.src=U[i]})}
+let FA_WMJOB=0;
+async function faWmVoorbeeld(){const c=$("#faWmC");if(!c||!FA.a)return;const a=FA.a,job=++FA_WMJOB;const f=a.fotos.find(x=>x.id===FA.sel)||a.fotos.find(x=>x.id===a.cover)||a.fotos[0];const x=c.getContext("2d");
+  if(!f){c.width=800;c.height=300;x.fillStyle="#eee";x.fillRect(0,0,800,300);return}
+  try{const [u]=await faUrls([faPad(a.id,"bron",f.id)]);const im=FA.urls["bmp:"+f.id]||await createImageBitmap(await (await fetch(u)).blob());FA.urls["bmp:"+f.id]=im;if(job!==FA_WMJOB)return;
+    const s=Math.min(1,900/Math.max(im.width,im.height));c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);x.drawImage(im,0,0,c.width,c.height);
+    const wm=a.watermerk;if(wm&&wm.docId){const L=await faLogo(wm.docId);if(job!==FA_WMJOB)return;if(L)faWmTeken(x,c.width,c.height,L.bmp,wm)}}catch(e){}}
+/* foto's opladen: verkleinen in de browser, bron + mini naar de opslag */
+async function faOpladen(files){const a=FA.a;if(!a||!files.length)return;files=[...files].filter(f=>/^image\//.test(f.type)||/\.(heic|heif|jpe?g|png|webp)$/i.test(f.name));if(!files.length){toast("Kies foto's (JPG of PNG).",true);return}
+  FA.busy={t:"Foto's opladen",i:0,n:files.length};renderBody();let fout=0;const nieuw=[];let k=0;
+  const werk=async()=>{while(k<files.length){const file=files[k++];try{const r=await fotoVerklein(file,1920,0.86);const id=faId();
+      const m=document.createElement("canvas"),s=Math.min(1,400/Math.max(r.w,r.h));m.width=Math.round(r.w*s);m.height=Math.round(r.h*s);m.getContext("2d").drawImage(r.canvas,0,0,m.width,m.height);const mb=await new Promise(ok=>m.toBlob(ok,"image/jpeg",0.8));
+      let e=(await SB.storage.from(DOC_BUCKET).upload(faPad(a.id,"bron",id),r.blob,{contentType:"image/jpeg",upsert:true})).error;if(e)throw e;
+      e=(await SB.storage.from(DOC_BUCKET).upload(faPad(a.id,"mini",id),mb,{contentType:"image/jpeg",upsert:true})).error;if(e)throw e;
+      nieuw.push({id,naam:String(file.name||"").slice(0,120),w:r.w,h:r.h,_t:file.lastModified||0})}catch(x){fout++;console.error(x)}
+    FA.busy.i++;const p=$(".fa-prog");if(p){p.querySelector("span").textContent=FA.busy.i+" / "+FA.busy.n;p.querySelector("em").style.width=Math.round(FA.busy.i/FA.busy.n*100)+"%"}}};
+  await Promise.all([werk(),werk(),werk()]);
+  nieuw.sort((x,y)=>x._t-y._t||x.naam.localeCompare(y.naam,"nl",{numeric:true}));for(const f of nieuw){delete f._t;a.fotos.push(f)}if(!a.cover&&a.fotos[0])a.cover=a.fotos[0].id;
+  FA.busy=null;await faSave(true);renderBody();toast(nieuw.length+" foto"+(nieuw.length===1?"":"'s")+" opgeladen"+(fout?`, ${fout} lukte niet`:"")+".",!!fout)}
+/* publiceren: watermerk in de foto zetten (pub + klein), daarna de deelbare link aanmaken */
+async function faPubliceer(){const a=FA.a;if(!a||!a.fotos.length)return;const key=faWmKey(a),wm=a.watermerk&&a.watermerk.docId?a.watermerk:null;
+  let L=null;if(wm){L=await faLogo(wm.docId);if(!L){toast("Het logo voor het watermerk is niet gevonden.",true);return}}
+  const todo=a.fotos.filter(f=>f.pubKey!==key);FA.busy={t:"Foto's klaarmaken met watermerk",i:0,n:todo.length};renderBody();let fout=0,k=0;
+  const werk=async()=>{while(k<todo.length){const f=todo[k++];try{const [u]=await faUrls([faPad(a.id,"bron",f.id)]);const im=await createImageBitmap(await (await fetch(u)).blob());
+      const s=Math.min(1,1600/Math.max(im.width,im.height)),W=Math.round(im.width*s),H=Math.round(im.height*s);const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(im,0,0,W,H);if(wm)faWmTeken(x,W,H,L.bmp,wm);
+      const g=await new Promise(ok=>c.toBlob(ok,"image/jpeg",0.84));const c2=document.createElement("canvas"),s2=Math.min(1,640/Math.max(W,H));c2.width=Math.round(W*s2);c2.height=Math.round(H*s2);const x2=c2.getContext("2d");x2.imageSmoothingQuality="high";x2.drawImage(c,0,0,c2.width,c2.height);
+      const kl=await new Promise(ok=>c2.toBlob(ok,"image/jpeg",0.8));
+      let e=(await SB.storage.from(DOC_BUCKET).upload(faPad(a.id,"pub",f.id),g,{contentType:"image/jpeg",upsert:true})).error;if(e)throw e;
+      e=(await SB.storage.from(DOC_BUCKET).upload(faPad(a.id,"klein",f.id),kl,{contentType:"image/jpeg",upsert:true})).error;if(e)throw e;
+      f.pubKey=key;f.pw=W;f.ph=H}catch(x){fout++;console.error(x)}
+    FA.busy.i++;const p=$(".fa-prog");if(p){p.querySelector("span").textContent=FA.busy.i+" / "+FA.busy.n;p.querySelector("em").style.width=Math.round(FA.busy.i/FA.busy.n*100)+"%"}}};
+  await Promise.all([werk(),werk(),werk()]);FA.busy=null;
+  if(fout){await faSave(true);renderBody();toast(fout+" foto's konden niet verwerkt worden. Probeer opnieuw te publiceren.",true);return}
+  const weg=(a.weg||[]).flatMap(id=>["pub","klein"].map(s=>faPad(a.id,s,id)));if(weg.length)await SB.storage.from(DOC_BUCKET).remove(weg).catch(()=>{});a.weg=[];
+  a.publiek={token:(a.publiek&&a.publiek.token)||faTok(),op:new Date().toISOString(),door:ME_NAME||"",fotos:a.fotos.map(f=>({id:f.id,w:f.pw||f.w,h:f.ph||f.h}))};a.status="gepubliceerd";
+  await faSave(true);renderBody();toast("Album gepubliceerd. Kopieer de link om ze te delen.")}
+async function faVoorbeeld(){const a=FA.a;const w=window.open("/album?voorbeeld=1","_blank");if(!w){toast("Je browser blokkeerde het nieuwe venster.",true);return}
+  const fotos=a.fotos;const U=await faUrls(fotos.map(f=>faPad(a.id,"bron",f.id)));const K=await faUrls(fotos.map(f=>faPad(a.id,"mini",f.id)));
+  let wm=null;if(a.watermerk&&a.watermerk.docId){const L=await faLogo(a.watermerk.docId);if(L){const [lu]=await faUrls([S.documenten.get(a.watermerk.docId).pad]);wm={...a.watermerk,url:lu}}}
+  const data={soort:"vbhaAlbum",album:{titel:a.titel||"Fotoalbum",datum:a.datum||"",omschrijving:a.omschrijving||"",fotograaf:a.fotograaf||"",cover:a.cover,fotos:fotos.map((f,i)=>({id:f.id,w:f.w,h:f.h,g:U[i],k:K[i]}))},wm};
+  let klaar=false;const h=e=>{if(e.source===w&&e.data&&e.data.soort==="vbhaAlbumKlaar"){klaar=true;w.postMessage(data,location.origin);removeEventListener("message",h)}};addEventListener("message",h);
+  setTimeout(()=>{if(!klaar)try{w.postMessage(data,location.origin)}catch(e){}},2500)}
+async function faVerwijder(){const a=FA.a;confirmBox(`Album <b>${esc(a.titel||"")}</b> met alle ${a.fotos.length} foto's verwijderen? De deelbare link werkt dan niet meer.`,"Verwijderen",async()=>{closeModal();
+  const P=[];for(const s of ["bron","mini","pub","klein"]){const {data}=await SB.storage.from(DOC_BUCKET).list(`Albums/${a.id}/${s}`,{limit:1000});for(const o of data||[])P.push(`Albums/${a.id}/${s}/${o.name}`)}
+  for(let i=0;i<P.length;i+=100)await SB.storage.from(DOC_BUCKET).remove(P.slice(i,i+100)).catch(()=>{});
+  await write("fotoalbums",a.id,null,{del:true});FA.id=null;FA.a=null;renderBody();toast("Album verwijderd.")})}
+document.addEventListener("click",async e=>{const t=e.target.closest("[data-act]");if(t){
+  if(t.dataset.act==="faNieuw"){const id="album-"+faId();const a={soort:"eigen",titel:"",datum:"",jaar:JAAR,fotograaf:"",omschrijving:"",fotos:[],watermerk:null,status:"concept",aangemaakt:new Date().toISOString(),door:ME_NAME||""};
+    S.fotoalbums.set(id,{...a,id});FA.id=id;FA.a={...a,id};FA.sel=null;faSave(true);renderBody();setTimeout(()=>{const i=$("#faT");if(i)i.focus()},60);return}
+  if(t.dataset.act==="faOpen"){faOpen(t.dataset.id);return}}
+  const b=e.target.closest("[data-fa]");if(!b||!FA.a)return;const a=FA.a,act=b.dataset.fa,it=b.closest("[data-faid]"),fid=it&&it.dataset.faid,i=a.fotos.findIndex(f=>f.id===fid);
+  if(act==="terug"){faSluit();return}
+  if(act==="kies"){FA.sel=fid;$$(".fa-it").forEach(x=>x.classList.toggle("sel",x.dataset.faid===fid));const tt=$("#faWmT");if(tt)tt.textContent="Voorbeeld op de gekozen foto. Klik op een andere foto om te wisselen.";faWmVoorbeeld();$("#faWmC").scrollIntoView({block:"nearest",behavior:"smooth"});return}
+  if(act==="voorbeeld"){faVoorbeeld();return}
+  if(act==="kopie"){try{await navigator.clipboard.writeText(faLink(a));toast("Link gekopieerd.")}catch(x){prompt("Kopieer de link:",faLink(a))}return}
+  if(act==="deel"){try{await navigator.share({title:a.titel,text:"Bekijk de foto's van "+(a.titel||""),url:faLink(a)})}catch(x){if(!(x&&x.name==="AbortError")){try{await navigator.clipboard.writeText(faLink(a));toast("Link gekopieerd.")}catch(y){}}}return}
+  if(!canWrite||FA.busy)return;
+  if(act==="cover"){a.cover=fid;faSave();renderBody();return}
+  if(act==="links"&&i>0){[a.fotos[i-1],a.fotos[i]]=[a.fotos[i],a.fotos[i-1]];faSave();renderBody();return}
+  if(act==="rechts"&&i<a.fotos.length-1){[a.fotos[i+1],a.fotos[i]]=[a.fotos[i],a.fotos[i+1]];faSave();renderBody();return}
+  if(act==="weg"){a.fotos.splice(i,1);if(a.cover===fid)a.cover=a.fotos[0]?a.fotos[0].id:null;if(FA.sel===fid)FA.sel=null;
+    SB.storage.from(DOC_BUCKET).remove([faPad(a.id,"bron",fid),faPad(a.id,"mini",fid)]).catch(()=>{});
+    if(a.status==="gepubliceerd")(a.weg=a.weg||[]).push(fid);else SB.storage.from(DOC_BUCKET).remove([faPad(a.id,"pub",fid),faPad(a.id,"klein",fid)]).catch(()=>{});
+    faSave(true);renderBody();return}
+  if(act==="publiceer"){if(!(a.titel||"").trim()){toast("Geef het album eerst een titel.",true);const x=$("#faT");if(x)x.focus();return}b.disabled=true;await faPubliceer();return}
+  if(act==="depubliceer"){confirmBox("Album offline halen? De deelbare link toont dan een melding. Publiceer je later opnieuw, dan werkt dezelfde link weer.","Offline halen",async()=>{closeModal();a.status="concept";await faSave(true);renderBody();toast("Het album staat offline.")});return}
+  if(act==="verwijder"){faVerwijder();return}});
+document.addEventListener("click",e=>{const p=e.target.closest("[data-fapos]");if(!p||!FA.a||!canWrite)return;FA.a.watermerk={...faWmDef(),...FA.a.watermerk,pos:p.dataset.fapos};$$("[data-fapos]").forEach(x=>{const on=x===p;x.classList.toggle("on",on);x.setAttribute("aria-checked",on)});faSave();faWmVoorbeeld()});
+document.addEventListener("input",e=>{const t=e.target;if(!FA.a)return;
+  if(t.dataset.faf){FA.a[t.dataset.faf]=t.value;if(t.dataset.faf==="datum"&&/^\d{4}/.test(t.value))FA.a.jaar=Number(t.value.slice(0,4));FA.focus={sel:`[data-faf="${t.dataset.faf}"]`,pos:t.selectionStart};faSave();return}
+  if(t.dataset.fawm){const k=t.dataset.fawm;if(k==="docId"){FA.a.watermerk=t.value?{...faWmDef(),...(FA.a.watermerk||{}),docId:t.value}:null;faSave();renderBody();return}
+    FA.a.watermerk={...faWmDef(),...FA.a.watermerk,[k]:Number(t.value)};const v=$(k==="grootte"?"#faWgV":"#faWdV");if(v)v.textContent=t.value+"%";faSave();faWmVoorbeeld()}});
+document.addEventListener("focusout",e=>{if(e.target.dataset&&e.target.dataset.faf)setTimeout(()=>{if(!(document.activeElement&&document.activeElement.dataset&&document.activeElement.dataset.faf))FA.focus=null},0)});
+document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.faup!==undefined){const f=[...(e.target.files||[])];e.target.value="";faOpladen(f)}});
+document.addEventListener("dragover",e=>{const d=e.target.closest&&e.target.closest("[data-fadrop],.fa-grid");if(d&&FA.a&&canWrite){e.preventDefault();d.classList.add("over")}});
+document.addEventListener("dragleave",e=>{const d=e.target.closest&&e.target.closest("[data-fadrop],.fa-grid");if(d)d.classList.remove("over")});
+document.addEventListener("drop",e=>{const d=e.target.closest&&e.target.closest("[data-fadrop],.fa-grid");if(!d||!FA.a||!canWrite)return;e.preventDefault();d.classList.remove("over");faOpladen([...(e.dataTransfer.files||[])])});
+addEventListener("beforeunload",e=>{if(FA.busy){e.preventDefault();e.returnValue=""}});
+// naar een ander scherm: editor sluiten
+addEventListener("hashchange",()=>{if(FA.id&&route()!=="fotos"){if(FA.t)faSave(true);FA.id=null;FA.a=null}});
+{const st=document.createElement("style");st.textContent=`
+.fa-bar{margin:0}.fa-link .panel-b{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}.fa-lk{display:flex;flex-direction:column;min-width:0;gap:2px}.fa-lk a{word-break:break-all;font-weight:600}.fa-lkb{display:flex;gap:6px;flex-wrap:wrap}
+.fa-pos{display:grid;grid-template-columns:repeat(3,38px);gap:5px}.fa-pos button{width:38px;height:28px;border:1px solid var(--line);border-radius:7px;background:var(--soft,#f4f4f5);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.fa-pos button i{width:10px;height:10px;border-radius:3px;background:var(--line)}.fa-pos button.on{background:var(--ink);border-color:var(--ink)}.fa-pos button.on i{background:#fff}.fa-pos button:disabled{opacity:.45;cursor:default}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.fa-wmv{display:flex;flex-direction:column;gap:6px}.fa-wmv canvas{width:100%;height:auto;border-radius:10px;border:1px solid var(--line);background:#eee}
+.fa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;border-radius:12px}.fa-grid.over,.fa-drop.over{outline:2px dashed var(--ink);outline-offset:4px}
+.fa-it{position:relative;border-radius:10px;overflow:hidden;background:var(--soft,#eee);aspect-ratio:1;border:2px solid transparent}.fa-it.sel{border-color:var(--ink)}
+.fa-it.cov::after{content:"Omslag";position:absolute;left:6px;top:6px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;pointer-events:none}
+.fa-img{display:block;width:100%;height:100%;border:0;padding:0;background:none;cursor:pointer}.fa-img img{width:100%;height:100%;object-fit:cover;display:block}
+.fa-ib{position:absolute;right:4px;bottom:4px;display:flex;gap:3px}.fa-ib button{width:28px;height:28px;border-radius:8px;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}.fa-ib button:disabled{opacity:.35}
+.fa-ib button:hover:not(:disabled){background:rgba(0,0,0,.85)}@media (hover:hover){.fa-ib{opacity:0;transition:opacity .15s}.fa-it:hover .fa-ib,.fa-it:focus-within .fa-ib{opacity:1}}
+.fa-drop{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:36px 16px;border:2px dashed var(--line);border-radius:14px;cursor:pointer;color:var(--muted)}.fa-drop b{color:var(--ink)}.fa-drop svg{width:28px;height:28px}.fa-drop.uit{pointer-events:none;opacity:.6}
+.fa-prog{margin-bottom:12px}.fa-prog div{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:6px}.fa-prog i{display:block;height:8px;border-radius:99px;background:var(--line);overflow:hidden}.fa-prog em{display:block;height:100%;background:var(--ink);transition:width .3s}
+@media (min-width:900px){.fa-save{position:sticky;bottom:12px;z-index:5;box-shadow:0 6px 24px rgba(0,0,0,.08)}}
+button.ft-hit{position:absolute;inset:0;z-index:1;cursor:pointer;width:100%}`;document.head.appendChild(st)}

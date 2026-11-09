@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0d0d0f">
+<title>Fotoalbum – VBHA</title>
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/fonts/inter.css">
+<style>
+:root{--bg:#0d0d0f;--ink:#f5f5f4;--muted:#a1a1aa;--line:rgba(255,255,255,.12);--accent:#e11d2a}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--bg);color:var(--ink);font-family:"Inter",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{position:fixed;inset:0 0 auto;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;background:linear-gradient(rgba(0,0,0,.55),transparent);pointer-events:none}
+.top a,.top button{pointer-events:auto}
+.top img{height:30px;width:auto;display:block}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:99px;background:rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap}
+.pill:hover{background:rgba(255,255,255,.2)}
+.pill svg{width:18px;height:18px}
+.pill.wit{background:#fff;color:#111;border-color:#fff}
+.hero{position:relative;min-height:78vh;min-height:78svh;display:flex;align-items:flex-end;overflow:hidden}
+.hero .bg{position:absolute;inset:-4%;background-size:cover;background-position:center;transform:scale(1.04);animation:kb 22s ease-in-out infinite alternate}
+@keyframes kb{to{transform:scale(1.14) translate(-1.5%,-1%)}}
+@media (prefers-reduced-motion:reduce){.hero .bg{animation:none}}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,13,15,.15) 0%,rgba(13,13,15,.35) 45%,var(--bg) 100%)}
+.hero .in{position:relative;z-index:2;width:100%;max-width:1200px;margin:0 auto;padding:0 20px 40px}
+.kick{display:inline-block;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--accent);padding:6px 10px;border-radius:6px}
+h1{font-size:clamp(2.2rem,7vw,4.6rem);line-height:1.02;letter-spacing:-.03em;font-weight:800;margin:14px 0 10px;max-width:16ch}
+.meta{color:#d4d4d8;font-size:15px;display:flex;flex-wrap:wrap;gap:6px 14px}
+.oms{color:#d4d4d8;max-width:60ch;margin-top:12px;font-size:16px;line-height:1.55;white-space:pre-line}
+.acts{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.grid{max-width:1200px;margin:0 auto;padding:8px 12px 40px;columns:4 260px;column-gap:10px}
+.it{break-inside:avoid;margin:0 0 10px;position:relative;border-radius:12px;overflow:hidden;background:#1a1a1d;cursor:zoom-in;display:block;width:100%;border:0;padding:0;opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+.it.in{opacity:1;transform:none}
+.it img{display:block;width:100%;height:auto;transition:transform .5s ease,filter .5s}
+.it:hover img{transform:scale(1.035)}
+.it:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.wm{position:absolute;pointer-events:none;height:auto}
+.foot{max-width:1200px;margin:0 auto;padding:24px 20px calc(env(safe-area-inset-bottom) + 34px);color:var(--muted);font-size:13px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line)}
+.foot a{color:var(--muted)}
+.leeg{min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px;color:var(--muted)}
+.leeg b{color:var(--ink);font-size:20px}
+/* lightbox */
+.lb{position:fixed;inset:0;z-index:50;background:rgba(5,5,6,.97);display:none;flex-direction:column;touch-action:none}
+.lb.open{display:flex}
+.lb-top{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 10px) 12px 10px;z-index:3}
+.lb-top .n{flex:1;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums;padding-left:6px}
+.ib{width:44px;height:44px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid var(--line)}
+.ib:hover{background:rgba(255,255,255,.2)}
+.ib svg{width:20px;height:20px}
+.ib.on{background:#fff;color:#111}
+.lb-st{position:relative;flex:1;overflow:hidden}
+.lb-tr{position:absolute;inset:0;display:flex;will-change:transform}
+.lb-sl{flex:0 0 100%;height:100%;display:flex;align-items:center;justify-content:center;padding:4px 8px}
+.lb-sl .bx{position:relative;max-width:100%;max-height:100%;display:flex}
+.lb-sl img{max-width:100%;max-height:calc(100vh - 150px);max-height:calc(100svh - 150px);object-fit:contain;display:block;border-radius:6px;user-select:none;-webkit-user-drag:none}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3}
+.lb-nav.p{left:12px}.lb-nav.v{right:12px}
+@media (hover:none){.lb-nav{display:none}}
+.lb-film{display:flex;gap:6px;overflow-x:auto;padding:10px 12px calc(env(safe-area-inset-bottom) + 12px);scrollbar-width:none}
+.lb-film::-webkit-scrollbar{display:none}
+.lb-film button{flex:0 0 auto;width:54px;height:54px;border-radius:8px;overflow:hidden;border:2px solid transparent;padding:0;opacity:.5;background:#222}
+.lb-film button.on{border-color:#fff;opacity:1}
+.lb-film img{width:100%;height:100%;object-fit:cover;display:block}
+.prog{position:absolute;left:0;top:0;height:3px;background:var(--accent);width:0;z-index:4}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:99px;font-weight:600;font-size:14px;z-index:90;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+.vb{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#facc15;color:#111;text-align:center;font:700 14px Inter,system-ui;padding:9px calc(env(safe-area-inset-bottom) + 9px)}
+@media (max-width:600px){.grid{columns:2;column-gap:6px;padding:6px 6px 30px}.it{margin-bottom:6px;border-radius:8px}.hero .in{padding-bottom:28px}.pill{padding:9px 12px}}
+</style>
+</head>
+<body>
+<header class="top"><a href="https://vbha.be" aria-label="VBHA – naar vbha.be"><img src="/w/logo.png" alt="VBHA" width="720" height="245"></a><button class="pill" id="deelTop" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13M7.5 7.5 12 3l4.5 4.5"/></svg>Delen</button></header>
+<main id="app"><div class="leeg"><b>Album laden…</b></div></main>
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Foto bekijken">
+  <div class="prog" id="prog"></div>
+  <div class="lb-top"><span class="n" id="lbN"></span>
+    <button class="ib" id="lbPlay" aria-label="Diavoorstelling" title="Diavoorstelling"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg></button>
+    <button class="ib" id="lbDl" aria-label="Foto downloaden" title="Downloaden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/></svg></button>
+    <button class="ib" id="lbDeel" aria-label="Delen" title="Delen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13M7.5 7.5 12 3l4.5 4.5"/></svg></button>
+    <button class="ib" id="lbX" aria-label="Sluiten" title="Sluiten (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="lb-st" id="lbSt"><div class="lb-tr" id="lbTr"></div>
+    <button class="ib lb-nav p" id="lbP" aria-label="Vorige foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button class="ib lb-nav v" id="lbV" aria-label="Volgende foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button></div>
+  <div class="lb-film" id="lbFilm"></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const P=new URLSearchParams(location.search),VOORBEELD=P.get("voorbeeld")==="1";
+let A=null,WM=null,idx=0,timer=null;
+const MND=["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
+const fmtD=d=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(d||"");return m?`${+m[3]} ${MND[+m[2]-1]} ${m[1]}`:""};
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("on"),1800)}
+// watermerk als laag (enkel in het voorbeeld; bij publiceren wordt het in de foto zelf gezet)
+function wmLaag(f){if(!WM||!WM.url)return"";const g=WM.grootte/100,m=0.03*Math.min(f.w,f.h)/f.w*100,mv=0.03*Math.min(f.w,f.h)/f.h*100;
+  const x=WM.pos[0],y=WM.pos[1];const st=[`width:${g*100}%`,`opacity:${WM.dekking/100}`];
+  st.push(x==="l"?`left:${m}%`:x==="r"?`right:${m}%`:`left:${50-g*50}%`);
+  st.push(y==="t"?`top:${mv}%`:y==="b"?`bottom:${mv}%`:`top:50%;transform:translateY(-50%)`);
+  return `<img class="wm" src="${esc(WM.url)}" alt="" style="${st.join(";")}">`}
+function teken(){const c=A.fotos.find(f=>f.id===A.cover)||A.fotos[0];document.title=A.titel+" – VBHA";
+  const n=A.fotos.length;
+  $("#app").innerHTML=`<section class="hero"><div class="bg" style="background-image:url('${c?esc(c.g):""}')"></div><div class="in">
+    <span class="kick">Fotoalbum</span><h1>${esc(A.titel)}</h1>
+    <div class="meta">${A.datum?`<span>${esc(fmtD(A.datum))}</span>`:""}<span>${n} foto${n===1?"":"'s"}</span>${A.fotograaf?`<span>📷 ${esc(A.fotograaf)}</span>`:""}</div>
+    ${A.omschrijving?`<p class="oms">${esc(A.omschrijving)}</p>`:""}
+    <div class="acts"><button class="pill wit" id="start"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg>Diavoorstelling</button><button class="pill" id="naarGrid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>Alle foto's</button><button class="pill" id="deel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13M7.5 7.5 12 3l4.5 4.5"/></svg>Delen</button></div></div></section>
+  <section class="grid" id="grid">${A.fotos.map((f,i)=>`<button class="it" data-i="${i}" aria-label="Foto ${i+1} van ${n} bekijken"><img src="${esc(f.k)}" alt="" width="${f.w}" height="${f.h}" loading="${i<8?"eager":"lazy"}" decoding="async">${wmLaag(f)}</button>`).join("")}</section>
+  <footer class="foot"><span>Vriendenkring Brandweer Hoofdpost Aalst</span><span><a href="https://vbha.be">vbha.be</a> · <a href="https://vbha.be/privacy">Privacy</a></span></footer>`;
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target)}}),{rootMargin:"60px"});
+  document.querySelectorAll(".it").forEach(el=>io.observe(el));
+  $("#grid").onclick=e=>{const b=e.target.closest(".it");if(b)open(+b.dataset.i)};
+  $("#start").onclick=()=>{open(0);speel(true)};$("#naarGrid").onclick=()=>$("#grid").scrollIntoView({behavior:"smooth"});$("#deel").onclick=deel;
+  $("#deelTop").hidden=false;$("#deelTop").onclick=deel;
+  $("#lbFilm").innerHTML=A.fotos.map((f,i)=>`<button data-i="${i}" aria-label="Foto ${i+1}"><img src="${esc(f.k)}" alt="" loading="lazy"></button>`).join("");
+  $("#lbFilm").onclick=e=>{const b=e.target.closest("button");if(b)ga(+b.dataset.i)}}
+async function deel(){const u=VOORBEELD?"(voorbeeld)":location.href;if(VOORBEELD){toast("In het voorbeeld kan je nog niet delen");return}
+  try{if(navigator.share){await navigator.share({title:A.titel,text:"Bekijk de foto's van "+A.titel,url:u});return}}catch(e){if(e&&e.name==="AbortError")return}
+  try{await navigator.clipboard.writeText(u);toast("Link gekopieerd")}catch(e){prompt("Kopieer de link:",u)}}
+/* ---- lightbox met vegen ---- */
+const tr=$("#lbTr");
+function slide(i){const f=A.fotos[i];if(!f)return"";return `<div class="lb-sl"><div class="bx"><img src="${esc(f.g)}" alt="Foto ${i+1}" draggable="false">${wmLaag(f)}</div></div>`}
+function zet(){tr.style.transition="none";tr.innerHTML=slide(idx-1)||'<div class="lb-sl"></div>';tr.innerHTML+=slide(idx)+(slide(idx+1)||'<div class="lb-sl"></div>');tr.style.transform="translateX(-100%)";
+  $("#lbN").textContent=(idx+1)+" / "+A.fotos.length;
+  document.querySelectorAll("#lbFilm button").forEach((b,i)=>b.classList.toggle("on",i===idx));const on=document.querySelector("#lbFilm .on");if(on)on.scrollIntoView({inline:"center",block:"nearest",behavior:"smooth"});
+  $("#lbP").style.visibility=idx>0?"visible":"hidden";$("#lbV").style.visibility=idx<A.fotos.length-1?"visible":"hidden";
+  [idx+2,idx-2].forEach(j=>{const f=A.fotos[j];if(f){const im=new Image();im.src=f.g}})}
+function open(i){idx=i;$("#lb").classList.add("open");document.body.style.overflow="hidden";zet();history.pushState({lb:1},"")}
+function sluit(fromPop){speel(false);$("#lb").classList.remove("open");document.body.style.overflow="";const it=document.querySelector(`.it[data-i="${idx}"]`);if(it)it.scrollIntoView({block:"center"});if(!fromPop&&history.state&&history.state.lb)history.back()}
+function ga(i,anim){if(i<0||i>=A.fotos.length){tr.style.transition="transform .25s";tr.style.transform="translateX(-100%)";return}
+  if(anim){const d=i>idx?-200:0;tr.style.transition="transform .3s cubic-bezier(.2,.7,.2,1)";tr.style.transform=`translateX(${d}%)`;setTimeout(()=>{idx=i;zet()},300)}else{idx=i;zet()}
+  if(timer)prog()}
+function speel(aan){clearInterval(timer);timer=null;$("#lbPlay").classList.toggle("on",!!aan);$("#prog").style.transition="none";$("#prog").style.width="0";
+  if(aan){timer=setInterval(()=>{if(idx>=A.fotos.length-1){speel(false);return}ga(idx+1,true)},4200);prog()}}
+function prog(){const p=$("#prog");p.style.transition="none";p.style.width="0";requestAnimationFrame(()=>requestAnimationFrame(()=>{p.style.transition="width 4.2s linear";p.style.width="100%"}))}
+$("#lbX").onclick=()=>sluit();$("#lbP").onclick=()=>{speel(false);ga(idx-1,true)};$("#lbV").onclick=()=>{speel(false);ga(idx+1,true)};
+$("#lbPlay").onclick=()=>speel(!timer);$("#lbDeel").onclick=deel;
+$("#lbDl").onclick=async()=>{if(VOORBEELD){toast("Downloaden kan na het publiceren");return}const f=A.fotos[idx];try{const b=await (await fetch(f.g)).blob();const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=(A.titel||"foto").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_")+"_"+String(idx+1).padStart(3,"0")+".jpg";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}catch(e){window.open(f.g,"_blank")}};
+addEventListener("keydown",e=>{if(!$("#lb").classList.contains("open"))return;if(e.key==="Escape")sluit();else if(e.key==="ArrowRight"){speel(false);ga(idx+1,true)}else if(e.key==="ArrowLeft"){speel(false);ga(idx-1,true)}else if(e.key===" "){e.preventDefault();speel(!timer)}});
+addEventListener("popstate",()=>{if($("#lb").classList.contains("open"))sluit(true)});
+{let x0=null,y0=0,dx=0,t0=0;const st=$("#lbSt");
+  st.addEventListener("pointerdown",e=>{if(e.target.closest(".ib"))return;x0=e.clientX;y0=e.clientY;dx=0;t0=Date.now();tr.style.transition="none";st.setPointerCapture(e.pointerId)});
+  st.addEventListener("pointermove",e=>{if(x0==null)return;dx=e.clientX-x0;tr.style.transform=`translateX(calc(-100% + ${dx}px))`});
+  st.addEventListener("pointerup",e=>{if(x0==null)return;const dy=e.clientY-y0,w=st.clientWidth,snel=Math.abs(dx)>30&&Date.now()-t0<280;x0=null;
+    if(Math.abs(dy)>120&&Math.abs(dy)>Math.abs(dx)*1.5){sluit();return}
+    if(dx<-w*.18||(snel&&dx<0)){speel(false);ga(idx+1,true)}else if(dx>w*.18||(snel&&dx>0)){speel(false);ga(idx-1,true)}else{tr.style.transition="transform .25s";tr.style.transform="translateX(-100%)"}});
+  st.addEventListener("pointercancel",()=>{x0=null;tr.style.transition="transform .25s";tr.style.transform="translateX(-100%)"})}
+function fout(t){$("#app").innerHTML=`<div class="leeg"><b>${esc(t)}</b><span>Vraag de link opnieuw aan de persoon die het album deelde.</span><a class="pill" href="https://vbha.be">Naar vbha.be</a></div>`}
+if(VOORBEELD){document.body.insertAdjacentHTML("beforeend",'<div class="vb">Voorbeeld – dit album is nog niet gepubliceerd</div>');
+  addEventListener("message",e=>{if(e.origin!==location.origin||!e.data||e.data.soort!=="vbhaAlbum")return;A=e.data.album;WM=e.data.wm||null;if(!A.fotos.length)fout("Dit album heeft nog geen foto's.");else teken()});
+  if(window.opener)window.opener.postMessage({soort:"vbhaAlbumKlaar"},location.origin);else fout("Open het voorbeeld vanuit de beheerapp.")}
+else{const c=P.get("c")||"";
+  fetch("/api/album?c="+encodeURIComponent(c)).then(async r=>{const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Dit album bestaat niet (meer).");return j})
+   .then(j=>{A=j;if(!A.fotos.length){fout("Dit album heeft nog geen foto's.");return}teken();const h=location.hash.match(/^#f(\d+)$/);if(h)open(Math.min(A.fotos.length-1,+h[1]-1))}).catch(e=>fout(e.message))}
+</script>
+</body>
+</html>
