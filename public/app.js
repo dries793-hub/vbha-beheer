@@ -370,8 +370,8 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   </div></section>
 <section class="dsec" aria-label="Financieel">${sec("boekhouding","Financieel","boekhouding","Naar boekhouding")}
   <div class="tiles three">
-    <div class="tile hero"><span class="lbl">Totaal saldo</span><span class="val">${eur(C.kas+C.rek)}</span></div>
-    <a class="tile" href="#boekingen" data-act="filterRek" data-v="Rekening"><span class="lbl">Rekening</span><span class="val">${eur(C.rek)}</span></a>
+    <div class="tile hero"><span class="lbl">Totaal saldo</span><span class="val">${eur(r2(C.kas+rekToon(C).v))}</span></div>
+    <a class="tile" href="#boekingen" data-act="filterRek" data-v="Rekening"><span class="lbl">Rekening</span><span class="val">${eur(rekToon(C).v)}</span>${rekToon(C).sub}</a>
     <a class="tile" href="#boekingen" data-act="filterRek" data-v="Kas"><span class="lbl">Kas</span><span class="val">${eur(C.kas)}</span></a>
   </div>
   <div class="grid g2 eq">
@@ -547,8 +547,8 @@ VIEWS.boekhouding=()=>({title:"Boekhouding",sub:"Overzicht boekjaar "+JAAR,actio
   const max=Math.max(1,...cats.map(c=>Math.max(c.in,c.uit)));
   const recent=C.boek.slice(-8).reverse();
   return boekTabs("boekhouding")+`<div class="tiles six">
-    <div class="tile hero"><span class="lbl">Totaal saldo</span><span class="val">${eur(C.kas+C.rek)}</span></div>
-    <div class="tile"><span class="lbl">Rekening</span><span class="val">${eur(C.rek)}</span></div>
+    <div class="tile hero"><span class="lbl">Totaal saldo</span><span class="val">${eur(r2(C.kas+rekToon(C).v))}</span></div>
+    <div class="tile"><span class="lbl">Rekening</span><span class="val">${eur(rekToon(C).v)}</span>${rekToon(C).sub}</div>
     <div class="tile"><span class="lbl">Kas</span><span class="val">${eur(C.kas)}</span></div>
     <div class="tile"><span class="lbl">Inkomsten</span><span class="val in">${eur(C.tin)}</span></div>
     <div class="tile"><span class="lbl">Uitgaven</span><span class="val out">${eur(C.tuit)}</span></div>
@@ -4602,12 +4602,18 @@ let BANK_DASH=0;
 function bankMelding(){if(!(ROL==="admin"||ROL==="boekhouder"))return"";
   if(!BANK&&!BANK_DASH){BANK_DASH=1;api("/api/bank/status").then(r=>{BANK=r;if(route()==="dashboard")renderBody()}).catch(()=>{})}
   const K=(BANK&&BANK.koppelingen)||[];const L=K.map(k=>({k,d:bkDagen(k)})).filter(x=>x.d!=null&&x.d<14);
-  const sc=bkSaldoCheck(K),sm=sc&&sc.verschil!=null&&Math.abs(sc.verschil)>=0.01?`<div class="nmeld dm-v" role="alert"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>Het saldo van de rekening klopt niet met de boekhouding</b><div class="nm-l"><a class="nm-i" href="#bank"><b>Verschil ${eur(sc.verschil)}</b><span>Bank ${eur(sc.bank)} · app ${eur(sc.app)} op ${fmtDate(sc.datum)} · bekijken</span></a></div></div></div>`:"";
+  const sc=ROL==="admin"?bkSaldoCheck(K):null,sm=sc&&sc.verschil!=null&&Math.abs(sc.verschil)>=0.01?`<div class="nmeld dm-v" role="alert"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>Het saldo van de rekening klopt niet met de boekhouding</b><div class="nm-l"><a class="nm-i" href="#bank"><b>Verschil ${eur(sc.verschil)}</b><span>Bank ${eur(sc.bank)} · app ${eur(sc.app)} op ${fmtDate(sc.datum)} · bekijken</span></a></div></div></div>`:"";
   if(!L.length)return sm;
   const weg=L.some(x=>x.d<0);
   return `<div class="nmeld ${weg?"dm-r":"dm-v"}" role="alert"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>${weg?"De koppeling met de bank is verlopen":"De koppeling met de bank verloopt binnenkort"}</b>
    <div class="nm-l">${L.map(({k,d})=>`<a class="nm-i" href="#bank"><b>${esc(k.aspsp||"Bank")}</b><span>${d<0?"Verlopen op "+fmtDate(k.valid_until.slice(0,10))+" · er worden geen verrichtingen meer opgehaald":"Nog "+d+" "+(d===1?"dag":"dagen")+" geldig (tot "+fmtDate(k.valid_until.slice(0,10))+")"} · opnieuw koppelen</span></a>`).join("")}</div></div></div>`+sm}
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return bankMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+
+/* saldo "Rekening" in de tegels: het werkelijke saldo bij de bank (Argenta), voor het lopende jaar */
+function rekToon(C){if(!BANK&&!BANK_DASH){BANK_DASH=1;api("/api/bank/status").then(r=>{BANK=r;if(["dashboard","boekhouding"].includes(route()))renderBody()}).catch(()=>{})}
+  const c=bkSaldoCheck((BANK&&BANK.koppelingen)||[]);if(!c||JAAR!==Number(todayISO().slice(0,4)))return{v:C.rek,sub:""};
+  return{v:c.bank,sub:`<small class="tile-sub">bij ${esc(c.bankNaam)} op ${fmtDate(c.datum)}</small>`}}
+{const st=document.createElement("style");st.textContent=".tile-sub{display:block;font-size:12px;color:var(--muted);margin-top:2px;font-weight:500}";document.head.appendChild(st)}
 
 /* ============ Kalenders › Controle ============
    Louter ter controle: per persoon de dozen uit de verdeling (meegegeven / afgewerkt / in handen) naast wat op de kaart
@@ -6056,6 +6062,24 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-rg],[data-
 .rg-r{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px}.rg-r>span{font-weight:600;font-size:13.5px;line-height:1.25}.rg-seg{flex-wrap:nowrap}.rg-seg button{font-size:12px;padding:5px 8px}
 .rg-snel{display:flex;gap:6px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
 #rgWrap .seg button:disabled{cursor:default}`;document.head.appendChild(st)}
+
+/* ---------- Bekijken als: ook als een bepaalde gebruiker (met zijn rechten per functie) ---------- */
+var SIM_U=null;
+{const _r=recht;recht=function(r){if(SIM_U&&ROL!==ROL_ECHT&&ROL!=="admin"&&SIM_U.rechten){const f=FUNC_VAN[(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS[r])||r];if(f)return SIM_U.rechten[f]||"geen"}return _r.apply(this,arguments)}}
+magSchrijven=function(r){return recht(r||route())==="bewerken"};
+{const _b=gbBanner;gbBanner=function(){_b.apply(this,arguments);const t=$("#simBar .sim-t");if(t&&SIM_U&&ROL!==ROL_ECHT)t.innerHTML=`Je bekijkt de app als <b>${esc(SIM_U.naam||SIM_U.email)}</b> (${SIM_U.rechten?"rechten per functie":esc(ROL_LBL[ROL].toLowerCase())}).`}}
+{const _s=gbSim;gbSim=function(rol,stil,u){SIM_U=u||null;try{u?sessionStorage.setItem("vbhaSimU",u.id):sessionStorage.removeItem("vbhaSimU")}catch(e){}
+  _s.call(this,rol,true);if(!stil)toast(ROL===ROL_ECHT?"Je ziet de app terug als administrator.":"Je bekijkt de app nu als "+(u?(u.naam||u.email):ROL_LBL[ROL].toLowerCase())+".")}}
+async function gbSimLijst(){if(!GB||!GB.gebruikers||!GB.gebruikers.length){try{GB=await api("/api/gebruikers")}catch(e){GB={gebruikers:[]}}}return (GB.gebruikers||[]).filter(u=>u.rol!=="admin"&&!u.ik)}
+gbSimKies=async function(){closeAcct();const U=await gbSimLijst();
+  modal("Bekijken als",`<p style="margin:0 0 12px;color:var(--muted)">Zie de app zoals een bepaalde gebruiker of profiel ze ziet. Je blijft aangemeld als jezelf; dit geldt enkel in dit venster.</p>
+  ${U.length?`<h4 style="margin:0 0 6px">Gebruiker</h4><div class="gb-rkeus" style="margin-bottom:14px">${U.map(u=>`<label class="sp-nat"><input type="radio" name="simR" value="u:${esc(u.id)}"${SIM_U&&SIM_U.id===u.id?" checked":""}><span><b>${esc(u.naam||u.email)}</b><small>${u.rechten?"Rechten per functie":esc(ROL_LBL[u.rol]||u.rol)}</small></span></label>`).join("")}</div>`:""}
+  <h4 style="margin:0 0 6px">Profiel</h4><div class="gb-rkeus">${["admin","boekhouder","lezer"].map(r=>`<label class="sp-nat"><input type="radio" name="simR" value="${r}"${!SIM_U&&r===ROL?" checked":""}><span><b>${ROL_LBL[r]}${r==="admin"?" (jezelf)":""}</b><small>${ROL_UITLEG[r]}</small></span></label>`).join("")}</div>`,
+  `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="simOk">Bekijken</button>`);
+  $("#simOk").onclick=()=>{const v=($('input[name="simR"]:checked')||{}).value||"admin";closeModal();
+    if(v.startsWith("u:")){const u=U.find(x=>"u:"+x.id===v);if(u){gbSim(u.rol==="admin"?"lezer":u.rol,false,u);return}}gbSim(v)}};
+{const _st=gbSimStart;gbSimStart=async function(){let id=null;try{id=sessionStorage.getItem("vbhaSimU")}catch(e){}
+  if(id&&ROL_ECHT==="admin"){const U=await gbSimLijst();const u=U.find(x=>x.id===id);if(u){gbSim(u.rol,true,u);return}}return _st.apply(this,arguments)}}
 
 /* ============ Puntensysteem: tussenstand-mail en automatische proficiat-mail bij goud ============
    Velden voor de mails: {status_volgend} (goud/zilver/brons volgens de punten van dit jaar) en {status_tussenstand}
