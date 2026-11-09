@@ -930,7 +930,7 @@ function krCard(){const c=$("#krCard"),ids=[...KR.ss].filter(id=>KR.byId.has(id)
   $("#krMulti").innerHTML=`<div class="kr-sum"><div><b>${krNum(tot)}</b><span>adressen</span></div><div><b>${krNum(doz)}</b><span>${doz===1?"doos":"dozen"} <small>(${PER_DOOS} per doos)</small></span></div></div>
   <ul class="kr-ml">${L.map(x=>`<li><span class="kr-ml-n">${esc(x.n)}${KR_STAND[x.id]?`<small>${esc(krWie(x.id))}</small>`:""}</span><span class="kr-ml-a">${krNum(x.a)}</span></li>`).join("")}</ul>`}
 function krSelect(id){KR.ss=new Set(id?[id]:[]);KR.sel=id||null;if(KR.map)krStyleAll();krCard()}
-function krToggle(id){if(KR.ss.has(id))KR.ss.delete(id);else KR.ss.add(id);KR.sel=KR.ss.size?id:null;if(KR.map)krStyleAll();krCard()}
+function krToggle(id){if(!KR.ss.has(id)&&KR_STAND[id]==="d"){krMelding((KR.byId.get(id)||{}).n?KR.byId.get(id).n+" is al bedeeld.":"Deze straat is al bedeeld.");return}if(KR.ss.has(id))KR.ss.delete(id);else KR.ss.add(id);KR.sel=KR.ss.size?id:null;if(KR.map)krStyleAll();krCard()}
 function krZoomTo(id){const l=KR.lines.get(id);if(l&&KR.map)KR.map.fitBounds(l.getBounds(),{maxZoom:17,paddingTopLeft:[40,80],paddingBottomRight:[70,200]})}
 function krInit(){if(!window.L){$("#krMap").innerHTML='<div class="empty">De kaart kon niet laden. Controleer je internetverbinding en herlaad de pagina.</div>';return}
   const map=L.map($("#krMap"),{zoomControl:false,preferCanvas:true,minZoom:12,maxZoom:19});KR.map=map;
@@ -956,6 +956,8 @@ let HITS=[];
 function krOpenSearch(){const inp=$("#krSpIn");inp.value="";$("#krSp").hidden=false;inp.focus();krResults();$("#krSpList").scrollTop=0}
 function krCloseSearch(){$("#krSpIn").blur();$("#krSp").hidden=true}
 function krPick(s){krCloseSearch();krZoomTo(s.id);if(!KR.ss.has(s.id))krToggle(s.id)}
+function krMelding(t){let m=document.getElementById("krToast");if(!m){m=document.createElement("div");m.id="krToast";m.setAttribute("role","status");m.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#18191c;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:4000;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:90vw;text-align:center";document.body.appendChild(m)}
+  m.textContent=t;m.hidden=false;clearTimeout(krMelding.t);krMelding.t=setTimeout(()=>{m.hidden=true},2600)}
 function krResults(){const q=krFold($("#krSpIn").value.trim());HITS=q?KR_SORTED.filter(s=>krFold(s.n).includes(q)||krFold(s.w).startsWith(q)):KR_SORTED;
   $("#krSpEmpty").hidden=HITS.length>0;
   $("#krSpList").replaceChildren(...HITS.map(s=>{const li=document.createElement("li"),b=document.createElement("button");b.type="button";
@@ -1032,13 +1034,14 @@ krLive();
 .km{background:var(--surface,#fff);color:var(--ink,#111);width:100%;max-width:440px;border-radius:18px 18px 0 0;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,.25);max-height:90vh;overflow:auto}@media(min-width:640px){.km{border-radius:18px}}
 .km h3{margin:0 0 4px;font-size:18px}.km p{margin:0 0 12px;color:var(--muted,#666);font-size:14px}
 .km-st{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}.km-st span{background:var(--soft,#f2f2f3);border-radius:99px;padding:4px 10px;font-size:13px}
-.km-seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 14px}.km-seg button{padding:10px;border:1.5px solid var(--line,#ddd);border-radius:10px;background:none;font:inherit;font-weight:600;cursor:pointer;color:inherit}.km-seg button.on{border-color:var(--accent);background:var(--accent);color:#fff}
+.km-seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 14px}.km-seg button{padding:10px;border:1.5px solid var(--line,#ddd);border-radius:10px;background:none;font:inherit;font-weight:600;cursor:pointer;color:inherit}.km-seg button:disabled{opacity:.4;cursor:not-allowed}.km-seg button.on{border-color:var(--accent);background:var(--accent);color:#fff}
 .km label{display:block;font-weight:600;font-size:14px;margin:0 0 6px}.km-w{position:relative}.km input[type=text]{width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--line,#ccc);border-radius:10px;font:inherit;font-size:16px;background:var(--surface,#fff);color:inherit}
 .km input.ok{border-color:var(--good,#16a34a)}.km-l{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--surface,#fff);border:1px solid var(--line,#ddd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:2;max-height:220px;overflow:auto}
 .km-l button{display:block;width:100%;text-align:left;padding:10px 12px;border:0;background:none;font:inherit;cursor:pointer;color:inherit}.km-l button:hover,.km-l button.on{background:var(--soft,#f2f2f3)}
 .km-a{display:flex;gap:8px;margin-top:16px}.km-a button{flex:1;padding:12px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer;border:1px solid var(--line,#ccc);background:none;color:inherit}.km-a .prim{background:var(--accent);border-color:var(--accent);color:#fff}.km-a .prim:disabled{opacity:.5}
 .km-e{color:var(--bad,#b91c1c);font-size:13.5px;margin:8px 0 0;min-height:1em}.km-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}`;document.head.appendChild(st);
-  const _c=krCard;krCard=function(){_c.apply(this,arguments);const m=$("#krMeld");if(m)m.hidden=!KR.ss.size};
+  const krAlRes=()=>[...KR.ss].some(id=>KR_STAND[id]==="r");
+  const _c=krCard;krCard=function(){_c.apply(this,arguments);const m=$("#krMeld");if(m){m.hidden=!KR.ss.size;const r=m.querySelector('[data-krmeld="r"]');if(r)r.hidden=krAlRes()}};
   const e2=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   function open(soort){const ids=[...KR.ss].filter(id=>KR.byId.has(id));if(!ids.length)return;let lid=null,L=[],sel=-1,T=null;
     const bg=document.createElement("div");bg.className="km-bg";bg.innerHTML=`<div class="km" role="dialog" aria-modal="true" aria-labelledby="kmT"><h3 id="kmT">Straten melden</h3><p>Het bestuur kijkt je melding na. Daarna verschijnt ze op de kaart.</p>
@@ -1048,7 +1051,8 @@ krLive();
       <div class="km-hp" aria-hidden="true"><input type="text" id="kmW" tabindex="-1" autocomplete="off"></div><p class="km-e" id="kmE"></p>
       <div class="km-a"><button type="button" data-km="x">Annuleren</button><button type="button" class="prim" data-km="ok">Doorsturen</button></div></div>`;
     document.body.appendChild(bg);const inp=bg.querySelector("#kmN"),box=bg.querySelector("#kmL"),err=bg.querySelector("#kmE");
-    const zet=s=>{soort=s;bg.querySelectorAll("[data-ks]").forEach(b=>b.classList.toggle("on",b.dataset.ks===s))};zet(soort);
+    const alRes=krAlRes();if(alRes){soort="d";const sg=bg.querySelector('[data-ks="r"]');if(sg){sg.disabled=true;sg.title="Een gekozen straat is al gereserveerd: die kan je enkel nog als bedeeld doorgeven."}}
+    const zet=s=>{if(alRes&&s==="r")return;soort=s;bg.querySelectorAll("[data-ks]").forEach(b=>b.classList.toggle("on",b.dataset.ks===s))};zet(soort);
     const dicht=()=>bg.remove();
     const teken=()=>{if(!L.length){box.hidden=true;return}box.innerHTML=L.map((l,i)=>`<button type="button" data-i="${i}" class="${i===sel?"on":""}">${e2(l.toon||l.naam)}</button>`).join("");box.hidden=false};
     const kies=l=>{lid=l;inp.value=l.toon||l.naam;inp.classList.add("ok");box.hidden=true;err.textContent=""};
