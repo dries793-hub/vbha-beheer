@@ -1560,15 +1560,15 @@ const formData=f=>Object.fromEntries(new FormData(f).entries());
 
 /* ---------- lid ---------- */
 function lidForm(l={}){const c=cfg();return `<form id="fLid" class="form">
-  ${fld("naam","Naam *",inp("naam",l.naam,'required autocomplete="off"'))}${fld("voornaam","Voornaam *",inp("voornaam",l.voornaam,'required autocomplete="off"'))}
+  ${fld("voornaam","Voornaam *",inp("voornaam",l.voornaam,'required autocomplete="off"'))}${fld("naam","Naam *",inp("naam",l.naam,'required autocomplete="off"'))}
   ${fld("adres","Adres",inp("adres",l.adres,'placeholder="Straat nr, postcode gemeente"'),"full")}
   ${fld("email","E-mail",inp("email",l.email,'type="email"'))}${fld("telefoon","Telefoon",inp("telefoon",l.telefoon,'type="tel"'))}
   ${fld("categorie","Categorie *",`<select id="categorie" name="categorie" required><option value="">Kies…</option>${selOpts(c.ledenCategorieen,l.categorie)}</select>`)}
   ${fld("lidSinds","Lid sinds (jaar)",inp("lidSinds",l.lidSinds??JAAR,'inputmode="numeric"'))}
   ${fld("info","Info",inp("info",l.info,'placeholder="bv. Ere-voorzitter, via William"'))}
   ${fld("lidTot","Lid tot en met (jaar)",inp("lidTot",l.lidTot,'inputmode="numeric" placeholder="leeg = nog lid"'))}
-  <label class="sp-nat full" for="bestuurLid"><input type="checkbox" id="bestuurLid"${l.bestuur?" checked":""}><span><b>Bestuurslid</b><small>Aanwezigheid op vergaderingen wordt uit de verslagen gehaald en geeft punten in het puntensysteem.</small></span></label>
-  <label class="sp-nat full" for="geenLid"><input type="checkbox" id="geenLid"${l.geenLid?" checked":""}><span><b>Geen lid</b><small>Verdwijnt uit de ledenlijst, de mails en de inschrijfpagina's. Je vindt de persoon nog terug via de zoekbalk.</small></span></label>
+  <label class="sp-nat full" for="bestuurLid"><input type="checkbox" id="bestuurLid"${l.bestuur?" checked":""}><span><b>Bestuurslid</b></span></label>
+  <label class="sp-nat full" for="geenLid"><input type="checkbox" id="geenLid"${l.geenLid?" checked":""}><span><b>Geen lid meer</b></span></label>
   <div class="err full" id="lidErr"></div></form>`}
 function readLid(){const f=formData($("#fLid"));const e=$("#lidErr");
   if(!f.naam.trim()||!f.voornaam.trim()){e.textContent="Vul naam en voornaam in.";return null}
