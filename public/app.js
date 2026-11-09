@@ -5668,7 +5668,7 @@ document.addEventListener("click",e=>{if(!e.target.closest('[data-act="bgPrint"]
 {const st=document.createElement("style");st.textContent=`
 .bg-tabbar{display:flex;align-items:flex-end;gap:12px;border-bottom:1px solid var(--line);margin:0 0 18px}
 .bg-tl{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0;-webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent);padding-right:24px}.bg-tl::-webkit-scrollbar{display:none}
-.bg-t1{flex:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;background:none;border:0;border-bottom:2.5px solid transparent;margin-bottom:-1px;padding:10px 14px;font:inherit;font-size:14.5px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:8px 8px 0 0}
+.bg-t1{flex:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;padding:10px 14px;font:inherit;font-size:14.5px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:8px 8px 0 0}
 .bg-t1:hover{color:var(--ink);background:var(--soft,#f1f1f2)}.bg-t1.on{color:var(--ink);font-weight:650;border-bottom-color:var(--accent,#c0161f)}
 .bg-t1 svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.bg-sep{flex:none;width:1px;background:var(--line);margin:10px 6px}
 .bg-plus{flex:none;margin-bottom:6px;display:inline-flex;align-items:center;gap:6px}.bg-plus svg{width:15px;height:15px}
@@ -6373,7 +6373,8 @@ VIEWS.familiedag=()=>({title:"Familiedag",sub:"Inschrijvingen familiedag "+JAAR,
     return `${c.datum?"":`<div class="note">Stel eerst de datum, de locatie en de prijzen in via het tandwiel. Daarna kan je de inschrijfpagina delen.</div>`}
     <div class="tiles"><div class="tile hero"><span class="lbl">Ingeschreven personen</span><span class="val">${pers}</span><span class="hint">${L.length} ${L.length===1?"inschrijving":"inschrijvingen"}</span></div>
       <div class="tile"><span class="lbl">Te ontvangen</span><span class="val">${eur(te)}</span><span class="hint">${eur(ont)} ontvangen${gratis?` · ${gratis} gratis voor leden`:""}</span></div></div>
-    <div class="panel"><div class="panel-h"><h2>Per soort</h2></div><div class="panel-b fd-soort">${c.prijzen.map(p=>`<div><b>${per[p.id]?per[p.id].n:0}</b><span>${esc(p.naam)}</span></div>`).join("")}</div></div>
+    <div class="panel"><div class="panel-h"><h2>Per soort</h2></div><div class="panel-b"><div class="fd-soort">${c.prijzen.map(p=>{const n=per[p.id]?per[p.id].n:0,pct=pers?Math.round(n/pers*100):0,pr=Number(p.prijs)||0;
+      return `<div class="fd-sk"><div class="fd-sk-h"><span>${esc(p.naam)}</span><small>${pr?eur(pr):"gratis"}${pr&&p.lidGratis?" · gratis voor leden":""}</small></div><b>${n}</b><div class="fd-sk-bar"><i style="width:${pct}%"></i></div><small class="fd-sk-p">${pct}% van de personen</small></div>`}).join("")||'<div class="muted small">Nog geen prijzen ingesteld.</div>'}</div></div></div>
     <div class="bar"><div class="search">${ic("search")}<input data-fdq placeholder="Zoek op naam of e-mail" value="${esc(FDQ)}"></div></div>
     <div class="panel"><div class="tw">${list.length?`<table class="rcards"><thead><tr><th>Naam</th><th>Personen</th><th class="num">Bedrag</th><th>Betaling</th><th>Ingeschreven</th></tr></thead><tbody>
       ${list.map(r=>`<tr class="click" data-act="fdToon" data-id="${esc(r.id)}"><td><b>${esc(r.naam)}</b>${r.lidId?"":' <span class="pill neutral">geen lid</span>'}${r.opmerking?`<div class="muted small">${esc(r.opmerking)}</div>`:""}</td>
@@ -6414,7 +6415,12 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(
   else if(a==="fdExport"){const L=fdLijst(),c=fdCfg();const rows=L.map(r=>{const o={Naam:r.naam,Lid:r.lidId?"ja":"nee","E-mail":r.email||""};for(const p of c.prijzen)o[p.naam]=((r.lijnen||[]).find(l=>l.id===p.id)||{}).aantal||0;Object.assign(o,{Personen:r.personen||0,Bedrag:r.teBetalen||0,Betaald:fdBetaald(r)?"ja":"nee",Opmerking:r.opmerking||""});return o});
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Familiedag");XLSX.writeFile(wb,`Familiedag_${JAAR}.xlsx`)}});
 document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.fdq!==undefined){FDQ=e.target.value;renderBody();const i=$("[data-fdq]");if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}}});
-{const st=document.createElement("style");st.textContent=`.fd-soort{display:flex;gap:18px;flex-wrap:wrap}.fd-soort div{display:flex;flex-direction:column}.fd-soort b{font-size:22px}.fd-soort span{color:var(--muted);font-size:13px}
+{const st=document.createElement("style");st.textContent=`.fd-soort{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.fd-sk{border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;background:var(--surface,#fff)}
+.fd-sk-h{display:flex;flex-direction:column;gap:1px}.fd-sk-h span{font-weight:600;font-size:14.5px}.fd-sk-h small{color:var(--muted);font-size:12.5px}
+.fd-sk b{font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}
+.fd-sk-bar{height:6px;border-radius:99px;background:var(--line);overflow:hidden}.fd-sk-bar i{display:block;height:100%;background:var(--accent,#c0161f);border-radius:99px}
+.fd-sk-p{color:var(--muted);font-size:12px}
 .fd-prl{display:flex;flex-direction:column;gap:8px}.fd-pr{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) 100px auto 32px;gap:8px;align-items:center}.fd-pr input{min-width:0;width:100%}.fd-g{display:inline-flex;gap:6px;align-items:center;font-size:13px;white-space:nowrap}.fd-g input{width:auto}
 @media (max-width:700px){.fd-pr{grid-template-columns:1fr 100px 32px;border:1px solid var(--line);border-radius:10px;padding:8px}.fd-pr [data-fp=naam]{grid-column:1/3}.fd-pr [data-fp=uitleg]{grid-column:1/4;grid-row:2}.fd-pr .sfx{grid-row:3;grid-column:2}.fd-g{grid-row:3;grid-column:1}.fd-pr .bg-x{grid-row:1;grid-column:3}}`;document.head.appendChild(st)}
 // dashboardmelding nieuwe inschrijvingen: familiedag meetellen is niet nodig; pushmelding volstaat
