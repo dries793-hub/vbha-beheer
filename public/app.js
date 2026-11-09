@@ -4724,13 +4724,13 @@ VIEWS.kalcontrole=()=>({title:"Kalenders "+JAAR,sub:"Controle: dozen naast de aa
     <div class="tile"><span class="lbl">Bedeeld op de kaart</span><span class="val">${krNum(T("dA"))}</span></div>
     <div class="tile"><span class="lbl">Dozen in handen</span><span class="val">${T("hand")}</span></div>
     <div class="tile"><span class="lbl">Na te kijken</span><span class="val">${af}</span></div></div>
-    <div class="panel"><div class="tw"><table class="rcards kc-t"><thead><tr><th>Persoon</th><th class="num">Meegegeven</th><th class="num">Afgewerkt</th><th class="num">In handen</th><th class="num">Bedeeld op kaart</th><th class="num">≈ dozen</th><th class="num">Gereserveerd</th><th>Controle</th></tr></thead><tbody>
-    ${L.map(p=>{const [c,t]=KC_ST[p.st];const vs=p.verschil?` <small class="muted">${kcN(p.verschil)} ${p.verschil<1.5?"doos":"dozen"} verschil</small>`:"";
-      return `<tr><td data-l="Persoon">${p.j&&canWrite?`<button type="button" class="kr-link" data-act="kalLog" data-id="${esc(p.j.id)}" title="Aantallen bekijken of aanpassen"><b>${esc(p.naam)}</b></button>`:`<b>${esc(p.naam)}</b>`}${p.lid||!p.j?"":'<div class="small muted">geen lid</div>'}${!p.j&&(p.dA||p.rA)?'<div class="small muted">niet in de verdeling</div>':""}</td>
+    <div class="panel"><div class="tw"><table class="rcards kc-t kal-t"><thead><tr><th class="c" style="width:56px">#</th><th>Persoon</th><th class="num">Meegegeven</th><th class="num">Afgewerkt</th><th class="num">In handen</th><th class="num">Bedeeld op kaart</th><th class="num">≈ dozen</th><th class="num">Gereserveerd</th><th>Controle</th></tr></thead><tbody>
+    ${L.map((p,i)=>{const [c,t]=KC_ST[p.st];const vs=p.verschil?` <small class="muted">${kcN(p.verschil)} ${p.verschil<1.5?"doos":"dozen"} verschil</small>`:"";
+      return `<tr><td class="c muted" data-l="#">${i+1}</td><td data-l="Persoon">${p.j&&canWrite?`<button type="button" class="kr-link" data-act="kalLog" data-id="${esc(p.j.id)}" title="Aantallen bekijken of aanpassen"><b>${esc(p.naam)}</b></button>`:`<span class="kc-nm">${esc(p.naam)}</span>`}${p.lid||!p.j?"":' <span class="pill neutral">geen lid</span>'}${!p.j&&(p.dA||p.rA)?' <span class="pill neutral">niet in de verdeling</span>':""}</td>
       <td class="num" data-l="Meegegeven">${p.mee||"–"}</td><td class="num" data-l="Afgewerkt">${p.uit||"–"}</td><td class="num" data-l="In handen">${p.hand||"–"}</td>
       <td class="num" data-l="Bedeeld op kaart">${p.dA?krNum(p.dA)+` <small class="muted">${p.dS} ${p.dS===1?"straat":"str."}</small>`:"–"}</td><td class="num" data-l="≈ dozen">${p.dA?kcN(p.dz):"–"}</td>
       <td class="num" data-l="Gereserveerd">${p.rA?krNum(p.rA)+` <small class="muted">≈ ${kcN(p.rA/pd)} d.</small>`:"–"}</td>
-      <td data-l="Controle"><span class="pill ${c}">${t}</span>${p.st==="akkoord"?"":vs}${ROL==="admin"?(c==="warn"?` <button type="button" class="btn sm kc-ok" data-kcok="${esc(p.k)}" data-sig="${esc(p.sig)}" title="Aanduiden dat dit klopt">${ic("check")}Klopt</button>`:p.st==="akkoord"?` <button type="button" class="linkbtn small" data-kcweg="${esc(p.k)}">ongedaan</button>`:""):""}</td></tr>`}).join("")||'<tr><td colspan="8" class="empty">Nog geen dozen of aanduidingen dit jaar.</td></tr>'}
+      <td data-l="Controle"><span class="pill ${c}">${t}</span>${p.st==="akkoord"?"":vs}${ROL==="admin"?(c==="warn"?` <button type="button" class="btn sm kc-ok" data-kcok="${esc(p.k)}" data-sig="${esc(p.sig)}" title="Aanduiden dat dit klopt">${ic("check")}Klopt</button>`:""):""}</td></tr>`}).join("")||'<tr><td colspan="9" class="empty">Nog geen dozen of aanduidingen dit jaar.</td></tr>'}
     </tbody></table></div></div>`}});
 
 /* ---- Kalenderinstellingen (dozen dit jaar, kalenders per doos) achter het tandwiel op de pagina Kalenders ---- */
@@ -4767,6 +4767,13 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-kcok
   if(b.dataset.kcok)ok[b.dataset.kcok]={sig:b.dataset.sig,door:ME_NAME||"",op:new Date().toISOString()};else delete ok[b.dataset.kcweg];
   const d={...stripId(cur),ok};S.config.set(id,{...d,id});dirty=true;renderBody();try{await write("config",id,d)}catch(x){toast("Bewaren lukte niet.",true)}});
 {const st=document.createElement("style");st.textContent=".kc-ok{margin-left:6px;vertical-align:middle}.kc-ok svg{width:14px;height:14px}";document.head.appendChild(st)}
+
+/* "Klopt" ongedaan maken: in het venster van de persoon (klik op de naam), enkel admin */
+{const _f=kalLogForm;kalLogForm=function(id){const r=_f.apply(this,arguments);try{if(ROL!=="admin")return r;const j=S.jaarleden.get(id);if(!j)return r;
+  const k=kcSleutel(j.lidId,kalNaam(j)),ak=kcAkkoord()[k];if(!ak)return r;const ft=document.querySelector("#modal .modal-f, #modal footer, #modal .mf");
+  const html=`<button class="btn ghost" data-kcweg="${esc(k)}" data-act="closeModal" title="Nagekeken op ${esc(new Date(ak.op).toLocaleDateString("nl-BE"))}${ak.door?" door "+esc(ak.door):""}">Controle "klopt" ongedaan maken</button>`;
+  if(ft)ft.insertAdjacentHTML("afterbegin",html)}catch(e){}return r}}
+{const st=document.createElement("style");st.textContent=".kc-t .kc-nm{font-weight:600}.kc-t .kr-link b{font-weight:600}";document.head.appendChild(st)}
 
 /* ============ Instellingen enkel voor de administrator ============
    Andere profielen zien geen tandwieltjes of instellingenpagina's. Wat iedereen wel kan: "Meldingen op dit toestel" (eigen pagina).
