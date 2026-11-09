@@ -712,7 +712,7 @@ document.addEventListener("click",e=>{const a=e.target.closest("[data-catadd]");
   const x=e.target.closest("[data-catdel]");if(x){e.preventDefault();const el=x.closest(".cated");x.closest(".cat-r").remove();catSync(el)}},true);
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.classList&&e.target.classList.contains("cat-in")){e.preventDefault();catAdd(e.target.closest(".cated"))}},true);
 function ledenInst(){const c=cfg();
-  modal("Instellingen ledenlijst",`<div class="pi-sec"><h4>Categorieën leden</h4>${catEditor("liCat",c.ledenCategorieen,null,["Erewacht"])}<p class="pi-note">"Erewacht" heeft een vaste betekenis (eigen lidgeld) en kan niet verwijderd worden. Een categorie verwijderen verandert niets aan de leden die er al in staan.</p></div>`,
+  modal("Instellingen ledenlijst",`<div class="pi-sec"><h4>Categorieën leden</h4>${catEditor("liCat",c.ledenCategorieen,null,["Erewacht"])}</div>`,
   `<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="liOk">Bewaren</button>':""}`);
   const ok=$("#liOk");if(!ok)return;
   ok.onclick=async()=>{const cats=catVals($("#liCat"));if(!cats.length){toast("Geef minstens één categorie op.",true);return}
@@ -4444,9 +4444,9 @@ const bhSel=(id,v,opts,suf,d)=>`<select id="${id}" class="sel"${d}>${opts.map(n=
 const bhDg=n=>n+" "+(n===1?"dag":"dagen");
 function bhSec(soort){const c=bhCfg(),d=canWrite?"":" disabled",B=c.banket,L=c.lidgeld,R=soort==="banket"?B:L,k=soort==="banket"?"B":"L";
   const uitleg=soort==="banket"?`Wie na de inschrijvingsdeadline nog niet betaald heeft, krijgt automatisch een herinnering met de betaalgegevens. Vanaf de dag van het banket worden geen herinneringen meer verstuurd.`
-    :`Leden die het lidgeld van het gekozen werkjaar na de vervaldatum nog niet betaalden, krijgen automatisch een herinnering met een betaalknop. Nieuwe leden: 14 dagen na hun inschrijving. De ere-voorzitter en wie "geen lid" is, worden overgeslagen.`;
+    :`Leden die het lidgeld van het gekozen werkjaar na de vervaldatum nog niet betaalden, krijgen automatisch een herinnering met een betaalknop. Nieuwe leden: 14 dagen na hun inschrijving.`;
   return `<div class="pi-sec bh-sec" data-bhs="${soort}"><h4>Betalingsherinnering</h4><div class="form">
-    <label class="sp-nat full" for="bh${k}a"><input type="checkbox" id="bh${k}a"${R.aan?" checked":""}${d}><span><b>Automatisch een herinnering mailen</b><small>${uitleg} Betaald wordt herkend zoals in de app. Op het dashboard zie je wie een herinnering kreeg.</small></span></label>
+    <label class="sp-nat full" for="bh${k}a"><input type="checkbox" id="bh${k}a"${R.aan?" checked":""}${d}><span><b>Automatisch een herinnering mailen</b><small>${uitleg}</small></span></label>
     ${soort==="lidgeld"?fld("bhLj","Werkjaar",bhSel("bhLj",L.jaar,[JAAR-1,JAAR,JAAR+1,JAAR+2].filter((v,i,a)=>a.indexOf(v)===i),n=>"Lidgeld "+n,d))+fld("bhLv","Te betalen vóór",`<input id="bhLv" type="date" value="${esc(L.vervaldatum)}"${d}>`):""}
     ${fld("bh"+k+"d","Eerste herinnering",bhSel("bh"+k+"d",R.dagenNaVerval,soort==="banket"?[1,2,3,5,7,10]:[1,3,5,7,10,14,21,30],n=>bhDg(n)+" na de termijn",d))}
     ${fld("bh"+k+"i","Daarna",bhSel("bh"+k+"i",R.interval,soort==="banket"?[3,4,5,7,10,14]:[7,10,14,21,30],n=>"om de "+bhDg(n),d))}
@@ -4755,7 +4755,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="kalIn
   const ok=$("#fiOk");if(!ok||!ok.onclick)return;const _o=ok.onclick;
   ok.onclick=async function(ev){const n=$("#fiNaam").value.trim();if(!n){toast("Vul de naam van de vereniging in.",true);return}
     const cur=S.config.get("algemeen")||{};S.config.set("algemeen",{...cur,id:"algemeen",vereniging:n});return _o.call(this,ev)}}}
-{const _l=ledenInst;ledenInst=function(){_l.apply(this,arguments);const c=$("#liCat");const sec=c&&c.closest(".pi-sec");if(!sec)return;const u=location.origin+"/inschrijven";
+{const _l=ledenInst;ledenInst=function(){_l.apply(this,arguments);return; /* blok "Inschrijfformulier voor nieuwe leden" niet meer tonen (op vraag) */const c=$("#liCat");const sec=c&&c.closest(".pi-sec");if(!sec)return;const u=location.origin+"/inschrijven";
   sec.insertAdjacentHTML("afterend",`<div class="pi-sec"><h4>Inschrijfformulier voor nieuwe leden</h4><p class="pi-note" style="margin:0 0 8px">Deel deze link met wie lid wil worden. Iedereen kan het formulier invullen zonder aan te melden. Nieuwe leden komen meteen in de ledenlijst en je krijgt een melding op het dashboard.</p>
    <div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(u)}" aria-label="Link naar het inschrijfformulier" onclick="this.select()"><button type="button" class="btn" data-act="kopieerLink" data-v="${esc(u)}">${ic("copy")}Kopiëren</button><a class="btn" href="/inschrijven" target="_blank" rel="noopener">Openen</a></div></div>`)}}
 
