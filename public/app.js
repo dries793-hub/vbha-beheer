@@ -2327,7 +2327,6 @@ function agAutoForm(id){const bk=id==="bk",c=bk?bkCfg():kfCfg(),d=canWrite?"":" 
    ${fld("aaL","Waar",inp("aaL",c.locatie,'maxlength="160"'+d),"full")}
    ${fld("aaI","Meer info",`<textarea id="aaI" class="ag-info" rows="3" maxlength="2000" placeholder="Komt in de activiteitenmail onder datum, uur en plaats"${d}>${esc(c.info||"")}</textarea>`,"full")}
    ${agMailVink("aaM",c.inMail!==false)}
-   <div class="muted small full">Zolang de inschrijvingen open zijn, krijgt het kader in de mail ook een knop naar de inschrijfpagina. Prijs en inschrijvingen stel je in op de pagina ${naam.toLowerCase()}.</div>
    <div class="err full" id="aaErr"></div></form>`,
    `<a class="btn" href="#${bk?"banket":"kinderfeest"}" data-act="closeModal" style="margin-right:auto">Naar ${naam.toLowerCase()} ›</a><button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="aaOk">Bewaren</button>':""}`);
   if(!canWrite)return;
