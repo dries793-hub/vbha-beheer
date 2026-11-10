@@ -5536,8 +5536,15 @@ function sgBulk(){const c=typeof fuCfg==="function"?fuCfg():{};
   const sig=el=>{const a=el.matches&&el.matches("a")?el:el.querySelector("a");return((a&&a.getAttribute("href"))||"")+"|"+(a&&a.dataset&&a.dataset.id||"")+"|"+el.textContent.replace(/\s+/g," ").trim().slice(0,240)};
   const item=a=>a.closest(".nm-i")||a.closest(".nmeld");
   let toon=false;
+  /* meldingen zonder eigen sluitknop: kruisje; gesloten voor vandaag, morgen terug zolang het niet in orde is */
+  const DKEY=()=>"vbha_dicht_"+((typeof ME_NAME!=="undefined"&&ME_NAME)||"x"),vandaag=()=>new Date().toLocaleDateString("sv-SE");
+  const dicht=()=>{try{const o=JSON.parse(localStorage.getItem(DKEY())||"{}");return o.d===vandaag()?o.L||[]:[]}catch(e){return []}};
+  const msig=m=>{const b=m.querySelector(".nm-body");return(b?b.textContent:"").replace(/\d[\d.,]*/g,"#").replace(/\s+/g," ").trim().slice(0,300)};
   function zuiver(){
     if(toon||!document.querySelector(".nmeld"))return;
+    const D=new Set(dicht());
+    document.querySelectorAll(".nmeld").forEach(m=>{if(m.closest(".modal"))return;if(D.has(msig(m))){m.remove();return}
+      if(!m.querySelector(".nm-x")&&!m.dataset.dx){m.dataset.dx="1";m.insertAdjacentHTML("beforeend",`<button type="button" class="nm-x" data-dicht aria-label="Melding sluiten" title="Sluiten (morgen opnieuw als het dan nog niet in orde is)">${typeof ic==="function"?ic("x"):"×"}</button>`)}});
     const G=new Set(lees());
     document.querySelectorAll(".nmeld").forEach(m=>{
       if(m.closest(".modal"))return;
@@ -5547,6 +5554,7 @@ function sgBulk(){const c=typeof fuCfg==="function"?fuCfg():{};
     });
   }
   window.addEventListener("click",e=>{
+    const dx=e.target.closest("[data-dicht]");if(dx){e.preventDefault();e.stopPropagation();const m=dx.closest(".nmeld");if(!m)return;const L=dicht(),k=msig(m);if(!L.includes(k))L.push(k);try{localStorage.setItem(DKEY(),JSON.stringify({d:vandaag(),L}))}catch(x){}m.remove();return}
     const g=e.target.closest("[data-gl]");if(g){e.preventDefault();toon=true;if(typeof render==="function")render();setTimeout(()=>{toon=false},800);return}
     const a=e.target.closest(".nmeld a, .nmeld button");if(!a||a.closest(".modal")||a.closest("[data-nsd]"))return;
     const it=item(a);if(!it)return;const L=lees(),s=sig(it);if(!L.includes(s)){L.push(s);bewaar(L)}
