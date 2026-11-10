@@ -127,12 +127,12 @@ async function zyteNav(url) {
   return { items, url: j.url || url };
 }
 /* Hetzelfde product (zelfde EAN) bij de andere winkel zoeken en de prijs teruggeven. */
-const ZOEK = { "bol.com": e => `https://www.bol.com/be/nl/s/?searchtext=${e}`, "Dreamland": e => `https://www.dreamland.be/nl/zoeken?q=${e}` };
+const ZOEK = { "bol.com": e => `https://www.bol.com/be/nl/s/?searchtext=${e}`, "Dreamland": e => `https://www.dreamland.be/nl/zoeken/producten?q=${e}` };
 export async function vergelijkProduct(p) {
   if (!zyteAan() || !p || !/^\d{8,14}$/.test(String(p.artikelnr || ""))) return null;
   const ander = p.winkel === "bol.com" ? "Dreamland" : p.winkel === "Dreamland" ? "bol.com" : null; if (!ander) return null;
   const nav = await zyteNav(ZOEK[ander](p.artikelnr));
-  let kand = nav.items.map(x => x.url).filter(u => { try { return winkelVan(new URL(u).hostname) === ander; } catch { return false; } });
+  let kand = nav.items.map(x => x.url).filter(u => { try { return winkelVan(new URL(u).hostname) === ander && !/charity|campagne|campaign/i.test(u); } catch { return false; } });
   if (!kand.length) kand = [nav.url];
   for (const u of kand.slice(0, 2)) {
     let q; try { q = await zyteInfo(new URL(u)); } catch { continue; }
@@ -198,16 +198,6 @@ export async function kfCadeauPubliek(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
     const sb = admin();
-    if (req.method === "GET" && req.query.probe) { // tijdelijke test (eenmalige sleutel in de afgeschermde tabel diag_token)
-      const { data } = await sb.from("diag_token").select("tot").eq("token", String(req.query.diag || "")).maybeSingle();
-      if (!data || Date.parse(data.tot) < Date.now()) throw httpErr(403, "Geen toegang.");
-      const url = String(req.query.probe), mode = String(req.query.mode || "navb");
-      const body = mode === "nav" ? { url, productNavigation: true } : mode === "navb" ? { url, productNavigation: true, productNavigationOptions: { extractFrom: "browserHtml" } } : { url, browserHtml: true };
-      const r = await fetch("https://api.zyte.com/v1/extract", { method: "POST", signal: AbortSignal.timeout(55000), headers: { Authorization: "Basic " + Buffer.from(String(process.env.ZYTE_API_KEY).trim() + ":").toString("base64"), "Content-Type": "application/json" }, body: JSON.stringify({ ...body, geolocation: "BE" }) });
-      const j = await r.json().catch(() => ({}));
-      if (mode === "html") { const h = String(j.browserHtml || ""); const links = [...new Set([...h.matchAll(/href="([^"]*(?:\/producten\/|\/p\/)[^"]*)"/g)].map(m => m[1]))].slice(0, 8); return res.status(200).json({ status: r.status, lengte: h.length, titel: (h.match(/<title>([^<]*)/) || [])[1] || null, links }); }
-      return res.status(200).json({ status: r.status, url: j.url, items: ((j.productNavigation && j.productNavigation.items) || []).slice(0, 5).map(x => ({ url: x.url, naam: x.name })), fout: j.title || j.detail || null });
-    }
     if (req.method === "GET") {
       await rateLimit(sb, req, "kfcadeau", 120, 600, httpErr);
       const { row, M, open } = await laad(sb, req.query.cadeau, req.query.t);
