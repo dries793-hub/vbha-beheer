@@ -377,7 +377,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
     <a class="tile" href="#boekingen" data-act="filterRek" data-v="Kas"><span class="lbl">Kas</span><span class="val">${eur(C.kas)}</span></a>
   </div>
   <div class="grid g2 eq">
-    <div class="panel"><div class="panel-h"><h2>Saldo afgelopen 12 maanden</h2></div><div class="panel-b">${(window.DASH_NCAT=cats.length,saldoChart(C))}</div></div>
+    <div class="panel"><div class="panel-h"><h2>Saldo</h2><div class="seg sp-per" role="radiogroup" aria-label="Periode">${SALDO_PERS.map(([k,l])=>`<button type="button" class="${saldoPer()===k?"on":""}" data-saldo-per="${k}" aria-pressed="${saldoPer()===k}">${l}</button>`).join("")}</div></div><div class="panel-b">${(window.DASH_NCAT=cats.length,saldoChart(C))}</div></div>
     <div class="panel bk-cats"><div class="panel-h"><h2>Resultaat per categorie</h2></div><div class="panel-b">
       ${cats.length?`<div class="dcats">${cats.map(c=>`<a class="dcat" href="#boekingen" data-act="filterCat" data-v="${esc(c.k)}"><span class="trunc">${esc(c.k)}</span><span class="dtrack"><span style="width:${Math.max(1.5,Math.abs(c.net)/maxNet*100)}%;background:var(--${c.net>=0?"good":"bad"})"></span></span><b class="${c.net>=0?"in":"out"}">${sgn(c.net)}</b></a>`).join("")}
       <div class="dcat tot"><span>Resultaat ${JAAR}</span><span></span><b class="${C.tin-C.tuit>=0?"in":"out"}">${sgn(C.tin-C.tuit)}</b></div></div>`:'<div class="empty">Nog geen transacties in '+JAAR+'.</div>'}
@@ -397,11 +397,14 @@ function saldoHover(e){const wrap=e.target.closest&&e.target.closest(".dchart-wr
 document.addEventListener("pointermove",e=>{if(e.target.closest&&e.target.closest(".dchart-wrap"))saldoHover(e)});
 document.addEventListener("pointerdown",e=>{if(e.target.closest&&e.target.closest(".dchart-wrap"))saldoHover(e)});
 document.addEventListener("pointerout",e=>{const w=e.target.closest&&e.target.closest(".dchart-wrap");if(w&&!w.contains(e.relatedTarget)){const g=w.querySelector(".hov");if(g)g.style.display="none";const tp=w.querySelector(".dtip");if(tp)tp.hidden=true}});
+const SALDO_PERS=[["1M","1M"],["3M","3M"],["6M","6M"],["1J","1J"],["YTD","YTD"]];
+function saldoPer(){try{const v=localStorage.getItem("vbhaSaldoPer");return SALDO_PERS.some(p=>p[0]===v)?v:"1J"}catch(e){return "1J"}}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-saldo-per]");if(!t)return;try{localStorage.setItem("vbhaSaldoPer",t.dataset.saldoPer)}catch(x){}renderBody()});
 function saldoReeks(){
   // dagelijks totaal saldo (kas + rekening) over de 12 maanden tot vandaag (of tot 31/12 van het gekozen boekjaar)
   const ys=jaren();if(!ys.length)return null;
   const today=todayISO(),cy=+today.slice(0,4);const end=JAAR>=cy?today:JAAR+"-12-31";
-  const DAY=86400000,tE=Date.parse(end+"T00:00:00Z"),tS=tE-365*DAY;
+  const DAY=86400000,tE=Date.parse(end+"T00:00:00Z"),SP=saldoPer(),tS=SP==="YTD"?Math.min(tE-7*DAY,Date.parse(end.slice(0,4)+"-01-01T00:00:00Z")):tE-({"1M":30,"3M":91,"6M":182}[SP]||365)*DAY;
   const per={};const yrs=new Set();for(let t=tS;t<=tE;t+=DAY)yrs.add(+new Date(t).toISOString().slice(0,4));
   for(const Y of yrs){if(!S.jaren.has(String(Y)))continue;const c=jaarCfg(Y);
     const ev=[...S.boekingen.values()].filter(b=>b.jaar===Y&&b.datum).map(b=>[b.datum,(b.richting==="uit"?-1:1)*(+b.bedrag||0)]).sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
@@ -426,11 +429,12 @@ function saldoChart(C){
   const kf=v=>v===0?"0":(v/1000).toLocaleString("nl-BE")+"k";
   // maandlabels: midden van elke maand binnen het venster
   const months=[];{const s=new Date(tS);let yy=s.getUTCFullYear(),mm=s.getUTCMonth();
-    for(let k=0;k<14;k++){const a=Date.UTC(yy,mm,1),b=Date.UTC(yy,mm+1,1);if(a>tE)break;const a2=Math.max(a,tS),b2=Math.min(b,tE),mid=(a2+b2)/2;if(b2-a2>12*86400000)months.push([MAANDEN[mm],x(mid),a]);mm++;if(mm>11){mm=0;yy++}}}
-  const jan=months.filter(m=>new Date(m[2]).getUTCMonth()===0).map(m=>[x(m[2]),new Date(m[2]).getUTCFullYear()]);
+    if(tE-tS<75*86400000){for(let t=tS;t<=tE;t+=(tE-tS<35*86400000?7:14)*86400000){const d=new Date(t);months.push([d.getUTCDate()+" "+MAANDEN[d.getUTCMonth()],x(t),t,1])}}
+    else for(let k=0;k<14;k++){const a=Date.UTC(yy,mm,1),b=Date.UTC(yy,mm+1,1);if(a>tE)break;const a2=Math.max(a,tS),b2=Math.min(b,tE),mid=(a2+b2)/2;if(b2-a2>12*86400000)months.push([MAANDEN[mm],x(mid),a]);mm++;if(mm>11){mm=0;yy++}}}
+  const jan=months.filter(m=>!m[3]&&new Date(m[2]).getUTCMonth()===0).map(m=>[x(m[2]),new Date(m[2]).getUTCFullYear()]);
   const labelRight=lx<W-150;
   SALDO={pts,tS,tE,P,R,W,H,T,B,hi,lo2};
-  return `<div class="dchart-wrap"><svg viewBox="0 0 ${W} ${H}" class="dchart" role="img" aria-label="Verloop van het totale saldo, dag per dag, over de laatste 12 maanden">
+  return `<div class="dchart-wrap"><svg viewBox="0 0 ${W} ${H}" class="dchart" role="img" aria-label="Verloop van het totale saldo, dag per dag">
     ${ticks.map(v=>`<line x1="${P}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${P-10}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${kf(v)}</text>`).join("")}
     ${jan.map(([X,yr])=>`<line x1="${X}" x2="${X}" y1="${T-6}" y2="${y(lo2)}" stroke="var(--line-strong)" stroke-dasharray="2 3"/><text x="${X+4}" y="${T-8}" font-size="11" fill="var(--muted)">${yr}</text>`).join("")}
     ${months.filter((_,i)=>!narrow||i%2===0).map(([m,X])=>`<text x="${X}" y="${H-8}" text-anchor="middle" font-size="12" fill="var(--muted)">${m}</text>`).join("")}
