@@ -1565,7 +1565,7 @@ function lidForm(l={}){const c=cfg();return `<form id="fLid" class="form">
   ${fld("info","Info",inp("info",l.info,'placeholder="bv. Ere-voorzitter, via William"'))}
   ${fld("lidTot","Lid tot en met (jaar)",inp("lidTot",l.lidTot,'inputmode="numeric" placeholder="leeg = nog lid"'))}
   <label class="sp-nat full" for="bestuurLid"><input type="checkbox" id="bestuurLid"${l.bestuur?" checked":""}><span><b>Bestuurslid</b></span></label>
-  <label class="sp-nat full" for="geenLid"><input type="checkbox" id="geenLid"${l.geenLid?" checked":""}><span><b>Oud lid</b><small>Niet meer actief: staat niet meer in de ledenlijst (zoek op "oud lid" om oud-leden te zien).</small></span></label>
+  <label class="sp-nat full" for="geenLid"><input type="checkbox" id="geenLid"${l.geenLid?" checked":""}><span><b>Oud lid</b></span></label>
   <div class="err full" id="lidErr"></div></form>`}
 function readLid(){const f=formData($("#fLid"));const e=$("#lidErr");
   if(!f.naam.trim()||!f.voornaam.trim()){e.textContent="Vul naam en voornaam in.";return null}
