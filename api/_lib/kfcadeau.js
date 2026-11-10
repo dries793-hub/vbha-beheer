@@ -116,11 +116,6 @@ export async function kfCadeauPubliek(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
     const sb = admin();
-    if (req.method === "GET" && req.query.probe) { // tijdelijke test (eenmalige sleutel in de afgeschermde tabel diag_token)
-      const { data } = await sb.from("diag_token").select("tot").eq("token", String(req.query.diag || "")).maybeSingle();
-      if (!data || Date.parse(data.tot) < Date.now()) throw httpErr(403, "Geen toegang.");
-      const p = await productInfo(String(req.query.probe)); return res.status(200).json(p);
-    }
     if (req.method === "GET") {
       await rateLimit(sb, req, "kfcadeau", 120, 600, httpErr);
       const { row, M, open } = await laad(sb, req.query.cadeau, req.query.t);
