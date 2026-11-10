@@ -855,6 +855,8 @@ function krRes(){const a=krAll(),m={};for(const k in a)if(a[k].status==="reserve
    Stabiele ids: elk stuk lijn heeft een generatie (#gen in krData). Lijnen worden enkel opgedeeld door lijnen van dezelfde of een
    oudere generatie, en een straat wordt per generatie apart opgedeeld en genummerd (oudste eerst). Zo veranderen de stukken van
    bestaande straten niet als er later straten of stukken straat bijkomen. */
+/* Aantal adressen per stuk uit het Adressenregister (<script id="krAdr">: "stuk-id aantal"); anders volgens de lengte van het stuk. */
+const KR_ADR=(()=>{const m=new Map(),el=typeof document!=="undefined"&&document.getElementById("krAdr");if(el)for(const l of el.textContent.trim().split("\n")){const x=l.trim().split(" ");if(x.length===2)m.set(x[0],+x[1])}return m})();
 function krMaakDelen(streets){const key=p=>p[0].toFixed(5)+","+p[1].toFixed(5),cntVan=new Map();
   const pgen=(s,i)=>s.pg?s.pg[i]:(s.gen||0);
   const cntTot=g=>{if(!cntVan.has(g)){const c=new Map();for(const s of streets){const seen=new Set();s.g.forEach((part,i)=>{if(pgen(s,i)>g)return;for(const p of part){const k=key(p);if(!seen.has(k)){seen.add(k);c.set(k,(c.get(k)||0)+1)}}})}cntVan.set(g,c)}return cntVan.get(g)};
@@ -879,7 +881,7 @@ function krMaakDelen(streets){const key=p=>p[0].toFixed(5)+","+p[1].toFixed(5),c
       groepen=groepen.map(gr=>({gr,v:proj(gr)})).sort((x,y)=>x.v-y.v).map(x=>x.gr);
       for(const gr of groepen)alle.push({g:gr.g,k:[kp[gr.a],kp[gr.b]]})}
     const len=alle.map(gr=>gr.g.reduce((x,g)=>x+lengte(g),0)),L=len.reduce((a,b)=>a+b,0)||1;
-    out.set(s.id,alle.map((gr,i)=>({id:s.id+"~"+i,sid:s.id,nr:i+1,g:gr.g,k:gr.k,len:len[i],a:Math.max(alle.length>1?1:0,Math.round(s.a*len[i]/L))})))}
+    out.set(s.id,alle.map((gr,i)=>({id:s.id+"~"+i,sid:s.id,nr:i+1,g:gr.g,k:gr.k,len:len[i],a:KR_ADR.has(s.id+"~"+i)?KR_ADR.get(s.id+"~"+i):Math.max(alle.length>1?1:0,Math.round(s.a*len[i]/L))})))}
   return out}
 const KR_DELEN=krMaakDelen(KR_STREETS),KR_DEEL=new Map([...KR_DELEN.values()].flat().map(d=>[d.id,d]));
 /* krDelen: aanduidingen van straatdelen (document per deel, straat = "<straat>~<nr>", deel: true) */
