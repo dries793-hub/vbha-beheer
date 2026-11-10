@@ -2257,7 +2257,7 @@ const vgBestuur=v=>/bestuur/i.test((v&&v.soort)||"");
 const vgInMail=v=>vgBestuur(v)?false:typeof v.inMail==="boolean"?v.inMail:/algemene/i.test(v.soort||"");
 const agMailVink=(id,aan)=>`<label class="sp-nat full" for="${id}"><input type="checkbox" id="${id}"${aan?" checked":""}${canWrite?"":" disabled"}><span><b>Opnemen in de activiteitenmail</b></span></label>`;
 /* welke kassa hoort bij een activiteit: zelf gekozen, anders afgeleid uit de titel */
-function agKassa(a){if(a&&typeof a.kassa==="string")return a.kassa;const t=norm((a&&a.titel)||"");return /jaarmarkt/.test(t)?"jaarmarkt":/vier en vlam|fuif/.test(t)?"fuif":/kinderfeest/.test(t)?"kinderfeest":""}
+function agKassa(a){/* de kassa volgt altijd uit de naam van de activiteit */const t=norm((a&&a.titel)||"");return /jaarmarkt/.test(t)?"jaarmarkt":/vier en vlam|fuif/.test(t)?"fuif":/kinderfeest/.test(t)?"kinderfeest":""}
 function agItems(){const out=[];
   for(const a of S.activiteiten.values())if(a.datum)out.push({id:a.id,t:"act",datum:a.datum,uur:a.uur||"",titel:a.titel||"Activiteit",locatie:a.locatie||"",info:a.info||"",inMail:a.inMail!==false,shift:a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length>0),kassa:agKassa(a)});
   for(const v of S.vergaderingen.values())if(v.datum)out.push({id:v.id,t:"verg",datum:v.datum,uur:v.uur||"",titel:v.titel||v.soort||"Vergadering",locatie:v.locatie||"",inMail:vgInMail(v)});
@@ -2312,12 +2312,12 @@ function agForm(a,id){const d=canWrite?"":" disabled";a=a||{};
    ${fld("agT","Wat",inp("agT",a.titel,'maxlength="120" placeholder="bv. Jaarmarkt, Paasmaandagwandeling"'+d),"full")}
    ${fld("agD","Datum",`<input id="agD" type="date" value="${esc(a.datum||AG.dag||todayISO())}"${d}>`)}${uurVeld("agU",a.uur,d)}
    ${fld("agL","Waar",inp("agL",a.locatie,'maxlength="160"'+d),"full")}
-   ${fld("agI","Meer info",`<textarea id="agI" class="ag-info" rows="3" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false)}<label class="sp-nat full" for="agS"><input type="checkbox" id="agS"${a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length)?" checked":""}${canWrite?"":" disabled"}><span><b>Gebruiken in shiften</b></span></label>${fld("agK","Kassa op de dag zelf",`<select id="agK"${d}>${[["","Geen kassa"],["fuif","In Vier en Vlam"],["kinderfeest","Kinderfeest"],["jaarmarkt","Jaarmarkt"]].map(([v,l])=>`<option value="${v}"${agKassa(a)===v?" selected":""}>${l}</option>`).join("")}</select>`,"full")}<div class="err full" id="agErr"></div></form>`,
+   ${fld("agI","Meer info",`<textarea id="agI" class="ag-info" rows="3" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false)}<label class="sp-nat full" for="agS"><input type="checkbox" id="agS"${a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length)?" checked":""}${canWrite?"":" disabled"}><span><b>Gebruiken in shiften</b></span></label><div class="err full" id="agErr"></div></form>`,
    `${id&&canWrite?'<button class="btn danger" id="agDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="agOk">Bewaren</button>':""}`);
   if(!canWrite)return;
-  $("#agOk").onclick=async()=>{const r={titel:$("#agT").value.trim(),datum:$("#agD").value,uur:$("#agU").value.trim(),locatie:$("#agL").value.trim(),info:$("#agI").value.trim(),inMail:$("#agM").checked,metShiften:$("#agS").checked,kassa:$("#agK").value};
+  $("#agOk").onclick=async()=>{const r={titel:$("#agT").value.trim(),datum:$("#agD").value,uur:$("#agU").value.trim(),locatie:$("#agL").value.trim(),info:$("#agI").value.trim(),inMail:$("#agM").checked,metShiften:$("#agS").checked};
     if(!r.titel){$("#agErr").textContent="Vul in wat er te doen is.";return}if(!/^\d{4}-\d{2}-\d{2}$/.test(r.datum)){$("#agErr").textContent="Kies een datum.";return}
-    closeModal();await write("activiteiten",id||agId("act"),{...(id?stripId(S.activiteiten.get(id)||{}):{}),...r});toast("Activiteit bewaard.")};
+    closeModal();const o={...(id?stripId(S.activiteiten.get(id)||{}):{}),...r};delete o.kassa;await write("activiteiten",id||agId("act"),o);toast("Activiteit bewaard.")};
   const del=$("#agDel");if(del)del.onclick=()=>confirmBox(`<b>${esc(a.titel||"Deze activiteit")}</b> verwijderen?`,"Verwijderen",async()=>{await write("activiteiten",id,null,{del:true});toast("Activiteit verwijderd.")})}
 
 /* ---------- banket en kinderfeest als agenda-item: zelfde eigenschappenscherm, bewaart in hun instellingen ---------- */

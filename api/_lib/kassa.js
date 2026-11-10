@@ -134,7 +134,7 @@ export async function kassaCron(sb) {
 // app (admin): POST /api/mail?f=kassa {actie:"wis", id}
 /* Elk profiel (ook lezen): op de dag van een activiteit met een kassa de openbare kassa openen.
    Zet de kassa op die activiteit en maakt zo nodig een nieuwe kassacode (1 dag geldig). */
-const kassaVan = a => typeof a.kassa === "string" ? a.kassa : (t => /jaarmarkt/.test(t) ? "jaarmarkt" : /vier en vlam|fuif/.test(t) ? "fuif" : /kinderfeest/.test(t) ? "kinderfeest" : "")(String(a.titel || "").toLowerCase());
+const kassaVan = a => (t => /jaarmarkt/.test(t) ? "jaarmarkt" : /vier en vlam|fuif/.test(t) ? "fuif" : /kinderfeest/.test(t) ? "kinderfeest" : "")(String(a.titel || "").toLowerCase());
 async function kassaVandaag(req, res, b) {
   const { sb } = await requireUser(req, {}), act = String(b.act || "");
   if (!ACTS[act]) throw httpErr(400, "Onbekende kassa.");
