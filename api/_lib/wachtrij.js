@@ -59,8 +59,16 @@ export async function wachtrijCron(req, res) {
     if (!(al && al.length)) { const eerste = pak.find(r => r.batch === batch); metBcc.add(eerste.id); await sb.from("mail_wachtrij").update({ data: { ...eerste.data, bcc: "1" } }).eq("id", eerste.id); }
   }
   let R;
-  try { R = await verstuur(pak.map(r => ({ ...r.data, geenBcc: !(metBcc.has(r.id) || r.data.bcc === "1") }))); }
+  try { R = await verstuur(pak.map(r => ({ ...r.data, geenBcc: !(metBcc.has(r.id) || r.data.bcc === "1") })), { geenLog: true }); }
   catch (e) { R = pak.map(() => ({ ok: false, fout: String(e.message || e) })); }
+  // logboek: wachtrijen van de pagina Mails staan er al als één verzending (mailings); automatische wachtrijen (herinneringen, fuif…) per mail
+  try {
+    const B = [...new Set(pak.map(r => r.batch))];
+    const { data: M } = await sb.from("mailings").select("data").in("data->>wachtrij", B);
+    const vanMails = new Set((M || []).map(m => m.data && m.data.wachtrij));
+    const idx = pak.map((r, i) => i).filter(i => !vanMails.has(pak[i].batch) && !(R[i] && R[i].ok === false && /limiet|421|450|451|452/i.test(String(R[i].fout || ""))));
+    if (idx.length) { const { logMails } = await import("./smtp.js"); await logMails(idx.map(i => pak[i].data), idx.map(i => R[i])); }
+  } catch (e) { console.error("logboek wachtrij", e); }
   let limiet = false;
   for (let i = 0; i < pak.length; i++) {
     const r = pak[i], x = R[i] || { ok: false, fout: "geen antwoord" };

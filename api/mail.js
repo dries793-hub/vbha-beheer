@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       .filter(m => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(m.aan) && m.onderwerp);
     if (!L.length) throw httpErr(400, "Geen geldige berichten.");
     for (const m of L) m.html = ondertekenLinks(m.html); // betaallinks voor het lidgeld
-    const r = await verstuur(L);
+    const r = await verstuur(L, { geenLog: true }); // staat al in het logboek als verzending (mailings)
     res.status(200).json({ resultaten: L.map((m, i) => ({ aan: m.aan, ...r[i] })) });
   } catch (e) { sendError(res, e); }
 }
