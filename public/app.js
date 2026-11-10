@@ -2312,7 +2312,7 @@ function agForm(a,id){const d=canWrite?"":" disabled";a=a||{};
    ${fld("agT","Wat",inp("agT",a.titel,'maxlength="120" placeholder="bv. Jaarmarkt, Paasmaandagwandeling"'+d),"full")}
    ${fld("agD","Datum",`<input id="agD" type="date" value="${esc(a.datum||AG.dag||todayISO())}"${d}>`)}${uurVeld("agU",a.uur,d)}
    ${fld("agL","Waar",inp("agL",a.locatie,'maxlength="160"'+d),"full")}
-   ${fld("agI","Meer info",`<textarea id="agI" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false)}<label class="sp-nat full" for="agS"><input type="checkbox" id="agS"${a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length)?" checked":""}${canWrite?"":" disabled"}><span><b>Gebruiken in shiften</b></span></label>${fld("agK","Kassa op de dag zelf",`<select id="agK"${d}>${[["","Geen kassa"],["fuif","In Vier en Vlam"],["kinderfeest","Kinderfeest"],["jaarmarkt","Jaarmarkt"]].map(([v,l])=>`<option value="${v}"${agKassa(a)===v?" selected":""}>${l}</option>`).join("")}</select>`,"full")}<div class="err full" id="agErr"></div></form>`,
+   ${fld("agI","Meer info",`<textarea id="agI" class="ag-info" rows="3" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false)}<label class="sp-nat full" for="agS"><input type="checkbox" id="agS"${a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length)?" checked":""}${canWrite?"":" disabled"}><span><b>Gebruiken in shiften</b></span></label>${fld("agK","Kassa op de dag zelf",`<select id="agK"${d}>${[["","Geen kassa"],["fuif","In Vier en Vlam"],["kinderfeest","Kinderfeest"],["jaarmarkt","Jaarmarkt"]].map(([v,l])=>`<option value="${v}"${agKassa(a)===v?" selected":""}>${l}</option>`).join("")}</select>`,"full")}<div class="err full" id="agErr"></div></form>`,
    `${id&&canWrite?'<button class="btn danger" id="agDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="agOk">Bewaren</button>':""}`);
   if(!canWrite)return;
   $("#agOk").onclick=async()=>{const r={titel:$("#agT").value.trim(),datum:$("#agD").value,uur:$("#agU").value.trim(),locatie:$("#agL").value.trim(),info:$("#agI").value.trim(),inMail:$("#agM").checked,metShiften:$("#agS").checked,kassa:$("#agK").value};
@@ -2325,7 +2325,7 @@ function agAutoForm(id){const bk=id==="bk",c=bk?bkCfg():kfCfg(),d=canWrite?"":" 
   modal(naam,`<form id="fAa" class="form">
    ${fld("aaD","Datum",`<input id="aaD" type="date" value="${esc(c.datum||"")}"${d}>`)}${uurVeld("aaU",bk?c.uur:c.tijd,d)}
    ${fld("aaL","Waar",inp("aaL",c.locatie,'maxlength="160"'+d),"full")}
-   ${fld("aaI","Meer info",`<textarea id="aaI" maxlength="2000" placeholder="Komt in de activiteitenmail onder datum, uur en plaats"${d}>${esc(c.info||"")}</textarea>`,"full")}
+   ${fld("aaI","Meer info",`<textarea id="aaI" class="ag-info" rows="3" maxlength="2000" placeholder="Komt in de activiteitenmail onder datum, uur en plaats"${d}>${esc(c.info||"")}</textarea>`,"full")}
    ${agMailVink("aaM",c.inMail!==false)}
    <div class="muted small full">Zolang de inschrijvingen open zijn, krijgt het kader in de mail ook een knop naar de inschrijfpagina. Prijs en inschrijvingen stel je in op de pagina ${naam.toLowerCase()}.</div>
    <div class="err full" id="aaErr"></div></form>`,
