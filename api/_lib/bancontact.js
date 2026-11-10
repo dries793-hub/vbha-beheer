@@ -78,8 +78,8 @@ export async function verken() {
       velden: L[0] ? Object.keys(L[0]) : [], kanalen: [...new Set(L.map(p => p.channel || p.paymentChannel).filter(Boolean))],
       fout: r.ok ? null : t.slice(0, 200) };
   } catch (e) { out.zoek = { fout: String(e.message || e) }; }
-  for (const pad of ["/reconciliation/payouts", "/reconciliation/payments?startDate=" + new Date(Date.now() - 20 * 864e5).toISOString().slice(0, 10) + "&endDate=" + new Date().toISOString().slice(0, 10)]) {
-    try { const r = await fetch(base() + pad, { headers: H }); out[pad.split("?")[0]] = { status: r.status, antwoord: (await r.text()).slice(0, 200) }; }
+  for (const pad of ["/reconciliation/payouts", "/reconciliation/transactions?startDate=" + new Date(Date.now() - 20 * 864e5).toISOString().slice(0, 10) + "&endDate=" + new Date().toISOString().slice(0, 10), "/reconciliation/payments?startDate=" + new Date(Date.now() - 20 * 864e5).toISOString().slice(0, 10) + "&endDate=" + new Date().toISOString().slice(0, 10)]) {
+    try { const r = await fetch(base() + pad, { headers: H }); out[pad.split("?")[0]] = { status: r.status, antwoord: (await r.text()).replace(/"(name|iban|debtor[^"]*)"\s*:\s*"[^"]*"/gi, '"$1":"…"').slice(0, 400) }; }
     catch (e) { out[pad] = { fout: String(e.message || e) }; }
   }
   return out;
