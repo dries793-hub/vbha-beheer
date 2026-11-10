@@ -65,7 +65,7 @@ export function hoortBij(b, f) {
   return re.test(m.toUpperCase().replace(/\s+/g, "")) || re.test(m.toUpperCase());
 }
 export function betaalStatus(f, boekingen) {
-  const T = totalen(f).totaal, L = (boekingen || []).filter(b => hoortBij(b, f));
+  const T = r2(totalen(f).totaal + (f.aanmaning && Number(f.aanmaning.kosten) || 0)), L = (boekingen || []).filter(b => hoortBij(b, f));
   let ontvangen = L.reduce((s, b) => s + (Number(b.bedrag) || 0), 0);
   const online = f.betaling && f.betaling.status === "SUCCEEDED" ? Number(f.betaling.bedrag) || 0 : 0;
   if (online && !L.some(b => Math.abs(b.bedrag - online) < 0.01)) ontvangen += online;
@@ -73,6 +73,22 @@ export function betaalStatus(f, boekingen) {
   const betaald = !!f.betaaldManueel || (T > 0 && ontvangen >= T - 0.005);
   const laatst = L.map(b => b.datum).sort().pop() || (f.betaling && f.betaling.betaaldOp ? String(f.betaling.betaaldOp).slice(0, 10) : null) || (f.betaaldManueel && f.betaaldManueel.op) || null;
   return { totaal: T, ontvangen, open: r2(Math.max(0, T - ontvangen)), betaald, laatst, boekingen: L };
+}
+
+/* ---------- aanmaning: verwijlintrest en forfaitaire schadevergoeding ----------
+   Wet van 2 augustus 2002 (betalingsachterstand bij handelstransacties): interest van rechtswege vanaf de dag na de vervaldag
+   aan de rentevoet die de FOD Financiën per semester bekendmaakt (2e semester 2026: 10,5%), plus een forfaitaire vergoeding
+   voor invorderingskosten van € 40. De administrator kan beide aanpassen in de instellingen van Facturen. */
+export const AANMANING_DEF = { pct: 10.5, forfait: 40, termijn: 8 };
+export function aanmaningBerekend(f, cfg, st, opties = {}) {
+  const A = { ...AANMANING_DEF, ...(cfg.aanmaning || {}) };
+  const open = r2(Math.max(0, (st ? st.open : totalen(f).totaal) - (f.aanmaning && Number(f.aanmaning.kosten) || 0)));
+  const dag = vandaag(), dagen = f.vervaldatum && dag > f.vervaldatum ? Math.round((Date.parse(dag) - Date.parse(f.vervaldatum)) / 864e5) : 0;
+  const pct = opties.pct != null ? Number(opties.pct) : Number(A.pct) || 0;
+  const intrest = opties.intrest != null ? r2(Number(opties.intrest) || 0) : r2(open * pct / 100 * dagen / 365);
+  const forfait = opties.forfait != null ? r2(Number(opties.forfait) || 0) : r2(Number(A.forfait) || 0);
+  const termijn = Number(opties.termijn) || Number(A.termijn) || 8;
+  return { op: new Date().toISOString(), dag, open, dagen, pct, intrest, forfait, kosten: r2(intrest + forfait), totaal: r2(open + intrest + forfait), tot: plusDagen(dag, termijn), termijn };
 }
 
 /* ---------- ondertekende link naar de betaalpagina ---------- */
@@ -93,12 +109,12 @@ const aantalTxt = n => Number(n || 0).toLocaleString("nl-BE", { maximumFractionD
 const ROOD = "#b30000", GRIJS = "#666666", LICHT = "#f4f1ea", GOUD = "#C1A057";
 
 export const BTW_VRIJ = "Vereniging niet onderworpen aan de btw.";
-export function factuurPdf(f, cfg, { status } = {}) {
+export function factuurPdf(f, cfg, { status, aanmaning: AM } = {}) {
   if (!cfg.btwPlichtig) f = { ...f, lijnen: (f.lijnen || []).map(l => ({ ...l, btw: 0 })) };
   const pdf = new Pdf(), L = 50, R = 545, Wb = R - L;
   const credit = f.type === "credit", concept = !f.nr;
   const T = totalen(f), metBtw = T.btw.length > 0 || (f.lijnen || []).some(l => Number(l.btw));
-  const titel = concept ? (credit ? "CREDITNOTA (concept)" : "FACTUUR (concept)") : credit ? "CREDITNOTA" : "FACTUUR";
+  const titel = AM ? "AANMANING" : concept ? (credit ? "CREDITNOTA (concept)" : "FACTUUR (concept)") : credit ? "CREDITNOTA" : "FACTUUR";
 
   function kop(eerste) {
     pdf.vlak(0, 0, 595, 6, ROOD);
@@ -121,7 +137,8 @@ export function factuurPdf(f, cfg, { status } = {}) {
 
   const gx = 330, gw = R - gx;
   const rijen = [[credit ? "Creditnotanummer" : "Factuurnummer", f.nr || "concept"], [credit ? "Datum" : "Factuurdatum", dmy(f.datum)]];
-  if (!credit) rijen.push(["Vervaldatum", dmy(f.vervaldatum)]);
+  if (!credit) rijen.push([AM ? "Oorspr. vervaldatum" : "Vervaldatum", dmy(f.vervaldatum)]);
+  if (AM) rijen.push(["Datum aanmaning", dmy(AM.dag)], ["Te betalen uiterlijk", dmy(AM.tot)]);
   if (credit && f.factuurNr) rijen.push(["Betreft factuur", f.factuurNr]);
   if (f.referentie) rijen.push(["Uw referentie", f.referentie]);
   pdf.vlak(gx, y - 4, gw, rijen.length * 16 + 10, LICHT);
@@ -159,10 +176,26 @@ export function factuurPdf(f, cfg, { status } = {}) {
   if (y + 30 + totRijen.length * 15 > ONDER) { pdf.nieuwePagina(); y = kop(false); }
   y += 6;
   for (const [a, b] of totRijen) { pdf.tekst(430, y, a, { size: 9.5, kleur: GRIJS, align: "right" }); pdf.tekst(R - 8, y, b, { size: 9.5, align: "right" }); y += 15; }
-  pdf.vlak(300, y - 2, R - 300, 26, ROOD);
+  if (AM) {
+    // aanmaning: factuurbedrag, wat al betaald is, en de bijkomende kosten
+    pdf.tekst(312, y + 6, "Factuurbedrag", { size: 10, bold: true }); pdf.tekst(R - 8, y + 6, geld(T.totaal), { size: 10, bold: true, align: "right" }); y += 20;
+    const rest = [];
+    if (r2(T.totaal - AM.open) > 0.004) rest.push(["Reeds ontvangen", "- " + geld(r2(T.totaal - AM.open))]);
+    if (AM.intrest) rest.push([`Verwijlintrest ${String(AM.pct).replace(".", ",")}% op ${AM.dagen} dagen`, geld(AM.intrest)]);
+    if (AM.forfait) rest.push(["Forfaitaire schadevergoeding", geld(AM.forfait)]);
+    for (const [a, b] of rest) { pdf.tekst(312, y, a, { size: 9.5, kleur: GRIJS }); pdf.tekst(R - 8, y, b, { size: 9.5, align: "right" }); y += 15; }
+    y += 4;
+  } else pdf.vlak(300, y - 2, R - 300, 26, ROOD);
+  if (AM) pdf.vlak(300, y - 2, R - 300, 26, ROOD);
   pdf.tekst(312, y + 6, credit ? "Totaal gecrediteerd" : "Totaal te betalen", { size: 11, bold: true, kleur: "#ffffff" });
-  pdf.tekst(R - 8, y + 6, geld(T.totaal), { size: 12, bold: true, kleur: "#ffffff", align: "right" });
+  pdf.tekst(R - 8, y + 6, geld(AM ? AM.totaal : T.totaal), { size: 12, bold: true, kleur: "#ffffff", align: "right" });
   y += 40;
+  if (AM) {
+    const txt = `Ondanks onze factuur${(f.verzonden || []).some(v => v.soort === "herinnering" && v.ok) || f.eerderHerinnerd ? " en herinnering" : ""} ontvingen wij nog geen${AM.open < T.totaal - 0.004 ? " volledige" : ""} betaling. Overeenkomstig onze betalingsvoorwaarden en de wet van 2 augustus 2002 betreffende de bestrijding van de betalingsachterstand bij handelstransacties zijn van rechtswege verwijlintresten en een forfaitaire schadevergoeding verschuldigd. Gelieve het totaal uiterlijk op ${dmy(AM.tot)} te betalen. Zonder betaling binnen deze termijn zetten wij verdere stappen tot invordering.`;
+    const regels = afbreken(txt, 9.5, false, Wb);
+    regels.forEach((rg, i) => pdf.tekst(L, y + i * 12.5, rg, { size: 9.5 }));
+    y += regels.length * 12.5 + 14;
+  }
 
   if (f.opmerking) {
     const regels = afbreken(f.opmerking, 9.5, false, Wb);
@@ -200,7 +233,7 @@ export function factuurPdf(f, cfg, { status } = {}) {
       regel("Rekening", String(cfg.iban).replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim() + (cfg.bic ? "   BIC " + cfg.bic : ""));
       regel("Begunstigde", cfg.vereniging);
       regel("Mededeling", f.ogm ? ogmFmt(f.ogm) : f.nr || "volgt bij het versturen", !!(f.ogm || f.nr));
-      if (f.vervaldatum) regel("Uiterlijk op", dmy(f.vervaldatum));
+      if (AM) regel("Uiterlijk op", dmy(AM.tot)); else if (f.vervaldatum) regel("Uiterlijk op", dmy(f.vervaldatum));
       {
         // ook in het concept (voorbeeld): dan nog zonder mededeling, die volgt bij het versturen
         try {
@@ -247,6 +280,24 @@ export function factuurMail(f, cfg, soort = "factuur", status) {
     onderwerp = `Creditnota ${f.nr} - ${cfg.vereniging}`;
     html += p(`In bijlage vind je creditnota <b>${esc(f.nr)}</b>${f.factuurNr ? ` voor factuur <b>${esc(f.factuurNr)}</b>` : ""} ten bedrage van <b>${eur(T.totaal)}</b>.`)
       + p(f.factuurNr ? `Hiermee vervalt het openstaande bedrag van die factuur. Je hoeft niets te doen.` : `Je hoeft niets te doen.`);
+  } else if (soort === "aanmaning" && f.aanmaning) {
+    const A = f.aanmaning;
+    onderwerp = `Aanmaning: factuur ${f.nr} - ${cfg.vereniging}`;
+    html += p(`Ondanks onze factuur${(f.verzonden || []).some(v => v.soort === "herinnering" && v.ok) || f.eerderHerinnerd ? " en onze herinnering" : ""} hebben wij voor factuur <b>${esc(f.nr)}</b> van ${esc(kort(f.datum))} nog geen${status && status.ontvangen > 0 ? " volledige" : ""} betaling ontvangen. De vervaldatum was ${esc(kort(f.vervaldatum))}.`)
+      + p(`Zoals vermeld in onze betalingsvoorwaarden en overeenkomstig de wet van 2 augustus 2002 betreffende de bestrijding van de betalingsachterstand bij handelstransacties, rekenen wij vanaf nu verwijlintresten en een forfaitaire schadevergoeding aan.`)
+      + p(`Wij vragen je het totaal van <b>${eur(A.totaal)}</b> uiterlijk op <b>${esc(lang(A.tot))}</b> over te schrijven. Zonder betaling binnen deze termijn zien wij ons genoodzaakt verdere stappen tot invordering te zetten.`)
+      + p(`Heb je intussen al betaald? Dan kruisten onze berichten elkaar en mag je deze aanmaning als niet verzonden beschouwen.`, "margin:0 0 15px;font-size:13.5px;color:#666666");
+    html += kaderBlok("Aanmaning factuur " + esc(f.nr), tabel([
+      rij("Openstaand bedrag", eur(A.open)),
+      A.intrest ? rij(`Verwijlintrest ${String(A.pct).replace(".", ",")}% (${A.dagen} dagen)`, eur(A.intrest)) : "",
+      A.forfait ? rij("Forfaitaire schadevergoeding", eur(A.forfait)) : "",
+      rij("Totaal te betalen", `<b>${eur(A.totaal)}</b>`),
+      rij("Uiterlijk op", `<b>${esc(lang(A.tot))}</b>`),
+    ]));
+    html += kaderBlok("Betalen", tabel([rij("Bedrag", `<b>${eur(open)}</b>`), rij("Rekening", `<b>${esc(String(cfg.iban).replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim())}</b>`), rij("Begunstigde", esc(cfg.vereniging)), rij("Mededeling", `<b>${esc(ogmFmt(f.ogm) || f.nr)}</b>`)]), "#b30000", "#fdf2f2")
+      + knop("Online betalen met Bancontact of QR-code", betaalLink(f.id))
+      + p(`Vragen? Antwoord gewoon op deze mail.`, "margin:0 0 15px;font-size:13.5px;color:#666666");
+    return { onderwerp, html: huisstijl(html, cfg.vereniging) };
   } else if (soort === "herinnering") {
     const n = (f.verzonden || []).filter(v => v.soort === "herinnering" && v.ok).length + 1;
     onderwerp = `${n > 1 ? n + "e herinnering" : "Herinnering"}: factuur ${f.nr} - ${cfg.vereniging}`;
@@ -322,9 +373,9 @@ async function verstuurFactuur(sb, row, cfg, soort, aanExtra) {
   if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(aan)) throw httpErr(400, "Geen geldig e-mailadres voor deze klant.");
   if (!smtpConfigured()) throw httpErr(501, "Versturen is niet ingesteld (SMTP in Vercel).");
   const st = f.type === "credit" ? null : await statusVan(sb, row);
-  if (soort === "herinnering" && st && st.betaald) throw httpErr(409, "Deze factuur is al betaald.");
+  if ((soort === "herinnering" || soort === "aanmaning") && st && st.betaald) throw httpErr(409, "Deze factuur is al betaald.");
   const m = factuurMail(f, cfg, soort, st);
-  const bijlagen = [{ naam: pdfNaam(f), type: "application/pdf", data: factuurPdf(f, cfg, { status: st }) }];
+  const bijlagen = [{ naam: soort === "aanmaning" ? pdfNaam(f).replace(/^Factuur/i, "Aanmaning") : pdfNaam(f), type: "application/pdf", data: factuurPdf(f, cfg, { status: st, aanmaning: soort === "aanmaning" ? f.aanmaning : null }) }];
   const berichten = [{ aan, aanNaam: (f.klant && (f.klant.contact || f.klant.naam)) || "", onderwerp: m.onderwerp, html: m.html, van: factuurAfzender(), bijlagen, antwoordAan: FACTUUR_ADRES() }];
   const kopie = String(cfg.kopie || "").split(/[,;\s]+/).filter(x => /@/.test(x) && x.toLowerCase() !== aan.toLowerCase());
   for (const k of kopie) berichten.push({ ...berichten[0], aan: k, aanNaam: "", onderwerp: "[Kopie] " + m.onderwerp });
@@ -360,6 +411,22 @@ export async function factuurActie(req, res) {
     if (actie === "versturen") log = await verstuurFactuur(sb, row, cfg, "factuur", b.aan);
     return res.status(200).json({ nr: row.data.nr, log, data: (await haal(sb, row.id)).data });
   }
+  if (actie === "aanmaningVoorstel" || actie === "aanmaningPdf" || actie === "aanmaning") {
+    if (!row.data.nr || row.data.type === "credit") throw httpErr(400, "Een aanmaning kan enkel voor een definitieve factuur.");
+    const st0 = await statusVan(sb, row);
+    if (st0.betaald) throw httpErr(409, "Deze factuur is al betaald.");
+    const A = aanmaningBerekend({ ...row.data, id: row.id }, cfg, st0, b.opties || {});
+    if (actie === "aanmaningVoorstel") return res.status(200).json({ aanmaning: A, klantBtw: !!(row.data.klant && row.data.klant.btw) });
+    const f2 = { ...row.data, id: row.id, aanmaning: A };
+    if (actie === "aanmaningPdf") { const st2 = betaalStatus(f2, st0.boekingen); return res.status(200).json({ naam: pdfNaam(f2).replace(/^Factuur/i, "Aanmaning"), pdf: factuurPdf(f2, cfg, { status: st2, aanmaning: A }).toString("base64") }); }
+    // eerst de kosten bewaren, dan versturen (de status rekent ze mee)
+    await bewaar(sb, row.id, { ...row.data, aanmaning: A, geenHerinnering: true });
+    let log;
+    try { log = await verstuurFactuur(sb, await haal(sb, row.id), cfg, "aanmaning", b.aan); }
+    catch (e) { const nu = await haal(sb, row.id); const { aanmaning, ...rest } = nu.data; await bewaar(sb, row.id, { ...rest, ...(row.data.aanmaning ? { aanmaning: row.data.aanmaning } : {}), geenHerinnering: !!row.data.geenHerinnering }); throw e; }
+    return res.status(200).json({ log, data: (await haal(sb, row.id)).data });
+  }
+  if (actie === "kostenWeg") { const { aanmaning, ...rest } = row.data; await bewaar(sb, row.id, { ...rest, ...(aanmaning ? { aanmaningVervallen: { ...aanmaning, weg: new Date().toISOString() } } : {}) }); return res.status(200).json({ data: (await haal(sb, row.id)).data }); }
   if (actie === "herinnering") {
     if (!row.data.nr) throw httpErr(400, "Deze factuur is nog een concept.");
     const log = await verstuurFactuur(sb, row, cfg, "herinnering", b.aan);

@@ -3321,7 +3321,7 @@ function fcTot(f){const per={};let excl=0;for(const l of f.lijnen||[]){const b=r
   const btw=Object.entries(per).map(([t,b])=>({tarief:Number(t),bedrag:r2(b)})).sort((a,b)=>a.tarief-b.tarief);excl=r2(excl);return{excl,btw,totaal:r2(excl+btw.reduce((s,b)=>s+b.bedrag,0))}}
 function fcHoort(b,f){if(!b||b.richting==="uit"||!f.nr)return false;if(b.factuurId)return b.factuurId===f.id;const m=String(b.mededeling||"");
   if(f.ogm&&m.replace(/\D/g,"").includes(f.ogm))return true;const re=new RegExp("(^|[^A-Z0-9])"+String(f.nr).toUpperCase().replace(/[^A-Z0-9]/g,"")+"($|[^0-9])");return re.test(m.toUpperCase().replace(/\s+/g,""))||re.test(m.toUpperCase())}
-function fcBetaal(f){const T=fcTot(f).totaal,L=[...S.boekingen.values()].filter(b=>fcHoort(b,f));let o=L.reduce((s,b)=>s+num(b.bedrag),0);
+function fcBetaal(f){const T=r2(fcTot(f).totaal+(f.aanmaning?num(f.aanmaning.kosten):0)),L=[...S.boekingen.values()].filter(b=>fcHoort(b,f));let o=L.reduce((s,b)=>s+num(b.bedrag),0);
   const on=f.betaling&&f.betaling.status==="SUCCEEDED"?num(f.betaling.bedrag):0;if(on&&!L.some(b=>Math.abs(b.bedrag-on)<0.01))o+=on;o=r2(o);
   const betaald=!!f.betaaldManueel||(T>0&&o>=T-0.005);const laatst=L.map(b=>b.datum).sort().pop()||(f.betaling&&f.betaling.betaaldOp?String(f.betaling.betaaldOp).slice(0,10):null)||(f.betaaldManueel&&f.betaaldManueel.op)||null;
   return{totaal:T,ontvangen:o,open:r2(Math.max(0,T-o)),betaald,laatst,L,online:on}}
@@ -3385,13 +3385,13 @@ function fcDetail(id){const f=S.facturen.get(id);if(!f)return;if(!f.nr)return fc
      ${b.ontvangen>0&&!b.betaald?`<div class="small" style="margin-top:6px">Nog open: <b>${eur(b.open)}</b></div>`:""}
      ${m&&kand.length&&!kand.some(x=>Math.abs(x.bedrag-b.open)<0.01)?paarVoorstel(kand,b.open).filter(x=>x.zelfde).map(x=>`<div class="note info" style="margin:10px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="grow small"><b>In 2 keer betaald?</b> ${x.bs.map(y=>`${eur(y.bedrag)} op ${fmtDate(y.datum)}`).join(" + ")} van ${esc(x.bs[0].partij||"")} = ${eur(b.open)}</span><button type="button" class="btn sm primary" data-fc="toewijzenPaar" data-id="${esc(id)}" data-ids="${esc(x.bs.map(y=>y.id).join(","))}">Samen toewijzen</button></div>`).join(""):""}
      ${m&&kand.length?`<div class="sp-bet-add" style="margin-top:10px"><select id="fcKand" class="sel" aria-label="Transactie toewijzen"><option value="">Transactie toewijzen…</option>${kand.map(x=>`<option value="${esc(x.id)}">${esc((fmtDate(x.datum)+" · "+eur(x.bedrag)+" · "+(x.partij||"")+(x.mededeling?" · "+x.mededeling:"")).slice(0,110))}</option>`).join("")}</select><button type="button" class="btn sm" data-fc="toewijzen" data-id="${esc(id)}">Toewijzen</button></div>`:""}</div>`:""}
-   <div class="fc-sec"><h4>Verzonden</h4>${log.length?`<div class="fc-log">${log.map(v=>`<div><span class="pill ${v.ok?"ok":"nok"}">${v.ok?"✓":"✗"}</span><span>${v.soort==="herinnering"?"Herinnering":v.soort==="credit"?"Creditnota":"Factuur"} naar <b>${esc(v.aan)}</b></span><span class="muted small">${new Date(v.op).toLocaleString("nl-BE",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}${v.fout?" · "+esc(v.fout):""}</span></div>`).join("")}</div>`:f.geimporteerd?`<div class="muted small">Opgemaakt en verstuurd met het vorige facturatiesysteem${f.geimporteerd.verzondenAan?(/@/.test(f.geimporteerd.verzondenAan)?" naar <b>"+esc(f.geimporteerd.verzondenAan)+"</b>":" ("+esc(f.geimporteerd.verzondenAan)+")"):""}${f.geimporteerd.verzondenOp?" op "+fmtDate(f.geimporteerd.verzondenOp):""}.</div>`:'<div class="muted small">Nog niet gemaild.</div>'}</div>
+   <div class="fc-sec"><h4>Verzonden</h4>${log.length?`<div class="fc-log">${log.map(v=>`<div><span class="pill ${v.ok?"ok":"nok"}">${v.ok?"✓":"✗"}</span><span>${v.soort==="herinnering"?"Herinnering":v.soort==="aanmaning"?"Aanmaning":v.soort==="credit"?"Creditnota":"Factuur"} naar <b>${esc(v.aan)}</b></span><span class="muted small">${new Date(v.op).toLocaleString("nl-BE",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}${v.fout?" · "+esc(v.fout):""}</span></div>`).join("")}</div>`:f.geimporteerd?`<div class="muted small">Opgemaakt en verstuurd met het vorige facturatiesysteem${f.geimporteerd.verzondenAan?(/@/.test(f.geimporteerd.verzondenAan)?" naar <b>"+esc(f.geimporteerd.verzondenAan)+"</b>":" ("+esc(f.geimporteerd.verzondenAan)+")"):""}${f.geimporteerd.verzondenOp?" op "+fmtDate(f.geimporteerd.verzondenOp):""}.</div>`:'<div class="muted small">Nog niet gemaild.</div>'}</div>
    ${f.opmerking?`<div class="fc-sec"><h4>Opmerking op de factuur</h4><div class="small">${esc(f.opmerking).replace(/\n/g,"<br>")}</div></div>`:""}
   </div>`,
   `<button class="btn" data-fc="pdf" data-id="${esc(id)}">${ic("download")}PDF</button>
    ${m?`<div class="fc-meer"><button class="btn" data-fc="meer" aria-haspopup="true">Meer…</button><div class="fc-menu" hidden>
      <button type="button" data-fc="mailen" data-id="${esc(id)}">${cr?"Creditnota":"Factuur"} opnieuw mailen</button>
-     ${b&&!b.betaald&&s!=="gecrediteerd"?`<button type="button" data-fc="herinnering" data-id="${esc(id)}">Herinnering sturen</button><button type="button" data-fc="link" data-id="${esc(id)}">Betaallink kopiëren</button><button type="button" data-fc="betaald" data-id="${esc(id)}">Als betaald aanduiden</button>`:""}
+     ${b&&!b.betaald&&s!=="gecrediteerd"?`<button type="button" data-fc="herinnering" data-id="${esc(id)}">Herinnering sturen</button>${f.vervaldatum&&f.vervaldatum<todayISO()?`<button type="button" data-fc="aanmaning" data-id="${esc(id)}">Aanmaning met kosten…</button>`:""}${f.aanmaning?`<button type="button" data-fc="kostenWeg" data-id="${esc(id)}">Kosten aanmaning laten vallen</button>`:""}<button type="button" data-fc="link" data-id="${esc(id)}">Betaallink kopiëren</button><button type="button" data-fc="betaald" data-id="${esc(id)}">Als betaald aanduiden</button>`:""}
      ${!cr&&s!=="gecrediteerd"?`<button type="button" data-fc="credit" data-id="${esc(id)}">Creditnota maken</button>`:""}
      <button type="button" data-fc="dupliceer" data-id="${esc(id)}">Kopie als nieuw concept</button>
      ${ROL==="admin"?`<button type="button" class="fc-wegm" data-fc="wegDef" data-id="${esc(id)}">${cr?"Creditnota":"Factuur"} verwijderen</button>`:""}
@@ -3507,6 +3507,8 @@ function fcInstel(){const c=fcCfg(),H=c.herinnering,j=new Date().getFullYear(),p
    <label class="sp-nat full" for="fiHa"><input type="checkbox" id="fiHa"${H.aan?" checked":""}><span><b>Herinnering mailen bij onbetaalde facturen</b><small>Elke ochtend controleert de server de vervallen facturen. Betaalde facturen worden overgeslagen.</small></span></label>
    ${fld("fiHd","Eerste herinnering",`<select id="fiHd" class="sel">${[1,3,5,7,10,14,21,30].map(n=>`<option value="${n}"${n===num(H.dagenNaVerval)?" selected":""}>${n} dagen na de vervaldatum</option>`).join("")}</select>`)}
    ${fld("fiHi","Daarna",`<select id="fiHi" class="sel">${[7,10,14,21,30].map(n=>`<option value="${n}"${n===num(H.interval)?" selected":""}>om de ${n} dagen</option>`).join("")}</select>`)}
+   ${(()=>{const A={pct:10.5,forfait:40,termijn:8,...(c.aanmaning||{})};return `<div class="full lbl" style="margin-top:8px"><b>Aanmaning met kosten</b> <span class="muted small">(wet van 2 augustus 2002, handelstransacties)</span></div>
+   ${fld("fiAp","Verwijlintrest (% per jaar)",`<input id="fiAp" inputmode="decimal" value="${esc(String(A.pct).replace(".",","))}">`)}${fld("fiAf","Forfaitaire schadevergoeding (€)",`<input id="fiAf" inputmode="decimal" value="${esc(String(A.forfait).replace(".",","))}">`)}${fld("fiAt","Betaaltermijn aanmaning",`<select id="fiAt" class="sel">${[8,10,14,15,30].map(n=>`<option value="${n}"${n===num(A.termijn)?" selected":""}>${n} dagen</option>`).join("")}</select>`)}`})()}
    ${fld("fiHm","Maximum aantal herinneringen",`<select id="fiHm" class="sel">${[1,2,3,4].map(n=>`<option value="${n}"${n===num(H.max)?" selected":""}>${n}</option>`).join("")}</select>`)}
    <div class="err full" id="fiErr"></div></form>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-fc="instelOk" data-v="${volgend}">Bewaren</button>`,{wide:true})}
 async function fcInstelBewaar(volgend){const c=fcCfg(),j=new Date().getFullYear(),pre=c.voorvoegsel||"F",g=s=>$(s).value.trim();
@@ -3514,7 +3516,7 @@ async function fcInstelBewaar(volgend){const c=fcCfg(),j=new Date().getFullYear(
   const kop=g("#fiKop").split(/[,;\s]+/).filter(Boolean);if(kop.some(x=>!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x))){$("#fiErr").textContent="Het kopie-adres klopt niet.";return}
   const start={...(c.start||{})};if(nr!==volgend)start[pre+j]=nr;
   const d={...stripId(S.config.get("facturen")||{}),adres:$("#fiAd").value.trim(),kbo:g("#fiKbo"),bic:g("#fiBic"),email:g("#fiMail"),telefoon:g("#fiTel"),website:g("#fiWeb"),vervaldagen:num($("#fiVd").value),voettekst:$("#fiVt").value.trim(),btwPlichtig:!!$("#fiBtwP").checked,rechtsvorm:g("#fiRv"),rpr:g("#fiRpr"),voorwaarden:$("#fiVw").value.trim(),
-    start,mailOnderwerp:g("#fiOnd"),mailTekst:$("#fiTxt").value.trim(),kopie:kop.join(", "),herinnering:{aan:$("#fiHa").checked,dagenNaVerval:num($("#fiHd").value),interval:num($("#fiHi").value),max:num($("#fiHm").value)}};
+    start,mailOnderwerp:g("#fiOnd"),mailTekst:$("#fiTxt").value.trim(),kopie:kop.join(", "),herinnering:{aan:$("#fiHa").checked,dagenNaVerval:num($("#fiHd").value),interval:num($("#fiHi").value),max:num($("#fiHm").value)},aanmaning:{pct:num($("#fiAp").value),forfait:num($("#fiAf").value),termijn:num($("#fiAt").value)}};
   try{await write("config","facturen",d);closeModal();toast("Instellingen bewaard.")}catch(x){$("#fiErr").textContent="Bewaren lukte niet: "+(x.message||"")}}
 
 /* ---------- acties ---------- */
@@ -3576,6 +3578,8 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-fc]"
     case"meer":{const m=t.nextElementSibling;m.hidden=!m.hidden;break}
     case"mailen":fcMailVraag(id,"factuur");break;
     case"herinnering":fcMailVraag(id,"herinnering");break;
+    case"aanmaning":fcAanmaning(id);break;
+    case"kostenWeg":confirmBox("De kosten van de aanmaning (intrest en schadevergoeding) laten vallen? Dan is enkel het factuurbedrag nog te betalen.","Laten vallen",async()=>{const j=await fcActie("kostenWeg",id);if(j&&j.data){S.facturen.set(id,{...j.data,id});dirty=true;toast("Kosten van de aanmaning vervallen.");fcDetail(id)}});break;
     case"mailOk":fcMailOk(t);break;
     case"link":{const j=await fcActie("link",id);if(j){try{await navigator.clipboard.writeText(j.link);toast("Betaallink gekopieerd.")}catch(x){prompt("Betaallink",j.link)}}break}
     case"kopie":try{await navigator.clipboard.writeText(t.dataset.v);toast("Gekopieerd.")}catch(x){}break;
@@ -3605,6 +3609,24 @@ document.addEventListener("change",e=>{const t=e.target;if(t.id==="fcJaar"){FC.j
 {const _sf=sponsorForm;sponsorForm=function(s,id){_sf(s,id);if(id&&fcMag()){const ok=$("#spOk");if(ok)ok.insertAdjacentHTML("beforebegin",`<button class="btn" data-fc="sponsor" data-id="${esc(id)}">${ic("facturen")}Factuur maken</button>`)}}}
 // na elke render: facturen-pagina houdt de koppeling met de transacties bij
 VIEWS.facturen.after=()=>fcSync();
+
+/* ---------- Aanmaning met kosten (verwijlintrest + forfaitaire schadevergoeding) ---------- */
+async function fcAanmaning(id){const f=S.facturen.get(id);if(!f)return;const j=await fcActie("aanmaningVoorstel",id);if(!j)return;const A=j.aanmaning,v=n=>String(n).replace(".",",");
+  modal("Aanmaning met kosten",`<div class="form"><p class="full" style="margin:0">Aanmaning voor factuur <b>${esc(f.nr)}</b> aan <b>${esc((f.klant&&f.klant.naam)||"")}</b>. De factuur is <b>${A.dagen} dagen</b> vervallen (sinds ${fmtDate(f.vervaldatum)}).</p>
+   ${j.klantBtw?"":`<div class="note full" style="margin:0">Bij deze klant staat geen btw-nummer. Intrest en de forfaitaire € 40 gelden van rechtswege enkel tussen ondernemingen; voor een particulier gelden andere regels. Pas de kosten zo nodig aan.</div>`}
+   ${fld("amO","Openstaand bedrag",`<input id="amO" value="${eur(A.open)}" disabled>`)}${fld("amP","Verwijlintrest (% per jaar)",`<input id="amP" inputmode="decimal" value="${v(A.pct)}">`)}
+   ${fld("amI","Intrest (€)",`<input id="amI" inputmode="decimal" value="${v(A.intrest)}">`)}${fld("amF","Forfaitaire schadevergoeding (€)",`<input id="amF" inputmode="decimal" value="${v(A.forfait)}">`)}
+   ${fld("amT","Nieuwe betaaltermijn",`<select id="amT" class="sel">${[8,10,14,15,30].map(n=>`<option value="${n}"${n===A.termijn?" selected":""}>${n} dagen</option>`).join("")}</select>`)}${fld("amA","Naar",`<input id="amA" type="email" value="${esc((f.klant&&f.klant.email)||"")}">`)}
+   <div class="full fc-tt" id="amTot" style="display:flex;justify-content:space-between;font-weight:700;font-size:16px"></div>
+   <p class="full muted small" style="margin:0">De kosten komen bij de factuur: de factuur is pas betaald als het totaal binnen is. Je kan ze later nog laten vallen. Automatische herinneringen stoppen voor deze factuur.</p><div class="err full" id="amErr"></div></div>`,
+   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn" id="amPdf">Voorbeeld PDF</button><button class="btn primary" id="amOk">Aanmaning versturen</button>`,{wide:true});
+  let handI=false;const opties=()=>({pct:num($("#amP").value),intrest:num($("#amI").value),forfait:num($("#amF").value),termijn:num($("#amT").value)});
+  const upd=()=>{if(!handI)$("#amI").value=v(r2(A.open*num($("#amP").value)/100*A.dagen/365));const o=opties();$("#amTot").innerHTML=`<span>Totaal te betalen</span><span>${eur(r2(A.open+o.intrest+o.forfait))}</span>`};
+  $("#amP").addEventListener("input",()=>{handI=false;upd()});$("#amI").addEventListener("input",()=>{handI=true;upd()});$("#amF").addEventListener("input",upd);upd();
+  $("#amPdf").onclick=async()=>{const b=$("#amPdf");b.disabled=true;try{const r=await api("/api/mail?f=factuur",{method:"POST",body:JSON.stringify({actie:"aanmaningPdf",id,opties:opties()})});
+    const bin=atob(r.pdf),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);const url=URL.createObjectURL(new Blob([a],{type:"application/pdf"})),l=document.createElement("a");l.href=url;l.download=r.naam;if(!/iPhone|iPad|Android/i.test(navigator.userAgent))l.target="_blank";document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}catch(x){toast(x.message,true)}b.disabled=false};
+  $("#amOk").onclick=async()=>{const aan=$("#amA").value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(aan)){$("#amErr").textContent="Vul een geldig e-mailadres in.";return}const b=$("#amOk");b.disabled=true;b.textContent="Bezig…";
+    const r=await fcActie("aanmaning",id,{aan,opties:opties()});b.disabled=false;b.textContent="Aanmaning versturen";if(r&&r.data){S.facturen.set(id,{...r.data,id});dirty=true;closeModal();toast("Aanmaning verstuurd naar "+aan+".");fcDetail(id)}}}
 
 /* ============ Sponsors › inschrijfpagina (tandwiel) ============
    Config "sponsoring": open, kalenderjaar, deadline, formules, vrije bijdrage, meldingsadres. De openbare pagina /sponsor leest deze
