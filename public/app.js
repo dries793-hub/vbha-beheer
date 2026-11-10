@@ -5919,10 +5919,11 @@ VIEWS.website=()=>({title:"Website",sub:"Startpagina vbha.be",
       ${fld("wsKx","Tekst",ta("wsKx","kal_tekst",600),"full")}
       ${wsFotoBlok("kalender","Foto")}
       ${wsKnoppen("kal_knoppen",W.kal_knoppen,"Extra knoppen (naast Geef je adres door)")}</div></div></div></div>
+    <div class="grid g2" style="align-items:start">
     <div class="panel${W.blokken.sponsors?"":" ws-uit"}"><div class="panel-h"><h2>Onze sponsors</h2>${W.blokken.sponsors?'<span class="pill ok">aan</span>':'<span class="pill neutral">uit</span>'}</div><div class="panel-b"><div class="form">
       ${fld("wsSt","Titel",`<input id="wsSt" data-wsk="spo_titel" maxlength="120" value="${esc(W.spo_titel||"")}"${d}>`,"full")}
       ${fld("wsSx","Tekst",ta("wsSx","spo_tekst",400),"full")}</div></div></div>
-    ${wsEigenPaneel()}
+    ${wsEigenPaneel()}</div>
     <div class="panel ws-save"><div class="panel-b" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><span class="grow muted small" id="wsStat">${wsGewijzigd()?"Je hebt wijzigingen die nog niet gepubliceerd zijn.":"Alles is gepubliceerd."}</span>
       <button class="btn" data-wsact="voorbeeld">${ic("search")}Voorbeeld</button>${canWrite?`<button class="btn ghost" data-wsact="herstel"${wsGewijzigd()?"":" disabled"}>Wijzigingen ongedaan maken</button><button class="btn primary" data-wsact="publiceer">Publiceren</button>`:""}</div></div>`}});
 VIEWS.website.after=()=>{const W=wsWerk();for(const k of Object.keys(W.fotos||{})){const f=W.fotos[k];if(!f)continue;const el=$(`[data-wsimg="${k}"]`);if(!el)continue;
