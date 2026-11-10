@@ -5880,7 +5880,13 @@ const WS_DEF={blokken:{viv:false,kalender:true,steun:true,sponsors:true},kal_tit
 let WS=null; // werkversie (niet bewaard)
 function wsCfg(){const c=S.config.get("website")||{};return {...WS_DEF,...stripId(c),blokken:{...WS_DEF.blokken,...(c.blokken||{})},fotos:{...(c.fotos||{})}}}
 function wsWerk(){if(!WS)WS=JSON.parse(JSON.stringify(wsCfg()));return WS}
-function wsVolg(W){const B=WS_BLOKKEN.map(b=>b[0]),v=(Array.isArray(W.volgorde)?W.volgorde:[]).filter((k,i,L)=>B.includes(k)&&L.indexOf(k)===i);return [...v,...B.filter(k=>!v.includes(k))]}
+/* volgorde van alle onderdelen (vaste + eigen); zelfde regels als api/_lib/open_site.js */
+function wsVolg(W){const B=WS_BLOKKEN.map(b=>b[0]),EI=(W.eigen||[]).map(e=>e.id),v=(Array.isArray(W.volgorde)?W.volgorde:[]).filter((k,i,L)=>(B.includes(k)||EI.includes(k))&&L.indexOf(k)===i);
+  const L=[...v,...B.filter(k=>!v.includes(k))];
+  for(const e of (W.eigen||[]))if(!L.includes(e.id)){const p=e.plaats||"midden";if(p==="boven")L.unshift(e.id);else if(p==="onder")L.push(e.id);else{const i=Math.max(L.indexOf("viv"),L.indexOf("kalender"));L.splice(i+1,0,e.id)}}
+  return L}
+const wsAan=(W,k)=>{const e=(W.eigen||[]).find(x=>x.id===k);return e?e.aan!==false:!!W.blokken[k]};
+const wsNaam=(W,k)=>{const e=(W.eigen||[]).find(x=>x.id===k);return e?(e.titel||"Nieuw onderdeel"):(WS_BLOKKEN.find(b=>b[0]===k)||[k,k])[1]};
 document.addEventListener("click",e=>{const b=e.target.closest("[data-wsvolg]");if(!b||!canWrite)return;const W=wsWerk(),L=wsVolg(W),i=L.indexOf(b.dataset.wsvolg),j=i+Number(b.dataset.r);if(i<0||j<0||j>=L.length)return;[L[i],L[j]]=[L[j],L[i]];W.volgorde=L;renderBody()});
 const wsGewijzigd=()=>WS&&JSON.stringify(WS)!==JSON.stringify(wsCfg());
 /* Foto verkleinen in de browser (ook gebruikt door de fotoalbums): max. zijde in px, JPEG-kwaliteit; houdt rekening met de draaiing (EXIF). */
@@ -5899,7 +5905,7 @@ VIEWS.website=()=>({title:"Website",sub:"Startpagina vbha.be",
   actions:`<a class="btn" href="https://vbha.be" target="_blank" rel="noopener">${ic("link")}Website openen</a>`,
   body(){const W=wsWerk(),d=canWrite?"":" disabled";const ta=(id,k,max)=>`<textarea id="${id}" data-wsk="${k}" maxlength="${max}" rows="3"${d}>${esc(W[k]||"")}</textarea>`;
     return `<div class="panel"><div class="panel-h"><h2>Wat staat er op de startpagina?</h2></div><div class="panel-b ws-bl">
-      ${wsVolg(W).map((k,i,L)=>{const t=WS_BLOKKEN.find(b=>b[0]===k)[1];return `<div class="ws-vr"><label class="ws-row"><span class="ws-sw"><input type="checkbox" data-wsblok="${k}"${W.blokken[k]?" checked":""}${d}><i></i></span><span><b>${t}</b></span></label>${canWrite?`<span class="ws-pijl"><button type="button" class="btn sm iconbtn" data-wsvolg="${k}" data-r="-1" title="Hoger" aria-label="${t} hoger"${i?"":" disabled"}>▲</button><button type="button" class="btn sm iconbtn" data-wsvolg="${k}" data-r="1" title="Lager" aria-label="${t} lager"${i<L.length-1?"":" disabled"}>▼</button></span>`:""}</div>`}).join("")}</div></div>
+      ${wsVolg(W).map((k,i,L)=>{const t=esc(wsNaam(W,k));return `<div class="ws-vr"><label class="ws-row"><span class="ws-sw"><input type="checkbox" data-wsblok="${k}"${wsAan(W,k)?" checked":""}${d}><i></i></span><span><b>${t}</b></span></label>${canWrite?`<span class="ws-pijl"><button type="button" class="btn sm iconbtn" data-wsvolg="${k}" data-r="-1" title="Hoger" aria-label="${t} hoger"${i?"":" disabled"}>▲</button><button type="button" class="btn sm iconbtn" data-wsvolg="${k}" data-r="1" title="Lager" aria-label="${t} lager"${i<L.length-1?"":" disabled"}>▼</button></span>`:""}</div>`}).join("")}</div></div>
     <div class="grid g2" style="align-items:start">
     <div class="panel${W.blokken.viv?"":" ws-uit"}"><div class="panel-h"><h2>In Vier en Vlam</h2>${W.blokken.viv?'<span class="pill ok">aan</span>':'<span class="pill neutral">uit</span>'}</div><div class="panel-b"><div class="form">
       ${fld("wsVd","Bovenregel (datum, plaats)",`<input id="wsVd" data-wsk="viv_datum" maxlength="120" value="${esc(W.viv_datum||"")}" placeholder="bv. Zaterdag 24 april 2027 · Kazerne Aalst"${d}>`,"full")}
@@ -5924,7 +5930,7 @@ VIEWS.website.after=()=>{const W=wsWerk();for(const k of Object.keys(W.fotos||{}
 function wsStat(){const s=$("#wsStat");if(s)s.textContent=wsGewijzigd()?"Je hebt wijzigingen die nog niet gepubliceerd zijn.":"Alles is gepubliceerd.";const h=$('[data-wsact="herstel"]');if(h)h.disabled=!wsGewijzigd()}
 document.addEventListener("input",e=>{const k=e.target.dataset&&e.target.dataset.wsk;if(!k)return;wsWerk()[k]=e.target.value;wsStat()});
 document.addEventListener("change",async e=>{const t=e.target;
-  if(t.dataset&&t.dataset.wsblok){wsWerk().blokken[t.dataset.wsblok]=t.checked;renderBody();return}
+  if(t.dataset&&t.dataset.wsblok){const W=wsWerk(),e=(W.eigen||[]).find(x=>x.id===t.dataset.wsblok);if(e)e.aan=t.checked;else W.blokken[t.dataset.wsblok]=t.checked;renderBody();return}
   if(t.dataset&&t.dataset.wsup){const k=t.dataset.wsup,f=t.files&&t.files[0];if(!f)return;const el=$(`[data-wsimg="${k}"]`);if(el)el.innerHTML='<span class="muted small">Foto verwerken…</span>';
     try{const r=await fotoVerklein(f,1600,0.85);const v=Date.now().toString(36),pad=`Website/${k}-${v}.jpg`;
       const {error}=await SB.storage.from(DOC_BUCKET).upload(pad,r.blob,{contentType:"image/jpeg",upsert:false});if(error)throw error;
@@ -5966,9 +5972,8 @@ function wsEigenPaneel(){const W=wsWerk(),L=W.eigen||[],d=canWrite?"":" disabled
   return `<div class="panel"><div class="panel-h"><h2>Eigen onderdelen</h2><span class="grow"></span>${canWrite&&L.length<12?`<button class="btn sm primary" data-wsact="eigenNieuw">${ic("plus")}Onderdeel toevoegen</button>`:""}</div><div class="panel-b ws-eig">
     ${L.length?"":'<p class="muted small" style="margin:0">Voeg zelf een blok toe met een titel, tekst, foto en knoppen, bv. voor een wandeling, een oproep of nieuws.</p>'}
     ${L.map((e,i)=>`<div class="ws-e${e.aan===false?" ws-uit":""}" data-wse="${esc(e.id)}"><div class="ws-eh"><label class="ws-row" style="align-items:center"><span class="ws-sw"><input type="checkbox" data-wsef="aan"${e.aan!==false?" checked":""}${d}><i></i></span><b>${esc(e.titel||"Nieuw onderdeel")}</b></label><span class="grow"></span>
-      ${canWrite?`<button type="button" class="btn sm ghost" data-wsact="eigenOp" aria-label="Naar boven"${i?"":" disabled"}>↑</button><button type="button" class="btn sm ghost" data-wsact="eigenNeer" aria-label="Naar beneden"${i<L.length-1?"":" disabled"}>↓</button><button type="button" class="btn sm danger ghost" data-wsact="eigenWeg">Verwijderen</button>`:""}</div>
-      <div class="form">${fld("wsP"+e.id,"Plaats op de pagina",`<select id="wsP${esc(e.id)}" data-wsef="plaats"${d}>${WS_PLAATS.map(([k,l])=>`<option value="${k}"${(e.plaats||"midden")===k?" selected":""}>${l}</option>`).join("")}</select>`)}
-      ${fld("wsK"+e.id,"Bovenregel",`<input id="wsK${esc(e.id)}" data-wsef="kicker" maxlength="120" value="${esc(e.kicker||"")}" placeholder="bv. Zondag 6 april"${d}>`)}
+      ${canWrite?`<button type="button" class="btn sm danger ghost" data-wsact="eigenWeg">Verwijderen</button>`:""}</div>
+      <div class="form">${fld("wsK"+e.id,"Bovenregel",`<input id="wsK${esc(e.id)}" data-wsef="kicker" maxlength="120" value="${esc(e.kicker||"")}" placeholder="bv. Zondag 6 april"${d}>`,"full")}
       ${fld("wsT"+e.id,"Titel",`<input id="wsT${esc(e.id)}" data-wsef="titel" maxlength="140" value="${esc(e.titel||"")}"${d}>`,"full")}
       ${fld("wsX"+e.id,"Tekst",`<textarea id="wsX${esc(e.id)}" data-wsef="tekst" maxlength="1500" rows="3"${d}>${esc(e.tekst||"")}</textarea>`,"full")}
       ${wsFotoBlok(e.id,"Foto (optioneel)")}${wsKnoppen(e.id,e.knoppen,"Knoppen")}</div></div>`).join("")}</div></div>`}
@@ -5976,7 +5981,7 @@ document.addEventListener("input",e=>{const t=e.target;
   const r=t.closest&&t.closest(".ws-knr");if(r&&t.dataset.knf){const L=wsKnopLijst(r.closest("[data-wskn]").dataset.wskn);const k=L[+r.dataset.i];if(k){k[t.dataset.knf]=t.value;if(t.dataset.knf==="url")t.classList.toggle("fout",!!t.value&&!wsUrlOk(t.value))}wsStat();return}
   const b=t.closest&&t.closest("[data-wse]");if(b&&t.dataset.wsef&&t.dataset.wsef!=="aan"){const x=(wsWerk().eigen||[]).find(y=>y.id===b.dataset.wse);if(x){x[t.dataset.wsef]=t.value;if(t.dataset.wsef==="titel"){const h=b.querySelector(".ws-eh b");if(h)h.textContent=t.value||"Nieuw onderdeel"}}wsStat()}});
 document.addEventListener("change",e=>{const t=e.target;const b=t.closest&&t.closest("[data-wse]");
-  if(b&&t.dataset.wsef==="aan"){const x=(wsWerk().eigen||[]).find(y=>y.id===b.dataset.wse);if(x){x.aan=t.checked;b.classList.toggle("ws-uit",!t.checked)}wsStat()}
+  if(b&&t.dataset.wsef==="aan"){const x=(wsWerk().eigen||[]).find(y=>y.id===b.dataset.wse);if(x){x.aan=t.checked}renderBody()}
   if(t.closest&&t.closest(".ws-knr")&&t.dataset.knf==="stijl"){const r=t.closest(".ws-knr");const L=wsKnopLijst(r.closest("[data-wskn]").dataset.wskn);if(L[+r.dataset.i])L[+r.dataset.i].stijl=t.value;wsStat()}});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-wsact]");if(!b||!canWrite)return;const a=b.dataset.wsact,W=wsWerk();W.eigen=W.eigen||[];
   const kn=b.closest("[data-wskn]"),se=b.closest("[data-wse]"),i=se?W.eigen.findIndex(x=>x.id===se.dataset.wse):-1;
