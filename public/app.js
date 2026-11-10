@@ -81,7 +81,7 @@ function ctx(){
     if(isEreVoorzitter(lid))lg={ok:true,bron:"Ere-voorzitter"};
     else if(jl.lidgeld==="OK")lg={ok:true,bron:jl.lidgeldBron||"Manueel op betaald gezet"};
     else if(jl.lidgeld==="NOK")lg={ok:false,bron:"Manueel op niet betaald gezet"};
-    else{const n1=norm(lid.naam),n2=norm(lid.voornaam);const b=lidBoek.find(b=>b.lidId===lid.id||(n1&&n2&&b._m.includes("lidgeld")&&b._m.includes(n1)&&b._m.includes(n2)));lg=b?{ok:true,bron:"Betaling",boeking:b}:{ok:false,bron:""}}
+    else{const n1=norm(lid.naam),n2=norm(lid.voornaam);const kp=x=>String(x||"").replace(/[^a-z0-9]/g,""),k1=kp(n1),k2=kp(n2);const b=lidBoek.find(b=>b.lidId===lid.id||(n1&&n2&&b._m.includes("lidgeld")&&((b._m.includes(n1)&&b._m.includes(n2))||(k1&&k2&&kp(b._m).includes(k1)&&kp(b._m).includes(k2)))));lg=b?{ok:true,bron:"Betaling",boeking:b}:{ok:false,bron:""}}
     const w=c.gewichten;const p={kaarten:(jl.kaarten||0)*w.kaarten,kalenders:(jl.kalUitgevoerd||0)*w.kalenders,shifts:(jl.shifts||0)*w.shifts,vergaderingen:(jl.vergaderingen||0)*w.vergaderingen,extra:jl.extraPunten||0};
     p.totaal=p.kaarten+p.kalenders+p.shifts+p.vergaderingen+p.extra;
     const status=!lg.ok?"niet actief":(lid.categorie==="Erewacht"||jl.vrijstelling)?"GOUD":p.totaal<c.drempels.zilver?"BRONS":p.totaal<c.drempels.goud?"ZILVER":"GOUD";
@@ -2039,7 +2039,7 @@ document.addEventListener("change",async e=>{
   if(t.dataset.vcat!==undefined)return;
   if(t.id==="impAll"){IMP.items.forEach((x,i)=>{x.ok=t.checked&&!!x.datum&&!x.buiten&&!x.dub;const cb=$(`[data-impok="${i}"]`);if(cb)cb.checked=x.ok});return}
   if(t.dataset.impcat!==undefined){IMP.items[+t.dataset.impcat].categorie=t.value;return}
-  if(t.dataset.lgov){const id=t.dataset.lgov;await setJL(id,{lidgeld:t.value||null});toast("Lidgeldstatus bewaard.");closeModal();toonLid(id);return}
+  if(t.dataset.lgov){const id=t.dataset.lgov;await setJL(id,{lidgeld:t.value||null,lidgeldOp:t.value==="OK"?new Date().toISOString():null});toast("Lidgeldstatus bewaard.");closeModal();toonLid(id);return}
   if(t.dataset.jl||t.dataset.kal){
     if(t.dataset.jl==="_x"){const id=t.dataset.id,i=+t.dataset.xi;const L=extraLijnen(S.jaarleden.get(JAAR+"_"+id)||{}).map(x=>({...x}));if(!L[i])L[i]={tekst:"",punten:0};L[i][t.dataset.xf]=t.dataset.xf==="punten"?Math.max(0,Math.round(num(t.value))):t.value.trim();if(!L[i].tekst&&!L[i].punten&&L.length>1)L.splice(i,1);await saveExtras(id,L)}
     else if(t.dataset.jl){const f=t.dataset.jl;const v=f==="extraTekst"?t.value.trim():Math.max(0,num(t.value));await setJL(t.dataset.id,{[f]:v})}
@@ -4882,23 +4882,33 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-ns="nu"]')
     try{await write("mailings",mid,{datum:op,onderwerp:vul(M.onderwerp,{}),sjabloon:M.naam||"",sjabloonId:M.tplId||"",groep:"Nagestuurd naar nieuwe leden",aantal:N.length,ok:res.ok,fout:res.fout.slice(0,200),...(res.wachtrij?{wachtrij:res.wachtrij,bezig:true}:{}),door:ME?ME.email:""})}catch(x){}
     renderBody()})});
 
+/* Bestaande leden die hun lidgeld pas betaalden nadat de mail (naar 'lidgeld in orde') vertrok */
+function nsBetaaldOp(r){const jl=r.jl||{};if(r.lg&&r.lg.boeking&&r.lg.boeking.datum)return String(r.lg.boeking.datum);if(jl.lidgeld==="OK"&&jl.lidgeldOp)return String(jl.lidgeldOp);return""}
+function nsLaat(tpl){const m=nsLaatst(tpl);if(!m||!/lidgeld in orde/i.test(m.groep||""))return[];const dag=String(m.datum).slice(0,10),B=mlGeblok(),C=ctx(),alle=(groepen().find(g=>g.id==="alle")||{list:[]}).list;
+  const ids=new Set(C.leden.map(l=>C.rows.get(l.id)).filter(r=>r&&r.lg&&r.lg.ok&&!r.lid.geenLid&&r.lid.email&&!(String(r.lid.aangemeld||"")>String(m.datum))&&!(r.lid.nastuur&&r.lid.nastuur[tpl])&&!B[String(r.lid.email).trim().toLowerCase()]&&nsBetaaldOp(r).slice(0,10)>dag).map(r=>r.lid.id));
+  return alle.filter(r=>ids.has(r.lidId))}
+const nsLijst=(tpl,soort)=>soort==="laat"?nsLaat(tpl):nsNieuwe(tpl,true);
 /* Dashboard: nieuwe leden met lidgeld in orde die de mail nog niet kregen -> melding met knop (niets gaat automatisch) */
 function nsDash(){if(!canWrite)return"";const nu=todayISO();let h="";
-  for(const[tpl,R]of Object.entries(nsCfg())){if(!R||!R.html||!(String(R.tot||"")>=nu))continue;const N=nsNieuwe(tpl,true);if(!N.length)continue;
+  for(const[tpl,R]of Object.entries(nsCfg())){if(!R||!R.html||!(String(R.tot||"")>=nu))continue;
+    const LT=nsLaat(tpl);if(LT.length)h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("mails")}</span><div class="nm-body"><b>Lidgeld ontvangen: ${LT.length===1?"1 lid betaalde":LT.length+" leden betaalden"} pas na het versturen van „${esc(R.naam||"uitnodiging")}”</b>
+    <div class="nm-l">${LT.slice(0,8).map(x=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(x.lidId)}"><b>${esc(x.label)}</b></button>`).join("")}${LT.length>8?`<span class="nm-more">+${LT.length-8} meer</span>`:""}</div>
+    <div><button type="button" class="nm-btn" data-nsd-stuur="${esc(tpl)}" data-soort="laat">${ic("mails")}Uitnodiging versturen</button></div></div></div>`;
+    const N=nsNieuwe(tpl,true);if(!N.length)continue;
     h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("mails")}</span><div class="nm-body"><b>${N.length===1?"Er is een nieuw lid (lidgeld in orde) dat":N.length+" nieuwe leden (lidgeld in orde)"} nog geen mail „${esc(R.naam||"uitnodiging")}” ${N.length===1?"kreeg":"kregen"}</b>
     <div class="nm-l">${N.slice(0,8).map(x=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(x.lidId)}"><b>${esc(x.label)}</b></button>`).join("")}${N.length>8?`<span class="nm-more">+${N.length-8} meer</span>`:""}</div>
     <div><button type="button" class="nm-btn" data-nsd-stuur="${esc(tpl)}">${ic("mails")}Uitnodiging versturen</button></div></div></div>`}
   return h}
-async function nsStuurSnapshot(tpl){const R=nsCfg()[tpl],N=nsNieuwe(tpl,true);if(!R||!N.length)return;
-  confirmBox(`<b>${esc(R.naam||"Deze mail")}</b> nu sturen naar ${N.length} ${N.length===1?"nieuw lid":"nieuwe leden"}?<br><small class="muted">${N.map(r=>esc(r.label)).join(", ")}</small>`,"Versturen",async()=>{
+async function nsStuurSnapshot(tpl,soort){const R=nsCfg()[tpl],N=nsLijst(tpl,soort);if(!R||!N.length)return;
+  confirmBox(`<b>${esc(R.naam||"Deze mail")}</b> nu sturen naar ${N.length} ${N.length===1?"lid":"leden"}?<br><small class="muted">${N.map(r=>esc(r.label)).join(", ")}</small>`,"Versturen",async()=>{
     const B=N.map(x=>{const l=S.leden.get(x.lidId)||{},vn=l.voornaam||"",nm=[l.voornaam,l.naam].filter(Boolean).join(" ");
       const vul=(t,h)=>String(t||"").split("@@VOORNAAM@@").join(h?esc(vn):vn).split("@@NAAM@@").join(h?esc(nm):nm).replace(/Beste\s+,/g,"Beste,");
       return{aan:x.email,aanNaam:x.label||nm,onderwerp:vul(R.onderwerp,false),html:vul(R.html,true)}});
     const mid=mlId(),res=await mailVerstuur(B,"",{mid});const op=new Date().toISOString();
     for(const x of N){const l=S.leden.get(x.lidId);if(l)await write("leden",l.id,{...stripId(l),nastuur:{...(l.nastuur||{}),[tpl]:op}})}
-    try{await write("mailings",mid,{datum:op,onderwerp:B[0].onderwerp,sjabloon:R.naam||"",sjabloonId:tpl,groep:"Nagestuurd naar nieuwe leden",aantal:N.length,ok:res.ok,fout:res.fout.slice(0,200),...(res.wachtrij?{wachtrij:res.wachtrij,bezig:true}:{}),door:ME?ME.email:""})}catch(x){}
+    try{await write("mailings",mid,{datum:op,onderwerp:B[0].onderwerp,sjabloon:R.naam||"",sjabloonId:tpl,groep:soort==="laat"?"Nagestuurd na ontvangst lidgeld":"Nagestuurd naar nieuwe leden",aantal:N.length,ok:res.ok,fout:res.fout.slice(0,200),...(res.wachtrij?{wachtrij:res.wachtrij,bezig:true}:{}),door:ME?ME.email:""})}catch(x){}
     toast(res.ok?"Verstuurd naar "+res.ok+(res.ok===1?" lid.":" leden."):"Versturen mislukt.",!res.ok);renderBody()})}
-document.addEventListener("click",e=>{const t=e.target.closest("[data-nsd-stuur]");if(!t)return;e.preventDefault();e.stopPropagation();nsStuurSnapshot(t.dataset.nsdStuur)},true);
+document.addEventListener("click",e=>{const t=e.target.closest("[data-nsd-stuur]");if(!t)return;e.preventDefault();e.stopPropagation();nsStuurSnapshot(t.dataset.nsdStuur,t.dataset.soort||"")},true);
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return nsDash()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 
 /* ============ Fuif "In Vier en Vlam" (Activiteiten › In Vier en Vlam) ============

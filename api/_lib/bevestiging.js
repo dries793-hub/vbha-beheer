@@ -217,7 +217,8 @@ async function lidgeldOntvangen(sb, id, d) {
   if (lg === "OK") return true; if (lg === "NOK") return false;
   const n1 = norm(d.naam), n2 = norm(d.voornaam);
   return (await lidgeldBoekingen(sb, J)).some(r => { const b = r.data || {}, m = norm(b.mededeling), c = norm(b.categorie);
-    return b.lidId === id || (n1 && n2 && (m.includes("lidgeld") || c.startsWith("lidgeld")) && m.includes(n1) && m.includes(n2)); });
+    const kp = x => String(x || "").replace(/[^a-z0-9]/g, ""), mk = kp(m);
+    return b.lidId === id || (n1 && n2 && (m.includes("lidgeld") || c.startsWith("lidgeld")) && ((m.includes(n1) && m.includes(n2)) || (kp(n1) && kp(n2) && mk.includes(kp(n1)) && mk.includes(kp(n2))))); });
 }
 /* geplande taak: nieuwe leden die nog op een nagestuurde mail wachten (bv. omdat hun lidgeld pas later binnenkwam) */
 async function nastuurCron(sb) {
