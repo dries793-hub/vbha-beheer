@@ -4848,6 +4848,10 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-kcok
 .kc-mr .kc-ok{margin:0;flex:none;width:38px;height:38px;padding:0;justify-content:center}.kc-mr .kc-ok svg{width:17px;height:17px}`;document.head.appendChild(st)}
 {const st=document.createElement("style");st.textContent=".kc-t td.kc-a{white-space:nowrap;text-align:right;width:1%}.kc-t td[data-l=Controle] .pill{white-space:nowrap}.kc-t td.kc-a .kc-ok{margin:0}";document.head.appendChild(st)}
 
+/* Controle enkel voor de administrator: tab verbergen en de pagina afschermen */
+{const _t=kalTabs;kalTabs=function(act){const h=_t.apply(this,arguments);return ROL==="admin"?h:h.replace(/<a href="#kalcontrole"[^>]*>[^<]*<\/a>/,"")}}
+{const _v=VIEWS.kalcontrole;VIEWS.kalcontrole=function(){if(ROL!=="admin")return{title:"Kalenders "+JAAR,body:()=>kalTabs("")+'<div class="panel"><div class="empty">De controle is enkel beschikbaar voor een administrator.</div></div>'};return _v.apply(this,arguments)}}
+
 /* ============ Instellingen enkel voor de administrator ============
    Andere profielen zien geen tandwieltjes of instellingenpagina's. Wat iedereen wel kan: "Meldingen op dit toestel" (eigen pagina).
    Bij "Bekijken als…" geldt het bekeken profiel (ROL). */
