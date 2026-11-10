@@ -7076,7 +7076,7 @@ function dashVandaag(){let L=[];try{L=agItems().filter(x=>x.datum===todayISO()&&
   return L.map(x=>{const ka=x.kassa&&typeof KA_ACTS!=="undefined"&&KA_ACTS[x.kassa]?x.kassa:"";
     return `<section class="dv-card" aria-label="Vandaag">
      <div class="dv-k"><span class="dv-dag">Vandaag</span><h2>${esc(x.titel)}</h2><div class="dv-m">${[x.uur,x.locatie].filter(Boolean).map(esc).join(" · ")}</div></div>
-     <div class="dv-a">${ka?`<button type="button" class="btn primary" data-dv-kassa="${ka}">${ic("kassa")}Kassa openen</button>`:""}${ROL==="admin"?`${x.shift?`<a class="btn" href="#shiften">${ic("shiften")}Shiften</a>`:""}<button type="button" class="btn ghost" ${agAttr(x)}>Details</button>`:""}</div></section>`}).join("")}
+     <div class="dv-a">${ka?`<button type="button" class="btn primary" data-dv-kassa="${ka}">${ic("kassa")}Kassa openen</button>`:""}${ROL==="admin"?`${x.shift?`<a class="btn" href="#shiften">${ic("shiften")}Shiften</a>`:""}`:""}</div></section>`}).join("")}
 /* elk profiel: de server zet de kassa op deze activiteit en geeft een geldige kassacode */
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-dv-kassa]");if(!t)return;e.preventDefault();if(typeof SIM_DAG!=="undefined"&&SIM_DAG){toast("Fictieve datum: de kassa wordt niet echt geopend.");return}const w=window.open("","_blank");
   try{const r=await api("/api/mail?f=kassa",{method:"POST",body:JSON.stringify({actie:"vandaag",act:t.dataset.dvKassa})});const u="/kassa?code="+encodeURIComponent(r.code);
