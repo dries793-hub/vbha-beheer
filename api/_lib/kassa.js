@@ -66,14 +66,6 @@ async function totalen(sb, act, jaar) {
 export default async function kassaPubliek(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
-    // aanmeldpagina van het beheer: is er vandaag een activiteit met een kassa in de agenda? (enkel ja/nee)
-    if (req.method === "GET" && req.query && req.query.vandaag) {
-      const sb = admin(), dag = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Brussels" });
-      const { data: A } = await sb.from("activiteiten").select("id,data").eq("data->>datum", dag);
-      let ok = (A || []).some(r => kassaSleutel(r.id, r.data || {}));
-      if (!ok) { const kf = await configDoc(sb, "kinderfeest"); ok = !!(kf && kf.datum === dag); }
-      return res.status(200).json({ kassa: ok });
-    }
     if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
     const sb = admin(), b = body(req), K = await kassaCfg(sb);
     if (b.actie === "login") {
