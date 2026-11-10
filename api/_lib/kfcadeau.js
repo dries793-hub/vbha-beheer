@@ -67,6 +67,40 @@ export function parseProduct(html) {
   if (uit.naam) uit.naam = uit.naam.replace(/\s*\|\s*(bol(\.com)?|dreamland)\s*$/i, "").slice(0, 200);
   return uit;
 }
+/* bol.com: officiële gegevens via de Marketing Catalog API van het bol.com Partnerprogramma
+   (Vercel: BOL_CLIENT_ID en BOL_CLIENT_SECRET, aan te maken in het partneraccount › Account › Open API). */
+const bolAan = () => !!(String(process.env.BOL_CLIENT_ID || "").trim() && String(process.env.BOL_CLIENT_SECRET || "").trim());
+let BOL_TOKEN = null;
+async function bolToken() {
+  if (BOL_TOKEN && BOL_TOKEN.tot > Date.now() + 15000) return BOL_TOKEN.t;
+  const auth = Buffer.from(String(process.env.BOL_CLIENT_ID).trim() + ":" + String(process.env.BOL_CLIENT_SECRET).trim()).toString("base64");
+  const r = await fetch("https://login.bol.com/token?grant_type=client_credentials", { method: "POST", headers: { Authorization: "Basic " + auth, Accept: "application/json" }, signal: AbortSignal.timeout(8000) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.access_token) throw new Error("bol.com aanmelden lukte niet (" + r.status + ")");
+  BOL_TOKEN = { t: j.access_token, tot: Date.now() + (Number(j.expires_in) || 299) * 1000 };
+  return BOL_TOKEN.t;
+}
+async function bolGet(pad) {
+  const r = await fetch("https://api.bol.com/marketing/catalog/v1" + pad, { headers: { Authorization: "Bearer " + await bolToken(), Accept: "application/json", "Accept-Language": "nl" }, signal: AbortSignal.timeout(8000) });
+  if (r.status === 404) return null;
+  const j = await r.json().catch(() => null);
+  if (!r.ok) throw new Error("bol.com " + r.status);
+  return j;
+}
+const bolPrijs = o => { if (!o) return null; const p = o.price ?? (o.prices && (o.prices.price ?? o.prices[0]?.price)) ?? o.listPrice ?? o.sellingPrice; return getal(typeof p === "object" && p ? (p.amount ?? p.value) : p); };
+export async function bolInfo(u) {
+  const id = (String(u.pathname).match(/\/(\d{13,17})(?:\/|$)/) || [])[1];
+  if (!id) return null;
+  let ean = id.length === 13 && !id.startsWith("9") ? id : null;
+  if (!ean) { const c = await bolGet("/products/" + id + "/to-ean"); ean = c && (c.ean || c.EAN); }
+  if (!ean) return null;
+  const [p, o] = await Promise.all([bolGet(`/products/${ean}?country-code=BE&include-image=true&include-offer=true`), bolGet(`/products/${ean}/offers/best?country-code=BE`)]);
+  if (!p) return null;
+  const img = p.image || (Array.isArray(p.images) && p.images[0]) || null;
+  const offer = o || p.offer || null;
+  return { naam: ont(p.title || p.name || "").slice(0, 200) || null, prijs: bolPrijs(offer), foto: (img && (img.url || (img.renditions && img.renditions[0] && img.renditions[0].url))) || null,
+    artikelnr: String(ean), beschikbaar: offer ? !offer.isPreOrder || null : false, levertijd: offer && offer.deliveryDescription ? String(offer.deliveryDescription).slice(0, 120) : null };
+}
 export async function productInfo(url) {
   let u; try { u = new URL(String(url || "").trim()); } catch { throw httpErr(400, "Dit is geen geldige link. Kopieer de link van de productpagina."); }
   if (!/^https?:$/.test(u.protocol)) throw httpErr(400, "Dit is geen geldige link.");
@@ -74,6 +108,10 @@ export async function productInfo(url) {
   if (!winkel) throw httpErr(400, "Kies een product van bol.com of dreamland.be.");
   u.protocol = "https:"; u.hash = ""; u.search = "";
   const basis = { url: u.toString().slice(0, 500), winkel };
+  if (winkel === "bol.com" && bolAan()) {
+    try { const p = await bolInfo(u); if (p && p.naam && (p.prijs != null || p.beschikbaar === false)) return { ...basis, ...p, prijs: p.prijs, auto: true, bron: "bol-api", gecontroleerd: new Date().toISOString() }; }
+    catch (e) { console.error("bol api", e.message); }
+  }
   let html = "", status = 0;
   try {
     const r = await fetch(u, { redirect: "follow", signal: AbortSignal.timeout(9000), headers: {
@@ -178,7 +216,7 @@ export async function kfCadeauApp(req, res) {
           const items = await Promise.all(k.cadeau.items.map(async it => {
             n++; let p; try { p = await productInfo(it.url); } catch { mislukt++; return it; }
             if (!p.auto) { mislukt++; return { ...it, gecontroleerd: new Date().toISOString(), controleMislukt: true }; }
-            const nw = { ...it, naam: p.naam, prijs: p.prijs, foto: p.foto || it.foto, beschikbaar: p.beschikbaar, auto: true, gecontroleerd: p.gecontroleerd, vorigePrijs: p.prijs !== it.prijs ? it.prijs : it.vorigePrijs };
+            const nw = { ...it, naam: p.naam, prijs: p.prijs, levertijd: p.levertijd || null, foto: p.foto || it.foto, beschikbaar: p.beschikbaar, auto: true, gecontroleerd: p.gecontroleerd, vorigePrijs: p.prijs !== it.prijs ? it.prijs : it.vorigePrijs };
             delete nw.controleMislukt;
             if (p.prijs !== it.prijs || p.beschikbaar !== it.beschikbaar) { gewijzigd++; anders = true; }
             if (p.beschikbaar === false) weg++;
