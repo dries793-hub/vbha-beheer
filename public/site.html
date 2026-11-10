@@ -31,7 +31,7 @@
   .hero.zonder{grid-template-columns:1fr}
   .hero.rechts{grid-template-columns:1fr 1.8fr}.hero.rechts .photo{order:2}
   /* eigen onderdelen: de fotokolom volgt de breedte van de foto, de tekst neemt de rest */
-  .hero.eigen:not(.zonder){grid-template-columns:auto minmax(0,1fr)}.hero.eigen.rechts{grid-template-columns:minmax(0,1fr) auto}
+  .hero.eigen:not(.zonder){grid-template-columns:auto minmax(0,500px);justify-content:center}.hero.eigen.rechts{grid-template-columns:minmax(0,500px) auto}
   .hero.eigen .photo{max-width:min(720px,62vw)}
   .hero.eigen .photo img{max-height:560px;width:auto;max-width:100%}
   .hero + .hero,.steun + .hero,.sponsors + .hero{margin-top:56px}
