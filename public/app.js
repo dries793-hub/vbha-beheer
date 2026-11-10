@@ -4395,8 +4395,8 @@ function kfMailHtml(){const M=kfMailCfg(),d=canWrite?"":" disabled";
   ${fld("kmK","Kopie van elke bevestiging naar",inp("kmK",M.kopie??"",'placeholder="e-mailadres (leeg = geen kopie)"'+d),"full")}
   <label class="sp-nat full" for="kmC"><input type="checkbox" id="kmC"${M.cadeau?" checked":""}${d}><span><b>Cadeau zelf kiezen</b><small>De uitleg hieronder komt in de bevestigingsmail.</small></span></label>
   <div class="full km-velden" id="kmV"${M.cadeau?"":" hidden"}><div class="form" style="padding:0">
-   ${fld("kmS","Websites",inp("kmS",M.sites,'placeholder="www.dreamland.be, www.bol.com"'+d))}${fld("kmT","Cadeau doorgeven vóór",`<input id="kmT" type="date" value="${esc(M.tot)}"${d}>`)}
-   ${fld("kmM","Doorsturen naar",inp("kmM",M.contact,'type="email" placeholder="e-mailadres"'+d),"full")}
+   ${fld("kmS","Websites",inp("kmS",M.sites,'placeholder="www.dreamland.be, www.bol.com"'+d))}${fld("kmT","Cadeau kiezen tot en met",`<input id="kmT" type="date" value="${esc(M.tot)}"${d}>`)}
+   <input type="hidden" id="kmM" value="${esc(M.contact||"")}">
    <div class="fld full"><label for="kmG">Waarde per geboortejaar</label><textarea id="kmG" style="height:86px;min-height:0;font-family:inherit"${d}>${esc(M.groepen)}</textarea><span class="help">Eén regel per groep, bv. <b>2016-2020: 50,00 EUR per kind</b> of <b>2015: cadeau voorzien door VBHA</b>.</span></div>
   </div></div>
   <div class="full bar" style="margin:0"><button type="button" class="btn sm" data-km="voorbeeld">${ic("mails")}Voorbeeld van de mail</button><button type="button" class="btn sm ghost" data-km="standaard"${d}>Standaardtekst</button></div>`}
@@ -7196,3 +7196,66 @@ kfInst=autoMetVinkjes(kfInst,"kinderfeest","#fKfI","#kiOk");
 fdInst=autoMetVinkjes(fdInst,"familiedag","#fFd","#fdOk");
 // bij het openen van Shiften of Kassa de gekoppelde activiteiten gelijk zetten
 for(const r of ["shiften","kassa"]){const _v=VIEWS[r];if(!_v)continue;const n=function(){setTimeout(autoSync,300);return _v.apply(this,arguments)};Object.assign(n,_v);VIEWS[r]=n}
+
+/* ============ Kinderfeest: cadeaus die de ouders kozen (keuzepagina /cadeau) ============
+   Per kind in de inschrijving: kinderen[i].cadeau = {items:[{url,winkel,naam,prijs,foto,beschikbaar,auto,gecontroleerd,vorigePrijs}], totaal} of {bon:true};
+   kinderen[i].besteld = {op, door}. Budget volgens "Waarde per geboortejaar" (Kinderfeest › tandwiel).
+   Wie na de termijn niets koos, krijgt een bon van bol.com ter waarde van het budget. */
+const KFCD={open:false,f:"alle"};
+function kfcBudget(geb){const y=Number(String(geb||"").slice(0,4)),g=kfkGroepen(kfMailCfg().groepen).find(x=>y>=x.van&&y<=x.tot);return g?{bedrag:g.bedrag,vbha:g.vbha||g.bedrag==null}:{bedrag:null,vbha:false}}
+const kfcVoorbij=()=>todayISO()>kfMailCfg().tot;
+function kfcKids(){const c=kfCfg(),out=[];for(const r of kfLijst())(r.kinderen||[]).forEach((k,i)=>{const a=kfLeeftijd(k.geb,c.datum);if(a!=null&&a>c.leeftijd)return;const B=kfcBudget(k.geb);
+  const st=B.vbha?"vbha":k.cadeau&&k.cadeau.bon?"bon":k.cadeau&&(k.cadeau.items||[]).length?"gekozen":kfcVoorbij()?"geenkeuze":"open";out.push({r,k,i,a,B,st,besteld:!!(k.besteld&&k.besteld.op)})});return out}
+function kfcStats(L){const s={gekozen:0,bon:0,geenkeuze:0,open:0,vbha:0,bonBedrag:0,winkels:{}};
+  for(const x of L){s[x.st]++;if(x.st==="bon"||x.st==="geenkeuze")s.bonBedrag+=x.B.bedrag||0;if(x.st==="gekozen")for(const it of x.k.cadeau.items){const w=s.winkels[it.winkel]||(s.winkels[it.winkel]={n:0,b:0});w.n++;w.b+=Number(it.prijs)||0}}return s}
+const kfcStLbl={gekozen:["ok","Gekozen"],bon:["info","Bon bol.com"],geenkeuze:["warn","Bon bol.com (geen keuze)"],open:["neutral","Nog niet gekozen"],vbha:["neutral","VBHA voorziet"]};
+function kfcItem(it){const t=it.auto===false?'<span class="pill warn">niet gecontroleerd</span>':it.beschikbaar===false?'<span class="pill nok">niet op voorraad</span>':it.controleMislukt?'<span class="pill warn">controle mislukt</span>':"";
+  const pv=it.vorigePrijs!=null&&it.vorigePrijs!==it.prijs?` <span class="muted small">(was ${eur(it.vorigePrijs)})</span>`:"";
+  return `<div class="kcd-it"><a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.naam||it.url)}</a> <span class="muted small">${esc(it.winkel||"")}</span> <b>${eur(it.prijs)}</b>${pv} ${t}</div>`}
+function kfcPaneel(){if(!kfMailCfg().cadeau)return"";const L=kfcKids();if(!L.length)return"";const s=kfcStats(L),M=kfMailCfg(),mag=canWrite;
+  const F=KFCD.f==="alle"?L:L.filter(x=>KFCD.f==="bon"?(x.st==="bon"||x.st==="geenkeuze"):x.st===KFCD.f);
+  const chip=(k,l,n)=>`<button type="button" class="${KFCD.f===k?"on":""}" data-kfc="f" data-v="${k}">${l}${n!=null?` <span class="muted">${n}</span>`:""}</button>`;
+  const rij=x=>{const [c,l]=kfcStLbl[x.st];return `<tr><td><b>${esc(x.k.naam)}</b><div class="muted small">${x.a==null?"?":x.a+" j"}</div></td><td>${esc(x.r.lid||"")}${mag?` <button type="button" class="kcd-ln" data-kfc="link" data-id="${esc(x.r.id)}" title="Keuzelink kopiëren" aria-label="Keuzelink kopiëren">${ic("link")}</button>`:""}</td>
+    <td class="num">${x.B.bedrag!=null?eur(x.B.bedrag):"–"}</td><td><span class="pill ${c}">${l}</span>${x.st==="gekozen"?x.k.cadeau.items.map(kfcItem).join(""):""}</td>
+    <td class="num">${x.st==="gekozen"?eur(x.k.cadeau.totaal):x.st==="bon"||x.st==="geenkeuze"?eur(x.B.bedrag):""}</td>
+    <td class="c">${x.st==="vbha"||x.st==="open"?"":`<input type="checkbox" data-kfc="besteld" data-id="${esc(x.r.id)}" data-i="${x.i}"${x.besteld?" checked":""}${mag?"":" disabled"} aria-label="Besteld" title="${x.besteld?"Besteld op "+fmtDate(String(x.k.besteld.op).slice(0,10))+(x.k.besteld.door?" door "+esc(x.k.besteld.door):""):"Besteld"}">`}</td></tr>`};
+  return `<div class="panel kcd"><div class="panel-h"><h2>Cadeaus</h2><span class="muted small">kiezen tot en met ${esc(fmtDate(M.tot))}${kfcVoorbij()?" · afgesloten":""}</span><span class="grow"></span>
+    ${mag?`<button type="button" class="btn sm" data-kfc="controle" title="Prijs en voorraad opnieuw opvragen bij de winkels">Opnieuw controleren</button><button type="button" class="btn sm primary" data-kfc="bestel">${ic("download")}Bestellijst</button>`:""}</div>
+   <div class="panel-b"><div class="tiles kcd-t"><div class="tile"><span class="lbl">Gekozen</span><span class="val">${s.gekozen}</span><span class="hint">${Object.entries(s.winkels).map(([w,v])=>`${esc(w)} ${eur(v.b)}`).join(" · ")||"&nbsp;"}</span></div>
+     <div class="tile"><span class="lbl">Bon bol.com</span><span class="val">${s.bon+s.geenkeuze}</span><span class="hint">${eur(s.bonBedrag)}</span></div>
+     <div class="tile"><span class="lbl">Nog niet gekozen</span><span class="val">${s.open}</span></div></div>
+   <div class="seg" role="group" aria-label="Filter cadeaus" style="margin:12px 0 8px">${chip("alle","Alle")}${chip("gekozen","Gekozen",s.gekozen)}${chip("bon","Bon",s.bon+s.geenkeuze)}${chip("open","Nog niet gekozen",s.open)}</div>
+   <div class="tw" style="max-height:520px"><table class="kcd-tb"><thead><tr><th>Kind</th><th>Lid</th><th class="num">Budget</th><th>Keuze</th><th class="num">Bedrag</th><th class="c">Besteld</th></tr></thead><tbody>${F.map(rij).join("")||'<tr><td colspan="6" class="empty">Geen kinderen in deze selectie.</td></tr>'}</tbody></table></div></div></div>`}
+// bestellijst per winkel + bonnen
+function kfcBestel(){const L=kfcKids(),W={},bon=[];for(const x of L){if(x.st==="gekozen")for(const it of x.k.cadeau.items)(W[it.winkel]||(W[it.winkel]=[])).push({x,it});if(x.st==="bon"||x.st==="geenkeuze")bon.push(x)}
+  const vink=x=>`<label class="cbx small"><input type="checkbox" data-kfc="besteld" data-id="${esc(x.r.id)}" data-i="${x.i}"${x.besteld?" checked":""}${canWrite?"":" disabled"}> besteld</label>`;
+  const sec=Object.entries(W).map(([w,L2])=>`<div class="pi-sec"><h4>${esc(w)} · ${L2.length} ${L2.length===1?"product":"producten"} · ${eur(L2.reduce((s,y)=>s+(Number(y.it.prijs)||0),0))}</h4>
+    ${L2.map(({x,it})=>`<div class="kcd-b"><div style="min-width:0"><b>${esc(it.naam||"")}</b> <span class="muted small">voor ${esc(x.k.naam)} (${esc(x.r.lid||"")})</span>${it.beschikbaar===false?' <span class="pill nok">niet op voorraad</span>':""}</div><span class="nowrap"><b>${eur(it.prijs)}</b></span><a class="btn sm" href="${esc(it.url)}" target="_blank" rel="noopener">Openen</a>${vink(x)}</div>`).join("")}</div>`).join("");
+  modal("Bestellijst cadeaus kinderfeest",`${sec||'<p class="muted">Nog geen gekozen cadeaus.</p>'}
+    ${bon.length?`<div class="pi-sec"><h4>Bonnen bol.com · ${bon.length} · ${eur(bon.reduce((s,x)=>s+(x.B.bedrag||0),0))}</h4>${bon.map(x=>`<div class="kcd-b"><div><b>${esc(x.k.naam)}</b> <span class="muted small">${esc(x.r.lid||"")}${x.st==="geenkeuze"?" · geen keuze":""}</span></div><span class="nowrap"><b>${eur(x.B.bedrag)}</b></span><span></span>${vink(x)}</div>`).join("")}</div>`:""}`,
+    `<button class="btn" data-kfc="xlsx" style="margin-right:auto">${ic("download")}Excel</button><button class="btn primary" data-act="closeModal">Sluiten</button>`,{wide:true})}
+function kfcExcel(){const rows=[];for(const x of kfcKids()){const base={Kind:x.k.naam,Leeftijd:x.a??"",Lid:x.r.lid||"","E-mail":x.r.email||"",Budget:x.B.bedrag??"",Status:kfcStLbl[x.st][1],Besteld:x.besteld?"ja":""};
+  if(x.st==="gekozen")for(const it of x.k.cadeau.items)rows.push({...base,Winkel:it.winkel,Product:it.naam,Prijs:it.prijs,Link:it.url,"Op voorraad":it.beschikbaar===false?"nee":it.beschikbaar?"ja":"?"});
+  else rows.push({...base,Winkel:x.st==="bon"||x.st==="geenkeuze"?"bol.com (bon)":"",Product:"",Prijs:x.st==="bon"||x.st==="geenkeuze"?x.B.bedrag:"",Link:"","Op voorraad":""})}
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Cadeaus");XLSX.writeFile(wb,`Cadeaus kinderfeest ${JAAR}.xlsx`)}
+async function kfcBesteld(id,i,aan){const r=S.kinderfeest.get(id);if(!r)return;const kinderen=(r.kinderen||[]).map((k,j)=>{if(j!==+i)return k;const n={...k};if(aan)n.besteld={op:new Date().toISOString(),door:ME_NAME||""};else delete n.besteld;return n});
+  const d={...stripId(r),kinderen};S.kinderfeest.set(id,{...d,id});await write("kinderfeest",id,d)}
+document.addEventListener("change",async e=>{const t=e.target;if(!t.matches||!t.matches('input[data-kfc="besteld"]'))return;t.disabled=true;try{await kfcBesteld(t.dataset.id,t.dataset.i,t.checked);document.querySelectorAll(`input[data-kfc="besteld"][data-id="${CSS.escape(t.dataset.id)}"][data-i="${t.dataset.i}"]`).forEach(x=>x.checked=t.checked)}catch(x){t.checked=!t.checked;toast(x.message,true)}finally{t.disabled=false}});
+document.addEventListener("click",async e=>{const t=e.target.closest("[data-kfc]");if(!t||t.tagName==="INPUT")return;const a=t.dataset.kfc;
+  if(a==="f"){KFCD.f=t.dataset.v;renderBody()}
+  else if(a==="bestel"){e.preventDefault();kfcBestel()}
+  else if(a==="xlsx"){e.preventDefault();kfcExcel()}
+  else if(a==="link"){e.preventDefault();try{const j=await api("/api/mail?f=kfcadeau",{method:"POST",body:JSON.stringify({actie:"link",id:t.dataset.id})});await navigator.clipboard.writeText(j.url);toast("Keuzelink gekopieerd.")}catch(x){toast(x.message||"Kopiëren lukte niet.",true)}}
+  else if(a==="controle"){e.preventDefault();t.disabled=true;const o=t.textContent;t.textContent="Bezig…";
+    try{const j=await api("/api/mail?f=kfcadeau",{method:"POST",body:JSON.stringify({actie:"controle",jaar:JAAR})});toast(`${j.gecontroleerd} ${j.gecontroleerd===1?"product":"producten"} gecontroleerd${j.gewijzigd?` · ${j.gewijzigd} gewijzigd`:""}${j.nietBeschikbaar?` · ${j.nietBeschikbaar} niet op voorraad`:""}${j.mislukt?` · ${j.mislukt} niet te controleren`:""}.`,!!j.nietBeschikbaar)}
+    catch(x){toast(x.message,true)}finally{t.disabled=false;t.textContent=o}}});
+// in de pagina Kinderfeest, onder de voorziene kost
+{const _v=VIEWS.kinderfeest;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=String(b.apply(this,arguments));
+  const i=h.indexOf('<div class="bar"><div class="search">');const p=kfcPaneel();return i>=0?h.slice(0,i)+p+h.slice(i):h+p};return v};Object.assign(n,_v);VIEWS.kinderfeest=n}
+// dashboard: na de keuzetermijn en tot het feest: cadeaus bestellen
+function kfcDash(){try{if(!canWrite||(typeof ROL!=="undefined"&&ROL!=="admin"&&!(typeof RECHTEN==="object"&&RECHTEN&&RECHTEN.kinderfeest==="bewerken")))return"";const M=kfMailCfg(),c=kfCfg(),t=todayISO();
+  if(!M.cadeau||!(t>M.tot)||t>c.datum)return"";const L=kfcKids().filter(x=>(x.st==="gekozen"||x.st==="bon"||x.st==="geenkeuze")&&!x.besteld);if(!L.length)return"";
+  const pr=L.filter(x=>x.st==="gekozen").reduce((s,x)=>s+x.k.cadeau.items.length,0),bn=L.filter(x=>x.st!=="gekozen").length;
+  return `<div class="nmeld" role="status" data-kfcd="1"><span class="nm-ic">${ic("kinderfeest")}</span><div class="nm-body"><b>Kinderfeest: cadeaus bestellen voor ${L.length} ${L.length===1?"kind":"kinderen"}</b><div class="small muted">${pr?pr+(pr===1?" product":" producten"):""}${pr&&bn?" · ":""}${bn?bn+(bn===1?" bon":" bonnen")+" bol.com":""}</div>
+    <div><button type="button" class="nm-btn" data-kfc="bestel">${ic("download")}Bestellijst</button></div></div></div>`}catch(e){return""}}
+{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return kfcDash()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}

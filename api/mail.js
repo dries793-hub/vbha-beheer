@@ -41,6 +41,7 @@ export default async function handler(req, res) {
     }
     if (req.query && req.query.f === "r2") return await r2Api(req, res); // fotoalbums: tijdelijke links naar Cloudflare R2
     if (req.query && req.query.f === "shop") return await shopApi(req, res); // webshop: status van een bestelling, mails
+    if (req.query && req.query.f === "kfcadeau") { const { kfCadeauApp } = await import("./_lib/kfcadeau.js"); return await kfCadeauApp(req, res); } // kinderfeest: cadeaulink, prijzen en voorraad opnieuw controleren
     if (req.query && req.query.f === "kassa") return await kassaApi(req, res); // kassa: transacties wissen of nakijken
     if (req.query && req.query.f === "fuif") return await fuifApi(req, res); // fuif: tickets scannen en bestellingen beheren
     if (req.query && req.query.f === "wachtrij") return await wachtrijCron(req, res); // geplande taak: bulkmails uit de wachtrij versturen
