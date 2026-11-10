@@ -5464,7 +5464,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-kacash]");
 let kaLgVandaag=null;
 async function kaLoginKnop(){if(!$("#fLogin")||$(".login-kassa"))return;
   try{if(kaLgVandaag==null){const r=await fetch("/api/kassa?vandaag=1",{cache:"no-store"});kaLgVandaag=r.ok?!!(await r.json()).kassa:false}}catch(e){kaLgVandaag=false}
-  if(!kaLgVandaag||!$("#fLogin")||$(".login-kassa"))return;const a=document.createElement("a");a.className="login-kassa";a.href="/kassa";a.innerHTML=ic("kassa")+"Kassa";a.setAttribute("aria-label","Kassa openen");document.body.appendChild(a)}
+  if(!kaLgVandaag||!$("#fLogin")||$(".login-kassa"))return;const a=document.createElement("a");a.className="login-kassa";a.href="/kassa";a.innerHTML=ic("kassa")+"Kassa";a.setAttribute("aria-label","Kassa openen");const h=$(".hdr .inner"),ac=$("#acct");if(h&&ac&&ac.parentNode===h)h.insertBefore(a,ac);else if(h)h.appendChild(a);else document.body.appendChild(a)}
 {const _sl=showLogin;showLogin=function(){const v=_sl.apply(this,arguments);kaLoginKnop();return v}}
 new MutationObserver(()=>{const k=$(".login-kassa");if(k&&!$("#fLogin"))k.remove()}).observe(document.getElementById("main")||document.body,{childList:true});
 if($("#fLogin"))kaLoginKnop();
