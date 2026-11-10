@@ -4120,7 +4120,7 @@ function inkHerteken(){const el=$("#inkL");if(!el)return renderBody();const tmp=
 function inkUitleg(){const s=INK.srv;
   if(!s)return `<div class="panel"><div class="panel-b muted small">Laden…</div></div>`;
   const wanneer=s.laatsteKeer?new Date(s.laatsteKeer).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
-  if(s.ingesteld)return `<div class="note info ink-u"><div>${ic("inkomend")}</div><div><b>Stuur facturen door naar <span class="mono">${esc(s.adres)}</span></b><div class="small">Gewoon de mail met de PDF doorsturen. Elke 10 minuten komen nieuwe facturen hier en in Documenten › ${INK_MAP}.${s.fout?` <span class="out">Laatste fout: ${esc(s.fout)}</span>`:""}</div></div>${inkMag()?`<button type="button" class="btn sm" data-ink="haal">Nu ophalen</button>`:""}</div>`;
+  if(s.ingesteld)return s.fout?`<div class="note ink-u"><div>${ic("inkomend")}</div><div><b>Facturen ophalen uit ${esc(s.adres)} lukte niet</b><div class="small out">${esc(s.fout)}</div></div>${inkMag()?`<button type="button" class="btn sm" data-ink="haal">Opnieuw proberen</button>`:""}</div>`:"";
   return `<div class="note ink-u"><div>${ic("inkomend")}</div><div><b>Mailbox voor facturen: ${esc(s.adres||"nog niet gekozen")}</b><div class="small">${s.wachtwoordGezet?"":"Vul het wachtwoord van de mailbox in via het tandwiel rechtsboven. "}Tot dan kan je facturen hier opladen.</div></div>${inkMag()?`<button type="button" class="btn sm" data-ink="instel">Instellen</button>`:""}</div>`}
 function inkInstel(){const s=INK.srv||{},F=s.filter||{aan:true,woorden:"",afzenders:""};
   modal("Instellingen inkomende facturen",`<form id="fInk" class="form" autocomplete="off">
