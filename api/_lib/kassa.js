@@ -29,7 +29,7 @@ export async function kassaCfg(sb) {
   const tegels = (Array.isArray(acts[actief] && acts[actief].tegels) ? acts[actief].tegels : standaardTegels(actief, f))
     .map(t => ({ id: String(t.id), naam: String(t.naam || "").slice(0, 40), prijs: Math.round(Math.max(0, Number(t.prijs) || 0) * 100) / 100, kleur: t.kleur || "grijs", icoon: t.icoon || "", inkom: !!t.inkom })).filter(t => t.naam && t.prijs >= 0);
   const jaar = actief === "fuif" ? (Number(String(f.datum || "").slice(0, 4)) || A.jaar) : A.jaar;
-  return { k, actief, naam: actief === "fuif" ? (f.naam || ACTS.fuif) : ACTS[actief], tegels, scan: k.scan !== false && actief === "fuif", code, jaar };
+  return { k, actief, naam: actief === "fuif" ? (f.naam || ACTS.fuif) : ACTS[actief], tegels, scan: k.scan !== false, code, jaar }; // scannen kan bij elke activiteit
 }
 // kassacode: 1 dag (24 uur) geldig vanaf het aanmaken
 const sleutel = () => String(process.env.BETAAL_GEHEIM || process.env.SUPABASE_SERVICE_ROLE_KEY || "");
