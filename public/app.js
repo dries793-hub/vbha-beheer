@@ -7118,3 +7118,29 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-dv-k
     if(w&&!w.closed)w.location=u;else location.href=u;if(r.nieuw)toast("Nieuwe kassacode: "+r.code+" (1 dag geldig)")}
   catch(x){if(w)w.close();toast(x.message||"De kassa kon niet geopend worden.",true)}});
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return dashVandaag()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+
+/* ============ Slim zoeken in keuzelijsten (vervangt de lijst van de browser bij <input list="…">) ============
+   De browser toont bij één letter alle namen die die letter bevatten. Hier: pas vanaf 2 letters (bij korte lijsten vanaf 1),
+   namen die met de zoekterm beginnen (of een woord dat ermee begint) eerst, en maximaal 8 voorstellen onder het veld. */
+const SZ={el:null,box:null,L:[],i:-1};
+function szOpties(inp){const id=inp.dataset.szList||inp.getAttribute("list");const dl=id&&document.getElementById(id);return dl?[...dl.options].map(o=>o.value).filter(Boolean):[]}
+function szZoek(inp){const O=szOpties(inp),q=norm(inp.value);const min=O.length>15?2:1;if(q.length<min)return[];
+  const sc=v=>{const n=norm(v);if(n===q)return -1;if(n.startsWith(q))return 0;if(n.split(/[\s(·\-/]+/).some(w=>w.startsWith(q)))return 1;const t=q.split(" ").filter(Boolean);return t.every(w=>n.includes(w))?2:9};
+  return O.map(v=>({v,s:sc(v)})).filter(x=>x.s<9&&x.s>=0).sort((a,b)=>a.s-b.s||a.v.localeCompare(b.v,"nl")).slice(0,8).map(x=>x.v)}
+function szDicht(){if(SZ.box){SZ.box.remove();SZ.box=null}SZ.L=[];SZ.i=-1}
+function szToon(inp){const L=szZoek(inp);SZ.el=inp;SZ.L=L;SZ.i=-1;if(!L.length){szDicht();return}
+  if(!SZ.box){SZ.box=document.createElement("div");SZ.box.className="sz-box";SZ.box.setAttribute("role","listbox");document.body.appendChild(SZ.box)}
+  const r=inp.getBoundingClientRect();Object.assign(SZ.box.style,{left:(r.left+scrollX)+"px",top:(r.bottom+scrollY+4)+"px",width:r.width+"px"});
+  SZ.box.innerHTML=L.map((v,i)=>`<button type="button" class="sz-o" role="option" data-szi="${i}">${esc(v)}</button>`).join("")}
+function szKies(i){const inp=SZ.el,v=SZ.L[i];if(!inp||v==null)return;inp.value=v;szDicht();inp.dispatchEvent(new Event("input",{bubbles:true}));inp.dispatchEvent(new Event("change",{bubbles:true}))}
+function szMarkeer(){if(!SZ.box)return;[...SZ.box.children].forEach((b,i)=>b.classList.toggle("on",i===SZ.i))}
+document.addEventListener("focusin",e=>{const t=e.target;if(t&&t.tagName==="INPUT"&&t.hasAttribute("list")){t.dataset.szList=t.getAttribute("list");t.removeAttribute("list");t.setAttribute("autocomplete","off")}});
+document.addEventListener("input",e=>{const t=e.target;if(t&&t.dataset&&t.dataset.szList&&e.isTrusted)szToon(t)});
+document.addEventListener("keydown",e=>{if(!SZ.box||e.target!==SZ.el)return;
+  if(e.key==="ArrowDown"){e.preventDefault();SZ.i=Math.min(SZ.L.length-1,SZ.i+1);szMarkeer()}
+  else if(e.key==="ArrowUp"){e.preventDefault();SZ.i=Math.max(0,SZ.i-1);szMarkeer()}
+  else if(e.key==="Enter"&&SZ.i>=0){e.preventDefault();e.stopPropagation();szKies(SZ.i)}
+  else if(e.key==="Escape"){e.preventDefault();e.stopPropagation();szDicht()}},true);
+document.addEventListener("mousedown",e=>{const o=e.target.closest&&e.target.closest("[data-szi]");if(o){e.preventDefault();szKies(+o.dataset.szi);return}if(SZ.box&&e.target!==SZ.el)szDicht()},true);
+document.addEventListener("focusout",e=>{if(e.target===SZ.el)setTimeout(()=>{if(document.activeElement!==SZ.el)szDicht()},120)});
+addEventListener("scroll",()=>{if(SZ.box&&SZ.el)szToon(SZ.el)},true);
