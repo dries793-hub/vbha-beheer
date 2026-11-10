@@ -7202,7 +7202,7 @@ function kfcStats(L){const s={gekozen:0,bon:0,geenkeuze:0,open:0,vbha:0,bonBedra
 const kfcStLbl={gekozen:["ok","Gekozen"],bon:["info","Bon bol.com"],geenkeuze:["warn","Bon bol.com (geen keuze)"],open:["neutral","Nog niet gekozen"],vbha:["neutral","VBHA voorziet"]};
 function kfcItem(it){const t=it.auto===false?'<span class="pill warn">niet gecontroleerd</span>':it.beschikbaar===false?'<span class="pill nok">niet op voorraad</span>':it.controleMislukt?'<span class="pill warn">controle mislukt</span>':"";
   const pv=it.vorigePrijs!=null&&it.vorigePrijs!==it.prijs?` <span class="muted small">(was ${eur(it.vorigePrijs)})</span>`:"";
-  return `<div class="kcd-it"><a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.naam||it.url)}</a> <span class="muted small">${esc(it.winkel||"")}</span> <b>${eur(it.prijs)}</b>${pv} ${t}</div>`}
+  return `<div class="kcd-it"><a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.naam||it.url)}</a> <span class="muted small">${esc(it.winkel||"")}</span> <b>${eur(it.prijs)}</b>${pv} ${t}${it.levertijd?`<div class="muted small">${esc(it.levertijd)}</div>`:""}</div>`}
 function kfcPaneel(){if(!kfMailCfg().cadeau)return"";const L=kfcKids();if(!L.length)return"";const s=kfcStats(L),M=kfMailCfg(),mag=canWrite;
   const F=KFCD.f==="alle"?L:L.filter(x=>KFCD.f==="bon"?(x.st==="bon"||x.st==="geenkeuze"):x.st===KFCD.f);
   const chip=(k,l,n)=>`<button type="button" class="${KFCD.f===k?"on":""}" data-kfc="f" data-v="${k}">${l}${n!=null?` <span class="muted">${n}</span>`:""}</button>`;
