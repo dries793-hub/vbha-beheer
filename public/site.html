@@ -30,7 +30,10 @@
   .kicker{color:var(--accent);font-weight:700;font-size:.95rem;letter-spacing:.02em;margin-bottom:8px}
   .hero.zonder{grid-template-columns:1fr}
   .hero.rechts{grid-template-columns:1fr 1.8fr}.hero.rechts .photo{order:2}
-  .hero.eigen .photo img{max-height:560px;width:auto;max-width:100%;margin:0 auto}
+  /* eigen onderdelen: de fotokolom volgt de breedte van de foto, de tekst neemt de rest */
+  .hero.eigen:not(.zonder){grid-template-columns:auto minmax(0,1fr)}.hero.eigen.rechts{grid-template-columns:minmax(0,1fr) auto}
+  .hero.eigen .photo{max-width:min(720px,62vw)}
+  .hero.eigen .photo img{max-height:560px;width:auto;max-width:100%}
   .hero + .hero,.steun + .hero,.sponsors + .hero{margin-top:56px}
   /* elke sectie na een andere: scheidingslijn */
   main > section + section{margin-top:56px;border-top:1px solid var(--line);padding-top:48px}
@@ -125,6 +128,7 @@
     .hero,.steun{grid-template-columns:1fr;gap:28px}
     main{padding-top:28px}
     .photo,.hero.rechts .photo{order:-1}
+    .hero.eigen:not(.zonder),.hero.eigen.rechts{grid-template-columns:1fr}.hero.eigen .photo{max-width:none}.hero.eigen .photo img{margin:0 auto}
     header img{height:36px}
   }
   @media (max-width:420px){.admin.shop svg{display:none}.top{gap:6px}.admin{font-size:13px}}
