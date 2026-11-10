@@ -57,10 +57,13 @@ export default async function handler(req, res) {
       const p = [P.lat, P.lng];
       if (!binnen(p)) throw httpErr(422, "Dit adres ligt buiten de wijken waar wij de kalender bedelen (Aalst-centrum, Gijzegem, Hofstade en Nieuwerkerken). Je kan de kalender wel steunen via de knop op vbha.be.");
       deel = dichtsteDeel(p, P.straat) || dichtsteDeel(p, "");
-      if (deel && !toch) {
+      // enkel blokkeren als het huisnummer exact gevonden werd: dan weten we in welk stuk van de straat het adres ligt.
+      // Lange straten zijn in stukken verdeeld; enkel het stuk waar dit huisnummer ligt telt (of de hele straat als die in één keer bedeeld werd).
+      if (deel && !toch && P.huisnummer) {
         const { data: rr } = await sb.from("ronde").select("id,data").in("id", [`${jaar}_${deel.id}`, `${jaar}_${deel.sid}`]);
         const klaar = (rr || []).find(r => r.data && r.data.status !== "reserved" && r.data.straat);
-        if (klaar) return res.status(200).json({ ok: false, gedaan: true, straat: deel.n, op: klaar.data.at || null, adres: vast, jaar });
+        const stukken = KS.delen.filter(x => x.sid === deel.sid).length;
+        if (klaar) return res.status(200).json({ ok: false, gedaan: true, straat: deel.n, stuk: stukken > 1 && klaar.id === `${jaar}_${deel.id}`, op: klaar.data.at || null, adres: vast, jaar });
       }
     }
     // hetzelfde adres dit jaar al doorgegeven? Dan niet dubbel.
