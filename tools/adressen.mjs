@@ -4,9 +4,12 @@ import fs from "fs";
 fs.mkdirSync("uit", { recursive: true });
 const W = "https://geo.api.vlaanderen.be/Adressenregister/wfs";
 const rijen = [];
+let FILTER = "BBOX(AdresPositie,3.9743,50.9045,4.0981,50.9998,'EPSG:4326')";
+{ const t = await (await fetch(W + "?service=WFS&version=2.0.0&request=GetFeature&typeNames=Adressenregister:Adres&outputFormat=application/json&count=1&CQL_FILTER=" + encodeURIComponent(FILTER))).text();
+  if (!/"numberReturned":1/.test(t)) FILTER = "BBOX(AdresPositie,50.9045,3.9743,50.9998,4.0981,'EPSG:4326')"; }
 for (let start = 0; start < 200000; start += 10000) {
   const u = W + "?service=WFS&version=2.0.0&request=GetFeature&typeNames=Adressenregister:Adres&outputFormat=application/json&srsName=EPSG:4326&sortBy=ObjectId"
-    + "&count=10000&startIndex=" + start + "&CQL_FILTER=" + encodeURIComponent("BBOX(AdresPositie,50.9045,3.9743,50.9998,4.0981,'EPSG:4326')");
+    + "&count=10000&startIndex=" + start + "&CQL_FILTER=" + encodeURIComponent(FILTER);
   const r = await fetch(u); const t = await r.text(); let j;
   try { j = JSON.parse(t); } catch { fs.writeFileSync("uit/fout.txt", t.slice(0, 5000)); throw new Error("geen json"); }
   for (const f of j.features || []) { const p = f.properties, c = f.geometry ? f.geometry.coordinates : [null, null];
