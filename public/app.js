@@ -5443,9 +5443,16 @@ function kaCashModal(act){const jaar=kaJaar(act),R=kaCashRest(act,jaar).filter(r
   modal("Cash in kas boeken",`<form id="fKaCash" class="form" onsubmit="return false">
     <div class="fld full"><label for="kcDat">Datum</label><input id="kcDat" type="date" value="${esc(dag)}"></div>
     ${R.map((r,i)=>`<div class="fld full"><label for="kcB${i}">${esc(r.cat)} <span class="muted small">(kassa: ${kaEur(r.rest)})</span></label><input id="kcB${i}" inputmode="decimal" value="${String(r.rest.toFixed(2)).replace(".",",")}"></div>`).join("")}
-    <p class="muted small full" style="margin:0">Pas het bedrag aan als de geteld cash afwijkt van de kassa. Per categorie komt er één transactie <b>Kas · in</b>.</p><div class="err full" id="kcErr"></div></form>`,
+    <div class="fld"><label for="kcTot">Geteld totaal <span class="muted small">(kassa: ${kaEur(r2(R.reduce((t,r)=>t+r.rest,0)))})</span></label><input id="kcTot" inputmode="decimal" value="${String(r2(R.reduce((t,r)=>t+r.rest,0)).toFixed(2)).replace(".",",")}"></div>
+    ${R.length>1?`<div class="fld"><label for="kcCor">Verschil boeken op</label><select id="kcCor">${R.map((r,i)=>`<option value="${i}">${esc(r.cat)}</option>`).join("")}</select></div>`:""}
+    <div class="muted small full" id="kcVer" style="margin:0"></div><div class="err full" id="kcErr"></div></form>`,
     `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kcOk">Boeken</button>`,{wide:false});
-  $("#kcOk").onclick=async()=>{const e=$("#kcErr"),d=$("#kcDat").value;if(!d){e.textContent="Kies een datum.";return}
+  const kcF=i=>$("#kcB"+i),kcS=sk=>R.reduce((t,_,i)=>t+(i===sk?0:num(kcF(i).value)),0),kcFmt=n=>String(r2(n).toFixed(2)).replace(".",","),kcBasis=r2(R.reduce((t,r)=>t+r.rest,0));
+  const kcVer=()=>{const v=r2(num($("#kcTot").value)-kcBasis);$("#kcVer").textContent=Math.abs(v)>0.004?"Verschil met de kassa: "+(v>0?"+ ":"− ")+kaEur(Math.abs(v)):""};
+  R.forEach((_,i)=>kcF(i).addEventListener("input",()=>{$("#kcTot").value=kcFmt(kcS(-1));kcVer()}));
+  $("#kcTot").addEventListener("input",()=>{const k=R.length>1?Number($("#kcCor").value):0;kcF(k).value=kcFmt(num($("#kcTot").value)-kcS(k));kcVer()});
+  if($("#kcCor"))$("#kcCor").addEventListener("change",()=>{R.forEach((r,i)=>kcF(i).value=kcFmt(r.rest));$("#kcTot").dispatchEvent(new Event("input"))});
+  $("#kcOk").onclick=async()=>{const e=$("#kcErr");if(R.some((_,i)=>num(kcF(i).value)<0)){e.textContent="Het verschil is groter dan het bedrag van die categorie. Kies een andere categorie.";return}const d=$("#kcDat").value;if(!d){e.textContent="Kies een datum.";return}
     if(Number(d.slice(0,4))!==JAAR){e.textContent=`De datum valt buiten boekjaar ${JAAR}. Kies eerst het juiste boekjaar.`;return}
     const L2=R.map((r,i)=>({cat:r.cat,b:r2(Math.abs(num($("#kcB"+i).value)))})).filter(x=>x.b>0);if(!L2.length){e.textContent="Vul minstens één bedrag in.";return}
     $("#kcOk").disabled=true;try{const nrs=[];for(const x of L2){const nr=nextNr(),id=newId("boekingen"),b={bron:"manueel",jaar:JAAR,nr,datum:d,categorie:x.cat,mededeling:"Cash kassa "+KA_ACTS[act]+" "+jaar+(L2.length>1?" ("+x.cat+")":""),partij:"Kassa",iban:"",rekening:"Kas",bedrag:x.b,richting:"in",lidId:null,lidgeldJaar:null,werkjaar:null,status:null,kassa:{act,jaar:Number(jaar)}};
