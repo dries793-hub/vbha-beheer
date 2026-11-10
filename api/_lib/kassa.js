@@ -75,7 +75,7 @@ export default async function kassaPubliek(req, res) {
     if (b.actie === "scan") { if (!K.scan) throw httpErr(403, "Scannen staat uit."); const { scanTicket } = await import("./fuif.js"); return res.status(200).json(await scanTicket(sb, b.code, "kassa (gast)", false)); }
     if (b.actie === "verkoop") {
       const want = b.items || {};let cash = b.betaalwijze === "cash";
-      const items = K.tegels.map(t => ({ id: t.id, naam: t.naam, prijs: t.prijs, aantal: Math.max(0, Math.min(200, Math.floor(Number(want[t.id])) || 0)), ...(t.inkom ? { inkom: true } : {}) })).filter(i => i.aantal);
+      const items = K.tegels.map(t => ({ id: t.id, naam: t.naam, prijs: t.prijs, aantal: Math.max(0, Math.min(200, Math.floor(Number(want[t.id])) || 0)), ...(t.inkom ? { inkom: true } : {}), ...(t.categorie ? { categorie: String(t.categorie).slice(0, 60) } : {}) })).filter(i => i.aantal);
       if (!items.length) throw httpErr(400, "Kies minstens één item.");
       const bedrag = rond(items.reduce((n, i) => n + i.aantal * i.prijs, 0));
       if (b.bedrag != null && Math.abs(Number(b.bedrag) - bedrag) > 0.001) throw httpErr(409, "De prijzen werden intussen aangepast. Herlaad de kassa.");

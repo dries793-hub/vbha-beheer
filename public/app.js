@@ -350,7 +350,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   const jub=cur.filter(r=>r.jaren===25).sort((a,b)=>(a.lid.naam||"").localeCompare(b.lid.naam||"","nl"));
   const cats0=Object.entries(C.perCat).map(([k,v])=>({k,net:v.in-v.uit,...v})).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net));
   const andJ=c=>{const m=String(c.k).match(/\b(19|20)\d{2}\b/g);return !!m&&!m.includes(String(JAAR))};
-  const cats=cats0.filter(c=>!andJ(c));{const A=cats0.filter(andJ);if(A.length){const o={k:"Andere jaren",net:0,in:0,uit:0,andere:A.map(c=>c.k)};for(const c of A){o.net+=c.net;o.in+=c.in||0;o.uit+=c.uit||0}o.net=Math.round(o.net*100)/100;cats.push(o)}}
+  const cats=cats0.filter(c=>!andJ(c));
   const maxNet=Math.max(1,...cats.map(c=>Math.abs(c.net)));
   const top=cur.filter(r=>r.lg.ok&&r.lid.categorie!=="Erewacht"&&r.p.totaal>0).sort((a,b)=>b.p.totaal-a.p.totaal).slice(0,10);
   const recent=C.boek.slice(-6).reverse();
@@ -5340,6 +5340,7 @@ function kaTabBody(act,zonderKnoppen){const jaar=kaJaar(act),L=kaTrans(act,jaar)
     <div class="tile"><span class="lbl">Bancontact</span><span class="val">${kaEur(T.bc)}</span><span class="hint">${T.B.filter(t=>t.betaalwijze!=="cash").length} verkopen</span></div>
     <div class="tile"><span class="lbl">Cash</span><span class="val">${kaEur(T.cash)}</span><span class="hint">${T.B.filter(t=>t.betaalwijze==="cash").length} verkopen</span></div></div>
   <div class="grid g2" style="align-items:start">
+   ${(()=>{const C=kaPerCat(act,T.B);return C.length>1?`<div class="panel" style="min-width:0"><div class="panel-h"><h2>Per categorie (boekhouding)</h2></div><div class="panel-b"><div class="fu-ko">${C.map(c=>`<div class="fu-kr"><span>${esc(c.cat)}</span><span class="muted">Bancontact ${kaEur(c.bc)} · cash ${kaEur(c.cash)}</span><b>${kaEur(c.bc+c.cash)}</b></div>`).join("")}</div><p class="muted small" style="margin:8px 0 0">Bancontact wordt automatisch zo verdeeld bij de dagstorting; boek de cash per categorie in de kas.</p></div></div>`:""})()}
    <div class="panel" style="min-width:0"><div class="panel-h"><h2>Verkocht per tegel</h2></div><div class="panel-b">${per.length?`<div class="fu-ko">${per.map(([n,p])=>`<div class="fu-kr"><span>${esc(n)}</span><span class="muted">${p.n}×</span><b>${kaEur(p.b)}</b></div>`).join("")}<div class="fu-kt tot"><span>Totaal</span><b>${kaEur(T.tot)}</b></div></div>`:'<div class="muted small">Nog niets verkocht.</div>'}</div></div>
    <div class="panel" style="min-width:0"><div class="panel-h"><h2>Transacties</h2><span class="grow"></span><label class="cbx small muted"><input type="checkbox" data-ka="alles"${KA_UI.alles?" checked":""}>ook niet betaald</label></div><div class="panel-b" style="padding-top:4px">${toon.length?toon.slice(0,300).map(t=>{const w=(t.items||[]).map(i=>i.aantal+"× "+i.naam).join(", "),st=t.status==="betaald"?"":` <span class="pill ${t.status==="wacht"?"warn":"neutral"}">${t.status==="wacht"?"betaling bezig":"niet betaald"}</span>`;
      return `<div class="fu-trr"><div style="min-width:0"><b>${kaEur(t.bedrag)}</b> <span class="pill ${t.betaalwijze==="cash"?"neutral":"info"}">${t.betaalwijze==="cash"?"Cash":"Bancontact"}</span>${st}<div class="muted small" style="overflow-wrap:anywhere">${esc(tijd(t.betaaldOp||t.aangemeld))} · ${esc(w)}</div></div>${adm?`<button type="button" class="fu-x" data-ka="wis" data-id="${esc(t.id)}" aria-label="Transactie wissen" title="Transactie wissen">×</button>`:""}</div>`}).join(""):'<div class="muted small">Nog geen transacties.</div>'}</div></div>
@@ -5372,7 +5373,7 @@ function kassaInst(act){const c=kaCfg();KA_ED.act=act||(KA_ACTS[c.actief]?c.acti
   modal("Instellingen kassa",`<div id="kaEd"></div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kaOk">Bewaren</button>`,{wide:true});kaEdTeken();
   $("#kaOk").onclick=async()=>{const fout=[];for(const [a,L] of Object.entries(KA_ED.tegels))L.forEach((t,i)=>{if(!String(t.naam||"").trim())fout.push(`${KA_ACTS[a]}: tegel ${i+1} heeft geen naam`);if(String(t.prijs??"").trim()===""||!(Number(t.prijs)>=0))fout.push(`${KA_ACTS[a]}: ${t.naam||"tegel "+(i+1)} heeft geen geldige prijs`)});
     if(fout.length){$("#kaErr").innerHTML=fout.map(esc).join("<br>");return}
-    const acts={};for(const [a,L] of Object.entries(KA_ED.tegels))acts[a]={tegels:L.map(t=>({id:t.id,naam:String(t.naam).trim().slice(0,40),prijs:Math.round(Number(t.prijs)*100)/100,kleur:t.kleur||"grijs",icoon:t.icoon||"",...(t.inkom?{inkom:true}:{})}))};
+    const acts={};for(const [a,L] of Object.entries(KA_ED.tegels))acts[a]={tegels:L.map(t=>({id:t.id,naam:String(t.naam).trim().slice(0,40),prijs:Math.round(Number(t.prijs)*100)/100,kleur:t.kleur||"grijs",icoon:t.icoon||"",...(t.categorie&&t.categorie!==KA_CAT[a]?{categorie:String(t.categorie).trim().slice(0,60)}:{}),...(t.inkom?{inkom:true}:{})}))};
     closeModal();await kaBewaar({actief:KA_ED.actief,scan:KA_ED.scan,activiteiten:acts});toast("Kassa-instellingen bewaard. De kassa neemt ze binnen een minuut over.");render(true)}}
 function kaEdTeken(){const E=KA_ED,L=E.tegels[E.act]||[],code=kaCode(),tot=kaCodeTot(code),geldig=code&&tot>Date.now(),u=location.origin+"/kassa"+(geldig?"?code="+code.code:"");
   const kl=k=>(KASSA_KLEUREN[k]||KASSA_KLEUREN.grijs);
@@ -5385,7 +5386,7 @@ function kaEdTeken(){const E=KA_ED,L=E.tegels[E.act]||[],code=kaCode(),tot=kaCod
           <span class="ka-p"><span>€</span><input data-kae="prijs" data-i="${i}" value="${esc(String(t.prijs??"").replace(".",","))}" inputmode="decimal" aria-label="Prijs"></span>
           <span class="ka-mv"><button type="button" data-kae="op" data-i="${i}" aria-label="Omhoog"${i?"":" disabled"}>↑</button><button type="button" data-kae="neer" data-i="${i}" aria-label="Omlaag"${i<L.length-1?"":" disabled"}>↓</button></span>
           <button type="button" class="fu-x" data-kae="weg" data-i="${i}" aria-label="Tegel verwijderen" title="Verwijderen">×</button></div>
-        <div class="ka-kl">${Object.entries(KASSA_KLEUREN).map(([n,[c]])=>`<button type="button" class="${t.kleur===n?"on":""}" style="background:${c}" data-kae="kleur" data-i="${i}" data-v="${n}" aria-label="Kleur ${n}" title="${n}"></button>`).join("")}${E.act==="fuif"?`<label class="cbx small muted" style="margin-left:auto"><input type="checkbox" data-kae="inkom" data-i="${i}"${t.inkom?" checked":""}>telt als inkom</label>`:""}</div>
+        <div class="ka-kl">${Object.entries(KASSA_KLEUREN).map(([n,[c]])=>`<button type="button" class="${t.kleur===n?"on":""}" style="background:${c}" data-kae="kleur" data-i="${i}" data-v="${n}" aria-label="Kleur ${n}" title="${n}"></button>`).join("")}<input class="ka-cat" data-kae="cat" data-i="${i}" list="kaCats" value="${esc(t.categorie||"")}" placeholder="Categorie: ${esc(KA_CAT[E.act]||"")}" maxlength="60" aria-label="Categorie in de boekhouding" title="Categorie in de boekhouding (leeg = ${esc(KA_CAT[E.act]||"")})">${E.act==="fuif"?`<label class="cbx small muted" style="margin-left:auto"><input type="checkbox" data-kae="inkom" data-i="${i}"${t.inkom?" checked":""}>telt als inkom</label>`:""}</div>
         ${E.open===i?`<div class="ka-ic">${Object.keys(KASSA_ICONEN).map(n=>`<button type="button" class="${t.icoon===n?"on":""}" data-kae="kies" data-i="${i}" data-v="${n}" title="${n}">${kassaIcoon(n,k)}</button>`).join("")}<button type="button" class="${!t.icoon?"on":""}" data-kae="kies" data-i="${i}" data-v="" title="geen icoon" style="font-size:12px">geen</button></div>`:""}</div>`}).join("")||'<div class="muted small">Nog geen tegels.</div>'}</div>
       <div class="bar" style="margin:10px 0 0"><button type="button" class="btn" data-kae="nieuw">${ic("plus")}Tegel toevoegen</button><button type="button" class="btn ghost" data-kae="std">Standaardtegels</button></div></div>
     <div class="pi-sec ka-qrs"><h4>Kassacode (gastlogin)</h4><p class="pi-note" style="margin:0 0 8px">Met de kassacode kunnen helpers die geen bestuurslid zijn de kassa gebruiken via <b>${esc(location.host)}/kassa</b>. Ze kunnen enkel verkopen en scannen. Een nieuwe code is standaard <b>1 dag geldig</b>; hieronder kan je dat aanpassen. Een nieuwe code maakt de oude meteen ongeldig.</p>
@@ -5409,7 +5410,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-kae]
   else if(a==="codeuit"){await kaBewaar({code:null});const f=(S.config&&S.config.get("fuif"))||{};if(f.kassa){const r={...stripId(f),kassa:null};S.config.set("fuif",{...r,id:"fuif"});await write("config","fuif",r)}toast("Kassacode uitgeschakeld.")}
   kaEdTeken()});
 document.addEventListener("input",e=>{const t=e.target;if(!t.matches||!t.matches("#kaEd [data-kae]"))return;const L=KA_ED.tegels[KA_ED.act],i=+t.dataset.i;
-  if(t.dataset.kae==="naam")L[i].naam=t.value;else if(t.dataset.kae==="prijs")L[i].prijs=t.value.replace(",",".")});
+  if(t.dataset.kae==="naam")L[i].naam=t.value;else if(t.dataset.kae==="prijs")L[i].prijs=t.value.replace(",",".");else if(t.dataset.kae==="cat")L[i].categorie=t.value.trim()});
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="kaScan"){KA_ED.scan=t.checked;return}if(t.matches&&t.matches('#kaEd [data-kae="inkom"]')){KA_ED.tegels[KA_ED.act][+t.dataset.i].inkom=t.checked}});
 document.addEventListener("click",e=>{const a=e.target.closest("[data-katoon]");if(!a)return;const act=a.dataset.katoon;if(act!=="jaarmarkt")KA_UI.tab[act]="kassa"});
 
@@ -5420,6 +5421,13 @@ function kaUurNet(v){const t=String(v||"").trim().toLowerCase().replace(/\s+/g,"
   if(!m)return null;const u=+m[1],mi=+(m[2]||0);if(u>23||mi>59)return null;return String(u).padStart(2,"0")+":"+String(mi).padStart(2,"0")}
 document.addEventListener("focusout",e=>{const t=e.target;if(!t||t.id!=="kaTotU")return;const n=kaUurNet(t.value);if(n)t.value=n},true);
 document.addEventListener("keydown",e=>{const t=e.target;if(!t||t.id!=="kaTotU"||e.key!=="Enter")return;const n=kaUurNet(t.value);if(n)t.value=n},true);
+
+/* Categorie in de boekhouding per kassa-activiteit; een tegel kan een eigen categorie hebben (bv. Boekje 150 jaar -> "150 jaar") */
+const KA_CAT={fuif:"Fuif",kinderfeest:"Kinderfeest",jaarmarkt:"Jaarmarkt"};
+function kaPerCat(act,B){const tg=new Map((kaTegels(act)||[]).map(t=>[t.id,t])),m=new Map();
+  for(const v of B)for(const i of v.items||[]){const cat=i.categorie||(tg.get(i.id)||{}).categorie||KA_CAT[act]||"Andere opbrengsten",x=m.get(cat)||{cat,bc:0,cash:0},b=(Number(i.aantal)||0)*(Number(i.prijs)||0);if(v.betaalwijze==="cash")x.cash+=b;else x.bc+=b;m.set(cat,x)}
+  return [...m.values()].map(x=>({...x,bc:Math.round(x.bc*100)/100,cash:Math.round(x.cash*100)/100})).sort((a,b)=>(b.bc+b.cash)-(a.bc+a.cash))}
+document.addEventListener("focusin",e=>{if(!e.target.matches||!e.target.matches(".ka-cat")||document.getElementById("kaCats"))return;const d=document.createElement("datalist");d.id="kaCats";d.innerHTML=(typeof catList==="function"?catList(ctx()):[]).map(c=>`<option value="${esc(c)}">`).join("");document.body.appendChild(d)});
 
 /* ============ Webshop (eigen knop in het menu) ============
    Artikelen: collectie "shop_items"; afbeeldingen in de tabel "beelden" (id "shop-…"); bestellingen: "shop_orders"; instellingen: config "shop".

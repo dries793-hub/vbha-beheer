@@ -15,7 +15,11 @@ const BRONNEN = [
   ["familiedag", r => ({ cat: "Familiedag", wie: r.naam })],
   ["tickets", r => ({ cat: "Fuif", wie: [r.voornaam, r.naam].filter(Boolean).join(" ") || "tickets" })],
   ["shop_orders", r => ({ cat: "Webshop", wie: r.klant ? [r.klant.voornaam, r.klant.naam].filter(Boolean).join(" ") : "bestelling" })],
-  ["kassa", r => ({ cat: KASSA_CAT[r.activiteit] || "Andere opbrengsten", wie: "kassa" })],
+  // kassa: per categorie van de verkochte tegels (bv. Boekje 150 jaar -> "150 jaar"), de rest bij de activiteit
+  ["kassa", r => { const def = KASSA_CAT[r.activiteit] || "Andere opbrengsten", m = new Map();
+    for (const i of r.items || []) { const c = i.categorie || (r._tegelCat && r._tegelCat[i.id]) || def; m.set(c, r2((m.get(c) || 0) + (Number(i.aantal) || 0) * (Number(i.prijs) || 0))); }
+    if (m.size <= 1) return { cat: [...m.keys()][0] || def, wie: "kassa" };
+    return [...m.entries()].map(([cat, bedrag]) => ({ cat, wie: "kassa", bedrag })); }],
   ["sponsors", r => ({ cat: "Sponsoring", wie: r.bedrijf || r.naam })],
   ["facturen", r => ({ cat: (r.categorie || "Andere opbrengsten"), wie: r.nr ? "factuur " + r.nr : "factuur" })],
 ];
@@ -23,14 +27,20 @@ export const isBulk = b => b && b.rekening !== "Kas" && b.richting !== "uit" && 
 
 async function onlinePerDag(sb) {
   const per = new Map();
+  // categorie per tegel uit de kassa-instellingen (voor verkopen van vóór de categorie in de verkoop zelf werd bewaard)
+  let TC = null; const tegelCats = async () => { if (TC) return TC; TC = {}; try { const { data } = await sb.from("config").select("data").eq("id", "kassa").maybeSingle(); for (const a of Object.values((data && data.data && data.data.activiteiten) || {})) for (const t of a.tegels || []) if (t.categorie) TC[t.id] = t.categorie; } catch (e) {} return TC; };
   for (const [tabel, f] of BRONNEN) {
     let rows = [];
     try { rows = await selectAll(sb, tabel); } catch (e) { continue; }
     for (const row of rows) {
       const d = row.data || {}, b = d.betaling;
       if (!b || b.status !== "SUCCEEDED" || !b.betaaldOp || !(Number(b.bedrag) > 0)) continue;
-      const dag = dagBxl(b.betaaldOp), x = f({ ...d, _id: row.id });
-      (per.get(dag) || per.set(dag, []).get(dag)).push({ ...x, bedrag: r2(Number(b.bedrag)), bron: tabel, id: row.id });
+      const dag = dagBxl(b.betaaldOp), x = f({ ...d, _id: row.id, _tegelCat: tabel === "kassa" ? await tegelCats() : null });
+      const L = per.get(dag) || per.set(dag, []).get(dag);
+      if (Array.isArray(x)) { // één betaling verdeeld over meerdere categorieën; afronding op het laatste deel
+        let rest = r2(Number(b.bedrag));
+        x.forEach((y, i) => { const bd = i === x.length - 1 ? rest : Math.min(rest, r2(y.bedrag)); rest = r2(rest - bd); L.push({ ...y, bedrag: bd, bron: tabel, id: row.id }); });
+      } else L.push({ ...x, bedrag: r2(Number(b.bedrag)), bron: tabel, id: row.id });
     }
   }
   return per;
