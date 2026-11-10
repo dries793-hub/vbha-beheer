@@ -1565,7 +1565,7 @@ function lidForm(l={}){const c=cfg();return `<form id="fLid" class="form">
   ${fld("info","Info",inp("info",l.info,'placeholder="bv. Ere-voorzitter, via William"'))}
   ${fld("lidTot","Lid tot en met (jaar)",inp("lidTot",l.lidTot,'inputmode="numeric" placeholder="leeg = nog lid"'))}
   <label class="sp-nat full" for="bestuurLid"><input type="checkbox" id="bestuurLid"${l.bestuur?" checked":""}><span><b>Bestuurslid</b></span></label>
-  <label class="sp-nat full" for="geenLid"><input type="checkbox" id="geenLid"${l.geenLid?" checked":""}><span><b>Oud lid</b></span></label>
+  <label class="sp-nat full" for="geenLid"><input type="checkbox" id="geenLid"${l.geenLid||(l.lidTot&&l.lidTot<JAAR)?" checked":""}><span><b>Oud lid</b></span></label>
   <div class="err full" id="lidErr"></div></form>`}
 function readLid(){const f=formData($("#fLid"));const e=$("#lidErr");
   if(!f.naam.trim()||!f.voornaam.trim()){e.textContent="Vul naam en voornaam in.";return null}
@@ -1586,7 +1586,7 @@ function toonLid(id){
    ${l.categorie!=="Erewacht"?`<div><b>Punten ${JAAR}</b>: ${r.p.totaal} &nbsp;${medal(r.status)}${r.jl&&r.jl.vrijstelling?` <span class="pill info" title="${esc(r.jl.vrijstelling.reden||"")}">vrijgesteld</span>`:""}</div>${vrijHtml(l,id,r)}`:""}</div></div>`+lidgeldHistHtml(l,r);
   modal(naamVol(l),body,`<button class="btn ghost danger" data-w id="lidDel">Verwijderen</button><span class="grow"></span>${l.email&&lidMailMag()?`<button class="btn" data-lidmail="${esc(l.email)}">${ic("mails")}Mail sturen</button>`:""}<button class="btn" data-act="closeModal">Sluiten</button><button class="btn primary" data-w id="lidEdit">Gegevens wijzigen</button>`,{wide:true});
   $("#lidEdit").onclick=()=>{modal("Lid wijzigen",lidForm(l),`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="lidOk">Bewaren</button>`);
-    $("#lidOk").onclick=async()=>{const d=readLid();if(!d)return;closeModal();await write("leden",id,{...stripId(S.leden.get(id)||l),...d});toast(d.geenLid&&!l.geenLid?naamVol(d)+" is nu oud lid.":"Gegevens bewaard.")}};
+    $("#lidOk").onclick=async()=>{const d=readLid();if(!d)return;if(!d.geenLid&&(l.geenLid||(l.lidTot&&l.lidTot<JAAR))&&d.lidTot&&d.lidTot<JAAR&&d.lidTot===l.lidTot)d.lidTot=null;if(d.geenLid&&!l.geenLid&&l.lidTot&&l.lidTot<JAAR)d.geenLid=false;closeModal();await write("leden",id,{...stripId(S.leden.get(id)||l),...d});toast(d.geenLid&&!l.geenLid?naamVol(d)+" is nu oud lid.":"Gegevens bewaard.")}};
   $("#lidDel").onclick=()=>confirmBox(`<b>${esc(naamVol(l))}</b> definitief verwijderen? Wil je iemand enkel niet meer als lid tonen, vul dan beter "Lid tot en met" in.`,"Verwijderen",async()=>{await write("leden",id,null,{del:true});toast("Lid verwijderd.")});
 }
 function lidgeldHist(lid){
@@ -2654,7 +2654,11 @@ function groepen(){
   if(typeof kfLijst==="function")add("Kinderfeest","kf","Ingeschreven voor het kinderfeest",kfLijst().map(r=>{const l=r.lidId&&S.leden.get(r.lidId);
     return{email:r.email||(l&&l.email)||"",voornaam:l?l.voornaam:"",naam:l?naamVol(l):(r.lid||""),bedrag:"",mededeling:"",label:l?naamVol(l):(r.lid||r.email||"")}}));
   add("Andere","sponsors","Alle sponsors",[...S.sponsors.values()].map(s=>({email:s.email,voornaam:s.voornaam||"",naam:s.naam||"",bedrijf:spNaam(s),bedrag:num(s.bedrag),mededeling:"",label:spNaam(s)||s.naam||""})));
-  add("Andere","los","Losse e-mailadressen",mlLos().map(e=>{const l=[...S.leden.values()].find(x=>String(x.email||"").trim().toLowerCase()===e);return {email:e,voornaam:l?l.voornaam||"":"",naam:l?naamVol(l):"",bedrag:"",mededeling:"",label:l?naamVol(l)+" ("+e+")":e}}));
+  add("Andere","los","Losse e-mailadressen",mlLos().map(e=>{const l=[...S.leden.values()].find(x=>String(x.email||"").trim().toLowerCase()===e);
+    // los adres van een (oud-)lid: dezelfde gegevens als in de ledengroepen (bedrag lidgeld, mededeling, betaallink)
+    const r=l&&C.rows.get(l.id);if(r)return{...lidR(r),email:e,label:naamVol(l)+" ("+e+")"};
+    if(l){const c=C.c,bd=l.categorie==="Erewacht"?c.lidgeld.erewacht:c.lidgeld.gewoon;return{lidId:l.id,email:e,voornaam:l.voornaam||"",naam:naamVol(l),bedrag:bd,mededeling:`${l.naam} ${l.voornaam} lidgeld ${JAAR}`,label:naamVol(l)+" ("+e+")"}}
+    return {email:e,voornaam:"",naam:"",bedrag:"",mededeling:"",label:e}}));
   return G;
 }
 const mlGeblok=()=>(S.config.get("mail")||{}).geblokkeerd||{};
