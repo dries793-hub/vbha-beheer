@@ -5370,7 +5370,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-kae]
   else if(a==="nieuw"){L.push({id:kaId(),naam:"",prijs:"",kleur:Object.keys(KASSA_KLEUREN)[L.length%8],icoon:""});E.open=null;kaEdTeken();const n=document.querySelectorAll(".ka-n");if(n.length)n[n.length-1].focus();return}
   else if(a==="std"){E.tegels[E.act]=kaStandaard(E.act);E.open=null}
   else if(a==="code"){await kaNieuweCode();toast("Nieuwe kassacode aangemaakt.")}
-  else if(a==="codetot"){const dg=($("#kaTotD")||{}).value,um=String(($("#kaTotU")||{}).value||"").trim().replace(/[.hu]/i,":").match(/^(\d{1,2})(?::?(\d{2}))?$/);
+  else if(a==="codetot"){const dg=($("#kaTotD")||{}).value,un=kaUurNet(($("#kaTotU")||{}).value),um=un&&un.match(/^(\d{2}):(\d{2})$/);if(un&&$("#kaTotU"))$("#kaTotU").value=un;
     if(!dg||!um||+um[1]>23||+(um[2]||0)>59){toast("Kies een datum en een uur (bv. 23:30).",true);return}const v=dg+"T"+String(um[1]).padStart(2,"0")+":"+(um[2]||"00"),ms=new Date(v).getTime();if(!v||!(ms>Date.now())){toast("Kies een moment in de toekomst.",true);return}
     const c=kaCode();if(!c){toast("Er is geen kassacode.",true);return}await kaBewaar({code:{...c,tot:new Date(ms).toISOString()}});toast("De kassacode blijft geldig tot "+new Date(ms).toLocaleString("nl-BE",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+".")}
   else if(a==="codeuit"){await kaBewaar({code:null});const f=(S.config&&S.config.get("fuif"))||{};if(f.kassa){const r={...stripId(f),kassa:null};S.config.set("fuif",{...r,id:"fuif"});await write("config","fuif",r)}toast("Kassacode uitgeschakeld.")}
@@ -5381,6 +5381,12 @@ document.addEventListener("change",e=>{const t=e.target;if(t.id==="kaScan"){KA_E
 document.addEventListener("click",e=>{const a=e.target.closest("[data-katoon]");if(!a)return;const act=a.dataset.katoon;if(act!=="jaarmarkt")KA_UI.tab[act]="kassa"});
 
 {const st=document.createElement("style");st.textContent=".tiles.ka-st2{grid-template-columns:repeat(2,minmax(0,1fr))}";document.head.appendChild(st)}
+
+/* Uur bij 'geldig tot': 18 -> 18:00, 1830 / 18.30 / 18u30 -> 18:30, 9 -> 09:00 */
+function kaUurNet(v){const t=String(v||"").trim().toLowerCase().replace(/\s+/g,"").replace(/[.hu,]/g,":");let m=t.match(/^(\d{1,2})(?::(\d{1,2}))?$/)||t.match(/^(\d{1,2})(\d{2})$/);
+  if(!m)return null;const u=+m[1],mi=+(m[2]||0);if(u>23||mi>59)return null;return String(u).padStart(2,"0")+":"+String(mi).padStart(2,"0")}
+document.addEventListener("focusout",e=>{const t=e.target;if(!t||t.id!=="kaTotU")return;const n=kaUurNet(t.value);if(n)t.value=n},true);
+document.addEventListener("keydown",e=>{const t=e.target;if(!t||t.id!=="kaTotU"||e.key!=="Enter")return;const n=kaUurNet(t.value);if(n)t.value=n},true);
 
 /* ============ Webshop (eigen knop in het menu) ============
    Artikelen: collectie "shop_items"; afbeeldingen in de tabel "beelden" (id "shop-…"); bestellingen: "shop_orders"; instellingen: config "shop".
