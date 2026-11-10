@@ -10,7 +10,8 @@ const norm=s=>String(s??"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase(
 const slug=s=>norm(s).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"x";
 const num=v=>{if(typeof v==="number")return v;const s=String(v??"").trim().replace(/\s/g,"");if(!s)return 0;const t=s.includes(",")?s.replace(/\./g,"").replace(",","."):s;const n=parseFloat(t);return isNaN(n)?0:n};
 const r2=n=>Math.round(n*100)/100;
-const todayISO=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+let SIM_DAG=(()=>{try{const v=sessionStorage.getItem("vbhaSimDag");return /^\d{4}-\d{2}-\d{2}$/.test(v||"")?v:null}catch(e){return null}})();
+const todayISO=()=>{if(SIM_DAG)return SIM_DAG;const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const fmtDate=iso=>iso?iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4):"";
 const ls={get(k,d){try{const v=localStorage.getItem("vbha:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("vbha:"+k,JSON.stringify(v))}catch(e){}}};
 const ICON={
@@ -3013,7 +3014,7 @@ ICON.gebruikers='<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.9-3 3-4.6 5.5-
 ICON.sleutel='<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>';
 
 function gbMenu(){const m=$("#acctMenu");if(!m||m.querySelector("[data-gbm]"))return;const lo=m.querySelector('[data-act="logout"]');
-  const html=(ROL==="admin"?`<a href="#gebruikers" class="acct-i" role="menuitem" data-act="acctClose" data-gbm>${ic("gebruikers")}Gebruikers</a>`:"")+(ROL_ECHT==="admin"?`<button type="button" class="acct-i" role="menuitem" data-act="gbSimKies" data-gbm>${ic("leden")}Bekijken als…</button>`:"")+`<button type="button" class="acct-i" role="menuitem" data-act="gbWw" data-gbm>${ic("sleutel")}Wachtwoord wijzigen</button>`;
+  const html=(ROL==="admin"?`<a href="#gebruikers" class="acct-i" role="menuitem" data-act="acctClose" data-gbm>${ic("gebruikers")}Gebruikers</a>`:"")+(ROL_ECHT==="admin"?`<button type="button" class="acct-i" role="menuitem" data-act="gbSimKies" data-gbm>${ic("leden")}Bekijken als…</button><button type="button" class="acct-i" role="menuitem" data-act="gbDagKies" data-gbm>${ic("agenda")}Fictieve datum…</button>`:"")+`<button type="button" class="acct-i" role="menuitem" data-act="gbWw" data-gbm>${ic("sleutel")}Wachtwoord wijzigen</button>`;
   if(lo)lo.insertAdjacentHTML("beforebegin",html);else m.insertAdjacentHTML("beforeend",html)}
 
 async function gbLaad(){try{GB=await api("/api/gebruikers")}catch(e){GB={fout:e.message,gebruikers:[]}}if(route()==="gebruikers")renderBody()}
@@ -3089,6 +3090,19 @@ function gbSimKies(){closeAcct();modal("Bekijken als",`<p style="margin:0 0 12px
   $("#simOk").onclick=()=>{const r=($('input[name="simR"]:checked')||{}).value||"admin";closeModal();gbSim(r)}}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;
   ({gbSimKies,gbSimStop:()=>gbSim("admin")})[t.dataset.act]?.()});
+
+/* ---------- Fictieve datum (enkel administrator, enkel in dit venster) ----------
+   De app rekent met deze dag als "vandaag" (agenda, dashboard, vervaldagen, meldingen). Niets wordt verstuurd of bewaard met die datum. */
+function gbDagBalk(){let b=$("#simDag");if(!SIM_DAG||ROL_ECHT!=="admin"){if(b)b.remove();document.body.classList.remove("simdag");return}
+  if(!b){b=document.createElement("div");b.id="simDag";b.className="sim-bar sim-dag";b.setAttribute("role","status");document.body.prepend(b)}document.body.classList.add("simdag");
+  b.innerHTML=`${ic("agenda")}<span class="sim-t">Fictieve datum: de app doet alsof het <b>${esc(fmtDate(SIM_DAG))}</b> is. Pas tijdens de simulatie liefst niets aan.</span><button type="button" class="btn sm" data-act="gbDagKies">Wijzigen</button><button type="button" class="btn sm" data-act="gbDagStop">Stoppen</button>`}
+function gbDag(v){if(ROL_ECHT!=="admin")return;SIM_DAG=/^\d{4}-\d{2}-\d{2}$/.test(v||"")?v:null;try{SIM_DAG?sessionStorage.setItem("vbhaSimDag",SIM_DAG):sessionStorage.removeItem("vbhaSimDag")}catch(e){}
+  gbDagBalk();render(true);toast(SIM_DAG?"De app doet nu alsof het "+fmtDate(SIM_DAG)+" is.":"Terug naar de echte datum.")}
+function gbDagKies(){closeAcct&&closeAcct();modal("Fictieve datum",`<p style="margin:0 0 12px;color:var(--muted)">Bekijk wat de app op een andere dag toont: de activiteit van die dag op het dashboard, vervallen facturen, meldingen… Enkel in dit venster; er wordt niets verstuurd of gewijzigd.</p>
+  ${fld("simD","Datum",`<input id="simD" type="date" value="${esc(SIM_DAG||todayISO())}">`,"full")}`,`${SIM_DAG?'<button class="btn" data-act="gbDagStop" style="margin-right:auto">Echte datum</button>':""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="simDOk">Toepassen</button>`);
+  $("#simDOk").onclick=()=>{const v=$("#simD").value;closeModal();gbDag(v)}}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;({gbDagKies,gbDagStop:()=>{closeModal();gbDag(null)}})[t.dataset.act]?.()});
+{const _s=gbSimStart;gbSimStart=function(){_s.apply(this,arguments);if(ROL_ECHT!=="admin"&&SIM_DAG){SIM_DAG=null;try{sessionStorage.removeItem("vbhaSimDag")}catch(e){}}gbDagBalk()}}
 
 /* ============ Kalenders: dozen meegeven en afgewerkt melden ============
    Elke beweging gaat via een venster met een duidelijk aantal en een voorvertoning, en komt in een logboek per persoon
@@ -6937,7 +6951,7 @@ function dashVandaag(){let L=[];try{L=agItems().filter(x=>x.datum===todayISO()&&
      <div class="dv-k"><span class="dv-dag">Vandaag</span><h2>${esc(x.titel)}</h2><div class="dv-m">${[x.uur,x.locatie].filter(Boolean).map(esc).join(" · ")}</div></div>
      <div class="dv-a">${ka?`<button type="button" class="btn primary" data-dv-kassa="${ka}">${ic("kassa")}Kassa openen</button>`:""}${ROL==="admin"?`${x.shift?`<a class="btn" href="#shiften">${ic("shiften")}Shiften</a>`:""}<button type="button" class="btn ghost" ${agAttr(x)}>Details</button>`:""}</div></section>`}).join("")}
 /* elk profiel: de server zet de kassa op deze activiteit en geeft een geldige kassacode */
-document.addEventListener("click",async e=>{const t=e.target.closest("[data-dv-kassa]");if(!t)return;e.preventDefault();const w=window.open("","_blank");
+document.addEventListener("click",async e=>{const t=e.target.closest("[data-dv-kassa]");if(!t)return;e.preventDefault();if(typeof SIM_DAG!=="undefined"&&SIM_DAG){toast("Fictieve datum: de kassa wordt niet echt geopend.");return}const w=window.open("","_blank");
   try{const r=await api("/api/mail?f=kassa",{method:"POST",body:JSON.stringify({actie:"vandaag",act:t.dataset.dvKassa})});const u="/kassa?code="+encodeURIComponent(r.code);
     if(w&&!w.closed)w.location=u;else location.href=u;if(r.nieuw)toast("Nieuwe kassacode: "+r.code+" (1 dag geldig)")}
   catch(x){if(w)w.close();toast(x.message||"De kassa kon niet geopend worden.",true)}});
