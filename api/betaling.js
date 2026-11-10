@@ -1,6 +1,6 @@
 import { admin, sendError, httpErr, requireUser } from "./_lib/sb.js";
 import { onlineConfigured, providerNaam } from "./_lib/betaalprovider.js";
-import { testSleutel, verken } from "./_lib/bancontact.js";
+import { testSleutel, verken, verkenAlles } from "./_lib/bancontact.js";
 import { startBetaling, controleerBetaling, BETAALTABELLEN } from "./_lib/betaal.js";
 import { klopt } from "./_lib/lidlink.js";
 import { algemeen } from "./_lib/publiek.js";
@@ -20,6 +20,12 @@ export default async function handler(req, res) {
     if (req.method === "GET" && (req.query?.test === "bancontact" || req.query?.test === "verken")) await requireUser(req, { write: true });
     if (req.method === "GET" && req.query?.test === "bancontact") return res.status(200).json({ provider: onlineConfigured() ? providerNaam() : null, ...(await testSleutel()) });
     if (req.method === "GET" && req.query?.test === "verken") return res.status(200).json(await verken());
+    // tijdelijke diagnose met een eenmalige sleutel uit de afgeschermde tabel diag_token (geen persoonsgegevens in het antwoord)
+    if (req.method === "GET" && req.query?.test === "verkenalles") {
+      const t = String(req.query.diag || ""); const { data } = await admin().from("diag_token").select("token,tot").eq("token", t).maybeSingle();
+      if (!t || !data || Date.parse(data.tot) < Date.now()) throw httpErr(403, "Geen toegang.");
+      return res.status(200).json(await verkenAlles(Number(req.query.dagen) || 60));
+    }
     const b = req.method === "POST" ? (typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {})) : (req.query || {});
     if (b.steun) return await steunBetaling(req, res, b); // vrije steun met eigen bedrag en mededeling (/steun, vbha.be)
     if (b.l) return await lidgeldLink(req, res, b);
