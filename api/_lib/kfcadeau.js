@@ -214,7 +214,6 @@ export async function kfCadeauPubliek(req, res) {
     await rateLimit(sb, req, "kfcadeaup", 80, 600, httpErr);
     const { row, M, open } = await laad(sb, b.cadeau, b.t);
     if (b.actie === "check") return res.status(200).json(await productInfo(b.url));
-    if (b.actie === "vergelijk") { let v = null; try { v = await vergelijkProduct({ winkel: String(b.winkel || ""), artikelnr: String(b.artikelnr || "") }); } catch (e) { console.error("vergelijk", e.message); } return res.status(200).json({ ander: v }); }
     if (b.actie !== "bewaar") throw httpErr(400, "Onbekende actie.");
     if (!open) throw httpErr(403, "Cadeaus kiezen kan niet meer: de termijn is voorbij. Wie niets koos, krijgt een bon van bol.com.");
     const d = row.data, i = Number(b.kind), k = (d.kinderen || [])[i];
@@ -256,6 +255,17 @@ export async function kfCadeauApp(req, res) {
   try {
     const { sb } = await requireUser(req, { write: true, functie: "kinderfeest" }), b = body(req);
     if (b.actie === "link") return res.status(200).json({ url: kfcLink(String(b.id || "")) });
+    // prijs vergelijken met de andere winkel voor één gekozen product (enkel in het beheer; elke vergelijking kost opvragingen bij Zyte)
+    if (b.actie === "vergelijk") {
+      const { data: row } = await sb.from("kinderfeest").select("id,data").eq("id", String(b.id || "")).maybeSingle(); if (!row) throw httpErr(404, "Inschrijving niet gevonden.");
+      const d = row.data, k = (d.kinderen || [])[Number(b.kind)], it = k && k.cadeau && (k.cadeau.items || [])[Number(b.item)];
+      if (!it) throw httpErr(404, "Product niet gevonden.");
+      let alt = null, fout = null; try { alt = await vergelijkProduct(it); } catch (e) { fout = String(e.message || e); }
+      const nieuw = { ...it, alt: alt ? { winkel: alt.winkel, url: alt.url, naam: alt.naam, prijs: alt.prijs, op: new Date().toISOString() } : { geen: true, op: new Date().toISOString() } };
+      const kinderen = d.kinderen.map((x, j) => j !== Number(b.kind) ? x : { ...x, cadeau: { ...x.cadeau, items: x.cadeau.items.map((y, n) => n === Number(b.item) ? nieuw : y) } });
+      const { error } = await sb.from("kinderfeest").update({ data: { ...d, kinderen } }).eq("id", row.id); if (error) throw error;
+      return res.status(200).json({ ok: true, alt: nieuw.alt, fout });
+    }
     if (b.actie === "controle") {
       const A = await algemeen(sb), jaar = Number(b.jaar) || A.jaar;
       const { data: rows, error } = await sb.from("kinderfeest").select("id,data").eq("data->>jaar", String(jaar)); if (error) throw error;
