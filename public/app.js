@@ -6748,12 +6748,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-sh]"
     case"bewerk":if(canWrite&&s)shForm(a,s);break;
     case"add":if(canWrite)shVoegToe();break;
     case"sms":if(s)shSms(a,s);break;
-    case"punten":{const zv=[...new Set((a.shiften||[]).flatMap(x=>x.leden||[]))].filter(id=>String(id).startsWith("x:")).map(id=>(a.extern||[]).find(e=>e.id===id)).filter(e=>e&&!(e.via&&S.leden.get(e.via)));if(zv.length){shViaKies(a,zv);break}
-      const tel={};for(const x of a.shiften||[])for(const id of x.leden||[]){const e=String(id).startsWith("x:")?(a.extern||[]).find(q=>q.id===id):null,lid=e?e.via:id;if(lid&&S.leden.get(lid))tel[lid]=(tel[lid]||0)+1}const ids=Object.keys(tel);if(!ids.length){toast("Er is nog geen lid ingedeeld.",true);break}
-      const Y=Number(String(a.datum).slice(0,4))||JAAR;
-      confirmBox(`${ids.length} ${ids.length===1?"lid krijgt":"leden krijgen"} ${Object.values(tel).reduce((x,y)=>x+y,0)} shift(en) bij in het puntensysteem van ${Y}. Doorgaan?`,"Toekennen",async()=>{closeModal();
-        for(const id of ids){const k2=Y+"_"+id,cur=S.jaarleden.get(k2)||{jaar:Y,lidId:id};const {id:_i,...rest}=cur;await write("jaarleden",k2,{...rest,jaar:Y,lidId:id,shifts:(Number(cur.shifts)||0)+tel[id]})}
-        await shBewaar(a,{shiftenToegekend:new Date().toISOString()});toast("Shiften toegekend in het puntensysteem.")});break}}});
+    case"punten":shPunten(a);break}});
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.dataset&&e.target.dataset.shadd!==undefined){e.preventDefault();shVoegToe()}});
 document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.shkies!==undefined){SHF.id=e.target.value;SHF.sel=null;renderBody()}});
 {const st=document.createElement("style");st.textContent=`
@@ -6899,7 +6894,7 @@ function shViaKies(a,L){const dl=`<datalist id="shvLeden">${[...S.leden.values()
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="shvOk">Bewaren en verder</button>`);
   $("#shvOk").onclick=async()=>{const via={};for(let i=0;i<L.length;i++){const v=$("#shv"+i).value.trim(),l=v?shLidVan(v):null;if(!l){$("#shvErr").textContent=`Kies voor ${L[i].naam} een lid uit de lijst.`;$("#shv"+i).focus();return}via[L[i].id]=l.id}
     closeModal();const cur=S.activiteiten.get(a.id)||a;await shBewaar(a,{extern:(cur.extern||[]).map(e=>via[e.id]?{...e,via:via[e.id]}:e)});
-    setTimeout(()=>{const b=document.createElement("button");b.dataset.sh="punten";b.hidden=true;document.body.appendChild(b);b.click();b.remove()},150)}}
+    setTimeout(()=>shPunten(S.activiteiten.get(a.id)||a),150)}}
 
 /* ---------- mail met de info over de shift (samen met de sms) ---------- */
 function shMailLijst(a,s){return (s.leden||[]).map(id=>shHelper(a,id)).filter(h=>h&&/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(h.mail||""))}
@@ -6947,6 +6942,22 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-shmulti]")
  .sh-poolp .panel-b{padding:12px 14px}.sh-add{gap:8px}.sh-add input{min-width:0}.sh-pool .sh-hint{font-size:12.5px;padding:2px 4px}}`;document.head.appendChild(st)}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-shpr]");if(!b)return;const a=shAct();closeModal();if(a)shPrint(a,b.dataset.shpr==="leeg")});
 {const st=document.createElement("style");st.textContent=".sh-pk{display:flex;flex-direction:column;gap:10px}.sh-pko{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff);cursor:pointer;text-align:left;font:inherit;color:inherit}.sh-pko:hover{border-color:var(--accent,#c0161f)}.sh-pko b{font-size:15px}.sh-pko small{color:var(--muted);font-size:13px}";document.head.appendChild(st)}
+
+/* ---------- punten toekennen (ook vanuit de melding op het dashboard) ---------- */
+function shPunten(a){if(!a||a.shiftenToegekend)return;const zv=[...new Set((a.shiften||[]).flatMap(x=>x.leden||[]))].filter(id=>String(id).startsWith("x:")).map(id=>(a.extern||[]).find(e=>e.id===id)).filter(e=>e&&!(e.via&&S.leden.get(e.via)));if(zv.length){shViaKies(a,zv);return}
+      const tel={};for(const x of a.shiften||[])for(const id of x.leden||[]){const e=String(id).startsWith("x:")?(a.extern||[]).find(q=>q.id===id):null,lid=e?e.via:id;if(lid&&S.leden.get(lid))tel[lid]=(tel[lid]||0)+1}const ids=Object.keys(tel);if(!ids.length){toast("Er is nog geen lid ingedeeld.",true);return}
+      const Y=Number(String(a.datum).slice(0,4))||JAAR;
+      confirmBox(`${ids.length} ${ids.length===1?"lid krijgt":"leden krijgen"} ${Object.values(tel).reduce((x,y)=>x+y,0)} shift(en) bij in het puntensysteem van ${Y}. Doorgaan?`,"Toekennen",async()=>{closeModal();
+        for(const id of ids){const k2=Y+"_"+id,cur=S.jaarleden.get(k2)||{jaar:Y,lidId:id};const {id:_i,...rest}=cur;await write("jaarleden",k2,{...rest,jaar:Y,lidId:id,shifts:(Number(cur.shifts)||0)+tel[id]})}
+        await shBewaar(a,{shiftenToegekend:new Date().toISOString()});toast("Shiften toegekend in het puntensysteem.")});}
+/* dashboard (admin): de dag na een activiteit staan er nog helpers op de shiftlijst zonder punten */
+function shOpenPunten(){const t=todayISO(),grens=new Date(Date.parse(t)-45*864e5).toISOString().slice(0,10);
+  return [...S.activiteiten.values()].filter(a=>a.datum&&a.datum<t&&a.datum>=grens&&!a.shiftenToegekend&&shAan(a)&&(a.shiften||[]).some(x=>(x.leden||[]).length)).sort((x,y)=>String(x.datum).localeCompare(String(y.datum)))}
+function shDash(){if(!canWrite||(typeof ROL!=="undefined"&&ROL!=="admin"))return"";const L=shOpenPunten();if(!L.length)return"";
+  return L.map(a=>{const n=new Set((a.shiften||[]).flatMap(x=>x.leden||[])).size;return `<div class="nmeld" role="status" data-shd="${esc(a.id)}"><span class="nm-ic">${ic("shiften")}</span><div class="nm-body"><b>${esc(a.titel||"Activiteit")} (${esc(fmtDate(a.datum))}): ${n} ${n===1?"helper staat":"helpers staan"} op de shiftlijst zonder punten</b>
+    <div><button type="button" class="nm-btn" data-shd-punten="${esc(a.id)}">${ic("shiften")}Punten toekennen</button></div></div></div>`}).join("")}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-shd-punten]");if(!t)return;e.preventDefault();e.stopPropagation();const a=S.activiteiten.get(t.dataset.shdPunten);if(a)shPunten(a)},true);
+{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return shDash()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 
 /* ============ Activiteiten › Familiedag ============
    Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
