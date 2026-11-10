@@ -154,16 +154,6 @@ export async function kfCadeauPubliek(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
     const sb = admin();
-    if (req.method === "GET" && req.query.probe) { // tijdelijke test van gratis tussendiensten (eenmalige sleutel in de afgeschermde tabel diag_token)
-      const { data } = await sb.from("diag_token").select("tot").eq("token", String(req.query.diag || "")).maybeSingle();
-      if (!data || Date.parse(data.tot) < Date.now()) throw httpErr(403, "Geen toegang.");
-      const url = String(req.query.probe), out = {};
-      const kort = t => String(t || "").replace(/\s+/g, " ").slice(0, 300);
-      try { const r = await fetch("https://r.jina.ai/" + url, { headers: { "X-Return-Format": "html" }, signal: AbortSignal.timeout(25000) }); const t = await r.text(); out.jina = { status: r.status, lengte: t.length, product: parseProduct(t), begin: kort(t.replace(/<[^>]+>/g, " ")) }; } catch (e) { out.jina = { fout: String(e.message || e) }; }
-      try { const r = await fetch("https://r.jina.ai/" + url, { signal: AbortSignal.timeout(25000) }); const t = await r.text(); const pr = (t.match(/€\s?\d+[.,]\d{2}|\d+[.,]\d{2}\s?€/) || [])[0]; out.jinaTekst = { status: r.status, lengte: t.length, prijsGezien: pr || null, begin: kort(t) }; } catch (e) { out.jinaTekst = { fout: String(e.message || e) }; }
-      try { const r = await fetch("https://api.microlink.io/?url=" + encodeURIComponent(url), { signal: AbortSignal.timeout(25000) }); const j = await r.json(); out.microlink = { status: r.status, titel: j.data && j.data.title, beschrijving: kort(j.data && j.data.description), fout: j.message || null }; } catch (e) { out.microlink = { fout: String(e.message || e) }; }
-      return res.status(200).json(out);
-    }
     if (req.method === "GET") {
       await rateLimit(sb, req, "kfcadeau", 120, 600, httpErr);
       const { row, M, open } = await laad(sb, req.query.cadeau, req.query.t);
