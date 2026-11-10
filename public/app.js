@@ -3766,9 +3766,7 @@ function vaBlok(v,id){const af=v.afgerond;
      ${nv?`<button type="button" class="btn sm ghost" data-va="volg" data-id="${esc(nv.id)}">Volgende: ${esc(agKort(nv.datum))}${nv.uur?" "+esc(nv.uur):""}</button>`:""}</div>
      <div class="muted small">${af.gemaild?`Gemaild naar ${esc(af.aan||vaOntv())} op ${new Date(af.gemaild).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}.`:`${af.zonderMail?"Opgeladen zonder mail.":"Nog niet gemaild."} <a href="#" data-va="mail" data-id="${esc(id)}">Nu mailen</a>`}</div></div>`}
   if(v.datum>todayISO())return "";
-  const kop=`<div class="full va-kop" id="vaKopR"><span class="muted small">Staat het verslag al in Documenten › Verslagen?</span> <button type="button" class="btn sm ghost" data-va="koppel" data-id="${esc(id)}">${ic("link")}Verslag uit Documenten koppelen</button></div>`;
-  return `<div class="full va-box"><div><b>Vergadering voorbij?</b><div class="muted small">Laad het verslag op, bevestig dat de vergadering afgerond is en plan meteen de volgende. Het bestuur krijgt een mail met het verslag en de nieuwe datum.</div></div>
-   <button type="button" class="btn primary" data-va="start" data-id="${esc(id)}">${ic("check")}Vergadering afronden</button></div>`+kop}
+  return `<div class="full"><button type="button" class="btn primary" data-va="start" data-id="${esc(id)}">${ic("check")}Vergadering afronden</button></div>`}
 const vaBestaand=(v,datum)=>[...S.vergaderingen.values()].filter(x=>x.id!==v.id&&(x.soort||"")===(v.soort||"")&&x.datum>v.datum&&(!datum||x.datum===datum)).sort((a,b)=>a.datum.localeCompare(b.datum))[0];
 let VA_FILE=null;
 const VA_WORD=/\.docx$/i,VA_OKEXT=/\.(pdf|docx)$/i;
