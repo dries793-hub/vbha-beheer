@@ -19,6 +19,7 @@ import familiedag from "./_lib/open_familiedag.js";
 // vercel.json stuurt /api/banket, /api/kinderfeest en /api/ronde hierheen met ?f=...
 const H = { banket, kinderfeest, ronde, leden, sponsor, status, reglement: status, deel, adres, kalender, fuif, kassa, shop, site, sitefoto: site, album, familiedag };
 
+export const config = { maxDuration: 60 }; // o.a. productgegevens ophalen via de tussendienst (kinderfeest-cadeaus)
 export default async function handler(req, res) {
   let f = String(req.query?.f || "");
   if (!H[f]) { const m = String(req.url || "").match(/\/api\/(banket|kinderfeest|ronde|leden|sponsor|status|reglement|deel|adres|kalender|fuif|kassa|shop|album|familiedag)\b/); if (m) f = m[1]; }
