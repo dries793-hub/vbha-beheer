@@ -5340,7 +5340,8 @@ function kaTabBody(act,zonderKnoppen){const jaar=kaJaar(act),L=kaTrans(act,jaar)
     <div class="tile"><span class="lbl">Bancontact</span><span class="val">${kaEur(T.bc)}</span><span class="hint">${T.B.filter(t=>t.betaalwijze!=="cash").length} verkopen</span></div>
     <div class="tile"><span class="lbl">Cash</span><span class="val">${kaEur(T.cash)}</span><span class="hint">${T.B.filter(t=>t.betaalwijze==="cash").length} verkopen</span></div></div>
   <div class="grid g2" style="align-items:start">
-   ${(()=>{const C=kaPerCat(act,T.B);return C.length>1?`<div class="panel" style="min-width:0"><div class="panel-h"><h2>Per categorie (boekhouding)</h2></div><div class="panel-b"><div class="fu-ko">${C.map(c=>`<div class="fu-kr"><span>${esc(c.cat)}</span><span class="muted">Bancontact ${kaEur(c.bc)} · cash ${kaEur(c.cash)}</span><b>${kaEur(c.bc+c.cash)}</b></div>`).join("")}</div><p class="muted small" style="margin:8px 0 0">Bancontact wordt automatisch zo verdeeld bij de dagstorting; boek de cash per categorie in de kas.</p></div></div>`:""})()}
+   ${kaCashPanel(act)}
+   ${(()=>{const C=kaPerCat(act,T.B);return C.length>1?`<div class="panel" style="min-width:0"><div class="panel-h"><h2>Per categorie</h2></div><div class="panel-b"><div class="fu-ko">${C.map(c=>`<div class="fu-kr"><span>${esc(c.cat)}</span><span class="muted">Bancontact ${kaEur(c.bc)} · cash ${kaEur(c.cash)}</span><b>${kaEur(c.bc+c.cash)}</b></div>`).join("")}</div></div></div>`:""})()}
    <div class="panel" style="min-width:0"><div class="panel-h"><h2>Verkocht per tegel</h2></div><div class="panel-b">${per.length?`<div class="fu-ko">${per.map(([n,p])=>`<div class="fu-kr"><span>${esc(n)}</span><span class="muted">${p.n}×</span><b>${kaEur(p.b)}</b></div>`).join("")}<div class="fu-kt tot"><span>Totaal</span><b>${kaEur(T.tot)}</b></div></div>`:'<div class="muted small">Nog niets verkocht.</div>'}</div></div>
    <div class="panel" style="min-width:0"><div class="panel-h"><h2>Transacties</h2><span class="grow"></span><label class="cbx small muted"><input type="checkbox" data-ka="alles"${KA_UI.alles?" checked":""}>ook niet betaald</label></div><div class="panel-b" style="padding-top:4px">${toon.length?toon.slice(0,300).map(t=>{const w=(t.items||[]).map(i=>i.aantal+"× "+i.naam).join(", "),st=t.status==="betaald"?"":` <span class="pill ${t.status==="wacht"?"warn":"neutral"}">${t.status==="wacht"?"betaling bezig":"niet betaald"}</span>`;
      return `<div class="fu-trr"><div style="min-width:0"><b>${kaEur(t.bedrag)}</b> <span class="pill ${t.betaalwijze==="cash"?"neutral":"info"}">${t.betaalwijze==="cash"?"Cash":"Bancontact"}</span>${st}<div class="muted small" style="overflow-wrap:anywhere">${esc(tijd(t.betaaldOp||t.aangemeld))} · ${esc(w)}</div></div>${adm?`<button type="button" class="fu-x" data-ka="wis" data-id="${esc(t.id)}" aria-label="Transactie wissen" title="Transactie wissen">×</button>`:""}</div>`}).join(""):'<div class="muted small">Nog geen transacties.</div>'}</div></div>
@@ -5428,6 +5429,29 @@ function kaPerCat(act,B){const tg=new Map((kaTegels(act)||[]).map(t=>[t.id,t])),
   for(const v of B)for(const i of v.items||[]){const cat=i.categorie||(tg.get(i.id)||{}).categorie||KA_CAT[act]||"Andere opbrengsten",x=m.get(cat)||{cat,bc:0,cash:0},b=(Number(i.aantal)||0)*(Number(i.prijs)||0);if(v.betaalwijze==="cash")x.cash+=b;else x.bc+=b;m.set(cat,x)}
   return [...m.values()].map(x=>({...x,bc:Math.round(x.bc*100)/100,cash:Math.round(x.cash*100)/100})).sort((a,b)=>(b.bc+b.cash)-(a.bc+a.cash))}
 document.addEventListener("focusin",e=>{if(!e.target.matches||!e.target.matches(".ka-cat")||document.getElementById("kaCats"))return;const d=document.createElement("datalist");d.id="kaCats";d.innerHTML=(typeof catList==="function"?catList(ctx()):[]).map(c=>`<option value="${esc(c)}">`).join("");document.body.appendChild(d)});
+
+/* ---------- cash van de kassa overdragen naar de kas (transactie Kas in, per categorie) ---------- */
+function kaCashBoek(act,jaar){const m=new Map();for(const b of S.boekingen.values())if(b.kassa&&b.kassa.act===act&&Number(b.kassa.jaar)===Number(jaar)&&b.rekening==="Kas")m.set(b.categorie,r2((m.get(b.categorie)||0)+(b.richting==="uit"?-b.bedrag:b.bedrag)));return m}
+function kaCashRest(act,jaar){const T=kaTot(kaTrans(act,jaar)),C=kaPerCat(act,T.B),G=kaCashBoek(act,jaar);
+  return C.filter(c=>c.cash>0).map(c=>({cat:c.cat,cash:c.cash,geboekt:G.get(c.cat)||0,rest:r2(c.cash-(G.get(c.cat)||0))}))}
+function kaCashPanel(act){if(!canWrite)return"";const jaar=kaJaar(act),R=kaCashRest(act,jaar);if(!R.length)return"";const open=R.filter(r=>r.rest>0.004),tot=r2(open.reduce((s,r)=>s+r.rest,0));
+  return `<div class="panel" style="min-width:0"><div class="panel-h"><h2>Cash naar de kas</h2></div><div class="panel-b"><div class="fu-ko">${R.map(r=>`<div class="fu-kr"><span>${esc(r.cat)}</span><span class="muted">${r.rest>0.004?(r.geboekt?"al "+kaEur(r.geboekt)+" geboekt · ":"")+"nog te boeken":"geboekt"}</span><b>${kaEur(r.rest>0.004?r.rest:r.cash)}</b></div>`).join("")}</div>
+   ${open.length?`<div style="margin-top:10px"></div><button class="btn primary" data-kacash="${act}">${ic("plus")}Cash in kas boeken (${kaEur(tot)})</button>`:`<p class="muted small" style="margin:8px 0 0">Alle cash van de kassa staat in de kas.</p>`}</div></div>`}
+function kaCashModal(act){const jaar=kaJaar(act),R=kaCashRest(act,jaar).filter(r=>r.rest>0.004);if(!R.length){toast("Er is geen cash meer te boeken.");return}
+  const L=kaTrans(act,jaar).filter(t=>t.status==="betaald"&&t.betaalwijze==="cash"),laatste=String((L[0]&&(L[0].betaaldOp||L[0].aangemeld))||"").slice(0,10)||todayISO();
+  const dag=Number(laatste.slice(0,4))===JAAR?laatste:todayISO();
+  modal("Cash in kas boeken",`<form id="fKaCash" class="form" onsubmit="return false">
+    <div class="fld full"><label for="kcDat">Datum</label><input id="kcDat" type="date" value="${esc(dag)}"></div>
+    ${R.map((r,i)=>`<div class="fld full"><label for="kcB${i}">${esc(r.cat)} <span class="muted small">(kassa: ${kaEur(r.rest)})</span></label><input id="kcB${i}" inputmode="decimal" value="${String(r.rest.toFixed(2)).replace(".",",")}"></div>`).join("")}
+    <p class="muted small full" style="margin:0">Pas het bedrag aan als de geteld cash afwijkt van de kassa. Per categorie komt er één transactie <b>Kas · in</b>.</p><div class="err full" id="kcErr"></div></form>`,
+    `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kcOk">Boeken</button>`,{wide:false});
+  $("#kcOk").onclick=async()=>{const e=$("#kcErr"),d=$("#kcDat").value;if(!d){e.textContent="Kies een datum.";return}
+    if(Number(d.slice(0,4))!==JAAR){e.textContent=`De datum valt buiten boekjaar ${JAAR}. Kies eerst het juiste boekjaar.`;return}
+    const L2=R.map((r,i)=>({cat:r.cat,b:r2(Math.abs(num($("#kcB"+i).value)))})).filter(x=>x.b>0);if(!L2.length){e.textContent="Vul minstens één bedrag in.";return}
+    $("#kcOk").disabled=true;try{const nrs=[];for(const x of L2){const nr=nextNr(),id=newId("boekingen"),b={bron:"manueel",jaar:JAAR,nr,datum:d,categorie:x.cat,mededeling:"Cash kassa "+KA_ACTS[act]+" "+jaar+(L2.length>1?" ("+x.cat+")":""),partij:"Kassa",iban:"",rekening:"Kas",bedrag:x.b,richting:"in",lidId:null,lidgeldJaar:null,werkjaar:null,status:null,kassa:{act,jaar:Number(jaar)}};
+      S.boekingen.set(id,{...b,id});dirty=true;await write("boekingen",id,b);nrs.push(nr)}
+      closeModal();toast((nrs.length===1?"Transactie ":"Transacties ")+nrs.join(", ")+" toegevoegd in de kas.");render(true)}catch(x){$("#kcOk").disabled=false;e.textContent=x.message}}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-kacash]");if(!b)return;e.preventDefault();kaCashModal(b.dataset.kacash)});
 
 /* ============ Webshop (eigen knop in het menu) ============
    Artikelen: collectie "shop_items"; afbeeldingen in de tabel "beelden" (id "shop-…"); bestellingen: "shop_orders"; instellingen: config "shop".
