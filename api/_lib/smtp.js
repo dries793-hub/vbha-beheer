@@ -71,7 +71,7 @@ export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan, b
 }
 
 // Opent één verbinding en verstuurt de berichten na elkaar. Geeft per bericht {ok, fout} terug.
-export async function verstuur(berichten, { factuur = false } = {}) {
+export async function verstuur(berichten, { factuur = false, geenLog = false } = {}) {
   const T = testOpvang.getStore();
   if (T) { for (const m of berichten) T.push(m); return berichten.map(() => ({ ok: true })); }
   const host = process.env.SMTP_HOST, port = Number(process.env.SMTP_PORT) || 465;
@@ -115,5 +115,17 @@ export async function verstuur(berichten, { factuur = false } = {}) {
     }
     try { sock.write("QUIT\r\n"); } catch {}
   } finally { sock.end(); }
+  if (!geenLog) await logMails(berichten, uit);
   return uit;
+}
+
+/* Elke automatische mail van de app komt in het logboek (Instellingen › Logboek).
+   Mails die via de pagina Mails vertrekken, staan daar al als één verzending (tabel mailings) en worden hier overgeslagen (geenLog). */
+export async function logMails(berichten, uit) {
+  try {
+    const { admin } = await import("./sb.js");
+    const rows = berichten.map((m, i) => ({ wie: "Automatisch (app)", tabel: "mails", doc_id: String(m.aan || "").slice(0, 200), actie: "verstuurd",
+      nieuw: { aan: String(m.aan || ""), aanNaam: String(m.aanNaam || "").slice(0, 120), onderwerp: String(m.onderwerp || "").slice(0, 300), ok: !!(uit[i] && uit[i].ok), ...(uit[i] && uit[i].fout ? { fout: String(uit[i].fout).slice(0, 200) } : {}), ...(m.bijlagen && m.bijlagen.length ? { bijlagen: m.bijlagen.length } : {}) } }));
+    if (rows.length) await admin().from("logboek").insert(rows);
+  } catch (e) { console.error("logboek mails", e); }
 }
