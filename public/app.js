@@ -5953,8 +5953,8 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-wsac
 .ws-sw{position:relative;flex:0 0 auto;width:44px;height:26px;margin-top:1px}.ws-sw input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}.ws-sw i{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:background .15s}
 .ws-sw i::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
 .ws-sw input:checked+i{background:var(--ok,#16a34a)}.ws-sw input:checked+i::after{transform:translateX(18px)}.ws-sw input:focus-visible+i{outline:2px solid var(--ink);outline-offset:2px}
-.ws-uit{opacity:.72}.ws-foto{display:flex;flex-direction:column;gap:10px}.ws-fi{border:1px dashed var(--line);border-radius:12px;min-height:90px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--soft,#f6f6f6)}
-.ws-fi img{display:block;width:100%;height:auto}.ws-fi span{padding:16px;text-align:center}.ws-fk{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.ws-fk .help{flex-basis:100%}
+.ws-uit{opacity:.72}.ws-foto{display:flex;flex-direction:column;gap:10px}.ws-fi{border:1px dashed var(--line);border-radius:12px;min-height:90px;max-width:320px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--soft,#f6f6f6)}
+.ws-fi img{display:block;width:auto;max-width:100%;height:auto;max-height:180px}.ws-fi span{padding:16px;text-align:center}.ws-fk{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.ws-fk .help{flex-basis:100%}
 @media (min-width:900px){.ws-save{position:sticky;bottom:12px;z-index:5;box-shadow:0 6px 24px rgba(0,0,0,.08)}}`;document.head.appendChild(st)}
 /* ---------- eigen onderdelen en knoppen ---------- */
 const WS_PLAATS=[["boven","Bovenaan"],["midden","Na de kalenders"],["onder","Onderaan"]];
