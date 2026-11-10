@@ -4125,9 +4125,12 @@ function inkRij(d){const L=inkBoekVan(d.id),nieuw=d.inkomend&&d.inkomend.nieuw&&
    ${A&&!V.length&&!A.fout?'<div class="muted small">Nog geen passende transactie gevonden. Is de factuur nog niet betaald? Na de volgende bankimport verschijnt het voorstel vanzelf.</div>':""}
    ${m?`<div class="ink-kies"><select class="sel" data-ink-sel="${esc(d.id)}" aria-label="Andere transactie"><option value="">Andere transactie kiezen…</option>${kand.map(b=>`<option value="${esc(b.id)}">${esc((fmtDate(b.datum)+" · "+eur(b.bedrag)+" · "+(b.partij||"")+(b.mededeling?" · "+b.mededeling:"")).slice(0,100))}</option>`).join("")}</select>
      <button type="button" class="btn sm" data-ink="kies" data-id="${esc(d.id)}">Koppelen</button><button type="button" class="btn sm ghost" data-ink="weg" data-id="${esc(d.id)}" title="Verwijderen">${ic("x")}</button></div>`:""}</div></div>`}
-function inkLijst(){const D=inkDocs(),open=D.filter(inkOpen),L=INK.f==="open"?open:INK.f==="gekoppeld"?D.filter(d=>!inkOpen(d)):D;
-  return `<div class="fc-chips"><button type="button" class="fc-chip${INK.f==="open"?" on":""}" data-ink="f" data-v="open">Te koppelen <span>${open.length}</span></button><button type="button" class="fc-chip${INK.f==="gekoppeld"?" on":""}" data-ink="f" data-v="gekoppeld">Gekoppeld <span>${D.length-open.length}</span></button><button type="button" class="fc-chip${INK.f==="alle"?" on":""}" data-ink="f" data-v="alle">Alle</button></div>
-   <div class="ink-l" id="inkL">${L.length?L.map(inkRij).join(""):`<div class="panel"><div class="empty">${INK.f==="open"?"Alle inkomende facturen zijn gekoppeld.":"Nog geen inkomende facturen."}</div></div>`}</div>`}
+function inkLijst(){const D=inkDocs(),open=D.filter(inkOpen),q=norm(INK.q||"");let L=INK.f==="open"?open:INK.f==="gekoppeld"?D.filter(d=>!inkOpen(d)):D;
+  if(q)L=L.filter(d=>norm([inkVan(d),d.naam,d.omschrijving,inkDatum(d),inkBoekVan(d.id).map(b=>[b.partij,b.mededeling,b.bedrag].join(" ")).join(" ")].join(" ")).includes(q));
+  return `<div class="bar fc-bar"><div class="search">${ic("search")}<input id="inkQ" placeholder="Zoek op leverancier, bestandsnaam of bedrag" value="${esc(INK.q||"")}" autocomplete="off"></div>
+   <div class="seg" role="group" aria-label="Filter facturen">${[["open","Te koppelen"],["gekoppeld","Gekoppeld"],["alle","Alle"]].map(([k,l])=>`<button type="button" data-ink="f" data-v="${k}" class="${INK.f===k?"on":""}">${l}</button>`).join("")}</div></div>
+   <div class="ink-l" id="inkL">${L.length?L.map(inkRij).join(""):`<div class="panel"><div class="empty">${q?"Geen facturen gevonden.":INK.f==="open"?"Alle inkomende facturen zijn gekoppeld.":"Nog geen inkomende facturen."}</div></div>`}</div>`}
+document.addEventListener("input",e=>{if(e.target.id!=="inkQ")return;INK.q=e.target.value;inkHerteken()});
 function inkHerteken(){const el=$("#inkL");if(!el)return renderBody();const tmp=document.createElement("div");tmp.innerHTML=inkLijst();el.replaceWith(tmp.querySelector("#inkL"))}
 function inkUitleg(){const s=INK.srv;
   if(!s)return `<div class="panel"><div class="panel-b muted small">Laden…</div></div>`;
