@@ -60,9 +60,9 @@ export async function splitsBulk(sb, { ids = null, proef = false } = {}) {
     const m = String(b.mededeling).trim().match(RE), dag = `${m[1]}-${m[2]}-${m[3]}`;
     const L = per.get(dag) || [], totaal = r2(Number(b.bedrag) || 0), gekend = r2(L.reduce((s, x) => s + x.bedrag, 0));
     if (gekend > totaal + 0.001) { uit.overgeslagen.push({ id: b.id, reden: `online betalingen van ${dag} (${gekend}) zijn meer dan de storting (${totaal})` }); continue; }
-    // groeperen: lidgeld per lid, de rest per categorie
+    // elke online betaling apart (lidgeld, banket, familiedag, tickets, webshop, sponsoring, facturen); de kassa per categorie
     const groep = new Map();
-    for (const x of L) { const k = x.cat === "Lidgeld" && x.lidId ? "L:" + x.lidId : "C:" + x.cat; const g = groep.get(k) || { cat: x.cat, lidId: x.cat === "Lidgeld" ? x.lidId || null : null, bedrag: 0, wie: [] }; g.bedrag = r2(g.bedrag + x.bedrag); if (x.wie) g.wie.push(x.wie); groep.set(k, g); }
+    for (const x of L) { const k = x.bron === "kassa" ? "K:" + x.cat : "P:" + x.bron + ":" + x.id + ":" + x.cat; const g = groep.get(k) || { cat: x.cat, lidId: x.cat === "Lidgeld" ? x.lidId || null : null, bedrag: 0, wie: [] }; g.bedrag = r2(g.bedrag + x.bedrag); if (x.wie) g.wie.push(x.wie); groep.set(k, g); }
     const delen = [...groep.values()];
     const rest = r2(totaal - gekend);
     if (rest > 0.004) delen.push({ cat: "Kalenders", lidId: null, bedrag: rest, wie: [], rest: true });
