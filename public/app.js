@@ -7120,11 +7120,11 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-dv-k
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return dashVandaag()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 
 /* ============ Slim zoeken in keuzelijsten (vervangt de lijst van de browser bij <input list="…">) ============
-   De browser toont bij één letter alle namen die die letter bevatten. Hier: pas vanaf 2 letters (bij korte lijsten vanaf 1),
+   De browser toont bij één letter alle namen die die letter bevatten. Hier: pas vanaf 3 letters (zoals bij de adressen),
    namen die met de zoekterm beginnen (of een woord dat ermee begint) eerst, en maximaal 8 voorstellen onder het veld. */
 const SZ={el:null,box:null,L:[],i:-1};
 function szOpties(inp){const id=inp.dataset.szList||inp.getAttribute("list");const dl=id&&document.getElementById(id);return dl?[...dl.options].map(o=>o.value).filter(Boolean):[]}
-function szZoek(inp){const O=szOpties(inp),q=norm(inp.value);const min=O.length>15?2:1;if(q.length<min)return[];
+function szZoek(inp){const O=szOpties(inp),q=norm(inp.value);if(q.length<3)return[];
   const sc=v=>{const n=norm(v);if(n===q)return -1;if(n.startsWith(q))return 0;if(n.split(/[\s(·\-/]+/).some(w=>w.startsWith(q)))return 1;const t=q.split(" ").filter(Boolean);return t.every(w=>n.includes(w))?2:9};
   return O.map(v=>({v,s:sc(v)})).filter(x=>x.s<9&&x.s>=0).sort((a,b)=>a.s-b.s||a.v.localeCompare(b.v,"nl")).slice(0,8).map(x=>x.v)}
 function szDicht(){if(SZ.box){SZ.box.remove();SZ.box=null}SZ.L=[];SZ.i=-1}
