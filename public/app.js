@@ -3111,6 +3111,10 @@ function gbDagKies(){closeAcct&&closeAcct();modal("Fictieve datum",`<p style="ma
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;({gbDagKies,gbDagStop:()=>{closeModal();gbDag(null)}})[t.dataset.act]?.()});
 {const _s=gbSimStart;gbSimStart=function(){_s.apply(this,arguments);if(ROL_ECHT!=="admin"&&SIM_DAG){SIM_DAG=null;try{sessionStorage.removeItem("vbhaSimDag")}catch(e){}}gbDagBalk()}}
 
+/* sorteren in de verdeling: klik op Persoon, In handen, Afgewerkt of Punten (punten = afgewerkt × gewicht) */
+let KAL_SORT={k:"ui",d:-1};
+const kalTh=(k,l,cls="",alias)=>{const on=KAL_SORT.k===k&&!alias;return `<th class="${cls} sortable${on?" sorted":""}" data-kal-sort="${k}" aria-sort="${on?(KAL_SORT.d>0?"ascending":"descending"):"none"}">${l}<span class="arr">${on?(KAL_SORT.d>0?"▲":"▼"):""}</span></th>`};
+document.addEventListener("click",e=>{const t=e.target.closest("[data-kal-sort]");if(!t)return;const k=t.dataset.kalSort;KAL_SORT=KAL_SORT.k===k?{k,d:-KAL_SORT.d}:{k,d:k==="n"?1:-1};renderBody()});
 /* ============ Kalenders: dozen meegeven en afgewerkt melden ============
    Elke beweging gaat via een venster met een duidelijk aantal en een voorvertoning, en komt in een logboek per persoon
    (jaarleden.kalLog: [{t:"mee"|"klaar"|"terug"|"corr", n, at, door, op, uit}]). De laatste beweging kan je ongedaan maken.
@@ -3126,7 +3130,8 @@ function kalLaatste(j){const L=j.kalLog||[];return L.length?L[L.length-1]:null}
 function kalTable(){
   const C=ctx(),k=kalStats(C),q=norm(UI.kalQ),w=C.c.gewichten.kalenders;
   let list=k.rows.map(j=>({j,n:kalNaam(j)}));if(q)list=list.filter(x=>norm(x.n).includes(q));
-  list.sort((a,b)=>(b.j.kalUitgevoerd||0)-(a.j.kalUitgevoerd||0)||(b.j.kalOpgehaald||0)-(a.j.kalOpgehaald||0)||a.n.localeCompare(b.n,"nl"));
+  {const S_=KAL_SORT,v=x=>S_.k==="n"?x.n:S_.k==="op"?(x.j.kalOpgehaald||0):(x.j.kalUitgevoerd||0);
+   list.sort((a,b)=>{const A=v(a),B=v(b);const c=typeof A==="string"?A.localeCompare(B,"nl"):A-B;return c*S_.d||(b.j.kalUitgevoerd||0)-(a.j.kalUitgevoerd||0)||(b.j.kalOpgehaald||0)-(a.j.kalOpgehaald||0)||a.n.localeCompare(b.n,"nl")})}
   const knoppen=(j,cls)=>canWrite?`<button class="btn ${cls}" data-act="kalOphalen" data-id="${esc(j.id)}">${ic("plus")}Meegeven</button>${(j.kalOpgehaald||0)>0?`<button class="btn ${cls}" data-kal-terug="${esc(j.id)}" title="Onafgewerkte dozen terugbrengen">${ic("undo")}Terugbrengen</button>`:""}${kalBeperkt()?"":(j.kalOpgehaald||0)>0?`<button class="btn ${cls} kal-bezig" data-act="kalKlaar" data-id="${esc(j.id)}" title="Nog ${j.kalOpgehaald} ${j.kalOpgehaald===1?"doos":"dozen"} in handen: tik om af te werken">${ic("shiften")}Bezig</button>`:(j.kalUitgevoerd||0)>0?`<span class="btn ${cls} kal-klaar" aria-disabled="true">${ic("check")}Afgewerkt</span>`:""}`:"";
   const laatst=j=>{const l=kalLaatste(j);return l?`${KAL_T[l.t]||""} ${l.t==="corr"?"":kalDoos(l.n)} · ${kalDt(l.at)}`:""};
   const mob=`<div class="mlist" role="list">${list.map((x,i)=>{const id=x.j.id,open=KAL_OPEN.has(id),op=x.j.kalOpgehaald||0,ui=x.j.kalUitgevoerd||0;
@@ -3134,7 +3139,7 @@ function kalTable(){
       <span class="ml-m"><span class="ml-n"><b>${esc(x.n)}</b>${x.j.lidId?"":' <span class="pill neutral">geen lid</span>'}</span><span class="ml-s">${kalFmt(op)} in handen<span class="ml-dot">·</span>${kalFmt(ui)} afgewerkt</span></span>
       <span class="pm-tot"><b>${kalFmt(ui*w)}</b><small>punten</small></span><span class="ml-chev" aria-hidden="true">›</span></button>
       ${open?`<div class="pm-d">${canWrite?`<div class="pm-a">${knoppen(x.j,"")}</div>`:""}<button type="button" class="btn ghost sm" data-act="kalLog" data-id="${esc(id)}" style="align-self:flex-start">Geschiedenis en correctie</button></div>`:""}</div>`}).join("")||'<div class="empty">Nog niemand heeft kalenders opgehaald in '+JAAR+'.</div>'}</div>`;
-  return mob+`<div class="tw dsk-only"><table class="rcards kal-t" data-main="1"><colgroup><col style="width:56px"><col><col style="width:130px"><col style="width:130px"><col style="width:130px"><col style="width:330px"></colgroup><thead><tr><th class="c">#</th><th>Persoon</th><th class="c">In handen</th><th class="c">Afgewerkt</th><th class="c">Punten</th><th></th></tr></thead><tbody>
+  return mob+`<div class="tw dsk-only"><table class="rcards kal-t" data-main="1"><colgroup><col style="width:56px"><col><col style="width:130px"><col style="width:130px"><col style="width:130px"><col style="width:330px"></colgroup><thead><tr><th class="c">#</th>${kalTh("n","Persoon")}${kalTh("op","In handen","c")}${kalTh("ui","Afgewerkt","c")}${kalTh("ui","Punten","c",true)}<th></th></tr></thead><tbody>
   ${list.map((x,i)=>`<tr><td class="c muted">${i+1}</td><td><button type="button" class="kr-link" data-act="kalLog" data-id="${esc(x.j.id)}" title="Geschiedenis en correctie"><b>${esc(x.n)}</b></button>${x.j.lidId?"":' <span class="pill neutral">geen lid</span>'}</td>
   <td class="c"><span class="kal-n${(x.j.kalOpgehaald||0)?" on":""}">${kalFmt(x.j.kalOpgehaald)}</span></td><td class="c"><span class="kal-n">${kalFmt(x.j.kalUitgevoerd)}</span></td>
   <td class="c"><b>${kalFmt((x.j.kalUitgevoerd||0)*w)}</b></td>
