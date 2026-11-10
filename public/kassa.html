@@ -226,8 +226,8 @@ main.ks{max-width:none;padding:10px 10px 0}
 .vk .ks-tabs{margin-bottom:8px;flex:none;width:100%}
 .pos2{flex:1;min-height:0;width:100%;display:grid;gap:10px;grid-auto-rows:auto;align-content:start;overflow-y:auto;padding-bottom:8px}
 .pos2 .pt{min-height:0;height:100%;padding:8px;gap:2px;overflow:hidden}
-.pos2 .pt svg{width:clamp(32px,8vw,56px)!important;height:clamp(32px,8vw,56px)!important}
-.pos2 .pt b{font-size:clamp(15px,4.2vw,20px)}.pos2 .pt span{font-size:clamp(14px,3.8vw,18px)}
+.pos2 .pt svg{width:min(clamp(32px,8vw,56px),calc(var(--rh,200px)*.3))!important;height:min(clamp(32px,8vw,56px),calc(var(--rh,200px)*.3))!important;flex:none}
+.pos2 .pt b{font-size:min(clamp(15px,4.2vw,20px),calc(var(--rh,200px)*.15));line-height:1.15}.pos2 .pt span{font-size:min(clamp(14px,3.8vw,18px),calc(var(--rh,200px)*.14))}
 .pt .min{position:absolute;top:6px;left:6px;width:38px;height:38px;border-radius:999px;border:0;background:rgba(0,0,0,.1);color:var(--ink);font:800 26px/1 var(--f);display:grid;place-items:center;cursor:pointer}
 .pt i{min-width:38px;height:38px;font-size:19px;top:6px;right:6px}
 .balk{flex:none;width:100%;display:grid;grid-template-columns:auto 1fr 1fr;gap:8px;align-items:stretch;padding:8px 0 calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--bg)}
@@ -273,7 +273,10 @@ function verkoopScherm(){clearTimeout(naT);const T=ST.tegels||[],tot=T.reduce((n
    <div class="balk"><div class="tot"><b>${eur(tot)}</b>${aantal?`<button type="button" id="leeg">✕ wissen</button>`:""}</div>${aantal&&!(tot>0)?`<button class="btn" id="cash">Registreren (gratis)</button>`:`<button class="btn" id="afr"${tot>0&&ST.online?"":" disabled"}>Bancontact</button><button class="btn sec" id="cash"${tot>0?"":" disabled"}>Cash</button>`}</div></div>`}
 function pasHoogte(){const v=$(".vk"),h=$(".ks-hdr");if(v&&h)v.style.height=(innerHeight-h.offsetHeight-18)+"px";
   // vierkante tegels: rijhoogte = kolombreedte (aspect-ratio werkt niet betrouwbaar in een scrollend grid op iPhone)
-  const g=$(".pos2");if(g){const n=(getComputedStyle(g).gridTemplateColumns||"").split(" ").filter(Boolean).length||1,gap=parseFloat(getComputedStyle(g).columnGap)||0;const w=Math.floor((g.clientWidth-gap*(n-1))/n);if(w>0)g.style.gridAutoRows=w+"px"}}
+  const g=$(".pos2");if(g){const n=(getComputedStyle(g).gridTemplateColumns||"").split(" ").filter(Boolean).length||1,gap=parseFloat(getComputedStyle(g).columnGap)||0;const w=Math.floor((g.clientWidth-gap*(n-1))/n);
+    // alles op één scherm: rijen zo hoog als de breedte, maar nooit hoger dan wat in de beschikbare hoogte past
+    const rows=Math.ceil(g.children.length/n),rg=parseFloat(getComputedStyle(g).rowGap)||gap,hh=Math.floor((g.clientHeight-8-rg*(rows-1))/rows);
+    const h=Math.max(56,Math.min(w,hh>0?hh:w));if(w>0){g.style.gridAutoRows=h+"px";g.style.setProperty("--rh",h+"px")}}}
 addEventListener("resize",()=>requestAnimationFrame(pasHoogte));
 new MutationObserver(pasHoogte).observe(document.getElementById("box"),{childList:true});
 addEventListener("resize",()=>{if(ST&&TAB==="verkoop"&&!VK&&$(".pos2"))verkoopScherm()});
