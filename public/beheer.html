@@ -1440,6 +1440,10 @@ textarea.ag-info{min-height:76px;height:auto;field-sizing:content;max-height:220
 .kal-ag{display:grid;grid-template-columns:max-content 132px 108px;gap:6px;justify-content:end;align-items:center}
 .kal-ag>*{margin:0!important;justify-content:center;width:100%;box-sizing:border-box}
 .kal-ag>:first-child{width:auto}
+/* slim zoeken: voorstellen onder het veld */
+.sz-box{position:absolute;z-index:3000;background:var(--surface,#fff);border:1px solid var(--line-strong,#ccc);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:4px;max-height:320px;overflow:auto}
+.sz-o{display:block;width:100%;text-align:left;padding:8px 10px;border:0;border-radius:7px;background:none;color:var(--ink,#111);font:inherit;font-size:14px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sz-o:hover,.sz-o.on{background:var(--sunken,#f1f1f2)}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
