@@ -5523,7 +5523,8 @@ function sgBulk(){const c=typeof fuCfg==="function"?fuCfg():{};
     const it=item(a);if(!it)return;const L=lees(),s=sig(it);if(!L.includes(s)){L.push(s);bewaar(L)}
     setTimeout(()=>{if(it.isConnected){const m=it.closest(".nmeld");it.remove();if(m&&m!==it&&!m.querySelector(".nm-i"))m.remove()}},400);
   },true);
-  let q=0;new MutationObserver(()=>{if(q)return;q=1;requestAnimationFrame(()=>{q=0;zuiver()})}).observe(document.documentElement,{childList:true,subtree:true});
+  /* meteen (vóór het scherm getekend wordt) gelezen meldingen weghalen, zodat ze niet even zichtbaar zijn */
+  let bezig=0;new MutationObserver(()=>{if(bezig)return;bezig=1;try{zuiver()}finally{bezig=0}}).observe(document.documentElement,{childList:true,subtree:true});
 })();
 
 /* ============ Vrijstelling puntensysteem ============
