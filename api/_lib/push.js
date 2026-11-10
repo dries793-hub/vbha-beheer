@@ -147,7 +147,7 @@ export async function pushVanDaag(sb, cfg, vandaag, uurNu) {
     sb.from("activiteiten").select("id,data").gte("data->>datum", vandaag).lte("data->>datum", tot)]);
   const A = await algemeen(sb), bk = await configDoc(sb, "banket"), kf = await configDoc(sb, "kf_" + A.jaar);
   const V = (verg || []).map(r => ({ soort: "vergaderingen", datum: r.data.datum, titel: (r.data.titel && r.data.titel !== r.data.soort ? r.data.titel : r.data.soort || "Vergadering"), uur: r.data.uur, loc: r.data.locatie, url: "/#agenda", tag: "verg-" + r.id }));
-  const C = (act || []).map(r => ({ soort: "activiteiten", datum: r.data.datum, titel: r.data.titel || "Activiteit", uur: r.data.uur, loc: r.data.locatie, url: "/#agenda", tag: "act-" + r.id }));
+  const C = (act || []).filter(r => !(r.data && r.data.bron)).map(r => ({ soort: "activiteiten", datum: r.data.datum, titel: r.data.titel || "Activiteit", uur: r.data.uur, loc: r.data.locatie, url: "/#agenda", tag: "act-" + r.id }));
   const bd = bk.datum || A.jaar + "-12-12"; if (bd >= vandaag && bd <= tot) C.push({ soort: "activiteiten", datum: bd, titel: "Banket", uur: bk.uur, loc: bk.locatie, url: "/#banket", tag: "banket" });
   if (kf.datum && kf.datum >= vandaag && kf.datum <= tot) C.push({ soort: "activiteiten", datum: kf.datum, titel: "Kinderfeest", uur: kf.tijd, loc: kf.locatie, url: "/#kinderfeest", tag: "kinderfeest" });
   const k = await vapid(sb), uit = [];
