@@ -237,6 +237,18 @@ main.ks{max-width:none;padding:10px 10px 0}
 .balk .btn{margin:0;min-height:60px;font-size:18px;border-radius:12px}
 .balk .btn:disabled{opacity:.35}
 .bq .ks-acts .btn,.ks-acts .btn{min-height:58px}
+/* lang drukken op een tegel: aantal ingeven */
+.pt{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.pt.lp{transform:scale(.96);transition:transform 1s}
+.np-bg{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.np{background:var(--surface);border-radius:16px;padding:18px;width:100%;max-width:340px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.np h3{margin:0 0 4px;font-size:17px}.np .np-p{color:var(--muted);font-size:14px}
+.np .np-v{font:700 40px/1.2 var(--f);text-align:center;padding:10px;margin:10px 0 12px;border:1px solid var(--line-strong);border-radius:10px;background:var(--sunken);min-height:50px}
+.np .np-k{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.np .np-k button{font:600 24px var(--f);padding:14px 0;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface);color:var(--ink);cursor:pointer;-webkit-user-select:none;user-select:none}
+.np .np-k button:active{background:var(--sunken)}
+.np .np-a{display:grid;grid-template-columns:1fr 1fr;gap:8px}.np .np-a .btn{margin-top:12px}
+.np .btn.sec2{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}
 </style>
 <script src="/lib/qrcode.min.js" integrity="sha512-ZDSPMa/JM1D+7kdg2x3BsruQ6T/JpJo3jWDWkCZsP+5yVyp1KfESqLI+7RqB5k24F7p2cV7i2YHh/890y6P6Sw==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
 <script src="/kassa-iconen.js"></script>
@@ -267,6 +279,29 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-tab]");if(
 setInterval(async()=>{if(!TOK||VK||document.hidden)return;try{const oud=JSON.stringify(ST&&ST.tegels);await laad();if(TAB==="verkoop"&&JSON.stringify(ST.tegels)!==oud&&!Object.keys(MAND).length)verkoopScherm()}catch(e){fout(e)}},45000);
 /* ---------- verkopen ---------- */
 const kleur=k=>(window.KASSA_KLEUREN||{})[k]||["#55585e","#f0f1f2"];
+
+/* lang drukken (1 seconde) op een tegel: aantal ingeven met een cijferklavier */
+let lpT=0,lpX=0,lpY=0,lpEl=null,lpNa=0;
+function lpStop(){clearTimeout(lpT);lpT=0;if(lpEl)lpEl.classList.remove("lp");lpEl=null}
+document.addEventListener("pointerdown",e=>{const t=e.target.closest("[data-pt]");if(!t||e.target.closest("[data-min]"))return;lpStop();lpEl=t;lpX=e.clientX;lpY=e.clientY;t.classList.add("lp");
+  lpT=setTimeout(()=>{const id=t.dataset.pt;lpStop();lpNa=Date.now();tril(30);aantalScherm(id)},1000)});
+document.addEventListener("pointermove",e=>{if(lpT&&(Math.abs(e.clientX-lpX)>12||Math.abs(e.clientY-lpY)>12))lpStop()});
+for(const ev of ["pointerup","pointercancel","scroll"])document.addEventListener(ev,()=>{if(lpT)lpStop()},true);
+document.addEventListener("contextmenu",e=>{if(e.target.closest("[data-pt]"))e.preventDefault()});
+// de klik die na het loslaten volgt mag geen extra stuk toevoegen
+document.addEventListener("click",e=>{if(lpNa&&Date.now()-lpNa<800&&e.target.closest("[data-pt]")){e.stopImmediatePropagation();e.preventDefault()}},true);
+function aantalScherm(id){const x=(ST.tegels||[]).find(t=>t.id===id);if(!x)return;let v=String(MAND[id]||"");
+  const bg=document.createElement("div");bg.className="np-bg";
+  bg.innerHTML=`<div class="np" role="dialog" aria-label="Aantal ingeven"><h3>${esc(x.naam)}</h3><div class="np-p">${eur(x.prijs)} per stuk</div><div class="np-v" id="npV"></div>
+    <div class="np-k">${[1,2,3,4,5,6,7,8,9].map(n=>`<button type="button" data-np="${n}">${n}</button>`).join("")}<button type="button" data-np="c" aria-label="Wissen">C</button><button type="button" data-np="0">0</button><button type="button" data-np="b" aria-label="Laatste cijfer wissen">⌫</button></div>
+    <div class="np-a"><button type="button" class="btn sec2" data-np="x">Annuleren</button><button type="button" class="btn" data-np="ok">OK</button></div></div>`;
+  const teken=()=>{const n=Number(v)||0;bg.querySelector("#npV").innerHTML=v?`${n}× <small style="font-size:18px;color:var(--muted)">= ${eur(n*x.prijs)}</small>`:'<span style="color:var(--muted)">0</span>'};
+  const sluit=()=>{bg.remove();document.removeEventListener("keydown",kd,true)};
+  const ok=()=>{const n=Math.min(999,Number(v)||0);if(n)MAND[id]=n;else delete MAND[id];sluit();tril(12);verkoopScherm()};
+  const druk=k=>{if(k==="x")sluit();else if(k==="ok")ok();else if(k==="c")v="";else if(k==="b")v=v.slice(0,-1);else if(v.length<3)v=(v==="0"?"":v)+k;if(document.body.contains(bg))teken()};
+  const kd=e=>{if(/^[0-9]$/.test(e.key))druk(e.key);else if(e.key==="Backspace")druk("b");else if(e.key==="Enter")druk("ok");else if(e.key==="Escape")druk("x");else return;e.preventDefault();e.stopPropagation()};
+  const t0=Date.now();bg.addEventListener("click",e=>{e.stopPropagation();if(Date.now()-t0<400)return;const b=e.target.closest("[data-np]");if(b)druk(b.dataset.np);else if(e.target===bg)sluit()});
+  document.addEventListener("keydown",kd,true);document.body.appendChild(bg);teken()}
 function kolommen(n){const w=innerWidth;if(n<=2)return n;if(n<=4)return 2;if(n<=6)return w<640?2:3;if(n<=9)return 3;if(n<=12)return w<640?3:4;return w>=900?5:w>=640?4:3}
 function verkoopScherm(){clearTimeout(naT);const T=ST.tegels||[],tot=T.reduce((n,x)=>n+(MAND[x.id]||0)*x.prijs,0),aantal=Object.values(MAND).reduce((a,b)=>a+b,0);
   $("#box").innerHTML=`<div class="vk">${tabs()}${T.length?`<div class="pos2" style="grid-template-columns:repeat(${kolommen(T.length)},minmax(0,1fr))">${T.map(x=>{const [k,b]=kleur(x.kleur),n=MAND[x.id]||0;return `<button type="button" class="pt" data-pt="${esc(x.id)}" style="--k:${k};--b:${b}"><i>${n||""}</i>${n?`<span class="min" data-min="${esc(x.id)}" role="button" aria-label="Eén minder">−</span>`:""}${typeof kassaIcoon==="function"?kassaIcoon(x.icoon,k):""}<b>${esc(x.naam)}</b><span>${eur(x.prijs)}</span></button>`}).join("")}</div>`:'<div class="card"><p style="margin:0">Nog geen tegels ingesteld.</p></div>'}
