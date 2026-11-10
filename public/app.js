@@ -4202,7 +4202,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ink]
 // transactie: gekoppelde factuur tonen
 {const _b=boekingForm;boekingForm=function(b,id,title){_b(b,id,title);if(!id||!b)return;const e=$("#fBoek");if(!e)return;const d=b.documentId&&S.documenten.get(b.documentId);
   const h=d?`<div class="full ink-fb">${ic("verslagen")}<span>Factuur: <a href="#" data-ink="pdf" data-id="${esc(d.id)}">${esc(d.naam)}</a></span>${inkMag()?`<button type="button" class="btn sm ghost" data-ink="los" data-id="${esc(id)}">Ontkoppelen</button>`:""}</div>`
-    :b.richting==="uit"&&inkMag()?`<div class="full ink-fb muted small">${ic("verslagen")}<span>Geen factuur gekoppeld. Koppel er een via <a href="#inkomend" data-act="closeModal">Financiën › Inkomende facturen</a>.</span></div>`:"";
+    :b.richting==="uit"&&inkMag()?inkKiesVoor(b,id):"";
   if(h)e.insertAdjacentHTML("beforeend",h)}}
 // dashboard: nieuwe facturen te koppelen
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){let x="";if(inkMag()){const L=inkDocs().filter(d=>inkOpen(d)&&d.inkomend&&d.inkomend.nieuw);
@@ -4225,6 +4225,16 @@ async function inkHernoem(d,b){if(!d||!inkMag())return;const A=INK.txt.get(d.id)
   try{await write("documenten",d.id,n)}catch(e){}}
 {const _l=inkLees;inkLees=async function(d){await _l.apply(this,arguments);try{const A=INK.txt.get(d.id);if(A&&!A.fout)await inkHernoem(S.documenten.get(d.id)||d,null)}catch(e){}}}
 {const _k=inkKoppel;inkKoppel=async function(did,bid){const r=await _k.apply(this,arguments);try{const d=S.documenten.get(did),b=S.boekingen.get(bid);if(d&&b&&!(d.inkomend&&d.inkomend.leverancier))await inkHernoem(d,b)}catch(e){}return r}}
+
+/* transactie zonder factuur: rechtstreeks een inkomende factuur kiezen (ook een die al aan een andere transactie hangt, bv. in 2 keer betaald) */
+function inkKiesVoor(b,bid){const p=norm(b.partij||b.mededeling||""),w=p.split(" ").filter(x=>x.length>2);
+  const sc=d=>{const v=norm(inkVan(d)+" "+d.naam);return w.filter(x=>v.includes(x)).length};
+  const D=inkDocs().map(d=>({d,s:sc(d)})).sort((x,y)=>y.s-x.s||inkDatum(y.d).localeCompare(inkDatum(x.d))).slice(0,60).map(x=>x.d);
+  if(!D.length)return"";
+  const lab=d=>{const n=inkSom(d.id);return [inkVan(d)||d.naam,inkDatum(d)?fmtDate(inkDatum(d)):"",n?"al "+eur(n)+" gekoppeld":""].filter(Boolean).join(" · ")};
+  return `<div class="full ink-fb">${ic("verslagen")}<select class="sel" id="inkB" style="flex:1;min-width:0"><option value="">Factuur koppelen…</option>${D.map(d=>`<option value="${esc(d.id)}">${esc(lab(d))}</option>`).join("")}</select><button type="button" class="btn sm" data-inkb="${esc(bid)}">Koppelen</button></div>`}
+document.addEventListener("click",async e=>{const t=e.target.closest("[data-inkb]");if(!t)return;e.preventDefault();const s=$("#inkB");if(!s||!s.value){toast("Kies eerst een factuur.",true);return}
+  t.disabled=true;try{await inkKoppel(s.value,t.dataset.inkb);closeModal()}catch(x){t.disabled=false;toast(x.message,true)}});
 
 /* ============ Dashboard: meldingen voor de boekhouding ============
    - transacties die nog verwerkt moeten worden (na het inladen van de bankgegevens)
