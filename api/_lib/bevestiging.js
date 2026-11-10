@@ -191,7 +191,8 @@ export async function nastuur(sb, id) {
   const { data: bl } = await sb.from("config").select("data").eq("id", "mail").maybeSingle();
   if (bl && bl.data && bl.data.geblokkeerd && bl.data.geblokkeerd[aan]) return 0;
   const al = { ...(d.nastuur || {}) }, rijen = [];
-  const actief = Object.entries(regels).filter(([tpl, R]) => R && R.html && R.tot && R.tot >= nu && !al[tpl] && !(R.na && String(d.aangemeld || "") <= R.na));
+  // enkel regels met auto:true sturen nog automatisch; standaard toont de app een melding op het dashboard
+  const actief = Object.entries(regels).filter(([tpl, R]) => R && R.auto === true && R.html && R.tot && R.tot >= nu && !al[tpl] && !(R.na && String(d.aangemeld || "") <= R.na));
   if (!actief.length) return 0;
   // pas nasturen als het lidgeld ontvangen is
   if (!(await lidgeldOntvangen(sb, id, d))) return 0;
@@ -221,7 +222,7 @@ async function lidgeldOntvangen(sb, id, d) {
 /* geplande taak: nieuwe leden die nog op een nagestuurde mail wachten (bv. omdat hun lidgeld pas later binnenkwam) */
 async function nastuurCron(sb) {
   const { data: c } = await sb.from("config").select("data").eq("id", "nastuur").maybeSingle();
-  const nu = vandaag(), R = Object.values((c && c.data && c.data.regels) || {}).filter(R => R && R.html && R.tot && R.tot >= nu);
+  const nu = vandaag(), R = Object.values((c && c.data && c.data.regels) || {}).filter(R => R && R.auto === true && R.html && R.tot && R.tot >= nu);
   if (!R.length) return [];
   const vanaf = R.map(x => x.na || x.sinds || "").sort()[0] || new Date(Date.now() - 60 * 864e5).toISOString();
   const { data } = await sb.from("leden").select("id,data").gt("data->>aangemeld", vanaf).eq("data->bevestiging->>status", "verstuurd").limit(100);

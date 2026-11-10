@@ -4862,8 +4862,8 @@ function mlNastuurUI(){const M=MAIL;if(!M||!M.tplId||!canWrite)return "";const R
   const nu=todayISO(),aan=R&&R.tot>=nu,N=nsNieuwe(M.tplId),W=nsNieuwe(M.tplId,false);
   const tot=(R&&R.tot)||(()=>{const L=typeof mlAgendaItems==="function"?mlAgendaItems():[];return L.length?L[L.length-1].datum:new Date(Date.now()+90*864e5).toISOString().slice(0,10)})();
   return `<div class="panel"><div class="panel-h"><h2>Nieuwe leden</h2>${aan?'<span class="grow"></span><span class="pill ok">Aan</span>':""}</div><div class="panel-b stack" style="gap:10px">
-    <p class="muted small" style="margin:0">${m?`Deze mail werd verstuurd op ${esc(fmtDate(String(m.datum).slice(0,10)))} naar ${esc(m.groep||"")}.`:""} Wie zich daarna als lid inschrijft, krijgt ze automatisch ook, zodra zijn lidgeld ontvangen is.</p>
-    <label class="sp-nat"><input type="checkbox" id="nsAan"${aan?" checked":""}><span><b>Automatisch sturen naar nieuwe leden</b><small>Tot en met <input type="date" id="nsTot" value="${esc(tot)}" style="font:inherit;padding:2px 6px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink)">. Bij wijzigingen aan het sjabloon: opnieuw aanvinken om de nieuwe versie te gebruiken.</small></span></label>
+    <p class="muted small" style="margin:0">${m?`Deze mail werd verstuurd op ${esc(fmtDate(String(m.datum).slice(0,10)))} naar ${esc(m.groep||"")}.`:""} Schrijft er zich daarna een lid in en is zijn lidgeld ontvangen, dan krijg je een melding op het dashboard met een knop om deze mail te sturen.</p>
+    <label class="sp-nat"><input type="checkbox" id="nsAan"${aan?" checked":""}><span><b>Melding op het dashboard voor nieuwe leden</b><small>Tot en met <input type="date" id="nsTot" value="${esc(tot)}" style="font:inherit;padding:2px 6px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink)">. Bij wijzigingen aan het sjabloon: opnieuw aanvinken om de nieuwe versie te gebruiken.</small></span></label>
     ${R&&R.sinds?`<div class="muted small">Versie van ${esc(fmtDate(String(R.sinds).slice(0,10)))}${R.door?" door "+esc(R.door):""}.</div>`:""}
     ${N.length?`<div class="note info" style="margin:0"><b>${N.length} ${N.length===1?"nieuw lid kreeg":"nieuwe leden kregen"} deze mail nog niet:</b> ${N.slice(0,8).map(r=>esc(r.label)).join(", ")}${N.length>8?" …":""}<div style="margin-top:8px"><button class="btn sm primary" data-ns="nu">Nu naar ${N.length===1?"hem of haar":"hen"} sturen</button></div></div>`:m&&!W.length?'<div class="muted small">Alle leden die zich na het versturen inschreven, kregen deze mail al.</div>':""}
     ${W.length?`<div class="muted small"><b>Wacht op lidgeld:</b> ${W.slice(0,8).map(r=>esc(r.label)).join(", ")}${W.length>8?" …":""}</div>`:""}
@@ -4873,7 +4873,7 @@ async function nsBewaar(aan){const M=MAIL,c=(S.config&&S.config.get("nastuur"))|
     regels[M.tplId]={naam:M.naam||"",onderwerp:vul(M.onderwerp,r),html:mailHtml(r,M),tot:($("#nsTot")||{}).value||todayISO(),na:String((nsLaatst(M.tplId)||{}).datum||""),sinds:new Date().toISOString(),door:ME_NAME||""}}
   else delete regels[M.tplId];
   const d={...stripId(c),regels};S.config.set("nastuur",{...d,id:"nastuur"});await write("config","nastuur",d);
-  toast(aan?"Nieuwe leden krijgen deze mail automatisch tot "+fmtDate(regels[M.tplId].tot)+".":"Nasturen naar nieuwe leden staat uit.");renderBody()}
+  toast(aan?"Je krijgt een melding op het dashboard voor nieuwe leden tot "+fmtDate(regels[M.tplId].tot)+".":"Melding voor nieuwe leden staat uit.");renderBody()}
 document.addEventListener("change",e=>{if(e.target.id==="nsAan")nsBewaar(e.target.checked);else if(e.target.id==="nsTot"&&$("#nsAan")&&$("#nsAan").checked)nsBewaar(true)});
 document.addEventListener("click",e=>{const t=e.target.closest('[data-ns="nu"]');if(!t)return;e.preventDefault();const M=MAIL,N=nsNieuwe(M.tplId);if(!N.length)return;
   confirmBox(`<b>${esc(M.naam||"Deze mail")}</b> nu sturen naar ${N.length} ${N.length===1?"nieuw lid":"nieuwe leden"}?<br><small class="muted">${N.map(r=>esc(r.label)).join(", ")}</small>`,"Versturen",async()=>{
@@ -4881,6 +4881,25 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-ns="nu"]')
     for(const r of N){const l=S.leden.get(r.lidId);if(l)await write("leden",l.id,{...stripId(l),nastuur:{...(l.nastuur||{}),[M.tplId]:op}})}
     try{await write("mailings",mid,{datum:op,onderwerp:vul(M.onderwerp,{}),sjabloon:M.naam||"",sjabloonId:M.tplId||"",groep:"Nagestuurd naar nieuwe leden",aantal:N.length,ok:res.ok,fout:res.fout.slice(0,200),...(res.wachtrij?{wachtrij:res.wachtrij,bezig:true}:{}),door:ME?ME.email:""})}catch(x){}
     renderBody()})});
+
+/* Dashboard: nieuwe leden met lidgeld in orde die de mail nog niet kregen -> melding met knop (niets gaat automatisch) */
+function nsDash(){if(!canWrite)return"";const nu=todayISO();let h="";
+  for(const[tpl,R]of Object.entries(nsCfg())){if(!R||!R.html||!(String(R.tot||"")>=nu))continue;const N=nsNieuwe(tpl,true);if(!N.length)continue;
+    h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("mail")}</span><div class="nm-body"><b>${N.length===1?"Er is een nieuw lid (lidgeld in orde) dat":N.length+" nieuwe leden (lidgeld in orde)"} nog geen mail „${esc(R.naam||"uitnodiging")}” ${N.length===1?"kreeg":"kregen"}</b>
+    <div class="nm-l">${N.slice(0,8).map(x=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(x.lidId)}"><b>${esc(x.label)}</b></button>`).join("")}${N.length>8?`<span class="nm-more">+${N.length-8} meer</span>`:""}</div>
+    <div style="margin-top:8px"><button type="button" class="btn sm primary" data-nsd-stuur="${esc(tpl)}">${ic("mail")} Uitnodiging versturen</button></div></div></div>`}
+  return h}
+async function nsStuurSnapshot(tpl){const R=nsCfg()[tpl],N=nsNieuwe(tpl,true);if(!R||!N.length)return;
+  confirmBox(`<b>${esc(R.naam||"Deze mail")}</b> nu sturen naar ${N.length} ${N.length===1?"nieuw lid":"nieuwe leden"}?<br><small class="muted">${N.map(r=>esc(r.label)).join(", ")}</small>`,"Versturen",async()=>{
+    const B=N.map(x=>{const l=S.leden.get(x.lidId)||{},vn=l.voornaam||"",nm=[l.voornaam,l.naam].filter(Boolean).join(" ");
+      const vul=(t,h)=>String(t||"").split("@@VOORNAAM@@").join(h?esc(vn):vn).split("@@NAAM@@").join(h?esc(nm):nm).replace(/Beste\s+,/g,"Beste,");
+      return{aan:x.email,aanNaam:x.label||nm,onderwerp:vul(R.onderwerp,false),html:vul(R.html,true)}});
+    const mid=mlId(),res=await mailVerstuur(B,"",{mid});const op=new Date().toISOString();
+    for(const x of N){const l=S.leden.get(x.lidId);if(l)await write("leden",l.id,{...stripId(l),nastuur:{...(l.nastuur||{}),[tpl]:op}})}
+    try{await write("mailings",mid,{datum:op,onderwerp:B[0].onderwerp,sjabloon:R.naam||"",sjabloonId:tpl,groep:"Nagestuurd naar nieuwe leden",aantal:N.length,ok:res.ok,fout:res.fout.slice(0,200),...(res.wachtrij?{wachtrij:res.wachtrij,bezig:true}:{}),door:ME?ME.email:""})}catch(x){}
+    toast(res.ok?"Verstuurd naar "+res.ok+(res.ok===1?" lid.":" leden."):"Versturen mislukt.",!res.ok);renderBody()})}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-nsd-stuur]");if(!t)return;e.preventDefault();e.stopPropagation();nsStuurSnapshot(t.dataset.nsdStuur)},true);
+{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return nsDash()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 
 /* ============ Fuif "In Vier en Vlam" (Activiteiten › In Vier en Vlam) ============
    Bestellingen in de collectie "tickets" (zie api/_lib/fuif.js), instellingen in config "fuif".
@@ -5519,7 +5538,7 @@ function sgBulk(){const c=typeof fuCfg==="function"?fuCfg():{};
   }
   window.addEventListener("click",e=>{
     const g=e.target.closest("[data-gl]");if(g){e.preventDefault();toon=true;if(typeof render==="function")render();setTimeout(()=>{toon=false},800);return}
-    const a=e.target.closest(".nmeld a, .nmeld button");if(!a||a.closest(".modal"))return;
+    const a=e.target.closest(".nmeld a, .nmeld button");if(!a||a.closest(".modal")||a.closest("[data-nsd]"))return;
     const it=item(a);if(!it)return;const L=lees(),s=sig(it);if(!L.includes(s)){L.push(s);bewaar(L)}
     setTimeout(()=>{if(it.isConnected){const m=it.closest(".nmeld");it.remove();if(m&&m!==it&&!m.querySelector(".nm-i"))m.remove()}},400);
   },true);
