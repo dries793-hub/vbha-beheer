@@ -4566,7 +4566,7 @@ function bhSec(soort){const c=bhCfg(),d=canWrite?"":" disabled",B=c.banket,L=c.l
   const uitleg=soort==="banket"?`Wie na de inschrijvingsdeadline nog niet betaald heeft, krijgt automatisch een herinnering met de betaalgegevens.`
     :`Leden die het lidgeld van het gekozen werkjaar na de vervaldatum nog niet betaalden, krijgen automatisch een herinnering met een betaalknop. Nieuwe leden: 14 dagen na hun inschrijving.`;
   return `<div class="pi-sec bh-sec" data-bhs="${soort}"><h4>Betalingsherinnering</h4><div class="form">
-    <label class="sp-nat full" for="bh${k}a"><input type="checkbox" id="bh${k}a"${R.aan?" checked":""}${d}><span><b>Automatisch een herinnering mailen</b><small>${uitleg}</small></span></label>
+    <label class="sp-nat full" for="bh${k}a"><input type="checkbox" id="bh${k}a"${R.aan?" checked":""}${d}><span><b>Automatisch een herinnering mailen</b></span></label>
     ${soort==="lidgeld"?fld("bhLj","Werkjaar",bhSel("bhLj",L.jaar,[JAAR-1,JAAR,JAAR+1,JAAR+2].filter((v,i,a)=>a.indexOf(v)===i),n=>"Lidgeld "+n,d))+fld("bhLv","Te betalen vóór",`<input id="bhLv" type="date" value="${esc(L.vervaldatum)}"${d}>`):""}
     ${fld("bh"+k+"d","Eerste herinnering",bhSel("bh"+k+"d",R.dagenNaVerval,soort==="banket"?[1,2,3,5,7,10]:[1,3,5,7,10,14,21,30],n=>bhDg(n)+" na de termijn",d))}
     ${fld("bh"+k+"i","Daarna",bhSel("bh"+k+"i",R.interval,soort==="banket"?[3,4,5,7,10,14]:[7,10,14,21,30],n=>"om de "+bhDg(n),d))}
