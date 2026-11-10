@@ -3377,8 +3377,8 @@ VIEWS.facturen=()=>({title:"Facturen",sub:"Facturen en creditnota's met automati
     if(q&&!norm([f.nr,fcOgm(f.ogm),f.ogm,fcNaam(f),f.klant&&f.klant.contact,f.klant&&f.klant.email,f.referentie,...(f.lijnen||[]).map(l=>l.omschrijving),String(fcTot(f).totaal)].join(" ")).includes(q))return false;return true});
   const chip=(k,l,n)=>`<button type="button" class="fc-chip${FC.f===k?" on":""}" data-fc="filter" data-v="${k}">${l}${n!=null?` <span>${n}</span>`:""}</button>`;
   const rij=f=>{const s=st.get(f.id),T=fcTot(f),b=f.nr&&f.type!=="credit"?fcBetaal(f):null;return{s,T,b}};
-  return `<div class="tiles"><div class="tile"><span class="lbl">Openstaand</span><span class="val">${eur(openT)}</span><span class="muted small">${openL.length} ${openL.length===1?"factuur":"facturen"}</span></div>
-   <div class="tile"><span class="lbl">Vervallen</span><span class="val${vervT>0?" out":""}">${eur(vervT)}</span><span class="muted small">${verv.length} ${verv.length===1?"factuur":"facturen"}</span></div>
+  return `<div class="tiles"><div class="tile"><span class="lbl">Openstaand</span><span class="val">${eur(openT)}</span></div>
+   <div class="tile"><span class="lbl">Vervallen</span><span class="val${vervT>0?" out":""}">${eur(vervT)}</span></div>
    <div class="tile"><span class="lbl">Gefactureerd ${dit}</span><span class="val">${eur(gefT)}</span></div>
    <div class="tile"><span class="lbl">Concepten</span><span class="val">${nCon}</span></div></div>
   <div class="bar fc-bar"><div class="search">${ic("search")}<input id="fcQ" placeholder="Zoek op nummer, klant, mededeling of bedrag" value="${esc(FC.q)}" autocomplete="off"></div>
@@ -4053,7 +4053,7 @@ var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.inkomend
 {const b=NAV.find(n=>n.id==="boekhouding");if(b)b.items=b.items.filter(i=>i[0]!=="inkomend")}
 function fcOpenTeller(){try{return S.facturen?[...S.facturen.values()].filter(f=>["open","deels","vervallen"].includes(fcStatus(f))).length:0}catch(e){return 0}}
 function fcTabs(act){const nU=typeof fcOpenTeller==="function"?fcOpenTeller():0,nI=inkMag()?inkDocs().filter(inkOpen).length:0;
-  return `<nav class="ka-tabs" aria-label="Soort facturen"><a href="#facturen" class="${act==="facturen"?"on":""}"${act==="facturen"?' aria-current="page"':""}>${ic("verslagen")}Uitgaande facturen${nU?`<span class="cnt">${nU}</span>`:""}</a><a href="#inkomend" class="${act==="inkomend"?"on":""}"${act==="inkomend"?' aria-current="page"':""}>${ic("inkomend")}Inkomende facturen${nI?`<span class="cnt">${nI}</span>`:""}</a></nav>`}
+  return `<nav class="ka-tabs" aria-label="Soort facturen"><a href="#facturen" class="${act==="facturen"?"on":""}"${act==="facturen"?' aria-current="page"':""}>${ic("verslagen")}Uitgaande facturen</a><a href="#inkomend" class="${act==="inkomend"?"on":""}"${act==="inkomend"?' aria-current="page"':""}>${ic("inkomend")}Inkomende facturen${nI?`<span class="cnt">${nI}</span>`:""}</a></nav>`}
 {const _f=VIEWS.facturen;const n=function(){const v=_f.apply(this,arguments);const b=v.body;v.sub="Onze facturen en creditnota's, met automatische opvolging van de betalingen";v.body=function(){return fcTabs("facturen")+b.apply(this,arguments)};return v};Object.assign(n,_f);VIEWS.facturen=n}
 if(typeof BOEK_ROUTES!=="undefined")BOEK_ROUTES.add("inkomend");
 ICON.inkomend='<path d="M4 13h4l2 3h4l2-3h4"/><path d="M4 13l2.5-7h11L20 13v6H4z"/><path d="M12 3v7m-3-3l3 3 3-3"/>';
