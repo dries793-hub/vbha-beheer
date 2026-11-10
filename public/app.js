@@ -2310,7 +2310,7 @@ const agTypeSel=t=>`<div class="fld full"><span class="lbl">Wat voeg je toe?</sp
 function agForm(a,id){const d=canWrite?"":" disabled";a=a||{};
   modal(id?"Activiteit wijzigen":"Toevoegen aan de agenda",`<form id="fAg" class="form">${id?"":agTypeSel("act")}
    ${fld("agT","Wat",inp("agT",a.titel,'maxlength="120" placeholder="bv. Jaarmarkt, Paasmaandagwandeling"'+d),"full")}
-   ${fld("agD","Datum",`<input id="agD" type="date" value="${esc(a.datum||AG.dag||todayISO())}"${d}>`)}${fld("agU","Uur",inp("agU",a.uur,'maxlength="20" placeholder="bv. 14u00"'+d))}
+   ${fld("agD","Datum",`<input id="agD" type="date" value="${esc(a.datum||AG.dag||todayISO())}"${d}>`)}${uurVeld("agU",a.uur,d)}
    ${fld("agL","Waar",inp("agL",a.locatie,'maxlength="160"'+d),"full")}
    ${fld("agI","Meer info",`<textarea id="agI" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false)}<label class="sp-nat full" for="agS"><input type="checkbox" id="agS"${a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length)?" checked":""}${canWrite?"":" disabled"}><span><b>Gebruiken in shiften</b></span></label>${fld("agK","Kassa op de dag zelf",`<select id="agK"${d}>${[["","Geen kassa"],["fuif","In Vier en Vlam"],["kinderfeest","Kinderfeest"],["jaarmarkt","Jaarmarkt"]].map(([v,l])=>`<option value="${v}"${agKassa(a)===v?" selected":""}>${l}</option>`).join("")}</select>`,"full")}<div class="err full" id="agErr"></div></form>`,
    `${id&&canWrite?'<button class="btn danger" id="agDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="agOk">Bewaren</button>':""}`);
@@ -2323,7 +2323,7 @@ function agForm(a,id){const d=canWrite?"":" disabled";a=a||{};
 /* ---------- banket en kinderfeest als agenda-item: zelfde eigenschappenscherm, bewaart in hun instellingen ---------- */
 function agAutoForm(id){const bk=id==="bk",c=bk?bkCfg():kfCfg(),d=canWrite?"":" disabled",naam=bk?"Banket":"Kinderfeest";
   modal(naam,`<form id="fAa" class="form">
-   ${fld("aaD","Datum",`<input id="aaD" type="date" value="${esc(c.datum||"")}"${d}>`)}${fld("aaU","Uur",inp("aaU",bk?c.uur:c.tijd,'maxlength="20" placeholder="bv. 19u00"'+d))}
+   ${fld("aaD","Datum",`<input id="aaD" type="date" value="${esc(c.datum||"")}"${d}>`)}${uurVeld("aaU",bk?c.uur:c.tijd,d)}
    ${fld("aaL","Waar",inp("aaL",c.locatie,'maxlength="160"'+d),"full")}
    ${fld("aaI","Meer info",`<textarea id="aaI" maxlength="2000" placeholder="Komt in de activiteitenmail onder datum, uur en plaats"${d}>${esc(c.info||"")}</textarea>`,"full")}
    ${agMailVink("aaM",c.inMail!==false)}
@@ -2350,7 +2350,7 @@ function vgForm(v,id){const d=canWrite?"":" disabled";v=v||{soort:"Bestuursverga
   const ta=(k,l,ph,h)=>fld("vg_"+k,l,`<textarea id="vg_${k}" style="min-height:${h}px" placeholder="${ph}"${d}>${esc(v[k]||"")}</textarea>`,"full");
   modal(id?(v.titel||v.soort||"Vergadering")+" · "+fmtDate(v.datum):(AG.fromKal?"Toevoegen aan de agenda":"Nieuwe vergadering"),`<form id="fVg" class="form">${id||!AG.fromKal?"":agTypeSel("verg")}
    ${fld("vg_soort","Soort",`<select id="vg_soort" class="sel"${d}>${selOpts(VG_SOORT,v.soort||"Bestuursvergadering")}</select>`)}${fld("vg_titel","Titel (optioneel)",inp("vg_titel",v.titel,'maxlength="120" placeholder="bv. Voorbereiding banket"'+d))}
-   ${fld("vg_datum","Datum",`<input id="vg_datum" type="date" value="${esc(v.datum||"")}"${d}>`)}${fld("vg_uur","Uur",inp("vg_uur",v.uur,'maxlength="20" placeholder="bv. 20u00"'+d))}
+   ${fld("vg_datum","Datum",`<input id="vg_datum" type="date" value="${esc(v.datum||"")}"${d}>`)}${uurVeld("vg_uur",v.uur,d)}
    ${fld("vg_locatie","Waar",inp("vg_locatie",v.locatie,'maxlength="160" placeholder="bv. Kazerne, refter"'+d),"full")}
    ${ta("agenda","Agenda","Eén punt per regel",110)}
    <div class="full" id="vgMailW"${vgBestuur(v.soort?v:{soort:VG_SOORT[0]})?" hidden":""}>${agMailVink("vg_mail",vgInMail(v))}</div>
@@ -2387,6 +2387,20 @@ document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.vgq!
 
 // bestuursvergaderingen komen nooit in de activiteitenkalender/mail
 document.addEventListener("change",e=>{if(e.target.id!=="vg_soort")return;const w=$("#vgMailW");if(!w)return;const b=vgBestuur({soort:e.target.value});w.hidden=b;if(b&&$("#vg_mail"))$("#vg_mail").checked=false});
+
+/* Uur: begin- en einduur (einduur mag leeg). "9" wordt 09:00, "14u30" wordt 14:30. Een verborgen veld met dezelfde id
+   bevat de samengestelde tekst (bv. "09:00–16:00"), zodat de rest van de code het uur blijft lezen zoals vroeger. */
+function uurNet(v){const t=String(v||"").trim().toLowerCase().replace(/\s+/g,"").replace(/[.hu,]/g,":").replace(/:$/,"");if(!t)return"";
+  const m=t.match(/^(\d{1,2})(?::(\d{1,2}))?$/)||t.match(/^(\d{1,2})(\d{2})$/);if(!m)return null;const u=+m[1],mi=+(m[2]||0);if(u>23||mi>59)return null;
+  return String(u).padStart(2,"0")+":"+String(mi).padStart(2,"0")}
+function uurDelen(s){const x=[...String(s||"").matchAll(/(\d{1,2})(?:\s*[u:h.]\s*(\d{2}))?/gi)].map(m=>uurNet(m[1]+(m[2]?":"+m[2]:""))).filter(Boolean);return[x[0]||"",x[1]||""]}
+function uurVeld(id,val,d){const [v,t]=uurDelen(val);
+  return `<div class="fld"><label for="${id}_v">Uur</label><div class="uur-2"><input id="${id}_v" class="uur-i" inputmode="numeric" maxlength="5" placeholder="Begin" value="${esc(v)}" data-uur="${id}"${d}><span class="uur-s">–</span><input id="${id}_t" class="uur-i" inputmode="numeric" maxlength="5" placeholder="Einde" value="${esc(t)}" data-uur="${id}"${d}></div><input type="hidden" id="${id}" value="${esc(v?v+(t?"–"+t:""):"")}"></div>`}
+function uurSync(id){const v=$("#"+id+"_v"),t=$("#"+id+"_t"),h=$("#"+id);if(!v||!h)return;const a=uurNet(v.value),b=uurNet(t.value);h.value=a?a+(b?"–"+b:""):""}
+const uurZet=el=>{const n=uurNet(el.value);if(n!=null)el.value=n;uurSync(el.dataset.uur)};
+document.addEventListener("input",e=>{const el=e.target;if(el&&el.dataset&&el.dataset.uur)uurSync(el.dataset.uur)});
+document.addEventListener("focusout",e=>{const el=e.target;if(el&&el.dataset&&el.dataset.uur)uurZet(el)},true);
+document.addEventListener("keydown",e=>{const el=e.target;if(el&&el.dataset&&el.dataset.uur&&e.key==="Enter")uurZet(el)},true);
 
 /* ============ Documenten (Administratie › Documenten) ============
    Bestanden in Supabase Storage (bucket "documenten", privé), gegevens in de tabel "documenten":
