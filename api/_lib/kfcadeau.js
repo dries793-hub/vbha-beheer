@@ -141,7 +141,7 @@ async function laad(sb, id, t) {
   const { data: row } = await sb.from("kinderfeest").select("id,data").eq("id", String(id)).maybeSingle();
   if (!row) throw httpErr(404, "Deze inschrijving bestaat niet meer.");
   const c = await configDoc(sb, "kf_" + row.data.jaar), M = kfcInstellingen(c, row.data.jaar);
-  return { row, c, M, open: M.cadeau !== false && vandaagISO() <= M.tot };
+  return { row, c, M, open: M.cadeau !== false && M.keuze === true && vandaagISO() <= M.tot };
 }
 function view(row, M, open) {
   const d = row.data;
