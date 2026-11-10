@@ -84,3 +84,32 @@ export async function verken() {
   }
   return out;
 }
+
+// Verkenning van alle betalingen van het profiel (zonder persoonsgegevens): app-betalingen (referentie "VBHA…")
+// versus andere (bv. de vaste QR-code), per status en per dag, en welke velden zo'n andere betaling heeft.
+export async function verkenAlles(dagen = 60) {
+  const key = String(process.env.BANCONTACT_API_KEY || "").trim();
+  if (!key) return { ingesteld: false };
+  const H = { Authorization: "Bearer " + key, "Content-Type": "application/json" };
+  const from = new Date(Date.now() - dagen * 864e5).toISOString().replace(/\.\d+Z$/, "Z"), to = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+  const L = []; let totaal = null, fout = null, status = null;
+  for (let page = 0; page < 10; page++) {
+    const r = await fetch(base() + `/payments/search?page=${page}&size=100`, { method: "POST", headers: H, body: JSON.stringify({ from, to }) });
+    status = r.status; const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch {}
+    if (!r.ok) { fout = t.slice(0, 300); break; }
+    totaal = j?.totalElements ?? totaal; const d = j?.details || []; L.push(...d);
+    if (d.length < 100) break;
+  }
+  const sleutels = (o, p = "") => o && typeof o === "object" ? Object.entries(o).flatMap(([k, v]) => v && typeof v === "object" && !Array.isArray(v) ? sleutels(v, p + k + ".") : [p + k]) : [];
+  const groep = p => /^VBHA/i.test(String(p.reference || "")) ? "app" : "andere";
+  const out = { status, fout, totaal, opgehaald: L.length, groepen: {} };
+  for (const p of L) {
+    const g = groep(p), x = out.groepen[g] || (out.groepen[g] = { aantal: 0, statussen: {}, kanalen: {}, metNaam: 0, metReferentie: 0, metOmschrijving: 0, perDag: {}, velden: [] });
+    x.aantal++; x.statussen[p.status] = (x.statussen[p.status] || 0) + 1;
+    const k = p.channel || p.paymentChannel || p.type || "?"; x.kanalen[k] = (x.kanalen[k] || 0) + 1;
+    if (p.debtor && p.debtor.name) x.metNaam++; if (p.reference) x.metReferentie++; if (p.description) x.metOmschrijving++;
+    if (p.status === "SUCCEEDED") { const d = String(p.succeededAt || p.createdAt || "").slice(0, 10); x.perDag[d] = Math.round(((x.perDag[d] || 0) + (Number(p.totalAmount ?? p.amount) || 0) / 100) * 100) / 100; }
+    for (const s of sleutels(p)) if (!x.velden.includes(s)) x.velden.push(s);
+  }
+  return out;
+}
