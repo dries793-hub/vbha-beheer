@@ -32,6 +32,8 @@
   .hero.rechts{grid-template-columns:1fr 1.8fr}.hero.rechts .photo{order:2}
   .hero.eigen .photo img{max-height:560px;width:auto;max-width:100%;margin:0 auto}
   .hero + .hero,.steun + .hero,.sponsors + .hero{margin-top:56px}
+  /* elke sectie na een andere: scheidingslijn */
+  main > section + section{margin-top:56px;border-top:1px solid var(--line);padding-top:48px}
   .h2g{font-size:clamp(1.6rem,2.6vw,2.1rem);line-height:1.15;font-weight:700;letter-spacing:-.01em}
   .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}.btns .btn-red{margin-top:0}.btns.extra{margin-top:12px}
   .btn-rand{display:inline-flex;align-items:center;gap:9px;padding:13px 21px;border-radius:8px;border:1.5px solid currentColor;color:var(--ink,#111);font-weight:600;font-size:16px;text-decoration:none}
@@ -117,7 +119,7 @@
     .btn-red .bt b{font-size:17px}
     a.btn-red:has(.bt){gap:14px;padding:14px 18px}
     .btn-sub{max-width:none;text-align:center}
-    .winkel,.sponsors,.steun{margin-top:40px;padding-top:36px}
+    .winkel,.sponsors,.steun,main > section + section{margin-top:40px;padding-top:36px}
     .prods{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
     .admin{padding:7px 10px}
     .hero,.steun{grid-template-columns:1fr;gap:28px}
