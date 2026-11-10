@@ -3783,7 +3783,7 @@ function vaDialoog(id){const v=S.vergaderingen.get(id);if(!v)return;const al=vaB
    <div class="fld full"><span class="lbl">Verslag *</span><div id="vaDropW">${vaDropHtml(v)}</div><input type="file" id="vaFile" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden></div>
    <div class="fc-sec full"><h4>Volgende vergadering</h4>${al?`<p class="muted small" style="margin:0">De ${esc(agLang(al.datum))} staat al een ${esc((al.soort||"vergadering").toLowerCase())} in de agenda. Kies je die datum, dan wordt die gebruikt (geen dubbele vergadering).</p>`:""}</div>
    ${fld("va_soort","Soort",`<select id="va_soort" class="sel">${selOpts(VG_SOORT,v.soort||"Bestuursvergadering")}</select>`)}${fld("va_datum","Datum *",`<input id="va_datum" type="date" value="${vd}">`)}
-   ${fld("va_uur","Uur",inp("va_uur",(al&&al.uur)||v.uur||"20u00",'maxlength="20"'))}${fld("va_loc","Waar",inp("va_loc",(al&&al.locatie)||v.locatie,'maxlength="160"'))}
+   ${uurVeld("va_uur",(al&&al.uur)||v.uur||"20:00","")}${fld("va_loc","Waar",inp("va_loc",(al&&al.locatie)||v.locatie,'maxlength="160"'))}
    <div class="fld full"><label for="va_ag">Agenda (optioneel)</label><textarea id="va_ag" style="height:80px;min-height:0" placeholder="Eén punt per regel">${esc((al&&al.agenda)||"")}</textarea></div>
    <label class="sp-nat full" for="vaMail"><input type="checkbox" id="vaMail" checked><span><b>Mail naar ${esc(vaOntv())}</b><small>Met het verslag in bijlage en de datum van de volgende vergadering.</small></span></label>
    <div class="err full" id="vaErr"></div></form>`,
@@ -6984,7 +6984,7 @@ function fdInst(){const c=fdCfg(),d=canWrite?"":" disabled";
     <button type="button" class="bg-x" data-fdpr="weg" aria-label="Prijs verwijderen"${d}>${ic("x")}</button></div>`;
   modal("Familiedag "+JAAR,`<form id="fFd" class="form">${typeof insVelden==="function"?insVelden(c,c.datum||JAAR+"-12-31",""):""}
     ${fld("fdT","Titel",inp("fdT",c.titel,'maxlength="80"'),"full")}
-    ${fld("fdD","Datum",`<input id="fdD" type="date" value="${esc(c.datum||"")}">`)}${fld("fdU","Uur",inp("fdU",c.uur,'placeholder="bv. 11u00"'))}
+    ${fld("fdD","Datum",`<input id="fdD" type="date" value="${esc(c.datum||"")}">`)}${uurVeld("fdU",c.uur,"")}
     ${fld("fdL","Locatie",inp("fdL",c.locatie,'placeholder="bv. Kazerne Aalst, Vrijheidstraat 55, Aalst"'),"full")}
     ${fld("fdI","Info op de inschrijfpagina",`<textarea id="fdI" rows="3" maxlength="800">${esc(c.info||"")}</textarea>`,"full")}
     <div class="fld full"><span class="lbl">Prijzen</span><div id="fdPr" class="fd-prl">${c.prijzen.map(rij).join("")}</div>
