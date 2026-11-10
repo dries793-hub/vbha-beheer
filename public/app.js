@@ -350,7 +350,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   const jub=cur.filter(r=>r.jaren===25).sort((a,b)=>(a.lid.naam||"").localeCompare(b.lid.naam||"","nl"));
   const cats=Object.entries(C.perCat).map(([k,v])=>({k,net:v.in-v.uit,...v})).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net));
   const maxNet=Math.max(1,...cats.map(c=>Math.abs(c.net)));
-  const top=cur.filter(r=>r.lg.ok&&r.lid.categorie!=="Erewacht"&&r.p.totaal>0).sort((a,b)=>b.p.totaal-a.p.totaal).slice(0,12);
+  const top=cur.filter(r=>r.lg.ok&&r.lid.categorie!=="Erewacht"&&r.p.totaal>0).sort((a,b)=>b.p.totaal-a.p.totaal).slice(0,10);
   const recent=C.boek.slice(-6).reverse();
   const sgn=v=>(v>=0?"+":"−")+eur(Math.abs(v));
   const sec=(icon,titel,link,label)=>`<div class="dsec-h"><span class="dsec-ic">${ic(icon)}</span><h2>${titel}</h2><span class="grow"></span><a class="btn sm ghost" href="#${link}">${label} ›</a></div>`;
