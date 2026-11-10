@@ -1,0 +1,12 @@
+name: Adressenregister ophalen
+on: workflow_dispatch
+jobs:
+  ophalen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node tools/adressen.mjs
+      - uses: actions/upload-artifact@v4
+        with: { name: adressen, path: uit/, retention-days: 3 }
