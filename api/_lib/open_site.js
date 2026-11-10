@@ -39,12 +39,17 @@ export function schoon(c) {
   const o = { blokken: { ...SITE_DEF.blokken } };
   for (const k of BLOKKEN) if (c.blokken && k in c.blokken) o.blokken[k] = !!c.blokken[k];
   for (const [k, max] of Object.entries(TEKST)) if (typeof c[k] === "string" && c[k].trim()) o[k] = c[k].trim().slice(0, max);
-  { const v = (Array.isArray(c.volgorde) ? c.volgorde : []).filter((k, i, L) => BLOKKEN.includes(k) && L.indexOf(k) === i); o.volgorde = [...v, ...BLOKKEN.filter(k => !v.includes(k))]; }
   o.kal_knoppen = knoppen(c.kal_knoppen); o.viv_knoppen = knoppen(c.viv_knoppen);
   o.eigen = (Array.isArray(c.eigen) ? c.eigen : []).slice(0, 12).filter(e => e && /^e[\w]{3,24}$/.test(e.id)).map(e => ({
     id: e.id, aan: e.aan !== false, plaats: ["boven", "midden", "onder"].includes(e.plaats) ? e.plaats : "midden",
     kicker: tekst(e.kicker, 120), titel: tekst(e.titel, 140), tekst: tekst(e.tekst, 1500), knoppen: knoppen(e.knoppen), fotoKant: e.fotoKant === "rechts" ? "rechts" : "links" }));
   o.kal_fotokant = c.kal_fotokant === "rechts" ? "rechts" : "links"; o.viv_fotokant = c.viv_fotokant === "rechts" ? "rechts" : "links";
+  { // volgorde van alle onderdelen: vaste blokken en eigen onderdelen (zelfde regels als de app)
+    const EI = o.eigen.map(e => e.id), v = (Array.isArray(c.volgorde) ? c.volgorde : []).filter((k, i, L) => (BLOKKEN.includes(k) || EI.includes(k)) && L.indexOf(k) === i);
+    const L = [...v, ...BLOKKEN.filter(k => !v.includes(k))];
+    for (const e of o.eigen) if (!L.includes(e.id)) { if (e.plaats === "boven") L.unshift(e.id); else if (e.plaats === "onder") L.push(e.id); else L.splice(Math.max(L.indexOf("viv"), L.indexOf("kalender")) + 1, 0, e.id); }
+    o.volgorde = L;
+  }
   o.fotos = {};
   for (const k of ["kalender", "viv", ...o.eigen.map(e => e.id)]) { const f = c.fotos && c.fotos[k]; if (f && typeof f.pad === "string" && (f.pad.startsWith("Website/") || /^\/w\/[\w.-]+\.(jpe?g|png|webp)$/i.test(f.pad))) o.fotos[k] = { pad: f.pad, v: String(f.v || "1").replace(/\W/g, "").slice(0, 20), w: Number(f.w) || 1600, h: Number(f.h) || 1067 }; }
   return o;
@@ -53,14 +58,16 @@ export function schoon(c) {
 export function bouw(tpl, c, basis) {
   let s = tpl;
   // onderdelen in de gekozen volgorde: elk blok krijgt de plaats van het blok dat daar oorspronkelijk stond
+  // alle onderdelen (vaste blokken en eigen onderdelen) in de gekozen volgorde op één plaats
   const volg = c.volgorde || BLOKKEN, stuk = {};
-  BLOKKEN.forEach((k, i) => { s = s.replace(new RegExp(`<!--blok:${k}-->[\\s\\S]*?<!--/blok:${k}-->`), m => { stuk[k] = m; return `<!--slot:${i}-->`; }); });
-  BLOKKEN.forEach((k, i) => { const n = volg[i]; s = s.replace(`<!--slot:${i}-->`, () => c.blokken[n] && stuk[n] ? stuk[n] : ""); });
+  BLOKKEN.forEach(k => { s = s.replace(new RegExp(`<!--blok:${k}-->[\\s\\S]*?<!--/blok:${k}-->`), m => { stuk[k] = m; return ""; }); });
+  for (const e of c.eigen) if (e.aan && (e.titel || e.tekst || c.fotos[e.id])) stuk[e.id] = "<!--eigenblok-->" + eigenHtml(e, c);
+  const alles = volg.filter(k => BLOKKEN.includes(k) ? c.blokken[k] && stuk[k] : stuk[k]).map(k => stuk[k]).join("\n");
+  s = s.replace("<!--eigen:boven-->", () => alles).replace("<!--eigen:midden-->", "").replace("<!--eigen:onder-->", "").split("<!--eigenblok-->").join("");
   for (const k of Object.keys(TEKST)) if (c[k]) s = s.replace(new RegExp(`(<[^>]*\\bdata-s="${k}"[^>]*>)[\\s\\S]*?(</)`), (m, a, b) => a + esc(c[k]) + b);
   // extra knoppen bij In Vier en Vlam en de kalenders, en de eigen onderdelen
   if (c.viv_knoppen.length) s = s.replace(/(<section class="hero viv[\s\S]*?<\/a>)(\s*<\/div>\s*<\/section>)/, (m, a, b) => a + knopHtml(c.viv_knoppen).replace('<div class="btns">', '<div class="btns extra">') + b);
   if (c.kal_knoppen.length) s = s.replace(/(<!--blok:kalender-->[\s\S]*?<\/a>)(\s*<\/div>\s*<\/section>)/, (m, a, b) => a + knopHtml(c.kal_knoppen).replace('<div class="btns">', '<div class="btns extra">') + b);
-  for (const p of ["boven", "midden", "onder"]) s = s.replace(`<!--eigen:${p}-->`, c.eigen.filter(e => e.aan && e.plaats === p && (e.titel || e.tekst || c.fotos[e.id])).map(e => eigenHtml(e, c)).join("\n"));
   // foto rechts van de tekst
   if (c.kal_fotokant === "rechts") s = s.replace(/(<!--blok:kalender-->\s*<section class=")hero"/, '$1hero rechts"');
   if (c.viv_fotokant === "rechts" && c.fotos.viv) s = s.replace('<section class="hero viv"', '<section class="hero viv rechts"');
