@@ -233,9 +233,11 @@ document.addEventListener("click",async e=>{const t=e.target.closest("button");i
   if(d.mok!=null){const n=($("#mn"+k.i).value||"").trim(),p=Number(String($("#mp"+k.i).value||"").replace(",","."));if(!n||!(p>0)){msg("Vul de naam en de prijs in.");return}
     E.items.push({...E.man,naam:n,prijs:Math.round(p*100)/100,auto:false});E.man=null;toon();return}
   if(d.save!=null||d.bon!=null){const kaartEl=t.closest(".card");kaartEl&&kaartEl.classList.add("wait");
-    try{const j=await api({actie:"bewaar",kind:k.i,...(d.bon!=null?{bon:true}:{items:E.items.map(x=>({url:x.url,naam:x.naam,prijs:x.prijs}))})});
+    try{const j=await api({actie:"bewaar",kind:k.i,...(d.bon!=null?{bon:true}:{items:E.items.map(x=>x.sig?{url:x.url,winkel:x.winkel,naam:x.naam,prijs:x.prijs,foto:x.foto,artikelnr:x.artikelnr,beschikbaar:x.beschikbaar,levertijd:x.levertijd,gecontroleerd:x.gecontroleerd,auto:true,sig:x.sig}:{url:x.url,naam:x.naam,prijs:x.prijs})})});
       const nieuw=j.kinderen.find(x=>x.i===k.i);V=j;ED[k.i]={items:nieuw.cadeau&&nieuw.cadeau.items?nieuw.cadeau.items.map(x=>({...x})):[],bewerk:false,man:null};for(const x of V.kinderen)if(!ED[x.i])ED[x.i]={items:[],bewerk:false,man:null};toon()}
     catch(x){kaartEl&&kaartEl.classList.remove("wait");msg(x.message)}}});
+// plakken van een link: meteen beginnen met ophalen (geen klik op Toevoegen nodig)
+document.addEventListener("paste",e=>{const t=e.target;if(!t.id||!/^u\d+$/.test(t.id))return;setTimeout(()=>{if(/^https?:\/\/(www\.)?(bol\.com|dreamland\.be)\//i.test((t.value||"").trim())){const b=document.querySelector(`[data-check="${t.id.slice(1)}"]`);b&&b.click()}},30)});
 document.addEventListener("keydown",e=>{const t=e.target;if(e.key==="Enter"&&t.id&&/^u\d+$/.test(t.id)){e.preventDefault();const b=document.querySelector(`[data-check="${t.id.slice(1)}"]`);b&&b.click()}});
 if(!ID||!TOK)$("#box").innerHTML='<div class="card"><p style="margin:0">Deze link is onvolledig. Gebruik de link uit de bevestigingsmail.</p></div>';
 else api().then(init).catch(x=>{$("#box").innerHTML=`<div class="card"><p style="margin:0">${esc(x.message)}</p></div>`});
