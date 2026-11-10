@@ -74,6 +74,11 @@ export async function inkomendOphalen(sb, { max = 25, test = false } = {}) {
         const m = leesMail(raw);
         const pdfs = m.bijlagen.filter(b => b.data && b.data.length > 1000 && isPdf(b));
         if (!pdfs.length) { laatste = uid; continue; }
+        // onze eigen uitgaande facturen (kopie naar de boekhouding) zijn geen inkomende facturen
+        const eigen = [FACTUUR_ADRES(), process.env.SMTP_NOREPLY_USER || "noreply@vbha.be", process.env.SMTP_USER || ""].map(x => String(x).trim().toLowerCase()).filter(Boolean);
+        if (eigen.includes(String(van.email || "").toLowerCase()) || pdfs.every(b => /^Vriendenkring-Brandweer-Hoofdpost-Aalst_(F|C|Aanmaning)/i.test(b.naam || "") || /^(Factuur|Creditnota|Aanmaning)[-_ ]?[FC]?\d{7}/i.test(b.naam || ""))) {
+          L.push({ op: new Date().toISOString(), van: van.email, onderwerp, status: "eigen factuur overgeslagen" }); laatste = uid; continue;
+        }
         const vanVertrouwd = vertrouwd.includes(van.email);
         const ok = !C.filter.aan || vanVertrouwd || lijktFactuur(onderwerp) || pdfs.some(b => lijktFactuur(b.naam));
         item = { op: new Date().toISOString(), van: van.email, onderwerp };
