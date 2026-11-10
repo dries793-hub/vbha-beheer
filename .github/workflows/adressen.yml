@@ -1,5 +1,10 @@
 name: Adressenregister ophalen
-on: workflow_dispatch
+# Haalt de openbare adressen van het gebied van de kalenderronde op (tools/adressen.mjs) en zet ze tijdelijk op de tak tmp-adressen.
+# Met opruimen=ja wordt die tijdelijke tak enkel verwijderd.
+on:
+  workflow_dispatch:
+    inputs:
+      opruimen: { description: "Enkel de tijdelijke tak verwijderen (ja/nee)", default: "nee" }
 permissions:
   contents: write
 jobs:
@@ -7,12 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - if: ${{ inputs.opruimen == 'ja' }}
+        run: git push origin --delete tmp-adressen || true
       - uses: actions/setup-node@v4
+        if: ${{ inputs.opruimen != 'ja' }}
         with: { node-version: 22 }
-      - run: node tools/adressen.mjs
-      - run: |
+      - if: ${{ inputs.opruimen != 'ja' }}
+        run: |
+          node tools/adressen.mjs
           git config user.name "adressen-bot"; git config user.email "adressen-bot@users.noreply.github.com"
           git checkout --orphan tmp-adressen
           git rm -rfq --cached . ; git add uit/
-          git commit -qm "Adressenregister Aalst (tijdelijk)"
+          git commit -qm "Adressenregister (tijdelijk)"
           git push -f origin tmp-adressen
