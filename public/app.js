@@ -5159,7 +5159,7 @@ function fuInst(){const c=fuCfg(),d=canWrite?"":" disabled",u=location.origin+"/
     <div class="pi-sec ka-qrs"><h4>Ticketpagina en QR-code voor de affiche</h4><p class="pi-note" style="margin:0 0 8px">Wie de QR-code scant, komt op de pagina om tickets te bestellen en met Bancontact te betalen.</p>
     <div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(u)}" onclick="this.select()"><button type="button" class="btn" data-act="kopieerLink" data-v="${esc(u)}">${ic("copy")}Kopiëren</button><a class="btn" href="/fuif" target="_blank" rel="noopener">Openen</a></div>
     <div class="ka-qr"><img alt="QR-code naar de ticketpagina" src="${kaQr(u,8)}" width="148" height="148"><div class="ka-qr-b"><span class="muted small">Voor de affiche, flyers of Facebook.</span><button type="button" class="btn sm" data-kaqr="kopie" data-v="${esc(u)}">${ic("copy")}QR kopiëren</button><button type="button" class="btn sm" data-kaqr="png" data-v="${esc(u)}" data-n="QR tickets ${esc(c.naam||"fuif")}">${ic("download")}QR downloaden</button></div></div></div>`,
-   `<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="fuOk">Bewaren</button>':""}`,{wide:true});
+   `${typeof kaAdm==="function"&&kaAdm()?`<button type="button" class="btn" data-ka="inst" data-act="fuif" style="margin-right:auto">${ic("kassa")}Kassategels en prijzen</button>`:""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="fuOk">Bewaren</button>':""}`,{wide:true});
   const dv=()=>{const e=$("#fuDV");if(!e)return;const k=Math.min(90,Math.max(0,Number(($("#fuDK").value||"").replace(",","."))||0)),W=($("#fuDW").value||"").split(/[^\d.,]+/).map(x=>Number(x.replace(",","."))).filter(x=>x>0);e.textContent=W.length?"Voorverkoopprijs: "+W.map(w=>"€"+w+" → "+fuEur(Math.round(w*(100-k))/100)).join(" · "):""};
   ["fuDW","fuDK"].forEach(i=>{const x=$("#"+i);if(x)x.addEventListener("input",dv)});dv();
   const ok=$("#fuOk");if(ok)ok.onclick=async()=>{const g=i=>($("#"+i).value||"").trim(),prijs=Math.round(Number(g("fuP").replace(",","."))*100)/100;
@@ -5390,7 +5390,7 @@ function kaTabBody(act,zonderKnoppen){const jaar=kaJaar(act),L=kaTrans(act,jaar)
 document.addEventListener("change",e=>{if(e.target.matches('[data-ka="alles"]')){KA_UI.alles=e.target.checked;renderBody()}});
 document.addEventListener("click",e=>{const t=e.target.closest("[data-ka]");if(!t||t.tagName==="INPUT")return;const a=t.dataset.ka;
   if(a==="open"){e.preventDefault();kaOpen(t.dataset.act||null)}
-  else if(a==="inst"){e.preventDefault();kassaInst(t.dataset.act||null)}
+  else if(a==="inst"){e.preventDefault();kassaInst(t.dataset.act||(route()==="kassa"&&KA_UI.det)||null)}
   else if(a==="wis"){e.preventDefault();const r=S.kassa.get(t.dataset.id);if(!r)return;
     confirmBox(`Deze transactie van <b>${kaEur(r.bedrag)}</b> (${r.betaalwijze==="cash"?"cash":"Bancontact"}) definitief wissen? Ze telt dan niet meer mee in de totalen.<br><small class="muted">Een Bancontact-betaling wordt hiermee niet teruggestort.</small>`,"Wissen",async()=>{try{await api("/api/mail?f=kassa",{method:"POST",body:JSON.stringify({actie:"wis",id:r.id})});S.kassa.delete(r.id);toast("Transactie gewist.");render(true)}catch(x){toast(x.message,true)}})}});
 
