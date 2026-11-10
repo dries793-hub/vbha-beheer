@@ -4572,7 +4572,7 @@ function bhSec(soort){const c=bhCfg(),d=canWrite?"":" disabled",B=c.banket,L=c.l
     ${fld("bh"+k+"i","Daarna",bhSel("bh"+k+"i",R.interval,soort==="banket"?[3,4,5,7,10,14]:[7,10,14,21,30],n=>"om de "+bhDg(n),d))}
     ${fld("bh"+k+"m","Maximum aantal",bhSel("bh"+k+"m",R.max,[1,2,3],n=>n+" herinnering"+(n===1?"":"en"),d))}
     ${fld("bh"+k+"u","Versturen vanaf",bhSel("bh"+k+"u",c.uur,[7,8,9,10,11,12,13,14,15,16,17,18,19,20],n=>n+"u00",d))}
-    <div class="full bh-vb"><button type="button" class="btn sm" data-bhvb="${soort}">Wie krijgt een herinnering?</button><div class="bh-res"></div></div>
+
   </div></div>`}
 async function bhBewaarSec(soort){const v=s=>Number($(s).value),k=soort==="banket"?"B":"L";if(!$("#bh"+k+"a"))return;
   if(soort==="lidgeld"&&!$("#bhLv").value)throw new Error("Vul de betalingstermijn voor het lidgeld in.");
