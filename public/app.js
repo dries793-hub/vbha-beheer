@@ -348,7 +348,9 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   const actief=st.GOUD+st.ZILVER+st.BRONS;
   const nieuw=cur.filter(r=>r.lid.lidSinds===JAAR).length;
   const jub=cur.filter(r=>r.jaren===25).sort((a,b)=>(a.lid.naam||"").localeCompare(b.lid.naam||"","nl"));
-  const cats=Object.entries(C.perCat).map(([k,v])=>({k,net:v.in-v.uit,...v})).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net));
+  const cats0=Object.entries(C.perCat).map(([k,v])=>({k,net:v.in-v.uit,...v})).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net));
+  const andJ=c=>{const m=String(c.k).match(/\b(19|20)\d{2}\b/g);return !!m&&!m.includes(String(JAAR))};
+  const cats=cats0.filter(c=>!andJ(c));{const A=cats0.filter(andJ);if(A.length){const o={k:"Andere jaren",net:0,in:0,uit:0,andere:A.map(c=>c.k)};for(const c of A){o.net+=c.net;o.in+=c.in||0;o.uit+=c.uit||0}o.net=Math.round(o.net*100)/100;cats.push(o)}}
   const maxNet=Math.max(1,...cats.map(c=>Math.abs(c.net)));
   const top=cur.filter(r=>r.lg.ok&&r.lid.categorie!=="Erewacht"&&r.p.totaal>0).sort((a,b)=>b.p.totaal-a.p.totaal).slice(0,10);
   const recent=C.boek.slice(-6).reverse();
@@ -379,7 +381,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   <div class="grid g2 eq">
     <div class="panel"><div class="panel-h"><h2>Saldo</h2><div class="seg sp-per" role="radiogroup" aria-label="Periode">${SALDO_PERS.map(([k,l])=>`<button type="button" class="${saldoPer()===k?"on":""}" data-saldo-per="${k}" aria-pressed="${saldoPer()===k}">${l}</button>`).join("")}</div></div><div class="panel-b">${(window.DASH_NCAT=cats.length,saldoChart(C))}</div></div>
     <div class="panel bk-cats"><div class="panel-h"><h2>Resultaat per categorie</h2></div><div class="panel-b">
-      ${cats.length?`<div class="dcats">${cats.map(c=>`<a class="dcat" href="#boekingen" data-act="filterCat" data-v="${esc(c.k)}"><span class="trunc">${esc(c.k)}</span><span class="dtrack"><span style="width:${Math.max(1.5,Math.abs(c.net)/maxNet*100)}%;background:var(--${c.net>=0?"good":"bad"})"></span></span><b class="${c.net>=0?"in":"out"}">${sgn(c.net)}</b></a>`).join("")}
+      ${cats.length?`<div class="dcats">${cats.map(c=>c.andere?`<div class="dcat" title="${esc(c.andere.join(", "))}"><span class="trunc muted">Andere jaren (${c.andere.length})</span><span class="dtrack"><span style="width:${Math.max(1.5,Math.abs(c.net)/maxNet*100)}%;background:var(--line-strong)"></span></span><b class="${c.net>=0?"in":"out"}">${sgn(c.net)}</b></div>`:`<a class="dcat" href="#boekingen" data-act="filterCat" data-v="${esc(c.k)}"><span class="trunc">${esc(c.k)}</span><span class="dtrack"><span style="width:${Math.max(1.5,Math.abs(c.net)/maxNet*100)}%;background:var(--${c.net>=0?"good":"bad"})"></span></span><b class="${c.net>=0?"in":"out"}">${sgn(c.net)}</b></a>`).join("")}
       <div class="dcat tot"><span>Resultaat ${JAAR}</span><span></span><b class="${C.tin-C.tuit>=0?"in":"out"}">${sgn(C.tin-C.tuit)}</b></div></div>`:'<div class="empty">Nog geen transacties in '+JAAR+'.</div>'}
     </div></div>
   </div>
