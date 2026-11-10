@@ -1,5 +1,7 @@
 name: Adressenregister ophalen
 on: workflow_dispatch
+permissions:
+  contents: write
 jobs:
   ophalen:
     runs-on: ubuntu-latest
@@ -8,5 +10,9 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: node tools/adressen.mjs
-      - uses: actions/upload-artifact@v4
-        with: { name: adressen, path: uit/, retention-days: 3 }
+      - run: |
+          git config user.name "adressen-bot"; git config user.email "adressen-bot@users.noreply.github.com"
+          git checkout --orphan tmp-adressen
+          git rm -rfq --cached . ; git add uit/
+          git commit -qm "Adressenregister Aalst (tijdelijk)"
+          git push -f origin tmp-adressen
