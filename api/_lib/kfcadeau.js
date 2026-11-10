@@ -115,14 +115,16 @@ export async function zyteInfo(u) {
   return { naam: p.name ? ont(p.name).slice(0, 200) : null, prijs: getal(p.price), foto: (p.mainImage && p.mainImage.url) || (Array.isArray(p.images) && p.images[0] && p.images[0].url) || null,
     artikelnr: String(gt || p.sku || p.mpn || "").slice(0, 40) || null, beschikbaar: av === "instock" ? true : av === "outofstock" ? false : null, url: p.canonicalUrl || p.url || null };
 }
-// zoekpagina via Zyte: lijst met producten (productNavigation)
+// zoekpagina via Zyte in een echte browser: links naar productpagina's
 async function zyteNav(url) {
   const r = await fetch("https://api.zyte.com/v1/extract", { method: "POST", signal: AbortSignal.timeout(55000),
     headers: { Authorization: "Basic " + Buffer.from(String(process.env.ZYTE_API_KEY).trim() + ":").toString("base64"), "Content-Type": "application/json" },
-    body: JSON.stringify({ url, productNavigation: true, productNavigationOptions: { extractFrom: "browserHtml" }, geolocation: "BE" }) });
+    body: JSON.stringify({ url, browserHtml: true, geolocation: "BE" }) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error("zyte " + r.status);
-  return { items: ((j.productNavigation && j.productNavigation.items) || []).map(x => ({ url: x.url, naam: x.name || null })), url: j.url || url };
+  const h = String(j.browserHtml || ""), basis = new URL(j.url || url);
+  const items = [...new Set([...h.matchAll(/href="([^"]*(?:\/producten\/|\/p\/)[^"]*)"/g)].map(m => { try { return new URL(m[1].replace(/&amp;/g, "&"), basis).toString(); } catch { return null; } }).filter(Boolean))].map(u => ({ url: u }));
+  return { items, url: j.url || url };
 }
 /* Hetzelfde product (zelfde EAN) bij de andere winkel zoeken en de prijs teruggeven. */
 const ZOEK = { "bol.com": e => `https://www.bol.com/be/nl/s/?searchtext=${e}`, "Dreamland": e => `https://www.dreamland.be/nl/zoeken?q=${e}` };
