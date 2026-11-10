@@ -2257,7 +2257,9 @@ const vgBestuur=v=>/bestuur/i.test((v&&v.soort)||"");
 const vgInMail=v=>vgBestuur(v)?false:typeof v.inMail==="boolean"?v.inMail:/algemene/i.test(v.soort||"");
 const agMailVink=(id,aan)=>`<label class="sp-nat full" for="${id}"><input type="checkbox" id="${id}"${aan?" checked":""}${canWrite?"":" disabled"}><span><b>Opnemen in de activiteitenmail</b></span></label>`;
 /* welke kassa hoort bij een activiteit: zelf gekozen, anders afgeleid uit de titel */
-function agKassa(a){/* de kassa volgt altijd uit de naam van de activiteit */const t=norm((a&&a.titel)||"");return /jaarmarkt/.test(t)?"jaarmarkt":/vier en vlam|fuif/.test(t)?"fuif":/kinderfeest/.test(t)?"kinderfeest":""}
+/* kassa van een activiteit: Jaarmarkt / In Vier en Vlam / Kinderfeest herkend op naam (eigen vaste kassa), elke andere activiteit
+   met "Kassa gebruiken" krijgt een eigen kassa "a-<id>". Vinkje uit (metKassa:false) = geen kassa. */
+function agKassa(a){if(!a||a.metKassa===false)return"";const t=norm(a.titel||"");return /jaarmarkt/.test(t)?"jaarmarkt":/vier en vlam|fuif/.test(t)?"fuif":/kinderfeest/.test(t)?"kinderfeest":a.metKassa===true&&a.id?"a-"+a.id:""}
 function agItems(){const out=[];
   for(const a of S.activiteiten.values())if(a.datum)out.push({id:a.id,t:"act",datum:a.datum,uur:a.uur||"",titel:a.titel||"Activiteit",locatie:a.locatie||"",info:a.info||"",inMail:a.inMail!==false,shift:a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length>0),kassa:agKassa(a)});
   for(const v of S.vergaderingen.values())if(v.datum)out.push({id:v.id,t:"verg",datum:v.datum,uur:v.uur||"",titel:v.titel||v.soort||"Vergadering",locatie:v.locatie||"",inMail:vgInMail(v)});
@@ -2312,10 +2314,10 @@ function agForm(a,id){const d=canWrite?"":" disabled";a=a||{};
    ${fld("agT","Wat",inp("agT",a.titel,'maxlength="120" placeholder="bv. Jaarmarkt, Paasmaandagwandeling"'+d),"full")}
    ${fld("agD","Datum",`<input id="agD" type="date" value="${esc(a.datum||AG.dag||todayISO())}"${d}>`)}${uurVeld("agU",a.uur,d)}
    ${fld("agL","Waar",inp("agL",a.locatie,'maxlength="160"'+d),"full")}
-   ${fld("agI","Meer info",`<textarea id="agI" class="ag-info" rows="3" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false)}<label class="sp-nat full" for="agS"><input type="checkbox" id="agS"${a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length)?" checked":""}${canWrite?"":" disabled"}><span><b>Gebruiken in shiften</b></span></label><div class="err full" id="agErr"></div></form>`,
-   `${id&&canWrite?'<button class="btn danger" id="agDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="agOk">Bewaren</button>':""}`);
+   ${fld("agI","Meer info",`<textarea id="agI" class="ag-info" rows="3" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false)}<label class="sp-nat full" for="agS"><input type="checkbox" id="agS"${a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length)?" checked":""}${canWrite?"":" disabled"}><span><b>Gebruiken in shiften</b></span></label><label class="sp-nat full" for="agKa"><input type="checkbox" id="agKa"${agKassa({...a,id:id||"x"})?" checked":""}${canWrite?"":" disabled"}><span><b>Kassa gebruiken</b></span></label><div class="err full" id="agErr"></div></form>`,
+   `${id&&canWrite?'<button class="btn danger" id="agDel" style="margin-right:auto">Verwijderen</button>':""}${id&&agKassa({...a,id})&&typeof kaAdm==="function"&&kaAdm()?`<button type="button" class="btn" data-ka="inst" data-act="${esc(agKassa({...a,id}))}">${ic("kassa")}Kassategels</button>`:""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="agOk">Bewaren</button>':""}`);
   if(!canWrite)return;
-  $("#agOk").onclick=async()=>{const r={titel:$("#agT").value.trim(),datum:$("#agD").value,uur:$("#agU").value.trim(),locatie:$("#agL").value.trim(),info:$("#agI").value.trim(),inMail:$("#agM").checked,metShiften:$("#agS").checked};
+  $("#agOk").onclick=async()=>{const r={titel:$("#agT").value.trim(),datum:$("#agD").value,uur:$("#agU").value.trim(),locatie:$("#agL").value.trim(),info:$("#agI").value.trim(),inMail:$("#agM").checked,metShiften:$("#agS").checked,metKassa:$("#agKa").checked};
     if(!r.titel){$("#agErr").textContent="Vul in wat er te doen is.";return}if(!/^\d{4}-\d{2}-\d{2}$/.test(r.datum)){$("#agErr").textContent="Kies een datum.";return}
     closeModal();const o={...(id?stripId(S.activiteiten.get(id)||{}):{}),...r};delete o.kassa;await write("activiteiten",id||agId("act"),o);toast("Activiteit bewaard.")};
   const del=$("#agDel");if(del)del.onclick=()=>confirmBox(`<b>${esc(a.titel||"Deze activiteit")}</b> verwijderen?`,"Verwijderen",async()=>{await write("activiteiten",id,null,{del:true});toast("Activiteit verwijderd.")})}
@@ -5332,7 +5334,16 @@ function kassaIcoon(k,kl){var p=KASSA_ICONEN[k];return p?'<svg viewBox="0 0 24 2
 /* ============ Kassa (Financiën › Kassa, en een tab Kassa bij In Vier en Vlam, Kinderfeest en Jaarmarkt) ============
    Config "kassa": {actief, scan, code:{code,sinds}, activiteiten:{<act>:{tegels:[{id,naam,prijs,kleur,icoon,inkom}]}}}
    Transacties in de collectie "kassa" (zie api/_lib/kassa.js). Openbare kassa: /kassa (gastlogin met kassacode, 1 dag geldig). */
-const KA_ACTS={fuif:"In Vier en Vlam",kinderfeest:"Kinderfeest",jaarmarkt:"Jaarmarkt"};
+const KA_VAST={fuif:"In Vier en Vlam",kinderfeest:"Kinderfeest",jaarmarkt:"Jaarmarkt"};
+/* kassa's: de vaste (fuif, kinderfeest, jaarmarkt) + elke activiteit uit de agenda met "Kassa gebruiken" (sleutel "a-<id>") */
+function kaActs(){const o={...KA_VAST},L=[...((S&&S.activiteiten)||new Map()).values()].filter(a=>a.datum).sort((x,y)=>String(y.datum).localeCompare(String(x.datum)));
+  for(const a of L){const k=agKassa(a);if(k&&!o[k])o[k]=a.titel||"Activiteit"}return o}
+const kaEigen=act=>/^a-/.test(String(act||""))?S.activiteiten.get(String(act).slice(2)):null;
+/* datum van de activiteit achter een kassa */
+function kaDatum(act){if(act==="fuif")return typeof fuCfg==="function"?fuCfg().datum||"":"";if(act==="kinderfeest")return typeof kfCfg==="function"?kfCfg().datum||"":"";
+  if(act==="jaarmarkt"){const L=[...((S&&S.activiteiten)||new Map()).values()].filter(a=>a.datum&&agKassa(a)==="jaarmarkt").map(a=>a.datum).sort(),t=todayISO();return L.find(d=>d>=t)||L[L.length-1]||""}
+  const a=kaEigen(act);return a&&a.datum||""}
+function kaCatDef(act){if(KA_CAT[act])return KA_CAT[act];const a=kaEigen(act),t=a&&a.titel;const C=typeof catList==="function"?catList(ctx()):[];return t&&C.includes(t)?t:"Andere opbrengsten"}
 ICON.kassa='<rect x="3" y="10" width="18" height="10" rx="2"/><path d="M6 10V5h8v5M8 7h4M7 14h2M11 14h2M15 14h2M7 17h10"/>';
 ICON.jaarmarkt='<path d="M3 10l2-6h14l2 6"/><path d="M3 10c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3"/><path d="M5 13v7h14v-7"/>';
 if(!COLS.includes("kassa")){COLS.push("kassa");S.kassa=new Map()}
@@ -5348,7 +5359,7 @@ function kaStandaard(act){const f=(S.config&&S.config.get("fuif"))||{};
   if(act==="kinderfeest")return[{id:kaId(),naam:"Frisdrank",prijs:1.5,kleur:"blauw",icoon:"frisdrank"},{id:kaId(),naam:"Koffie",prijs:1.5,kleur:"bruin",icoon:"koffie"},{id:kaId(),naam:"Taart",prijs:2,kleur:"roze",icoon:"taart"}];
   return[{id:kaId(),naam:"Bier",prijs:2.5,kleur:"goud",icoon:"bier"},{id:kaId(),naam:"Frisdrank",prijs:2,kleur:"blauw",icoon:"frisdrank"},{id:kaId(),naam:"Koffie",prijs:2,kleur:"bruin",icoon:"koffie"}]}
 const kaTegels=act=>{const a=(kaCfg().activiteiten||{})[act];return Array.isArray(a&&a.tegels)?a.tegels:kaStandaard(act)};
-const kaJaar=act=>act==="fuif"&&typeof fuJaar==="function"?fuJaar():JAAR;
+const kaJaar=act=>act==="fuif"&&typeof fuJaar==="function"?fuJaar():kaEigen(act)?(Number(String(kaEigen(act).datum).slice(0,4))||JAAR):JAAR;
 function kaTrans(act,jaar){return [...(S.kassa||new Map()).values()].filter(t=>(!act||t.activiteit===act)&&(jaar==null||Number(t.jaar)===Number(jaar))).sort((a,b)=>String(b.aangemeld||"").localeCompare(String(a.aangemeld||"")))}
 function kaTot(L){const B=L.filter(t=>t.status==="betaald"),per=new Map();let bc=0,cash=0;
   for(const t of B){for(const i of t.items||[]){const p=per.get(i.naam)||{n:0,b:0};p.n+=Number(i.aantal)||0;p.b+=(Number(i.aantal)||0)*(Number(i.prijs)||0);per.set(i.naam,p)}if(t.betaalwijze==="cash")cash+=Number(t.bedrag)||0;else bc+=Number(t.bedrag)||0}
@@ -5362,17 +5373,17 @@ async function kaBewaar(patch){const c=kaCfg(),r={...stripId(c),...patch};S.conf
 async function kaNieuweCode(){const abc="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",x=new Uint32Array(6);crypto.getRandomValues(x);const code=[...x].map(v=>abc[v%32]).join("");await kaBewaar({code:{code,sinds:new Date().toISOString(),door:ME_NAME||""}});return code}
 
 /* ---------- kassa openen (met de juiste activiteit) ---------- */
-function kaOpen(act){const c=kaCfg(),actief=KA_ACTS[c.actief]?c.actief:"fuif",code=kaGeldig();
+function kaOpen(act){const c=kaCfg(),actief=kaActs()[c.actief]?c.actief:"fuif",code=kaGeldig();
   const ga=async w=>{try{if(act&&act!==actief)await kaBewaar({actief:act});let k=code;if(!k)k=await kaNieuweCode();const u="/kassa?code="+encodeURIComponent(k);if(w&&!w.closed)w.location=u;else location.href=u;if(!code)toast("Nieuwe kassacode: "+k+" (1 dag geldig)")}catch(e){if(w)w.close();toast(e.message,true)}};
-  if((act&&act!==actief)||!code){if(!kaAdm()){toast(!code?"Er is geen geldige kassacode. Vraag een administrator om de kassa te openen.":"De kassa staat op "+KA_ACTS[actief]+". Vraag een administrator om over te schakelen.",true);return}
-    confirmBox([act&&act!==actief?`De kassa staat nu op <b>${esc(KA_ACTS[actief])}</b>. Overschakelen naar <b>${esc(KA_ACTS[act])}</b>?`:"",!code?"Er wordt een nieuwe kassacode aangemaakt (1 dag geldig).":""].filter(Boolean).join("<br><br>"),"Kassa openen",()=>{const w=window.open("","_blank");ga(w)});return}
+  if((act&&act!==actief)||!code){if(!kaAdm()){toast(!code?"Er is geen geldige kassacode. Vraag een administrator om de kassa te openen.":"De kassa staat op "+kaActs()[actief]+". Vraag een administrator om over te schakelen.",true);return}
+    confirmBox([act&&act!==actief?`De kassa staat nu op <b>${esc(kaActs()[actief])}</b>. Overschakelen naar <b>${esc(kaActs()[act])}</b>?`:"",!code?"Er wordt een nieuwe kassacode aangemaakt (1 dag geldig).":""].filter(Boolean).join("<br><br>"),"Kassa openen",()=>{const w=window.open("","_blank");ga(w)});return}
   window.open("/kassa?code="+encodeURIComponent(code),"_blank","noopener")}
 
 /* ---------- tab Kassa (per activiteit) ---------- */
 const KA_UI={tab:{},alles:false};
 function kaTabBar(route,act,eerste){const t=KA_UI.tab[route]||"hoofd";return `<div class="ka-tabs" role="tablist"><button type="button" role="tab" data-katab="${route}" data-v="hoofd" class="${t==="hoofd"?"on":""}">${esc(eerste)}</button><button type="button" role="tab" data-katab="${route}" data-v="kassa" class="${t==="kassa"?"on":""}">${ic("kassa")}Kassa</button></div>`}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-katab]");if(!b)return;KA_UI.tab[b.dataset.katab]=b.dataset.v;renderBody()});
-function kaTabBody(act,zonderKnoppen){const jaar=kaJaar(act),L=kaTrans(act,jaar),T=kaTot(L),c=kaCfg(),actief=(KA_ACTS[c.actief]?c.actief:"fuif")===act,adm=kaAdm();
+function kaTabBody(act,zonderKnoppen){const jaar=kaJaar(act),L=kaTrans(act,jaar),T=kaTot(L),c=kaCfg(),actief=(kaActs()[c.actief]?c.actief:"fuif")===act,adm=kaAdm();
   const tijd=s=>new Date(s).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
   const toon=KA_UI.alles?L:T.B,per=[...T.per.entries()].sort((a,b)=>b[1].b-a[1].b);
   return `${zonderKnoppen?"":`<div class="ka-kop"><div></div>
@@ -5403,26 +5414,26 @@ VIEWS.jaarmarkt=()=>({title:"Jaarmarkt",sub:"Kassa jaarmarkt",actions:`${kaAdm()
 /* ---------- Financiën › Kassa ---------- */
 VIEWS.kassa=()=>({title:"Kassa",sub:"Verkoop aan de kassa",
   actions:`<button class="btn primary" data-ka="open">${ic("kassa")}Kassa openen</button>${kaAdm()?`<button class="btn iconbtn" data-ka="inst" aria-label="Instellingen kassa" title="Instellingen kassa">${ic("instellingen")}</button>`:""}`,
-  body(){const c=kaCfg(),actief=KA_ACTS[c.actief]?c.actief:"fuif",code=kaCode(),tot=kaCodeTot(code);
-    if(KA_UI.det&&KA_ACTS[KA_UI.det]){const d=KA_UI.det;return `<div class="bar" style="margin-bottom:12px"><button type="button" class="btn" data-katerug>‹ Alle activiteiten</button><h2 style="margin:0;font-size:18px">${esc(KA_ACTS[d])} ${kaJaar(d)}</h2></div>`+kaTabBody(d,true)}
-    const kaart=act=>{const T=kaTot(kaTrans(act,kaJaar(act)));return `<a class="ka-ov" href="#kassa" data-katoon="${act}"><span class="ka-ov-i">${ic(act==="fuif"?"fuif":act==="kinderfeest"?"kinderfeest":"jaarmarkt")}</span><span class="ka-ov-m"><b>${esc(KA_ACTS[act])}${act===actief?' <span class="pill ok">actief</span>':""}</b><small>${kaJaar(act)} · ${T.B.length} ${T.B.length===1?"verkoop":"verkopen"} · Bancontact ${kaEur(T.bc)} · cash ${kaEur(T.cash)}</small></span><span class="ka-ov-t">${kaEur(T.tot)}</span><span class="ml-chev" aria-hidden="true">›</span></a>`};
-    return `<div class="tiles ka-st2"><div class="tile"><span class="lbl">Actieve activiteit</span><span class="val">${esc(KA_ACTS[actief])}</span></div>
+  body(){const c=kaCfg(),actief=kaActs()[c.actief]?c.actief:"fuif",code=kaCode(),tot=kaCodeTot(code);
+    if(KA_UI.det&&kaActs()[KA_UI.det]){const d=KA_UI.det;return `<div class="bar" style="margin-bottom:12px"><button type="button" class="btn" data-katerug>‹ Alle activiteiten</button><h2 style="margin:0;font-size:18px">${esc(kaActs()[d])} ${kaJaar(d)}</h2></div>`+kaTabBody(d,true)}
+    const kaart=act=>{const T=kaTot(kaTrans(act,kaJaar(act)));return `<a class="ka-ov" href="#kassa" data-katoon="${act}"><span class="ka-ov-i">${ic(act==="fuif"?"fuif":act==="kinderfeest"?"kinderfeest":act==="jaarmarkt"?"jaarmarkt":"kassa")}</span><span class="ka-ov-m"><b>${esc(kaActs()[act])}${act===actief?' <span class="pill ok">actief</span>':""}</b><small>${kaDatum(act)?esc(fmtDate(kaDatum(act))):kaJaar(act)} · ${T.B.length} ${T.B.length===1?"verkoop":"verkopen"} · Bancontact ${kaEur(T.bc)} · cash ${kaEur(T.cash)}</small></span><span class="ka-ov-t">${kaEur(T.tot)}</span><span class="ml-chev" aria-hidden="true">›</span></a>`};
+    return `<div class="tiles ka-st2"><div class="tile"><span class="lbl">Actieve activiteit</span><span class="val">${esc(kaActs()[actief])}</span></div>
       <div class="tile"><span class="lbl">Kassacode</span>${code&&tot>Date.now()?`<span class="val" style="font-family:ui-monospace,Menlo,monospace;letter-spacing:.12em">${esc(code.code)}</span><span class="hint">tot ${esc(new Date(tot).toLocaleString("nl-BE",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))}</span>`:'<span class="val">geen</span>'}</div></div>
-    <div class="panel"><div class="panel-h"><h2>Overzicht per activiteit</h2></div><div class="ka-ovl">${Object.keys(KA_ACTS).map(kaart).join("")}</div></div>`}});
+    <div class="panel"><div class="panel-h"><h2>Overzicht per activiteit</h2></div><div class="ka-ovl">${Object.keys(kaActs()).sort((x,y)=>(kaDatum(x)||"9999").localeCompare(kaDatum(y)||"9999")).map(kaart).join("")}</div></div>`}});
 
 /* ---------- instellingen: activiteit, scannen, kassacode en tegels ---------- */
 const KA_ED={act:"fuif",tegels:{},open:null};
-function kassaInst(act){const c=kaCfg();KA_ED.act=act||(KA_ACTS[c.actief]?c.actief:"fuif");KA_ED.tegels={};for(const a of Object.keys(KA_ACTS))KA_ED.tegels[a]=kaTegels(a).map(t=>({...t}));KA_ED.open=null;KA_ED.actief=KA_ACTS[c.actief]?c.actief:"fuif";KA_ED.scan=c.scan!==false;KA_ED.mode=act?"tegels":"algemeen";
-  modal(act?"Kassategels · "+KA_ACTS[act]:"Instellingen kassa",`<div id="kaEd"></div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kaOk">Bewaren</button>`,{wide:true});kaEdTeken();
+function kassaInst(act){const c=kaCfg();KA_ED.act=act||(kaActs()[c.actief]?c.actief:"fuif");KA_ED.tegels={};for(const a of Object.keys(kaActs()))KA_ED.tegels[a]=kaTegels(a).map(t=>({...t}));KA_ED.open=null;KA_ED.actief=kaActs()[c.actief]?c.actief:"fuif";KA_ED.scan=c.scan!==false;KA_ED.mode=act?"tegels":"algemeen";
+  modal(act?"Kassategels · "+kaActs()[act]:"Instellingen kassa",`<div id="kaEd"></div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kaOk">Bewaren</button>`,{wide:true});kaEdTeken();
   $("#kaOk").onclick=async()=>{if(KA_ED.mode==="algemeen"){closeModal();await kaBewaar({actief:KA_ED.actief,scan:KA_ED.scan});toast("Kassa-instellingen bewaard. De kassa neemt ze binnen een minuut over.");render(true);return}
-    const fout=[];for(const [a,L] of Object.entries(KA_ED.tegels))if(a===KA_ED.act)L.forEach((t,i)=>{if(!String(t.naam||"").trim())fout.push(`${KA_ACTS[a]}: tegel ${i+1} heeft geen naam`);if(String(t.prijs??"").trim()===""||!(Number(t.prijs)>=0))fout.push(`${KA_ACTS[a]}: ${t.naam||"tegel "+(i+1)} heeft geen geldige prijs`)});
+    const fout=[];for(const [a,L] of Object.entries(KA_ED.tegels))if(a===KA_ED.act)L.forEach((t,i)=>{if(!String(t.naam||"").trim())fout.push(`${kaActs()[a]}: tegel ${i+1} heeft geen naam`);if(String(t.prijs??"").trim()===""||!(Number(t.prijs)>=0))fout.push(`${kaActs()[a]}: ${t.naam||"tegel "+(i+1)} heeft geen geldige prijs`)});
     if(fout.length){$("#kaErr").innerHTML=fout.map(esc).join("<br>");return}
-    const acts={};for(const [a,L] of Object.entries(KA_ED.tegels))acts[a]={tegels:L.map(t=>({id:t.id,naam:String(t.naam).trim().slice(0,40),prijs:Math.round(Number(t.prijs)*100)/100,kleur:t.kleur||"grijs",icoon:t.icoon||"",...(t.categorie&&t.categorie!==KA_CAT[a]?{categorie:String(t.categorie).trim().slice(0,60)}:{}),...(t.inkom?{inkom:true}:{})}))};
+    const acts={};for(const [a,L] of Object.entries(KA_ED.tegels))acts[a]={tegels:L.map(t=>({id:t.id,naam:String(t.naam).trim().slice(0,40),prijs:Math.round(Number(t.prijs)*100)/100,kleur:t.kleur||"grijs",icoon:t.icoon||"",...((c=>c&&c!==KA_CAT[a]?{categorie:String(c).trim().slice(0,60)}:{})(t.categorie||(/^a-/.test(a)?kaCatDef(a):""))),...(t.inkom?{inkom:true}:{})}))};
     closeModal();await kaBewaar({activiteiten:{...(kaCfg().activiteiten||{}),[KA_ED.act]:acts[KA_ED.act]}});toast("Kassategels bewaard. De kassa neemt ze binnen een minuut over.");render(true)}}
 function kaEdTeken(){const E=KA_ED,L=E.tegels[E.act]||[],code=kaCode(),tot=kaCodeTot(code),geldig=code&&tot>Date.now(),u=location.origin+"/kassa"+(geldig?"?code="+code.code:"");
   const kl=k=>(KASSA_KLEUREN[k]||KASSA_KLEUREN.grijs);
-  $("#kaEd").innerHTML=`${E.mode==="tegels"?"":`<div class="pi-sec"><h4>Actieve kassa</h4><div class="seg ka-seg" role="radiogroup">${Object.entries(KA_ACTS).map(([a,n])=>`<button type="button" class="${E.actief===a?"on":""}" data-kae="actief" data-v="${a}">${esc(n)}</button>`).join("")}</div>
-      <div class="spi-st" style="margin-top:12px"><div class="spi-st-r"><label class="spi-sw" for="kaScan"><input type="checkbox" id="kaScan" role="switch"${E.scan?" checked":""}><span class="spi-sw-t" aria-hidden="true"></span><b>Scanfunctie (tickets en drankkaarten)</b></label></div><small class="muted" style="display:block;margin-top:4px">Tickets en drankkaarten scannen, bij elke activiteit. Uit = de kassa toont alleen Verkopen.</small></div></div>`}
+  $("#kaEd").innerHTML=`${E.mode==="tegels"?"":`<div class="pi-sec"><h4>Actieve kassa</h4><div class="seg ka-seg" role="radiogroup">${Object.entries(kaActs()).map(([a,n])=>`<button type="button" class="${E.actief===a?"on":""}" data-kae="actief" data-v="${a}">${esc(n)}</button>`).join("")}</div>
+      <div class="spi-st" style="margin-top:12px"><div class="spi-st-r"><label class="spi-sw" for="kaScan"><input type="checkbox" id="kaScan" role="switch"${E.scan?" checked":""}><span class="spi-sw-t" aria-hidden="true"></span><b>Scanfunctie</b></label></div></div></div>`}
     ${E.mode!=="tegels"?"":(()=>`<div class="pi-sec">
       <div class="ka-tl">${L.map((t,i)=>{const [k,b]=kl(t.kleur);return `<div class="ka-t" data-i="${i}">
         <div class="ka-t-r"><button type="button" class="ka-prev" style="--k:${k};--b:${b}" data-kae="icoon" data-i="${i}" title="Icoon kiezen" aria-label="Icoon kiezen">${kassaIcoon(t.icoon,k)||'<span style="font-size:11px;color:var(--muted)">icoon</span>'}</button>
@@ -5430,10 +5441,10 @@ function kaEdTeken(){const E=KA_ED,L=E.tegels[E.act]||[],code=kaCode(),tot=kaCod
           <span class="ka-p"><span>€</span><input data-kae="prijs" data-i="${i}" value="${esc(String(t.prijs??"").replace(".",","))}" inputmode="decimal" aria-label="Prijs"></span>
           <span class="ka-mv"><button type="button" data-kae="op" data-i="${i}" aria-label="Omhoog"${i?"":" disabled"}>↑</button><button type="button" data-kae="neer" data-i="${i}" aria-label="Omlaag"${i<L.length-1?"":" disabled"}>↓</button></span>
           <button type="button" class="fu-x" data-kae="weg" data-i="${i}" aria-label="Tegel verwijderen" title="Verwijderen">×</button></div>
-        <div class="ka-kl">${Object.entries(KASSA_KLEUREN).map(([n,[c]])=>`<button type="button" class="${t.kleur===n?"on":""}" style="background:${c}" data-kae="kleur" data-i="${i}" data-v="${n}" aria-label="Kleur ${n}" title="${n}"></button>`).join("")}<input class="ka-cat" data-kae="cat" data-i="${i}" list="kaCats" value="${esc(t.categorie||"")}" placeholder="Categorie: ${esc(KA_CAT[E.act]||"")}" maxlength="60" aria-label="Categorie in de boekhouding" title="Categorie in de boekhouding (leeg = ${esc(KA_CAT[E.act]||"")})">${E.act==="fuif"?`<label class="cbx small muted" style="margin-left:auto"><input type="checkbox" data-kae="inkom" data-i="${i}"${t.inkom?" checked":""}>telt als inkom</label>`:""}</div>
+        <div class="ka-kl">${Object.entries(KASSA_KLEUREN).map(([n,[c]])=>`<button type="button" class="${t.kleur===n?"on":""}" style="background:${c}" data-kae="kleur" data-i="${i}" data-v="${n}" aria-label="Kleur ${n}" title="${n}"></button>`).join("")}<input class="ka-cat" data-kae="cat" data-i="${i}" list="kaCats" value="${esc(t.categorie||"")}" placeholder="Categorie: ${esc(kaCatDef(E.act))}" maxlength="60" aria-label="Categorie in de boekhouding" title="Categorie in de boekhouding (leeg = ${esc(kaCatDef(E.act))})">${E.act==="fuif"?`<label class="cbx small muted" style="margin-left:auto"><input type="checkbox" data-kae="inkom" data-i="${i}"${t.inkom?" checked":""}>telt als inkom</label>`:""}</div>
         ${E.open===i?`<div class="ka-ic">${Object.keys(KASSA_ICONEN).map(n=>`<button type="button" class="${t.icoon===n?"on":""}" data-kae="kies" data-i="${i}" data-v="${n}" title="${n}">${kassaIcoon(n,k)}</button>`).join("")}<button type="button" class="${!t.icoon?"on":""}" data-kae="kies" data-i="${i}" data-v="" title="geen icoon" style="font-size:12px">geen</button></div>`:""}</div>`}).join("")||'<div class="muted small">Nog geen tegels.</div>'}</div>
       <div class="bar" style="margin:10px 0 0"><button type="button" class="btn" data-kae="nieuw">${ic("plus")}Tegel toevoegen</button><button type="button" class="btn ghost" data-kae="std">Standaardtegels</button></div></div>`)()}
-    ${E.mode==="tegels"?"":(()=>`<div class="pi-sec ka-qrs"><h4>Kassacode (gastlogin)</h4><p class="pi-note" style="margin:0 0 8px">Met de kassacode kunnen helpers die geen bestuurslid zijn de kassa gebruiken via <b>${esc(location.host)}/kassa</b>. Ze kunnen enkel verkopen en scannen. Een nieuwe code is standaard <b>1 dag geldig</b>; hieronder kan je dat aanpassen. Een nieuwe code maakt de oude meteen ongeldig.</p>
+    ${E.mode==="tegels"?"":(()=>`<div class="pi-sec ka-qrs"><h4>Kassacode (gastlogin)</h4>
       ${geldig?`<div class="bar" style="margin:0;align-items:center"><span style="font:700 24px ui-monospace,Menlo,monospace;letter-spacing:.18em">${esc(code.code)}</span><span class="pill ok">tot ${esc(new Date(tot).toLocaleString("nl-BE",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))}</span><span class="grow"></span><button type="button" class="btn sm" data-kae="code">Nieuwe code</button><button type="button" class="btn sm ghost danger" data-kae="codeuit">Uitschakelen</button></div>
       ${kaAdm()?`<div class="form ka-tot">${fld("kaTotD","Geldig tot",`<input id="kaTotD" type="date" value="${esc(kaLokaal(tot).slice(0,10))}" min="${esc(kaLokaal(Date.now()).slice(0,10))}">`)}${fld("kaTotU","Uur",`<input id="kaTotU" type="text" inputmode="numeric" maxlength="5" placeholder="uu:mm" value="${esc(kaLokaal(tot).slice(11,16))}">`)}<button type="button" class="btn" data-kae="codetot">Bewaren</button></div>`:""}
       <div class="ka-qr"><img alt="QR-code om de kassa te openen" src="${kaQr(u,8)}" width="148" height="148"><div class="ka-qr-b"><span class="muted small">Scan met de gsm aan de kassa: de code wordt meteen ingevuld.</span><button type="button" class="btn sm" data-act="kopieerLink" data-v="${esc(u)}">${ic("copy")}Link kopiëren</button><button type="button" class="btn sm" data-kaqr="png" data-v="${esc(u)}" data-n="QR kassa">${ic("download")}QR downloaden</button></div></div>`
@@ -5471,7 +5482,7 @@ document.addEventListener("keydown",e=>{const t=e.target;if(!t||t.id!=="kaTotU"|
 /* Categorie in de boekhouding per kassa-activiteit; een tegel kan een eigen categorie hebben (bv. Boekje 150 jaar -> "150 jaar") */
 const KA_CAT={fuif:"Fuif",kinderfeest:"Kinderfeest",jaarmarkt:"Jaarmarkt"};
 function kaPerCat(act,B){const tg=new Map((kaTegels(act)||[]).map(t=>[t.id,t])),m=new Map();
-  for(const v of B)for(const i of v.items||[]){const cat=i.categorie||(tg.get(i.id)||{}).categorie||KA_CAT[act]||"Andere opbrengsten",x=m.get(cat)||{cat,bc:0,cash:0},b=(Number(i.aantal)||0)*(Number(i.prijs)||0);if(v.betaalwijze==="cash")x.cash+=b;else x.bc+=b;m.set(cat,x)}
+  for(const v of B)for(const i of v.items||[]){const cat=i.categorie||(tg.get(i.id)||{}).categorie||kaCatDef(act),x=m.get(cat)||{cat,bc:0,cash:0},b=(Number(i.aantal)||0)*(Number(i.prijs)||0);if(v.betaalwijze==="cash")x.cash+=b;else x.bc+=b;m.set(cat,x)}
   return [...m.values()].map(x=>({...x,bc:Math.round(x.bc*100)/100,cash:Math.round(x.cash*100)/100})).sort((a,b)=>(b.bc+b.cash)-(a.bc+a.cash))}
 document.addEventListener("focusin",e=>{if(!e.target.matches||!e.target.matches(".ka-cat")||document.getElementById("kaCats"))return;const d=document.createElement("datalist");d.id="kaCats";d.innerHTML=(typeof catList==="function"?catList(ctx()):[]).map(c=>`<option value="${esc(c)}">`).join("");document.body.appendChild(d)});
 
@@ -5500,7 +5511,7 @@ function kaCashModal(act){const jaar=kaJaar(act),R=kaCashRest(act,jaar).filter(r
   $("#kcOk").onclick=async()=>{const e=$("#kcErr");if(R.some((_,i)=>num(kcF(i).value)<0)){e.textContent="Het verschil is groter dan het bedrag van die categorie. Kies een andere categorie.";return}const d=$("#kcDat").value;if(!d){e.textContent="Kies een datum.";return}
     if(Number(d.slice(0,4))!==JAAR){e.textContent=`De datum valt buiten boekjaar ${JAAR}. Kies eerst het juiste boekjaar.`;return}
     const L2=R.map((r,i)=>({cat:r.cat,b:r2(Math.abs(num($("#kcB"+i).value)))})).filter(x=>x.b>0);if(!L2.length){e.textContent="Vul minstens één bedrag in.";return}
-    $("#kcOk").disabled=true;try{const nrs=[];for(const x of L2){const nr=nextNr(),id=newId("boekingen"),b={bron:"manueel",jaar:JAAR,nr,datum:d,categorie:x.cat,mededeling:"Cash kassa "+KA_ACTS[act]+" "+jaar+(L2.length>1?" ("+x.cat+")":""),partij:"Kassa",iban:"",rekening:"Kas",bedrag:x.b,richting:"in",lidId:null,lidgeldJaar:null,werkjaar:null,status:null,kassa:{act,jaar:Number(jaar)}};
+    $("#kcOk").disabled=true;try{const nrs=[];for(const x of L2){const nr=nextNr(),id=newId("boekingen"),b={bron:"manueel",jaar:JAAR,nr,datum:d,categorie:x.cat,mededeling:"Cash kassa "+kaActs()[act]+" "+jaar+(L2.length>1?" ("+x.cat+")":""),partij:"Kassa",iban:"",rekening:"Kas",bedrag:x.b,richting:"in",lidId:null,lidgeldJaar:null,werkjaar:null,status:null,kassa:{act,jaar:Number(jaar)}};
       S.boekingen.set(id,{...b,id});dirty=true;await write("boekingen",id,b);nrs.push(nr)}
       closeModal();toast((nrs.length===1?"Transactie ":"Transacties ")+nrs.join(", ")+" toegevoegd in de kas.");render(true)}catch(x){$("#kcOk").disabled=false;e.textContent=x.message}}}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-kacash]");if(!b)return;e.preventDefault();kaCashModal(b.dataset.kacash)});
@@ -7127,7 +7138,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-bksort]");
 
 /* ---------- Dashboard: vandaag een activiteit -> uitgelicht bovenaan, met knop naar de openbare kassa ---------- */
 function dashVandaag(){let L=[];try{L=agItems().filter(x=>x.datum===todayISO()&&x.t!=="verg")}catch(e){return""}if(!L.length)return"";
-  return L.map(x=>{const ka=x.kassa&&typeof KA_ACTS!=="undefined"&&KA_ACTS[x.kassa]?x.kassa:"";
+  return L.map(x=>{const ka=x.kassa&&typeof kaActs==="function"&&kaActs()[x.kassa]?x.kassa:"";
     return `<section class="dv-card" aria-label="Vandaag">
      <div class="dv-k"><span class="dv-dag">Vandaag</span><h2>${esc(x.titel)}</h2><div class="dv-m">${[x.uur,x.locatie].filter(Boolean).map(esc).join(" · ")}</div></div>
      <div class="dv-a">${ka?`<button type="button" class="btn primary" data-dv-kassa="${ka}">${ic("kassa")}Kassa openen</button>`:""}${ROL==="admin"?`${x.shift?`<a class="btn" href="#shiften">${ic("shiften")}Shiften</a>`:""}`:""}</div></section>`}).join("")}

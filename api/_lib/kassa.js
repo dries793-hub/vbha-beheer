@@ -21,15 +21,27 @@ export function standaardTegels(act, fuif) {
   if (act === "kinderfeest") return [{ id: tid(), naam: "Frisdrank", prijs: 1.5, kleur: "blauw", icoon: "frisdrank" }, { id: tid(), naam: "Koffie", prijs: 1.5, kleur: "bruin", icoon: "koffie" }, { id: tid(), naam: "Taart", prijs: 2, kleur: "roze", icoon: "taart" }];
   return [{ id: tid(), naam: "Bier", prijs: 2.5, kleur: "goud", icoon: "bier" }, { id: tid(), naam: "Frisdrank", prijs: 2, kleur: "blauw", icoon: "frisdrank" }, { id: tid(), naam: "Koffie", prijs: 2, kleur: "bruin", icoon: "koffie" }];
 }
+/* Naast de vaste kassa's (fuif, kinderfeest, jaarmarkt) kan elke activiteit uit de agenda een eigen kassa krijgen
+   (vinkje "Kassa gebruiken" = metKassa): sleutel "a-<id van de activiteit>". */
+const vastVan = a => (t => /jaarmarkt/.test(t) ? "jaarmarkt" : /vier en vlam|fuif/.test(t) ? "fuif" : /kinderfeest/.test(t) ? "kinderfeest" : "")(String((a && a.titel) || "").toLowerCase());
+export const kassaSleutel = (id, a) => !a || a.metKassa === false ? "" : vastVan(a) || (a.metKassa === true ? "a-" + id : "");
+async function actVan(sb, sleutel) {
+  if (ACTS[sleutel]) return { naam: ACTS[sleutel] };
+  if (!/^a-/.test(String(sleutel || ""))) return null;
+  const { data } = await sb.from("activiteiten").select("id,data").eq("id", sleutel.slice(2)).maybeSingle();
+  if (!data || kassaSleutel(data.id, data.data) !== sleutel) return null;
+  return { naam: data.data.titel || "Activiteit", jaar: Number(String(data.data.datum || "").slice(0, 4)) || null };
+}
 export async function kassaCfg(sb) {
   const [k, f, A] = await Promise.all([configDoc(sb, "kassa"), configDoc(sb, "fuif"), algemeen(sb)]);
-  const actief = ACTS[k.actief] ? k.actief : "fuif";
+  const eigen = /^a-/.test(String(k.actief || "")) ? await actVan(sb, k.actief) : null;
+  const actief = ACTS[k.actief] || eigen ? k.actief : "fuif";
   const code = k.code && k.code.code ? k.code : (f.kassa && f.kassa.code ? f.kassa : null); // oude kassacode van de fuif
   const acts = k.activiteiten || {};
   const tegels = (Array.isArray(acts[actief] && acts[actief].tegels) ? acts[actief].tegels : standaardTegels(actief, f))
-    .map(t => ({ id: String(t.id), naam: String(t.naam || "").slice(0, 40), prijs: Math.round(Math.max(0, Number(t.prijs) || 0) * 100) / 100, kleur: t.kleur || "grijs", icoon: t.icoon || "", inkom: !!t.inkom })).filter(t => t.naam && t.prijs >= 0);
-  const jaar = actief === "fuif" ? (Number(String(f.datum || "").slice(0, 4)) || A.jaar) : A.jaar;
-  return { k, actief, naam: actief === "fuif" ? (f.naam || ACTS.fuif) : ACTS[actief], tegels, scan: k.scan !== false, code, jaar }; // scannen kan bij elke activiteit
+    .map(t => ({ id: String(t.id), naam: String(t.naam || "").slice(0, 40), prijs: Math.round(Math.max(0, Number(t.prijs) || 0) * 100) / 100, kleur: t.kleur || "grijs", icoon: t.icoon || "", inkom: !!t.inkom, ...(t.categorie ? { categorie: String(t.categorie).slice(0, 60) } : {}) })).filter(t => t.naam && t.prijs >= 0);
+  const jaar = actief === "fuif" ? (Number(String(f.datum || "").slice(0, 4)) || A.jaar) : eigen ? (eigen.jaar || A.jaar) : A.jaar;
+  return { k, actief, naam: actief === "fuif" ? (f.naam || ACTS.fuif) : eigen ? eigen.naam : ACTS[actief], tegels, scan: k.scan !== false, code, jaar }; // scannen kan bij elke activiteit
 }
 // kassacode: 1 dag (24 uur) geldig vanaf het aanmaken
 const sleutel = () => String(process.env.BETAAL_GEHEIM || process.env.SUPABASE_SERVICE_ROLE_KEY || "");
@@ -57,8 +69,8 @@ export default async function kassaPubliek(req, res) {
     // aanmeldpagina van het beheer: is er vandaag een activiteit met een kassa in de agenda? (enkel ja/nee)
     if (req.method === "GET" && req.query && req.query.vandaag) {
       const sb = admin(), dag = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Brussels" });
-      const { data: A } = await sb.from("activiteiten").select("data").eq("data->>datum", dag);
-      let ok = (A || []).some(r => ACTS[kassaVan(r.data || {})]);
+      const { data: A } = await sb.from("activiteiten").select("id,data").eq("data->>datum", dag);
+      let ok = (A || []).some(r => kassaSleutel(r.id, r.data || {}));
       if (!ok) { const kf = await configDoc(sb, "kinderfeest"); ok = !!(kf && kf.datum === dag); }
       return res.status(200).json({ kassa: ok });
     }
@@ -134,13 +146,12 @@ export async function kassaCron(sb) {
 // app (admin): POST /api/mail?f=kassa {actie:"wis", id}
 /* Elk profiel (ook lezen): op de dag van een activiteit met een kassa de openbare kassa openen.
    Zet de kassa op die activiteit en maakt zo nodig een nieuwe kassacode (1 dag geldig). */
-const kassaVan = a => (t => /jaarmarkt/.test(t) ? "jaarmarkt" : /vier en vlam|fuif/.test(t) ? "fuif" : /kinderfeest/.test(t) ? "kinderfeest" : "")(String(a.titel || "").toLowerCase());
 async function kassaVandaag(req, res, b) {
   const { sb } = await requireUser(req, {}), act = String(b.act || "");
-  if (!ACTS[act]) throw httpErr(400, "Onbekende kassa.");
+  if (!ACTS[act] && !/^a-/.test(act)) throw httpErr(400, "Onbekende kassa.");
   const dag = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Brussels" });
-  const { data: A } = await sb.from("activiteiten").select("data").eq("data->>datum", dag);
-  let ok = (A || []).some(r => kassaVan(r.data || {}) === act);
+  const { data: A } = await sb.from("activiteiten").select("id,data").eq("data->>datum", dag);
+  let ok = (A || []).some(r => kassaSleutel(r.id, r.data || {}) === act);
   if (!ok && act === "kinderfeest") { const kf = await configDoc(sb, "kinderfeest"); ok = kf && kf.datum === dag; }
   if (!ok) throw httpErr(403, "Vandaag staat er geen activiteit met deze kassa in de agenda.");
   const K = await configDoc(sb, "kassa") || {};
