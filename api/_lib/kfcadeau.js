@@ -128,7 +128,7 @@ export async function zyteInfo(u) {
   const w = winkelVan(u.hostname) || "?", volg = ZYTE_MODUS[w] === "browserHtml" ? ["browserHtml"] : ["httpResponseBody", "browserHtml"];
   let laatste = null;
   for (const m of volg) {
-    try { const p = await zyteVraag(u, m, m === "httpResponseBody" ? 15000 : 40000); if (p.naam && p.prijs != null) { ZYTE_MODUS[w] = m; return p; } laatste = p; }
+    try { const p = await zyteVraag(u, m, m === "httpResponseBody" ? 28000 : 40000); if (p.naam && p.prijs != null) { ZYTE_MODUS[w] = m; return p; } laatste = p; }
     catch (e) { laatste = laatste || null; if (m === "browserHtml") throw e; }
   }
   return laatste || {};
@@ -216,13 +216,6 @@ export async function kfCadeauPubliek(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
     const sb = admin();
-    if (req.method === "GET" && req.query.probe) { // tijdelijke snelheidstest (eenmalige sleutel in de afgeschermde tabel diag_token)
-      const { data } = await sb.from("diag_token").select("tot").eq("token", String(req.query.diag || "")).maybeSingle();
-      if (!data || Date.parse(data.tot) < Date.now()) throw httpErr(403, "Geen toegang.");
-      const u = new URL(String(req.query.probe)), out = {};
-      await Promise.all(["httpResponseBody", "browserHtml"].map(async m => { const t = Date.now(); try { const p = await zyteVraag(u, m, 50000); out[m] = { ms: Date.now() - t, naam: p.naam, prijs: p.prijs, beschikbaar: p.beschikbaar }; } catch (e) { out[m] = { ms: Date.now() - t, fout: String(e.message || e).slice(0, 160) }; } }));
-      return res.status(200).json(out);
-    }
     if (req.method === "GET") {
       await rateLimit(sb, req, "kfcadeau", 120, 600, httpErr);
       const { row, M, open } = await laad(sb, req.query.cadeau, req.query.t);
