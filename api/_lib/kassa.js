@@ -123,8 +123,27 @@ export async function kassaCron(sb) {
   return { betaald: n };
 }
 // app (admin): POST /api/mail?f=kassa {actie:"wis", id}
+/* Elk profiel (ook lezen): op de dag van een activiteit met een kassa de openbare kassa openen.
+   Zet de kassa op die activiteit en maakt zo nodig een nieuwe kassacode (1 dag geldig). */
+const kassaVan = a => typeof a.kassa === "string" ? a.kassa : (t => /jaarmarkt/.test(t) ? "jaarmarkt" : /vier en vlam|fuif/.test(t) ? "fuif" : /kinderfeest/.test(t) ? "kinderfeest" : "")(String(a.titel || "").toLowerCase());
+async function kassaVandaag(req, res, b) {
+  const { sb } = await requireUser(req, {}), act = String(b.act || "");
+  if (!ACTS[act]) throw httpErr(400, "Onbekende kassa.");
+  const dag = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Brussels" });
+  const { data: A } = await sb.from("activiteiten").select("data").eq("data->>datum", dag);
+  let ok = (A || []).some(r => kassaVan(r.data || {}) === act);
+  if (!ok && act === "kinderfeest") { const kf = await configDoc(sb, "kinderfeest"); ok = kf && kf.datum === dag; }
+  if (!ok) throw httpErr(403, "Vandaag staat er geen activiteit met deze kassa in de agenda.");
+  const K = await configDoc(sb, "kassa") || {};
+  const geldig = K.code && K.code.code && Date.now() < codeTot(K.code);
+  const nieuw = { ...K, actief: act };
+  if (!geldig) { const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; nieuw.code = { code: Array.from(crypto.randomBytes(6), v => abc[v % 32]).join(""), sinds: new Date().toISOString(), door: "dashboard" }; }
+  if (K.actief !== act || !geldig) { const { error } = await sb.from("config").upsert({ id: "kassa", data: nieuw }); if (error) throw error; }
+  return res.status(200).json({ ok: true, code: nieuw.code.code, nieuw: !geldig });
+}
 export async function kassaApi(req, res) {
   res.setHeader("Cache-Control", "no-store");
+  { const b0 = body(req); if (b0 && b0.actie === "vandaag") return await kassaVandaag(req, res, b0); }
   const { sb, rol } = await requireUser(req, { write: true, functie: "kassa" }), b = body(req);
   if (b.actie === "wis") {
     if (!["admin", "bewerker"].includes(rol)) throw httpErr(403, "Enkel een administrator kan transacties wissen.");
