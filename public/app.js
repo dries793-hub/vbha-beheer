@@ -473,7 +473,7 @@ function ledenTable(){
   let list=(q?[...C.leden,...C.oud]:C.leden).map(l=>C.rows.get(l.id));
   if(UI.ledenCat)list=list.filter(r=>r.lid.categorie===UI.ledenCat);
   if(UI.ledenF==="ok")list=list.filter(r=>r.lg.ok);if(UI.ledenF==="nok")list=list.filter(r=>!r.lg.ok&&r.huidig);
-  if(q)list=list.filter(r=>norm([r.lid.naam,r.lid.voornaam,r.lid.adres,r.lid.email,r.lid.telefoon,r.lid.info].join(" ")).includes(q));
+  if(q){const qq=q.replace(/-/g," ");list=list.filter(r=>{const t=norm([r.lid.naam,r.lid.voornaam,r.lid.adres,r.lid.email,r.lid.telefoon,r.lid.info,r.lid.categorie,r.huidig?(typeof stL==="function"?stL(r):""):(r.lid.geenLid?"geen lid":"oud lid oudlid")].join(" "));return t.includes(q)||t.replace(/-/g," ").includes(qq)})}
   const LS=ledenSort(),vn=LS.k==="voornaam";
   const STR={GOUD:3,ZILVER:2,BRONS:1};
   const key={naam:r=>[r.lid.naam,r.lid.voornaam],voornaam:r=>[r.lid.voornaam,r.lid.naam],status:r=>[r.huidig?(STR[stL(r)]||0):-1],lidgeld:r=>[r.huidig?(r.lg.ok?1:0):-1],categorie:r=>[r.lid.categorie||""],lidSinds:r=>[+r.lid.lidSinds||9999],email:r=>[String(r.lid.email||"").trim()?0:1,String(r.lid.email||"").trim().toLowerCase()]}[LS.k];
