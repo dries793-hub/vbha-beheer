@@ -3247,6 +3247,14 @@ async function hrBewaar(){const ont=$("#hrAanW").value.split(/[,;\s]+/).map(x=>x
 async function hrTest(b){b.disabled=true;try{const j=await api("/api/mail?f=herinnering-test",{method:"POST",body:"{}"});toast("Voorbeeld verstuurd naar "+j.aan+".")}catch(x){toast(x.message,true)}finally{b.disabled=false}}
 document.addEventListener("click",e=>{const t=e.target.closest("#hrOk,#hrTest");if(!t)return;if(t.id==="hrOk")hrBewaar();else hrTest(t)});
 
+/* Factuur in 2 keer betaald (bv. door de betaallimiet van de rekening): zoek 2 transacties die samen het bedrag vormen.
+   Zelfde partij (of zelfde naam in de mededeling) en hoogstens 31 dagen uit elkaar. */
+function paarVoorstel(L,doel){if(!(doel>0))return[];const pn=b=>norm(b.partij||"").replace(/[^a-z0-9]/g,""),uit=[];
+  const M=L.filter(b=>b.bedrag>0&&b.bedrag<doel-0.005);
+  for(let i=0;i<M.length;i++)for(let j=i+1;j<M.length;j++){const a=M[i],b=M[j];if(Math.abs(a.bedrag+b.bedrag-doel)>=0.005)continue;
+    const dd=Math.abs(new Date(a.datum+"T12:00")-new Date(b.datum+"T12:00"))/864e5;if(dd>31)continue;
+    const zelfde=pn(a)&&pn(a)===pn(b);uit.push({bs:[a,b].sort((x,y)=>String(x.datum).localeCompare(String(y.datum))),zelfde,dd})}
+  return uit.sort((x,y)=>(y.zelfde-x.zelfde)||x.dd-y.dd).slice(0,3)}
 /* ============ Financiën › Facturen ============
    Collectie "facturen" (zie api/_lib/factuur.js voor het datamodel). Concepten bewaart de app zelf; definitief maken
    (uniek nummer + gestructureerde mededeling), de PDF en het mailen gebeuren op de server (/api/mail?f=factuur).
@@ -3332,6 +3340,7 @@ function fcDetail(id){const f=S.facturen.get(id);if(!f)return;if(!f.nr)return fc
       ${b.online&&!b.L.some(x=>Math.abs(x.bedrag-b.online)<0.01)?`<div><span><b>${eur(b.online)}</b> · online met Bancontact${f.betaling.betaaldOp?" op "+fmtDate(String(f.betaling.betaaldOp).slice(0,10)):""}</span></div>`:""}
       ${f.betaaldManueel?`<div><span>Manueel als betaald aangeduid op ${fmtDate(f.betaaldManueel.op)}${f.betaaldManueel.opmerking?" · "+esc(f.betaaldManueel.opmerking):""}</span>${m?`<button type="button" class="btn sm ghost" data-fc="onbetaald" data-id="${esc(id)}">Ongedaan maken</button>`:""}</div>`:""}</div>`:`<div class="muted small">Nog geen betaling ontvangen. Overschrijvingen met de mededeling ${esc(fcOgm(f.ogm)||f.nr)} worden automatisch herkend bij de bankimport.</div>`}
      ${b.ontvangen>0&&!b.betaald?`<div class="small" style="margin-top:6px">Nog open: <b>${eur(b.open)}</b></div>`:""}
+     ${m&&kand.length&&!kand.some(x=>Math.abs(x.bedrag-b.open)<0.01)?paarVoorstel(kand,b.open).filter(x=>x.zelfde).map(x=>`<div class="note info" style="margin:10px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="grow small"><b>In 2 keer betaald?</b> ${x.bs.map(y=>`${eur(y.bedrag)} op ${fmtDate(y.datum)}`).join(" + ")} van ${esc(x.bs[0].partij||"")} = ${eur(b.open)}</span><button type="button" class="btn sm primary" data-fc="toewijzenPaar" data-id="${esc(id)}" data-ids="${esc(x.bs.map(y=>y.id).join(","))}">Samen toewijzen</button></div>`).join(""):""}
      ${m&&kand.length?`<div class="sp-bet-add" style="margin-top:10px"><select id="fcKand" class="sel" aria-label="Transactie toewijzen"><option value="">Transactie toewijzen…</option>${kand.map(x=>`<option value="${esc(x.id)}">${esc((fmtDate(x.datum)+" · "+eur(x.bedrag)+" · "+(x.partij||"")+(x.mededeling?" · "+x.mededeling:"")).slice(0,110))}</option>`).join("")}</select><button type="button" class="btn sm" data-fc="toewijzen" data-id="${esc(id)}">Toewijzen</button></div>`:""}</div>`:""}
    <div class="fc-sec"><h4>Verzonden</h4>${log.length?`<div class="fc-log">${log.map(v=>`<div><span class="pill ${v.ok?"ok":"nok"}">${v.ok?"✓":"✗"}</span><span>${v.soort==="herinnering"?"Herinnering":v.soort==="credit"?"Creditnota":"Factuur"} naar <b>${esc(v.aan)}</b></span><span class="muted small">${new Date(v.op).toLocaleString("nl-BE",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}${v.fout?" · "+esc(v.fout):""}</span></div>`).join("")}</div>`:f.geimporteerd?`<div class="muted small">Opgemaakt en verstuurd met het vorige facturatiesysteem${f.geimporteerd.verzondenAan?(/@/.test(f.geimporteerd.verzondenAan)?" naar <b>"+esc(f.geimporteerd.verzondenAan)+"</b>":" ("+esc(f.geimporteerd.verzondenAan)+")"):""}${f.geimporteerd.verzondenOp?" op "+fmtDate(f.geimporteerd.verzondenOp):""}.</div>`:'<div class="muted small">Nog niet gemaild.</div>'}</div>
    ${f.opmerking?`<div class="fc-sec"><h4>Opmerking op de factuur</h4><div class="small">${esc(f.opmerking).replace(/\n/g,"<br>")}</div></div>`:""}
@@ -3531,6 +3540,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-fc]"
        ${fld("fcBo","Betaald op",inp("fcBo",todayISO(),'type="date"'))}${fld("fcBm","Opmerking",inp("fcBm","",'placeholder="bv. cash betaald op het banket"'))}</div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-fc="betaaldOk" data-id="${esc(id)}">Als betaald aanduiden</button>`);break}
     case"betaaldOk":await fcZet(id,{betaaldManueel:{op:$("#fcBo").value||todayISO(),opmerking:$("#fcBm").value.trim(),door:ME_NAME}});closeModal();toast("Factuur als betaald aangeduid.");fcDetail(id);break;
     case"onbetaald":await fcZet(id,{betaaldManueel:undefined});fcDetail(id);break;
+    case"toewijzenPaar":{for(const bid of String(t.dataset.ids||"").split(",").filter(Boolean))await fcBoeking(bid,{factuurId:id});toast("Beide transacties toegewezen.");fcSync();fcDetail(id);break}
     case"toewijzen":{const v=$("#fcKand").value;if(!v){toast("Kies eerst een transactie.",true);break}await fcBoeking(v,{factuurId:id});toast("Transactie toegewezen.");fcSync();fcDetail(id);break}
     case"loskoppel":await fcBoeking(id,{factuurId:undefined});toast("Losgekoppeld.");fcDetail(t.dataset.f);break;
     case"credit":fcCredit(id);break;
@@ -3950,7 +3960,7 @@ if(!ROUTES.some(r=>r[0]==="inkomend"))ROUTES.push(["inkomend","Inkomende facture
 var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.inkomend="facturen";
 {const b=NAV.find(n=>n.id==="boekhouding");if(b)b.items=b.items.filter(i=>i[0]!=="inkomend")}
 function fcOpenTeller(){try{return S.facturen?[...S.facturen.values()].filter(f=>["open","deels","vervallen"].includes(fcStatus(f))).length:0}catch(e){return 0}}
-function fcTabs(act){const nU=typeof fcOpenTeller==="function"?fcOpenTeller():0,nI=inkMag()?inkDocs().filter(d=>!inkBoekVan(d.id).length).length:0;
+function fcTabs(act){const nU=typeof fcOpenTeller==="function"?fcOpenTeller():0,nI=inkMag()?inkDocs().filter(inkOpen).length:0;
   return `<nav class="ka-tabs" aria-label="Soort facturen"><a href="#facturen" class="${act==="facturen"?"on":""}"${act==="facturen"?' aria-current="page"':""}>${ic("verslagen")}Uitgaande facturen${nU?`<span class="cnt">${nU}</span>`:""}</a><a href="#inkomend" class="${act==="inkomend"?"on":""}"${act==="inkomend"?' aria-current="page"':""}>${ic("inkomend")}Inkomende facturen${nI?`<span class="cnt">${nI}</span>`:""}</a></nav>`}
 {const _f=VIEWS.facturen;const n=function(){const v=_f.apply(this,arguments);const b=v.body;v.sub="Onze facturen en creditnota's, met automatische opvolging van de betalingen";v.body=function(){return fcTabs("facturen")+b.apply(this,arguments)};return v};Object.assign(n,_f);VIEWS.facturen=n}
 if(typeof BOEK_ROUTES!=="undefined")BOEK_ROUTES.add("inkomend");
@@ -3961,6 +3971,10 @@ const inkDocs=()=>[...S.documenten.values()].filter(d=>d.map===INK_MAP).sort((a,
 const inkBoekVan=did=>[...S.boekingen.values()].filter(b=>b.documentId===did);
 const inkVan=d=>(d.inkomend&&(d.inkomend.leverancier||d.inkomend.vanNaam||d.inkomend.van))||d.door||"";
 const inkDatum=d=>String((d.inkomend&&d.inkomend.ontvangen)||d.op||"").slice(0,10);
+/* een factuur kan in meerdere keren betaald zijn: ze blijft 'te koppelen' tot de gekoppelde transacties samen het totaal halen */
+const inkSom=did=>Math.round(inkBoekVan(did).reduce((s,b)=>s+(Number(b.bedrag)||0),0)*100)/100;
+const inkTot=d=>Number(d.inkomend&&d.inkomend.totaal)||0;
+const inkOpen=d=>{if(!inkBoekVan(d.id).length)return true;const t=inkTot(d);return t>0&&inkSom(d.id)<t-0.005};
 
 /* ---------- tekst uit de PDF en voorstel van transacties ---------- */
 async function inkLees(d){if(INK.txt.has(d.id)||INK.bezig.has(d.id)||!/pdf/i.test(d.type||d.naam))return;INK.bezig.add(d.id);
@@ -3978,27 +3992,36 @@ function inkAnalyse(t){const tekst=String(t||""),bedragen=[],tot=[];
   let datum="";if(dm){const n=dm.length-3,dd=+dm[n],mm=+dm[n+1],yy=+dm[n+2];if(dd>=1&&dd<=31&&mm>=1&&mm<=12)datum=`${yy}-${String(mm).padStart(2,"0")}-${String(dd).padStart(2,"0")}`}
   return{tekst:norm(tekst),bedragen:[...new Set(bedragen)],totaal,ogm,nr,datum}}
 function inkVoorstel(d){const A=INK.txt.get(d.id);if(!A||A.fout)return[];const dag=inkDatum(d),t0=new Date(dag+"T12:00").getTime();const lev=norm(inkVan(d));
-  return [...S.boekingen.values()].filter(b=>b.richting==="uit"&&!b.documentId).map(b=>{let sc=0;const w=[];
-    if(A.totaal&&Math.abs(b.bedrag-A.totaal)<0.005){sc+=5;w.push("zelfde bedrag")}else if(A.bedragen.some(v=>Math.abs(v-b.bedrag)<0.005)){sc+=3;w.push("bedrag in de factuur")}
+  const al=inkSom(d.id),tot=inkTot(d)||A.totaal||0,doel=al>0&&tot?Math.round((tot-al)*100)/100:A.totaal;
+  const V=[...S.boekingen.values()].filter(b=>b.richting==="uit"&&!b.documentId).map(b=>{let sc=0;const w=[];
+    if(doel&&Math.abs(b.bedrag-doel)<0.005){sc+=5;w.push(al>0?"resterend bedrag":"zelfde bedrag")}else if(A.bedragen.some(v=>Math.abs(v-b.bedrag)<0.005)){sc+=3;w.push("bedrag in de factuur")}
     const med=String(b.mededeling||"");if(A.ogm&&med.replace(/\D/g,"").includes(A.ogm)){sc+=6;w.push("gestructureerde mededeling")}
     if(A.nr&&A.nr.length>=4&&med.toUpperCase().replace(/\s/g,"").includes(A.nr.toUpperCase())){sc+=5;w.push("factuurnummer")}
     const p=norm(b.partij||"").split(/[^a-z0-9]+/).filter(x=>x.length>=4&&!["bvba","comm","vzw","sprl"].includes(x));if(p.some(x=>A.tekst.includes(x)||lev.includes(x))){sc+=3;w.push("naam leverancier")}
     const dd=Math.abs(new Date(b.datum+"T12:00").getTime()-t0)/864e5;if(dd>120)sc-=3;else if(dd<=30)sc+=1;
-    return{b,sc,w}}).filter(x=>x.sc>=3&&x.w.length).sort((a,b)=>b.sc-a.sc||Math.abs(new Date(a.b.datum)-t0)-Math.abs(new Date(b.b.datum)-t0)).slice(0,3)}
+    return{b,bs:[b],sc,w}}).filter(x=>x.sc>=3&&x.w.length).sort((a,b)=>b.sc-a.sc||Math.abs(new Date(a.b.datum)-t0)-Math.abs(new Date(b.b.datum)-t0)).slice(0,3);
+  // in 2 keer betaald (betaallimiet): 2 transacties die samen het bedrag vormen
+  if(doel&&!V.some(x=>x.w.includes("zelfde bedrag")||x.w.includes("resterend bedrag"))){
+    const K=[...S.boekingen.values()].filter(b=>b.richting==="uit"&&!b.documentId&&Math.abs(new Date(b.datum+"T12:00")-t0)/864e5<=120);
+    const pw=b=>norm(b.partij||"").split(/[^a-z0-9]+/).filter(x=>x.length>=4&&!["bvba","comm","vzw","sprl"].includes(x));
+    for(const x of paarVoorstel(K,doel)){const lv=x.bs.some(b=>pw(b).some(y=>A.tekst.includes(y)||lev.includes(y)));if(!x.zelfde&&!lv)continue;
+      V.unshift({bs:x.bs,sc:9,w:["2 betalingen samen = "+eur(doel)].concat(lv?["naam leverancier"]:[])})}}
+  return V.slice(0,3)}
 
 /* ---------- pagina ---------- */
 function inkRij(d){const L=inkBoekVan(d.id),nieuw=d.inkomend&&d.inkomend.nieuw&&!L.length,m=inkMag();
   const kop=`<div class="ink-k"><button type="button" class="ink-n" data-ink="pdf" data-id="${esc(d.id)}" title="Openen">${ic("verslagen")}<span><b>${esc(inkVan(d)||d.naam)}</b><span class="muted small">${esc(d.naam)}${inkDatum(d)?" · "+fmtDate(inkDatum(d)):""}${d.inkomend&&d.inkomend.van?" · via "+esc(d.inkomend.van):""}</span></span></button>${nieuw?'<span class="pill info">nieuw</span>':""}${L.length?'<span class="pill ok">✓ gekoppeld</span>':""}${L.length&&d.inkomend&&d.inkomend.auto?'<span class="pill info" title="'+esc(d.inkomend.autoWaarom||"")+'">automatisch</span>':""}</div>`;
-  if(L.length)return `<div class="ink-r">${kop}<div class="ink-b">${L.map(b=>`<div class="ink-t"><span>${fmtDate(b.datum)} · <b>${esc(b.partij||b.mededeling||"")}</b> · ${eur(b.bedrag)}${b.categorie?` · <span class="muted">${esc(b.categorie)}</span>`:""}</span>${m?`<button type="button" class="btn sm ghost" data-ink="los" data-id="${esc(b.id)}">Ontkoppelen</button>`:""}</div>`).join("")}</div></div>`;
+  const linked=L.map(b=>`<div class="ink-t"><span>${fmtDate(b.datum)} · <b>${esc(b.partij||b.mededeling||"")}</b> · ${eur(b.bedrag)}${b.categorie?` · <span class="muted">${esc(b.categorie)}</span>`:""}</span>${m?`<button type="button" class="btn sm ghost" data-ink="los" data-id="${esc(b.id)}">Ontkoppelen</button>`:""}</div>`).join("");
+  if(L.length&&!inkOpen(d))return `<div class="ink-r">${kop}<div class="ink-b">${L.map(b=>`<div class="ink-t"><span>${fmtDate(b.datum)} · <b>${esc(b.partij||b.mededeling||"")}</b> · ${eur(b.bedrag)}${b.categorie?` · <span class="muted">${esc(b.categorie)}</span>`:""}</span>${m?`<button type="button" class="btn sm ghost" data-ink="los" data-id="${esc(b.id)}">Ontkoppelen</button>`:""}</div>`).join("")}</div></div>`;
   const A=INK.txt.get(d.id),V=inkVoorstel(d);if(!A)inkLees(d);
   const kand=[...S.boekingen.values()].filter(b=>b.richting==="uit"&&!b.documentId).sort((a,b)=>String(b.datum).localeCompare(String(a.datum))).slice(0,250);
-  return `<div class="ink-r">${kop}<div class="ink-b">${!A?'<div class="muted small">Factuur wordt gelezen…</div>':A.fout?'<div class="muted small">De tekst van deze factuur kon niet gelezen worden; kies de transactie zelf.</div>':
+  return `<div class="ink-r">${kop}<div class="ink-b">${L.length?`${linked}<div class="small"><span class="pill warn">deels betaald</span> ${eur(inkSom(d.id))} van ${eur(inkTot(d))} · nog <b>${eur(Math.round((inkTot(d)-inkSom(d.id))*100)/100)}</b> te koppelen ${m?`<button type="button" class="btn sm ghost" data-ink="volledig" data-id="${esc(d.id)}" title="Het bedrag in de factuur werd verkeerd gelezen of de rest wordt niet betaald">Toch volledig</button>`:""}</div>`:""}${!A?'<div class="muted small">Factuur wordt gelezen…</div>':A.fout?'<div class="muted small">De tekst van deze factuur kon niet gelezen worden; kies de transactie zelf.</div>':
     `<div class="muted small">${A.totaal?"Bedrag in de factuur: <b>"+eur(A.totaal)+"</b>":"Geen bedrag gevonden"}${A.nr?" · factuurnr. "+esc(A.nr):""}${A.ogm?" · mededeling "+esc(A.ogm):""}</div>`}
-   ${V.map(x=>`<div class="ink-t ink-v"><span>${fmtDate(x.b.datum)} · <b>${esc(x.b.partij||x.b.mededeling||"")}</b> · ${eur(x.b.bedrag)}<span class="muted small"> · ${esc(x.w.join(", "))}</span></span>${m?`<button type="button" class="btn sm primary" data-ink="koppel" data-id="${esc(d.id)}" data-b="${esc(x.b.id)}">Koppelen</button>`:""}</div>`).join("")}
+   ${V.map(x=>`<div class="ink-t ink-v"><span>${x.bs.map(y=>`${fmtDate(y.datum)} · <b>${esc(y.partij||y.mededeling||"")}</b> · ${eur(y.bedrag)}`).join(" <b>+</b> ")}<span class="muted small"> · ${esc(x.w.join(", "))}</span></span>${m?`<button type="button" class="btn sm primary" data-ink="koppel" data-id="${esc(d.id)}" data-b="${esc(x.bs.map(y=>y.id).join(","))}">${x.bs.length>1?"Samen koppelen":"Koppelen"}</button>`:""}</div>`).join("")}
    ${A&&!V.length&&!A.fout?'<div class="muted small">Nog geen passende transactie gevonden. Is de factuur nog niet betaald? Na de volgende bankimport verschijnt het voorstel vanzelf.</div>':""}
    ${m?`<div class="ink-kies"><select class="sel" data-ink-sel="${esc(d.id)}" aria-label="Andere transactie"><option value="">Andere transactie kiezen…</option>${kand.map(b=>`<option value="${esc(b.id)}">${esc((fmtDate(b.datum)+" · "+eur(b.bedrag)+" · "+(b.partij||"")+(b.mededeling?" · "+b.mededeling:"")).slice(0,100))}</option>`).join("")}</select>
      <button type="button" class="btn sm" data-ink="kies" data-id="${esc(d.id)}">Koppelen</button><button type="button" class="btn sm ghost" data-ink="weg" data-id="${esc(d.id)}" title="Verwijderen">${ic("x")}</button></div>`:""}</div></div>`}
-function inkLijst(){const D=inkDocs(),open=D.filter(d=>!inkBoekVan(d.id).length),L=INK.f==="open"?open:INK.f==="gekoppeld"?D.filter(d=>inkBoekVan(d.id).length):D;
+function inkLijst(){const D=inkDocs(),open=D.filter(inkOpen),L=INK.f==="open"?open:INK.f==="gekoppeld"?D.filter(d=>!inkOpen(d)):D;
   return `<div class="fc-chips"><button type="button" class="fc-chip${INK.f==="open"?" on":""}" data-ink="f" data-v="open">Te koppelen <span>${open.length}</span></button><button type="button" class="fc-chip${INK.f==="gekoppeld"?" on":""}" data-ink="f" data-v="gekoppeld">Gekoppeld <span>${D.length-open.length}</span></button><button type="button" class="fc-chip${INK.f==="alle"?" on":""}" data-ink="f" data-v="alle">Alle</button></div>
    <div class="ink-l" id="inkL">${L.length?L.map(inkRij).join(""):`<div class="panel"><div class="empty">${INK.f==="open"?"Alle inkomende facturen zijn gekoppeld.":"Nog geen inkomende facturen."}</div></div>`}</div>`}
 function inkHerteken(){const el=$("#inkL");if(!el)return renderBody();const tmp=document.createElement("div");tmp.innerHTML=inkLijst();el.replaceWith(tmp.querySelector("#inkL"))}
@@ -4029,10 +4052,12 @@ VIEWS.inkomend=()=>({title:"Facturen",sub:"Facturen van leveranciers, gekoppeld 
   body(){return fcTabs("inkomend")+inkBody()}});
 function inkBody(){{if(!INK.srv&&!INK.srvBezig){INK.srvBezig=true;inkSrv().finally(()=>{INK.srvBezig=false})}
     return inkUitleg()+inkLijst()}}
-async function inkKoppel(did,bid){const b=S.boekingen.get(bid),d=S.documenten.get(did);if(!b||!d)return;
-  const nb={...stripId(b),documentId:did};S.boekingen.set(bid,{...nb,id:bid});dirty=true;await write("boekingen",bid,nb);
-  if(d.inkomend&&d.inkomend.nieuw){try{await write("documenten",did,{...stripId(d),inkomend:{...d.inkomend,nieuw:false}})}catch(e){}}
-  toast("Gekoppeld aan de transactie van "+fmtDate(b.datum)+".");renderBody()}
+async function inkKoppel(did,bids){const d=S.documenten.get(did);const B=String(bids||"").split(",").map(x=>S.boekingen.get(x)).filter(Boolean);if(!B.length||!d)return;
+  for(const b of B){const nb={...stripId(b),documentId:did};S.boekingen.set(b.id,{...nb,id:b.id});dirty=true;await write("boekingen",b.id,nb)}
+  const A=INK.txt.get(did),ink={...(d.inkomend||{})};let w=false;if(ink.nieuw){ink.nieuw=false;w=true}if(!ink.totaal&&A&&A.totaal){ink.totaal=A.totaal;w=true}
+  if(w){try{S.documenten.set(did,{...d,inkomend:ink});await write("documenten",did,{...stripId(d),inkomend:ink})}catch(e){}}
+  const rest=inkTot(S.documenten.get(did)||d)-inkSom(did);
+  toast(B.length>1?"Beide transacties gekoppeld.":"Gekoppeld aan de transactie van "+fmtDate(B[0].datum)+"."+(rest>0.005?" Nog "+eur(rest)+" open.":""));renderBody()}
 async function inkLos(bid){const b=S.boekingen.get(bid);if(!b)return;{const d=b.documentId&&S.documenten.get(b.documentId);if(d&&d.inkomend){try{await write("documenten",d.id,{...stripId(d),inkomend:{...d.inkomend,auto:false,nieuw:false,geenAuto:true}})}catch(e){}}}const nb={...stripId(b)};delete nb.documentId;S.boekingen.set(bid,{...nb,id:bid});dirty=true;await write("boekingen",bid,nb);toast("Ontkoppeld.");if(route()==="inkomend")renderBody()}
 /* ---------- automatisch koppelen ----------
    Enkel als de match zeker is: exact hetzelfde totaalbedrag én (gestructureerde mededeling, factuurnummer of naam leverancier),
@@ -4040,7 +4065,7 @@ async function inkLos(bid){const b=S.boekingen.get(bid);if(!b)return;{const d=b.
    Draait in de app (PDF-tekst lezen gebeurt hier) bij admin/boekhouder, na het laden en telkens als er transacties bijkomen. */
 let INK_AUTO_T=null,INK_AUTO_BEZIG=false;
 function inkAutoPlan(){clearTimeout(INK_AUTO_T);INK_AUTO_T=setTimeout(inkAuto,1500)}
-function inkAutoKies(d){const V=inkVoorstel(d);if(!V.length)return null;const x=V[0];
+function inkAutoKies(d){const V=inkVoorstel(d);if(!V.length)return null;const x=V[0];if(!x.b)return null;
   if(x.sc<8||!x.w.includes("zelfde bedrag")||!x.w.some(w=>w!=="zelfde bedrag"))return null;
   if(V[1]&&x.sc-V[1].sc<3)return null;return x}
 async function inkAuto(){if(INK_AUTO_BEZIG||!inkMag()||(typeof ROL_ECHT!=="undefined"&&ROL_ECHT&&ROL_ECHT!==ROL))return;
@@ -4054,7 +4079,7 @@ async function inkAuto(){if(INK_AUTO_BEZIG||!inkMag()||(typeof ROL_ECHT!=="undef
       if(D.some(o=>o!==d&&INK.txt.has(o.id)&&(inkAutoKies(o)||{}).b===x.b))continue;
       const b=x.b,nb={...stripId(b),documentId:d.id};
       try{S.boekingen.set(b.id,{...nb,id:b.id});dirty=true;await write("boekingen",b.id,nb);
-        const ink={...(d.inkomend||{}),auto:true,nieuw:true,autoOp:new Date().toISOString(),autoWaarom:x.w.join(", ")};
+        const ink={...(d.inkomend||{}),...(INK.txt.get(d.id)&&INK.txt.get(d.id).totaal?{totaal:INK.txt.get(d.id).totaal}:{}),auto:true,nieuw:true,autoOp:new Date().toISOString(),autoWaarom:x.w.join(", ")};
         S.documenten.set(d.id,{...d,inkomend:ink});await write("documenten",d.id,{...stripId(d),inkomend:ink});n++}
       catch(e){console.warn("auto koppelen",e)}}}
   finally{INK_AUTO_BEZIG=false}
@@ -4069,6 +4094,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ink]
   if(a==="f"){INK.f=t.dataset.v;renderBody()}
   else if(a==="pdf"){const d=S.documenten.get(id);if(d)try{window.open(await docUrl(d,false),"_blank")}catch(x){toast(x.message,true)}}
   else if(a==="koppel")inkKoppel(id,t.dataset.b);
+  else if(a==="volledig"){const d=S.documenten.get(id);if(d){const ink={...(d.inkomend||{}),totaal:inkSom(id)};S.documenten.set(id,{...d,inkomend:ink});write("documenten",id,{...stripId(d),inkomend:ink}).then(()=>{toast("Als volledig gekoppeld aangeduid.");renderBody()})}}
   else if(a==="kies"){const s=document.querySelector(`[data-ink-sel="${CSS.escape(id)}"]`);if(!s||!s.value){toast("Kies eerst een transactie.",true);return}inkKoppel(id,s.value)}
   else if(a==="los")inkLos(id);
   else if(a==="autoGezien"){t.disabled=true;for(const did of id.split(",")){const d=S.documenten.get(did);if(d&&d.inkomend){const ink={...d.inkomend,nieuw:false};S.documenten.set(did,{...d,inkomend:ink});try{await write("documenten",did,{...stripId(d),inkomend:ink})}catch(x){}}}renderBody()}
@@ -4087,7 +4113,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ink]
     :b.richting==="uit"&&inkMag()?`<div class="full ink-fb muted small">${ic("verslagen")}<span>Geen factuur gekoppeld. Koppel er een via <a href="#inkomend" data-act="closeModal">Financiën › Inkomende facturen</a>.</span></div>`:"";
   if(h)e.insertAdjacentHTML("beforeend",h)}}
 // dashboard: nieuwe facturen te koppelen
-{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){let x="";if(inkMag()){const L=inkDocs().filter(d=>!inkBoekVan(d.id).length&&d.inkomend&&d.inkomend.nieuw);
+{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){let x="";if(inkMag()){const L=inkDocs().filter(d=>inkOpen(d)&&d.inkomend&&d.inkomend.nieuw);
     if(L.length)x=`<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("inkomend")}</span><div class="nm-body"><b>${L.length===1?"Een inkomende factuur":L.length+" inkomende facturen"} te koppelen</b><div class="nm-l">${L.slice(0,5).map(d=>`<a class="nm-i" href="#inkomend"><b>${esc(inkVan(d)||d.naam)}</b><span>${fmtDate(inkDatum(d))}</span></a>`).join("")}</div></div></div>`}
     const A=!inkMag()?[]:inkDocs().filter(d=>d.inkomend&&d.inkomend.auto&&d.inkomend.nieuw).map(d=>({d,b:inkBoekVan(d.id)[0]})).filter(x=>x.b);
     if(A.length)x+=`<div class="nmeld dm-b" role="status"><span class="nm-ic">${ic("inkomend")}</span><div class="nm-body"><b>${A.length===1?"Een inkomende factuur":A.length+" inkomende facturen"} automatisch gekoppeld</b><div class="nm-l">${A.slice(0,5).map(({d,b})=>`<a class="nm-i" href="#inkomend"><b>${esc(inkVan(d)||d.naam)}</b><span>${eur(b.bedrag)} · transactie ${fmtDate(b.datum)}</span></a>`).join("")}</div></div><button type="button" class="nm-x" data-ink="autoGezien" data-id="${esc(A.map(x=>x.d.id).join(","))}" title="Gezien" aria-label="Gezien">${ic("x")}</button></div>`;
