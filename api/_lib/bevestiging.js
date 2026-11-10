@@ -104,7 +104,7 @@ export function kfGroepen(t) {
 }
 const jarenTekst = (a, b) => { const L = []; for (let y = a; y <= b; y++) L.push(y); return L.length < 2 ? String(L[0]) : L.slice(0, -1).join(", ") + " en " + L[L.length - 1]; };
 const linkSite = s => { const u = String(s).trim(); if (!u) return ""; const h = /^https?:\/\//i.test(u) ? u : "https://" + u; return `<a href="${esc(h)}" style="color:#a3211a">${esc(u.replace(/^https?:\/\//i, ""))}</a>`; };
-export async function kfMailHtml(sb, d, { A, c, jaar }) {
+export async function kfMailHtml(sb, d, { A, c, jaar, link }) {
   const datum = c.datum || jaar + "-12-19", tijd = c.tijd || "14u30", locatie = c.locatie || "VTI - Sinte Annalaan 99b, Aalst";
   const M = { ...kfMailDef(jaar, datum), ...(c.mail || {}) }, G = kfGroepen(M.groepen);
   const lft = geb => { if (!geb) return ""; const [y, m, dd] = geb.split("-").map(Number), [Y, Mo, D] = datum.split("-").map(Number); let a = Y - y; if (Mo < m || (Mo === m && D < dd)) a--; return a < 1 ? "< 1 jaar" : a + " jaar"; };
@@ -122,8 +122,9 @@ export async function kfMailHtml(sb, d, { A, c, jaar }) {
     html += p("Dit jaar kan je zoals vorig jaar zelf het cadeau voor je kind(eren) kiezen.")
       + (sitesT ? p(`Ga hiervoor naar de website ${sitesT} en kies 1 of meerdere cadeaus volgens de waarde die hieronder per kind vermeld staat.`) : "")
       + (perKind.length ? `<ul style="margin:0 0 15px;padding-left:22px">${perKind.map(({ k, g }) => `<li style="margin:0 0 4px"><b>${esc(k.naam)}</b>: ${waarde(g.tekst)}</li>`).join("")}</ul>` : "")
-      + p(`Stuur ons ${totL ? `<b>voor ${esc(totL)}</b> ` : ""}per kind de omschrijving en het artikelnummer door${M.contact ? ` via <a href="mailto:${esc(M.contact)}" style="color:#a3211a">${esc(M.contact)}</a>` : ""}.`)
-      + p(`Gelieve ook te letten op de beschikbaarheid en levertijden van de producten.<br>Indien we ${totL ? "op " + esc(totL) + " " : ""}niets van jou hebben ontvangen, zal er een waardebon van bol.com worden voorzien t.w.v. het bedrag hierboven.`)
+      + (perKind.some(x => /\d/.test(x.g.tekst)) ? p(`Kies het cadeau${totL ? ` <b>tot en met ${esc(totL)}</b>` : ""} via de knop hieronder: plak de link van het product, wij controleren meteen de prijs en de voorraad. Wij bestellen de cadeaus zelf.`)
+        + knop("Cadeau kiezen", link || (site() + "/cadeau")) : "")
+      + p(`Gelieve ook te letten op de beschikbaarheid en levertijden van de producten.<br>Wie ${totL ? "tegen " + esc(totL) + " " : ""}niets kiest, krijgt een waardebon van bol.com t.w.v. het bedrag hierboven.`)
       ;
   }
   html += kaderBlok("Je inschrijving", tabel([rij("Wanneer", esc(lang(datum)) + (tijd ? " om " + esc(tijd) : "")), rij("Waar", esc(locatie)), rij("Lid", esc(d.lid)), rij("Kinderen", kids || "–"), d.opmerking ? rij("Opmerking", esc(d.opmerking)) : ""]))
@@ -133,7 +134,8 @@ export async function kfMailHtml(sb, d, { A, c, jaar }) {
 export async function mailKinderfeest(sb, row) {
   const d = row.data, A = await algemeen(sb), jaar = d.jaar || A.jaar, c = await configDoc(sb, "kf_" + jaar), aan = String(d.email || "").trim();
   if (!aan) return null;
-  const html = await kfMailHtml(sb, d, { A, c, jaar });
+  const { kfcLink } = await import("./kfcadeau.js");
+  const html = await kfMailHtml(sb, d, { A, c, jaar, link: kfcLink(row.id) });
   const M = { ...kfMailDef(jaar, c.datum || jaar + "-12-19"), ...(c.mail || {}) }, cc = String(M.kopie || "").split(/[,;\s]+/).map(x => x.trim().toLowerCase()).filter(x => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x)).slice(0, 5);
   return { aan, aanNaam: d.lid || "", cc, onderwerp: `VBHA - Bevestiging inschrijving kinderfeest ${jaar}`, html: huisstijl(html, A.vereniging), betaald: true };
 }

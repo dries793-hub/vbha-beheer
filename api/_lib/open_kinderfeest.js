@@ -2,6 +2,7 @@ import { admin, sendError, httpErr } from "./sb.js";
 import { stuurBevestiging } from "./bevestiging.js";
 import { clean, body, nieuwId, algemeen, configDoc, spamCheck, actieveLeden, inschrijving, alIngeschreven, AL_TEKST, rateLimit } from "./publiek.js";
 import { meldPush } from "./push.js";
+import { kfCadeauPubliek } from "./kfcadeau.js";
 
 // Openbare inschrijving kinderfeest: komt rechtstreeks in Administratie › Kinderfeest.
 async function info(sb) {
@@ -14,6 +15,8 @@ async function info(sb) {
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
+    // cadeau kiezen via de persoonlijke link uit de bevestigingsmail
+    if ((req.method === "GET" && req.query && req.query.cadeau) || (req.method === "POST" && (() => { try { return !!body(req).cadeau; } catch { return false; } })())) return await kfCadeauPubliek(req, res);
     const sb = admin();
     if (req.method === "GET") {
       const I = await info(sb), lidId = String(req.query?.lid || "");
