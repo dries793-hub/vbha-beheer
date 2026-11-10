@@ -6508,7 +6508,7 @@ document.addEventListener("click",e=>{if(!FA.a)return;
 var RECHTEN=null;
 const FUNC=[["leden","Ledenlijst",["leden"],"Leden"],["punten","Puntensysteem",["punten"],"Leden"],
   ["overzicht","Overzicht",["boekhouding"],"Financiën"],["financien","Transacties",["boekingen","verwerken"],"Financiën"],["facturen","Facturen",["facturen","inkomend"],"Financiën"],["begroting","Begroting",["begroting"],"Financiën"],["historiek","Historiek",["historiek"],"Financiën"],["kassa","Kassa",["kassa"],"Financiën"],
-  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"],"Activiteiten"],["kalverdeling","Kalenders: personen en dozen meegeven",[],"Activiteiten"],["fuif","In Vier en Vlam",["fuif"],"Activiteiten"],["banket","Banket",["banket"],"Activiteiten"],["kinderfeest","Kinderfeest",["kinderfeest"],"Activiteiten"],["familiedag","Familiedag",["familiedag"],"Activiteiten"],
+  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"],"Activiteiten"],["kalverdeling","Dozen meegeven of terugbrengen",[],"Activiteiten"],["fuif","In Vier en Vlam",["fuif"],"Activiteiten"],["banket","Banket",["banket"],"Activiteiten"],["kinderfeest","Kinderfeest",["kinderfeest"],"Activiteiten"],["familiedag","Familiedag",["familiedag"],"Activiteiten"],
   ["agenda","Agenda en verslagen",["agenda","verslagen"],"Administratie"],["mails","Mails",["mails"],"Administratie"],["sponsors","Sponsors",["sponsors"],"Administratie"],["documenten","Documenten",["documenten"],"Administratie"],["website","Website",["website"],"Administratie"],["shiften","Shiften",["shiften"],"Administratie"],["fotos","Fotoalbums",["fotos"],"Administratie"],
   ["webshop","Webshop",["webshop"],"Webshop"]];
 const FUNC_VAN={};for(const [f,,rs] of FUNC)for(const r of rs)FUNC_VAN[r]=f;
