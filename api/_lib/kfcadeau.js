@@ -17,6 +17,13 @@ export function kfcKlopt(id, t) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 const site = () => String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, "");
+const PVELD = ["url", "winkel", "naam", "prijs", "foto", "artikelnr", "beschikbaar", "levertijd", "gecontroleerd"];
+const pTekst = p => PVELD.map(k => k + "=" + (p[k] == null ? "" : String(p[k]))).join("|");
+export const tekenProduct = p => crypto.createHmac("sha256", sleutel()).update("vbha-product|" + pTekst(p)).digest("base64url").slice(0, 32);
+export function kloptProduct(p) {
+  if (!sleutel() || typeof p.sig !== "string" || !(Date.now() - Date.parse(p.gecontroleerd || 0) < 3600e3)) return false;
+  const a = Buffer.from(tekenProduct(p)), b = Buffer.from(p.sig); return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 export const kfcLink = id => `${site()}/cadeau?i=${encodeURIComponent(id)}&t=${kfcToken(id)}`;
 
 /* ---------- productgegevens ophalen bij de winkel ---------- */
@@ -103,10 +110,10 @@ export async function bolInfo(u) {
 }
 /* Zyte API (tussendienst die de productpagina ophaalt voorbij de botbeveiliging; Vercel: ZYTE_API_KEY). Automatische productherkenning. */
 const zyteAan = () => !!String(process.env.ZYTE_API_KEY || "").trim();
-export async function zyteInfo(u) {
-  const r = await fetch("https://api.zyte.com/v1/extract", { method: "POST", signal: AbortSignal.timeout(55000),
+async function zyteVraag(u, extractFrom, ms) {
+  const r = await fetch("https://api.zyte.com/v1/extract", { method: "POST", signal: AbortSignal.timeout(ms),
     headers: { Authorization: "Basic " + Buffer.from(String(process.env.ZYTE_API_KEY).trim() + ":").toString("base64"), "Content-Type": "application/json" },
-    body: JSON.stringify({ url: u.toString(), product: true, geolocation: "BE" }) });
+    body: JSON.stringify({ url: u.toString(), product: true, productOptions: { extractFrom }, geolocation: "BE" }) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error("zyte " + r.status + " " + String(j.title || j.detail || "").slice(0, 120));
   const p = j.product || {};
@@ -114,6 +121,17 @@ export async function zyteInfo(u) {
   const gt = Array.isArray(p.gtin) && p.gtin[0] ? (p.gtin[0].value || p.gtin[0]) : null;
   return { naam: p.name ? ont(p.name).slice(0, 200) : null, prijs: getal(p.price), foto: (p.mainImage && p.mainImage.url) || (Array.isArray(p.images) && p.images[0] && p.images[0].url) || null,
     artikelnr: String(gt || p.sku || p.mpn || "").slice(0, 40) || null, beschikbaar: av === "instock" ? true : av === "outofstock" ? false : null, url: p.canonicalUrl || p.url || null };
+}
+// eerst de snelle manier (gewone opvraging, zonder browser); lukt dat niet, dan met een echte browser
+const ZYTE_MODUS = {}; // per winkel: wat de laatste keer werkte
+export async function zyteInfo(u) {
+  const w = winkelVan(u.hostname) || "?", volg = ZYTE_MODUS[w] === "browserHtml" ? ["browserHtml"] : ["httpResponseBody", "browserHtml"];
+  let laatste = null;
+  for (const m of volg) {
+    try { const p = await zyteVraag(u, m, m === "httpResponseBody" ? 15000 : 40000); if (p.naam && p.prijs != null) { ZYTE_MODUS[w] = m; return p; } laatste = p; }
+    catch (e) { laatste = laatste || null; if (m === "browserHtml") throw e; }
+  }
+  return laatste || {};
 }
 // zoekpagina via Zyte in een echte browser: links naar productpagina's
 async function zyteNav(url) {
@@ -198,6 +216,13 @@ export async function kfCadeauPubliek(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
     const sb = admin();
+    if (req.method === "GET" && req.query.probe) { // tijdelijke snelheidstest (eenmalige sleutel in de afgeschermde tabel diag_token)
+      const { data } = await sb.from("diag_token").select("tot").eq("token", String(req.query.diag || "")).maybeSingle();
+      if (!data || Date.parse(data.tot) < Date.now()) throw httpErr(403, "Geen toegang.");
+      const u = new URL(String(req.query.probe)), out = {};
+      await Promise.all(["httpResponseBody", "browserHtml"].map(async m => { const t = Date.now(); try { const p = await zyteVraag(u, m, 50000); out[m] = { ms: Date.now() - t, naam: p.naam, prijs: p.prijs, beschikbaar: p.beschikbaar }; } catch (e) { out[m] = { ms: Date.now() - t, fout: String(e.message || e).slice(0, 160) }; } }));
+      return res.status(200).json(out);
+    }
     if (req.method === "GET") {
       await rateLimit(sb, req, "kfcadeau", 120, 600, httpErr);
       const { row, M, open } = await laad(sb, req.query.cadeau, req.query.t);
@@ -207,7 +232,7 @@ export async function kfCadeauPubliek(req, res) {
     const b = body(req);
     await rateLimit(sb, req, "kfcadeaup", 80, 600, httpErr);
     const { row, M, open } = await laad(sb, b.cadeau, b.t);
-    if (b.actie === "check") return res.status(200).json(await productInfo(b.url));
+    if (b.actie === "check") { const p = await productInfo(b.url); return res.status(200).json(p.auto ? { ...p, sig: tekenProduct(p) } : p); }
     if (b.actie !== "bewaar") throw httpErr(400, "Onbekende actie.");
     if (!open) throw httpErr(403, "Cadeaus kiezen kan niet meer: de termijn is voorbij. Wie niets koos, krijgt een bon van bol.com.");
     const d = row.data, i = Number(b.kind), k = (d.kinderen || [])[i];
@@ -222,6 +247,8 @@ export async function kfCadeauPubliek(req, res) {
       if (!L.length) cadeau = null;
       else {
         const items = await Promise.all(L.map(async x => {
+          // net gecontroleerd (ondertekend door de server, minder dan een uur oud): niet opnieuw opvragen
+          if (x && x.sig && x.auto && kloptProduct(x)) { const p = { ...Object.fromEntries(PVELD.map(k => [k, x[k] ?? null])), auto: true, bron: "zyte" }; if (p.beschikbaar === false) throw httpErr(400, `"${p.naam}" is niet op voorraad. Kies een ander product.`); return p; }
           const p = await productInfo(x && x.url);
           if (p.auto) { if (p.beschikbaar === false) throw httpErr(400, `"${p.naam}" is niet op voorraad. Kies een ander product.`); return p; }
           // de winkel gaf de gegevens niet vrij: naam en prijs van de ouder (niet automatisch gecontroleerd)
