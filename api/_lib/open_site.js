@@ -45,7 +45,7 @@ export function schoon(c) {
     id: e.id, aan: e.aan !== false, plaats: ["boven", "midden", "onder"].includes(e.plaats) ? e.plaats : "midden",
     kicker: tekst(e.kicker, 120), titel: tekst(e.titel, 140), tekst: tekst(e.tekst, 1500), knoppen: knoppen(e.knoppen) }));
   o.fotos = {};
-  for (const k of ["kalender", "viv", ...o.eigen.map(e => e.id)]) { const f = c.fotos && c.fotos[k]; if (f && typeof f.pad === "string" && f.pad.startsWith("Website/")) o.fotos[k] = { pad: f.pad, v: String(f.v || "1").replace(/\W/g, "").slice(0, 20), w: Number(f.w) || 1600, h: Number(f.h) || 1067 }; }
+  for (const k of ["kalender", "viv", ...o.eigen.map(e => e.id)]) { const f = c.fotos && c.fotos[k]; if (f && typeof f.pad === "string" && (f.pad.startsWith("Website/") || /^\/w\/[\w.-]+\.(jpe?g|png|webp)$/i.test(f.pad))) o.fotos[k] = { pad: f.pad, v: String(f.v || "1").replace(/\W/g, "").slice(0, 20), w: Number(f.w) || 1600, h: Number(f.h) || 1067 }; }
   return o;
 }
 
@@ -93,6 +93,8 @@ export default async function site(req, res) {
       if (!["kalender", "viv"].includes(k) && !/^e[\w]{3,24}$/.test(k)) throw httpErr(404, "Niet gevonden");
       const c = await leesCfg(sb), f = c.fotos[k];
       if (!f) throw httpErr(404, "Geen foto");
+      // vaste foto op de site zelf (public/w/…)
+      if (f.pad.startsWith("/w/")) { res.setHeader("Cache-Control", "public, max-age=3600"); res.setHeader("Location", f.pad); return res.status(302).end(); }
       const { data, error } = await sb.storage.from("documenten").download(f.pad);
       if (error || !data) throw httpErr(404, "Geen foto");
       const buf = Buffer.from(await data.arrayBuffer());
@@ -107,7 +109,7 @@ export default async function site(req, res) {
       let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
       const huidig = await leesCfg(sb), c = schoon(b.cfg);
       // nieuwe (nog niet bewaarde) foto's toont het voorbeeld via een tijdelijke link
-      for (const k of Object.keys(c.fotos)) if (!huidig.fotos[k] || huidig.fotos[k].pad !== c.fotos[k].pad) {
+      for (const k of Object.keys(c.fotos)) if (!c.fotos[k].pad.startsWith("/w/") && (!huidig.fotos[k] || huidig.fotos[k].pad !== c.fotos[k].pad)) {
         const { data } = await sb.storage.from("documenten").createSignedUrl(c.fotos[k].pad, 600);
         if (data) c.fotos[k].tijdelijk = data.signedUrl;
       }

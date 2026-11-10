@@ -5889,7 +5889,7 @@ async function fotoVerklein(file,max=1600,q=0.85){let bmp;try{bmp=await createIm
   const cv=document.createElement("canvas");cv.width=w;cv.height=h;const x=cv.getContext("2d");x.imageSmoothingQuality="high";x.drawImage(bmp,0,0,w,h);
   const blob=await new Promise(ok=>cv.toBlob(ok,"image/jpeg",q));return{blob,w,h,canvas:cv,bron:bmp}}
 const WS_FOTO_URL={};
-async function wsFotoUrl(f){if(!f||!f.pad)return"";if(WS_FOTO_URL[f.pad])return WS_FOTO_URL[f.pad];const {data}=await SB.storage.from(DOC_BUCKET).createSignedUrl(f.pad,3600);WS_FOTO_URL[f.pad]=data?data.signedUrl:"";return WS_FOTO_URL[f.pad]}
+async function wsFotoUrl(f){if(!f||!f.pad)return"";if(f.pad.startsWith("/w/"))return f.pad;if(WS_FOTO_URL[f.pad])return WS_FOTO_URL[f.pad];const {data}=await SB.storage.from(DOC_BUCKET).createSignedUrl(f.pad,3600);WS_FOTO_URL[f.pad]=data?data.signedUrl:"";return WS_FOTO_URL[f.pad]}
 function wsFotoBlok(k,lbl){const W=wsWerk(),f=W.fotos[k],d=canWrite?"":" disabled";
   return `<div class="fld full"><span class="lbl">${lbl}</span><div class="ws-foto"><div class="ws-fi" data-wsimg="${k}">${f?'<span class="muted small">laden…</span>':k==="kalender"?'<img src="/w/kalender-2027.jpg" alt="">':'<span class="muted small">Geen foto: de tekst staat dan over de volle breedte.</span>'}</div>
    <div class="ws-fk"><label class="btn sm${canWrite?"":" disabled"}">${ic("upload")}Foto opladen<input type="file" accept="image/*" data-wsup="${k}" hidden${d}></label>${f?`<button type="button" class="btn sm ghost" data-wsact="fotoWeg" data-k="${k}"${d}>Foto verwijderen</button>`:""}<span class="help">JPG of PNG. Wordt automatisch verkleind tot 1600 px.</span></div></div></div>`}
@@ -5938,7 +5938,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-wsac
   if(a==="publiceer"){const W=wsBewaarbaar(wsWerk());if(!Object.values(W.blokken).some(Boolean)){toast("Zet minstens één onderdeel aan.",true);return}
     b.disabled=true;try{await write("config","website",{...W,gewijzigd:new Date().toISOString(),door:ME_NAME||""});
       // oude, niet meer gebruikte foto's opruimen
-      const oud=Object.values(wsCfg().fotos||{}).map(f=>f.pad),nu=Object.values(W.fotos).map(f=>f.pad);const weg=oud.filter(p=>!nu.includes(p));if(weg.length)SB.storage.from(DOC_BUCKET).remove(weg).catch(()=>{});
+      const oud=Object.values(wsCfg().fotos||{}).map(f=>f.pad),nu=Object.values(W.fotos).map(f=>f.pad);const weg=oud.filter(p=>!nu.includes(p)&&!p.startsWith("/w/"));if(weg.length)SB.storage.from(DOC_BUCKET).remove(weg).catch(()=>{});
       S.config.set("website",{...W,id:"website"});WS=null;renderBody();toast("Gepubliceerd. De website is binnen een minuut bijgewerkt.")}catch(x){}finally{b.disabled=false}}});
 {const st=document.createElement("style");st.textContent=`
 .ws-bl{display:flex;flex-direction:column;gap:12px}.ws-vr{display:flex;align-items:center;gap:10px}.ws-vr .ws-row{flex:1;align-items:center}.ws-pijl{display:flex;gap:4px}.ws-pijl .btn{font-size:11px;min-width:30px}.ws-row{display:flex;gap:14px;align-items:flex-start;cursor:pointer}.ws-row b{display:block}.ws-row small{display:block;color:var(--muted);font-size:13px;margin-top:2px}

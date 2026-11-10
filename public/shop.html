@@ -289,7 +289,7 @@ document.addEventListener("click",async e=>{if(e.target.id!=="bcNieuw")return;e.
   if(P.get("b")){VIEW="klaar";toonBestelling(P.get("b"),P.get("t")||"",false);return}
   if(/[?&]betaling=terug/.test(location.search)){history.replaceState(null,"",location.pathname);let j=null;try{j=JSON.parse(sessionStorage.getItem("vbha_shop_best")||"null")}catch(x){}if(j){besteld(j);return}}
   if(!W.open){$("#box").innerHTML='<div class="card"><p style="margin:0">De webshop is momenteel gesloten. Kom later nog eens terug!</p></div>';return}
-  winkel()})();
+  winkel();const it=P.get("item");if(it&&item(it))detail(it)})();
 </script>
 <script src="/adres.js" defer></script>
 </body>
