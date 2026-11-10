@@ -4396,12 +4396,13 @@ function kfMailHtml(){const M=kfMailCfg(),d=canWrite?"":" disabled";
   ${fld("kmK","Kopie van elke bevestiging naar",inp("kmK",M.kopie??"",'placeholder="e-mailadres (leeg = geen kopie)"'+d),"full")}
   <label class="sp-nat full" for="kmC"><input type="checkbox" id="kmC"${M.cadeau?" checked":""}${d}><span><b>Cadeau zelf kiezen</b><small>De uitleg hieronder komt in de bevestigingsmail.</small></span></label>
   <div class="full km-velden" id="kmV"${M.cadeau?"":" hidden"}><div class="form" style="padding:0">
-   ${fld("kmS","Websites",inp("kmS",M.sites,'placeholder="www.dreamland.be, www.bol.com"'+d))}${fld("kmT","Cadeau kiezen tot en met",`<input id="kmT" type="date" value="${esc(M.tot)}"${d}>`)}
-   <input type="hidden" id="kmM" value="${esc(M.contact||"")}">
+   ${fld("kmS","Websites",inp("kmS",M.sites,'placeholder="www.dreamland.be, www.bol.com"'+d))}${fld("kmT","Cadeau doorgeven vóór",`<input id="kmT" type="date" value="${esc(M.tot)}"${d}>`)}
+   ${fld("kmM","Doorsturen naar",inp("kmM",M.contact,'type="email" placeholder="e-mailadres"'+d),"full")}
+   <label class="sp-nat full" for="kmKz"><input type="checkbox" id="kmKz"${M.keuze?" checked":""}${d}><span><b>Ouders kiezen via de keuzepagina</b><small>In de mail een knop "Cadeau kiezen" in plaats van doorsturen per mail.</small></span></label>
    <div class="fld full"><label for="kmG">Waarde per geboortejaar</label><textarea id="kmG" style="height:86px;min-height:0;font-family:inherit"${d}>${esc(M.groepen)}</textarea><span class="help">Eén regel per groep, bv. <b>2016-2020: 50,00 EUR per kind</b> of <b>2015: cadeau voorzien door VBHA</b>.</span></div>
   </div></div>
   <div class="full bar" style="margin:0"><button type="button" class="btn sm" data-km="voorbeeld">${ic("mails")}Voorbeeld van de mail</button><button type="button" class="btn sm ghost" data-km="standaard"${d}>Standaardtekst</button></div>`}
-const kmLees=()=>({kopie:$("#kmK").value.trim(),cadeau:$("#kmC").checked,sites:$("#kmS").value.trim(),tot:$("#kmT").value,contact:$("#kmM").value.trim(),groepen:$("#kmG").value.trim()});
+const kmLees=()=>({kopie:$("#kmK").value.trim(),cadeau:$("#kmC").checked,sites:$("#kmS").value.trim(),tot:$("#kmT").value,contact:$("#kmM").value.trim(),keuze:!!($("#kmKz")&&$("#kmKz").checked),groepen:$("#kmG").value.trim()});
 {const _k=kfInst;kfInst=function(){_k.apply(this,arguments);const f=$("#fKfI");if(!f)return;f.insertAdjacentHTML("beforeend",kfMailHtml());
   const ok=$("#kiOk");if(!ok||!ok.onclick)return;const _o=ok.onclick;
   ok.onclick=async function(ev){const M=kmLees();if(M.kopie&&M.kopie.split(/[,;\s]+/).filter(Boolean).some(x=>!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x))){toast("Het adres voor de kopie klopt niet.",true);return}if(M.contact&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(M.contact)){toast("Het adres om het cadeau door te sturen klopt niet.",true);return}
@@ -7203,7 +7204,7 @@ const kfcStLbl={gekozen:["ok","Gekozen"],bon:["info","Bon bol.com"],geenkeuze:["
 function kfcItem(it){const t=it.auto===false?'<span class="pill warn">niet gecontroleerd</span>':it.beschikbaar===false?'<span class="pill nok">niet op voorraad</span>':it.controleMislukt?'<span class="pill warn">controle mislukt</span>':"";
   const pv=it.vorigePrijs!=null&&it.vorigePrijs!==it.prijs?` <span class="muted small">(was ${eur(it.vorigePrijs)})</span>`:"";
   return `<div class="kcd-it"><a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.naam||it.url)}</a> <span class="muted small">${esc(it.winkel||"")}</span> <b>${eur(it.prijs)}</b>${pv} ${t}${it.levertijd?`<div class="muted small">${esc(it.levertijd)}</div>`:""}</div>`}
-function kfcPaneel(){if(!kfMailCfg().cadeau)return"";const L=kfcKids();if(!L.length)return"";const s=kfcStats(L),M=kfMailCfg(),mag=canWrite;
+function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L=kfcKids();if(!L.length)return"";const s=kfcStats(L),M=kfMailCfg(),mag=canWrite;
   const F=KFCD.f==="alle"?L:L.filter(x=>KFCD.f==="bon"?(x.st==="bon"||x.st==="geenkeuze"):x.st===KFCD.f);
   const chip=(k,l,n)=>`<button type="button" class="${KFCD.f===k?"on":""}" data-kfc="f" data-v="${k}">${l}${n!=null?` <span class="muted">${n}</span>`:""}</button>`;
   const rij=x=>{const [c,l]=kfcStLbl[x.st];return `<tr><td><b>${esc(x.k.naam)}</b><div class="muted small">${x.a==null?"?":x.a+" j"}</div></td><td>${esc(x.r.lid||"")}${mag?` <button type="button" class="kcd-ln" data-kfc="link" data-id="${esc(x.r.id)}" title="Keuzelink kopiëren" aria-label="Keuzelink kopiëren">${ic("link")}</button>`:""}</td>
@@ -7245,7 +7246,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-kfc]
   const i=h.indexOf('<div class="bar"><div class="search">');const p=kfcPaneel();return i>=0?h.slice(0,i)+p+h.slice(i):h+p};return v};Object.assign(n,_v);VIEWS.kinderfeest=n}
 // dashboard: na de keuzetermijn en tot het feest: cadeaus bestellen
 function kfcDash(){try{if(!canWrite||(typeof ROL!=="undefined"&&ROL!=="admin"&&!(typeof RECHTEN==="object"&&RECHTEN&&RECHTEN.kinderfeest==="bewerken")))return"";const M=kfMailCfg(),c=kfCfg(),t=todayISO();
-  if(!M.cadeau||!(t>M.tot)||t>c.datum)return"";const L=kfcKids().filter(x=>(x.st==="gekozen"||x.st==="bon"||x.st==="geenkeuze")&&!x.besteld);if(!L.length)return"";
+  if(!M.cadeau||!M.keuze||!(t>M.tot)||t>c.datum)return"";const L=kfcKids().filter(x=>(x.st==="gekozen"||x.st==="bon"||x.st==="geenkeuze")&&!x.besteld);if(!L.length)return"";
   const pr=L.filter(x=>x.st==="gekozen").reduce((s,x)=>s+x.k.cadeau.items.length,0),bn=L.filter(x=>x.st!=="gekozen").length;
   return `<div class="nmeld" role="status" data-kfcd="1"><span class="nm-ic">${ic("kinderfeest")}</span><div class="nm-body"><b>Kinderfeest: cadeaus bestellen voor ${L.length} ${L.length===1?"kind":"kinderen"}</b><div class="small muted">${pr?pr+(pr===1?" product":" producten"):""}${pr&&bn?" · ":""}${bn?bn+(bn===1?" bon":" bonnen")+" bol.com":""}</div>
     <div><button type="button" class="nm-btn" data-kfc="bestel">${ic("download")}Bestellijst</button></div></div></div>`}catch(e){return""}}
