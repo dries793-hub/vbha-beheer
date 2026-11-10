@@ -69,7 +69,7 @@ async function zetLidgeldBetaald(sb, lidId, jaar, p) {
   const { data: row } = await sb.from("jaarleden").select("data").eq("id", id).maybeSingle();
   const d = row?.data || { jaar: Number(jaar), lidId };
   const dag = new Date(p.betaaldOp || Date.now()).toLocaleDateString("nl-BE", { timeZone: "Europe/Brussels" });
-  const nieuw = { ...d, jaar: Number(jaar), lidId, lidgeld: "OK", lidgeldBron: `Betaald online (${providerNaam()}) op ${dag} (€${p.bedrag.toFixed(2).replace(".", ",")})`, bancontactId: p.id };
+  const nieuw = { ...d, jaar: Number(jaar), lidId, lidgeld: "OK", lidgeldOp: new Date(p.betaaldOp || Date.now()).toISOString(), lidgeldBron: `Betaald online (${providerNaam()}) op ${dag} (€${p.bedrag.toFixed(2).replace(".", ",")})`, bancontactId: p.id };
   const { error } = await sb.from("jaarleden").upsert({ id, data: nieuw });
   if (error) throw error;
 }
