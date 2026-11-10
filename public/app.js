@@ -233,7 +233,7 @@ async function startApp(session){
   if(session.user.user_metadata&&session.user.user_metadata.tijdelijk&&!PW_NIEUW)return showSetPassword("eerste");
   STARTED=true;document.body.classList.remove("anon");
   canWrite=magSchrijven();canWriteConfirmed=true;applyRO();
-  ME_NAME=rol.naam||ME.email;const an=$("#acctName");if(an)an.textContent=ME.email;const w=$("#who");if(w){w.textContent=ROL_LBL[ROL]||"";w.classList.toggle("ro",ROL==="lezer")}ROL_ECHT=ROL;gbMenu();gbSimStart();
+  ME_NAME=rol.naam||ME.email;const an=$("#acctName");if(an){an.textContent=rol.naam||ME.email;an.title=ME.email}const w=$("#who");if(w){w.textContent=ROL==="admin"?"Administrator":"Rechten per functie";w.classList.toggle("ro",ROL==="lezer")}ROL_ECHT=ROL;gbMenu();gbSimStart();
   $("#main").innerHTML='<div class="loading" id="boot"><b>Gegevens laden…</b><span>Leden, boekhouding en punten worden opgehaald.</span></div>';
   const q=new URLSearchParams(location.search);if(q.get("bank")){const ok=q.get("bank")==="ok";setTimeout(()=>toast(ok?"De bankrekening is gekoppeld.":"Koppelen met de bank is niet gelukt"+(q.get("reden")?": "+q.get("reden"):"")+".",!ok),400);history.replaceState(null,"",location.pathname+"#bank")}
   const timer=setTimeout(()=>{if(loaded.size<COLS.length){const b=$("#boot");if(b)b.innerHTML="<b>De gegevens zijn nog niet bereikbaar.</b><span>Controleer je internetverbinding. De pagina blijft het proberen.</span>"}},10000);
@@ -3056,14 +3056,15 @@ VIEWS.gebruikers=()=>({title:"Gebruikers",actions:ROL==="admin"?'<button class="
   if(!GB){gbLaad();return '<div class="panel"><div class="empty">Gebruikers laden…</div></div>'}
   if(GB.fout)return `<div class="note">${esc(GB.fout)}</div>`;
   const L=GB.gebruikers;
-  return `<div class="gb-rollen">${["admin","boekhouder","lezer"].map(r=>`<div class="gb-rol"><span class="pill ${r==="admin"?"info":r==="boekhouder"?"ok":"neutral"}">${ROL_LBL[r]}</span><span class="muted small">${ROL_UITLEG[r]}</span></div>`).join("")}</div>
-  <div class="panel"><div class="panel-h"><h2>Wie heeft toegang</h2><span class="grow"></span><span class="muted small">${L.length}</span></div><div class="list">
+  return `  <div class="panel"><div class="panel-h"><h2>Wie heeft toegang</h2><span class="grow"></span><span class="muted small">${L.length}</span></div><div class="list">
   ${L.map(u=>`<div class="li gb-li"><span class="acct-av gb-av">${esc(((u.naam||u.email)[0]||"?").toUpperCase())}</span><div class="grow" style="min-width:0">
-    <div class="trunc"><b>${esc(u.naam||u.email)}</b>${u.ik?' <span class="muted small">(jij)</span>':""}</div><div class="gb-rm"><span class="pill ${u.rol==="admin"?"info":u.rol==="boekhouder"?"ok":"neutral"}">${ROL_LBL[u.rol]||esc(u.rol)}</span></div>
+    <div class="trunc"><b>${esc(u.naam||u.email)}</b>${u.ik?' <span class="muted small">(jij)</span>':""}</div><div class="gb-rm">${gbPill(u)}</div>
     <div class="muted small trunc">${u.naam?esc(u.email)+" · ":""}laatst aangemeld: ${esc(gbDt(u.laatst))}${u.tijdelijk?' · <span class="gb-tmp">tijdelijk wachtwoord</span>':""}</div></div>
-    <span class="pill gb-rp ${u.rol==="admin"?"info":u.rol==="boekhouder"?"ok":"neutral"}">${ROL_LBL[u.rol]||esc(u.rol)}</span>
+    ${gbPill(u,"gb-rp")}
     <button class="btn sm" data-act="gbEdit" data-id="${esc(u.id)}">Wijzigen</button></div>`).join("")||'<div class="empty">Nog niemand.</div>'}</div></div>`}});
 
+function gbPill(u,cls){if(u.rol==="admin")return `<span class="pill info ${cls||""}">Administrator</span>`;const R=u.rechten||{},n=Object.values(R).filter(x=>x!=="geen").length,w=Object.values(R).filter(x=>x==="bewerken").length;return `<span class="pill neutral ${cls||""}" title="${n} functies zichtbaar, ${w} met bewerken">Per functie · ${n} zichtbaar${w?", "+w+" bewerken":""}</span>`}
+const gbAdmVink=(v)=>`<label class="sp-nat full" for="gbAdm"><input type="checkbox" id="gbAdm"${v?" checked":""}><span><b>Administrator</b><small>Alles bekijken en wijzigen, ook gebruikers beheren.</small></span></label>`;
 const gbRolSel=(id,v)=>`<div class="gb-rkeus" role="radiogroup" aria-label="Rechten">${["admin","boekhouder","lezer"].map(r=>`<label class="sp-nat"><input type="radio" name="${id}" value="${r}"${r===v?" checked":""}><span><b>${ROL_LBL[r]}</b><small>${ROL_UITLEG[r]}</small></span></label>`).join("")}</div>`;
 function gbToonWw(titel,u,r){modal(titel,`<div class="stack" style="gap:12px">
    <p style="margin:0">${r.gemaild?`De gegevens werden gemaild naar <b>${esc(u.email)}</b>.`:`Geef deze gegevens door aan <b>${esc(u.naam||u.email)}</b>.`} Bij de eerste aanmelding kiest ${esc((u.naam||"").split(" ")[0]||"de gebruiker")} meteen een eigen wachtwoord.</p>
@@ -3075,11 +3076,11 @@ function gbNieuw(){const mail=GB&&GB.mail;
   modal("Gebruiker toevoegen",`<form id="fGb" class="form">
    ${fld("gbN","Naam",'<input id="gbN" maxlength="80" placeholder="bv. Jojanneke Lariviere">',"full")}
    ${fld("gbE","E-mailadres",'<input id="gbE" type="email" maxlength="160" placeholder="naam@voorbeeld.be">',"full")}
-   <div class="fld full"><span class="lbl">Rechten</span>${gbRolSel("gbR","lezer")}</div>
+   ${gbAdmVink(false)}
    ${mail?'<label class="sp-nat full"><input type="checkbox" id="gbM" checked><span><b>Aanmeldgegevens mailen</b><small>Met het adres van de app en een tijdelijk wachtwoord.</small></span></label>':""}
    <div class="err full" id="gbErr"></div></form>`,
    `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="gbOk">Toevoegen</button>`);
-  $("#gbOk").onclick=async()=>{const u={naam:$("#gbN").value.trim(),email:$("#gbE").value.trim().toLowerCase(),rol:($('input[name="gbR"]:checked')||{}).value};
+  $("#gbOk").onclick=async()=>{const u={naam:$("#gbN").value.trim(),email:$("#gbE").value.trim().toLowerCase(),rol:$("#gbAdm").checked?"admin":"lezer",...($("#gbAdm").checked?{}:{rechten:rgLees()})};
     if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(u.email)){$("#gbErr").textContent="Vul een geldig e-mailadres in.";return}
     $("#gbOk").disabled=true;try{const r=await api("/api/gebruikers",{method:"POST",body:JSON.stringify({actie:"nieuw",...u,mail:!!($("#gbM")&&$("#gbM").checked)})});closeModal();gbToonWw("Gebruiker toegevoegd",u,r);gbLaad()}
     catch(e){$("#gbErr").textContent=e.message;$("#gbOk").disabled=false}}}
@@ -3087,7 +3088,7 @@ function gbEdit(id){const u=GB.gebruikers.find(x=>x.id===id);if(!u)return;const 
   modal(u.naam||u.email,`<form id="fGb" class="form">
    ${fld("gbN","Naam",`<input id="gbN" maxlength="80" value="${esc(u.naam)}">`,"full")}
    <div class="fld full"><span class="lbl">E-mailadres</span><div>${esc(u.email)}</div></div>
-   <div class="fld full"><span class="lbl">Rechten</span>${gbRolSel("gbR",u.rol)}</div>
+   ${gbAdmVink(u.rol==="admin")}
    <div class="fld full"><span class="lbl">Wachtwoord vergeten?</span><div class="bar" style="gap:10px 14px;flex-wrap:wrap;align-items:center"><button type="button" class="btn sm" id="gbReset">${ic("sleutel")}Nieuw tijdelijk wachtwoord</button>${mail?'<label class="cbx muted small"><input type="checkbox" id="gbM" checked>ook mailen</label>':""}</div></div>
    <div class="err full" id="gbErr"></div></form>`,
    `${u.ik?"":'<button class="btn danger" id="gbDel" style="margin-right:auto">Toegang intrekken</button>'}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="gbOk">Bewaren</button>`);
@@ -3110,7 +3111,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(
 let ROL_ECHT=null;
 function gbSimStart(){if(ROL_ECHT!=="admin")return;let s=null;try{s=sessionStorage.getItem("vbhaSimRol")}catch(e){}if(s&&s!=="admin"&&ROL_LBL[s])gbSim(s,true)}
 function gbSim(rol,stil){if(ROL_ECHT!=="admin")return;ROL=rol||"admin";try{rol&&rol!=="admin"?sessionStorage.setItem("vbhaSimRol",rol):sessionStorage.removeItem("vbhaSimRol")}catch(e){}
-  canWrite=magSchrijven();applyRO();const w=$("#who");if(w){w.textContent=ROL_LBL[ROL]+(ROL!==ROL_ECHT?" (voorvertoning)":"");w.classList.toggle("ro",ROL==="lezer")}
+  canWrite=magSchrijven();applyRO();const w=$("#who");if(w){w.textContent=(ROL==="admin"?"Administrator":"Rechten per functie")+(ROL!==ROL_ECHT?" (voorvertoning)":"");w.classList.toggle("ro",ROL==="lezer")}
   const m=$("#acctMenu");if(m)m.querySelectorAll("[data-gbm]").forEach(x=>x.remove());gbMenu();gbBanner();
   if(route()==="gebruikers"&&ROL!=="admin")location.hash="dashboard";render(true);if(!stil)toast(ROL===ROL_ECHT?"Je ziet de app terug als administrator.":"Je bekijkt de app nu als "+ROL_LBL[ROL].toLowerCase()+".")}
 function gbBanner(){let b=$("#simBar");if(ROL===ROL_ECHT||!ROL_ECHT){if(b)b.remove();document.body.classList.remove("sim");return}
@@ -6507,7 +6508,7 @@ document.addEventListener("click",e=>{if(!FA.a)return;
 var RECHTEN=null;
 const FUNC=[["leden","Ledenlijst",["leden"],"Leden"],["punten","Puntensysteem",["punten"],"Leden"],
   ["overzicht","Overzicht",["boekhouding"],"Financiën"],["financien","Transacties",["boekingen","verwerken"],"Financiën"],["facturen","Facturen",["facturen","inkomend"],"Financiën"],["begroting","Begroting",["begroting"],"Financiën"],["historiek","Historiek",["historiek"],"Financiën"],["kassa","Kassa",["kassa"],"Financiën"],
-  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"],"Activiteiten"],["kalverdeling","Kalenders: personen en dozen meegeven",[],"Activiteiten"],["fuif","In Vier en Vlam",["fuif"],"Activiteiten"],["banket","Banket",["banket"],"Activiteiten"],["kinderfeest","Kinderfeest",["kinderfeest"],"Activiteiten"],["familiedag","Familiedag",["familiedag"],"Activiteiten"],["jaarmarkt","Jaarmarkt",["jaarmarkt"],"Activiteiten"],
+  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"],"Activiteiten"],["kalverdeling","Kalenders: personen en dozen meegeven",[],"Activiteiten"],["fuif","In Vier en Vlam",["fuif"],"Activiteiten"],["banket","Banket",["banket"],"Activiteiten"],["kinderfeest","Kinderfeest",["kinderfeest"],"Activiteiten"],["familiedag","Familiedag",["familiedag"],"Activiteiten"],
   ["agenda","Agenda en verslagen",["agenda","verslagen"],"Administratie"],["mails","Mails",["mails"],"Administratie"],["sponsors","Sponsors",["sponsors"],"Administratie"],["documenten","Documenten",["documenten"],"Administratie"],["website","Website",["website"],"Administratie"],["shiften","Shiften",["shiften"],"Administratie"],["fotos","Fotoalbums",["fotos"],"Administratie"],
   ["webshop","Webshop",["webshop"],"Webshop"]];
 const FUNC_VAN={};for(const [f,,rs] of FUNC)for(const r of rs)FUNC_VAN[r]=f;
@@ -6526,34 +6527,24 @@ function navFilter(){if(!NAV_ORIG)NAV_ORIG=NAV.map(n=>Array.isArray(n)?n:{...n,i
 document.addEventListener("click",e=>{const a=e.target.closest('a[href^="#"]');if(!a)return;const r=a.getAttribute("href").slice(1);if(r&&recht(r)==="geen"){e.preventDefault();toast("Dit onderdeel is niet beschikbaar voor jou.",true)}},true);
 
 /* ---------- beheer: rechten per functie in het venster van een gebruiker ---------- */
-function rgHtml(u){const R=u.rechten||rechtenVanProfiel(u.rol),eigen=!!u.rechten;
+function rgHtml(u){const R=u.rechten||rechtenVanProfiel(u.rol==="admin"?"lezer":u.rol);
   return `<div class="fld full" id="rgWrap"><span class="lbl">Wat mag ${esc((u.naam||"deze persoon").split(" ")[0])} zien en doen?</span>
-   <div class="seg" role="group" aria-label="Soort rechten" style="margin-bottom:10px"><button type="button" data-rg="profiel" class="${eigen?"":"on"}">Volgens profiel</button><button type="button" data-rg="eigen" class="${eigen?"on":""}">Per functie</button></div>
-   <p class="help rg-adm" style="margin:0 0 8px">Een administrator heeft altijd alle rechten. Kies hierboven een ander profiel om per functie te kiezen.</p>
-   <div class="rg-tab"${eigen?"":" hidden"}>${FUNC.map(([f,l,,g],i)=>`${g&&g!==(FUNC[i-1]||[])[3]?`<div class="rg-g">${esc(g)}</div>`:""}<div class="rg-r${f==="kalverdeling"?" rg-sub":""}"><span>${esc(l)}</span><div class="seg rg-seg" role="radiogroup" aria-label="${esc(l)}">${["geen","lezen","bewerken"].map(v=>`<button type="button" role="radio" data-rgf="${f}" data-v="${v}" aria-checked="${R[f]===v}" class="${R[f]===v?"on":""}">${RECHT_LBL[v]}</button>`).join("")}</div></div>`).join("")}
-   <div class="rg-snel"><span class="muted small">Alles op:</span>${["geen","lezen","bewerken"].map(v=>`<button type="button" class="btn sm ghost" data-rgall="${v}">${RECHT_LBL[v]}</button>`).join("")}</div></div>
-   <span class="help">Verborgen: niet in het menu. Lezen: bekijken zonder te wijzigen. Bewerken: ook wijzigen. Het dashboard en je eigen meldingen ziet iedereen.</span></div>`}
-function rgLees(){const w=$("#rgWrap");if(!w)return undefined;if(!w.querySelector('[data-rg="eigen"]').classList.contains("on"))return null;const o={};for(const [f] of FUNC){const b=w.querySelector(`[data-rgf="${f}"].on`);o[f]=b?b.dataset.v:"geen"}return o}
-function rgAdmin(){const w=$("#rgWrap");if(!w)return;const rol=($('input[name="gbR"]:checked')||{}).value;const adm=rol==="admin";
-  w.querySelector(".rg-adm").hidden=!adm;w.querySelectorAll("[data-rg],[data-rgf],[data-rgall]").forEach(b=>b.disabled=adm);w.style.opacity=adm?.6:1}
+   <div class="rg-tab">${FUNC.map(([f,l,,g],i)=>`${g&&g!==(FUNC[i-1]||[])[3]?`<div class="rg-g">${esc(g)}</div>`:""}<div class="rg-r${f==="kalverdeling"?" rg-sub":""}"><span>${esc(l)}</span><div class="seg rg-seg" role="radiogroup" aria-label="${esc(l)}">${["geen","lezen","bewerken"].map(v=>`<button type="button" role="radio" data-rgf="${f}" data-v="${v}" aria-checked="${R[f]===v}" class="${R[f]===v?"on":""}">${RECHT_LBL[v]}</button>`).join("")}</div></div>`).join("")}
+   <div class="rg-snel"><span class="muted small">Alles op:</span>${["geen","lezen","bewerken"].map(v=>`<button type="button" class="btn sm ghost" data-rgall="${v}">${RECHT_LBL[v]}</button>`).join("")}</div></div></div>`}
+function rgLees(){const w=$("#rgWrap");if(!w)return undefined;const o={};for(const [f] of FUNC){const b=w.querySelector(`[data-rgf="${f}"].on`);o[f]=b?b.dataset.v:"geen"}return o}
+function rgAdmin(){const w=$("#rgWrap"),a=$("#gbAdm");if(w&&a)w.hidden=a.checked}
+document.addEventListener("change",e=>{if(e.target.id==="gbAdm")rgAdmin()});
+{const _n=gbNieuw;gbNieuw=function(){_n.apply(this,arguments);const f=$("#fGb");if(!f)return;f.querySelector(".err").insertAdjacentHTML("beforebegin",rgHtml({rol:"lezer",naam:""}));rgAdmin()}}
 {const _e=gbEdit;gbEdit=function(id){_e.apply(this,arguments);const u=GB.gebruikers.find(x=>x.id===id);const f=$("#fGb");if(!u||!f)return;
   const ww=f.querySelector("#gbReset");const anker=ww?ww.closest(".fld"):f.querySelector(".err");anker.insertAdjacentHTML("beforebegin",rgHtml(u));rgAdmin();
-  f.addEventListener("change",e=>{if(e.target.name==="gbR"){rgAdmin();const w=$("#rgWrap");if(w&&!w.querySelector('[data-rg="eigen"]').classList.contains("on")){const R=rechtenVanProfiel(e.target.value);w.querySelectorAll("[data-rgf]").forEach(b=>{const on=R[b.dataset.rgf]===b.dataset.v;b.classList.toggle("on",on);b.setAttribute("aria-checked",on)})}}});
-  const ok=$("#gbOk");ok.onclick=async()=>{const r={naam:$("#gbN").value.trim(),rol:($('input[name="gbR"]:checked')||{}).value};const rechten=r.rol==="admin"?null:rgLees();
-    try{await api("/api/gebruikers",{method:"POST",body:JSON.stringify({actie:"wijzig",id,...r,...(rechten!==undefined?{rechten}:{})})});closeModal();toast("Bewaard.");gbLaad()}catch(e){$("#gbErr").textContent=e.message}}}}
-document.addEventListener("click",e=>{const b=e.target.closest("[data-rg],[data-rgf],[data-rgall]");if(!b||b.disabled)return;const w=$("#rgWrap");if(!w)return;
-  if(b.dataset.rg){w.querySelectorAll("[data-rg]").forEach(x=>x.classList.toggle("on",x===b));w.querySelector(".rg-tab").hidden=b.dataset.rg!=="eigen";return}
+  const ok=$("#gbOk");ok.onclick=async()=>{const adm=$("#gbAdm").checked,r={naam:$("#gbN").value.trim(),rol:adm?"admin":"lezer"};const rechten=adm?null:rgLees();
+    try{await api("/api/gebruikers",{method:"POST",body:JSON.stringify({actie:"wijzig",id,...r,rechten})});closeModal();toast("Bewaard.");gbLaad()}catch(e){$("#gbErr").textContent=e.message}}}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-rgf],[data-rgall]");if(!b||b.disabled)return;const w=$("#rgWrap");if(!w)return;
   if(b.dataset.rgall){w.querySelectorAll("[data-rgf]").forEach(x=>{const on=x.dataset.v===b.dataset.rgall;x.classList.toggle("on",on);x.setAttribute("aria-checked",on)});return}
   b.closest(".rg-seg").querySelectorAll("[data-rgf]").forEach(x=>{const on=x===b;x.classList.toggle("on",on);x.setAttribute("aria-checked",on)})});
-// in de lijst: tonen wie eigen rechten heeft
-{const _v=VIEWS.gebruikers;if(_v){const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=String(b.apply(this,arguments));
-  if(GB&&GB.gebruikers)for(const u of GB.gebruikers)if(u.rechten&&u.rol!=="admin"){const n=Object.values(u.rechten).filter(x=>x!=="geen").length,w=Object.values(u.rechten).filter(x=>x==="bewerken").length;
-    h=h.replace(`data-act="gbEdit" data-id="${esc(u.id)}"`,`data-act="gbEdit" data-id="${esc(u.id)}" data-rgtip="1"`).replace(new RegExp(`(<button class="btn sm" data-act="gbEdit" data-id="${esc(u.id).replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}")`),`<span class="pill warn gb-rp" title="${n} functies zichtbaar, ${w} met bewerken">per functie</span>$1`)}
-  return h};return v};Object.assign(n,_v);VIEWS.gebruikers=n}}
 {const st=document.createElement("style");st.textContent=`.rg-tab{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:6px}
 .rg-r{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px}.rg-r>span{font-weight:600;font-size:13.5px;line-height:1.25}.rg-seg{flex-wrap:nowrap}.rg-seg button{font-size:12px;padding:5px 8px}
-.rg-snel{display:flex;gap:6px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
-#rgWrap .seg button:disabled{cursor:default}`;document.head.appendChild(st)}
+.rg-snel{display:flex;gap:6px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}`;document.head.appendChild(st)}
 
 /* ---------- Bekijken als: ook als een bepaalde gebruiker (met zijn rechten per functie) ---------- */
 var SIM_U=null;
@@ -6564,9 +6555,9 @@ magSchrijven=function(r){return recht(r||route())==="bewerken"};
   _s.call(this,rol,true);if(!stil)toast(ROL===ROL_ECHT?"Je ziet de app terug als administrator.":"Je bekijkt de app nu als "+(u?(u.naam||u.email):ROL_LBL[ROL].toLowerCase())+".")}}
 async function gbSimLijst(){if(!GB||!GB.gebruikers||!GB.gebruikers.length){try{GB=await api("/api/gebruikers")}catch(e){GB={gebruikers:[]}}}return (GB.gebruikers||[]).filter(u=>u.rol!=="admin"&&!u.ik)}
 gbSimKies=async function(){closeAcct();const U=await gbSimLijst();
-  modal("Bekijken als",`<p style="margin:0 0 12px;color:var(--muted)">Zie de app zoals een bepaalde gebruiker of profiel ze ziet. Je blijft aangemeld als jezelf; dit geldt enkel in dit venster.</p>
-  ${U.length?`<h4 style="margin:0 0 6px">Gebruiker</h4><div class="gb-rkeus" style="margin-bottom:14px">${U.map(u=>`<label class="sp-nat"><input type="radio" name="simR" value="u:${esc(u.id)}"${SIM_U&&SIM_U.id===u.id?" checked":""}><span><b>${esc(u.naam||u.email)}</b><small>${u.rechten?"Rechten per functie":esc(ROL_LBL[u.rol]||u.rol)}</small></span></label>`).join("")}</div>`:""}
-  <h4 style="margin:0 0 6px">Profiel</h4><div class="gb-rkeus">${["admin","boekhouder","lezer"].map(r=>`<label class="sp-nat"><input type="radio" name="simR" value="${r}"${!SIM_U&&r===ROL?" checked":""}><span><b>${ROL_LBL[r]}${r==="admin"?" (jezelf)":""}</b><small>${ROL_UITLEG[r]}</small></span></label>`).join("")}</div>`,
+  modal("Bekijken als",`
+  ${U.length?`<h4 style="margin:0 0 6px">Gebruiker</h4><div class="gb-rkeus" style="margin-bottom:14px">${U.map(u=>`<label class="sp-nat"><input type="radio" name="simR" value="u:${esc(u.id)}"${SIM_U&&SIM_U.id===u.id?" checked":""}><span><b>${esc(u.naam||u.email)}</b></span></label>`).join("")}</div>`:""}
+  <div class="gb-rkeus"><label class="sp-nat"><input type="radio" name="simR" value="admin"${!SIM_U?" checked":""}><span><b>Jezelf (administrator)</b></span></label></div>`,
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="simOk">Bekijken</button>`);
   $("#simOk").onclick=()=>{const v=($('input[name="simR"]:checked')||{}).value||"admin";closeModal();
     if(v.startsWith("u:")){const u=U.find(x=>"u:"+x.id===v);if(u){gbSim(u.rol==="admin"?"lezer":u.rol,false,u);return}}gbSim(v)}};
