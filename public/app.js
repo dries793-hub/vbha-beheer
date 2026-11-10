@@ -4885,9 +4885,9 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-ns="nu"]')
 /* Dashboard: nieuwe leden met lidgeld in orde die de mail nog niet kregen -> melding met knop (niets gaat automatisch) */
 function nsDash(){if(!canWrite)return"";const nu=todayISO();let h="";
   for(const[tpl,R]of Object.entries(nsCfg())){if(!R||!R.html||!(String(R.tot||"")>=nu))continue;const N=nsNieuwe(tpl,true);if(!N.length)continue;
-    h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("mail")}</span><div class="nm-body"><b>${N.length===1?"Er is een nieuw lid (lidgeld in orde) dat":N.length+" nieuwe leden (lidgeld in orde)"} nog geen mail „${esc(R.naam||"uitnodiging")}” ${N.length===1?"kreeg":"kregen"}</b>
+    h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("mails")}</span><div class="nm-body"><b>${N.length===1?"Er is een nieuw lid (lidgeld in orde) dat":N.length+" nieuwe leden (lidgeld in orde)"} nog geen mail „${esc(R.naam||"uitnodiging")}” ${N.length===1?"kreeg":"kregen"}</b>
     <div class="nm-l">${N.slice(0,8).map(x=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(x.lidId)}"><b>${esc(x.label)}</b></button>`).join("")}${N.length>8?`<span class="nm-more">+${N.length-8} meer</span>`:""}</div>
-    <div style="margin-top:8px"><button type="button" class="btn sm primary" data-nsd-stuur="${esc(tpl)}">${ic("mail")} Uitnodiging versturen</button></div></div></div>`}
+    <div><button type="button" class="nm-btn" data-nsd-stuur="${esc(tpl)}">${ic("mails")}Uitnodiging versturen</button></div></div></div>`}
   return h}
 async function nsStuurSnapshot(tpl){const R=nsCfg()[tpl],N=nsNieuwe(tpl,true);if(!R||!N.length)return;
   confirmBox(`<b>${esc(R.naam||"Deze mail")}</b> nu sturen naar ${N.length} ${N.length===1?"nieuw lid":"nieuwe leden"}?<br><small class="muted">${N.map(r=>esc(r.label)).join(", ")}</small>`,"Versturen",async()=>{
