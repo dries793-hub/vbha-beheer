@@ -266,7 +266,9 @@ export const pdfNaam = f => `${f.type === "credit" ? "Creditnota" : "Factuur"} $
 // aanspreking: bij sponsors enkel de voornaam van het contact (of gewoon "Beste,"); anders contact of naam
 function groetVan(k) {
   if (k.sponsorId) { const vn = String(k.voornaam || String(k.contact || "").trim().split(/\s+/)[0] || "").trim(); return vn ? `Beste ${esc(vn)},` : "Beste,"; }
-  return `Beste ${esc(k.contact || k.naam || "")},`.replace(" ,", ",");
+  // contactpersoon: enkel de voornaam ("Beste Sem,"); zonder contactpersoon de naam van de klant
+  if (k.contact) { const vn = String(k.contact).trim().split(/\s+/)[0]; return `Beste ${esc(vn)},`; }
+  return `Beste ${esc(k.naam || "")},`.replace(" ,", ",");
 }
 function vul(t, f, cfg, T) {
   return String(t || "").replace(/\{(\w+)\}/g, (m, k) => ({ naam: (f.klant && (f.klant.contact || f.klant.naam)) || "", nr: f.nr || "", bedrag: eur(T.totaal), vervaldatum: kort(f.vervaldatum), vereniging: cfg.vereniging }[k] ?? m));
@@ -284,7 +286,7 @@ export function factuurMail(f, cfg, soort = "factuur", status) {
     const A = f.aanmaning;
     onderwerp = `Aanmaning: factuur ${f.nr} - ${cfg.vereniging}`;
     html += p(`Ondanks onze factuur${(f.verzonden || []).some(v => v.soort === "herinnering" && v.ok) || f.eerderHerinnerd ? " en onze herinnering" : ""} hebben wij voor factuur <b>${esc(f.nr)}</b> van ${esc(kort(f.datum))} nog geen${status && status.ontvangen > 0 ? " volledige" : ""} betaling ontvangen. De vervaldatum was ${esc(kort(f.vervaldatum))}.`)
-      + p(`Zoals vermeld in onze betalingsvoorwaarden en overeenkomstig de wet van 2 augustus 2002 betreffende de bestrijding van de betalingsachterstand bij handelstransacties, rekenen wij vanaf nu verwijlintresten en een forfaitaire schadevergoeding aan.`)
+      + p(`Zoals vermeld in onze betalingsvoorwaarden rekenen wij vanaf nu verwijlintresten en een forfaitaire schadevergoeding aan.`)
       + p(`Wij vragen je het totaal van <b>${eur(A.totaal)}</b> uiterlijk op <b>${esc(lang(A.tot))}</b> over te schrijven. Zonder betaling binnen deze termijn zien wij ons genoodzaakt verdere stappen tot invordering te zetten.`)
       + p(`Heb je intussen al betaald? Dan kruisten onze berichten elkaar en mag je deze aanmaning als niet verzonden beschouwen.`, "margin:0 0 15px;font-size:13.5px;color:#666666");
     html += kaderBlok("Aanmaning factuur " + esc(f.nr), tabel([
