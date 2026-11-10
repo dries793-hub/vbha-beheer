@@ -31,7 +31,7 @@ const knoppen = L => (Array.isArray(L) ? L : []).slice(0, 4).map(k => ({ label: 
 const knopHtml = L => L.length ? `<div class="btns">${L.map(k => `<a class="${k.stijl === "rand" ? "btn-rand" : "btn-red"}" href="${esc(k.url)}">${esc(k.label)}</a>`).join("")}</div>` : "";
 function eigenHtml(e, c) {
   const f = c.fotos[e.id];
-  return `<section class="hero eigen${f ? "" : " zonder"}" id="${esc(e.id)}">${f ? `<figure class="photo"><img data-s-img="${esc(e.id)}" src="/api/openbaar?f=sitefoto&amp;k=${esc(e.id)}&amp;v=${esc(f.v)}" alt="" width="${f.w}" height="${f.h}" loading="lazy"></figure>` : ""}<div>`
+  return `<section class="hero eigen${f ? (e.fotoKant === "rechts" ? " rechts" : "") : " zonder"}" id="${esc(e.id)}">${f ? `<figure class="photo"><img data-s-img="${esc(e.id)}" src="/api/openbaar?f=sitefoto&amp;k=${esc(e.id)}&amp;v=${esc(f.v)}" alt="" width="${f.w}" height="${f.h}" loading="lazy"></figure>` : ""}<div>`
     + (e.kicker ? `<p class="kicker">${esc(e.kicker)}</p>` : "") + (e.titel ? `<h2 class="h2g">${esc(e.titel)}</h2>` : "") + (e.tekst ? `<p class="lead">${esc(e.tekst)}</p>` : "") + knopHtml(e.knoppen) + `</div></section>`;
 }
 export function schoon(c) {
@@ -43,7 +43,8 @@ export function schoon(c) {
   o.kal_knoppen = knoppen(c.kal_knoppen); o.viv_knoppen = knoppen(c.viv_knoppen);
   o.eigen = (Array.isArray(c.eigen) ? c.eigen : []).slice(0, 12).filter(e => e && /^e[\w]{3,24}$/.test(e.id)).map(e => ({
     id: e.id, aan: e.aan !== false, plaats: ["boven", "midden", "onder"].includes(e.plaats) ? e.plaats : "midden",
-    kicker: tekst(e.kicker, 120), titel: tekst(e.titel, 140), tekst: tekst(e.tekst, 1500), knoppen: knoppen(e.knoppen) }));
+    kicker: tekst(e.kicker, 120), titel: tekst(e.titel, 140), tekst: tekst(e.tekst, 1500), knoppen: knoppen(e.knoppen), fotoKant: e.fotoKant === "rechts" ? "rechts" : "links" }));
+  o.kal_fotokant = c.kal_fotokant === "rechts" ? "rechts" : "links"; o.viv_fotokant = c.viv_fotokant === "rechts" ? "rechts" : "links";
   o.fotos = {};
   for (const k of ["kalender", "viv", ...o.eigen.map(e => e.id)]) { const f = c.fotos && c.fotos[k]; if (f && typeof f.pad === "string" && (f.pad.startsWith("Website/") || /^\/w\/[\w.-]+\.(jpe?g|png|webp)$/i.test(f.pad))) o.fotos[k] = { pad: f.pad, v: String(f.v || "1").replace(/\W/g, "").slice(0, 20), w: Number(f.w) || 1600, h: Number(f.h) || 1067 }; }
   return o;
@@ -60,6 +61,9 @@ export function bouw(tpl, c, basis) {
   if (c.viv_knoppen.length) s = s.replace(/(<section class="hero viv[\s\S]*?<\/a>)(\s*<\/div>\s*<\/section>)/, (m, a, b) => a + knopHtml(c.viv_knoppen).replace('<div class="btns">', '<div class="btns extra">') + b);
   if (c.kal_knoppen.length) s = s.replace(/(<!--blok:kalender-->[\s\S]*?<\/a>)(\s*<\/div>\s*<\/section>)/, (m, a, b) => a + knopHtml(c.kal_knoppen).replace('<div class="btns">', '<div class="btns extra">') + b);
   for (const p of ["boven", "midden", "onder"]) s = s.replace(`<!--eigen:${p}-->`, c.eigen.filter(e => e.aan && e.plaats === p && (e.titel || e.tekst || c.fotos[e.id])).map(e => eigenHtml(e, c)).join("\n"));
+  // foto rechts van de tekst
+  if (c.kal_fotokant === "rechts") s = s.replace(/(<!--blok:kalender-->\s*<section class=")hero"/, '$1hero rechts"');
+  if (c.viv_fotokant === "rechts" && c.fotos.viv) s = s.replace('<section class="hero viv"', '<section class="hero viv rechts"');
   let og = null;
   for (const k of ["viv", "kalender"]) {
     const f = c.fotos[k];
