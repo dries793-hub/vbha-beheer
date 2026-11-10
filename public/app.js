@@ -4038,6 +4038,21 @@ document.addEventListener("click",async e=>{const b=e.target.closest('[data-va="
     setTimeout(()=>{const n=S.vergaderingen.get(id);if(n)vgForm(n,id)},400)}
   catch(x){toast("Koppelen lukte niet.",true);b.disabled=false}},true);
 
+/* ---------- Documenten: bij een verslag (map Verslagen) in de eigenschappen kiezen bij welke vergadering het hoort ---------- */
+{const _de=docEdit;docEdit=function(d){_de(d);if(!d||!String(d.map||"").startsWith("Verslagen")||/template/i.test((d.map||"")+" "+(d.naam||"")))return;const f=$("#fDoc");if(!f)return;
+  const V=[...S.vergaderingen.values()].filter(v=>v.datum&&v.datum<=todayISO()).sort((a,b)=>b.datum.localeCompare(a.datum));
+  const huidig=V.find(v=>v.afgerond&&v.afgerond.verslagDoc===d.id);
+  const raad=huidig?null:V.find(v=>!(v.afgerond&&v.afgerond.verslagDoc)&&vaRaad(v,[d]));
+  const lab=v=>[v.titel||v.soort||"Vergadering",fmtDate(v.datum)].join(" · ")+(v.afgerond&&v.afgerond.verslagDoc&&v.afgerond.verslagDoc!==d.id?" (heeft al een verslag)":"");
+  f.insertAdjacentHTML("beforeend",fld("dcV","Verslag van vergadering",`<select id="dcV" class="sel"><option value="">Niet gekoppeld</option>${V.slice(0,80).map(v=>`<option value="${esc(v.id)}"${(huidig?v.id===huidig.id:raad&&v.id===raad.id)?" selected":""}>${esc(lab(v))}</option>`).join("")}</select>`,"full"));
+  const ok=$("#dcOk");if(!ok)return;const _ok=ok.onclick;
+  ok.onclick=async function(){const nieuw=($("#dcV")||{}).value||"",oud=huidig?huidig.id:"";
+    if(nieuw!==oud){try{
+      if(oud){const o=S.vergaderingen.get(oud);if(o&&o.afgerond){const af={...o.afgerond};delete af.verslagDoc;await write("vergaderingen",oud,{...stripId(o),afgerond:af})}}
+      if(nieuw){const n=S.vergaderingen.get(nieuw);if(n){const af=n.afgerond||{op:new Date().toISOString(),door:ME_NAME||"",zonderMail:true};await write("vergaderingen",nieuw,{...stripId(n),afgerond:{...af,verslagDoc:d.id}})}}
+    }catch(x){toast("Koppelen aan de vergadering lukte niet.",true)}}
+    return _ok.apply(this,arguments)}}}
+
 /* ============ Financiën › Inkomende facturen ============
    PDF's komen binnen via de mailbox (api/_lib/inkomend.js) of door ze hier op te laden, en staan in Documenten › Inkomende facturen.
    Koppelen aan een transactie: boeking.documentId = id van het document. De app leest de tekst van de PDF (pdf.js) en stelt
