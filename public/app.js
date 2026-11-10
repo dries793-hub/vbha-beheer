@@ -781,7 +781,7 @@ function puntTable(){
 }
 
 /* ---------- kalenders ---------- */
-function kalStats(C){const rows=[...S.jaarleden.values()].filter(j=>j.jaar===C.Y&&j.kal&&((j.kalOpgehaald||0)>0||(j.kalUitgevoerd||0)>0||j.kalToegevoegd));const omloop=rows.reduce((s,j)=>s+(j.kalOpgehaald||0),0),uit=rows.reduce((s,j)=>s+(j.kalUitgevoerd||0),0);return{rows,omloop,uit,stock:C.c.kalenderStock-omloop-uit}}
+function kalStats(C){const rows=[...S.jaarleden.values()].filter(j=>j.jaar===C.Y&&j.kal&&((j.kalOpgehaald||0)>0||(j.kalUitgevoerd||0)>0||j.kalToegevoegd));const omloop=rows.reduce((s,j)=>s+(j.kalOpgehaald||0),0),uit=rows.reduce((s,j)=>s+(j.kalUitgevoerd||0),0);const terugRest=rows.reduce((s,j)=>s+(j.kalTerugRest||0),0);return{rows,omloop,uit,terugRest,stock:Math.round((C.c.kalenderStock-omloop-uit+terugRest)*100)/100}}
 VIEWS.kalenders=()=>({title:"Kalenders "+JAAR,sub:"Verdeling en verkoop van de kalenderdozen",
   actions:'<button class="btn primary" data-w data-act="kalToevoegen">'+ic("plus")+'Persoon toevoegen</button>',body(){
   const C=ctx(),k=kalStats(C);
@@ -3130,14 +3130,15 @@ document.addEventListener("click",e=>{const p=e.target.closest(".kal-pick [data-
   if(p){const box=p.closest(".kal-pick"),i=box.querySelector("input"),mx=box.dataset.max===""?Infinity:+box.dataset.max;i.value=Math.max(1,Math.min(mx,(parseInt(i.value,10)||0)+Number(p.dataset.kp)));i.dispatchEvent(new Event("input",{bubbles:true}))}
   if(c){const i=document.querySelector(".modal .kal-pn");if(i){i.value=c.dataset.kc;i.dispatchEvent(new Event("input",{bubbles:true}))}}});
 
-function kalBeweeg(id,t,n,extra){const j=S.jaarleden.get(id);if(!j)return;const op=j.kalOpgehaald||0,ui=j.kalUitgevoerd||0;
-  const nieuw=t==="mee"?{op:op+n,ui}:t==="klaar"?{op:op-n,ui:ui+n}:t==="terug"?{op:op-n,ui:Math.round((ui+n*(1-(extra&&extra.rest!=null?extra.rest:1)))*100)/100}:{op:extra.op,ui:extra.ui};
-  const log=[...(j.kalLog||[]),{t,n,at:new Date().toISOString(),door:ME_NAME||"",van:{op,ui},...(t==="corr"?{naar:{op:extra.op,ui:extra.ui}}:{}),...(extra&&extra.reden?{reden:extra.reden}:{}),...(t==="terug"&&extra&&extra.rest!=null&&extra.rest<1?{rest:extra.rest}:{})}].slice(-200);
-  setJLid(id,{kalOpgehaald:Math.max(0,nieuw.op),kalUitgevoerd:Math.max(0,nieuw.ui),kalLog:log});
+function kalBeweeg(id,t,n,extra){const j=S.jaarleden.get(id);if(!j)return;const op=j.kalOpgehaald||0,ui=j.kalUitgevoerd||0,rs=j.kalTerugRest||0;
+  const rsN=t==="terug"&&extra&&extra.rest!=null&&extra.rest<1?Math.round((rs+n*extra.rest)*100)/100:rs;
+  const nieuw=t==="mee"?{op:op+n,ui}:t==="klaar"?{op:op-n,ui:ui+n}:t==="terug"?{op:op-n,ui:ui+(extra&&extra.rest!=null&&extra.rest<1?n:0)}:{op:extra.op,ui:extra.ui};
+  const log=[...(j.kalLog||[]),{t,n,at:new Date().toISOString(),door:ME_NAME||"",van:{op,ui,rs},...(t==="corr"?{naar:{op:extra.op,ui:extra.ui}}:{}),...(extra&&extra.reden?{reden:extra.reden}:{}),...(t==="terug"&&extra&&extra.rest!=null&&extra.rest<1?{rest:extra.rest}:{})}].slice(-200);
+  setJLid(id,{kalOpgehaald:Math.max(0,nieuw.op),kalUitgevoerd:Math.max(0,nieuw.ui),kalTerugRest:rsN,kalLog:log});
   const naam=kalNaam(j),tekst=t==="mee"?`${kalDoos(n)} meegegeven aan ${naam}`:t==="klaar"?`${kalDoos(n)} afgewerkt door ${naam}`:t==="terug"?`${kalDoos(n)} van ${naam} teruggebracht${extra&&extra.rest<1?" ("+kalRestTxt(extra.rest)+" per doos over)":""}`:`Aantallen van ${naam} gecorrigeerd`;
   kalUndoToast(tekst,id);renderBody()}
 function kalUndo(id){const j=S.jaarleden.get(id);const L=[...(j&&j.kalLog||[])];const l=L.pop();if(!l||!l.van)return;
-  setJLid(id,{kalOpgehaald:l.van.op,kalUitgevoerd:l.van.ui,kalLog:L});toast("Ongedaan gemaakt.");renderBody()}
+  setJLid(id,{kalOpgehaald:l.van.op,kalUitgevoerd:l.van.ui,kalTerugRest:l.van.rs!=null?l.van.rs:(j.kalTerugRest||0),kalLog:L});toast("Ongedaan gemaakt.");renderBody()}
 function kalUndoToast(msg,id){const t=$("#toast");t.className="toast";t.innerHTML=`${esc(msg)} <button type="button" class="kal-undo" data-act="kalUndo" data-id="${esc(id)}">Ongedaan maken</button>`;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true},8000)}
 
 function kalMee(id){const j=S.jaarleden.get(id);if(!j||!canWrite)return;const C=ctx(),k=kalStats(C),naam=kalNaam(j),op=j.kalOpgehaald||0;
@@ -3202,14 +3203,14 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(
 .kal-klaar{color:#15803d!important;border-color:#86efac!important;background:#f0fdf4!important;cursor:default;pointer-events:none}.kal-bezig svg,.kal-klaar svg{width:15px;height:15px}.kal-bezig,.kal-klaar{min-width:112px;justify-content:center}`;document.head.appendChild(st)}
 
 /* ---------- Terugbrengen: onafgewerkte dozen (vol, ¾, ½ of ¼) ----------
-   Per teruggebrachte doos: wat nog in de doos zit gaat terug in stock, de rest telt als afgewerkt. */
+   Een begonnen doos telt als afgewerkte doos (volle punten); wat er nog in zit gaat terug in stock (jaarleden.kalTerugRest). */
 ICON.undo=ICON.undo||'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>';
 function kalTerug(id){const j=S.jaarleden.get(id);if(!j||!canWrite)return;const naam=kalNaam(j),op=j.kalOpgehaald||0,ui=j.kalUitgevoerd||0,w=ctx().c.gewichten.kalenders,k=kalStats(ctx());if(!(op>0))return;const mx=Math.max(1,Math.ceil(op));
   modal("Dozen terugbrengen",`<div class="stack kal-dlg"><p style="margin:0"><b>${esc(naam)}</b> heeft ${kalDoos(op)} in handen. Hoeveel dozen brengt ${esc(naam.split(" ")[0])} terug?</p>
    ${kalAantal("kalN",1,mx)}
    <div><div class="lbl" style="margin:4px 0 6px">Wat zit er nog in ${mx>1?"elke doos":"de doos"}?</div><div class="seg kal-soort" role="radiogroup">${KAL_REST.map(([v,l],i)=>`<button type="button" class="${i?"":"on"}" data-kr="${v}">${l}</button>`).join("")}</div></div>
    <div class="kal-voor" id="kalVoor"></div></div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kalOk">Terugbrengen</button>`);
-  let rest=1;const upd=()=>{const n=kalLees("kalN",mx),terug=Math.round(n*rest*100)/100,af=Math.round(n*(1-rest)*100)/100;
+  let rest=1;const upd=()=>{const n=kalLees("kalN",mx),terug=Math.round(n*rest*100)/100,af=rest<1?n:0;
     $("#kalVoor").innerHTML=!n?"":`<div><span>Nog in handen</span><b>${kalFmt(Math.max(0,op-n))}</b><small>dozen</small></div><div><span>Terug in stock</span><b>+${kalFmt(terug)}</b><small>dozen (nu ${kalFmt(k.stock)})</small></div>${af?`<div><span>Afgewerkt</span><b>${kalFmt(ui+af)}</b><small>+${kalFmt(af*w)} punten</small></div>`:""}`;
     $("#kalOk").textContent=n?`${kalDoos(n)} terugbrengen`:"Terugbrengen";$("#kalOk").disabled=!n};
   document.querySelectorAll("[data-kr]").forEach(b=>b.onclick=()=>{rest=Number(b.dataset.kr);document.querySelectorAll("[data-kr]").forEach(x=>x.classList.toggle("on",x===b));upd()});
@@ -4745,7 +4746,7 @@ function kcData(){const C=ctx(),pd=Number(jaarCfg(JAAR).perDoos)||100,P=new Map(
     // naam zonder lidId koppelen aan een lid met dezelfde naam
     if(!lidId){for(const [kk,p] of P)if(kcSleutel(null,p.naam)===k){k=kk;break}}
     if(!P.has(k))P.set(k,{k,naam:l?naamVol(l):(naam||"?"),lid:!!l,mee:0,uit:0,hand:0,j:null,dA:0,dS:0,rA:0,rS:0,laatst:""});return P.get(k)};
-  for(const j of kalStats(C).rows){const p=pers(j.lidId,kalNaam(j));p.j=j;p.uit=j.kalUitgevoerd||0;p.hand=j.kalOpgehaald||0;p.mee=p.uit+p.hand}
+  for(const j of kalStats(C).rows){const p=pers(j.lidId,kalNaam(j));p.j=j;p.uit=Math.round(((j.kalUitgevoerd||0)-(j.kalTerugRest||0))*100)/100;/* begonnen dozen: enkel wat effectief bedeeld werd */p.hand=j.kalOpgehaald||0;p.mee=p.uit+p.hand}
   const A=krAll(),D=krDelen();
   const tel=(d,a)=>{if(!d)return;const p=pers(d.lidId,d.by||"Onbekend");if(d.status==="reserved"){p.rA+=a;p.rS++}else{p.dA+=a;p.dS++}if(String(d.at||"")>p.laatst)p.laatst=String(d.at||"")};
   for(const s of KR_STREETS){if(A[s.id]){tel(A[s.id],s.a);continue}for(const x of KR_DELEN.get(s.id)||[])tel(D[x.id],x.a)}
