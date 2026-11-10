@@ -18,7 +18,10 @@
 
   header{background:var(--navy)}
   header .in{max-width:1240px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:16px}
-  header img{height:44px;width:auto;display:block}
+  header img{height:30px;width:auto;display:block}
+  /* zelfde kop als de andere pagina's (webshop, kaart, kinderfeest) */
+  header .in{justify-content:flex-start;gap:14px}.logo-a{display:block;flex:none;line-height:0}header .top{margin-left:auto}
+  .hsub{font-size:13.5px;color:#A4A7AD;border-left:1px solid #3a3c40;padding-left:14px}
   .admin{display:inline-flex;align-items:center;gap:7px;color:#d4d5d8;font-size:14px;font-weight:500;text-decoration:none;padding:7px 12px;border:1px solid #3a3c40;border-radius:8px}
   .admin:hover{color:#fff;border-color:#6a6c70}
   .admin svg{width:15px;height:15px}
@@ -129,7 +132,7 @@
     main{padding-top:28px}
     .photo,.hero.rechts .photo{order:-1}
     .hero.eigen:not(.zonder),.hero.eigen.rechts{grid-template-columns:1fr}.hero.eigen .photo{max-width:none}.hero.eigen .photo img{margin:0 auto}
-    header img{height:36px}
+    header img{height:30px}.hsub{display:none}
   }
   @media (max-width:420px){.admin.shop svg{display:none}.top{gap:6px}.admin{font-size:13px}}
 </style>
@@ -138,7 +141,7 @@
 
 <header>
   <div class="in">
-    <a href="/" aria-label="VBHA – Vriendenkring Brandweer Hoofdpost Aalst"><img src="/w/logo.png" alt="VBHA" width="720" height="245"></a>
+    <a class="logo-a" href="/" aria-label="VBHA – Vriendenkring Brandweer Hoofdpost Aalst"><img src="/w/vbha-woordmerk.png" alt="VBHA" width="264" height="80"></a><span class="hsub">Vriendenkring Brandweer Hoofdpost Aalst</span>
     <nav class="top"><a class="admin shop" href="/shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6"/><circle cx="10" cy="20.5" r="1.2"/><circle cx="17" cy="20.5" r="1.2"/></svg>Webshop</a>
     <a class="admin" href="https://vbha-beheer.vercel.app">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
