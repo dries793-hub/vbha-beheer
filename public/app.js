@@ -2260,11 +2260,13 @@ const agMailVink=(id,aan)=>`<label class="sp-nat full" for="${id}"><input type="
 /* kassa van een activiteit: Jaarmarkt / In Vier en Vlam / Kinderfeest herkend op naam (eigen vaste kassa), elke andere activiteit
    met "Kassa gebruiken" krijgt een eigen kassa "a-<id>". Vinkje uit (metKassa:false) = geen kassa. */
 function agKassa(a){if(!a||a.metKassa===false)return"";const t=norm(a.titel||"");return /jaarmarkt/.test(t)?"jaarmarkt":/vier en vlam|fuif/.test(t)?"fuif":/kinderfeest/.test(t)?"kinderfeest":a.metKassa===true&&a.id?"a-"+a.id:""}
+/* banket/kinderfeest: kassa en shiften van de gekoppelde activiteit (zie autoact.js) */
+function agAutoExtra(soort){const a=S.activiteiten&&S.activiteiten.get("auto-"+soort+"-"+JAAR);const ka=a?agKassa(a):soort==="kinderfeest"?"kinderfeest":"";return{kassa:ka,shift:!!(a&&(a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length)))}}
 function agItems(){const out=[];
-  for(const a of S.activiteiten.values())if(a.datum)out.push({id:a.id,t:"act",datum:a.datum,uur:a.uur||"",titel:a.titel||"Activiteit",locatie:a.locatie||"",info:a.info||"",inMail:a.inMail!==false,shift:a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length>0),kassa:agKassa(a)});
+  for(const a of S.activiteiten.values())if(a.datum&&!a.bron)out.push({id:a.id,t:"act",datum:a.datum,uur:a.uur||"",titel:a.titel||"Activiteit",locatie:a.locatie||"",info:a.info||"",inMail:a.inMail!==false,shift:a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length>0),kassa:agKassa(a)});
   for(const v of S.vergaderingen.values())if(v.datum)out.push({id:v.id,t:"verg",datum:v.datum,uur:v.uur||"",titel:v.titel||v.soort||"Vergadering",locatie:v.locatie||"",inMail:vgInMail(v)});
-  try{const k=kfCfg();if(k.datum)out.push({id:"kf",t:"auto",href:"kinderfeest",datum:k.datum,uur:k.tijd||"",titel:"Kinderfeest",locatie:k.locatie||"",info:k.info||"",inMail:k.inMail!==false,kassa:"kinderfeest"})}catch(e){}
-  const b=bkCfg();if(b.datum)out.push({id:"bk",t:"auto",href:"banket",datum:b.datum,uur:b.uur||"",titel:"Banket",locatie:b.locatie||"",info:b.info||"",inMail:b.inMail!==false});
+  try{const k=kfCfg();if(k.datum)out.push({id:"kf",t:"auto",href:"kinderfeest",datum:k.datum,uur:k.tijd||"",titel:"Kinderfeest",locatie:k.locatie||"",info:k.info||"",inMail:k.inMail!==false,...agAutoExtra("kinderfeest")})}catch(e){}
+  const b=bkCfg();if(b.datum)out.push({id:"bk",t:"auto",href:"banket",datum:b.datum,uur:b.uur||"",titel:"Banket",locatie:b.locatie||"",info:b.info||"",inMail:b.inMail!==false,...agAutoExtra("banket")});
   return out.sort((x,y)=>(x.datum+x.uur).localeCompare(y.datum+y.uur))}
 const agSoort=x=>x.t==="verg"?["verg","Vergadering"]:["act","Activiteit"];
 const agAttr=x=>`data-act="${x.t==="verg"?"vgToon":x.t==="auto"?"agAuto":"agToon"}" data-id="${esc(x.id)}"`;
@@ -7174,3 +7176,30 @@ document.addEventListener("keydown",e=>{if(!SZ.box||e.target!==SZ.el)return;
 document.addEventListener("mousedown",e=>{const o=e.target.closest&&e.target.closest("[data-szi]");if(o){e.preventDefault();szKies(+o.dataset.szi);return}if(SZ.box&&e.target!==SZ.el)szDicht()},true);
 document.addEventListener("focusout",e=>{if(e.target===SZ.el)setTimeout(()=>{if(document.activeElement!==SZ.el)szDicht()},120)});
 addEventListener("scroll",()=>{if(SZ.box&&SZ.el)szToon(SZ.el)},true);
+
+/* ============ Banket, kinderfeest en familiedag: ook shiften en kassa ============
+   Deze activiteiten staan in hun eigen instellingen (config). Voor shiften en de kassa krijgen ze een gekoppelde activiteit in
+   "activiteiten" met id "auto-<soort>-<jaar>" en bron:<soort>. Die verschijnt niet apart in de agenda, maar wel bij Shiften en de kassa.
+   Datum, uur, plaats en titel volgen de instellingen. */
+const AUTO_SOORT={banket:"Banket",kinderfeest:"Kinderfeest",familiedag:"Familiedag"};
+const autoId=soort=>"auto-"+soort+"-"+JAAR;
+const autoCfg=soort=>soort==="banket"?bkCfg():soort==="kinderfeest"?kfCfg():fdCfg();
+const autoDoc=soort=>S.activiteiten&&S.activiteiten.get(autoId(soort));
+function autoVelden(soort){const c=autoCfg(soort);return{titel:soort==="familiedag"?(c.titel||"Familiedag "+JAAR):AUTO_SOORT[soort],datum:c.datum||"",uur:(soort==="kinderfeest"?c.tijd:c.uur)||"",locatie:c.locatie||""}}
+function autoVinkjes(soort){const a=autoDoc(soort),sh=!!(a&&(a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length))),ka=soort==="kinderfeest"?!(a&&a.metKassa===false):!!(a&&a.metKassa===true),d=canWrite?"":" disabled";
+  return `<label class="sp-nat full" for="avS"><input type="checkbox" id="avS"${sh?" checked":""}${d}><span><b>Gebruiken in shiften</b></span></label><label class="sp-nat full" for="avK"><input type="checkbox" id="avK"${ka?" checked":""}${d}><span><b>Kassa gebruiken</b></span></label>`}
+async function autoBewaar(soort,metShiften,metKassa){const a=autoDoc(soort);if(!a&&!metShiften&&!(metKassa&&soort!=="kinderfeest"))return;
+  const v=autoVelden(soort),nieuw={...(a?stripId(a):{}),...v,bron:soort,inMail:false,metShiften,metKassa};S.activiteiten.set(autoId(soort),{...nieuw,id:autoId(soort)});await write("activiteiten",autoId(soort),nieuw)}
+// gekoppelde activiteit bijwerken als datum, uur, plaats of titel in de instellingen veranderde
+let autoSyncBezig=false;
+async function autoSync(){if(!canWrite||autoSyncBezig||!S.activiteiten)return;autoSyncBezig=true;try{for(const soort of Object.keys(AUTO_SOORT)){const a=autoDoc(soort);if(!a)continue;const v=autoVelden(soort);
+  if(Object.keys(v).some(k=>(a[k]||"")!==v[k])){const n={...stripId(a),...v};S.activiteiten.set(a.id,{...n,id:a.id});await write("activiteiten",a.id,n)}}}catch(e){}finally{autoSyncBezig=false}}
+// vinkjes in de vensters van banket, kinderfeest en familiedag
+function autoMetVinkjes(fn,soort,formSel,okSel){return function(){const r=fn.apply(this,arguments);try{const f=$(formSel);if(f&&!$("#avS")){const e=f.querySelector(".err");const h=autoVinkjes(soort);if(e)e.insertAdjacentHTML("beforebegin",h);else f.insertAdjacentHTML("beforeend",h)}
+  const ok=$(okSel);if(ok&&canWrite){const _o=ok.onclick;ok.onclick=async function(ev){const sh=$("#avS")&&$("#avS").checked,ka=$("#avK")&&$("#avK").checked;const res=_o?await _o.call(this,ev):undefined;if($("#avS"))return res;try{await autoBewaar(soort,!!sh,!!ka);await autoSync()}catch(x){toast("Shiften/kassa bewaren lukte niet.",true)}return res}}}catch(e){}return r}}
+{const _a=agAutoForm;agAutoForm=function(id){const soort=id==="bk"?"banket":"kinderfeest";return autoMetVinkjes(_a,soort,"#fAa","#aaOk").apply(this,arguments)}}
+bkInst=autoMetVinkjes(bkInst,"banket","#fBkI2","#bkIOk");
+kfInst=autoMetVinkjes(kfInst,"kinderfeest","#fKfI","#kiOk");
+fdInst=autoMetVinkjes(fdInst,"familiedag","#fFd","#fdOk");
+// bij het openen van Shiften of Kassa de gekoppelde activiteiten gelijk zetten
+for(const r of ["shiften","kassa"]){const _v=VIEWS[r];if(!_v)continue;const n=function(){setTimeout(autoSync,300);return _v.apply(this,arguments)};Object.assign(n,_v);VIEWS[r]=n}
