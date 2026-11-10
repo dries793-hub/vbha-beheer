@@ -101,6 +101,20 @@ export async function bolInfo(u) {
   return { naam: ont(p.title || p.name || "").slice(0, 200) || null, prijs: bolPrijs(offer), foto: (img && (img.url || (img.renditions && img.renditions[0] && img.renditions[0].url))) || null,
     artikelnr: String(ean), beschikbaar: offer ? !offer.isPreOrder || null : false, levertijd: offer && offer.deliveryDescription ? String(offer.deliveryDescription).slice(0, 120) : null };
 }
+/* Zyte API (tussendienst die de productpagina ophaalt voorbij de botbeveiliging; Vercel: ZYTE_API_KEY). Automatische productherkenning. */
+const zyteAan = () => !!String(process.env.ZYTE_API_KEY || "").trim();
+export async function zyteInfo(u) {
+  const r = await fetch("https://api.zyte.com/v1/extract", { method: "POST", signal: AbortSignal.timeout(55000),
+    headers: { Authorization: "Basic " + Buffer.from(String(process.env.ZYTE_API_KEY).trim() + ":").toString("base64"), "Content-Type": "application/json" },
+    body: JSON.stringify({ url: u.toString(), product: true, geolocation: "BE" }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error("zyte " + r.status + " " + String(j.title || j.detail || "").slice(0, 120));
+  const p = j.product || {};
+  const av = String(p.availability || "").toLowerCase();
+  const gt = Array.isArray(p.gtin) && p.gtin[0] ? (p.gtin[0].value || p.gtin[0]) : null;
+  return { naam: p.name ? ont(p.name).slice(0, 200) : null, prijs: getal(p.price), foto: (p.mainImage && p.mainImage.url) || (Array.isArray(p.images) && p.images[0] && p.images[0].url) || null,
+    artikelnr: String(gt || p.sku || p.mpn || "").slice(0, 40) || null, beschikbaar: av === "instock" ? true : av === "outofstock" ? false : null, url: p.canonicalUrl || p.url || null };
+}
 export async function productInfo(url) {
   let u; try { u = new URL(String(url || "").trim()); } catch { throw httpErr(400, "Dit is geen geldige link. Kopieer de link van de productpagina."); }
   if (!/^https?:$/.test(u.protocol)) throw httpErr(400, "Dit is geen geldige link.");
@@ -111,6 +125,10 @@ export async function productInfo(url) {
   if (winkel === "bol.com" && bolAan()) {
     try { const p = await bolInfo(u); if (p && p.naam && (p.prijs != null || p.beschikbaar === false)) return { ...basis, ...p, prijs: p.prijs, auto: true, bron: "bol-api", gecontroleerd: new Date().toISOString() }; }
     catch (e) { console.error("bol api", e.message); }
+  }
+  if (zyteAan()) {
+    try { const p = await zyteInfo(u); if (p && p.naam && p.prijs != null) { const { url: _u, ...rest } = p; return { ...basis, ...rest, auto: true, bron: "zyte", gecontroleerd: new Date().toISOString() }; } }
+    catch (e) { console.error("zyte", e.message); }
   }
   let html = "", status = 0;
   try {
@@ -154,6 +172,12 @@ export async function kfCadeauPubliek(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
     const sb = admin();
+    if (req.method === "GET" && req.query.probe) { // tijdelijke test (eenmalige sleutel in de afgeschermde tabel diag_token)
+      const { data } = await sb.from("diag_token").select("tot").eq("token", String(req.query.diag || "")).maybeSingle();
+      if (!data || Date.parse(data.tot) < Date.now()) throw httpErr(403, "Geen toegang.");
+      const t0 = Date.now(); let z = null; try { z = await zyteInfo(new URL(String(req.query.probe))); } catch (e) { z = { fout: String(e.message || e) }; }
+      return res.status(200).json({ zyteIngesteld: zyteAan(), ms: Date.now() - t0, zyte: z });
+    }
     if (req.method === "GET") {
       await rateLimit(sb, req, "kfcadeau", 120, 600, httpErr);
       const { row, M, open } = await laad(sb, req.query.cadeau, req.query.t);
