@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     if (req.method === "GET" && req.query?.test === "verkenalles") {
       const t = String(req.query.diag || ""); const { data } = await admin().from("diag_token").select("token,tot").eq("token", t).maybeSingle();
       if (!t || !data || Date.parse(data.tot) < Date.now()) throw httpErr(403, "Geen toegang.");
-      return res.status(200).json(await verkenAlles(Number(req.query.dagen) || 60));
+      return res.status(200).json(req.query.r ? await verken() : await verkenAlles(Number(req.query.dagen) || 60));
     }
     const b = req.method === "POST" ? (typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {})) : (req.query || {});
     if (b.steun) return await steunBetaling(req, res, b); // vrije steun met eigen bedrag en mededeling (/steun, vbha.be)
