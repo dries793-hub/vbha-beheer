@@ -115,6 +115,30 @@ export async function zyteInfo(u) {
   return { naam: p.name ? ont(p.name).slice(0, 200) : null, prijs: getal(p.price), foto: (p.mainImage && p.mainImage.url) || (Array.isArray(p.images) && p.images[0] && p.images[0].url) || null,
     artikelnr: String(gt || p.sku || p.mpn || "").slice(0, 40) || null, beschikbaar: av === "instock" ? true : av === "outofstock" ? false : null, url: p.canonicalUrl || p.url || null };
 }
+// zoekpagina via Zyte: lijst met producten (productNavigation)
+async function zyteNav(url) {
+  const r = await fetch("https://api.zyte.com/v1/extract", { method: "POST", signal: AbortSignal.timeout(55000),
+    headers: { Authorization: "Basic " + Buffer.from(String(process.env.ZYTE_API_KEY).trim() + ":").toString("base64"), "Content-Type": "application/json" },
+    body: JSON.stringify({ url, productNavigation: true, geolocation: "BE" }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error("zyte " + r.status);
+  return { items: ((j.productNavigation && j.productNavigation.items) || []).map(x => ({ url: x.url, naam: x.name || null })), url: j.url || url };
+}
+/* Hetzelfde product (zelfde EAN) bij de andere winkel zoeken en de prijs teruggeven. */
+const ZOEK = { "bol.com": e => `https://www.bol.com/be/nl/s/?searchtext=${e}`, "Dreamland": e => `https://www.dreamland.be/nl/zoeken?q=${e}` };
+export async function vergelijkProduct(p) {
+  if (!zyteAan() || !p || !/^\d{8,14}$/.test(String(p.artikelnr || ""))) return null;
+  const ander = p.winkel === "bol.com" ? "Dreamland" : p.winkel === "Dreamland" ? "bol.com" : null; if (!ander) return null;
+  const nav = await zyteNav(ZOEK[ander](p.artikelnr));
+  let kand = nav.items.map(x => x.url).filter(u => { try { return winkelVan(new URL(u).hostname) === ander; } catch { return false; } });
+  if (!kand.length) kand = [nav.url];
+  for (const u of kand.slice(0, 2)) {
+    let q; try { q = await zyteInfo(new URL(u)); } catch { continue; }
+    if (q && q.prijs != null && String(q.artikelnr || "") === String(p.artikelnr)) { const e = new URL(q.url || u); e.search = ""; e.hash = "";
+      return { url: e.toString(), winkel: ander, naam: q.naam, prijs: q.prijs, foto: q.foto, artikelnr: q.artikelnr, beschikbaar: q.beschikbaar, auto: true, bron: "zyte", gecontroleerd: new Date().toISOString() }; }
+  }
+  return null;
+}
 export async function productInfo(url) {
   let u; try { u = new URL(String(url || "").trim()); } catch { throw httpErr(400, "Dit is geen geldige link. Kopieer de link van de productpagina."); }
   if (!/^https?:$/.test(u.protocol)) throw httpErr(400, "Dit is geen geldige link.");
@@ -172,6 +196,14 @@ export async function kfCadeauPubliek(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
     const sb = admin();
+    if (req.method === "GET" && req.query.probe) { // tijdelijke test (eenmalige sleutel in de afgeschermde tabel diag_token)
+      const { data } = await sb.from("diag_token").select("tot").eq("token", String(req.query.diag || "")).maybeSingle();
+      if (!data || Date.parse(data.tot) < Date.now()) throw httpErr(403, "Geen toegang.");
+      const e = String(req.query.probe), out = {};
+      await Promise.all([`https://www.dreamland.be/nl/zoeken?q=${e}`, `https://www.dreamland.be/nl/search?q=${e}`, `https://www.dreamland.be/nl/zoeken?query=${e}`, `https://www.bol.com/be/nl/s/?searchtext=${e}`].map(async u => {
+        try { const n = await zyteNav(u); out[u] = { naar: n.url, n: n.items.length, eerste: n.items.slice(0, 2) }; } catch (x) { out[u] = { fout: String(x.message || x) }; } }));
+      return res.status(200).json(out);
+    }
     if (req.method === "GET") {
       await rateLimit(sb, req, "kfcadeau", 120, 600, httpErr);
       const { row, M, open } = await laad(sb, req.query.cadeau, req.query.t);
@@ -182,6 +214,7 @@ export async function kfCadeauPubliek(req, res) {
     await rateLimit(sb, req, "kfcadeaup", 80, 600, httpErr);
     const { row, M, open } = await laad(sb, b.cadeau, b.t);
     if (b.actie === "check") return res.status(200).json(await productInfo(b.url));
+    if (b.actie === "vergelijk") { let v = null; try { v = await vergelijkProduct({ winkel: String(b.winkel || ""), artikelnr: String(b.artikelnr || "") }); } catch (e) { console.error("vergelijk", e.message); } return res.status(200).json({ ander: v }); }
     if (b.actie !== "bewaar") throw httpErr(400, "Onbekende actie.");
     if (!open) throw httpErr(403, "Cadeaus kiezen kan niet meer: de termijn is voorbij. Wie niets koos, krijgt een bon van bol.com.");
     const d = row.data, i = Number(b.kind), k = (d.kinderen || [])[i];
