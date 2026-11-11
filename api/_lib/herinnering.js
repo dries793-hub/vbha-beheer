@@ -39,6 +39,13 @@ ${v.id && vgBestuur(v) ? `<p style="margin:0 0 12px">Ben je erbij? Duid hieronde
 }
 
 const ontvangers = cfg => String(cfg.ontvangers || "").split(/[,;\s]+/).map(x => x.trim()).filter(x => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x));
+// + de e-mailadressen van alle gebruikers van de app (tabel bestuur), zonder dubbels
+async function alleOntvangers(sb, cfg) {
+  const L = [...ontvangers(cfg)];
+  const { data } = await sb.from("bestuur").select("email");
+  for (const r of data || []) { const e = String((r && r.email) || "").trim(); if (/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(e)) L.push(e); }
+  const gezien = new Set(); return L.filter(e => { const k = e.toLowerCase(); if (gezien.has(k)) return false; gezien.add(k); return true; });
+}
 const site = () => String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, "");
 
 export async function herinneringen(req, res) {
@@ -51,7 +58,7 @@ export async function herinneringen(req, res) {
   if (!smtpConfigured()) return res.status(200).json({ push, mail: "niet ingesteld" });
   if (!cfg.aan) return res.status(200).json({ uit: true, push });
   if (uurNu() !== Number(cfg.uur)) return res.status(200).json({ wacht: true, uur: cfg.uur, push });
-  const aan = ontvangers(cfg); if (!aan.length) return res.status(200).json({ geenOntvangers: true });
+  const aan = await alleOntvangers(sb, cfg); if (!aan.length) return res.status(200).json({ geenOntvangers: true });
   const tot = plusDagen(nu, Number(cfg.dagen) || 5);
   const { data, error } = await sb.from("vergaderingen").select("id,data").gte("data->>datum", nu).lte("data->>datum", tot);
   if (error) throw error;
@@ -61,7 +68,7 @@ export async function herinneringen(req, res) {
     if (!v.datum || v.herinnerdVoor === v.datum) continue; // al verstuurd voor deze datum (bij een nieuwe datum komt er een nieuwe herinnering)
     if (cfg.soorten && cfg.soorten.length && !cfg.soorten.includes(v.soort || "Andere")) continue;
     const m = mail({ ...v, id: r.id }, dagenTot(nu, v.datum), site(), cfg);
-    const uit = await verstuur(aan.map(a => ({ ...m, aan: a, van: afzender() })));
+    const uit = await verstuur(aan.map((a, i) => ({ ...m, aan: a, van: afzender(), ...(i ? { geenBcc: true } : {}) })));
     if (uit.some(x => x && x.ok)) {
       await sb.from("vergaderingen").update({ data: { ...v, herinnerdVoor: v.datum, herinnerdOp: new Date().toISOString() } }).eq("id", r.id);
       verstuurd.push(r.id);
@@ -124,11 +131,11 @@ export async function vergaderingAfgerond(req, res) {
       bijlagen.push({ naam: doc.data.naam || "Verslag.pdf", type: doc.data.type || "application/pdf", data: Buffer.from(await blob.arrayBuffer()) });
     }
   }
-  const cfg = await instellingen(sb), aan = ontvangers(cfg);
+  const cfg = await instellingen(sb), aan = await alleOntvangers(sb, cfg);
   if (!aan.length) throw httpErr(400, "Er zijn geen ontvangers ingesteld (Instellingen › Herinneringen).");
   const { onderwerp, html, huisstijl } = await afgerondMail(v, nv, bijlagen.length > 0);
   const m = { aanNaam: "Bestuur VBHA", onderwerp, html: huisstijl(html, "Vriendenkring Brandweer Hoofdpost Aalst"), bijlagen, van: afzender() };
-  const uit = await verstuur(aan.map(a => ({ ...m, aan: a })));
+  const uit = await verstuur(aan.map((a, i) => ({ ...m, aan: a, ...(i ? { geenBcc: true } : {}) })));
   const ok = uit.some(x => x && x.ok);
   if (!ok) throw httpErr(502, "Versturen mislukt: " + ((uit[0] && uit[0].fout) || "onbekende fout"));
   await sb.from("vergaderingen").update({ data: { ...v, afgerond: { ...af, gemaild: new Date().toISOString(), aan: aan.join(", ") } } }).eq("id", r.id);

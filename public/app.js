@@ -3305,7 +3305,7 @@ VIEWS.herinneringen=()=>({title:"Instellingen",sub:"Herinneringen",body(){
   return instTabs("herinneringen")+`<div class="grid g2" style="align-items:start">
   <form class="panel" id="fHr"><div class="panel-h"><h2>Herinnering vergaderingen</h2></div><div class="panel-b"><div class="form">
     <label class="sp-nat full" for="hrAan"><input type="checkbox" id="hrAan"${c.aan?" checked":""}${d}><span><b>Herinneringsmail versturen</b><small>Automatisch een mail met datum, uur, locatie en agenda vóór elke vergadering in de agenda.</small></span></label>
-    ${fld("hrAanW","Ontvangers",`<input id="hrAanW" value="${esc(c.ontvangers)}" placeholder="bestuur@vbha.be"${d}>`,"full")}
+    ${fld("hrAanW","Ontvangers",`<input id="hrAanW" value="${esc(c.ontvangers)}" placeholder="bestuur@vbha.be"${d}>`,"full")}<p class="muted small full" style="margin:-6px 0 0">Alle gebruikers van de app krijgen de mail ook op hun eigen adres.</p>
     <span class="help full muted small" style="margin-top:-6px;color:var(--muted)">Meerdere adressen scheid je met een komma.</span>
     ${fld("hrDagen","Hoeveel dagen vooraf",`<select id="hrDagen" class="sel"${d}>${[1,2,3,4,5,6,7,10,14].map(n=>`<option value="${n}"${n===Number(c.dagen)?" selected":""}>${n} ${n===1?"dag":"dagen"}</option>`).join("")}</select>`)}
     ${fld("hrUur","Op welk uur",`<select id="hrUur" class="sel"${d}>${[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].map(n=>`<option value="${n}"${n===Number(c.uur)?" selected":""}>${n}u00</option>`).join("")}</select>`)}
@@ -3787,7 +3787,7 @@ function vaDialoog(id){const v=S.vergaderingen.get(id);if(!v)return;const al=vaB
    ${fld("va_soort","Soort",`<select id="va_soort" class="sel">${selOpts(VG_SOORT,v.soort||"Bestuursvergadering")}</select>`)}${fld("va_datum","Datum *",`<input id="va_datum" type="date" value="${vd}">`)}
    ${uurVeld("va_uur",(al&&al.uur)||v.uur||"20:00","")}${fld("va_loc","Waar",inp("va_loc",(al&&al.locatie)||v.locatie,'maxlength="160"'))}
    <div class="fld full"><label for="va_ag">Agenda (optioneel)</label><textarea id="va_ag" style="height:80px;min-height:0" placeholder="Eén punt per regel">${esc((al&&al.agenda)||"")}</textarea></div>
-   <label class="sp-nat full" for="vaMail"><input type="checkbox" id="vaMail" checked><span><b>Mail naar ${esc(vaOntv())}</b><small>Met het verslag in bijlage en de datum van de volgende vergadering.</small></span></label>
+   <label class="sp-nat full" for="vaMail"><input type="checkbox" id="vaMail" checked><span><b>Mail naar ${esc(vaOntv())} en alle gebruikers</b><small>Met het verslag in bijlage en de datum van de volgende vergadering.</small></span></label>
    <div class="err full" id="vaErr"></div></form>`,
    `<button class="btn" data-va="terug" data-id="${esc(id)}">Annuleren</button><button class="btn primary" data-va="ok" data-id="${esc(id)}">Afronden</button>`)}
 function vaDropHtml(v){const f=VA_FILE;
