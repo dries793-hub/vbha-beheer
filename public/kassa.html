@@ -266,10 +266,15 @@ try{const t=JSON.parse(localStorage.getItem("vbha_kassa")||"null");if(t&&t.tot>D
 const post=async b=>{const r=await fetch("/api/kassa",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:TOK&&TOK.token,...b})});const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.error||"Er ging iets mis. Controleer de internetverbinding.");e.status=r.status;throw e}return j};
 function fout(e){if(e&&e.status===401){login(e.message);return true}return false}
 /* ---------- aanmelden ---------- */
-function login(msg){stop();TOK=null;const mb=$("#menu");if(mb)mb.hidden=true;try{localStorage.removeItem("vbha_kassa")}catch(x){}$("#hNaam").textContent="Kassa";$("#hTot").textContent="";
+function login(msg){stop();TOK=null;slaap();const mb=$("#menu");if(mb)mb.hidden=true;try{localStorage.removeItem("vbha_kassa")}catch(x){}$("#hNaam").textContent="Kassa";$("#hTot").textContent="";
   $("#box").innerHTML=`<form class="card" id="fl" novalidate style="margin-top:12px"><h2 style="margin:0 0 6px">Kassa</h2><p class="lead" style="margin:0 0 14px">Geef de kassacode in die je van het bestuur kreeg.</p><label for="kc">Kassacode</label><input type="text" id="kc" class="ks-code" autocomplete="off" autocapitalize="characters" maxlength="12"><p class="err" id="err" role="alert">${esc(msg||"")}</p><button class="btn" id="go" type="submit">Starten</button></form>`;
   $("#fl").onsubmit=async e=>{e.preventDefault();const b=$("#go");b.disabled=true;try{const j=await post({actie:"login",code:$("#kc").value});TOK=j;try{localStorage.setItem("vbha_kassa",JSON.stringify(j))}catch(x){}await laad();toon()}catch(x){$("#err").textContent=x.message;b.disabled=false}}}
-async function laad(){ST=await post({actie:"stand"});$("#hNaam").textContent="Kassa · "+ST.naam;hoofd()}
+/* scherm wakker houden zolang de kassa open is (Screen Wake Lock; zelf vergrendelen blijft mogelijk) */
+let WL=null;async function wakker(){try{if(!("wakeLock" in navigator)||!TOK||document.visibilityState!=="visible"||WL)return;WL=await navigator.wakeLock.request("screen");WL.addEventListener("release",()=>{WL=null})}catch(e){WL=null}}
+function slaap(){try{if(WL)WL.release()}catch(e){}WL=null}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")wakker()});
+["click","touchend"].forEach(t=>document.addEventListener(t,()=>{if(!WL)wakker()},{passive:true}));
+async function laad(){ST=await post({actie:"stand"});wakker();$("#hNaam").textContent="Kassa · "+ST.naam;hoofd()}
 function menuTeken(){$("#menuL").innerHTML=`<button type="button" id="wgWissel">Wisselgeld-hulp <b>${WG?"aan":"uit"}</b></button><button type="button" id="herlaad">Kassa vernieuwen</button><button type="button" id="afmeld">Afmelden</button>`}
 function hoofd(){if(!ST)return;$("#menu").hidden=false;const t=ST.totalen||{};$("#hTot").textContent=`${t.verkopen||0} verkopen · ${eur((t.bancontact||0)+(t.cash||0))}`}
 const tabs=()=>ST&&ST.scan?`<div class="ks-tabs"><button type="button" data-tab="verkoop" class="${TAB==="verkoop"?"on":""}">Verkopen</button><button type="button" data-tab="scan" class="${TAB==="scan"?"on":""}">Scannen</button></div>`:"";
