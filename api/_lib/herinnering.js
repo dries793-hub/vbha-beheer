@@ -1,7 +1,7 @@
 import { admin, isDbCron, httpErr, requireUser } from "./sb.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
 import { vandaagISO, configDoc } from "./publiek.js";
-import { pushVanDaag } from "./push.js";
+import { pushVanDaag, vgPushVandaag } from "./push.js";
 import { huisstijl } from "./bevestiging.js";
 import { vgLink, vgBestuur } from "./open_vergadering.js";
 
@@ -55,6 +55,7 @@ export async function herinneringen(req, res) {
   // pushmeldingen op de dag zelf (eigen aan/uit en eigen uur)
   let push = null;
   try { push = await pushVanDaag(sb, cfg, nu, uurNu()); } catch (e) { console.error("push", e); push = { fout: e.message }; }
+  try { push = { ...(push || {}), bestuur: await vgPushVandaag(sb, cfg, nu, uurNu(), vgLink) }; } catch (e) { console.error("vgpush", e); }
   if (!smtpConfigured()) return res.status(200).json({ push, mail: "niet ingesteld" });
   if (!cfg.aan) return res.status(200).json({ uit: true, push });
   if (uurNu() !== Number(cfg.uur)) return res.status(200).json({ wacht: true, uur: cfg.uur, push });
@@ -70,7 +71,7 @@ export async function herinneringen(req, res) {
     const m = mail({ ...v, id: r.id }, dagenTot(nu, v.datum), site(), cfg);
     const uit = await verstuur(aan.map((a, i) => ({ ...m, aan: a, van: afzender(), ...(i ? { geenBcc: true } : {}) })));
     if (uit.some(x => x && x.ok)) {
-      await sb.from("vergaderingen").update({ data: { ...v, herinnerdVoor: v.datum, herinnerdOp: new Date().toISOString() } }).eq("id", r.id);
+      await sb.rpc("vg_zet", { vid: r.id, patch: { herinnerdVoor: v.datum, herinnerdOp: new Date().toISOString() } });
       verstuurd.push(r.id);
     }
   }

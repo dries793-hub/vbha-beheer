@@ -146,7 +146,7 @@ export async function pushVanDaag(sb, cfg, vandaag, uurNu) {
     sb.from("vergaderingen").select("id,data").gte("data->>datum", vandaag).lte("data->>datum", tot),
     sb.from("activiteiten").select("id,data").gte("data->>datum", vandaag).lte("data->>datum", tot)]);
   const A = await algemeen(sb), bk = await configDoc(sb, "banket"), kf = await configDoc(sb, "kf_" + A.jaar);
-  const V = (verg || []).map(r => ({ soort: "vergaderingen", datum: r.data.datum, titel: (r.data.titel && r.data.titel !== r.data.soort ? r.data.titel : r.data.soort || "Vergadering"), uur: r.data.uur, loc: r.data.locatie, url: "/#agenda", tag: "verg-" + r.id }));
+  const V = (verg || []).filter(r => !(r.data.datum === vandaag && /bestuur/i.test(r.data.soort || ""))).map(r => ({ soort: "vergaderingen", datum: r.data.datum, titel: (r.data.titel && r.data.titel !== r.data.soort ? r.data.titel : r.data.soort || "Vergadering"), uur: r.data.uur, loc: r.data.locatie, url: "/#agenda", tag: "verg-" + r.id }));
   const C = (act || []).filter(r => !(r.data && r.data.bron)).map(r => ({ soort: "activiteiten", datum: r.data.datum, titel: r.data.titel || "Activiteit", uur: r.data.uur, loc: r.data.locatie, url: "/#agenda", tag: "act-" + r.id }));
   const bd = bk.datum || A.jaar + "-12-12"; if (bd >= vandaag && bd <= tot) C.push({ soort: "activiteiten", datum: bd, titel: "Banket", uur: bk.uur, loc: bk.locatie, url: "/#banket", tag: "banket" });
   if (kf.datum && kf.datum >= vandaag && kf.datum <= tot) C.push({ soort: "activiteiten", datum: kf.datum, titel: "Kinderfeest", uur: kf.tijd, loc: kf.locatie, url: "/#kinderfeest", tag: "kinderfeest" });
@@ -182,4 +182,38 @@ export async function meldPush(sb, groep, bericht) {
     const uit = await Promise.all(L.map(a => stuurEen(sb, k, a, bericht).catch(e => ({ ok: false, fout: e.message }))));
     return { toestellen: L.length, ok: uit.filter(x => x.ok).length };
   } catch (e) { console.error("meldPush", e); return { fout: e.message }; }
+}
+
+/* ---------- bestuursvergadering vandaag: om 9 uur een melding ----------
+   Naar elk bestuurslid met een account dat "aanwezig" aanduidde of nog niets doorgaf; wie verontschuldigd is, krijgt niets.
+   Gebruiker <-> bestuurslid via e-mailadres of volledige naam. Eén keer per vergadering en dag (pushDag). */
+const normN = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+export async function vgPushVandaag(sb, cfg, vandaag, uurNu, linkVan) {
+  if (uurNu !== 9) return { wacht: true };
+  if (((cfg && cfg.push) || {}).aan === false) return { uit: true };
+  const { data: verg, error } = await sb.from("vergaderingen").select("id,data").eq("data->>datum", vandaag);
+  if (error) throw error;
+  const V = (verg || []).filter(r => /bestuur/i.test(r.data.soort || "") && !r.data.afgerond && r.data.pushDag !== vandaag);
+  if (!V.length) return { geen: true };
+  const [{ data: leden }, { data: gebr }, { data: abo }] = await Promise.all([
+    sb.from("leden").select("id,data").eq("data->>bestuur", "true"),
+    sb.from("bestuur").select("user_id,naam,email"),
+    sb.from("push_abonnementen").select("id,endpoint,p256dh,auth,user_id")]);
+  const L = (leden || []).filter(r => !r.data.geenLid);
+  const lidVan = g => L.find(l => (g.email && normN(l.data.email) === normN(g.email)) || (g.naam && normN((l.data.voornaam || "") + " " + (l.data.naam || "")) === normN(g.naam)));
+  const k = await vapid(sb), uit = [];
+  for (const r of V) {
+    const v = r.data, A = v.antwoorden || {}, titel = v.titel && v.titel !== v.soort ? v.titel : v.soort || "Bestuursvergadering";
+    await sb.rpc("vg_zet", { vid: r.id, patch: { pushDag: vandaag } });
+    for (const g of gebr || []) {
+      const l = lidVan(g); if (!l) continue;
+      const s = (A[l.id] || {}).s;
+      if (s === "verontschuldigd") continue;
+      const bericht = s === "aanwezig"
+        ? { titel: `Vandaag: ${titel} VBHA${v.uur ? " om " + v.uur : ""}`, tekst: [v.locatie || "", "Je bent aangeduid als aanwezig."].filter(Boolean).join(" · "), url: "/#agenda", tag: "verg-" + r.id + "-0" }
+        : { titel: `Vandaag: ${titel} VBHA${v.uur ? " om " + v.uur : ""}`, tekst: [v.locatie || "", "Ben je erbij? Duid aan of je aanwezig of verontschuldigd bent."].filter(Boolean).join(" · "), url: linkVan ? linkVan(r.id).replace(/^https?:\/\/[^/]+/, "") : "/#agenda", tag: "verg-" + r.id + "-0" };
+      for (const a of (abo || []).filter(x => x.user_id === g.user_id)) { try { uit.push(await stuurEen(sb, k, a, bericht)); } catch (e) { uit.push({ ok: false, fout: e.message }); } }
+    }
+  }
+  return { vergaderingen: V.length, verstuurd: uit.filter(x => x.ok).length, toestellen: uit.length };
 }
