@@ -3775,7 +3775,7 @@ const vaBestaand=(v,datum)=>[...S.vergaderingen.values()].filter(x=>x.id!==v.id&
 let VA_FILE=null;
 const VA_WORD=/\.docx$/i,VA_OKEXT=/\.(pdf|docx)$/i;
 function vaDialoog(id){const v=S.vergaderingen.get(id);if(!v)return;const al=vaBestaand(v),vd=al?al.datum:vaPlus(v.datum>todayISO()?v.datum:todayISO(),28);VA_FILE=null;
-  const B=vaBestuur(),pre=new Set(v.aanwezigIds||[]);
+  const B=vaBestuur(),pre=new Set(v.aanwezigIds||Object.entries(v.antwoorden||{}).filter(([,x])=>x&&x.s==="aanwezig").map(([k])=>k));
   modal("Vergadering afronden",`<form id="fVa" class="form">
    <p class="full muted small" style="margin:0">${esc(v.titel||v.soort||"Vergadering")} van ${esc(agLang(v.datum))}</p>
    <div class="fld full"><div class="va-aw-h"><span class="lbl" style="margin:0">Aanwezig</span>${B.length?`<button type="button" class="btn sm ghost" data-va="allen">Iedereen aanwezig</button>`:""}</div>
@@ -7304,3 +7304,29 @@ function kfcDash(){try{if(!canWrite||(typeof ROL!=="undefined"&&ROL!=="admin"&&!
   return `<div class="nmeld" role="status" data-kfcd="1"><span class="nm-ic">${ic("kinderfeest")}</span><div class="nm-body"><b>Kinderfeest: cadeaus bestellen voor ${L.length} ${L.length===1?"kind":"kinderen"}</b><div class="small muted">${pr?pr+(pr===1?" product":" producten"):""}${pr&&bn?" · ":""}${bn?bn+(bn===1?" bon":" bonnen")+" bol.com":""}</div>
     <div><button type="button" class="nm-btn" data-kfc="bestel">${ic("download")}Bestellijst</button></div></div></div>`}catch(e){return""}}
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return kfcDash()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+
+/* ============ Bestuursvergadering: aanwezig of verontschuldigd ============
+   Bestuursleden geven het door via de knop in de herinneringsmail (/vergadering?i=&t=) of hier in de agenda.
+   Bewaard bij de vergadering: antwoorden {<lidId>:{s,op,via,door}} (via /api/mail?f=vgaanw, server).
+   Bij "Vergadering afronden" staan de aanwezigen zo al aangeduid. */
+const VGA_NORM=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+const vgaIk=()=>{const n=VGA_NORM(ME_NAME);return (typeof vaBestuur==="function"?vaBestuur():[]).find(l=>VGA_NORM(l.voornaam+" "+l.naam)===n)};
+const vgaOpen=v=>!v.afgerond&&String(v.datum||"")>=todayISO();
+function vgaTel(v){const A=Object.values(v.antwoorden||{}),a=A.filter(x=>x&&x.s==="aanwezig").length,o=A.filter(x=>x&&x.s==="verontschuldigd").length;return{a,o}}
+function vgaBlok(v,id){const B=vaBestuur(),A=v.antwoorden||{},ik=vgaIk(),open=vgaOpen(v),{a,o}=vgaTel(v);if(!B.length)return"";
+  const mag=l=>open&&(canWrite||(ik&&ik.id===l.id));
+  return `<div class="fld full vga" id="vgaW"><div class="va-aw-h"><span class="lbl" style="margin:0">Aanwezigheid</span><span class="muted small">${a} aanwezig · ${o} verontschuldigd · ${B.length-a-o} nog niet</span>${canWrite?`<button type="button" class="btn sm ghost" data-vga="link" data-id="${esc(id)}" style="margin-left:auto">${ic("link")}Link kopiëren</button>`:""}</div>
+   <div class="vga-l">${B.map(l=>{const s=(A[l.id]||{}).s||"",m=mag(l);return `<div class="vga-r${ik&&ik.id===l.id?" ik":""}"><span class="vga-n">${esc(l.voornaam+" "+l.naam)}${ik&&ik.id===l.id?' <span class="muted small">(jij)</span>':""}</span>
+     <div class="seg vga-s">${[["aanwezig","Aanwezig"],["verontschuldigd","Verontschuldigd"]].map(([k,t])=>`<button type="button" class="${s===k?"on "+k:""}" data-vga="zet" data-id="${esc(id)}" data-lid="${esc(l.id)}" data-s="${k}"${m?"":" disabled"}>${t}</button>`).join("")}</div></div>`}).join("")}</div></div>`}
+{const _vg=vgForm;vgForm=function(v,id){_vg(v,id);if(!id||!v||!vgBestuur(v))return;const e=$("#vgErr");if(e)e.insertAdjacentHTML("beforebegin",vgaBlok(v,id))}}
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-vga]");if(!b)return;e.preventDefault();const id=b.dataset.id;
+  if(b.dataset.vga==="link"){try{const j=await api("/api/mail?f=vgaanw",{method:"POST",body:JSON.stringify({actie:"link",id})});await navigator.clipboard.writeText(j.link);toast("Link gekopieerd. Wie hem heeft, kan voor elk bestuurslid aanduiden.")}catch(x){toast(x.message||"Kopiëren lukte niet.",true)}return}
+  const v=S.vergaderingen.get(id);if(!v)return;const lid=b.dataset.lid,cur=((v.antwoorden||{})[lid]||{}).s||"",s=cur===b.dataset.s?"":b.dataset.s;
+  b.closest(".vga-s").querySelectorAll("button").forEach(x=>x.disabled=true);
+  try{const j=await api("/api/mail?f=vgaanw",{method:"POST",body:JSON.stringify({actie:"zet",id,lid,s})});const n={...(S.vergaderingen.get(id)||v),antwoorden:j.antwoorden||{}};S.vergaderingen.set(id,n);
+    const w=$("#vgaW");if(w)w.outerHTML=vgaBlok(n,id)}
+  catch(x){toast(x.message,true);const w=$("#vgaW");if(w)w.outerHTML=vgaBlok(v,id)}});
+{const st=document.createElement("style");st.textContent=`.vga .va-aw-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}.vga-l{display:flex;flex-direction:column;gap:6px}
+.vga-r{display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid var(--line);border-radius:10px}.vga-r.ik{border-color:var(--accent)}.vga-n{flex:1;min-width:0;font-weight:500}
+.vga-s{flex:none}.vga-s button.on.aanwezig{background:#15803d!important;color:#fff!important}.vga-s button.on.verontschuldigd{background:#b45309!important;color:#fff!important}.vga-s button:disabled{opacity:.55;cursor:default}
+@media(max-width:560px){.vga-r{flex-wrap:wrap}.vga-s{width:100%}.vga-s button{flex:1}}`;document.head.appendChild(st)}

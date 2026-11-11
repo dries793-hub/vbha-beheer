@@ -111,6 +111,10 @@
     {
       "source": "/api/familiedag",
       "destination": "/api/openbaar?f=familiedag"
+    },
+    {
+      "source": "/api/vergadering",
+      "destination": "/api/openbaar?f=vergadering"
     }
   ],
   "regions": [
