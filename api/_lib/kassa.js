@@ -62,6 +62,27 @@ async function totalen(sb, act, jaar) {
   return { verkopen: out.length, per, bancontact: rond(bc), cash: rond(cash) };
 }
 
+/* ---------- kassatelling: beginkassa (wisselgeld) en eindtelling, per kassa en jaar ----------
+   Tabel "kassatel" (RLS zonder policies: enkel via de server), id "<act>|<jaar>":
+   data { begin: {st:{"50":2,...}, tot, op, door}, eind: {...}, log:[{soort, tot, op, door}] }
+   Enkel admin en wie "Kassa" mag bewerken (kassaApi). */
+export const COUPURES = [100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01];
+export function telNet(st) {
+  const o = {}; let c = 0;
+  for (const w of COUPURES) { const n = Math.max(0, Math.min(100000, Math.floor(Number(st && st[String(w)]) || 0))); if (n) { o[String(w)] = n; c += n * Math.round(w * 100); } }
+  return { st: o, tot: c / 100 };
+}
+async function tellingBewaar(sb, act, jaar, soort, st, door) {
+  if (!["begin", "eind"].includes(soort)) throw httpErr(400, "Onbekende telling.");
+  if (!ACTS[act] && !/^a-[\w-]+$/.test(act)) throw httpErr(400, "Onbekende kassa.");
+  jaar = Number(jaar); if (!(jaar > 2000 && jaar < 2100)) throw httpErr(400, "Ongeldig jaar.");
+  const id = act + "|" + jaar, { data: r } = await sb.from("kassatel").select("data").eq("id", id).maybeSingle();
+  const cur = (r && r.data) || {}, t = { ...telNet(st), op: new Date().toISOString(), door: String(door || "").slice(0, 80) };
+  const nieuw = { ...cur, [soort]: t, log: [...(cur.log || []), { soort, tot: t.tot, op: t.op, door: t.door }].slice(-30) };
+  const { error } = await sb.from("kassatel").upsert({ id, data: nieuw, updated_at: t.op }); if (error) throw error;
+  return nieuw;
+}
+
 /* ---------- openbaar: /api/kassa ---------- */
 export default async function kassaPubliek(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -156,7 +177,12 @@ async function kassaVandaag(req, res, b) {
 export async function kassaApi(req, res) {
   res.setHeader("Cache-Control", "no-store");
   { const b0 = body(req); if (b0 && b0.actie === "vandaag") return await kassaVandaag(req, res, b0); }
-  const { sb, rol } = await requireUser(req, { write: true, functie: "kassa" }), b = body(req);
+  const { sb, rol, user } = await requireUser(req, { write: true, functie: "kassa" }), b = body(req);
+  if (b.actie === "tellingen") { const { data, error } = await sb.from("kassatel").select("id,data"); if (error) throw error; return res.status(200).json({ ok: true, tellingen: Object.fromEntries((data || []).map(r => [r.id, r.data])) }); }
+  if (b.actie === "telling") {
+    let door = ""; if (user && user.id) { const { data: m } = await sb.from("bestuur").select("naam").eq("user_id", user.id).maybeSingle(); door = (m && m.naam) || ""; }
+    return res.status(200).json({ ok: true, telling: await tellingBewaar(sb, String(b.act || ""), b.jaar, b.soort, b.stukken, door) });
+  }
   if (b.actie === "wis") {
     if (!["admin", "bewerker"].includes(rol)) throw httpErr(403, "Enkel een administrator kan transacties wissen.");
     const { error } = await sb.from("kassa").delete().eq("id", String(b.id || "")); if (error) throw error;

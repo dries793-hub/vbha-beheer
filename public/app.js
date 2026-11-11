@@ -5396,6 +5396,7 @@ function kaTabBody(act,zonderKnoppen){const jaar=kaJaar(act),L=kaTrans(act,jaar)
     <div class="tile"><span class="lbl">Bancontact</span><span class="val">${kaEur(T.bc)}</span><span class="hint">${T.B.filter(t=>t.betaalwijze!=="cash").length} verkopen</span></div>
     <div class="tile"><span class="lbl">Cash</span><span class="val">${kaEur(T.cash)}</span><span class="hint">${T.B.filter(t=>t.betaalwijze==="cash").length} verkopen</span></div></div>
   <div class="grid g2" style="align-items:start">
+   ${kaTelPanel(act)}
    ${kaCashPanel(act)}
    ${(()=>{const C=kaPerCat(act,T.B);return C.length>1?`<div class="panel" style="min-width:0"><div class="panel-h"><h2>Per categorie</h2></div><div class="panel-b"><div class="fu-ko">${C.map(c=>`<div class="fu-kr"><span>${esc(c.cat)}</span><span class="muted">Bancontact ${kaEur(c.bc)} · cash ${kaEur(c.cash)}</span><b>${kaEur(c.bc+c.cash)}</b></div>`).join("")}</div></div></div>`:""})()}
    <div class="panel" style="min-width:0"><div class="panel-h"><h2>Verkocht per tegel</h2></div><div class="panel-b">${per.length?`<div class="fu-ko">${per.map(([n,p])=>`<div class="fu-kr"><span>${esc(n)}</span><span class="muted">${p.n}×</span><b>${kaEur(p.b)}</b></div>`).join("")}<div class="fu-kt tot"><span>Totaal</span><b>${kaEur(T.tot)}</b></div></div>`:'<div class="muted small">Nog niets verkocht.</div>'}</div></div>
@@ -5503,7 +5504,7 @@ function kaCashModal(act){const jaar=kaJaar(act),R=kaCashRest(act,jaar).filter(r
   modal("Cash in kas boeken",`<form id="fKaCash" class="form" onsubmit="return false">
     <div class="fld full"><label for="kcDat">Datum</label><input id="kcDat" type="date" value="${esc(dag)}"></div>
     ${R.map((r,i)=>`<div class="fld full"><label for="kcB${i}">${esc(r.cat)} <span class="muted small">(kassa: ${kaEur(r.rest)})</span></label><input id="kcB${i}" inputmode="decimal" value="${String(r.rest.toFixed(2)).replace(".",",")}"></div>`).join("")}
-    <div class="fld"><label for="kcTot">Geteld totaal <span class="muted small">(kassa: ${kaEur(r2(R.reduce((t,r)=>t+r.rest,0)))})</span></label><input id="kcTot" inputmode="decimal" value="${String(r2(R.reduce((t,r)=>t+r.rest,0)).toFixed(2)).replace(".",",")}"></div>
+    <div class="fld"><label for="kcTot">Geteld totaal <span class="muted small">(kassa: ${kaEur(r2(R.reduce((t,r)=>t+r.rest,0)))})</span></label><input id="kcTot" inputmode="decimal" value="${String(r2(R.reduce((t,r)=>t+r.rest,0)).toFixed(2)).replace(".",",")}"></div>${(()=>{const T=kaTelMag()?kaTelVan(act,jaar||JAAR):{};return T.eind&&!kaCashBoek(act,jaar).size?`<input type="hidden" id="kcTel" value="${r2(T.eind.tot-(T.begin?T.begin.tot:0))}">`:""})()}
     ${R.length>1?`<div class="fld"><label for="kcCor">Verschil boeken op</label><select id="kcCor">${R.map((r,i)=>`<option value="${i}">${esc(r.cat)}</option>`).join("")}</select></div>`:""}
     <div class="muted small full" id="kcVer" style="margin:0"></div><div class="err full" id="kcErr"></div></form>`,
     `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kcOk">Boeken</button>`,{wide:false});
@@ -5511,6 +5512,7 @@ function kaCashModal(act){const jaar=kaJaar(act),R=kaCashRest(act,jaar).filter(r
   const kcVer=()=>{const v=r2(num($("#kcTot").value)-kcBasis);$("#kcVer").textContent=Math.abs(v)>0.004?"Verschil met de kassa: "+(v>0?"+ ":"− ")+kaEur(Math.abs(v)):""};
   R.forEach((_,i)=>kcF(i).addEventListener("input",()=>{$("#kcTot").value=kcFmt(kcS(-1));kcVer()}));
   $("#kcTot").addEventListener("input",()=>{const k=R.length>1?Number($("#kcCor").value):0;kcF(k).value=kcFmt(num($("#kcTot").value)-kcS(k));kcVer()});
+  if($("#kcTel")){$("#kcTot").value=kcFmt(Number($("#kcTel").value));$("#kcTot").dispatchEvent(new Event("input"))}
   if($("#kcCor"))$("#kcCor").addEventListener("change",()=>{R.forEach((r,i)=>kcF(i).value=kcFmt(r.rest));$("#kcTot").dispatchEvent(new Event("input"))});
   $("#kcOk").onclick=async()=>{const e=$("#kcErr");if(R.some((_,i)=>num(kcF(i).value)<0)){e.textContent="Het verschil is groter dan het bedrag van die categorie. Kies een andere categorie.";return}const d=$("#kcDat").value;if(!d){e.textContent="Kies een datum.";return}
     if(Number(d.slice(0,4))!==JAAR){e.textContent=`De datum valt buiten boekjaar ${JAAR}. Kies eerst het juiste boekjaar.`;return}
@@ -5520,7 +5522,44 @@ function kaCashModal(act){const jaar=kaJaar(act),R=kaCashRest(act,jaar).filter(r
       closeModal();toast((nrs.length===1?"Transactie ":"Transacties ")+nrs.join(", ")+" toegevoegd in de kas.");render(true)}catch(x){$("#kcOk").disabled=false;e.textContent=x.message}}}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-kacash]");if(!b)return;e.preventDefault();kaCashModal(b.dataset.kacash)});
 
-
+/* ---------- Kassatelling: beginkassa (wisselgeld) en eindtelling per kassa ----------
+   Enkel admin en wie "Kassa" mag bewerken. Opslag in de afgeschermde tabel kassatel, via /api/mail?f=kassa. */
+const KA_COUP=[100,50,20,10,5,2,1,0.5,0.2,0.1,0.05,0.02,0.01];
+const KA_TEL={d:null,bezig:false};
+const kaTelMag=()=>ROL==="admin"||(typeof rechtRuw==="function"&&rechtRuw("kassa")==="bewerken");
+function kaTelLaad(){if(KA_TEL.bezig||KA_TEL.d)return;KA_TEL.bezig=true;api("/api/mail?f=kassa",{method:"POST",body:JSON.stringify({actie:"tellingen"})}).then(j=>{KA_TEL.d=j.tellingen||{};KA_TEL.bezig=false;if(route()==="kassa"||KA_UI.det)renderBody()}).catch(()=>{KA_TEL.d={};KA_TEL.bezig=false})}
+const kaTelVan=(act,jaar)=>(KA_TEL.d||{})[act+"|"+jaar]||{};
+const kaCoupL=w=>w>=1?"€ "+w:Math.round(w*100)+" cent";
+function kaTelPanel(act){if(!kaTelMag())return"";if(!KA_TEL.d){kaTelLaad();return `<div class="panel" style="min-width:0"><div class="panel-h"><h2>Kassatelling</h2></div><div class="panel-b"><div class="muted small">Laden…</div></div></div>`}
+  const jaar=kaJaar(act)||JAAR,T=kaTelVan(act,jaar),cash=kaTot(kaTrans(act,jaar)).cash,b=T.begin?T.begin.tot:0,verw=r2(b+cash);
+  const wie=t=>t?`<span class="muted small">${esc(new Date(t.op).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))}${t.door?" · "+esc(t.door):""}</span>`:"";
+  const v=T.eind?r2(T.eind.tot-verw):null;
+  return `<div class="panel" style="min-width:0"><div class="panel-h"><h2>Kassatelling</h2></div><div class="panel-b"><div class="fu-ko">
+   <div class="fu-kr"><span>Beginkassa (wisselgeld)</span>${wie(T.begin)}<b>${T.begin?kaEur(b):'<span class="muted">niet geteld</span>'}</b></div>
+   <div class="fu-kr"><span>Cash verkopen</span><span></span><b>${kaEur(cash)}</b></div>
+   <div class="fu-kr"><span>Verwacht in de kassa</span><span></span><b>${kaEur(verw)}</b></div>
+   <div class="fu-kr"><span>Eindtelling</span>${wie(T.eind)}<b>${T.eind?kaEur(T.eind.tot):'<span class="muted">niet geteld</span>'}</b></div>
+   ${T.eind?`<div class="fu-kr"><span>Verschil</span><span></span><b style="color:${Math.abs(v)<0.005?"#15803d":"#b91c1c"}">${Math.abs(v)<0.005?"klopt":(v>0?"+ ":"− ")+kaEur(Math.abs(v))}</b></div>
+   <div class="fu-kt tot"><span>Opbrengst cash (eind − begin)</span><b>${kaEur(r2(T.eind.tot-b))}</b></div>`:""}</div>
+   <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" data-katel="begin" data-act="${esc(act)}">${ic("kassa")}Beginkassa</button><button class="btn" data-katel="eind" data-act="${esc(act)}">${ic("kassa")}Eindtelling</button></div></div></div>`}
+function kaTelModal(act,soort){const jaar=kaJaar(act)||JAAR,T=kaTelVan(act,jaar),st={...((T[soort]||{}).st||{})};
+  const rij=w=>`<div class="ka-tr"><b>${kaCoupL(w)}</b><button type="button" class="btn iconbtn" data-ktm="${w}" aria-label="Eén minder">−</button><input inputmode="numeric" data-kti="${w}" value="${st[String(w)]||""}" placeholder="0" aria-label="Aantal ${kaCoupL(w)}"><button type="button" class="btn iconbtn" data-ktp="${w}" aria-label="Eén meer">+</button><span class="muted" data-kts="${w}"></span></div>`;
+  modal(soort==="begin"?"Beginkassa":"Eindtelling",`<div class="stack"><div class="ka-tg"><div><div class="lbl">Briefjes</div>${KA_COUP.filter(w=>w>=5).map(rij).join("")}</div><div><div class="lbl">Munten</div>${KA_COUP.filter(w=>w<5).map(rij).join("")}</div></div>
+    <div class="ka-tt"><span>${soort==="begin"?"Wisselgeld bij de start":"Geteld in de kassa"}</span><b id="ktTot"></b></div><div id="ktSam"></div><div class="err" id="ktErr"></div></div>`,
+    `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="ktOk">Opslaan</button>`,{wide:true});
+  const som=()=>KA_COUP.reduce((c,w)=>c+(Number(st[String(w)])||0)*Math.round(w*100),0)/100;
+  const upd=()=>{for(const w of KA_COUP){const e=document.querySelector(`[data-kts="${w}"]`),n=Number(st[String(w)])||0;if(e)e.textContent=n?kaEur(n*w):""}const t=som();$("#ktTot").textContent=kaEur(t);
+    if(soort==="eind"){const b=T.begin?T.begin.tot:0,c=kaTot(kaTrans(act,jaar)).cash,v=r2(t-b-c);$("#ktSam").innerHTML=`<div class="fu-ko"><div class="fu-kr"><span>Beginkassa</span><span></span><b>${T.begin?kaEur(b):"niet geteld"}</b></div><div class="fu-kr"><span>Cash verkopen</span><span></span><b>${kaEur(c)}</b></div><div class="fu-kr"><span>Verschil met verwacht</span><span></span><b style="color:${Math.abs(v)<0.005?"#15803d":"#b91c1c"}">${Math.abs(v)<0.005?"klopt":(v>0?"+ ":"− ")+kaEur(Math.abs(v))}</b></div><div class="fu-kt tot"><span>Opbrengst cash</span><b>${kaEur(r2(t-b))}</b></div></div>`}};
+  const box=$("#ktTot").closest(".stack");
+  box.addEventListener("input",e=>{const i=e.target.closest("[data-kti]");if(!i)return;i.value=i.value.replace(/\D/g,"").slice(0,5);st[i.dataset.kti]=Number(i.value)||0;upd()});
+  box.addEventListener("click",e=>{const p=e.target.closest("[data-ktp],[data-ktm]");if(!p)return;const w=p.dataset.ktp||p.dataset.ktm,n=Math.max(0,(Number(st[w])||0)+(p.dataset.ktp?1:-1));st[w]=n;const i=box.querySelector(`[data-kti="${w}"]`);if(i)i.value=n||"";upd()});
+  upd();
+  $("#ktOk").onclick=async()=>{$("#ktOk").disabled=true;try{const j=await api("/api/mail?f=kassa",{method:"POST",body:JSON.stringify({actie:"telling",act,jaar,soort,stukken:st})});KA_TEL.d={...(KA_TEL.d||{}),[act+"|"+jaar]:j.telling};closeModal();toast(soort==="begin"?"Beginkassa opgeslagen.":"Eindtelling opgeslagen.");renderBody()}
+    catch(x){if($("#ktOk"))$("#ktOk").disabled=false;if($("#ktErr"))$("#ktErr").textContent=x.message;else toast(x.message)}}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-katel]");if(!b)return;e.preventDefault();if(!kaTelMag())return;kaTelModal(b.dataset.act,b.dataset.katel)});
+{const st=document.createElement("style");st.textContent=`.ka-tg{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:640px){.ka-tg{grid-template-columns:1fr}}
+.ka-tr{display:grid;grid-template-columns:70px 38px minmax(0,1fr) 38px 80px;gap:6px;align-items:center;padding:3px 0}.ka-tr input{text-align:center;min-width:0}.ka-tr .iconbtn{width:38px;height:38px;justify-content:center;font-size:18px;padding:0}.ka-tr span{text-align:right;font-variant-numeric:tabular-nums;font-size:13px}
+.ka-tt{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);padding-top:10px}.ka-tt b{font-size:22px}`;document.head.appendChild(st)}
 
 /* ============ Webshop (eigen knop in het menu) ============
    Artikelen: collectie "shop_items"; afbeeldingen in de tabel "beelden" (id "shop-…"); bestellingen: "shop_orders"; instellingen: config "shop".
