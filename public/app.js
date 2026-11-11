@@ -3137,6 +3137,20 @@ function gbDagKies(){closeAcct&&closeAcct();modal("Fictieve datum",`<p style="ma
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(!t)return;({gbDagKies,gbDagStop:()=>{closeModal();gbDag(null)}})[t.dataset.act]?.()});
 {const _s=gbSimStart;gbSimStart=function(){_s.apply(this,arguments);if(ROL_ECHT!=="admin"&&SIM_DAG){SIM_DAG=null;try{sessionStorage.removeItem("vbhaSimDag")}catch(e){}}gbDagBalk()}}
 
+/* ---------- bestuursleden uit de ledenlijst zonder account: klaar om te activeren ----------
+   Niets wordt vooraf aangemaakt: "Activeren" opent "Gebruiker toevoegen" met naam en e-mailadres al ingevuld;
+   jij kiest de functies en of het tijdelijke wachtwoord gemaild wordt. */
+const GB_NORM=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+function gbKlaar(){if(!GB||GB.fout||typeof vaBestuur!=="function")return[];const M=new Set(GB.gebruikers.map(u=>GB_NORM(u.email))),N=new Set(GB.gebruikers.map(u=>GB_NORM(u.naam)));
+  return vaBestuur().filter(l=>!(l.email&&M.has(GB_NORM(l.email)))&&!N.has(GB_NORM(l.voornaam+" "+l.naam)))}
+{const _v=VIEWS.gebruikers;VIEWS.gebruikers=function(){const o=_v.apply(this,arguments),b=o.body;o.body=function(){const h=b.apply(this,arguments);if(ROL!=="admin"||!GB||GB.fout)return h;const K=gbKlaar();if(!K.length)return h;
+  return h+`<div class="panel" style="margin-top:16px"><div class="panel-h"><h2>Klaar om te activeren</h2><span class="grow"></span><span class="muted small">${K.length}</span></div><div class="list">
+   ${K.map(l=>`<div class="li gb-li"><span class="acct-av gb-av" style="opacity:.55">${esc((l.voornaam[0]||"?").toUpperCase())}</span><div class="grow" style="min-width:0"><div class="trunc"><b>${esc(l.voornaam+" "+l.naam)}</b></div>
+     <div class="muted small trunc">${l.email?esc(l.email):'<span style="color:var(--accent)">geen e-mailadres in de ledenlijst</span>'} · bestuurslid, nog geen account</div></div>
+     <button class="btn sm primary" data-gbk="${esc(l.id)}">Activeren</button></div>`).join("")}</div></div>`};return o}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-gbk]");if(!b)return;e.preventDefault();const l=S.leden.get(b.dataset.gbk);if(!l)return;gbNieuw();
+  const n=$("#gbN"),m=$("#gbE");if(n)n.value=(l.voornaam+" "+l.naam).trim();if(m){m.value=String(l.email||"").trim().toLowerCase();if(!m.value)m.focus()}});
+
 /* sorteren in de verdeling: klik op Persoon, In handen, Afgewerkt of Punten (punten = afgewerkt × gewicht) */
 let KAL_SORT={k:"ui",d:-1};
 const kalTh=(k,l,cls="",alias)=>{const on=KAL_SORT.k===k&&!alias;return `<th class="${cls} sortable${on?" sorted":""}" data-kal-sort="${k}" aria-sort="${on?(KAL_SORT.d>0?"ascending":"descending"):"none"}">${l}<span class="arr">${on?(KAL_SORT.d>0?"▲":"▼"):""}</span></th>`};
