@@ -154,6 +154,9 @@ html,body{overflow-x:hidden}
 .up{display:flex;align-items:center;gap:12px;padding:12px;border:1.5px dashed var(--line-strong);border-radius:10px;cursor:pointer;color:var(--muted);font-size:14px}
 .up input{display:none}.up svg{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8}.up.ok{border-color:var(--good);color:var(--good);border-style:solid}
 .hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.lp{position:relative}.lp-l{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:20;max-height:280px;overflow-y:auto}
+.lp-l[hidden]{display:none}.lp-i{display:block;width:100%;text-align:left;border:0;background:none;padding:11px 14px;font:inherit;font-size:15px;color:var(--ink);cursor:pointer}.lp-i+.lp-i{border-top:1px solid var(--line)}
+.lp-i:hover,.lp-i.on{background:var(--sunken)}.lp-leeg{padding:11px 14px;font-size:14px;color:var(--muted)}.lp input.lp-ok{border-color:var(--good);background:var(--good-soft)}
 @media(max-width:520px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -195,8 +198,7 @@ async function verklein(file){if(file.type==="application/pdf"){if(file.size>4e6
 function toonOnkost(){$("#h1").textContent="Onkosten terugvragen";$("#lead").textContent="Kosten gemaakt voor de Vriendenkring? Vul dit in met een foto van het kasticket of de factuur. Na goedkeuring storten we het bedrag terug.";
   const vd=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
   $("#box").innerHTML=`<form class="card" id="f" novalidate><div class="grid">
-    <div class="full"><label for="naam">Naam</label><input type="text" id="naam" maxlength="80" autocomplete="name"></div>
-    <div class="full"><label for="email">E-mailadres</label><input type="email" id="email" maxlength="160" autocomplete="email"></div>
+    <div class="full"><label for="naam">Naam</label><div class="lp"><input type="text" id="naam" maxlength="80" placeholder="Begin je naam te typen" autocomplete="off"><div class="lp-l" id="naamL" hidden role="listbox"></div></div></div>
     <div><label for="bedrag">Bedrag (€)</label><input class="num" type="text" id="bedrag" inputmode="decimal" placeholder="0,00"></div>
     <div><label for="datum">Datum van de aankoop</label><input type="date" id="datum" value="${vd}" max="${vd}"></div>
     <div class="full"><label for="reden">Waarvoor?</label><textarea id="reden" maxlength="300" placeholder="bv. drank voor de bestuursvergadering, affiches jaarmarkt"></textarea></div>
@@ -204,14 +206,24 @@ function toonOnkost(){$("#h1").textContent="Onkosten terugvragen";$("#lead").tex
     <div class="full"><label for="iban">Rekeningnummer (IBAN) voor de terugbetaling</label><input type="text" id="iban" autocomplete="off" placeholder="BE00 0000 0000 0000" maxlength="42" spellcheck="false"></div>
     <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
    </div><p class="err" id="err"></p><button class="btn" type="submit">Indienen</button></form>`;
+  lidPicker($("#naam"),$("#naamL"));
   $("#bon").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;$("#bonT").textContent="Bezig…";try{BON=await verklein(f);$("#bonT").textContent="✓ "+(f.name||"bewijsstuk");$("#upl").classList.add("ok")}catch(x){BON=null;$("#bonT").textContent=x.message;$("#upl").classList.remove("ok")}});
   $("#f").addEventListener("submit",async e=>{e.preventDefault();const v=s=>$(s).value.trim(),err=$("#err");
     const bedrag=Number(v("#bedrag").replace(/\s/g,"").replace(",","."));
-    const f=!v("#naam")?"Vul je naam in.":v("#email")&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(v("#email"))?"Dit e-mailadres klopt niet.":!(bedrag>0)?"Vul het bedrag in.":!v("#reden")?"Schrijf kort waarvoor de kosten waren.":!BON?"Voeg een foto van het kasticket of de factuur toe.":!ibanOk(v("#iban"))?"Dit rekeningnummer klopt niet. Kijk het even na.":"";
+    const f=!v("#naam")?"Vul je naam in.":!(bedrag>0)?"Vul het bedrag in.":!v("#reden")?"Schrijf kort waarvoor de kosten waren.":!BON?"Voeg een foto van het kasticket of de factuur toe.":!ibanOk(v("#iban"))?"Dit rekeningnummer klopt niet. Kijk het even na.":"";
     if(f){err.textContent=f;return}const b=$("#f .btn");b.disabled=true;b.textContent="Bezig met versturen…";err.textContent="";
-    try{await api({actie:"onkost",naam:v("#naam"),email:v("#email"),bedrag,datum:v("#datum"),reden:v("#reden"),iban:v("#iban"),bon:BON,website:v("#website"),duur:Date.now()-T0});
+    try{await api({actie:"onkost",naam:v("#naam"),lidId:$("#naam").dataset.id||"",bedrag,datum:v("#datum"),reden:v("#reden"),iban:v("#iban"),bon:BON,website:v("#website"),duur:Date.now()-T0});
       $("#lead").textContent="";$("#box").innerHTML=OK("Bedankt!",`Je onkosten van ${eur(bedrag)} zijn doorgegeven. Na goedkeuring storten we het bedrag terug.`)}
     catch(x){err.textContent=x.message;b.disabled=false;b.textContent="Indienen"}})}
+/* naam kiezen uit de leden (vanaf 3 letters) */
+function lidPicker(inp,box){let T=0,L=[],sel=-1;
+  const teken=()=>{box.innerHTML=L.length?L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${esc(l.toon||l.naam)}</button>`).join(""):'<div class="lp-leeg">Geen lid gevonden. Je mag je naam gewoon volledig typen.</div>';box.hidden=false};
+  const kies=l=>{inp.value=l.toon||l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true};
+  inp.addEventListener("input",()=>{delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;if(q.trim().length<3){L=[];box.hidden=true;return}
+    T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[]}catch(e){L=[]}if(inp.value===q)teken()},160)});
+  inp.addEventListener("keydown",e=>{if(box.hidden||!L.length)return;if(e.key==="ArrowDown"){e.preventDefault();sel=(sel+1)%L.length;teken()}else if(e.key==="ArrowUp"){e.preventDefault();sel=(sel-1+L.length)%L.length;teken()}else if(e.key==="Enter"){e.preventDefault();kies(L[sel<0?0:sel])}else if(e.key==="Escape")box.hidden=true});
+  box.addEventListener("mousedown",e=>{const b=e.target.closest(".lp-i");if(!b)return;e.preventDefault();kies(L[+b.dataset.i])});
+  inp.addEventListener("blur",()=>setTimeout(()=>{box.hidden=true;if(!inp.dataset.id&&L.length===1&&inp.value.trim())kies(L[0])},150))}
 if(ID&&TOK)api().then(toonLink).catch(x=>{$("#lead").textContent="";$("#box").innerHTML=`<div class="card"><p style="margin:0">${esc(x.message)}</p></div>`});else toonOnkost();
 </script>
 </body>
