@@ -4410,11 +4410,12 @@ function kfMailHtml(){const M=kfMailCfg(),d=canWrite?"":" disabled";
   <div class="full km-velden" id="kmV"${M.cadeau?"":" hidden"}><div class="form" style="padding:0">
    ${fld("kmS","Websites",inp("kmS",M.sites,'placeholder="www.dreamland.be, www.bol.com"'+d))}${fld("kmT","Cadeau doorgeven vóór",`<input id="kmT" type="date" value="${esc(M.tot)}"${d}>`)}
    <div class="fld full" id="kmMw"${M.keuze?" hidden":""}><label for="kmM">Doorsturen naar</label>${inp("kmM",M.contact,'type="email" placeholder="e-mailadres"'+d)}</div>
+   <div class="fld" id="kmPpw"${M.keuze?"":" hidden"}><label for="kmPp">Korting Pluspas-bonnen (%)</label><input id="kmPp" type="number" min="0" max="49" step="0.5" value="${esc(M.pluspas??5)}"${d}></div>
    <label class="sp-nat full" for="kmBb" id="kmBbw"${M.keuze?"":" hidden"}><input type="checkbox" id="kmBb"${M.bijbetalen!==false?" checked":""}${d}><span><b>Bijbetalen boven het budget</b><small>Met Bancontact, tot € 150 per kind.</small></span></label>
    <div class="fld full"><label for="kmG">Waarde per geboortejaar</label><textarea id="kmG" style="height:86px;min-height:0;font-family:inherit"${d}>${esc(M.groepen)}</textarea><span class="help">Eén regel per groep, bv. <b>2016-2020: 50,00 EUR per kind</b> of <b>2015: cadeau voorzien door VBHA</b>.</span></div>
   </div></div>
   <div class="full bar" style="margin:0"><button type="button" class="btn sm" data-km="voorbeeld">${ic("mails")}Voorbeeld van de mail</button><button type="button" class="btn sm ghost" data-km="standaard"${d}>Standaardtekst</button></div>`}
-const kmLees=()=>({kopie:$("#kmK").value.trim(),cadeau:!!$("#kmC").value,sites:$("#kmS").value.trim(),tot:$("#kmT").value,contact:$("#kmM").value.trim(),keuze:!!($("#kmKz")&&$("#kmKz").value),bijbetalen:!!($("#kmBb")&&$("#kmBb").checked),groepen:$("#kmG").value.trim()});
+const kmLees=()=>({kopie:$("#kmK").value.trim(),cadeau:!!$("#kmC").value,sites:$("#kmS").value.trim(),tot:$("#kmT").value,contact:$("#kmM").value.trim(),keuze:!!($("#kmKz")&&$("#kmKz").value),bijbetalen:!!($("#kmBb")&&$("#kmBb").checked),pluspas:$("#kmPp")&&$("#kmPp").value!==""?Number($("#kmPp").value):5,groepen:$("#kmG").value.trim()});
 {const _k=kfInst;kfInst=function(){_k.apply(this,arguments);const f=$("#fKfI");if(!f)return;f.insertAdjacentHTML("beforeend",kfMailHtml());
   const ok=$("#kiOk");if(!ok||!ok.onclick)return;const _o=ok.onclick;
   ok.onclick=async function(ev){const M=kmLees();if(M.kopie&&M.kopie.split(/[,;\s]+/).filter(Boolean).some(x=>!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x))){toast("Het adres voor de kopie klopt niet.",true);return}if(M.contact&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(M.contact)){toast("Het adres om het cadeau door te sturen klopt niet.",true);return}
@@ -4472,7 +4473,7 @@ kfExport=async function(){const st=kfStats(),c=st.c,M=kfMailCfg(),G=kfGroepenC(M
 
 document.addEventListener("click",e=>{const b=e.target.closest("[data-kmw]");if(!b||b.disabled)return;const on=b.dataset.kmw==="1",geen=b.dataset.kmw==="geen";
   b.parentElement.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));const h=$("#kmKz");if(h)h.value=on?"1":"";const c=$("#kmC");if(c)c.value=geen?"":"1";const v=$("#kmV");if(v)v.hidden=geen;
-  const m=$("#kmMw"),bb=$("#kmBbw");if(m)m.hidden=on;if(bb)bb.hidden=!on});
+  const m=$("#kmMw"),bb=$("#kmBbw"),pp=$("#kmPpw");if(m)m.hidden=on;if(bb)bb.hidden=!on;if(pp)pp.hidden=!on});
 
 /* ============ Banket: korting volgens het puntensysteem ============
    Instelling (Banket › tandwiel): kortingAan + kostprijs (= prijs). De status komt uit de punten van het vorige jaar,
@@ -7305,13 +7306,27 @@ function kfcBestel(){const L=kfcKids(),W={},bon=[];for(const x of L){if(x.st==="
   const vink=x=>`<label class="cbx small"><input type="checkbox" data-kfc="besteld" data-id="${esc(x.r.id)}" data-i="${x.i}"${x.besteld?" checked":""}${canWrite?"":" disabled"}> besteld</label>`;
   const sec=Object.entries(W).map(([w,L2])=>`<div class="pi-sec"><h4>${esc(w)} · ${L2.length} ${L2.length===1?"product":"producten"} · ${eur(L2.reduce((s,y)=>s+(Number(y.it.prijs)||0),0))}</h4>
     ${L2.map(({x,it})=>`<div class="kcd-b"><div style="min-width:0"><b>${esc(it.naam||"")}</b> <span class="muted small">voor ${esc(x.k.naam)} (${esc(x.r.lid||"")})</span>${it.beschikbaar===false?' <span class="pill nok">niet op voorraad</span>':""}${kfcAlt(it)}</div><span class="nowrap"><b>${eur(it.prijs)}</b></span><a class="btn sm" href="${esc(it.url)}" target="_blank" rel="noopener">Openen</a>${vink(x)}</div>`).join("")}</div>`).join("");
-  modal("Bestellijst cadeaus kinderfeest",`${sec||'<p class="muted">Nog geen gekozen cadeaus.</p>'}
+  modal("Bestellijst cadeaus kinderfeest",`${kfcPluspasHtml()}${sec||'<p class="muted">Nog geen gekozen cadeaus.</p>'}
     ${bon.length?`<div class="pi-sec"><h4>Bonnen bol.com · ${bon.length} · ${eur(bon.reduce((s,x)=>s+(x.B.bedrag||0),0))}</h4>${bon.map(x=>`<div class="kcd-b"><div><b>${esc(x.k.naam)}</b> <span class="muted small">${esc(x.r.lid||"")}${x.st==="geenkeuze"?" · geen keuze":""}</span></div><span class="nowrap"><b>${eur(x.B.bedrag)}</b></span><span></span>${vink(x)}</div>`).join("")}</div>`:""}`,
     `<button class="btn" data-kfc="xlsx" style="margin-right:auto">${ic("download")}Excel</button><button class="btn primary" data-act="closeModal">Sluiten</button>`,{wide:true})}
+/* ---------- bonnen kopen via Pluspas (korting op bonnen van bol.com en Dreamland) ----------
+   Per winkel: wat er nog besteld moet worden (gekozen producten + bonnen bol.com voor wie een bon koos of niets koos).
+   Korting standaard 5 % (Kinderfeest › tandwiel › Cadeaukiezer). */
+const kfcPP=()=>{const v=Number(kfMailCfg().pluspas);return Number.isFinite(v)&&v>=0&&v<50?v:5};
+const kfcWinkel=w=>/dream/i.test(w||"")?"Dreamland":/bol/i.test(w||"")?"bol.com":(w||"Andere");
+function kfcPluspas(){const L=kfcKids(),W={};const add=(w,b,best)=>{const o=W[w]||(W[w]={nodig:0,alles:0});o.alles+=b;if(!best)o.nodig+=b};
+  for(const x of L){if(x.st==="gekozen")for(const it of x.k.cadeau.items)add(kfcWinkel(it.winkel),Number(it.prijs)||0,x.besteld);if(x.st==="bon"||x.st==="geenkeuze")add("bol.com",x.B.bedrag||0,x.besteld)}
+  const bij=[...new Set(L.map(x=>x.r))].reduce((t,r)=>t+(Number(r.bijbetaald)||0),0);return{W,bij,pct:kfcPP()}}
+function kfcPluspasHtml(){const {W,bij,pct}=kfcPluspas(),E=Object.entries(W).filter(([,o])=>o.alles>0);if(!E.length)return"";const r=n=>Math.round(n*100)/100;
+  const tot=E.reduce((t,[,o])=>t+o.alles,0),nodig=E.reduce((t,[,o])=>t+Math.ceil(o.nodig),0),kost=r(E.reduce((t,[,o])=>t+r(Math.ceil(o.nodig)*(1-pct/100)),0));
+  return `<div class="pi-sec kcd-pp"><h4>Bonnen kopen via Pluspas · ${pct.toString().replace(".",",")} % korting</h4>
+   <div class="kcd-ppg">${E.map(([w,o])=>`<div class="kcd-ppk"><span class="muted small">${esc(w)}</span><b>${eur(Math.ceil(o.nodig))}</b><span class="small">bon kopen voor ${eur(r(Math.ceil(o.nodig)*(1-pct/100)))}</span>${o.alles>o.nodig+0.004?`<span class="muted small">${eur(o.alles-o.nodig)} al besteld</span>`:""}</div>`).join("")}</div>
+   <div class="muted small" style="margin-top:8px">Nog te kopen ${eur(nodig)} aan bonnen · kost via Pluspas ${eur(kost)} · besparing ${eur(r(nodig-kost))}.${bij>0?` Ouders betaalden samen ${eur(bij)} bij.`:""} Totale cadeauwaarde ${eur(tot)}.</div></div>`}
 function kfcExcel(){const rows=[];for(const x of kfcKids()){const base={Kind:x.k.naam,Leeftijd:x.a??"",Lid:x.r.lid||"","E-mail":x.r.email||"",Budget:x.B.bedrag??"",Status:kfcStLbl[x.st][1],Besteld:x.besteld?"ja":""};
   if(x.st==="gekozen")for(const it of x.k.cadeau.items)rows.push({...base,Winkel:it.winkel,Product:it.naam,Prijs:it.prijs,Link:it.url,"Op voorraad":it.beschikbaar===false?"nee":it.beschikbaar?"ja":"?"});
   else rows.push({...base,Winkel:x.st==="bon"||x.st==="geenkeuze"?"bol.com (bon)":"",Product:"",Prijs:x.st==="bon"||x.st==="geenkeuze"?x.B.bedrag:"",Link:"","Op voorraad":""})}
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Cadeaus");XLSX.writeFile(wb,`Cadeaus kinderfeest ${JAAR}.xlsx`)}
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Cadeaus");
+  {const {W,pct}=kfcPluspas();const pr=Object.entries(W).map(([w,o])=>({Winkel:w,"Totaal cadeaus":Math.round(o.alles*100)/100,"Nog te kopen":Math.round(o.nodig*100)/100,"Bon (afgerond)":Math.ceil(o.nodig),["Kost via Pluspas (−"+pct+"%)"]:Math.round(Math.ceil(o.nodig)*(1-pct/100)*100)/100}));if(pr.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(pr),"Pluspas")}XLSX.writeFile(wb,`Cadeaus kinderfeest ${JAAR}.xlsx`)}
 async function kfcBesteld(id,i,aan){const r=S.kinderfeest.get(id);if(!r)return;const kinderen=(r.kinderen||[]).map((k,j)=>{if(j!==+i)return k;const n={...k};if(aan)n.besteld={op:new Date().toISOString(),door:ME_NAME||""};else delete n.besteld;return n});
   const d={...stripId(r),kinderen};S.kinderfeest.set(id,{...d,id});await write("kinderfeest",id,d)}
 document.addEventListener("change",async e=>{const t=e.target;if(!t.matches||!t.matches('input[data-kfc="besteld"]'))return;t.disabled=true;try{await kfcBesteld(t.dataset.id,t.dataset.i,t.checked);document.querySelectorAll(`input[data-kfc="besteld"][data-id="${CSS.escape(t.dataset.id)}"][data-i="${t.dataset.i}"]`).forEach(x=>x.checked=t.checked)}catch(x){t.checked=!t.checked;toast(x.message,true)}finally{t.disabled=false}});
