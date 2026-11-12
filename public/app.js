@@ -3677,6 +3677,33 @@ async function fcAanmaning(id){const f=S.facturen.get(id);if(!f)return;const j=a
     const p=fcBetaal(f);p.L.forEach(b=>weg.add(b.id));const al=p.L.filter(b=>telt.has(b.id)).reduce((s,b)=>s+num(b.bedrag),0),extra=r2(p.ontvangen-al);
     if(extra>0.004){const a=r.per.get(sid)||{som:0,L:[]};a.som=r2(a.som+extra);a.L.push({id:"factuur-"+f.id,datum:p.laatst||f.datum,bedrag:extra,partij:fcNaam(f),mededeling:"Factuur "+f.nr+(p.online?" (online betaald)":""),richting:"in",_hoe:"factuur"});r.per.set(sid,a)}}
   r.los=r.los.filter(b=>!weg.has(b.id));return r}}
+/* ---------- Klantenlijst: eigen venster (knop naast Nieuwe factuur) ---------- */
+{const _v=VIEWS.facturen;const n=function(){const v=_v.apply(this,arguments);if(fcMag())v.actions=String(v.actions||"").replace('<button class="btn iconbtn" data-fc="instel"',`<button class="btn" data-fkl="lijst">${ic("leden")}Klantenlijst</button><button class="btn iconbtn" data-fc="instel"`);return v};Object.assign(n,_v);VIEWS.facturen=n}
+let FKL_Q="";
+function fcKlLijst(){const q=norm(FKL_Q),L=fcVaste().filter(v=>!q||norm([v.naam,v.contact,v.email,v.btw,v.adres].join(" ")).includes(q));
+  const tel=v=>[...S.facturen.values()].filter(f=>f.nr&&f.klant&&(f.klant.klantId===v.id||norm(f.klant.naam)===norm(v.naam))).length;
+  return L.length?L.map(v=>`<div class="fkl-r"><div class="fkl-m"><b>${esc(v.naam)}</b><span class="muted small">${[v.contact,v.email,v.btw].filter(Boolean).map(esc).join(" · ")||"&nbsp;"}</span>${v.adres?`<span class="muted small">${esc(v.adres).replace(/\n/g,", ")}</span>`:""}</div>
+    <span class="muted small fkl-n">${tel(v)} fact.</span><div class="fkl-a"><button type="button" class="btn sm" data-fkl="factuur" data-id="${esc(v.id)}">${ic("plus")}Factuur</button><button type="button" class="btn sm ghost" data-fkl="bewerk" data-id="${esc(v.id)}">Wijzigen</button><button type="button" class="iconbtn" data-fkl="weg" data-id="${esc(v.id)}" title="Verwijderen" aria-label="Verwijderen">${ic("prul")}</button></div></div>`).join("")
+    :`<p class="muted small" style="margin:12px 0">${q?"Geen klant gevonden.":"Nog geen klanten. Voeg er een toe, of bewaar een klant bij het maken van een factuur."}</p>`}
+function fcKlModal(){modal("Klantenlijst",`<div class="fkl-bar"><div class="search">${ic("search")}<input id="fklQ" placeholder="Zoek een klant" value="${esc(FKL_Q)}" autocomplete="off"></div><button type="button" class="btn primary" data-fkl="nieuw">${ic("plus")}Nieuwe klant</button></div><div id="fklL" class="fkl-l">${fcKlLijst()}</div>`,`<button class="btn" data-act="closeModal">Sluiten</button>`,{wide:true});
+  $("#fklQ").addEventListener("input",e=>{FKL_Q=e.target.value;$("#fklL").innerHTML=fcKlLijst()})}
+function fcKlForm(v){v=v||{};modal(v.id?"Klant wijzigen":"Nieuwe klant",`<form id="fFkl" class="form">
+   ${fld("fkN","Naam (bedrijf of persoon)",inp("fkN",v.naam,'maxlength="120"'),"full")}${fld("fkC","Contactpersoon",inp("fkC",v.contact,'maxlength="120"'))}${fld("fkE","E-mail",inp("fkE",v.email,'type="email" maxlength="160"'))}
+   <div class="fld full"><label for="fkA">Adres</label><textarea id="fkA" rows="2" placeholder="Straat en nummer&#10;Postcode en gemeente">${esc(v.adres||"")}</textarea></div>${fld("fkB","Btw-nummer",inp("fkB",v.btw,'maxlength="30" placeholder="BE 0123.456.789"'))}
+   <div class="err full" id="fkErr"></div></form>`,`<button class="btn" data-fkl="terug">Annuleren</button><button class="btn primary" data-fkl="bewaar" data-id="${esc(v.id||"")}">Bewaren</button>`)}
+document.addEventListener("click",async e=>{const t=e.target.closest("[data-fkl]");if(!t)return;e.preventDefault();const a=t.dataset.fkl,id=t.dataset.id,c=S.config.get("facturen")||{},L=(c.klanten||[]).slice(),v=id&&L.find(x=>x.id===id);
+  const zet=async K=>{await write("config","facturen",{...stripId(c),klanten:K});S.config.set("facturen",{...stripId(c),klanten:K,id:"facturen"})};
+  if(a==="lijst"||a==="terug"){fcKlModal();return}
+  if(a==="nieuw"){fcKlForm(null);return}if(a==="bewerk"&&v){fcKlForm(v);return}
+  if(a==="factuur"&&v){closeModal();const k={...v,klantId:v.id};delete k.id;fcEdit({type:"factuur",klant:k,lijnen:[{omschrijving:"",aantal:1,prijs:"",btw:0}],datum:todayISO(),categorie:v.sponsorId?"Sponsoring":"Sponsoring"},{nieuw:true});return}
+  if(a==="weg"&&v){confirmBox(`<b>${esc(v.naam)}</b> uit de klantenlijst verwijderen? Bestaande facturen blijven ongewijzigd.`,"Verwijderen",async()=>{try{await zet(L.filter(x=>x.id!==id));toast("Klant verwijderd.")}catch(x){toast("Verwijderen lukte niet.",true)}fcKlModal()});return}
+  if(a==="bewaar"){const g=s=>$(s).value.trim(),naam=g("#fkN"),mail=g("#fkE"),err=$("#fkErr");if(!naam){err.textContent="Vul de naam in.";return}if(mail&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(mail)){err.textContent="Dit e-mailadres klopt niet.";return}
+    const oud=id&&L.find(x=>x.id===id),rec={...(oud||{}),id:oud?oud.id:"kl-"+Date.now().toString(36),naam,contact:g("#fkC"),email:mail,adres:$("#fkA").value.trim(),btw:g("#fkB")};
+    const i=L.findIndex(x=>x.id===rec.id);if(i>=0)L[i]=rec;else L.push(rec);t.disabled=true;try{await zet(L);toast(oud?"Klant bijgewerkt.":naam+" staat in de klantenlijst.");fcKlModal()}catch(x){err.textContent="Bewaren lukte niet: "+(x.message||"");t.disabled=false}}});
+{const st=document.createElement("style");st.textContent=`.fkl-bar{display:flex;gap:10px;align-items:center;margin-bottom:12px}.fkl-bar .search{flex:1}.fkl-l{max-height:60vh;overflow:auto;border:1px solid var(--line);border-radius:12px}
+.fkl-r{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}.fkl-r:first-child{border-top:0}
+.fkl-m{display:flex;flex-direction:column;min-width:0}.fkl-m span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fkl-a{display:flex;gap:6px;align-items:center}.fkl-a .iconbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}.fkl-n{white-space:nowrap}
+@media(max-width:640px){.fkl-r{grid-template-columns:minmax(0,1fr) auto}.fkl-n{display:none}.fkl-bar{flex-wrap:wrap}}`;document.head.appendChild(st)}
 
 /* ============ Sponsors › inschrijfpagina (tandwiel) ============
    Config "sponsoring": open, kalenderjaar, deadline, formules, vrije bijdrage, meldingsadres. De openbare pagina /sponsor leest deze
