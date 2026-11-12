@@ -4128,7 +4128,7 @@ var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.inkomend
 {const b=NAV.find(n=>n.id==="boekhouding");if(b)b.items=b.items.filter(i=>i[0]!=="inkomend")}
 function fcOpenTeller(){try{return S.facturen?[...S.facturen.values()].filter(f=>["open","deels","vervallen"].includes(fcStatus(f))).length:0}catch(e){return 0}}
 function fcTabs(act){const nU=typeof fcOpenTeller==="function"?fcOpenTeller():0,nI=inkMag()?inkDocs().filter(inkOpen).length:0;
-  return `<nav class="ka-tabs" aria-label="Soort facturen"><a href="#facturen" class="${act==="facturen"?"on":""}"${act==="facturen"?' aria-current="page"':""}>Uitgaande facturen</a><a href="#inkomend" class="${act==="inkomend"?"on":""}"${act==="inkomend"?' aria-current="page"':""}>Inkomende facturen${nI?`<span class="cnt">${nI}</span>`:""}</a></nav>`}
+  return `<nav class="ka-tabs" aria-label="Soort facturen"><a href="#facturen" class="${act==="facturen"?"on":""}"${act==="facturen"?' aria-current="page"':""}>Uitgaande facturen${nU?`<span class="cnt">${nU}</span>`:""}</a><a href="#inkomend" class="${act==="inkomend"?"on":""}"${act==="inkomend"?' aria-current="page"':""}>Inkomende facturen${nI?`<span class="cnt">${nI}</span>`:""}</a></nav>`}
 {const _f=VIEWS.facturen;const n=function(){const v=_f.apply(this,arguments);const b=v.body;v.sub="Onze facturen en creditnota's, met automatische opvolging van de betalingen";v.body=function(){return fcTabs("facturen")+b.apply(this,arguments)};return v};Object.assign(n,_f);VIEWS.facturen=n}
 if(typeof BOEK_ROUTES!=="undefined")BOEK_ROUTES.add("inkomend");
 ICON.inkomend='<path d="M4 13h4l2 3h4l2-3h4"/><path d="M4 13l2.5-7h11L20 13v6H4z"/><path d="M12 3v7m-3-3l3 3 3-3"/>';
@@ -7915,7 +7915,7 @@ function krSugInit(root,extra){const inp=root.querySelector("#krQ"),ul=root.quer
 NAV_ALIAS.terug="facturen";
 if(!ROUTES.some(r=>r[0]==="terug"))ROUTES.push(["terug","Terugbetalingen"]);
 {const f=FUNC.find(x=>x[0]==="facturen");if(f&&!f[2].includes("terug")){f[2].push("terug");FUNC_VAN.terug="facturen"}}
-{const _t=fcTabs;fcTabs=function(act){const h=_t(act),n=TB.lijst?TB.lijst.filter(r=>r.status==="ingediend").length:0;
+{const _t=fcTabs;fcTabs=function(act){if(!TB.lijst&&fcMag())tbLaad();const h=_t(act),n=TB.lijst?TB.lijst.filter(r=>["aangevraagd","ingediend","goedgekeurd"].includes(r.status)).length:0;
   return h.replace("</nav>",`<a href="#terug" class="${act==="terug"?"on":""}"${act==="terug"?' aria-current="page"':""}>Terugbetalingen${n?`<span class="cnt">${n}</span>`:""}</a></nav>`)}}
 const TB={lijst:null,link:"",f:"open",laden:false};
 const TB_ST={aangevraagd:["neutral","Wacht op rekeningnummer"],ingediend:["warn","Te keuren"],goedgekeurd:["info","Te betalen"],betaald:["ok","Betaald"],geweigerd:["nok","Geweigerd"]};
