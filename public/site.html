@@ -92,12 +92,13 @@
   .band-in{display:flex;width:max-content;animation:band 100s linear infinite}
   .band img{height:80px;width:auto;display:block;max-width:none}
   .band:hover .band-in{animation-play-state:paused}
+  .band-in .band-l{height:var(--bh,80px);width:auto;max-width:none;flex:none;margin:0 calc(var(--bh,80px)*.35);object-fit:contain}
   .band-t{flex:none;height:var(--bh,80px);background:url(/w/sponsors-band.jpg) no-repeat;background-size:auto 100%}
   @media (max-width:860px){.band{--bh:60px}}
 
   @keyframes band{to{transform:translateX(-50%)}}
   @media (max-width:860px){.band img{height:60px}.band-in{animation-duration:80s}}
-  @media (prefers-reduced-motion:reduce){.band{overflow-x:auto}.band-in{animation:none}.band-in img+img,.band-in .band-t:nth-child(n+27){display:none}}
+  @media (prefers-reduced-motion:reduce){.band{overflow-x:auto}.band-in{animation:none}.band-in img+img,.band-in .band-t:nth-child(n+27),.band-in img[aria-hidden]{display:none}}
   .cta{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:600;color:var(--accent);text-decoration:none;white-space:nowrap}
   .cta:hover{text-decoration:underline}
   .btn-red{display:inline-flex;align-items:center;gap:9px;margin-top:24px;padding:14px 22px;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;font-size:16px;text-decoration:none;transition:background .15s}
@@ -256,7 +257,10 @@
 
 <script>
   /* sponsorband: de logo's in willekeurige volgorde (stukken van /w/sponsors-band.jpg, x en breedte in pixels van het origineel, hoogte 160) */
-  (function(){try{var b=document.querySelector('.band-in');if(!b)return;var H=160,W=7320,T=[[0,283],[283,241],[524,242],[766,237],[1003,378],[1381,273],[1654,350],[2004,256],[2260,159],[2419,271],[2690,385],[3075,252],[3327,250],[3577,251],[3828,252],[4080,271],[4351,377],[4728,255],[4983,383],[5366,191],[5557,325],[5882,298],[6180,246],[6426,385],[6811,268],[7079,241]];
+  (function(){try{var b=document.querySelector('.band-in');if(!b)return;
+    if(b.getAttribute('data-logos')){var L=[].slice.call(b.querySelectorAll('img'));for(var a=L.length-1;a>0;a--){var c=Math.floor(Math.random()*(a+1)),d=L[a];L[a]=L[c];L[c]=d}
+      b.innerHTML='';L.forEach(function(e){b.appendChild(e)});L.forEach(function(e){var k=e.cloneNode();k.alt='';k.setAttribute('aria-hidden','true');b.appendChild(k)});
+      var m=matchMedia('(max-width:860px)').matches?80:100;b.style.animationDuration=Math.max(30,Math.round(m*L.length/26))+'s';return}var H=160,W=7320,T=[[0,283],[283,241],[524,242],[766,237],[1003,378],[1381,273],[1654,350],[2004,256],[2260,159],[2419,271],[2690,385],[3075,252],[3327,250],[3577,251],[3828,252],[4080,271],[4351,377],[4728,255],[4983,383],[5366,191],[5557,325],[5882,298],[6180,246],[6426,385],[6811,268],[7079,241]];
     for(var i=T.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=T[i];T[i]=T[j];T[j]=t}
     var h='';for(var k=0;k<2;k++)for(var n=0;n<T.length;n++){var x=T[n][0],w=T[n][1];h+='<span class="band-t" style="width:calc(var(--bh,80px)*'+(w/H).toFixed(5)+');background-position:calc(var(--bh,80px)*-'+(x/H).toFixed(5)+') 0"></span>'}
     b.innerHTML=h}catch(e){}})();

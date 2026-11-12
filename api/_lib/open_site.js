@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { admin, httpErr, sendError, requireUser } from "./sb.js";
 
 /* Openbare startpagina vbha.be, samengesteld volgens Administratie › Website (config/"website"):
@@ -91,6 +92,26 @@ export function bouw(tpl, c, basis) {
   return s;
 }
 
+
+/* ---------- sponsorband uit Documenten › Sponsors/Logo's ----------
+   Elke afbeelding in die map komt in de band (nieuwe toevoegen of verwijderen past de site vanzelf aan).
+   Zonder logo's daar blijft de vaste afbeelding /w/sponsors-band.jpg staan. */
+const LOGOMAP = "Sponsors/Logo's";
+const logoNaam = n => String(n || "").replace(/\.[a-z0-9]{2,5}$/i, "").replace(/^logo[\s_-]+/i, "").replace(/[_-]+/g, " ").trim();
+const logoV = d => crypto.createHash("sha1").update(String(d.pad) + "|" + String(d.op || "") + "|" + String(d.grootte || "")).digest("hex").slice(0, 10);
+async function sponsorLogos(sb) {
+  const { data, error } = await sb.from("documenten").select("id,data").eq("data->>map", LOGOMAP);
+  if (error) throw error;
+  return (data || []).filter(r => r.data && r.data.pad && /^image\/(png|jpe?g|webp|gif)$/i.test(r.data.type || "")).map(r => ({ id: r.id, naam: logoNaam(r.data.naam), v: logoV(r.data) }))
+    .sort((a, b) => a.naam.localeCompare(b.naam, "nl"));
+}
+function metLogos(html, L) {
+  if (!L || !L.length) return html;
+  const imgs = L.map(l => `<img class="band-l" src="/api/openbaar?f=sponsorlogo&amp;i=${encodeURIComponent(l.id)}&amp;v=${l.v}" alt="${esc(l.naam)}" height="80" loading="lazy" decoding="async">`).join("");
+  return html.replace(/(<div class="band" role="img" aria-label=")[^"]*(")/, `$1Logo's van onze sponsors: ${esc(L.map(l => l.naam).join(", "))}$2`)
+    .replace(/<div class="band-in">[\s\S]*?<\/div>/, `<div class="band-in" data-logos="1">${imgs}</div>`);
+}
+
 async function leesCfg(sb) {
   const { data } = await sb.from("config").select("data").eq("id", "website").maybeSingle();
   return schoon(data && data.data);
@@ -99,6 +120,17 @@ async function leesCfg(sb) {
 export default async function site(req, res) {
   try {
     const sb = admin();
+    if (req.query.f === "sponsorlogo") {
+      const id = String(req.query.i || "");
+      const { data: d } = await sb.from("documenten").select("data").eq("id", id).maybeSingle();
+      if (!d || !d.data || d.data.map !== LOGOMAP || !/^image\/(png|jpe?g|webp|gif)$/i.test(d.data.type || "")) throw httpErr(404, "Niet gevonden");
+      const { data, error } = await sb.storage.from("documenten").download(d.data.pad);
+      if (error || !data) throw httpErr(404, "Niet gevonden");
+      res.setHeader("Content-Type", d.data.type || data.type || "image/png");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Cache-Control", String(req.query.v || "") === logoV(d.data) ? "public, max-age=86400, s-maxage=31536000, immutable" : "public, max-age=60, s-maxage=60");
+      return res.status(200).send(Buffer.from(await data.arrayBuffer()));
+    }
     if (req.query.f === "sitefoto") {
       const k = String(req.query.k || "");
       if (!["kalender", "viv"].includes(k) && !/^e[\w]{3,24}$/.test(k)) throw httpErr(404, "Niet gevonden");
@@ -124,13 +156,14 @@ export default async function site(req, res) {
         const { data } = await sb.storage.from("documenten").createSignedUrl(c.fotos[k].pad, 600);
         if (data) c.fotos[k].tijdelijk = data.signedUrl;
       }
-      let html = bouw(await sjabloon(req), c, basis);
+      let html = metLogos(bouw(await sjabloon(req), c, basis), await sponsorLogos(sb).catch(() => null));
       for (const k of Object.keys(c.fotos)) if (c.fotos[k].tijdelijk) html = html.split(`src="/api/openbaar?f=sitefoto&k=${k}&v=${c.fotos[k].v}"`).join(`src="${esc(c.fotos[k].tijdelijk)}"`).split(`src="/api/openbaar?f=sitefoto&amp;k=${k}&amp;v=${c.fotos[k].v}"`).join(`src="${esc(c.fotos[k].tijdelijk)}"`);
       html = html.replace("<head>", `<head><base href="${basis}/">`).replace("<body>", '<body><div style="position:sticky;top:0;z-index:99;background:#111;color:#fff;text-align:center;padding:8px;font:600 14px system-ui">Voorbeeld – nog niet gepubliceerd</div>');
       return res.status(200).json({ html });
     }
-    let html;
-    try { html = bouw(await sjabloon(req), await leesCfg(sb), basis); }
+    let html, L = null;
+    try { L = await sponsorLogos(sb); } catch (e) { console.error("logos", e); }
+    try { html = metLogos(bouw(await sjabloon(req), await leesCfg(sb), basis), L); }
     catch (e) { console.error(e); html = bouw(await sjabloon(req), schoon({}), basis); }
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=0, s-maxage=60, stale-while-revalidate=600");
