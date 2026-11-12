@@ -221,7 +221,7 @@ export function bijStand(d, M) {
   const K = (d.kinderen || []).map(k => ({ k, B: budgetVan(k.geb, M) })).filter(x => x.B.budget != null);
   const gekozen = K.filter(x => x.k.cadeau && (x.k.cadeau.bon || (x.k.cadeau.items || []).length));
   const pot = r2(gekozen.reduce((s, x) => s + x.B.budget, 0)), potAlles = r2(K.reduce((s, x) => s + x.B.budget, 0));
-  const besteed = r2(gekozen.reduce((s, x) => s + (x.k.cadeau.bon ? x.B.budget : Number(x.k.cadeau.totaal) || 0), 0));
+  const besteed = r2(gekozen.reduce((s, x) => s + (x.k.cadeau.bon ? x.B.budget : Number(x.k.cadeau.keuzeTotaal ?? x.k.cadeau.totaal) || 0), 0));
   const extra = r2(Math.max(0, besteed - pot)), bijbetaald = r2(Number(d.bijbetaald) || 0), alles = K.length > 0 && gekozen.length === K.length;
   const b = d.betaling || null;
   return { pot: potAlles, besteed, extraTotaal: extra, bijbetaald, alleGekozen: alles, teBetalen: alles ? r2(Math.max(0, extra - bijbetaald)) : 0, extraVoorlopig: alles ? 0 : extra,
@@ -314,7 +314,7 @@ export async function kfCadeauPubliek(req, res) {
           // net gecontroleerd (ondertekend door de server, minder dan een uur oud): niet opnieuw opvragen
           // al bewaard bij dit kind (ongewijzigd): niet opnieuw bij de winkel opvragen
           const oud = k.cadeau && (k.cadeau.items || []).find(o => o.url === (x && x.url) && Number(o.prijs) === Number(x && x.prijs));
-          if (oud) return oud;
+          if (oud) return { ...oud, keuzePrijs: oud.keuzePrijs ?? oud.prijs };
           if (x && x.sig && x.auto && kloptProduct(x)) { const p = { ...Object.fromEntries(PVELD.map(k => [k, x[k] ?? null])), auto: true, bron: "zyte" }; if (p.beschikbaar === false) throw httpErr(400, `"${p.naam}" is niet op voorraad. Kies een ander product.`); return p; }
           const p = await productInfo(x && x.url);
           if (p.auto) { if (p.beschikbaar === false) throw httpErr(400, `"${p.naam}" is niet op voorraad. Kies een ander product.`); return p; }
@@ -323,8 +323,9 @@ export async function kfCadeauPubliek(req, res) {
           if (!naam || !(prijs > 0)) throw httpErr(400, "Vul de naam en de prijs van het product in.");
           return { ...p, naam, prijs: r2(prijs), auto: false };
         }));
-        const totaal = r2(items.reduce((s, x) => s + x.prijs, 0));
-        cadeau = { items, totaal, op: new Date().toISOString() };
+        for (const x of items) if (x.keuzePrijs == null) x.keuzePrijs = x.prijs;
+        const totaal = r2(items.reduce((s, x) => s + x.prijs, 0)), keuzeTotaal = r2(items.reduce((s, x) => s + Number(x.keuzePrijs), 0));
+        cadeau = { items, totaal, keuzeTotaal, op: new Date().toISOString() }; // keuzeTotaal: prijs op het moment van kiezen (prijsstijgingen nadien draagt de vriendenkring)
       }
     }
     const kinderen = d.kinderen.map((x, j) => { if (j !== i) return x; const n = { ...x }; if (cadeau) n.cadeau = cadeau; else delete n.cadeau; return n; });
