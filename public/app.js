@@ -2317,7 +2317,7 @@ function agForm(a,id){const d=canWrite?"":" disabled";a=a||{};
    ${fld("agD","Datum",`<input id="agD" type="date" value="${esc(a.datum||AG.dag||todayISO())}"${d}>`)}${uurVeld("agU",a.uur,d)}
    ${fld("agL","Waar",inp("agL",a.locatie,'maxlength="160"'+d),"full")}
    ${fld("agI","Meer info",`<textarea id="agI" class="ag-info" rows="3" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false)}<label class="sp-nat full" for="agS"><input type="checkbox" id="agS"${a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length)?" checked":""}${canWrite?"":" disabled"}><span><b>Gebruiken in shiften</b></span></label><label class="sp-nat full" for="agKa"><input type="checkbox" id="agKa"${agKassa({...a,id:id||"x"})?" checked":""}${canWrite?"":" disabled"}><span><b>Kassa gebruiken</b></span></label><div class="err full" id="agErr"></div></form>`,
-   `${id&&canWrite?'<button class="btn danger" id="agDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="agOk">Bewaren</button>':""}`);
+   `${id&&canWrite?'<button class="btn danger" id="agDel" style="margin-right:auto">Verwijderen</button>':""}${id&&recht("social")!=="geen"?'<button type="button" class="btn" data-sopost="ag">Post maken</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="agOk">Bewaren</button>':""}`);
   if(!canWrite)return;
   $("#agOk").onclick=async()=>{const r={titel:$("#agT").value.trim(),datum:$("#agD").value,uur:$("#agU").value.trim(),locatie:$("#agL").value.trim(),info:$("#agI").value.trim(),inMail:$("#agM").checked,metShiften:$("#agS").checked,metKassa:$("#agKa").checked};
     if(!r.titel){$("#agErr").textContent="Vul in wat er te doen is.";return}if(!/^\d{4}-\d{2}-\d{2}$/.test(r.datum)){$("#agErr").textContent="Kies een datum.";return}
@@ -2332,7 +2332,7 @@ function agAutoForm(id){const bk=id==="bk",c=bk?bkCfg():kfCfg(),d=canWrite?"":" 
    ${fld("aaI","Meer info",`<textarea id="aaI" class="ag-info" rows="3" maxlength="2000" placeholder="Komt in de activiteitenmail onder datum, uur en plaats"${d}>${esc(c.info||"")}</textarea>`,"full")}
    ${agMailVink("aaM",c.inMail!==false)}
    <div class="err full" id="aaErr"></div></form>`,
-   `<a class="btn" href="#${bk?"banket":"kinderfeest"}" data-act="closeModal" style="margin-right:auto">Naar ${naam.toLowerCase()} ›</a><button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="aaOk">Bewaren</button>':""}`);
+   `<a class="btn" href="#${bk?"banket":"kinderfeest"}" data-act="closeModal" style="margin-right:auto">Naar ${naam.toLowerCase()} ›</a>${recht("social")!=="geen"?`<button type="button" class="btn" data-sopost="${bk?"bk":"kf"}">Post maken</button>`:""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="aaOk">Bewaren</button>':""}`);
   if(!canWrite)return;
   $("#aaOk").onclick=async()=>{const r={datum:$("#aaD").value,locatie:$("#aaL").value.trim(),info:$("#aaI").value.trim(),inMail:$("#aaM").checked};const u=$("#aaU").value.trim();
     if(!/^\d{4}-\d{2}-\d{2}$/.test(r.datum)){$("#aaErr").textContent="Kies een datum.";return}
@@ -7651,3 +7651,19 @@ function soMeld(p){if(!p)return;const R=p.data.resultaten||{},K=SO_K.filter(([k]
 .so-c.ok{background:var(--good-soft,#e7f6ee);color:var(--good,#15803d)}.so-c.nok{background:#fde8e8;color:#b91c1c}.so-f{font-size:12px;color:#b91c1c;margin-top:4px}
 .so-a{display:flex;gap:6px;align-items:center}.so-r{display:flex;gap:10px;align-items:center}.so-r svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}
 @media(max-width:860px){.so-g{grid-template-columns:1fr}.so-p{grid-template-columns:44px minmax(0,1fr)}.so-th{width:44px;height:44px}.so-a{grid-column:2}}`;document.head.appendChild(st)}
+
+/* ---------- Post maken vanuit een activiteit: Sociale media openen met titel, datum, uur, plaats, info en inschrijflink ingevuld ---------- */
+function soVanuit({titel,datum,uur,locatie,info,link}){
+  const dt=/^\d{4}-\d{2}-\d{2}$/.test(datum||"")?new Date(datum+"T12:00:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long"}):"";
+  const tekst=[titel,[dt?"📅 "+dt+(uur?" om "+uur:""):"",locatie?"📍 "+locatie:""].filter(Boolean).join("\n"),info||"",link?"Inschrijven of meer info via de link.":""].filter(Boolean).join("\n\n");
+  SOC.ed={...soLeeg(),titel:String(titel||"").slice(0,140),tekst:tekst.slice(0,2200),link:link||"",kanalen:{facebook:SOC.kop.facebook!==false,instagram:false,website:true}};
+  closeModal();location.hash="#social";if(route()==="social")renderBody();toast("Post klaargezet. Voeg nog een foto toe als je ook op Instagram wil posten.")}
+const soBron={
+  kf:()=>{const c=kfCfg();return{titel:"Kinderfeest",datum:c.datum,uur:c.tijd,locatie:c.locatie,info:c.info,link:"https://vbha.be/kinderfeest"}},
+  bk:()=>{const c=bkCfg();return{titel:"Banket",datum:c.datum,uur:c.uur,locatie:c.locatie,info:c.info,link:"https://vbha.be/banket"}},
+  fu:()=>{const c=fuCfg();return{titel:c.naam||"In Vier en Vlam",datum:c.datum,uur:c.deuren,locatie:c.locatie,info:c.info,link:"https://vbha.be/fuif"}},
+  fd:()=>{const c=fdCfg();return{titel:c.titel,datum:c.datum,uur:c.uur,locatie:c.locatie,info:c.info,link:"https://vbha.be/familiedag"}},
+  ag:()=>({titel:($("#agT")||{}).value||"",datum:($("#agD")||{}).value||"",uur:($("#agU")||{}).value||"",locatie:($("#agL")||{}).value||"",info:($("#agI")||{}).value||""})};
+document.addEventListener("click",e=>{const b=e.target.closest("[data-sopost]");if(!b)return;e.preventDefault();const f=soBron[b.dataset.sopost];if(f)soVanuit(f())});
+for(const [r,k] of [["kinderfeest","kf"],["banket","bk"],["fuif","fu"],["familiedag","fd"]]){const _v=VIEWS[r];if(!_v)continue;
+  const n=function(){const v=_v.apply(this,arguments);if(recht("social")!=="geen")v.actions=`<button type="button" class="btn" data-sopost="${k}">${ic("delen")}Post maken</button>`+String(v.actions||"");return v};Object.assign(n,_v);VIEWS[r]=n}
