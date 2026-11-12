@@ -7249,7 +7249,7 @@ for(const r of ["shiften","kassa"]){const _v=VIEWS[r];if(!_v)continue;const n=fu
    Per kind in de inschrijving: kinderen[i].cadeau = {items:[{url,winkel,naam,prijs,foto,beschikbaar,auto,gecontroleerd,vorigePrijs}], totaal} of {bon:true};
    kinderen[i].besteld = {op, door}. Budget volgens "Waarde per geboortejaar" (Kinderfeest › tandwiel).
    Wie na de termijn niets koos, krijgt een bon van bol.com ter waarde van het budget. */
-const KFCD={open:false,f:"alle"};
+const KFCD={open:false,f:"alle",s:"naam",d:1};
 function kfcBudget(geb){const y=Number(String(geb||"").slice(0,4)),g=kfkGroepen(kfMailCfg().groepen).find(x=>y>=x.van&&y<=x.tot);return g?{bedrag:g.bedrag,vbha:g.vbha||g.bedrag==null}:{bedrag:null,vbha:false}}
 const kfcVoorbij=()=>todayISO()>kfMailCfg().tot;
 function kfcKids(){const c=kfCfg(),out=[];for(const r of kfLijst())(r.kinderen||[]).forEach((k,i)=>{const a=kfLeeftijd(k.geb,c.datum);if(a!=null&&a>c.leeftijd)return;const B=kfcBudget(k.geb);
@@ -7272,7 +7272,12 @@ function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L
   const pas=x=>KFCD.f==="alle"||(KFCD.f==="bon"?(x.st==="bon"||x.st==="geenkeuze"):KFCD.f==="bij"?kfcPot(x.r).extra>0:KFCD.f==="gekozen"?(x.st==="gekozen"||x.st==="vbha"):x.st===KFCD.f);
   // per gezin (inschrijving)
   const G=new Map();for(const x of L){if(!G.has(x.r.id))G.set(x.r.id,{r:x.r,K:[]});G.get(x.r.id).K.push(x)}
-  const gez=[...G.values()].filter(g=>g.K.some(pas)).sort((a,b)=>String(a.r.lid||"").localeCompare(String(b.r.lid||""),"nl"));
+  const gez=[...G.values()].filter(g=>g.K.some(pas)).sort((a,b)=>KFCD.d*String(a.r.lid||"").localeCompare(String(b.r.lid||""),"nl"));
+  // sorteren op bedrag of besteld: één lijst per kind (met het lid erbij)
+  const bedr=x=>x.st==="gekozen"?Number(x.k.cadeau.totaal)||0:(x.st==="bon"||x.st==="geenkeuze")?Number(x.B.bedrag)||0:-1;
+  const bst=x=>x.st==="open"||x.st==="vbha"?2:x.besteld?1:0;
+  const plat=KFCD.s==="naam"?null:L.filter(pas).sort((a,b)=>(KFCD.s==="bedrag"?bedr(a)-bedr(b):bst(a)-bst(b))*KFCD.d||String(a.k.naam).localeCompare(String(b.k.naam),"nl"));
+  const th=(k,l,c)=>`<div class="${c||""}"><button type="button" class="kc-so${KFCD.s===k?" on":""}" data-kfc="sort" data-v="${k}">${l}${KFCD.s===k?(KFCD.d>0?" ▲":" ▼"):""}</button></div>`;
   const P=[...G.values()].map(g=>kfcPot(g.r)),bijOpen=P.filter(p=>p.extra>0&&p.bet<p.extra-0.004),bijOk=P.filter(p=>p.extra>0&&p.bet>=p.extra-0.004);
   const totGek=L.filter(x=>x.st==="gekozen").reduce((t,x)=>t+(Number(x.k.cadeau.totaal)||0),0);
   const chip=(k,l,n)=>`<button type="button" class="${KFCD.f===k?"on":""}" data-kfc="f" data-v="${k}">${l}${n!=null?` <span class="muted">${n}</span>`:""}</button>`;
@@ -7288,7 +7293,7 @@ function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L
     else if(x.st==="bon"||x.st==="geenkeuze"){keuze=`<span class="pill ${c}">${l}</span>`;bedrag=`<b>${eur(B)}</b>`}
     else keuze=`<span class="pill ${c}">${l}</span>`;
     const vink=x.st==="open"||x.st==="vbha"?"":`<input type="checkbox" data-kfc="besteld" data-id="${esc(x.r.id)}" data-i="${x.i}"${x.besteld?" checked":""}${mag?"":" disabled"} aria-label="Besteld" title="${x.besteld?"Besteld op "+fmtDate(String(x.k.besteld.op).slice(0,10))+(x.k.besteld.door?" door "+esc(x.k.besteld.door):""):"Besteld"}">`;
-    return `<div class="kc-r${x.st==="vbha"?" vb":""}"><div class="kc-n">${mag&&(x.st==="gekozen"||x.st==="bon")&&!x.besteld?`<button type="button" class="kc-kn" data-kfc="kind" data-id="${esc(x.r.id)}" data-i="${x.i}" title="Keuze beheren">${esc(x.k.naam)}</button>`:`<b>${esc(x.k.naam)}</b>`}<span class="muted small">${x.a==null?"":x.a+" j"}</span></div><div class="kc-b">${B!=null&&x.st!=="vbha"?eur(B):""}</div><div class="kc-c">${keuze}</div><div class="kc-t">${bedrag}</div><div class="kc-v">${vink}</div></div>`};
+    return `<div class="kc-r${x.st==="vbha"?" vb":""}"><div class="kc-n">${mag&&(x.st==="gekozen"||x.st==="bon")&&!x.besteld?`<button type="button" class="kc-kn" data-kfc="kind" data-id="${esc(x.r.id)}" data-i="${x.i}" title="Keuze beheren">${esc(x.k.naam)}</button>`:`<b>${esc(x.k.naam)}</b>`}<span class="muted small">${x.a==null?"":x.a+" j"}</span>${plat?`<span class="muted small kc-lid">${esc(x.r.lid||"")}</span>`:""}</div><div class="kc-b">${B!=null&&x.st!=="vbha"?eur(B):""}</div><div class="kc-c">${keuze}</div><div class="kc-t">${bedrag}</div><div class="kc-v">${vink}</div></div>`};
   const gezin=g=>{const K=g.K.filter(pas),n=g.K.filter(x=>x.st!=="vbha"),klaar=n.filter(x=>x.st!=="open").length,p=kfcPot(g.r);
     const pot=n.length>1&&p.pot?`<span class="muted small">samen ${eur(p.best)} van ${eur(p.pot)}</span>`:"";
     const bij=p.extra>0?`<span class="pill ${p.bet>=p.extra-0.004?"ok":"warn"}">${p.bet>=p.extra-0.004?"+ "+eur(p.extra)+" bijbetaald":(p.alles?eur(p.open)+" bijbetaling open":eur(p.extra)+" boven budget")}</span>`:"";
@@ -7301,7 +7306,7 @@ function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L
      <div class="tile"><span class="lbl">Nog niet gekozen</span><span class="val">${s.open}</span></div>
      <div class="tile"><span class="lbl">Bijbetalingen</span><span class="val">${bijOpen.length+bijOk.length}</span></div></div>
    <div class="kc-zb"><div class="search">${ic("search")}<input id="kcdQ" placeholder="Zoek op lid, kind of product" value="${esc(KFCQ)}" autocomplete="off"></div><div class="seg kc-f" role="group" aria-label="Filter cadeaus">${chip("alle","Alle")}${chip("gekozen","Gekozen",s.gekozen+s.vbha)}${chip("bon","Bon",s.bon+s.geenkeuze)}${chip("open","Nog niet gekozen",s.open)}${bijOpen.length+bijOk.length?chip("bij","Bijbetaling",bijOpen.length+bijOk.length):""}</div></div>
-   <div class="kc-l"><div class="kc-r kc-hd"><div>Kind</div><div class="kc-b">Budget</div><div>Keuze</div><div class="kc-t">Bedrag</div><div class="kc-v">Besteld</div></div>${gez.map(gezin).join("")||'<div class="empty">Geen kinderen in deze selectie.</div>'}</div></div></div>`}
+   <div class="kc-l"><div class="kc-r kc-hd">${th("naam","Kind")}<div class="kc-b">Budget</div><div>Keuze</div>${th("bedrag","Bedrag","kc-t")}${th("besteld","Besteld","kc-v")}</div>${(plat?plat.map(kind).join(""):gez.map(gezin).join(""))||'<div class="empty">Geen kinderen in deze selectie.</div>'}</div></div></div>`}
 // bestellijst per winkel + bonnen
 function kfcBestel(){const L=kfcKids(),W={},bon=[];for(const x of L){if(x.st==="gekozen")for(const it of x.k.cadeau.items)(W[it.winkel]||(W[it.winkel]=[])).push({x,it});if(x.st==="bon"||x.st==="geenkeuze")bon.push(x)}
   const vink=x=>`<label class="cbx small"><input type="checkbox" data-kfc="besteld" data-id="${esc(x.r.id)}" data-i="${x.i}"${x.besteld?" checked":""}${canWrite?"":" disabled"}> besteld</label>`;
@@ -7335,6 +7340,7 @@ async function kfcBesteld(id,i,aan){const r=S.kinderfeest.get(id);if(!r)return;c
 document.addEventListener("change",async e=>{const t=e.target;if(!t.matches||!t.matches('input[data-kfc="besteld"]'))return;t.disabled=true;try{await kfcBesteld(t.dataset.id,t.dataset.i,t.checked);document.querySelectorAll(`input[data-kfc="besteld"][data-id="${CSS.escape(t.dataset.id)}"][data-i="${t.dataset.i}"]`).forEach(x=>x.checked=t.checked)}catch(x){t.checked=!t.checked;toast(x.message,true)}finally{t.disabled=false}});
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-kfc]");if(!t||t.tagName==="INPUT")return;const a=t.dataset.kfc;
   if(a==="f"){KFCD.f=t.dataset.v;renderBody()}
+  else if(a==="sort"){const v=t.dataset.v;if(KFCD.s===v)KFCD.d=-KFCD.d;else{KFCD.s=v;KFCD.d=v==="bedrag"?-1:1}renderBody()}
   else if(a==="bestel"){e.preventDefault();kfcBestel()}
   else if(a==="xlsx"){e.preventDefault();kfcExcel()}
   else if(a==="link"){e.preventDefault();const w=window.open("","_blank");try{const j=await api("/api/mail?f=kfcadeau",{method:"POST",body:JSON.stringify({actie:"link",id:t.dataset.id})});if(w){w.opener=null;w.location.href=j.url}else location.href=j.url}catch(x){if(w)w.close();toast(x.message||"De keuzepagina openen lukte niet.",true)}}
@@ -7366,9 +7372,9 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-kfc]
   return i>=0?h.slice(0,i)+p+h.slice(i):h+p};return v};Object.assign(n,_v);VIEWS.kinderfeest=n}
 /* zoeken in het blok Cadeaus (zonder herladen, de focus blijft in het vak) */
 let KFCQ="";
-function kfcZoek(){const q=norm(KFCQ);document.querySelectorAll(".kc-gr").forEach(g=>{g.hidden=!!q&&!norm(g.textContent).includes(q)})}
+function kfcZoek(){const q=norm(KFCQ);document.querySelectorAll(".kc-gr,.kc-l>.kc-r:not(.kc-hd)").forEach(g=>{g.hidden=!!q&&!norm(g.textContent).includes(q)})}
 document.addEventListener("input",e=>{if(e.target.id!=="kcdQ")return;KFCQ=e.target.value;kfcZoek()});
-new MutationObserver(()=>{if(KFCQ&&document.querySelector(".kc-gr"))kfcZoek()}).observe(document.documentElement,{childList:true,subtree:true});
+new MutationObserver(()=>{if(KFCQ&&document.querySelector(".kc-l"))kfcZoek()}).observe(document.documentElement,{childList:true,subtree:true});
 // dashboard: na de keuzetermijn en tot het feest: cadeaus bestellen
 function kfcDash(){try{if(!canWrite||(typeof ROL!=="undefined"&&ROL!=="admin"&&!(typeof RECHTEN==="object"&&RECHTEN&&RECHTEN.kinderfeest==="bewerken")))return"";const M=kfMailCfg(),c=kfCfg(),t=todayISO();
   if(!M.cadeau||!M.keuze||!(t>M.tot)||t>c.datum)return"";const L=kfcKids().filter(x=>(x.st==="gekozen"||x.st==="bon"||x.st==="geenkeuze")&&!x.besteld);if(!L.length)return"";
