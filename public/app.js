@@ -7444,7 +7444,7 @@ function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L
     const bij=p.extra>0?`<span class="pill ${p.bet>=p.extra-0.004?"ok":"warn"}">${p.bet>=p.extra-0.004?"+ "+eur(p.extra)+" bijbetaald":(p.alles?eur(p.open)+" bijbetaling open":eur(p.extra)+" boven budget")}</span>`:"";
     return `<div class="kc-gr"><div class="kc-gh"><div class="kc-gt"><button type="button" class="kc-gn" data-act="kfToon" data-id="${esc(g.r.id)}" title="Inschrijving openen">${esc(g.r.lid||"")}</button></div>${bij}</div>${K.map(kind).join("")}</div>`};
   return `<div class="panel kcd"><div class="panel-h"><h2>Cadeaus</h2>${kfcVoorbij()?'<span class="pill neutral">afgesloten</span>':""}<span class="grow"></span>
-    ${mag?`${L.some(x=>x.st==="open"&&!x.r.cadeauMeld&&String((x.r.bevestiging&&x.r.bevestiging.op)||x.r.aangemeld||"")<String(kfMailCfg().keuzeSinds||"9999"))?`<button type="button" class="btn sm" data-kfc="meld" title="Wie zich inschreef vóór de cadeaukiezer aan stond, een mail met de keuzelink sturen">${ic("mails")}Ouders verwittigen</button>`:""}<button type="button" class="btn sm" data-kfc="vergelijk" title="Prijs en voorraad opnieuw opvragen en vergelijken met de andere winkel">Prijzen controleren</button><button type="button" class="btn sm primary" data-kfc="bestel">${ic("download")}Bestellijst</button>`:""}</div>
+    ${mag?`${L.some(x=>x.st==="open"&&!x.r.cadeauMeld&&String((x.r.bevestiging&&x.r.bevestiging.op)||x.r.aangemeld||"")<String(kfMailCfg().keuzeSinds||"9999"))?`<button type="button" class="btn sm" data-kfc="meld" title="Wie zich inschreef vóór de cadeaukiezer aan stond, een mail met de keuzelink sturen">${ic("mails")}Ouders verwittigen</button>`:""}<button type="button" class="btn sm" data-kfc="vergelijk" title="Prijs en voorraad opnieuw opvragen en vergelijken met de andere winkel"><span class="kcd-lg">Prijzen controleren</span><span class="kcd-sm">Prijzen</span></button><button type="button" class="btn sm primary" data-kfc="bestel">${ic("download")}Bestellijst</button>`:""}</div>
    <div class="panel-b"><div class="tiles kcd-t">
      <div class="tile"><span class="lbl">Gekozen</span><span class="val">${s.gekozen+s.bon+s.geenkeuze+s.vbha}</span></div>
      <div class="tile"><span class="lbl">Bon bol.com</span><span class="val">${s.bon+s.geenkeuze+s.vbha}</span></div>
@@ -7527,7 +7527,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-kfc]
         try{const j=await api("/api/mail?f=kfcadeau",{method:"POST",body:JSON.stringify({actie:"vergelijk",id:x.r.id,kind:x.i,item:n})});
           const r=S.kinderfeest.get(x.r.id);if(r&&j.item){const c=r.kinderen[x.i].cadeau;c.items[n]=j.item;c.totaal=Math.round(c.items.reduce((t,y)=>t+(Number(y.prijs)||0),0)*100)/100;
             if(j.gewijzigd)gew++;if(j.item.beschikbaar===false)weg++;const al=j.item.alt;if(al&&!al.geen&&ef(al.winkel,al.prijs)<ef(j.item.winkel,j.item.prijs)-0.004)goedkoper++}}catch(err){}}
-      t.disabled=false;t.textContent="Prijzen controleren";
+      t.disabled=false;t.innerHTML='<span class="kcd-lg">Prijzen controleren</span><span class="kcd-sm">Prijzen</span>';
       toast([`${L.length} ${L.length===1?"product":"producten"} gecontroleerd`,gew?`${gew} gewijzigd`:"",weg?`${weg} niet op voorraad`:"",goedkoper?`${goedkoper} goedkoper in de andere winkel`:""].filter(Boolean).join(" · ")+".",!!weg);renderBody()});return}});
 // in de pagina Kinderfeest, onder de voorziene kost
 {const _v=VIEWS.kinderfeest;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=String(b.apply(this,arguments));
@@ -7804,7 +7804,9 @@ function soMeld(p){if(!p)return;const R=p.data.resultaten||{},K=SO_K.filter(([k]
 .so-c{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--sunken);color:var(--muted)}.so-c svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8}
 .so-c.ok{background:var(--good-soft,#e7f6ee);color:var(--good,#15803d)}.so-c.nok{background:#fde8e8;color:#b91c1c}.so-f{font-size:12px;color:#b91c1c;margin-top:4px}
 .so-a{display:flex;gap:6px;align-items:center}.so-r{display:flex;gap:10px;align-items:center}.so-r svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}
-@media(max-width:860px){.so-g{grid-template-columns:1fr}.so-p{grid-template-columns:44px minmax(0,1fr)}.so-th{width:44px;height:44px}.so-a{grid-column:2}}`;document.head.appendChild(st)}
+@media(max-width:860px){.so-g{grid-template-columns:1fr}.so-p{grid-template-columns:44px minmax(0,1fr) auto;gap:10px;padding:10px 12px}.so-th{width:44px;height:44px}
+ .so-t{font-size:14px;-webkit-line-clamp:1}.so-s{gap:6px;margin-top:3px;font-size:12px;flex-wrap:nowrap;min-width:0;overflow:hidden}.so-s .pill{font-size:11px;padding:1px 7px}.so-s .so-c{width:18px;height:18px;border-radius:5px;flex:none}.so-s .so-c svg{width:12px;height:12px}
+ .so-a{gap:4px}.so-a .btn{padding:5px 8px}.so-a .iconbtn{width:30px;height:30px}.so-gh{padding:10px 12px 2px}}`;document.head.appendChild(st)}
 
 /* ---------- Post maken vanuit een activiteit: Sociale media openen met titel, datum, uur, plaats, info en inschrijflink ingevuld ---------- */
 function soVanuit({titel,datum,uur,locatie,info,link}){
