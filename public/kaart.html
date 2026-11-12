@@ -2129,8 +2129,8 @@ function krCloseSearch(){$("#krSpIn").blur();$("#krSp").hidden=true}
 function krPick(s){krCloseSearch();krZoomTo(s.id);if(!KR.ss.has(s.id))krToggle(s.id)}
 function krMelding(t){let m=document.getElementById("krToast");if(!m){m=document.createElement("div");m.id="krToast";m.setAttribute("role","status");m.style.cssText="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#18191c;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:4000;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:90vw;text-align:center";document.body.appendChild(m)}
   m.textContent=t;m.hidden=false;clearTimeout(krMelding.t);krMelding.t=setTimeout(()=>{m.hidden=true},2600)}
-function krResults(){const q=krFold($("#krSpIn").value.trim());HITS=q?KR_SORTED.filter(s=>krFold(s.n).includes(q)||krFold(s.w).startsWith(q)):KR_SORTED;
-  $("#krSpEmpty").hidden=HITS.length>0;
+function krResults(){const q=krFold($("#krSpIn").value.trim());HITS=q.length>=3?KR_SORTED.filter(s=>krFold(s.n).includes(q)||krFold(s.w).startsWith(q)):[]; // pas vanaf 3 letters
+  $("#krSpEmpty").hidden=HITS.length>0||q.length<3;
   $("#krSpList").replaceChildren(...HITS.map(s=>{const li=document.createElement("li"),b=document.createElement("button");b.type="button";
     const nm=document.createElement("span");nm.textContent=s.n;const sm=document.createElement("small");sm.textContent=s.w;nm.append(sm);b.append(nm);
     const a=document.createElement("span");a.className="kr-ok";a.textContent=krNum(s.a)+" "+krAdr(s.a);b.append(a);b.onclick=()=>krPick(s);li.append(b);return li}))}
