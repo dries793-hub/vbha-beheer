@@ -3686,9 +3686,9 @@ function spiFormRij(f,i){return `<div class="spi-f" data-i="${i}"><input class="
   <input class="spi-o" value="${esc(f.omschrijving||"")}" placeholder="bv. Dubbel vak · elke maand" aria-label="Omschrijving"><button type="button" class="btn sm ghost" data-spi="weg" aria-label="Formule verwijderen">${ic("x")}</button></div>`}
 /* status van de inschrijfpagina: open, manueel dicht of automatisch dicht na de datum */
 function spiStatus(open,dl,wie="Sponsors"){const vd=todayISO(),dagen=dl?Math.round((new Date(dl+"T12:00")-new Date(vd+"T12:00"))/864e5):null;
-  if(!open)return{k:"dicht",kort:"Gesloten",html:`<span class="pill neutral">Gesloten</span> De pagina toont dat de inschrijvingen gesloten zijn. Zet de schakelaar aan om ze te openen.`};
-  if(dl&&dl<vd)return{k:"verlopen",kort:"Afgelopen",html:`<span class="pill warn">Automatisch gesloten</span> De uiterste datum (${fmtDate(dl)}) is voorbij. Kies een latere datum om opnieuw te openen.`};
-  return{k:"open",kort:"Open",html:`<span class="pill ok">Open</span> ${wie} kunnen inschrijven${dl?` tot en met <b>${fmtDate(dl)}</b> (${dagen===0?"laatste dag vandaag":dagen===1?"nog 1 dag":"nog "+dagen+" dagen"}). Daarna sluit de pagina vanzelf.`:"."}`}}
+  if(!open)return{k:"dicht",kort:"Gesloten",html:`<span class="pill neutral">Gesloten</span>`};
+  if(dl&&dl<vd)return{k:"verlopen",kort:"Afgelopen",html:`<span class="pill warn">Automatisch gesloten</span>`};
+  return{k:"open",kort:"Open",html:`<span class="pill ok">Open</span>`}}
 const insStUpd=()=>{const el=$("#insStI"),o=$("#insOpen"),d=$("#insTot");if(el&&o&&d&&(!d.value||/^\d{4}-\d{2}-\d{2}$/.test(d.value))){const st=spiStatus(o.checked,d.value,"Leden");el.innerHTML=st.html;$("#insSt").dataset.k=st.k}};
 document.addEventListener("change",e=>{if(e.target.id==="insOpen"||e.target.id==="insTot")insStUpd()});
 document.addEventListener("input",e=>{if(e.target.id==="insTot"||(e.target.closest&&e.target.closest("#insSt .dt-w")))insStUpd()});
