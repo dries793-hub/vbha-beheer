@@ -7322,7 +7322,7 @@ const kfcPP=()=>{const v=Number(kfMailCfg().pluspas);return Number.isFinite(v)&&
 const kfcPct=w=>w==="bol.com"?kfcPP():0;
 const kfcWinkel=w=>/dream/i.test(w||"")?"Dreamland":/bol/i.test(w||"")?"bol.com":(w||"Andere");
 function kfcPluspas(){const L=kfcKids(),W={};const add=(w,b,best)=>{const o=W[w]||(W[w]={nodig:0,alles:0});o.alles+=b;if(!best)o.nodig+=b};
-  for(const x of L){if(x.st==="gekozen")for(const it of x.k.cadeau.items)add(kfcWinkel(it.winkel),Number(it.prijs)||0,x.besteld);if(x.st==="bon"||x.st==="geenkeuze")add("bol.com",x.B.bedrag||0,x.besteld)}
+  for(const x of L){if(x.st==="gekozen")for(const it of x.k.cadeau.items)add(kfcWinkel(it.winkel),Number(it.prijs)||0,x.besteld);if(x.st==="bon"||x.st==="geenkeuze"||x.st==="vbha")add("bol.com",x.B.bedrag||0,x.besteld)}
   const bij=[...new Set(L.map(x=>x.r))].reduce((t,r)=>t+(Number(r.bijbetaald)||0),0);return{W,bij,pct:kfcPP()}}
 function kfcPluspasHtml(){const {W,bij}=kfcPluspas(),E=Object.entries(W).filter(([,o])=>o.alles>0);if(!E.length)return"";const r=n=>Math.round(n*100)/100,pf=n=>n.toString().replace(".",",");
   const kaart=([w,o])=>{const p=kfcPct(w),bon=p>0?Math.ceil(o.nodig):r(o.nodig),kost=r(bon*(1-p/100));
