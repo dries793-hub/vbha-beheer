@@ -49,3 +49,33 @@ export async function goudCron(sb) {
   if (eersteKeer) await sb.from("config").update({ data: { ...alg.data, goudMail: { ...G, aan: G.aan !== false, gestart: Y } } }).eq("id", "algemeen");
   return { nieuw: zet.length, mails: mails.length, eersteKeer };
 }
+
+/* App (admin): leden die de goudstatus behaalden een proficiat-mail sturen of overslaan.
+   POST /api/mail?f=goud {actie:"mail"|"overslaan", lidIds:[...]} */
+export async function goudApp(req, res) {
+  const { requireUser, admin, httpErr, sendError } = await import("./sb.js");
+  try {
+    if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
+    const { rol } = await requireUser(req, { write: true });
+    if (rol !== "admin") throw httpErr(403, "Enkel voor de administrator.");
+    let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+    const sb = admin(), ids = (Array.isArray(b.lidIds) ? b.lidIds : []).map(String).slice(0, 100);
+    if (!ids.length) throw httpErr(400, "Geen leden gekozen.");
+    const { data: alg } = await sb.from("config").select("data").eq("id", "algemeen").maybeSingle();
+    const Y = Number(b.jaar) || Number(alg && alg.data && alg.data.actiefJaar) || huidigJaar();
+    const A = await algemeen(sb).catch(() => ({}));
+    const { data: leden } = await sb.from("leden").select("id,data").in("id", ids);
+    const nu = new Date().toISOString(), mails = [], uit = [];
+    for (const l of leden || []) {
+      const jid = Y + "_" + l.id; const { data: jr } = await sb.from("jaarleden").select("id,data").eq("id", jid).maybeSingle();
+      const jd = (jr && jr.data) || { jaar: Y, lidId: l.id };
+      const mail = b.actie === "mail" && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(String(l.data.email || "").trim());
+      if (mail) mails.push({ batch: "goud-" + Y, data: { aan: String(l.data.email).trim(), aanNaam: `${l.data.voornaam || ""} ${l.data.naam || ""}`.trim(), onderwerp: `Proficiat: je behaalde de goudstatus voor ${Y + 1}!`, html: goudHtml(l.data.voornaam, Y, A), label: "Goudstatus" } });
+      const gm = { op: nu, via: "app", verstuurd: mail, ...(b.actie !== "mail" ? { reden: "overgeslagen" } : !mail ? { reden: "geen e-mailadres" } : {}) };
+      const { error } = await sb.from("jaarleden").upsert({ id: jid, data: { ...jd, goudMail: gm } }); if (error) throw error;
+      uit.push({ lidId: l.id, verstuurd: mail });
+    }
+    if (mails.length) { const { error } = await sb.from("mail_wachtrij").insert(mails); if (error) throw error; }
+    return res.status(200).json({ ok: true, resultaten: uit, mails: mails.length });
+  } catch (e) { return sendError(res, e); }
+}

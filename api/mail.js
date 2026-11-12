@@ -33,6 +33,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "sponsorbev") return await sponsorBevestiging(req, res); // sponsorbevestiging (PDF / mail)
     if (req.query && req.query.f === "kf-voorbeeld") return await kfVoorbeeld(req, res); // voorbeeld bevestigingsmail kinderfeest
     if (req.query && req.query.f === "sms") return await smsApi(req, res); // sms via BudgetSMS (shiften)
+    if (req.query && req.query.f === "goud") { const { goudApp } = await import("./_lib/goudmail.js"); return await goudApp(req, res); } // proficiat-mail goudstatus (admin)
     if (req.query && req.query.f === "terug") { const { terugApp } = await import("./_lib/terugbetaling.js"); return await terugApp(req, res); } // terugbetalingen en onkostennota's
     if (req.query && req.query.f === "social") { const { default: socialApi } = await import("./_lib/social.js"); return await socialApi(req, res); } // sociale media: posts klaarzetten en publiceren (ook geplande taak)
     if (req.query && req.query.f === "bcsplit") { // Bancontact-bulkstortingen opsplitsen (knop in de app of beheerder met geplande-taaksleutel)
