@@ -1554,6 +1554,12 @@ html{scrollbar-gutter:stable}
   .seg.kc-f button:last-child{border-right:0}
   .kc-f .tl{display:none}.kc-f .ts{display:inline}
 }
+
+/* bestellijst: kop per winkel/bonnen met knop netjes rechts, zelfde hoogte als de rijen */
+.pi-sec .kcd-sh{flex-wrap:nowrap;min-height:34px;padding-bottom:6px;border-bottom:1px solid var(--line)}.pi-sec .kcd-sh h4{min-width:0;line-height:1.3}
+.pi-sec .kcd-sh .btn,.pi-sec .kcd-sh .pill{flex:none;margin-left:auto}.pi-sec .kcd-sh+.kcd-b{border-top:0}
+@media (max-width:640px){.pi-sec .kcd-sh{flex-wrap:wrap}}
+@media (max-width:640px){.kcd-b{grid-template-columns:minmax(0,1fr) auto auto;gap:8px}.kcd-b>span:empty{display:none}.kcd-b .cbx{font-size:0;gap:0}.kcd-b .cbx input{margin:0}}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
