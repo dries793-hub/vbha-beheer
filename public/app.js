@@ -7331,7 +7331,7 @@ const vgaOpen=v=>!v.afgerond&&String(v.datum||"")>=todayISO();
 function vgaTel(v){const A=Object.values(v.antwoorden||{}),a=A.filter(x=>x&&x.s==="aanwezig").length,o=A.filter(x=>x&&x.s==="verontschuldigd").length;return{a,o}}
 function vgaBlok(v,id){const B=vaBestuur(),A=v.antwoorden||{},ik=vgaIk(),open=vgaOpen(v),{a,o}=vgaTel(v);if(!B.length)return"";
   const mag=l=>open&&(canWrite||(ik&&ik.id===l.id));
-  return `<div class="fld full vga" id="vgaW"><div class="va-aw-h"><span class="lbl" style="margin:0">Aanwezigheid</span><span class="muted small">${a} aanwezig · ${o} verontschuldigd · ${B.length-a-o} nog niet</span>${canWrite?`<button type="button" class="btn sm ghost" data-vga="link" data-id="${esc(id)}" style="margin-left:auto">${ic("link")}Link kopiëren</button>`:""}</div>
+  return `<div class="fld full vga" id="vgaW"><div class="va-aw-h"><span class="lbl" style="margin:0">Aanwezigheid</span><span class="muted small">${a} aanwezig · ${o} verontschuldigd · ${B.length-a-o} nog niet</span></div>
    <div class="vga-l">${B.map(l=>{const s=(A[l.id]||{}).s||"",m=mag(l);return `<div class="vga-r${ik&&ik.id===l.id?" ik":""}"><span class="vga-n">${esc(l.voornaam+" "+l.naam)}${ik&&ik.id===l.id?' <span class="muted small">(jij)</span>':""}</span>
      <div class="seg vga-s">${[["aanwezig","Aanwezig"],["verontschuldigd","Verontschuldigd"]].map(([k,t])=>`<button type="button" class="${s===k?"on "+k:""}" data-vga="zet" data-id="${esc(id)}" data-lid="${esc(l.id)}" data-s="${k}"${m?"":" disabled"}>${t}</button>`).join("")}</div></div>`}).join("")}</div></div>`}
 {const _vg=vgForm;vgForm=function(v,id){_vg(v,id);if(!id||!v||!vgBestuur(v))return;const e=$("#vgErr");if(e)e.insertAdjacentHTML("beforebegin",vgaBlok(v,id))}}
