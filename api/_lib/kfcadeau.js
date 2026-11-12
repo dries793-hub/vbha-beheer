@@ -244,7 +244,7 @@ export async function kfCadeauMail(sb, id, { betaald = 0 } = {}) {
     const eu = n => "€" + Number(n || 0).toLocaleString("nl-BE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const kids = (d.kinderen || []).map(k => {
       const B = budgetVan(k.geb, M), c = k.cadeau;
-      if (B.voorzien || B.budget == null) return kaderBlok(e(k.naam), p("De vriendenkring voorziet zelf een cadeau.", "margin:0"));
+      if (B.voorzien || B.budget == null) return kaderBlok(e(k.naam), p("De vriendenkring voorziet een cadeau.", "margin:0"));
       if (c && c.bon) return kaderBlok(e(k.naam), p(`Een bon van bol.com van <b>${eu(B.budget)}</b>.`, "margin:0"));
       if (c && (c.items || []).length) return kaderBlok(e(k.naam), tabel([...c.items.map(it => rij(e(it.winkel || ""), `${e(it.naam || "")} &middot; <b>${eu(it.prijs)}</b>`)), rij("Totaal", `<b>${eu(c.totaal)}</b> (budget ${eu(B.budget)})`)]));
       return "";
@@ -411,7 +411,7 @@ export async function kfCadeauApp(req, res) {
       for (const r of L) {
         const d = r.data; let vn = String(d.lid || "").split(" ").slice(-1)[0];
         if (d.lidId) { const { data: l } = await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle(); if (l && l.data && l.data.voornaam) vn = l.data.voornaam; }
-        const kids = (d.kinderen || []).map(k => { const B = budgetVan(k.geb, M); return B.budget != null ? `<li style="margin:0 0 4px"><b>${e(k.naam)}</b>: cadeau ter waarde van <b>${eu(B.budget)}</b></li>` : B.voorzien ? `<li style="margin:0 0 4px"><b>${e(k.naam)}</b>: de vriendenkring voorziet zelf een cadeau</li>` : ""; }).join("");
+        const kids = (d.kinderen || []).map(k => { const B = budgetVan(k.geb, M); return B.budget != null ? `<li style="margin:0 0 4px"><b>${e(k.naam)}</b>: cadeau ter waarde van <b>${eu(B.budget)}</b></li>` : B.voorzien ? `<li style="margin:0 0 4px"><b>${e(k.naam)}</b>: de vriendenkring voorziet een cadeau</li>` : ""; }).join("");
         const html = p(`Beste ${e(vn)},`) + p("Goed nieuws: het cadeau voor je kind(eren) kies je dit jaar gewoon online. Je hoeft niets meer door te mailen.")
           + (kids ? `<ul style="margin:0 0 15px;padding-left:22px">${kids}</ul>` : "")
           + p(`Kies het cadeau <b>tot en met ${e(tot)}</b> via de knop hieronder: plak de link van het product, wij controleren meteen de prijs en de voorraad. Indien je tegen ${e(tot)} geen keuze doorgeeft, krijg je een waardebon van bol.com t.w.v. het bedrag hierboven.`)
