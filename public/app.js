@@ -6243,7 +6243,11 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-wsac
     try{const j=await api("/api/openbaar?f=site",{method:"POST",body:JSON.stringify({cfg:wsBewaarbaar(wsWerk())})});const u=URL.createObjectURL(new Blob([j.html],{type:"text/html"}));if(w)w.location.href=u;else window.open(u,"_blank")}
     catch(x){if(w)w.close();toast("Voorbeeld lukte niet: "+(x.message||x),true)}finally{b.disabled=false}return}
   if(a==="publiceer"){const W=wsBewaarbaar(wsWerk());if(!Object.values(W.blokken).some(Boolean)){toast("Zet minstens één onderdeel aan.",true);return}
-    b.disabled=true;try{await write("config","website",{...W,gewijzigd:new Date().toISOString(),door:ME_NAME||""});
+    b.disabled=true;try{
+      // het nieuwsblok (Sociale media) wordt elders bijgewerkt: altijd de laatste versie uit de database behouden
+      let cur=wsCfg();try{const {data}=await SB.from("config").select("data").eq("id","website").maybeSingle();if(data&&data.data)cur={...cur,...data.data,fotos:{...(data.data.fotos||{})}}}catch(e){}
+      if(cur.nieuws)W.nieuws=cur.nieuws;else delete W.nieuws;if(cur.fotos&&cur.fotos.nieuws)W.fotos.nieuws=cur.fotos.nieuws;else delete W.fotos.nieuws;
+      await write("config","website",{...W,gewijzigd:new Date().toISOString(),door:ME_NAME||""});
       // oude, niet meer gebruikte foto's opruimen
       const oud=Object.values(wsCfg().fotos||{}).map(f=>f.pad),nu=Object.values(W.fotos).map(f=>f.pad);const weg=oud.filter(p=>!nu.includes(p)&&!p.startsWith("/w/"));if(weg.length)SB.storage.from(DOC_BUCKET).remove(weg).catch(()=>{});
       S.config.set("website",{...W,id:"website"});WS=null;renderBody();toast("Gepubliceerd. De website is binnen een minuut bijgewerkt.")}catch(x){}finally{b.disabled=false}}});
@@ -7617,7 +7621,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-sok]
   if(a==="nieuw"){SOC.ed=soLeeg();renderBody();return}
   if(a==="bewerk"&&r){const d=r.data;SOC.ed={id:r.id,tekst:d.tekst||"",titel:d.titel||"",link:d.link||"",fotos:(d.fotos||[]).map(f=>({...f})),kanalen:{...d.kanalen},modus:r.status==="gepland"?"plan":"nu",plan:r.plan?soLokaal(r.plan):""};renderBody();window.scrollTo({top:0,behavior:"smooth"});return}
   if(a==="weg"&&r){const web=r.data.resultaten&&r.data.resultaten.website&&r.data.resultaten.website.ok,fb=["facebook","instagram"].some(k=>r.data.resultaten&&r.data.resultaten[k]&&r.data.resultaten[k].ok);
-    confirmBox(`Deze post verwijderen?${web?"<br>Hij verdwijnt ook van de website.":""}${fb?"<br><span class=\"muted small\">Op Facebook en Instagram blijft hij staan; verwijder hem daar zelf.</span>":""}`,"Verwijderen",async()=>{try{const j=await soApi({actie:"verwijder",id});SOC.posts=j.posts;if(SOC.ed&&SOC.ed.id===id)SOC.ed=soLeeg();renderBody()}catch(x){toast(x.message,true)}});return}
+    confirmBox(`Deze post verwijderen?${web?"<br>Stond hij als nieuws op de website, dan komt daar de vorige nieuwspost terug.":""}${fb?"<br><span class=\"muted small\">Op Facebook en Instagram blijft hij staan; verwijder hem daar zelf.</span>":""}`,"Verwijderen",async()=>{try{const j=await soApi({actie:"verwijder",id});SOC.posts=j.posts;if(SOC.ed&&SOC.ed.id===id)SOC.ed=soLeeg();renderBody()}catch(x){toast(x.message,true)}});return}
   if(a==="nu"&&r){confirmBox(`Deze post nu publiceren op ${SO_K.filter(([k])=>r.data.kanalen[k]).map(x=>x[1]).join(", ")}?`,"Publiceren",async()=>{toast("Bezig met publiceren…");try{const j=await soApi({actie:"publiceer",id});SOC.posts=j.posts;renderBody();soMeld(j.pub)}catch(x){toast(x.message,true);soLaad()}});return}
   if(["concept","plan","pub"].includes(a)){
     const kan=SO_K.filter(([k])=>E.kanalen[k]).map(x=>x[1]);

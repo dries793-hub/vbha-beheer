@@ -35,6 +35,15 @@ function eigenHtml(e, c) {
   return `<section class="hero eigen${f ? (e.fotoKant === "rechts" ? " rechts" : "") : " zonder"}" id="${esc(e.id)}">${f ? `<figure class="photo"><img data-s-img="${esc(e.id)}" src="/api/openbaar?f=sitefoto&amp;k=${esc(e.id)}&amp;v=${esc(f.v)}" alt="" width="${f.w}" height="${f.h}" loading="lazy"></figure>` : ""}<div>`
     + (e.kicker ? `<p class="kicker">${esc(e.kicker)}</p>` : "") + (e.titel ? `<h2 class="h2g">${esc(e.titel)}</h2>` : "") + (e.tekst ? `<p class="lead">${esc(e.tekst)}</p>` : "") + knopHtml(e.knoppen) + `</div></section>`;
 }
+/* Nieuws van de vriendenkring: de meest recente post van Sociale media (kanaal Website), altijd bovenaan */
+const maand = ["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
+function nieuwsHtml(n, c) {
+  const f = c.fotos.nieuws, d = n.datum ? new Date(n.datum) : null;
+  const dt = d && !isNaN(d) ? `${d.getDate()} ${maand[d.getMonth()]} ${d.getFullYear()}` : "";
+  return `<section class="hero eigen nieuws${f ? "" : " zonder"}" id="nieuws">${f ? `<figure class="photo"><img data-s-img="nieuws" src="/api/openbaar?f=sitefoto&amp;k=nieuws&amp;v=${esc(f.v)}" alt="" width="${f.w}" height="${f.h}" loading="lazy"></figure>` : ""}<div>`
+    + `<p class="kicker">Nieuws van de vriendenkring${dt ? ` · ${esc(dt)}` : ""}</p>` + (n.titel ? `<h2 class="h2g">${esc(n.titel)}</h2>` : "")
+    + (n.tekst ? n.tekst.split(/\n{2,}/).map(p => `<p class="lead">${esc(p).replace(/\n/g, "<br>")}</p>`).join("") : "") + knopHtml(n.link ? [{ label: "Meer info", url: n.link, stijl: "rood" }] : []) + `</div></section>`;
+}
 export function schoon(c) {
   c = c && typeof c === "object" ? c : {};
   const o = { blokken: { ...SITE_DEF.blokken } };
@@ -51,8 +60,10 @@ export function schoon(c) {
     for (const e of o.eigen) if (!L.includes(e.id)) { if (e.plaats === "boven") L.unshift(e.id); else if (e.plaats === "onder") L.push(e.id); else L.splice(Math.max(L.indexOf("viv"), L.indexOf("kalender")) + 1, 0, e.id); }
     o.volgorde = L;
   }
+  const n = c.nieuws;
+  o.nieuws = n && typeof n === "object" && (n.titel || n.tekst) ? { id: tekst(n.id, 40), titel: tekst(n.titel, 140), tekst: String(n.tekst || "").trim().slice(0, 2200), link: veiligeUrl(n.link), datum: tekst(n.datum, 40) } : null;
   o.fotos = {};
-  for (const k of ["kalender", "viv", ...o.eigen.map(e => e.id)]) { const f = c.fotos && c.fotos[k]; if (f && typeof f.pad === "string" && (f.pad.startsWith("Website/") || /^\/w\/[\w.-]+\.(jpe?g|png|webp)$/i.test(f.pad))) o.fotos[k] = { pad: f.pad, v: String(f.v || "1").replace(/\W/g, "").slice(0, 20), w: Number(f.w) || 1600, h: Number(f.h) || 1067 }; }
+  for (const k of ["kalender", "viv", ...(o.nieuws ? ["nieuws"] : []), ...o.eigen.map(e => e.id)]) { const f = c.fotos && c.fotos[k]; if (f && typeof f.pad === "string" && (f.pad.startsWith("Website/") || /^\/w\/[\w.-]+\.(jpe?g|png|webp)$/i.test(f.pad))) o.fotos[k] = { pad: f.pad, v: String(f.v || "1").replace(/\W/g, "").slice(0, 20), w: Number(f.w) || 1600, h: Number(f.h) || 1067 }; }
   return o;
 }
 
@@ -64,7 +75,7 @@ export function bouw(tpl, c, basis) {
   BLOKKEN.forEach(k => { s = s.replace(new RegExp(`<!--blok:${k}-->[\\s\\S]*?<!--/blok:${k}-->`), m => { stuk[k] = m; return ""; }); });
   for (const e of c.eigen) if (e.aan && (e.titel || e.tekst || c.fotos[e.id])) stuk[e.id] = "<!--eigenblok-->" + eigenHtml(e, c);
   const alles = volg.filter(k => BLOKKEN.includes(k) ? c.blokken[k] && stuk[k] : stuk[k]).map(k => stuk[k]).join("\n");
-  s = s.replace("<!--eigen:boven-->", () => alles).replace("<!--eigen:midden-->", "").replace("<!--eigen:onder-->", "").split("<!--eigenblok-->").join("");
+  s = s.replace("<!--eigen:boven-->", () => (c.nieuws ? "<!--eigenblok-->" + nieuwsHtml(c.nieuws, c) + "\n" : "") + alles).replace("<!--eigen:midden-->", "").replace("<!--eigen:onder-->", "").split("<!--eigenblok-->").join("");
   for (const k of Object.keys(TEKST)) if (c[k]) s = s.replace(new RegExp(`(<[^>]*\\bdata-s="${k}"[^>]*>)[\\s\\S]*?(</)`), (m, a, b) => a + esc(c[k]) + b);
   // extra knoppen bij In Vier en Vlam en de kalenders, en de eigen onderdelen
   if (c.viv_knoppen.length) s = s.replace(/(<section class="hero viv[\s\S]*?<\/a>)(\s*<\/div>\s*<\/section>)/, (m, a, b) => a + knopHtml(c.viv_knoppen).replace('<div class="btns">', '<div class="btns extra">') + b);
@@ -133,7 +144,7 @@ export default async function site(req, res) {
     }
     if (req.query.f === "sitefoto") {
       const k = String(req.query.k || "");
-      if (!["kalender", "viv"].includes(k) && !/^e[\w]{3,24}$/.test(k)) throw httpErr(404, "Niet gevonden");
+      if (!["kalender", "viv", "nieuws"].includes(k) && !/^e[\w]{3,24}$/.test(k)) throw httpErr(404, "Niet gevonden");
       const c = await leesCfg(sb), f = c.fotos[k];
       if (!f) throw httpErr(404, "Geen foto");
       // vaste foto op de site zelf (public/w/…)
