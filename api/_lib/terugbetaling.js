@@ -99,7 +99,7 @@ export async function terugApp(req, res) {
   try {
     if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
     const b = body(req), lees = b.actie === "lijst" || b.actie === "bon" || b.actie === "lidiban";
-    const { user } = await requireUser(req, lees ? { functie: "facturen" } : { write: true, functie: "facturen" });
+    const { user } = await requireUser(req, lees ? { functie: "terug" } : { write: true, functie: "terug" });
     const sb = admin();
     let wie = user.email || ""; try { const { data } = await sb.from("bestuur").select("naam").eq("user_id", user.id).maybeSingle(); if (data && data.naam) wie = data.naam; } catch {}
     const lijst = async () => { const { data, error } = await sb.from("terugbetalingen").select("id,data,status,gemaakt,gewijzigd").order("gemaakt", { ascending: false }).limit(300); if (error) throw error;
