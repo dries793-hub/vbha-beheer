@@ -4457,7 +4457,7 @@ document.addEventListener("change",async e=>{const i=e.target.closest&&e.target.
     toast(aan?`Cadeaus van ${r.lid} doorgegeven.`:`Vinkje bij ${r.lid} weggehaald.`)}
   catch(x){i.checked=!aan;toast("Niet gelukt: "+(x.message||x),true)}finally{i.disabled=false;renderBody()}});
 /* ---------- export (knop "Exporteren"): met cadeauwaarde per kind en of de cadeaus doorgegeven zijn ---------- */
-{const _v=VIEWS.kinderfeest;const n=function(){const v=_v.apply(this,arguments);v.actions=String(v.actions||"").replace('<button class="btn primary" data-w data-act="kfNieuw">',`<button class="btn" data-act="kfExport">${ic("download")}Exporteren</button><button class="btn primary" data-w data-act="kfNieuw">`);return v};Object.assign(n,_v);VIEWS.kinderfeest=n}
+{const _v=VIEWS.kinderfeest;const n=function(){const v=_v.apply(this,arguments);v.actions=String(v.actions||"").replace('<button class="btn primary" data-w data-act="kfNieuw">',`<button class="btn primary" data-w data-act="kfNieuw">`);return v};Object.assign(n,_v);VIEWS.kinderfeest=n}
 function kfGroepenC(t){return String(t||"").split(/\n+/).map(l=>l.match(/^\s*(\d{4})(?:\s*[-–]\s*(\d{4}))?\s*[:=]\s*(.+?)\s*$/)).filter(Boolean).map(m=>({van:Math.min(+m[1],+(m[2]||m[1])),tot:Math.max(+m[1],+(m[2]||m[1])),tekst:m[3]}))}
 kfExport=async function(){const st=kfStats(),c=st.c,M=kfMailCfg(),G=kfGroepenC(M.groepen),wb=XLSX.utils.book_new();
   const waarde=geb=>{const y=Number(String(geb||"").slice(0,4)),g=G.find(g=>y>=g.van&&y<=g.tot);return g?g.tekst.replace(/\s*per kind\s*$/i,""):""};
@@ -7250,7 +7250,7 @@ for(const r of ["shiften","kassa"]){const _v=VIEWS[r];if(!_v)continue;const n=fu
    kinderen[i].besteld = {op, door}. Budget volgens "Waarde per geboortejaar" (Kinderfeest › tandwiel).
    Wie na de termijn niets koos, krijgt een bon van bol.com ter waarde van het budget. */
 const KFCD={open:false,f:"alle",s:"naam",d:1};
-function kfcBudget(geb){const y=Number(String(geb||"").slice(0,4)),g=kfkGroepen(kfMailCfg().groepen).find(x=>y>=x.van&&y<=x.tot);return g?{bedrag:g.bedrag,vbha:g.vbha||g.bedrag==null}:{bedrag:null,vbha:false}}
+function kfcBudget(geb){const y=Number(String(geb||"").slice(0,4)),g=kfkGroepen(kfMailCfg().groepen).find(x=>y>=x.van&&y<=x.tot);if(!g)return{bedrag:null,vbha:false};const vb=g.vbha||g.bedrag==null,cv=Number(kfCfg().cadeauVbha);return{bedrag:vb?(kfCfg().cadeauVbha!=null&&kfCfg().cadeauVbha!==""&&Number.isFinite(cv)?cv:null):g.bedrag,vbha:vb}}
 const kfcVoorbij=()=>todayISO()>kfMailCfg().tot;
 function kfcKids(){const c=kfCfg(),out=[];for(const r of kfLijst())(r.kinderen||[]).forEach((k,i)=>{const a=kfLeeftijd(k.geb,c.datum);if(a!=null&&a>c.leeftijd)return;const B=kfcBudget(k.geb);
   const st=B.vbha?"vbha":k.cadeau&&k.cadeau.bon?"bon":k.cadeau&&(k.cadeau.items||[]).length?"gekozen":kfcVoorbij()?"geenkeuze":"open";out.push({r,k,i,a,B,st,besteld:!!(k.besteld&&k.besteld.op)})});return out}
@@ -7291,8 +7291,8 @@ function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L
       keuze=C.items.map((it,n)=>prod(it,x,n)).join("");
       bedrag=`<b>${eur(tot)}</b><div class="kc-bar"><span style="width:${pct}%"${tot>B+0.004?' class="te"':""}></span></div>`}
     else if(x.st==="bon"||x.st==="geenkeuze"){keuze=`<span class="pill ${c}">${l}</span>`;bedrag=`<b>${eur(B)}</b>`}
-    else keuze=`<span class="pill ${c}">${l}</span>`;
-    const vink=x.st==="open"||x.st==="vbha"?"":`<input type="checkbox" data-kfc="besteld" data-id="${esc(x.r.id)}" data-i="${x.i}"${x.besteld?" checked":""}${mag?"":" disabled"} aria-label="Besteld" title="${x.besteld?"Besteld op "+fmtDate(String(x.k.besteld.op).slice(0,10))+(x.k.besteld.door?" door "+esc(x.k.besteld.door):""):"Besteld"}">`;
+    else{keuze=`<span class="pill ${c}">${l}</span>`;if(x.st==="vbha"&&B!=null)bedrag=`<b>${eur(B)}</b>`}
+    const vink=x.st==="open"?"":`<input type="checkbox" data-kfc="besteld" data-id="${esc(x.r.id)}" data-i="${x.i}"${x.besteld?" checked":""}${mag?"":" disabled"} aria-label="Besteld" title="${x.besteld?"Besteld op "+fmtDate(String(x.k.besteld.op).slice(0,10))+(x.k.besteld.door?" door "+esc(x.k.besteld.door):""):"Besteld"}">`;
     return `<div class="kc-r${x.st==="vbha"?" vb":""}"><div class="kc-n">${mag&&(x.st==="gekozen"||x.st==="bon")&&!x.besteld?`<button type="button" class="kc-kn" data-kfc="kind" data-id="${esc(x.r.id)}" data-i="${x.i}" title="Keuze beheren">${esc(x.k.naam)}</button>`:`<b>${esc(x.k.naam)}</b>`}<span class="muted small">${x.a==null?"":x.a+" j"}</span>${plat?`<span class="muted small kc-lid">${esc(x.r.lid||"")}</span>`:""}</div><div class="kc-b">${B!=null&&x.st!=="vbha"?eur(B):""}</div><div class="kc-c">${keuze}</div><div class="kc-t">${bedrag}</div><div class="kc-v">${vink}</div></div>`};
   const gezin=g=>{const K=g.K.filter(pas),n=g.K.filter(x=>x.st!=="vbha"),klaar=n.filter(x=>x.st!=="open").length,p=kfcPot(g.r);
     const pot=n.length>1&&p.pot?`<span class="muted small">samen ${eur(p.best)} van ${eur(p.pot)}</span>`:"";
