@@ -58,9 +58,10 @@ export async function actieveLeden(sb, jaar) {
   const nm = x => norm(x).replace(/\s+/g, " ");
   const lidBoek = boek.map(r => r.data || {}).map(b => ({ lidId: b.lidId, m: nm(b.mededeling) })).filter(b => b.lidId || b.m.includes("lidgeld"));
   const L = [];
+  const ids = new Set(leden.map(r => r.id));
   for (const r of leden) {
     const l = r.data || {};
-    if (!l.naam || l.dubbelVan) continue;
+    if (!l.naam || (l.dubbelVan && ids.has(l.dubbelVan))) continue; // "dubbel van" telt enkel als die andere fiche nog bestaat
     if (l.lidSinds && Number(l.lidSinds) > jaar) continue;
     if (l.lidTot && Number(l.lidTot) < jaar) continue;
     if (l.geenLid) continue; // manueel aangeduid als geen lid
