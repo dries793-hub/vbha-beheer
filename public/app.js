@@ -2161,11 +2161,10 @@ function kfInst(){const c=kfCfg();
   modal("Kinderfeest "+JAAR,`<form id="fKfI" class="form">${insVelden(c,JAAR+"-12-07","")}
     ${fld("kiD","Datum feest",inp("kiD",c.datum,'name="datum" type="date"'))}${fld("kiT","Uur",inp("kiT",c.tijd,'name="tijd"'))}
     ${fld("kiL","Locatie",inp("kiL",c.locatie,'name="locatie"'),"full")}
-    ${fld("kiA","Kinderen toegelaten tot en met leeftijd",inp("kiA",c.leeftijd,'name="leeftijd" type="number" min="0" max="18"'))}
-    <div class="fld"><label>&nbsp;</label><span class="help">De leeftijd wordt berekend op de dag van het feest.</span></div>
+    ${fld("kiA","Kinderen toegelaten tot leeftijd",inp("kiA",c.leeftijd===""||c.leeftijd==null?"":Number(c.leeftijd)+1,'name="leeftijd" type="number" min="1" max="19"'))}
 </form>`,
     `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="kiOk">Bewaren</button>`);
-  $("#kiOk").onclick=async()=>{const f={datum:$("#kiD").value,tijd:$("#kiT").value,locatie:$("#kiL").value,leeftijd:$("#kiA").value},ins=insLees();closeModal();await write("config","kf_"+JAAR,{...stripId(S.config.get("kf_"+JAAR)||{}),open:ins.open,...(/^\d{4}-\d{2}-\d{2}$/.test(ins.inschrijvenTot)?{inschrijvenTot:ins.inschrijvenTot}:{}),datum:f.datum,tijd:f.tijd.trim(),locatie:f.locatie.trim(),leeftijd:Math.max(0,Math.round(num(f.leeftijd)))||12});toast("Instellingen kinderfeest bewaard.")}}
+  $("#kiOk").onclick=async()=>{const f={datum:$("#kiD").value,tijd:$("#kiT").value,locatie:$("#kiL").value,leeftijd:$("#kiA").value===""?"":String(Number($("#kiA").value)-1)},ins=insLees();closeModal();await write("config","kf_"+JAAR,{...stripId(S.config.get("kf_"+JAAR)||{}),open:ins.open,...(/^\d{4}-\d{2}-\d{2}$/.test(ins.inschrijvenTot)?{inschrijvenTot:ins.inschrijvenTot}:{}),datum:f.datum,tijd:f.tijd.trim(),locatie:f.locatie.trim(),leeftijd:Math.max(0,Math.round(num(f.leeftijd)))||12});toast("Instellingen kinderfeest bewaard.")}}
 
 /* ---------- import uit Google Forms (antwoordenblad als .xlsx of .csv) ---------- */
 let KFIMP=null;
