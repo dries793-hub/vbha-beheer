@@ -15,8 +15,8 @@ const sleutel = () => String(process.env.BETAAL_GEHEIM || process.env.SUPABASE_S
 export const tbToken = id => crypto.createHmac("sha256", sleutel()).update(`vbha-terug|${id}`).digest("base64url").slice(0, 22);
 const klopt = (id, t) => { if (!sleutel() || !id || typeof t !== "string") return false; const a = Buffer.from(tbToken(id)), b = Buffer.from(t); return a.length === b.length && crypto.timingSafeEqual(a, b); };
 const site = () => "https://vbha.be"; // openbare links altijd via het eigen domein
-export const tbLink = id => `${site()}/terugbetaling?i=${encodeURIComponent(id)}&t=${tbToken(id)}`;
-export const onkostLink = () => `${site()}/terugbetaling`;
+export const tbLink = id => `${site()}/onkosten?i=${encodeURIComponent(id)}&t=${tbToken(id)}`;
+export const onkostLink = () => `${site()}/onkosten`;
 const nu = () => new Date().toISOString();
 const r2 = n => Math.round(n * 100) / 100;
 export function ibanOk(i) {

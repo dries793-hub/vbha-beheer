@@ -7911,7 +7911,7 @@ function krSugInit(root,extra){const inp=root.querySelector("#krQ"),ul=root.quer
 
 /* ============ Financiën › Terugbetalingen ============
    Geld dat de vriendenkring aan iemand moet betalen: terugbetalingen (link om het IBAN op te vragen) en onkostennota's
-   die (bestuurs)leden zelf indienen via /terugbetaling (met foto van het kasticket). Gegevens enkel via de server (/api/mail?f=terug).
+   die (bestuurs)leden zelf indienen via /onkosten (met foto van het kasticket). Gegevens enkel via de server (/api/mail?f=terug).
    Betalen: betaal-QR-code voor de bankapp; zodra een uitgaande transactie met hetzelfde bedrag en IBAN binnenkomt, staat ze op betaald. */
 /* eigen menu-item onder Financiën en eigen functie in de rechten (standaard: admin en boekhouding) */
 if(!ROUTES.some(r=>r[0]==="terug"))ROUTES.push(["terug","Terugbetalingen"]);
@@ -7966,7 +7966,7 @@ document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]
   if(a==="nieuw"){tbForm();return}
   if(a==="mailOnk"){const n=($("#tbMn")||{}).value.trim(),l=[...S.leden.values()].find(x=>naamVol(x).trim()===n);if(!l){toast("Kies een lid uit de lijst.",true);return}if(!l.email){toast("Van dit lid is geen e-mailadres gekend.",true);return}
     t.disabled=true;try{const j=await tbApi({actie:"mailOnkost",lidId:l.id});toast("Link gemaild naar "+naamVol(l).trim()+" ("+j.aan+").");$("#tbMn").value=""}catch(x){toast(x.message,true)}t.disabled=false;return}
-  if(a==="link"){tbLinkModal("Link onkostennota",TB.link||"https://vbha.be/terugbetaling","Stuur deze link naar (bestuurs)leden. Ze vullen hun onkosten in met een foto van het kasticket en hun rekeningnummer; de aanvraag verschijnt hier om goed te keuren.");return}
+  if(a==="link"){tbLinkModal("Link onkostennota",TB.link||"https://vbha.be/onkosten","Stuur deze link naar (bestuurs)leden. Ze vullen hun onkosten in met een foto van het kasticket en hun rekeningnummer; de aanvraag verschijnt hier om goed te keuren.");return}
   if(a==="kopieer"){const i=$("#tbLk");try{await navigator.clipboard.writeText(i.value);toast("Link gekopieerd.")}catch(x){i.select();document.execCommand("copy");toast("Link gekopieerd.")}return}
   if(a==="maak"){const g=s=>$(s).value.trim(),err=$("#tbErr"),n=g("#tbN"),bd=num(g("#tbB")),iban=g("#tbI").replace(/\s+/g,"").toUpperCase();
     if(!n){err.textContent="Vul in aan wie.";return}if(!(bd>0)){err.textContent="Vul een bedrag in.";return}if(!g("#tbR")){err.textContent="Vul de reden in.";return}if(iban&&!inkIbanOk(iban)){err.textContent="Dit IBAN-nummer klopt niet.";return}

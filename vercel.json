@@ -35,6 +35,10 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/onkosten",
+      "destination": "/terugbetaling.html"
+    },
+    {
       "source": "/",
       "has": [
         {
