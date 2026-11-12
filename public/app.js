@@ -7297,7 +7297,7 @@ function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L
   const gezin=g=>{const K=g.K.filter(pas),n=g.K.filter(x=>x.st!=="vbha"),klaar=n.filter(x=>x.st!=="open").length,p=kfcPot(g.r);
     const pot=n.length>1&&p.pot?`<span class="muted small">samen ${eur(p.best)} van ${eur(p.pot)}</span>`:"";
     const bij=p.extra>0?`<span class="pill ${p.bet>=p.extra-0.004?"ok":"warn"}">${p.bet>=p.extra-0.004?"+ "+eur(p.extra)+" bijbetaald":(p.alles?eur(p.open)+" bijbetaling open":eur(p.extra)+" boven budget")}</span>`:"";
-    return `<div class="kc-gr"><div class="kc-gh"><button type="button" class="kc-gn" data-act="kfToon" data-id="${esc(g.r.id)}" title="Inschrijving openen">${esc(g.r.lid||"")}</button>${bij}<span class="grow"></span>${mag?`<button type="button" class="btn sm ghost" data-kfc="link" data-id="${esc(g.r.id)}" title="Keuzepagina van dit gezin openen">${ic("link")}Keuzepagina</button>`:""}</div>${K.map(kind).join("")}</div>`};
+    return `<div class="kc-gr"><div class="kc-gh"><div class="kc-gt"><button type="button" class="kc-gn" data-act="kfToon" data-id="${esc(g.r.id)}" title="Inschrijving openen">${esc(g.r.lid||"")}</button>${mag?`<button type="button" class="kc-kl" data-kfc="link" data-id="${esc(g.r.id)}">${ic("link")}Keuzepagina</button>`:""}</div>${bij}</div>${K.map(kind).join("")}</div>`};
   return `<div class="panel kcd"><div class="panel-h"><h2>Cadeaus</h2>${kfcVoorbij()?'<span class="pill neutral">afgesloten</span>':""}<span class="grow"></span>
     ${mag?`<button type="button" class="btn sm" data-kfc="controle" title="Prijs en voorraad opnieuw opvragen bij de winkels">Opnieuw controleren</button><button type="button" class="btn sm" data-kfc="vergelijk" title="Voor elk gekozen product de prijs bij de andere winkel opzoeken (zelfde EAN)">Prijzen vergelijken</button><button type="button" class="btn sm primary" data-kfc="bestel">${ic("download")}Bestellijst</button>`:""}</div>
    <div class="panel-b"><div class="tiles kcd-t">
@@ -7343,7 +7343,11 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-kfc]
   else if(a==="sort"){const v=t.dataset.v;if(KFCD.s===v)KFCD.d=-KFCD.d;else{KFCD.s=v;KFCD.d=v==="bedrag"?-1:1}renderBody()}
   else if(a==="bestel"){e.preventDefault();kfcBestel()}
   else if(a==="xlsx"){e.preventDefault();kfcExcel()}
-  else if(a==="link"){e.preventDefault();const w=window.open("","_blank");try{const j=await api("/api/mail?f=kfcadeau",{method:"POST",body:JSON.stringify({actie:"link",id:t.dataset.id})});if(w){w.opener=null;w.location.href=j.url}else location.href=j.url}catch(x){if(w)w.close();toast(x.message||"De keuzepagina openen lukte niet.",true)}}
+  else if(a==="link"){e.preventDefault();try{const j=await api("/api/mail?f=kfcadeau",{method:"POST",body:JSON.stringify({actie:"link",id:t.dataset.id})});const r=S.kinderfeest.get(t.dataset.id)||{};
+    modal("Keuzepagina "+(r.lid||""),`<div class="stack"><input id="kfcUrl" readonly value="${esc(j.url)}" onfocus="this.select()" style="font-size:13px"></div>`,
+      `<button class="btn" id="kfcCp">${ic("copy")}Kopiëren</button><a class="btn primary" href="${esc(j.url)}" target="_blank" rel="noopener">${ic("link")}Openen</a>`);
+    $("#kfcCp").onclick=()=>{navigator.clipboard.writeText(j.url).then(()=>toast("Link gekopieerd.")).catch(()=>{$("#kfcUrl").select();toast("Kopieer de geselecteerde link.",true)})}}
+    catch(x){toast(x.message||"De link ophalen lukte niet.",true)}}
   else if(a==="kind"){e.preventDefault();const r=S.kinderfeest.get(t.dataset.id);if(!r)return;const i=+t.dataset.i,k=(r.kinderen||[])[i];if(!k||!k.cadeau)return;const c=k.cadeau;
     modal("Keuze van "+k.naam,`<div class="stack">${c.bon?`<div class="kcd-b"><div><b>Bon bol.com</b></div><span></span><span></span><button class="btn sm danger" data-kfc="weg" data-id="${esc(r.id)}" data-i="${i}" data-n="bon">Weghalen</button></div>`
       :(c.items||[]).map((it,n)=>`<div class="kcd-b"><div style="min-width:0"><b>${esc(it.naam||it.url)}</b> <span class="muted small">${esc(it.winkel||"")}</span></div><span class="nowrap"><b>${eur(it.prijs)}</b></span><a class="btn sm" href="${esc(it.url)}" target="_blank" rel="noopener">Openen</a><button class="btn sm danger" data-kfc="weg" data-id="${esc(r.id)}" data-i="${i}" data-n="${n}">Weghalen</button></div>`).join("")}
