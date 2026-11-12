@@ -203,14 +203,14 @@ function toonOnkost(){$("#h1").textContent="Onkosten terugvragen";$("#lead").tex
     <div><label for="datum">Datum van de aankoop</label><input type="date" id="datum" value="${vd}" max="${vd}"></div>
     <div class="full"><label for="reden">Waarvoor?</label><textarea id="reden" maxlength="300" placeholder="bv. drank voor de bestuursvergadering, affiches jaarmarkt"></textarea></div>
     <div class="full"><span class="lbl">Kasticket of factuur</span><label class="up" id="upl"><input type="file" id="bon" accept="image/*,application/pdf"><svg viewBox="0 0 24 24"><path d="M12 16V4m-5 5l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><span id="bonT">Foto nemen of bestand kiezen</span></label></div>
-    <div class="full"><label for="iban">Rekeningnummer (IBAN) voor de terugbetaling</label><input type="text" id="iban" autocomplete="off" placeholder="BE00 0000 0000 0000" maxlength="42" spellcheck="false"></div>
+    <div class="full"><label for="iban">Rekeningnummer (IBAN) voor de terugbetaling</label><p class="hint" style="margin:-2px 0 6px">Al eens doorgegeven? Dan mag je dit leeg laten.</p><input type="text" id="iban" autocomplete="off" placeholder="BE00 0000 0000 0000" maxlength="42" spellcheck="false"></div>
     <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
    </div><p class="err" id="err"></p><button class="btn" type="submit">Indienen</button></form>`;
   lidPicker($("#naam"),$("#naamL"));
   $("#bon").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;$("#bonT").textContent="Bezig…";try{BON=await verklein(f);$("#bonT").textContent="✓ "+(f.name||"bewijsstuk");$("#upl").classList.add("ok")}catch(x){BON=null;$("#bonT").textContent=x.message;$("#upl").classList.remove("ok")}});
   $("#f").addEventListener("submit",async e=>{e.preventDefault();const v=s=>$(s).value.trim(),err=$("#err");
     const bedrag=Number(v("#bedrag").replace(/\s/g,"").replace(",","."));
-    const f=!v("#naam")?"Vul je naam in.":!(bedrag>0)?"Vul het bedrag in.":!v("#reden")?"Schrijf kort waarvoor de kosten waren.":!BON?"Voeg een foto van het kasticket of de factuur toe.":!ibanOk(v("#iban"))?"Dit rekeningnummer klopt niet. Kijk het even na.":"";
+    const f=!v("#naam")?"Vul je naam in.":!(bedrag>0)?"Vul het bedrag in.":!v("#reden")?"Schrijf kort waarvoor de kosten waren.":!BON?"Voeg een foto van het kasticket of de factuur toe.":v("#iban")&&!ibanOk(v("#iban"))?"Dit rekeningnummer klopt niet. Kijk het even na.":"";
     if(f){err.textContent=f;return}const b=$("#f .btn");b.disabled=true;b.textContent="Bezig met versturen…";err.textContent="";
     try{await api({actie:"onkost",naam:v("#naam"),lidId:$("#naam").dataset.id||"",bedrag,datum:v("#datum"),reden:v("#reden"),iban:v("#iban"),bon:BON,website:v("#website"),duur:Date.now()-T0});
       $("#lead").textContent="";$("#box").innerHTML=OK("Bedankt!",`Je onkosten van ${eur(bedrag)} zijn doorgegeven. Na goedkeuring storten we het bedrag terug.`)}
