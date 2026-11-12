@@ -3539,9 +3539,6 @@ function fcInstel(){const c=fcCfg(),H=c.herinnering,j=new Date().getFullYear(),p
    <div class="fld full"><label for="fiVt">Extra voettekst</label><textarea id="fiVt" rows="2" placeholder="Optioneel">${esc(c.voettekst)}</textarea></div>
    <div class="fld full"><label for="fiVw">Betalingsvoorwaarden (onderaan elke factuur)</label><textarea id="fiVw" rows="4" style="height:96px">${esc(c.voorwaarden??FC_VW)}</textarea><span class="help">{termijn} wordt de betaaltermijn hierboven. Laat leeg om geen voorwaarden af te drukken.</span></div>
    <div class="fc-sec full"><h4>Klantenlijst</h4>${fcVaste().length?`<div class="fc-kl">${fcVaste().map(v=>`<div><span class="grow" style="min-width:0"><b>${esc(v.naam)}</b><span class="muted small trunc"> ${[v.contact,v.email].filter(Boolean).map(esc).join(" · ")}</span></span><button type="button" class="btn sm ghost" data-fc="klantWeg" data-id="${esc(v.id)}">Verwijderen</button></div>`).join("")}</div>`:'<p class="muted small" style="margin:0">Nog geen klanten opgeslagen. Dat doe je bij het maken van een factuur met <b>Opslaan als nieuwe klant</b>.</p>'}</div>
-   <div class="fc-sec full"><h4>Nummering</h4></div>
-   ${fld("fiNr","Volgend factuurnummer "+j,`<div class="fc-nr"><span>${esc(pre)}${j}</span><input id="fiNr" inputmode="numeric" value="${String(volgend).padStart(3,"0")}"></div>`)}
-   <div class="help full muted small" style="margin-top:-6px">Hoogste nummer tot nu toe: ${hoogste?esc(pre+j+String(hoogste).padStart(3,"0")):"geen"} (ook nummers in de mededeling van overschrijvingen tellen mee). Een nummer wordt nooit twee keer gebruikt.</div>
    <div class="fc-sec full"><h4>Mail</h4></div>
    ${fld("fiOnd","Onderwerp",inp("fiOnd",c.mailOnderwerp,'placeholder="Factuur {nr} - {vereniging}"'),"full")}
    <div class="fld full"><label for="fiTxt">Tekst boven de factuurgegevens</label><textarea id="fiTxt" rows="3" placeholder="Hartelijk dank voor je steun aan de {vereniging}. In bijlage vind je factuur {nr}.">${esc(c.mailTekst)}</textarea><span class="help">Je kan {naam}, {nr}, {bedrag}, {vervaldatum} en {vereniging} gebruiken. De betaalgegevens, de betaalknop en de PDF worden altijd toegevoegd.</span></div>
@@ -3555,9 +3552,8 @@ function fcInstel(){const c=fcCfg(),H=c.herinnering,j=new Date().getFullYear(),p
    ${fld("fiHm","Maximum aantal herinneringen",`<select id="fiHm" class="sel">${[1,2,3,4].map(n=>`<option value="${n}"${n===num(H.max)?" selected":""}>${n}</option>`).join("")}</select>`)}
    <div class="err full" id="fiErr"></div></form>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-fc="instelOk" data-v="${volgend}">Bewaren</button>`,{wide:true})}
 async function fcInstelBewaar(volgend){const c=fcCfg(),j=new Date().getFullYear(),pre=c.voorvoegsel||"F",g=s=>$(s).value.trim();
-  const nr=parseInt(g("#fiNr"),10);if(!(nr>=1)){$("#fiErr").textContent="Vul een geldig volgnummer in.";return}
   const kop=g("#fiKop").split(/[,;\s]+/).filter(Boolean);if(kop.some(x=>!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x))){$("#fiErr").textContent="Het kopie-adres klopt niet.";return}
-  const start={...(c.start||{})};if(nr!==volgend)start[pre+j]=nr;
+  const start={...(c.start||{})};
   const d={...stripId(S.config.get("facturen")||{}),adres:$("#fiAd").value.trim(),kbo:g("#fiKbo"),bic:g("#fiBic"),email:g("#fiMail"),telefoon:g("#fiTel"),website:g("#fiWeb"),vervaldagen:num($("#fiVd").value),voettekst:$("#fiVt").value.trim(),btwPlichtig:!!$("#fiBtwP").checked,rechtsvorm:g("#fiRv"),rpr:g("#fiRpr"),voorwaarden:$("#fiVw").value.trim(),
     start,mailOnderwerp:g("#fiOnd"),mailTekst:$("#fiTxt").value.trim(),kopie:kop.join(", "),herinnering:{aan:$("#fiHa").checked,dagenNaVerval:num($("#fiHd").value),interval:num($("#fiHi").value),max:num($("#fiHm").value)},aanmaning:{pct:num($("#fiAp").value),forfait:num($("#fiAf").value),termijn:num($("#fiAt").value)}};
   try{await write("config","facturen",d);closeModal();toast("Instellingen bewaard.")}catch(x){$("#fiErr").textContent="Bewaren lukte niet: "+(x.message||"")}}
