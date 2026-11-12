@@ -8034,7 +8034,7 @@ function gdKandidaten(){if(ROL!=="admin")return[];let C;try{C=ctx()}catch(e){ret
 function gdMelding(){const L=gdKandidaten();if(!L.length)return"";
   return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("check")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
    <div class="gd-l">${L.slice(0,12).map(r=>`<div class="gd-r"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten${r.lid.email?"":" · geen e-mailadres"}</span></span>
-    <span class="gd-a"><button type="button" class="btn sm" data-gd="mail" data-id="${esc(r.lid.id)}"${r.lid.email?"":" disabled"}>${ic("mails")}<span class="gd-tl">Proficiat-mail</span></button><button type="button" class="btn sm ghost" data-gd="overslaan" data-id="${esc(r.lid.id)}">Overslaan</button></span></div>`).join("")}</div>
+    <span class="gd-a"><button type="button" class="btn sm" data-gd="mail" data-id="${esc(r.lid.id)}"${r.lid.email?"":" disabled"}>${ic("mails")}<span class="gd-tl">Proficiat-mail</span></button></span></div>`).join("")}</div>
    ${L.length>1?`<div class="gd-al"><button type="button" class="btn sm primary" data-gd="mailAlle">${ic("mails")}Iedereen een proficiat-mail sturen</button></div>`:""}</div></div>`}
 async function gdDoe(actie,ids){try{const j=await api("/api/mail?f=goud",{method:"POST",body:JSON.stringify({actie,lidIds:ids,jaar:JAAR})});
     const nu=new Date().toISOString();for(const x of j.resultaten||[]){const id=JAAR+"_"+x.lidId,cur=S.jaarleden.get(id)||{id,jaar:JAAR,lidId:x.lidId};S.jaarleden.set(id,{...cur,goudMail:{op:nu,via:"app",verstuurd:x.verstuurd}})}
