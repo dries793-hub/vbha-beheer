@@ -4335,6 +4335,17 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-inkbet]");
 #ipQ{display:flex;flex-wrap:wrap;gap:16px;justify-content:center}.ink-qd{display:flex;flex-direction:column;align-items:center;gap:2px}.ink-qc{width:220px;height:220px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;display:grid;place-items:center;margin-top:6px}.ink-qc svg{width:100%;height:100%}
 .ink-qr .lnkb{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline}.ink-qr-leeg{font-size:13px;color:var(--muted);padding:12px}
 @media(max-width:700px){.ink-pay{grid-template-columns:1fr}}`;document.head.appendChild(st)}
+/* dashboard: gesplitste betaling (daglimiet) - de volgende betaling staat klaar */
+function inkBetWacht(){if(!inkMag())return[];const nu=new Date(todayISO()+"T12:00:00");
+  return inkDocs().map(d=>{const P=d.inkomend&&d.inkomend.betaalPlan;if(!P||!P.n||!P.start||inkSom(d.id)>=P.totaal-0.005)return null;
+    const dagen=Math.round((nu-new Date(P.start+"T12:00:00"))/864e5),idx=Math.min(P.n-1,Math.max(0,dagen,inkBoekVan(d.id).length));
+    if(idx<1||(P.gedaan!=null&&P.gedaan>=idx))return null;const c=Math.round(P.totaal*100),basis=Math.floor(c/P.n);
+    return{d,idx,n:P.n,bedrag:(idx<P.n-1?basis:c-basis*(P.n-1))/100}}).filter(Boolean)}
+{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){const W=inkBetWacht();
+  const x=W.length?`<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>${W.length===1?"Een betaling van een factuur staat klaar":W.length+" betalingen van facturen staan klaar"}</b><div class="nm-l">${W.map(w=>`<a class="nm-i" href="#inkomend" data-inkbet="${esc(w.d.id)}"><b>${esc(inkVan(w.d)||w.d.naam)}</b><span>betaling ${w.idx+1} van ${w.n} · ${eur(w.bedrag)}</span></a>${canWrite?`<button type="button" class="btn sm ghost" data-inkbg="${esc(w.d.id)}" data-i="${w.idx}" title="Deze betaling is uitgevoerd">Betaald</button>`:""}`).join("")}</div></div></div>`:"";
+  return x+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-inkbg]");if(!b)return;e.preventDefault();const d=S.documenten.get(b.dataset.inkbg);if(!d||!d.inkomend||!d.inkomend.betaalPlan)return;
+  const ink={...d.inkomend,betaalPlan:{...d.inkomend.betaalPlan,gedaan:Number(b.dataset.i)}};S.documenten.set(d.id,{...d,inkomend:ink});renderBody();try{await write("documenten",d.id,{...stripId(d),inkomend:ink})}catch(x){}});
 
 /* ============ Dashboard: meldingen voor de boekhouding ============
    - transacties die nog verwerkt moeten worden (na het inladen van de bankgegevens)
