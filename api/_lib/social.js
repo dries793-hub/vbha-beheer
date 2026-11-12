@@ -71,28 +71,27 @@ async function naarInstagram(sb, d) {
   let url = ""; try { url = (await graph(id, { fields: "permalink" }, "GET")).permalink || ""; } catch {}
   return { id, url };
 }
-const webId = id => "es" + String(id).replace(/[^\w]/g, "").slice(0, 20);
-async function naarWebsite(sb, id, d) {
+/* Website: de meest recente post (kanaal Website) staat bovenaan vbha.be in de sectie "Nieuws van de vriendenkring" (config website.nieuws + fotos.nieuws). */
+async function zetNieuws(sb, id, d, datum) {
   const { data: row } = await sb.from("config").select("data").eq("id", "website").maybeSingle();
-  const c = (row && row.data) || {}, eid = webId(id);
-  const eigen = (Array.isArray(c.eigen) ? c.eigen : []).filter(e => e && e.id !== eid), fotos = { ...(c.fotos || {}) };
-  if (eigen.length >= 12) throw new Error("Er staan al 12 eigen onderdelen op de website; haal er eerst een weg.");
-  if (d.fotos.length) {
-    const f = d.fotos[0], v = Date.now().toString(36), pad = `Website/${eid}-${v}.jpg`;
+  const c = (row && row.data) || {}, fotos = { ...(c.fotos || {}) }, oud = fotos.nieuws && fotos.nieuws.pad;
+  delete fotos.nieuws;
+  if (d && d.fotos.length) {
+    const f = d.fotos[0], v = Date.now().toString(36), pad = `Website/nieuws-${v}.jpg`;
     const { error } = await sb.storage.from(BUCKET).copy(f.pad, pad); if (error) throw new Error("Foto kon niet naar de website gekopieerd worden.");
-    fotos[eid] = { pad, v, w: f.w || null, h: f.h || null };
-  } else delete fotos[eid];
-  eigen.unshift({ id: eid, aan: true, plaats: "boven", kicker: "Nieuws", titel: t(d.titel, 140), tekst: t(d.tekst, 1500), knoppen: d.link ? [{ label: "Meer info", url: d.link, stijl: "rood" }] : [], fotoKant: "links", social: id });
-  const volgorde = Array.isArray(c.volgorde) && c.volgorde.length ? [eid, ...c.volgorde.filter(k => k !== eid)] : c.volgorde;
-  const { error } = await sb.from("config").upsert({ id: "website", data: { ...c, eigen, fotos, ...(volgorde ? { volgorde } : {}) } }); if (error) throw error;
-  return { id: eid, url: "https://vbha.be/#" + eid };
+    fotos.nieuws = { pad, v, w: f.w || null, h: f.h || null };
+  }
+  const nieuws = d ? { id, titel: t(d.titel, 140), tekst: t(d.tekst, 2200), link: d.link || "", datum } : null;
+  const { error } = await sb.from("config").upsert({ id: "website", data: { ...c, nieuws, fotos } }); if (error) throw error;
+  if (oud) await sb.storage.from(BUCKET).remove([oud]).catch(() => {});
 }
-async function vanWebsite(sb, id) {
-  const { data: row } = await sb.from("config").select("data").eq("id", "website").maybeSingle(); if (!row) return;
-  const c = row.data || {}, eid = webId(id); if (!(c.eigen || []).some(e => e && e.id === eid)) return;
-  const fotos = { ...(c.fotos || {}) }, pad = fotos[eid] && fotos[eid].pad; delete fotos[eid];
-  await sb.from("config").upsert({ id: "website", data: { ...c, eigen: c.eigen.filter(e => e.id !== eid), fotos, volgorde: Array.isArray(c.volgorde) ? c.volgorde.filter(k => k !== eid) : c.volgorde } });
-  if (pad) await sb.storage.from(BUCKET).remove([pad]).catch(() => {});
+async function naarWebsite(sb, id, d) { await zetNieuws(sb, id, d, nu()); return { id: "nieuws", url: "https://vbha.be/#nieuws" }; }
+async function vanWebsite(sb, id) { // post verwijderd: de vorige websitepost komt terug, of de sectie verdwijnt
+  const { data: row } = await sb.from("config").select("data").eq("id", "website").maybeSingle();
+  if (!row || !row.data.nieuws || row.data.nieuws.id !== id) return;
+  const { data: P } = await sb.from("social_posts").select("id,data").neq("id", id).in("status", ["gepubliceerd", "deels"]).order("gewijzigd", { ascending: false }).limit(30);
+  const vorige = (P || []).filter(r => r.data.resultaten && r.data.resultaten.website && r.data.resultaten.website.ok).sort((a, b) => String(b.data.resultaten.website.op).localeCompare(String(a.data.resultaten.website.op)))[0];
+  await zetNieuws(sb, vorige ? vorige.id : null, vorige ? vorige.data : null, vorige ? vorige.data.resultaten.website.op : null);
 }
 
 /* één post publiceren op de gekozen kanalen; kanalen die al gelukt zijn, worden overgeslagen (opnieuw proberen na een fout) */
