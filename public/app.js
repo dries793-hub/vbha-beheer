@@ -4128,7 +4128,7 @@ var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.inkomend
 {const b=NAV.find(n=>n.id==="boekhouding");if(b)b.items=b.items.filter(i=>i[0]!=="inkomend")}
 function fcOpenTeller(){try{return S.facturen?[...S.facturen.values()].filter(f=>["open","deels","vervallen"].includes(fcStatus(f))).length:0}catch(e){return 0}}
 function fcTabs(act){const nU=typeof fcOpenTeller==="function"?fcOpenTeller():0,nI=inkMag()?inkDocs().filter(inkOpen).length:0;
-  return `<nav class="ka-tabs" aria-label="Soort facturen"><a href="#facturen" class="${act==="facturen"?"on":""}"${act==="facturen"?' aria-current="page"':""}>${ic("verslagen")}Uitgaande facturen</a><a href="#inkomend" class="${act==="inkomend"?"on":""}"${act==="inkomend"?' aria-current="page"':""}>${ic("inkomend")}Inkomende facturen${nI?`<span class="cnt">${nI}</span>`:""}</a></nav>`}
+  return `<nav class="ka-tabs" aria-label="Soort facturen"><a href="#facturen" class="${act==="facturen"?"on":""}"${act==="facturen"?' aria-current="page"':""}>Uitgaande facturen</a><a href="#inkomend" class="${act==="inkomend"?"on":""}"${act==="inkomend"?' aria-current="page"':""}>Inkomende facturen${nI?`<span class="cnt">${nI}</span>`:""}</a></nav>`}
 {const _f=VIEWS.facturen;const n=function(){const v=_f.apply(this,arguments);const b=v.body;v.sub="Onze facturen en creditnota's, met automatische opvolging van de betalingen";v.body=function(){return fcTabs("facturen")+b.apply(this,arguments)};return v};Object.assign(n,_f);VIEWS.facturen=n}
 if(typeof BOEK_ROUTES!=="undefined")BOEK_ROUTES.add("inkomend");
 ICON.inkomend='<path d="M4 13h4l2 3h4l2-3h4"/><path d="M4 13l2.5-7h11L20 13v6H4z"/><path d="M12 3v7m-3-3l3 3 3-3"/>';
@@ -7916,7 +7916,7 @@ NAV_ALIAS.terug="facturen";
 if(!ROUTES.some(r=>r[0]==="terug"))ROUTES.push(["terug","Terugbetalingen"]);
 {const f=FUNC.find(x=>x[0]==="facturen");if(f&&!f[2].includes("terug")){f[2].push("terug");FUNC_VAN.terug="facturen"}}
 {const _t=fcTabs;fcTabs=function(act){const h=_t(act),n=TB.lijst?TB.lijst.filter(r=>r.status==="ingediend").length:0;
-  return h.replace("</nav>",`<a href="#terug" class="${act==="terug"?"on":""}"${act==="terug"?' aria-current="page"':""}>${ic("bank")}Terugbetalingen${n?`<span class="cnt">${n}</span>`:""}</a></nav>`)}}
+  return h.replace("</nav>",`<a href="#terug" class="${act==="terug"?"on":""}"${act==="terug"?' aria-current="page"':""}>Terugbetalingen${n?`<span class="cnt">${n}</span>`:""}</a></nav>`)}}
 const TB={lijst:null,link:"",f:"open",laden:false};
 const TB_ST={aangevraagd:["neutral","Wacht op rekeningnummer"],ingediend:["warn","Te keuren"],goedgekeurd:["info","Te betalen"],betaald:["ok","Betaald"],geweigerd:["nok","Geweigerd"]};
 async function tbApi(b){return api("/api/mail?f=terug",{method:"POST",body:JSON.stringify(b)})}
@@ -7950,8 +7950,10 @@ function tbForm(){const leden=[...S.leden.values()].filter(l=>!l.geenLid).sort((
    ${fld("tbI","Rekeningnummer (laat leeg om het via een link op te vragen)",inp("tbI","",'maxlength="42" placeholder="BE.. .... .... ...."'),"full")}
    <div class="err full" id="tbErr"></div></form>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-tb="maak">Aanmaken</button>`);
   $("#tbN").addEventListener("change",()=>{const l=leden.find(x=>naamVol(x).trim()===$("#tbN").value.trim());if(l&&!$("#tbE").value)$("#tbE").value=l.email||""})}
-function tbLinkModal(titel,link,tekst){modal(titel,`<p style="margin:0 0 10px">${tekst}</p><div class="tb-lk"><input id="tbLk" readonly value="${esc(link)}"><button type="button" class="btn" data-tb="kopieer">${ic("copy")}Kopiëren</button></div>
-   <div class="tb-sh"><a class="btn sm ghost" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(link)}">WhatsApp</a><a class="btn sm ghost" href="mailto:?body=${encodeURIComponent(link)}">Mail</a></div>`,`<button class="btn primary" data-act="closeModal">Sluiten</button>`)}
+function tbLinkModal(titel,link,tekst,r){const l=r&&r.data.lidId&&S.leden.get(r.data.lidId),em=r&&(r.data.email||(l&&l.email))||"";
+  modal(titel,`<p style="margin:0 0 10px">${tekst}</p><div class="tb-lk"><input id="tbLk" readonly value="${esc(link)}"><button type="button" class="btn" data-tb="kopieer">${ic("copy")}Kopiëren</button></div>
+   <div class="tb-sh"><a class="btn sm ghost" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(link)}">WhatsApp</a>${r?`<span class="tb-ml"><input id="tbMl" type="email" placeholder="E-mailadres" value="${esc(em)}"><button type="button" class="btn sm" data-tb="mail" data-id="${esc(r.id)}">${ic("mails")}Mailen</button></span>`:`<a class="btn sm ghost" href="mailto:?body=${encodeURIComponent(link)}">Mail</a>`}</div>
+   ${r&&(r.data.gemaild||[]).length?`<p class="muted small" style="margin:8px 0 0">Al gemaild naar ${esc(r.data.gemaild.slice(-1)[0].aan)} op ${fmtDate(String(r.data.gemaild.slice(-1)[0].op).slice(0,10))}.</p>`:""}`,`<button class="btn primary" data-act="closeModal">Sluiten</button>`)}
 function tbQr(r){const d=r.data,naam=inkAscii(d.tnv||d.naam).slice(0,70),iban=String(d.iban).replace(/\s+/g,"").toUpperCase(),med=inkAscii("VBHA "+(d.soort==="onkosten"?"onkosten ":"terugbetaling ")+(d.reden||"")).slice(0,140);
   const qr=qrcode(0,"M");qr.addData(["BCD","002","1","SCT","",naam,iban,"EUR"+num(d.bedrag).toFixed(2),"","",med].join("\n"));qr.make();
   modal("Terugbetalen",`<div class="tb-qr"><div class="ink-qc">${qr.createSvgTag({cellSize:5,margin:3,scalable:true})}</div><div><div class="muted small">Aan</div><b>${esc(d.tnv||d.naam)}</b><div class="muted small" style="margin-top:8px">Rekening</div><b>${esc(iban.replace(/(.{4})/g,"$1 ").trim())}</b><div class="muted small" style="margin-top:8px">Bedrag</div><b>${eur(d.bedrag)}</b><div class="muted small" style="margin-top:8px">Mededeling</div><span>${esc(med)}</span>
@@ -7966,10 +7968,12 @@ document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]
     if(!n){err.textContent="Vul in aan wie.";return}if(!(bd>0)){err.textContent="Vul een bedrag in.";return}if(!g("#tbR")){err.textContent="Vul de reden in.";return}if(iban&&!inkIbanOk(iban)){err.textContent="Dit IBAN-nummer klopt niet.";return}
     const l=[...S.leden.values()].find(x=>naamVol(x).trim()===n);t.disabled=true;
     try{const j=await tbApi({actie:"maak",naam:n,bedrag:bd,reden:g("#tbR"),email:g("#tbE"),iban,lidId:l?l.id:""});TB.lijst=j.lijst;TB.f="open";renderBody();
-      if(iban)toast("Terugbetaling klaar om te betalen.");else tbLinkModal("Link voor "+esc(n),j.link,`Stuur deze link naar <b>${esc(n)}</b>. Daar vult hij of zij het rekeningnummer in; daarna kan je hier betalen.`)}
+      if(iban)toast("Terugbetaling klaar om te betalen.");else tbLinkModal("Link voor "+esc(n),j.link,`Stuur deze link naar <b>${esc(n)}</b>. Daar vult hij of zij het rekeningnummer in; daarna kan je hier betalen.`,j.lijst.find(x=>x.id===j.id))}
     catch(x){err.textContent=x.message;t.disabled=false}return}
   if(!r)return;
-  if(a==="kopie"){tbLinkModal("Link voor "+esc(r.data.naam),r.link,`Stuur deze link naar <b>${esc(r.data.naam)}</b> om het rekeningnummer door te geven.`);return}
+  if(a==="kopie"){tbLinkModal("Link voor "+esc(r.data.naam),r.link,`Stuur deze link naar <b>${esc(r.data.naam)}</b> om het rekeningnummer door te geven.`,r);return}
+  if(a==="mail"){const em=($("#tbMl")||{}).value.trim();if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(em)){toast("Vul een geldig e-mailadres in.",true);return}t.disabled=true;
+    try{const j=await tbApi({actie:"mail",id:r.id,email:em});TB.lijst=j.lijst;closeModal();toast("Mail met de link verstuurd naar "+em+".");renderBody()}catch(x){toast(x.message,true);t.disabled=false}return}
   if(a==="bon"){try{const j=await tbApi({actie:"bon",id:r.id});if(j.url)window.open(j.url,"_blank","noopener")}catch(x){toast(x.message,true)}return}
   if(a==="ok"){confirmBox(`Onkosten van <b>${esc(r.data.naam)}</b> (${eur(r.data.bedrag)}) goedkeuren?`,"Goedkeuren",()=>zet("goedgekeurd"));return}
   if(a==="nee"){modal("Weigeren",`<div class="fld"><label for="tbW">Reden (optioneel)</label><input id="tbW" maxlength="300"></div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="tbWok">Weigeren</button>`);$("#tbWok").onclick=()=>{const rd=$("#tbW").value.trim();closeModal();zet("geweigerd",{reden:rd})};return}
@@ -7988,6 +7992,6 @@ document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]
 {const st=document.createElement("style");st.textContent=`.tb-r{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}.tb-r:first-child{border-top:0}
 .tb-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.tb-b{font-variant-numeric:tabular-nums;white-space:nowrap}.tb-a{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .tb-a .iconbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}.lnkb{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline}
-.tb-lk{display:flex;gap:8px}.tb-lk input{flex:1;min-width:0}.tb-sh{display:flex;gap:8px;margin-top:10px}
+.tb-lk{display:flex;gap:8px}.tb-ml{display:flex;gap:6px;flex:1;min-width:0}.tb-ml input{flex:1;min-width:0}.tb-lk input{flex:1;min-width:0}.tb-sh{display:flex;gap:8px;margin-top:10px}
 .tb-qr{display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px;align-items:start}
 @media(max-width:700px){.tb-r{grid-template-columns:minmax(0,1fr) auto}.tb-a{grid-column:1/-1;justify-content:flex-start}.tb-qr{grid-template-columns:1fr}}`;document.head.appendChild(st)}
