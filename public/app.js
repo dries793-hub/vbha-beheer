@@ -352,7 +352,8 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   const andJ=c=>{const m=String(c.k).match(/\b(19|20)\d{2}\b/g);return !!m&&!m.includes(String(JAAR))};
   const cats=cats0.filter(c=>!andJ(c));
   const maxNet=Math.max(1,...cats.map(c=>Math.abs(c.net)));
-  const top=cur.filter(r=>r.lg.ok&&r.lid.categorie!=="Erewacht"&&r.p.totaal>0).sort((a,b)=>b.p.totaal-a.p.totaal).slice(0,10);
+  let mpB=true;try{mpB=localStorage.getItem("vbha_mp_bestuur")!=="0"}catch(e){}
+  const top=cur.filter(r=>r.lg.ok&&r.lid.categorie!=="Erewacht"&&r.p.totaal>0&&(mpB||!r.lid.bestuur)).sort((a,b)=>b.p.totaal-a.p.totaal).slice(0,10);
   const recent=C.boek.slice(-6).reverse();
   const sgn=v=>(v>=0?"+":"−")+eur(Math.abs(v));
   const sec=(icon,titel,link,label)=>`<div class="dsec-h"><span class="dsec-ic">${ic(icon)}</span><h2>${titel}</h2><span class="grow"></span><a class="btn sm ghost" href="#${link}">${label} ›</a></div>`;
@@ -368,7 +369,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
         ${jub.length?jub.map(r=>`<div class="li"><span class="grow trunc"><b>${esc(naamVol(r.lid))}</b></span><span class="muted">lid sinds ${r.lid.lidSinds}</span></div>`).join(""):'<div class="empty" style="padding:8px 0">Geen jubilarissen dit jaar.</div>'}
       </div></div></div>
     </div>
-    <div class="panel"><div class="panel-h"><h2>Meeste punten</h2></div><div class="panel-b ag-top"><div class="list">
+    <div class="panel"><div class="panel-h"><h2>Meeste punten</h2><span class="grow"></span><label class="mp-b small"><input type="checkbox" id="mpBestuur"${mpB?" checked":""}> Bestuursleden</label></div><div class="panel-b ag-top"><div class="list">
       ${top.length?top.map((r,i)=>`<div class="li${i>=5?" top-x":""}"><span class="rank">${i+1}</span><span class="grow trunc"><b>${esc(naamVol(r.lid))}</b></span>${medal(r.status)}<b style="width:48px;text-align:right">${r.p.totaal}</b></div>`).join(""):'<div class="empty">Nog geen punten ingevoerd.</div>'}
     </div></div></div>
   </div></section>
@@ -8050,3 +8051,5 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-gd]");if(!
 @media(max-width:760px){.gd-l{gap:0;margin-top:6px}.gd-r{flex-wrap:nowrap;padding:8px 0;border-top:1px solid rgba(0,0,0,.08)}.gd-r:first-child{border-top:0}
  .gd-n{flex-direction:column;align-items:flex-start;gap:0}.gd-n b{font-size:15px}.gd-tl{display:none}.gd-a .btn{padding:6px 10px}.gd-a .btn svg{margin:0}
  .gd-al .btn{width:100%;justify-content:center}}`;document.head.appendChild(st)}
+document.addEventListener("change",e=>{if(e.target&&e.target.id==="mpBestuur"){try{localStorage.setItem("vbha_mp_bestuur",e.target.checked?"1":"0")}catch(x){}renderBody()}});
+{const st=document.createElement("style");st.textContent=`.mp-b{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted,#667);font-weight:500;white-space:nowrap}.mp-b input{margin:0;width:16px;height:16px;accent-color:var(--red,#c8102e)}`;document.head.appendChild(st)}
