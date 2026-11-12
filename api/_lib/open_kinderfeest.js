@@ -56,6 +56,16 @@ export default async function handler(req, res) {
     }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
     const b = body(req);
+    // naam van het lid + hetzelfde e-mailadres als bekend (bij het lid of bij een vorige inschrijving): kinderen voorinvullen
+    if (b.actie === "herken") {
+      await rateLimit(sb, req, "kfherken", 15, 3600, httpErr);
+      const I = await info(sb), lidId = String(b.lidId || ""), em = nrm(b.email);
+      if (!lidId || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(em)) return res.status(200).json({ kinderen: [] });
+      const { data: lr } = await sb.from("leden").select("data").eq("id", lidId).maybeSingle();
+      let ok = !!(lr && lr.data && nrm(lr.data.email) === em);
+      if (!ok) { const { data: vk } = await sb.from("kinderfeest").select("data").eq("data->>lidId", lidId); ok = (vk || []).some(r => nrm(r.data && r.data.email) === em); }
+      return res.status(200).json({ kinderen: ok ? await bekendeKinderen(sb, lidId, I) : [] });
+    }
     // link om de kinderen van vorig jaar in te vullen, naar het e-mailadres van het lid
     if (b.actie === "vullink") {
       await rateLimit(sb, req, "kfvul", 5, 3600, httpErr);
