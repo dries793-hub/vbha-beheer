@@ -74,6 +74,7 @@ export default async function terugPubliek(req, res) {
       if (error) throw error;
       if (iban && lidId && !gekend) await lidIbanZet(sb, lidId, iban, "onkostennota");
       try { const { meldPush } = await import("./push.js"); await meldPush(sb, "boek", { titel: "Nieuwe onkostennota", tekst: `${naam} · € ${bedrag.toFixed(2).replace(".", ",")} · ${reden.slice(0, 60)}`, url: "/#terug", tag: "tb-" + id }); } catch (e) { console.error("push onkost", e); }
+      await mailBoekhouding(sb, { id, naam, bedrag, reden, datum, bon, geenBon: !bon && !!b.geenBon, via: "via vbha.be/onkosten" });
       return res.status(200).json({ ok: true });
     }
     if (req.method === "GET" && b.lid) { // onkostenformulier: gekend rekeningnummer van het gekozen lid, gedeeltelijk verborgen
@@ -159,6 +160,7 @@ export async function terugApp(req, res) {
       if (error) throw error;
       if (iban && lidId && (vol || !ibanAnders)) await lidIbanZet(sb, lidId, iban, "app");
       if (!vol) try { const { meldPush } = await import("./push.js"); await meldPush(sb, "boek", { titel: "Nieuwe onkostennota", tekst: `${naam} · € ${bedrag.toFixed(2).replace(".", ",")} · ${reden.slice(0, 60)}`, url: "/#terug", tag: "tb-" + id }); } catch (e) { console.error("push onkost", e); }
+      if (!vol) await mailBoekhouding(sb, { id, naam, bedrag, reden, datum, bon, geenBon: !bon && !!b.geenBon, via: "in de app door " + (user.email || "") });
       return res.status(200).json({ ...(await lijst()), id, link: vol ? tbLink(id) : null, ibanVorig: !!vorig });
     }
     const { data: row } = await sb.from("terugbetalingen").select("id,data,status").eq("id", String(b.id || "")).maybeSingle(); if (!row) throw httpErr(404, "Niet gevonden.");
@@ -207,4 +209,18 @@ export async function terugApp(req, res) {
     }
     throw httpErr(400, "Onbekende actie.");
   } catch (e) { sendError(res, e); }
+}
+
+/* mail naar de boekhouding bij een nieuwe onkostennota (via de mailwachtrij) */
+async function mailBoekhouding(sb, { id, naam, bedrag, reden, datum, bon, geenBon, via }) {
+  try {
+    const { huisstijl, kaderBlok, knop, tabel, rij, p, esc } = await import("./bevestiging.js");
+    const app = String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, "") + "/#terug";
+    const bd = "€ " + Number(bedrag || 0).toFixed(2).replace(".", ",");
+    const dt = /^\d{4}-\d{2}-\d{2}$/.test(datum || "") ? datum.split("-").reverse().join("/") : "";
+    const html = huisstijl(p("Beste,") + p(`Er is een nieuwe onkostennota ingediend${via ? " " + esc(via) : ""}.`) +
+      kaderBlok("Onkostennota", tabel([rij("Naam", esc(naam)), rij("Bedrag", `<b>${bd}</b>`), rij("Waarvoor", esc(reden)), rij("Datum aankoop", dt), rij("Bewijsstuk", bon ? "toegevoegd" : geenBon ? "geen kasticket of factuur" : "")])) +
+      knop("Bekijken en goedkeuren", app), "Nieuwe onkostennota", { groet: false });
+    await sb.from("mail_wachtrij").insert({ batch: "onkost-" + id, data: { aan: process.env.ONKOST_MAIL || "boekhouding@vbha.be", aanNaam: "Boekhouding VBHA", onderwerp: `Nieuwe onkostennota: ${naam} · ${bd}`, html, label: "Onkostennota " + naam } });
+  } catch (e) { console.error("mail boekhouding", e); }
 }
