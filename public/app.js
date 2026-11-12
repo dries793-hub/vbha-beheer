@@ -4291,8 +4291,9 @@ function inkBetaalData(d){const A=INK.txt.get(d.id)||{},E=inkEigenIban(),naam=in
   let iban=(A.ibans||[])[0]||"";
   if(!iban&&n){const b=[...S.boekingen.values()].filter(b=>b.richting==="uit"&&b.iban&&!E.has(String(b.iban).replace(/\s+/g,"").toUpperCase())&&norm(b.partij||"").includes(n.split(" ")[0])).sort((a,b)=>String(b.datum).localeCompare(String(a.datum)))[0];if(b)iban=String(b.iban).replace(/\s+/g,"").toUpperCase()}
   const rest=Math.round(((inkTot(d)||A.totaal||0)-inkSom(d.id))*100)/100;
+  const P=d.inkomend&&d.inkomend.betaalPlan;if(P&&P.totaal&&inkSom(d.id)<P.totaal-0.005)return{naam:P.naam||naam,iban:P.iban||iban,bedrag:P.totaal,med:P.med||"",plan:P};
   return{naam,iban,bedrag:rest>0?rest:(A.totaal||""),med:A.ogm?`+++${A.ogm.slice(0,3)}/${A.ogm.slice(3,7)}/${A.ogm.slice(7)}+++`:A.nr?"Factuur "+A.nr:""}}
-function inkBetaal(id){const d=S.documenten.get(id);if(!d)return;const B=inkBetaalData(d);
+function inkBetaal(id){const d=S.documenten.get(id);if(!d)return;const B=inkBetaalData(d);let toon=null,bewaarT=null;
   modal("Factuur betalen",`<div class="ink-pay"><div class="form">
     ${fld("ipN","Begunstigde",inp("ipN",B.naam,'maxlength="70"'),"full")}
     ${fld("ipI","IBAN",inp("ipI",inkIbanFmt(B.iban),'maxlength="42" placeholder="BE.. .... .... ...."'),"full")}
@@ -4312,18 +4313,27 @@ function inkBetaal(id){const d=S.documenten.get(id);if(!d)return;const B=inkBeta
     sw.hidden=n<=1;if(n>1){$("#ipSt").textContent=`In ${n} betalingen splitsen`;$("#ipSs").textContent=`Het bedrag is hoger dan de daglimiet van ${eur(lim)}. Betaal elk deel op een andere dag.`}
     const delen=[];if(split){const c=Math.round(bedrag*100),basis=Math.floor(c/n);for(let i=0;i<n;i++)delen.push((i<n-1?basis:c-basis*(n-1))/100)}else delen.push(bedrag);
     const vrij=isOgm?"":inkAscii(med).slice(0,140);
-    $(".ink-pay").classList.toggle("split",delen.length>1);
-    q.innerHTML=delen.map((b,i)=>{const qr=qrcode(0,"M");qr.addData(["BCD","002","1","SCT","",naam,iban,"EUR"+b.toFixed(2),"",isOgm?og:"",vrij].join("\n"));qr.make();
-      return `<div class="ink-qd">${delen.length>1?`<b>Betaling ${i+1} van ${delen.length}</b><span class="muted small">${i?`dag ${i+1}`:"vandaag"} · ${eur(b)}</span>`:""}<div class="ink-qc">${qr.createSvgTag({cellSize:5,margin:3,scalable:true})}</div></div>`}).join("");
-    t.innerHTML=delen.length>1?`Scan elke dag één QR-code met de Argenta-app. Samen is dat <b>${eur(bedrag)}</b> aan <b>${esc(naam)}</b>, telkens met dezelfde mededeling. De app koppelt beide betalingen daarna aan de factuur.`
+    // gesplitst: één QR-code per dag. Het plan (start = dag van betaling 1) wordt bij de factuur bewaard, zodat morgen betaling 2 verschijnt.
+    let P=null,idx=0;
+    if(delen.length>1){const cur=(S.documenten.get(id)||d).inkomend||{},oud=cur.betaalPlan;
+      P=oud&&Math.abs(oud.totaal-bedrag)<0.005&&oud.n===delen.length?oud:{totaal:bedrag,n:delen.length,start:todayISO(),naam,iban,med};
+      if(P!==oud){clearTimeout(bewaarT);bewaarT=setTimeout(()=>{const x=S.documenten.get(id);if(!x)return;const ink={...(x.inkomend||{}),betaalPlan:P};S.documenten.set(id,{...x,inkomend:ink});write("documenten",id,{...stripId(x),inkomend:ink}).catch(()=>{})},1200)}
+      const dagen=Math.round((new Date(todayISO()+"T12:00:00")-new Date(P.start+"T12:00:00"))/864e5),betaald=inkBoekVan(id).length;
+      idx=Math.min(delen.length-1,Math.max(0,dagen,betaald));if(toon!=null)idx=Math.min(delen.length-1,toon)}
+    const b=delen[idx],qr=qrcode(0,"M");qr.addData(["BCD","002","1","SCT","",naam,iban,"EUR"+b.toFixed(2),"",isOgm?og:"",vrij].join("\n"));qr.make();
+    $(".ink-pay").classList.remove("split");
+    q.innerHTML=`<div class="ink-qd">${delen.length>1?`<b>Betaling ${idx+1} van ${delen.length}</b><span class="muted small">${eur(b)}</span>`:""}<div class="ink-qc">${qr.createSvgTag({cellSize:5,margin:3,scalable:true})}</div></div>`;
+    t.innerHTML=delen.length>1?(idx<delen.length-1?`Scan vandaag deze QR-code. Betaling ${idx+2} (${eur(delen[idx+1])}) verschijnt hier morgen. <button type="button" class="lnkb" data-ipnu="${idx+1}">Nu al tonen</button>`
+        :`Laatste betaling. Samen is dat <b>${eur(bedrag)}</b> aan <b>${esc(naam)}</b>, telkens met dezelfde mededeling.${idx?` <button type="button" class="lnkb" data-ipnu="${idx-1}">Vorige tonen</button>`:""}`)
       :`Scan met de Argenta-app (of een andere bankapp): de overschrijving van <b>${eur(bedrag)}</b> aan <b>${esc(naam)}</b> staat dan klaar om te bevestigen.${isOgm?"":med?" Mededeling als vrije tekst.":""}${n>1?` <span style="color:#b91c1c">Let op: hoger dan de daglimiet van ${eur(lim)}.</span>`:""}`};
-  ["#ipN","#ipI","#ipB","#ipM"].forEach(s=>$(s).addEventListener("input",teken));$("#ipS").addEventListener("change",teken);teken()}
+  ["#ipN","#ipI","#ipB","#ipM"].forEach(s=>$(s).addEventListener("input",()=>{toon=null;teken()}));$("#ipS").addEventListener("change",teken);
+  $("#ipT").addEventListener("click",e=>{const x=e.target.closest("[data-ipnu]");if(!x)return;toon=Number(x.dataset.ipnu);teken()});teken()}
 {const _r=inkRij;inkRij=function(d){const h=_r(d);if(!inkMag()||!inkOpen(d))return h;const i=h.indexOf('</div><div class="ink-b">');if(i<0)return h;
   return h.slice(0,i)+`<button type="button" class="btn sm" data-inkbet="${esc(d.id)}" title="QR-code om te betalen met de bankapp">${ic("bank")}Betalen</button>`+h.slice(i)}}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-inkbet]");if(!b)return;e.preventDefault();inkBetaal(b.dataset.inkbet)});
 {const st=document.createElement("style");st.textContent=`.ink-pay{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:20px;align-items:start}.ink-qr{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
 #ipQ{display:flex;flex-wrap:wrap;gap:16px;justify-content:center}.ink-qd{display:flex;flex-direction:column;align-items:center;gap:2px}.ink-qc{width:220px;height:220px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;display:grid;place-items:center;margin-top:6px}.ink-qc svg{width:100%;height:100%}
-.ink-pay.split{grid-template-columns:1fr}.ink-pay.split .ink-qr{border-top:1px solid var(--line);padding-top:16px}.ink-qr-leeg{font-size:13px;color:var(--muted);padding:12px}
+.ink-qr .lnkb{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline}.ink-qr-leeg{font-size:13px;color:var(--muted);padding:12px}
 @media(max-width:700px){.ink-pay{grid-template-columns:1fr}}`;document.head.appendChild(st)}
 
 /* ============ Dashboard: meldingen voor de boekhouding ============
