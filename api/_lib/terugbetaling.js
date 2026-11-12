@@ -140,7 +140,9 @@ export async function terugApp(req, res) {
       if (!mailOk(email)) throw httpErr(400, "Dit e-mailadres klopt niet."); if (iban && !ibanOk(iban)) throw httpErr(400, "Dit IBAN-nummer klopt niet.");
       const id = "tb-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), lidId = clean(b.lidId, 60);
       const vorig = iban ? "" : await bekendIban(sb, lidId, naam), ib = iban || vorig;
-      const { error } = await sb.from("terugbetalingen").insert({ id, status: ib ? "goedgekeurd" : "aangevraagd", data: { soort: "terugbetaling", naam, email, bedrag, reden, iban: ib || "", ...(vorig ? { ibanVorig: true } : {}), lidId, categorie: clean(b.categorie, 60), door: wie, op: nu() } });
+      let em = email; if (!em && lidId) { const { data: l } = await sb.from("leden").select("data").eq("id", lidId).maybeSingle(); const m = String(l?.data?.email || "").trim(); if (m && mailOk(m)) em = m; }
+      const datum = /^\d{4}-\d{2}-\d{2}$/.test(b.datum || "") ? b.datum : "", bon = await bonBewaar(sb, id, b.bon);
+      const { error } = await sb.from("terugbetalingen").insert({ id, status: ib ? "goedgekeurd" : "aangevraagd", data: { soort: "terugbetaling", naam, email: em, bedrag, reden, ...(datum ? { datum } : {}), ...(bon ? { bon } : {}), iban: ib || "", ...(vorig ? { ibanVorig: true } : {}), lidId, categorie: clean(b.categorie, 60), door: wie, op: nu() } });
       if (error) throw error;
       if (iban && lidId) await lidIbanZet(sb, lidId, iban, "app");
       return res.status(200).json({ ...(await lijst()), id, link: tbLink(id), ibanVorig: !!vorig });

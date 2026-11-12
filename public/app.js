@@ -7944,14 +7944,30 @@ VIEWS.terug=()=>({title:"Terugbetalingen",actions:tbMag()&&canWrite?`<button cla
   const som=TB.lijst.filter(r=>r.status==="goedgekeurd").reduce((s,r)=>s+num(r.data.bedrag),0);
   return `<div class="bar fc-bar"><div class="seg">${[["open","Open"],["betaald","Betaald"],["geweigerd","Geweigerd"],["alle","Alle"]].map(([k,l])=>`<button type="button" data-tbf="${k}" class="${TB.f===k?"on":""}">${l}</button>`).join("")}</div><span class="grow"></span>${som?`<span class="muted">Nog te betalen: <b>${eur(som)}</b></span>`:""}</div>
    <div class="panel">${L.length?L.map(tbRij).join(""):`<div class="empty">${TB.f==="open"?"Geen openstaande terugbetalingen.":"Niets gevonden."}</div>`}</div>`}});
-function tbForm(){const leden=[...S.leden.values()].filter(l=>!l.geenLid).sort((a,b)=>naamVol(a).localeCompare(naamVol(b),"nl"));
+function tbMijnLid(){const em=String(ME&&ME.email||"").toLowerCase(),nm=norm(ME_NAME||"");const L=[...S.leden.values()].filter(l=>!l.geenLid&&!l.dubbelVan);
+  return L.find(l=>em&&String(l.email||"").toLowerCase()===em)||L.find(l=>nm&&(norm(naamVol(l))===nm||norm((l.voornaam||"")+" "+(l.naam||""))===nm))||null}
+let TBF={mask:"",bon:null};
+async function tbVerklein(file){if(file.type==="application/pdf"){if(file.size>4e6)throw new Error("De PDF is te groot (max. 4 MB).");return{data:await new Promise((ok,nok)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=nok;r.readAsDataURL(file)}),naam:file.name}}
+  let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:"from-image"})}catch(e){bmp=await new Promise((ok,nok)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>nok(new Error("Dit bestand is geen foto of PDF."));i.src=URL.createObjectURL(file)})}
+  const sc=Math.min(1,2000/Math.max(bmp.width,bmp.height)),cv=document.createElement("canvas");cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);cv.getContext("2d").drawImage(bmp,0,0,cv.width,cv.height);
+  return{data:cv.toDataURL("image/jpeg",.82),naam:(file.name||"bon").replace(/\.[^.]+$/,"")+".jpg"}}
+async function tbIbanVan(l){const f=$("#tbI");if(!f)return;if(f.value===TBF.mask){f.value="";f.classList.remove("tb-okv")}TBF.mask="";if(!l)return;
+  try{const j=await tbApi({actie:"lidiban",lidId:l.id});const ib=String(j.iban||"");if(ib&&$("#tbI")&&!f.value.trim()){TBF.mask=ib.slice(0,4)+" •••• •••• "+ib.slice(-4);f.value=TBF.mask;f.classList.add("tb-okv")}}catch(e){}}
+function tbForm(){const leden=[...S.leden.values()].filter(l=>!l.geenLid&&!l.dubbelVan).sort((a,b)=>naamVol(a).localeCompare(naamVol(b),"nl"));
+  const zoek=n=>leden.find(x=>naamVol(x).trim()===String(n||"").trim()),ik=tbMijnLid(),vd=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);TBF={mask:"",bon:null};
   modal("Nieuwe terugbetaling",`<form id="fTb" class="form">
-   ${fld("tbN","Aan wie",`<input id="tbN" list="tbNl" maxlength="80" autocomplete="off"><datalist id="tbNl">${leden.map(l=>`<option value="${esc(naamVol(l).trim())}"></option>`).join("")}</datalist>`,"full")}
-   ${fld("tbB","Bedrag (€)",inp("tbB","",'inputmode="decimal"'))}${fld("tbE","E-mail (om de link te mailen, optioneel)",inp("tbE","",'type="email"'))}
-   ${fld("tbR","Reden",inp("tbR","",'maxlength="300" placeholder="bv. Terugbetaling banket (afgemeld)"'),"full")}
-   ${fld("tbI","Rekeningnummer (laat leeg om het via een link op te vragen)",inp("tbI","",'maxlength="42" placeholder="BE.. .... .... ...."'),"full")}
-   <div class="err full" id="tbErr"></div></form>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-tb="maak">Aanmaken</button>`);
-  $("#tbN").addEventListener("change",()=>{const l=leden.find(x=>naamVol(x).trim()===$("#tbN").value.trim());if(l&&!$("#tbE").value)$("#tbE").value=l.email||""})}
+   ${fld("tbN","Naam",`<input id="tbN" list="tbNl" maxlength="80" autocomplete="off" placeholder="Begin de naam te typen" value="${esc(ik?naamVol(ik).trim():"")}"><datalist id="tbNl">${leden.map(l=>`<option value="${esc(naamVol(l).trim())}"></option>`).join("")}</datalist>`,"full")}
+   ${fld("tbB","Bedrag (€)",inp("tbB","",'inputmode="decimal" placeholder="0,00"'))}${fld("tbD","Datum van de aankoop",`<input id="tbD" type="date" value="${vd}" max="${vd}">`)}
+   ${fld("tbR","Waarvoor?",`<textarea id="tbR" maxlength="300" rows="3" placeholder="bv. drank voor de bestuursvergadering, affiches jaarmarkt"></textarea>`,"full")}
+   <div class="fld full"><label for="tbBon">Kasticket of factuur</label><label class="tb-up" id="tbUp"><input type="file" id="tbBon" accept="image/*,application/pdf" hidden>${ic("upload")}<span id="tbBonT">Foto nemen of bestand kiezen</span></label></div>
+   ${fld("tbI","Rekeningnummer (IBAN) voor de terugbetaling",inp("tbI","",'maxlength="42" placeholder="BE00 0000 0000 0000" autocomplete="off" spellcheck="false"'),"full")}
+   <div class="err full" id="tbErr"></div></form>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-tb="maak">Indienen</button>`);
+  $("#tbN").addEventListener("change",()=>tbIbanVan(zoek($("#tbN").value)));
+  $("#tbI").addEventListener("focus",e=>{if(TBF.mask&&e.target.value===TBF.mask)e.target.select()});
+  $("#tbI").addEventListener("input",e=>{if(TBF.mask&&e.target.value!==TBF.mask){e.target.classList.remove("tb-okv");if(e.target.value.includes("•"))e.target.value=""}});
+  $("#tbBon").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;$("#tbBonT").textContent="Bezig…";try{TBF.bon=await tbVerklein(f);$("#tbBonT").textContent="✓ "+(f.name||"bewijsstuk");$("#tbUp").classList.add("ok")}catch(x){TBF.bon=null;$("#tbBonT").textContent=x.message;$("#tbUp").classList.remove("ok")}});
+  if(ik)tbIbanVan(ik)}
+{const st=document.createElement("style");st.textContent=`#fTb textarea{width:100%;font:inherit;resize:vertical;min-height:80px;height:80px}.tb-up{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1.5px dashed var(--line);border-radius:8px;cursor:pointer;color:var(--muted);font-size:14px}.tb-up svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.tb-up.ok{border-style:solid;border-color:#18794a;color:#18794a}#tbI.tb-okv{border-color:#18794a;background:#e3f4ea}`;document.head.appendChild(st)}
 function tbLinkModal(titel,link,tekst,r){const l=r&&r.data.lidId&&S.leden.get(r.data.lidId),em=r&&(r.data.email||(l&&l.email))||"";
   modal(titel,`<p style="margin:0 0 10px">${tekst}</p><div class="tb-lk"><input id="tbLk" readonly value="${esc(link)}"><button type="button" class="btn" data-tb="kopieer">${ic("copy")}Kopiëren</button></div>
    <div class="tb-sh"><div class="tb-blk"><span class="lbl">Via WhatsApp</span><a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(link)}">${ic("delen")}Delen in WhatsApp</a></div><div class="tb-blk"><span class="lbl">Via mail</span>${r?`<span class="tb-ml"><input id="tbMl" type="email" placeholder="E-mailadres" value="${esc(em)}"><button type="button" class="btn sm" data-tb="mail" data-id="${esc(r.id)}">${ic("mails")}Mailen</button></span>`:`<span class="tb-ml"><input id="tbMn" list="tbMnL" placeholder="Naam van het lid" autocomplete="off"><datalist id="tbMnL">${[...S.leden.values()].filter(l=>!l.geenLid&&l.email).sort((a,b)=>naamVol(a).localeCompare(naamVol(b),"nl")).map(l=>`<option value="${esc(naamVol(l).trim())}"></option>`).join("")}</datalist><button type="button" class="btn sm" data-tb="mailOnk">${ic("mails")}Mailen</button></span>`}</div></div>
@@ -7968,10 +7984,10 @@ document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]
     t.disabled=true;try{const j=await tbApi({actie:"mailOnkost",lidId:l.id});toast("Link gemaild naar "+naamVol(l).trim()+" ("+j.aan+").");$("#tbMn").value=""}catch(x){toast(x.message,true)}t.disabled=false;return}
   if(a==="link"){tbLinkModal("Link onkostennota",TB.link||"https://vbha.be/onkosten","Stuur deze link naar (bestuurs)leden. Ze vullen hun onkosten in met een foto van het kasticket en hun rekeningnummer; de aanvraag verschijnt hier om goed te keuren.");return}
   if(a==="kopieer"){const i=$("#tbLk");try{await navigator.clipboard.writeText(i.value);toast("Link gekopieerd.")}catch(x){i.select();document.execCommand("copy");toast("Link gekopieerd.")}return}
-  if(a==="maak"){const g=s=>$(s).value.trim(),err=$("#tbErr"),n=g("#tbN"),bd=num(g("#tbB")),iban=g("#tbI").replace(/\s+/g,"").toUpperCase();
-    if(!n){err.textContent="Vul in aan wie.";return}if(!(bd>0)){err.textContent="Vul een bedrag in.";return}if(!g("#tbR")){err.textContent="Vul de reden in.";return}if(iban&&!inkIbanOk(iban)){err.textContent="Dit IBAN-nummer klopt niet.";return}
-    const l=[...S.leden.values()].find(x=>naamVol(x).trim()===n);t.disabled=true;
-    try{const j=await tbApi({actie:"maak",naam:n,bedrag:bd,reden:g("#tbR"),email:g("#tbE"),iban,lidId:l?l.id:""});TB.lijst=j.lijst;TB.f="open";renderBody();
+  if(a==="maak"){const g=s=>$(s).value.trim(),err=$("#tbErr"),n=g("#tbN"),bd=num(g("#tbB")),iban=g("#tbI")===TBF.mask&&TBF.mask?"":g("#tbI").replace(/\s+/g,"").toUpperCase();
+    if(!n){err.textContent="Vul de naam in.";return}if(!(bd>0)){err.textContent="Vul een bedrag in.";return}if(!g("#tbR")){err.textContent="Schrijf kort waarvoor de kosten waren.";return}if(iban&&!inkIbanOk(iban)){err.textContent="Dit IBAN-nummer klopt niet.";return}
+    const l=[...S.leden.values()].find(x=>naamVol(x).trim()===n&&!x.dubbelVan);t.disabled=true;
+    try{const j=await tbApi({actie:"maak",naam:n,bedrag:bd,reden:g("#tbR"),datum:g("#tbD"),bon:TBF.bon,iban,lidId:l?l.id:""});TB.lijst=j.lijst;TB.f="open";renderBody();
       if(iban||j.ibanVorig)toast(j.ibanVorig?"Gekend rekeningnummer gebruikt: klaar om te betalen.":"Terugbetaling klaar om te betalen.");else tbLinkModal("Link voor "+esc(n),j.link,`Stuur deze link naar <b>${esc(n)}</b>. Daar vult hij of zij het rekeningnummer in; daarna kan je hier betalen.`,j.lijst.find(x=>x.id===j.id))}
     catch(x){err.textContent=x.message;t.disabled=false}return}
   if(!r)return;
