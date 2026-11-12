@@ -115,6 +115,10 @@
     {
       "source": "/api/vergadering",
       "destination": "/api/openbaar?f=vergadering"
+    },
+    {
+      "source": "/api/terug",
+      "destination": "/api/openbaar?f=terug"
     }
   ],
   "regions": [
