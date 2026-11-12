@@ -7546,4 +7546,10 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-sms]
 .sms-act{display:flex;align-items:center;justify-content:space-between;gap:10px}.sms-l{max-height:none}.sms-r{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 16px;border-top:1px solid var(--line);cursor:pointer}
 .sms-r:first-child{border-top:0}.sms-r input{accent-color:var(--accent);width:16px;height:16px}.sms-r small{color:var(--muted);font-variant-numeric:tabular-nums}.sms-z{padding:10px 16px;border-top:1px solid var(--line)}
 @media(max-width:860px){.sms-g{grid-template-columns:1fr}}`;document.head.appendChild(st)}
-{const _v=VIEWS.mails;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.title="Communicatie";v.body=function(){return comTabs("mails")+String(b.apply(this,arguments))};return v};Object.assign(n,_v);VIEWS.mails=n}
+// knoppen Nieuw sjabloon en Mailinglijsten in de kop van het juiste paneel i.p.v. bovenaan de pagina
+{const _v=VIEWS.mails;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.title="Communicatie";v.actions="";
+  v.body=function(){let h=String(b.apply(this,arguments));
+    h=h.replace('<select class="sel ml-tpl"',`<button class="btn sm ml-kb" data-w data-act="mlNieuw" type="button" title="Nieuw sjabloon">${ic("plus")}Nieuw</button><select class="sel ml-tpl"`);
+    if(canWrite)h=h.replace('<h2>Ontvangers</h2><span class="grow"></span>',`<h2>Ontvangers</h2><span class="grow"></span><button class="btn sm ml-kb" data-act="mlLijstBeheer" type="button">${ic("leden")}Mailinglijsten</button>`);
+    return comTabs("mails")+h};return v};Object.assign(n,_v);VIEWS.mails=n}
+{const st=document.createElement("style");st.textContent=`.ml-kb{flex:none;white-space:nowrap}.ml-ed-p>.panel-h,.ml-ed-p+.panel>.panel-h{gap:8px}`;document.head.appendChild(st)}
