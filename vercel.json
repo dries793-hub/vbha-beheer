@@ -36,7 +36,7 @@
   "rewrites": [
     {
       "source": "/onkosten",
-      "destination": "/terugbetaling.html"
+      "destination": "/terugbetaling"
     },
     {
       "source": "/",
