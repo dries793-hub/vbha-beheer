@@ -104,9 +104,9 @@ export async function verstuur(berichten, { factuur = false, geenLog = false } =
         await cmd(`MAIL FROM:<${van.email}>`, 250);
         await cmd(`RCPT TO:<${m.aan}>`, 25);
         for (const c of (Array.isArray(m.cc) ? m.cc : [])) { try { await cmd(`RCPT TO:<${c}>`, 25); } catch (e) { console.error("cc geweigerd", c, e.message); } }
-        // controlekopie (Bcc, niet zichtbaar voor de ontvanger) van elke uitgaande mail; bij bulkmails enkel bij de eerste (m.geenBcc)
+        // controlekopie (Bcc, niet zichtbaar voor de ontvanger) van elke uitgaande mail, ook bij bulkmails (elke mail apart)
         const bcc = BCC();
-        if (bcc && !m.geenBcc && ![m.aan, ...(Array.isArray(m.cc) ? m.cc : [])].some(x => String(x || "").toLowerCase() === bcc)) { try { await cmd(`RCPT TO:<${bcc}>`, 25); } catch (e) { console.error("bcc geweigerd", e.message); } }
+        if (bcc && ![m.aan, ...(Array.isArray(m.cc) ? m.cc : [])].some(x => String(x || "").toLowerCase() === bcc)) { try { await cmd(`RCPT TO:<${bcc}>`, 25); } catch (e) { console.error("bcc geweigerd", e.message); } }
         await cmd("DATA", 354);
         const data = bouwBericht({ van, ...m }).replace(/^\./gm, "..");
         await cmd(data + "\r\n.", 250);
