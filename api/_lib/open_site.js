@@ -118,7 +118,7 @@ async function sponsorLogos(sb) {
 }
 function metLogos(html, L) {
   if (!L || !L.length) return html;
-  const imgs = L.map(l => `<img class="band-l" src="/api/openbaar?f=sponsorlogo&amp;i=${encodeURIComponent(l.id)}&amp;v=${l.v}" alt="${esc(l.naam)}" height="80" loading="lazy" decoding="async">`).join("");
+  const imgs = L.map(l => `<img class="band-l" src="/api/openbaar?f=sponsorlogo&amp;i=${encodeURIComponent(l.id)}&amp;v=${l.v}" alt="${esc(l.naam)}" height="80" decoding="async">`).join("");
   return html.replace(/(<div class="band" role="img" aria-label=")[^"]*(")/, `$1Logo's van onze sponsors: ${esc(L.map(l => l.naam).join(", "))}$2`)
     .replace(/<div class="band-in">[\s\S]*?<\/div>/, `<div class="band-in" data-logos="1">${imgs}</div>`);
 }

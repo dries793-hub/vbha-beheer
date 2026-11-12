@@ -98,7 +98,8 @@
 
   @keyframes band{to{transform:translateX(-50%)}}
   @media (max-width:860px){.band img{height:60px}.band-in{animation-duration:80s}}
-  @media (prefers-reduced-motion:reduce){.band{overflow-x:auto}.band-in{animation:none}.band-in img+img,.band-in .band-t:nth-child(n+27),.band-in img[aria-hidden]{display:none}}
+  /* "beweging beperken" (bv. iPhone): geen bewegende band maar alle logo's netjes onder elkaar */
+  @media (prefers-reduced-motion:reduce){.band{-webkit-mask-image:none;mask-image:none;padding:12px}.band-in{animation:none;width:auto;flex-wrap:wrap;justify-content:center;row-gap:14px}.band-in:not([data-logos]) img+img,.band-in .band-t:nth-child(n+27),.band-in img[aria-hidden]{display:none}}
   .cta{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:600;color:var(--accent);text-decoration:none;white-space:nowrap}
   .cta:hover{text-decoration:underline}
   .btn-red{display:inline-flex;align-items:center;gap:9px;margin-top:24px;padding:14px 22px;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;font-size:16px;text-decoration:none;transition:background .15s}
