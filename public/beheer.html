@@ -1471,6 +1471,16 @@ textarea.ag-info{min-height:76px;height:auto;field-sizing:content;max-height:220
 .kc-kf{margin-top:8px}.kc-best{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}.kc-best.on{color:#15803d;font-weight:600}
 .kc-pot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--line)}
 .kcd-pp{background:var(--sunken);border-radius:10px;padding:12px 14px;margin-bottom:12px}.kcd-ppg{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:8px}.kcd-ppk{display:flex;flex-direction:column;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}.kcd-ppk b{font-size:20px}
+/* cadeaus: lijst per gezin (v2) */
+.kc-l{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.kc-r{display:grid;grid-template-columns:minmax(150px,1.1fr) 80px minmax(0,3fr) 120px 64px;gap:12px;align-items:center;padding:8px 14px;border-top:1px solid var(--line)}
+.kc-hd{background:var(--sunken);border-top:0;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.kc-r.vb{opacity:.6}.kc-n{display:flex;flex-direction:column;min-width:0}.kc-b,.kc-t{text-align:right;font-variant-numeric:tabular-nums}.kc-v{text-align:center}
+.kc-c{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}.kc-c .kc-p{width:100%}.kc-c .kc-p{grid-template-columns:32px minmax(0,1fr) auto auto}.kc-c .kc-p img,.kc-c .kc-ph{width:32px;height:32px}
+.kc-t .kc-bar{margin-top:4px;min-width:0;height:4px}
+.kc-gr .kc-gh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:#fafafa;border-top:1px solid var(--line-strong);border-bottom:0}
+.kc-l>.kc-gr:first-of-type .kc-gh{border-top:0}
+@media(max-width:760px){.kc-hd{display:none}.kc-r{grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"n t v" "c c c";row-gap:6px}.kc-n{grid-area:n}.kc-t{grid-area:t}.kc-v{grid-area:v}.kc-c{grid-area:c}.kc-b{display:none}}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
