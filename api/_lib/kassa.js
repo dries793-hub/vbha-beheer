@@ -119,7 +119,7 @@ export default async function kassaPubliek(req, res) {
       const { error } = await sb.from("kassa").insert(row); if (error) throw error;
       if (cash) return res.status(200).json({ ok: true, id, bedrag, status: "SUCCEEDED" });
       const { startBetaling } = await import("./betaal.js");
-      let bt; try { bt = await startBetaling(sb, req, "kassa", row, { bedrag, jaar: K.jaar, terug: "/kassa" }); }
+      let bt; try { bt = await startBetaling(sb, req, "kassa", row, { bedrag, jaar: K.jaar, terug: "/betaald" }); }
       catch (e) { console.error("kassa betaling", e); await sb.from("kassa").delete().eq("id", id); throw httpErr(502, "De betaling kon niet gestart worden. Probeer opnieuw."); }
       return res.status(200).json({ ok: true, id, bedrag, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp });
     }
@@ -132,7 +132,7 @@ export default async function kassaPubliek(req, res) {
     if (b.actie === "stop") { if (row.data.status === "wacht") await sb.from("kassa").update({ data: { ...row.data, status: "verlopen", gestopt: new Date().toISOString() } }).eq("id", row.id).eq("data->>status", "wacht"); return res.status(200).json({ ok: true }); }
     if (b.actie === "nieuweqr") {
       if (row.data.status !== "wacht") throw httpErr(409, "Deze verkoop is afgesloten.");
-      const { startBetaling } = await import("./betaal.js"); const bt = await startBetaling(sb, req, "kassa", row, { bedrag: row.data.bedrag, jaar: row.data.jaar, terug: "/kassa" });
+      const { startBetaling } = await import("./betaal.js"); const bt = await startBetaling(sb, req, "kassa", row, { bedrag: row.data.bedrag, jaar: row.data.jaar, terug: "/betaald" });
       return res.status(200).json({ ok: true, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp });
     }
     throw httpErr(400, "Onbekende actie.");
