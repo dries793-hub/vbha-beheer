@@ -208,7 +208,26 @@ async function laad(sb, id, t) {
 function view(row, M, open) {
   const d = row.data;
   return { lid: d.lid || "", jaar: d.jaar, datum: M.datum, tot: M.tot, open, sites: M.sites,
+    bijbetalen: bijMag(M), maxExtra: MAX_EXTRA, ...bijStand(d),
     kinderen: (d.kinderen || []).map((k, i) => { const b = budgetVan(k.geb, M), a = lft(k.geb, M.datum); return { i, naam: k.naam, leeftijd: a, ...b, cadeau: k.cadeau || null, besteld: !!(k.besteld && k.besteld.op) }; }) };
+}
+/* ---------- bijbetalen boven het budget (Bancontact) ----------
+   kinderen[i].cadeau.extra = wat boven het budget gaat; cadeau.betaald = true zodra dat betaald is.
+   Eén betaling per inschrijving voor alle kinderen samen (data.betaling, zoals bij de andere betalingen). */
+const MAX_EXTRA = 150;
+const bijMag = M => M.bijbetalen !== false;
+export function bijStand(d) {
+  const K = (d.kinderen || []).filter(k => k.cadeau && k.cadeau.extra > 0);
+  const open = r2(K.filter(k => !k.cadeau.betaald).reduce((s, k) => s + k.cadeau.extra, 0));
+  const b = d.betaling || null;
+  return { extraTotaal: r2(K.reduce((s, k) => s + k.cadeau.extra, 0)), teBetalen: open, betaling: b ? { status: b.status, bedrag: b.bedrag } : null };
+}
+// na een gelukte betaling (betaal.js): alle kinderen met een open bijbetaling op betaald
+export async function kfBijbetaald(sb, id) {
+  const { data: row } = await sb.from("kinderfeest").select("id,data").eq("id", String(id)).maybeSingle(); if (!row) return;
+  const d = row.data, op = new Date().toISOString();
+  const kinderen = (d.kinderen || []).map(k => k.cadeau && k.cadeau.extra > 0 && !k.cadeau.betaald ? { ...k, cadeau: { ...k.cadeau, betaald: true, betaaldOp: op } } : k);
+  const { error } = await sb.from("kinderfeest").update({ data: { ...d, kinderen } }).eq("id", row.id); if (error) throw error;
 }
 
 /* ---------- openbaar: GET ?cadeau=<id>&t=..  |  POST {cadeau,t,actie:"check"|"bewaar"} ---------- */
@@ -226,11 +245,21 @@ export async function kfCadeauPubliek(req, res) {
     await rateLimit(sb, req, "kfcadeaup", 80, 600, httpErr);
     const { row, M, open } = await laad(sb, b.cadeau, b.t);
     if (b.actie === "check") { const p = await productInfo(b.url); return res.status(200).json(p.auto ? { ...p, sig: tekenProduct(p) } : p); }
+    if (b.actie === "betaal" || b.actie === "betaalstatus") {
+      const { startBetaling, controleerBetaling } = await import("./betaal.js");
+      const { onlineConfigured } = await import("./betaalprovider.js");
+      if (b.actie === "betaalstatus") { if (row.data.betaling) await controleerBetaling(sb, "kinderfeest", row); const { data: r2w } = await sb.from("kinderfeest").select("id,data").eq("id", row.id).maybeSingle(); return res.status(200).json(view(r2w, M, open)); }
+      if (!onlineConfigured()) throw httpErr(501, "Online betalen is niet ingesteld.");
+      const bedrag = bijStand(row.data).teBetalen; if (!(bedrag > 0)) throw httpErr(400, "Er is niets bij te betalen.");
+      const bt = await startBetaling(sb, req, "kinderfeest", row, { bedrag, jaar: row.data.jaar, terug: `/cadeau?i=${encodeURIComponent(row.id)}&t=${encodeURIComponent(String(b.t))}&betaling=terug` });
+      return res.status(200).json({ status: bt.status, checkout: bt.checkout || null, deeplink: bt.deeplink || null, qrcode: bt.qrcode || null, bedrag: bt.bedrag });
+    }
     if (b.actie !== "bewaar") throw httpErr(400, "Onbekende actie.");
     if (!open) throw httpErr(403, "Cadeaus kiezen kan niet meer: de termijn is voorbij. Wie niets koos, krijgt een bon van bol.com.");
     const d = row.data, i = Number(b.kind), k = (d.kinderen || [])[i];
     if (!k) throw httpErr(400, "Dit kind staat niet in de inschrijving.");
     if (k.besteld && k.besteld.op) throw httpErr(409, "Het cadeau van " + k.naam + " is al besteld en kan niet meer gewijzigd worden.");
+    if (k.cadeau && k.cadeau.betaald) throw httpErr(409, "Voor het cadeau van " + k.naam + " werd al bijbetaald. Wil je iets wijzigen, neem dan contact met ons op.");
     const B = budgetVan(k.geb, M);
     if (B.voorzien || B.budget == null) throw httpErr(400, `Voor ${k.naam} voorziet de vereniging het cadeau.`);
     let cadeau;
@@ -250,14 +279,17 @@ export async function kfCadeauPubliek(req, res) {
           return { ...p, naam, prijs: r2(prijs), auto: false };
         }));
         const totaal = r2(items.reduce((s, x) => s + x.prijs, 0));
-        if (totaal > B.budget + 0.005) throw httpErr(400, `Samen kosten deze cadeaus € ${totaal.toFixed(2).replace(".", ",")}. Het budget voor ${k.naam} is € ${B.budget.toFixed(2).replace(".", ",")}.`);
-        cadeau = { items, totaal, op: new Date().toISOString() };
+        const extra = r2(Math.max(0, totaal - B.budget)), eu = n => "€ " + n.toFixed(2).replace(".", ",");
+        if (extra > 0.004 && !bijMag(M)) throw httpErr(400, `Samen kosten deze cadeaus ${eu(totaal)}. Het budget voor ${k.naam} is ${eu(B.budget)}.`);
+        if (extra > MAX_EXTRA) throw httpErr(400, `Samen kosten deze cadeaus ${eu(totaal)}: dat is ${eu(extra)} boven het budget van ${eu(B.budget)}. Bijbetalen kan tot ${eu(MAX_EXTRA)}.`);
+        if (extra > 0.004 && b.bijbetalen !== true) throw httpErr(400, `Je gaat ${eu(extra)} boven het budget. Bevestig dat je dit bijbetaalt.`);
+        cadeau = { items, totaal, ...(extra > 0.004 ? { extra } : {}), op: new Date().toISOString() };
       }
     }
     const kinderen = d.kinderen.map((x, j) => { if (j !== i) return x; const n = { ...x }; if (cadeau) n.cadeau = cadeau; else delete n.cadeau; return n; });
     const moet = kinderen.filter(x => { const bb = budgetVan(x.geb, M); return bb.budget != null; });
     const nd = { ...d, kinderen };
-    if (moet.length && moet.every(x => x.cadeau) && !(d.cadeau && d.cadeau.doorgegeven)) nd.cadeau = { doorgegeven: true, op: new Date().toISOString(), door: "ouder (keuzepagina)" };
+    if (moet.length && moet.every(x => x.cadeau) && !bijStand(nd).teBetalen && !(d.cadeau && d.cadeau.doorgegeven)) nd.cadeau = { doorgegeven: true, op: new Date().toISOString(), door: "ouder (keuzepagina)" };
     const { error } = await sb.from("kinderfeest").update({ data: nd }).eq("id", row.id); if (error) throw error;
     return res.status(200).json(view({ ...row, data: nd }, M, open));
   } catch (e) { sendError(res, e); }

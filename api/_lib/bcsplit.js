@@ -13,6 +13,7 @@ const BRONNEN = [
   ["banket", r => ({ cat: "Banket", wie: r.naam })],
   ["leden", r => ({ cat: "Lidgeld", wie: [r.voornaam, r.naam].filter(Boolean).join(" "), lidId: r._id })],
   ["familiedag", r => ({ cat: "Familiedag", wie: r.naam })],
+  ["kinderfeest", r => ({ cat: "Kinderfeest", wie: (r.lid || "") + " (bijbetaling cadeau)" })],
   ["tickets", r => ({ cat: "Fuif", wie: [r.voornaam, r.naam].filter(Boolean).join(" ") || "tickets" })],
   ["shop_orders", r => ({ cat: "Webshop", wie: r.klant ? [r.klant.voornaam, r.klant.naam].filter(Boolean).join(" ") : "bestelling" })],
   // kassa: per categorie van de verkochte tegels (bv. Boekje 150 jaar -> "150 jaar"), de rest bij de activiteit

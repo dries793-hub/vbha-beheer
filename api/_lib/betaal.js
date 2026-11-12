@@ -3,7 +3,7 @@ import { betalingGelukt } from "./bevestiging.js";
 
 // Online betalingen (Bancontact Pay) voor records in de tabellen "leden" (lidgeld) en "banket".
 // Elk record bewaart zijn betaling in data.betaling = {id, status, bedrag, jaar, deeplink, qrcode, ...}.
-export const BETAALTABELLEN = ["leden", "banket", "facturen", "sponsors", "tickets", "kassa", "shop_orders", "familiedag"];
+export const BETAALTABELLEN = ["leden", "banket", "facturen", "sponsors", "tickets", "kassa", "shop_orders", "familiedag", "kinderfeest"];
 
 export function siteUrl(req) {
   const s = String(process.env.SITE_URL || "").trim().replace(/\/+$/, "");
@@ -24,6 +24,7 @@ function omschrijving(tabel, d, jaar) {
   if (tabel === "tickets") return `Fuif ${jaar}: ${[d.aantal ? d.aantal + (Number(d.aantal) === 1 ? " ticket" : " tickets") : "", (d.drank || []).reduce((n, k) => n + k.aantal, 0) ? (d.drank || []).reduce((n, k) => n + k.aantal, 0) + " drankkaart(en)" : ""].filter(Boolean).join(" + ")} ${d.voornaam || ""} ${d.naam || ""}`.replace(/\s+/g, " ").trim().slice(0, 140);
   if (tabel === "sponsors") return `Sponsoring ${jaar} ${d.bedrijf || ""}`.trim().slice(0, 140);
   if (tabel === "familiedag") return `${d.naam} Familiedag ${jaar}`.slice(0, 140);
+  if (tabel === "kinderfeest") return `${d.lid || ""} Kinderfeest ${jaar} bijbetaling cadeau`.trim().slice(0, 140);
   return tabel === "banket" ? `${d.naam} Banket ${jaar}` : `${d.naam} ${d.voornaam} Lidgeld ${jaar}`;
 }
 
@@ -36,7 +37,7 @@ export async function startBetaling(sb, req, tabel, row, { bedrag, jaar, terug }
   if (zelfde && !EIND.has(cur.status) && cur.verlooptOp && Date.parse(cur.verlooptOp) - Date.now() > 20000) return cur;
   const b = await maakBetaling({
     bedrag, omschrijving: omschrijving(tabel, d, jaar),
-    referentie: tabel === "familiedag" ? "VBHA FD" + jaar + " " + row.id.slice(0, 24) : tabel === "facturen" ? "VBHA " + d.nr : tabel === "shop_orders" ? "VBHA " + d.nr : tabel === "kassa" ? "VBHA K" + jaar + " " + row.id.slice(0, 22) : tabel === "tickets" ? "VBHA F" + jaar + " " + row.id.slice(0, 22) : tabel === "sponsors" ? "VBHA SP" + jaar + " " + row.id.slice(0, 24) : "VBHA " + (tabel === "banket" ? "B" : "L") + jaar + " " + row.id.slice(0, 20),
+    referentie: tabel === "familiedag" ? "VBHA FD" + jaar + " " + row.id.slice(0, 24) : tabel === "kinderfeest" ? "VBHA KF" + jaar + " " + row.id.slice(0, 24) : tabel === "facturen" ? "VBHA " + d.nr : tabel === "shop_orders" ? "VBHA " + d.nr : tabel === "kassa" ? "VBHA K" + jaar + " " + row.id.slice(0, 22) : tabel === "tickets" ? "VBHA F" + jaar + " " + row.id.slice(0, 22) : tabel === "sponsors" ? "VBHA SP" + jaar + " " + row.id.slice(0, 24) : "VBHA " + (tabel === "banket" ? "B" : "L") + jaar + " " + row.id.slice(0, 20),
     callbackUrl: siteUrl(req) + "/api/bancontact/callback",
     redirectUrl: siteUrl(req) + (terug || ((tabel === "banket" ? "/banket" : tabel === "familiedag" ? "/familiedag" : "/inschrijven") + "?betaling=terug")),
   });
@@ -60,7 +61,7 @@ export async function controleerBetaling(sb, tabel, row) {
   }
   if (p.status !== cur.status) await bewaar(sb, tabel, row.id, { ...d, betaling });
   if (p.status === "SUCCEEDED" && tabel === "leden") await zetLidgeldBetaald(sb, row.id, cur.jaar, p);
-  if (p.status === "SUCCEEDED" && cur.status !== "SUCCEEDED") { try { if (tabel === "shop_orders") await (await import("./shop.js")).shopBetaald(sb, row.id); else if (tabel === "kassa") await (await import("./kassa.js")).kassaBetaald(sb, row.id); else if (tabel === "tickets") await (await import("./fuif.js")).fuifBetaald(sb, row.id); else if (tabel === "facturen") await (await import("./factuur.js")).factuurOnlineBetaald(sb, row.id); else if (tabel === "sponsors") await (await import("./open_sponsor.js")).sponsorBetaald(sb, row.id); else await betalingGelukt(sb, tabel, row.id); } catch (e) { console.error("bevestiging", e); } }
+  if (p.status === "SUCCEEDED" && cur.status !== "SUCCEEDED") { try { if (tabel === "kinderfeest") await (await import("./kfcadeau.js")).kfBijbetaald(sb, row.id); else if (tabel === "shop_orders") await (await import("./shop.js")).shopBetaald(sb, row.id); else if (tabel === "kassa") await (await import("./kassa.js")).kassaBetaald(sb, row.id); else if (tabel === "tickets") await (await import("./fuif.js")).fuifBetaald(sb, row.id); else if (tabel === "facturen") await (await import("./factuur.js")).factuurOnlineBetaald(sb, row.id); else if (tabel === "sponsors") await (await import("./open_sponsor.js")).sponsorBetaald(sb, row.id); else await betalingGelukt(sb, tabel, row.id); } catch (e) { console.error("bevestiging", e); } }
   return betaling;
 }
 
