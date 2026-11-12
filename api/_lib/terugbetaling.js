@@ -67,7 +67,7 @@ export default async function terugPubliek(req, res) {
       if (!ibanOk2) throw httpErr(400, "Vul je rekeningnummer (IBAN) in.");
       const id = "ok-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       const bon = await bonBewaar(sb, id, b.bon);
-      const { error } = await sb.from("terugbetalingen").insert({ id, status: "ingediend", data: { soort: "onkosten", naam, email: email || (mailOk(lidMail) ? lidMail : ""), lidId, iban: ibanOk2, ibanVorig: !iban, bedrag, reden, datum, bon, op: nu(), nieuw: true } });
+      const { error } = await sb.from("terugbetalingen").insert({ id, status: "ingediend", data: { soort: "onkosten", naam, email: email || (mailOk(lidMail) ? lidMail : ""), lidId, iban: ibanOk2, ibanVorig: !iban, bedrag, reden, datum, bon, ...(!bon && b.geenBon ? { geenBon: true } : {}), op: nu(), nieuw: true } });
       if (error) throw error;
       if (iban && lidId) await lidIbanZet(sb, lidId, iban, "onkostennota");
       try { const { meldPush } = await import("./push.js"); await meldPush(sb, "boek", { titel: "Nieuwe onkostennota", tekst: `${naam} · € ${bedrag.toFixed(2).replace(".", ",")} · ${reden.slice(0, 60)}`, url: "/#terug", tag: "tb-" + id }); } catch (e) { console.error("push onkost", e); }
