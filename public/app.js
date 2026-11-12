@@ -7295,10 +7295,10 @@ function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L
   return `<div class="panel kcd"><div class="panel-h"><h2>Cadeaus</h2><span class="muted small">kiezen tot en met ${esc(fmtDate(M.tot))}${kfcVoorbij()?" · afgesloten":""}</span><span class="grow"></span>
     ${mag?`<button type="button" class="btn sm" data-kfc="controle" title="Prijs en voorraad opnieuw opvragen bij de winkels">Opnieuw controleren</button><button type="button" class="btn sm" data-kfc="vergelijk" title="Voor elk gekozen product de prijs bij de andere winkel opzoeken (zelfde EAN)">Prijzen vergelijken</button><button type="button" class="btn sm primary" data-kfc="bestel">${ic("download")}Bestellijst</button>`:""}</div>
    <div class="panel-b"><div class="tiles kcd-t">
-     <div class="tile"><span class="lbl">Gekozen</span><span class="val">${s.gekozen}</span><span class="hint">${eur(totGek)}</span></div>
-     <div class="tile"><span class="lbl">Bon bol.com</span><span class="val">${s.bon+s.geenkeuze}</span><span class="hint">${eur(s.bonBedrag)}</span></div>
-     <div class="tile"><span class="lbl">Nog niet gekozen</span><span class="val">${s.open}</span><span class="hint">&nbsp;</span></div>
-     <div class="tile"><span class="lbl">Bijbetalingen</span><span class="val">${bijOpen.length+bijOk.length}</span><span class="hint">${bijOpen.length?bijOpen.length+" open":bijOk.length?"alles ontvangen":"&nbsp;"}</span></div></div>
+     <div class="tile"><span class="lbl">Gekozen</span><span class="val">${s.gekozen}</span></div>
+     <div class="tile"><span class="lbl">Bon bol.com</span><span class="val">${s.bon+s.geenkeuze}</span></div>
+     <div class="tile"><span class="lbl">Nog niet gekozen</span><span class="val">${s.open}</span></div>
+     <div class="tile"><span class="lbl">Bijbetalingen</span><span class="val">${bijOpen.length+bijOk.length}</span></div></div>
    <div class="seg kc-f" role="group" aria-label="Filter cadeaus">${chip("alle","Alle")}${chip("gekozen","Gekozen",s.gekozen)}${chip("bon","Bon",s.bon+s.geenkeuze)}${chip("open","Nog niet gekozen",s.open)}${bijOpen.length+bijOk.length?chip("bij","Bijbetaling",bijOpen.length+bijOk.length):""}</div>
    <div class="kc-gs">${gez.map(gezin).join("")||'<div class="empty">Geen kinderen in deze selectie.</div>'}</div></div></div>`}
 // bestellijst per winkel + bonnen
