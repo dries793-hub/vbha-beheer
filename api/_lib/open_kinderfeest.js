@@ -77,7 +77,7 @@ export default async function handler(req, res) {
           const { verstuur, afzender, smtpConfigured } = await import("./smtp.js");
           if (smtpConfigured()) {
             const { huisstijl } = await import("./bevestiging.js"), A = await algemeen(sb);
-            const site = String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, ""), url = `${site}/kinderfeest?v=${encodeURIComponent(lidId)}&t=${vToken(lidId, I.jaar)}`;
+            const site = "https://vbha.be", url = `${site}/kinderfeest?v=${encodeURIComponent(lidId)}&t=${vToken(lidId, I.jaar)}`;
             const vn = (lr.data.voornaam || "").trim(), esc = x => String(x ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
             const html = `<p style="margin:0 0 15px">Beste ${esc(vn)},</p><p style="margin:0 0 15px">Met de knop hieronder open je de inschrijving voor het kinderfeest ${I.jaar}, met je kinderen al ingevuld.</p>
 <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 18px"><tr><td bgcolor="#C0161F" style="border-radius:8px"><a href="${esc(url)}" style="display:inline-block;padding:12px 22px;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px">Kinderen invullen</a></td></tr></table>`;

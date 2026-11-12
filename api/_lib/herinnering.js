@@ -38,7 +38,7 @@ ${v.id && vgBestuur(v) ? KNOP : `<p style="margin:0 0 15px">Kan je er niet bij z
 }
 
 const ontvangers = cfg => String(cfg.ontvangers || "").split(/[,;\s]+/).map(x => x.trim()).filter(x => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x));
-const site = () => String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, "");
+const site = () => "https://vbha.be"; // openbare links (in mails en op papier) altijd via het eigen domein
 
 
 /* ---------- aanwezig/verontschuldigd in de mails ----------
