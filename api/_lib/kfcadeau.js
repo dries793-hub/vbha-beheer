@@ -312,6 +312,9 @@ export async function kfCadeauPubliek(req, res) {
       else {
         const items = await Promise.all(L.map(async x => {
           // net gecontroleerd (ondertekend door de server, minder dan een uur oud): niet opnieuw opvragen
+          // al bewaard bij dit kind (ongewijzigd): niet opnieuw bij de winkel opvragen
+          const oud = k.cadeau && (k.cadeau.items || []).find(o => o.url === (x && x.url) && Number(o.prijs) === Number(x && x.prijs));
+          if (oud) return oud;
           if (x && x.sig && x.auto && kloptProduct(x)) { const p = { ...Object.fromEntries(PVELD.map(k => [k, x[k] ?? null])), auto: true, bron: "zyte" }; if (p.beschikbaar === false) throw httpErr(400, `"${p.naam}" is niet op voorraad. Kies een ander product.`); return p; }
           const p = await productInfo(x && x.url);
           if (p.auto) { if (p.beschikbaar === false) throw httpErr(400, `"${p.naam}" is niet op voorraad. Kies een ander product.`); return p; }
