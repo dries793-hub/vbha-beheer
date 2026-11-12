@@ -206,7 +206,7 @@ function prod(it,i,k,edit){return `<div class="pr">${it.foto?`<img src="${esc(it
 const extraT=c=>c&&c.extra>0?`</div><div class="bijb" style="margin:-4px 0 10px">${c.betaald?`✓ ${eur(c.extra)} bijbetaald`:`<b>${eur(c.extra)}</b> boven het budget: nog bij te betalen (zie onderaan)`}`:"";
 const magBij=(k,rest)=>V.bijbetalen&&rest<0&&-rest<=V.maxExtra+0.004;
 function kaart(k){const E=ED[k.i];
-  if(k.voorzien||k.budget==null)return `<div class="card kc"><h2>${esc(k.naam)}</h2><p class="sub">${k.leeftijd!=null?k.leeftijd+" jaar op het feest":""}</p><div class="state bon">De vereniging voorziet zelf een cadeau${k.tekst&&!/vbha|vereniging/i.test(k.tekst)?" ("+esc(k.tekst)+")":""}. Je hoeft niets te kiezen.</div></div>`;
+  if(k.voorzien||k.budget==null)return `<div class="card kc"><h2>${esc(k.naam)}</h2><p class="sub">${k.leeftijd!=null?k.leeftijd+" jaar op het feest":""}</p><div class="state bon">De vriendenkring voorziet zelf een cadeau${k.tekst&&!/vbha|vereniging|vriendenkring/i.test(k.tekst)?" ("+esc(k.tekst)+")":""}. Je hoeft niets te kiezen.</div></div>`;
   const c=k.cadeau;
   if(!V.open||k.besteld){const st=k.besteld?"Besteld":"Gekozen";
     return `<div class="card kc"><h2>${esc(k.naam)}</h2><p class="sub">Budget ${eur(k.budget)}</p>${c&&c.bon?`<div class="state bon">${esc(k.naam)} krijgt een bon van bol.com van ${eur(k.budget)}.</div>`:c&&c.items?`<div class="state ok">${st}: ${eur(c.totaal)}${extraT(c)}</div>${c.items.map((it,i)=>prod(it,i,k.i,false)).join("")}`:`<div class="state bon">Er werd niets gekozen: ${esc(k.naam)} krijgt een bon van bol.com van ${eur(k.budget)}.</div>`}</div>`}
