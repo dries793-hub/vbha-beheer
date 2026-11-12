@@ -4405,24 +4405,21 @@ function kfMailDef(datum){const Y=Number(String(datum||"").slice(0,4))||JAAR,d=a
     groepen:`${Y-11}: cadeau voorzien door VBHA\n${Y-10}-${Y-6}: 50,00 EUR per kind\n${Y-5}-${Y}: 35,00 EUR per kind`}}
 function kfMailCfg(){const c=kfCfg();return{...kfMailDef(c.datum),...(c.mail||{})}}
 function kfMailHtml(){const M=kfMailCfg(),d=canWrite?"":" disabled";
-  return `<div class="fc-sec full"><h4>Bevestigingsmail</h4></div>
-  <p class="full muted small" style="margin:-6px 0 0">Na elke inschrijving via de website krijgt de inschrijver meteen een bevestiging, naar het adres van het lid of naar het adres dat hij opgaf.</p>
-  ${fld("kmK","Kopie van elke bevestiging naar",inp("kmK",M.kopie??"",'placeholder="e-mailadres (leeg = geen kopie)"'+d),"full")}
-  <label class="sp-nat full" for="kmC"><input type="checkbox" id="kmC"${M.cadeau?" checked":""}${d}><span><b>Cadeau zelf kiezen</b><small>De uitleg hieronder komt in de bevestigingsmail.</small></span></label>
+  const w=!M.cadeau?"geen":M.keuze?"1":"0";
+  return `<input type="hidden" id="kmK" value="${esc(M.kopie??"")}"><input type="hidden" id="kmC" value="${M.cadeau?"1":""}">
+  <div class="fld full"><label>Cadeaus</label><div class="seg km-wijze" role="group" aria-label="Cadeaus">${[["geen","Geen"],["0","Klassiek (per mail)"],["1","Cadeaukiezer"]].map(([k,l])=>`<button type="button" data-kmw="${k}" class="${w===k?"on":""}"${d}>${l}</button>`).join("")}</div><input type="hidden" id="kmKz" value="${M.keuze?"1":""}"></div>
   <div class="full km-velden" id="kmV"${M.cadeau?"":" hidden"}><div class="form" style="padding:0">
    ${fld("kmS","Websites",inp("kmS",M.sites,'placeholder="www.dreamland.be, www.bol.com"'+d))}${fld("kmT","Cadeau doorgeven vóór",`<input id="kmT" type="date" value="${esc(M.tot)}"${d}>`)}
-   <div class="fld full"><label>Cadeaus doorgeven</label><div class="seg km-wijze" role="group" aria-label="Cadeaus doorgeven">${[["0","Klassiek (per mail)"],["1","Cadeaukiezer"]].map(([k,l])=>`<button type="button" data-kmw="${k}" class="${(M.keuze?"1":"0")===k?"on":""}"${d}>${l}</button>`).join("")}</div><input type="hidden" id="kmKz" value="${M.keuze?"1":""}"></div>
    <div class="fld full" id="kmMw"${M.keuze?" hidden":""}><label for="kmM">Doorsturen naar</label>${inp("kmM",M.contact,'type="email" placeholder="e-mailadres"'+d)}</div>
    <label class="sp-nat full" for="kmBb" id="kmBbw"${M.keuze?"":" hidden"}><input type="checkbox" id="kmBb"${M.bijbetalen!==false?" checked":""}${d}><span><b>Bijbetalen boven het budget</b><small>Met Bancontact, tot € 150 per kind.</small></span></label>
    <div class="fld full"><label for="kmG">Waarde per geboortejaar</label><textarea id="kmG" style="height:86px;min-height:0;font-family:inherit"${d}>${esc(M.groepen)}</textarea><span class="help">Eén regel per groep, bv. <b>2016-2020: 50,00 EUR per kind</b> of <b>2015: cadeau voorzien door VBHA</b>.</span></div>
   </div></div>
   <div class="full bar" style="margin:0"><button type="button" class="btn sm" data-km="voorbeeld">${ic("mails")}Voorbeeld van de mail</button><button type="button" class="btn sm ghost" data-km="standaard"${d}>Standaardtekst</button></div>`}
-const kmLees=()=>({kopie:$("#kmK").value.trim(),cadeau:$("#kmC").checked,sites:$("#kmS").value.trim(),tot:$("#kmT").value,contact:$("#kmM").value.trim(),keuze:!!($("#kmKz")&&$("#kmKz").value),bijbetalen:!!($("#kmBb")&&$("#kmBb").checked),groepen:$("#kmG").value.trim()});
+const kmLees=()=>({kopie:$("#kmK").value.trim(),cadeau:!!$("#kmC").value,sites:$("#kmS").value.trim(),tot:$("#kmT").value,contact:$("#kmM").value.trim(),keuze:!!($("#kmKz")&&$("#kmKz").value),bijbetalen:!!($("#kmBb")&&$("#kmBb").checked),groepen:$("#kmG").value.trim()});
 {const _k=kfInst;kfInst=function(){_k.apply(this,arguments);const f=$("#fKfI");if(!f)return;f.insertAdjacentHTML("beforeend",kfMailHtml());
   const ok=$("#kiOk");if(!ok||!ok.onclick)return;const _o=ok.onclick;
   ok.onclick=async function(ev){const M=kmLees();if(M.kopie&&M.kopie.split(/[,;\s]+/).filter(Boolean).some(x=>!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x))){toast("Het adres voor de kopie klopt niet.",true);return}if(M.contact&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(M.contact)){toast("Het adres om het cadeau door te sturen klopt niet.",true);return}
     const k="kf_"+JAAR,cur=S.config.get(k)||{};S.config.set(k,{...cur,id:k,mail:M});return _o.call(this,ev)}}}
-document.addEventListener("change",e=>{if(e.target.id==="kmC"&&$("#kmV"))$("#kmV").hidden=!e.target.checked});
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-km]");if(!t)return;
   if(t.dataset.km==="standaard"){const D=kfMailDef(($("#kiD")||{}).value||kfCfg().datum);$("#kmS").value=D.sites;$("#kmT").value=D.tot;$("#kmM").value=D.contact;$("#kmG").value=D.groepen;return}
   const w=window.open("","_blank");t.disabled=true;
@@ -4474,8 +4471,8 @@ kfExport=async function(){const st=kfStats(),c=st.c,M=kfMailCfg(),G=kfGroepenC(M
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(ages),"Cadeautjes per leeftijd");
   const out=XLSX.write(wb,{bookType:"xlsx",type:"array"});await save("VBHA_Kinderfeest_"+JAAR+".xlsx",new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}))};
 
-document.addEventListener("click",e=>{const b=e.target.closest("[data-kmw]");if(!b||b.disabled)return;const on=b.dataset.kmw==="1";
-  b.parentElement.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));const h=$("#kmKz");if(h)h.value=on?"1":"";
+document.addEventListener("click",e=>{const b=e.target.closest("[data-kmw]");if(!b||b.disabled)return;const on=b.dataset.kmw==="1",geen=b.dataset.kmw==="geen";
+  b.parentElement.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));const h=$("#kmKz");if(h)h.value=on?"1":"";const c=$("#kmC");if(c)c.value=geen?"":"1";const v=$("#kmV");if(v)v.hidden=geen;
   const m=$("#kmMw"),bb=$("#kmBbw");if(m)m.hidden=on;if(bb)bb.hidden=!on});
 
 /* ============ Banket: korting volgens het puntensysteem ============
