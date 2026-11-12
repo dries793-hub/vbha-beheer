@@ -50,9 +50,12 @@ export default async function terugPubliek(req, res) {
       if (!ibanOk(iban)) throw httpErr(400, "Dit rekeningnummer (IBAN) klopt niet.");
       if (!bedrag) throw httpErr(400, "Vul een geldig bedrag in.");
       if (!reden) throw httpErr(400, "Schrijf kort waarvoor de kosten waren.");
+      // gekozen lid: e-mailadres en lidnummer uit de ledenlijst (het formulier vraagt geen e-mailadres meer)
+      let lidId = "", lidMail = "";
+      if (b.lidId) { const { data: l } = await sb.from("leden").select("id,data").eq("id", String(b.lidId).slice(0, 60)).maybeSingle(); if (l && !l.data.geenLid) { lidId = l.id; lidMail = String(l.data.email || "").trim(); } }
       const id = "ok-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       const bon = await bonBewaar(sb, id, b.bon);
-      const { error } = await sb.from("terugbetalingen").insert({ id, status: "ingediend", data: { soort: "onkosten", naam, email, iban, bedrag, reden, datum, bon, op: nu(), nieuw: true } });
+      const { error } = await sb.from("terugbetalingen").insert({ id, status: "ingediend", data: { soort: "onkosten", naam, email: email || (mailOk(lidMail) ? lidMail : ""), lidId, iban, bedrag, reden, datum, bon, op: nu(), nieuw: true } });
       if (error) throw error;
       try { const { meldPush } = await import("./push.js"); await meldPush(sb, "boek", { titel: "Nieuwe onkostennota", tekst: `${naam} · € ${bedrag.toFixed(2).replace(".", ",")} · ${reden.slice(0, 60)}`, url: "/#terug", tag: "tb-" + id }); } catch (e) { console.error("push onkost", e); }
       return res.status(200).json({ ok: true });
