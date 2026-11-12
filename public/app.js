@@ -4411,12 +4411,13 @@ function kfMailHtml(){const M=kfMailCfg(),d=canWrite?"":" disabled";
   <label class="sp-nat full" for="kmC"><input type="checkbox" id="kmC"${M.cadeau?" checked":""}${d}><span><b>Cadeau zelf kiezen</b><small>De uitleg hieronder komt in de bevestigingsmail.</small></span></label>
   <div class="full km-velden" id="kmV"${M.cadeau?"":" hidden"}><div class="form" style="padding:0">
    ${fld("kmS","Websites",inp("kmS",M.sites,'placeholder="www.dreamland.be, www.bol.com"'+d))}${fld("kmT","Cadeau doorgeven vóór",`<input id="kmT" type="date" value="${esc(M.tot)}"${d}>`)}
-   ${fld("kmM","Doorsturen naar",inp("kmM",M.contact,'type="email" placeholder="e-mailadres"'+d),"full")}
-   <label class="sp-nat full" for="kmKz"><input type="checkbox" id="kmKz"${M.keuze?" checked":""}${d}><span><b>Ouders kiezen via de keuzepagina</b><small>In de mail een knop "Cadeau kiezen" in plaats van doorsturen per mail.</small></span></label>
+   <div class="fld full"><label>Cadeaus doorgeven</label><div class="seg km-wijze" role="group" aria-label="Cadeaus doorgeven">${[["0","Klassiek (per mail)"],["1","Cadeaukiezer"]].map(([k,l])=>`<button type="button" data-kmw="${k}" class="${(M.keuze?"1":"0")===k?"on":""}"${d}>${l}</button>`).join("")}</div><input type="hidden" id="kmKz" value="${M.keuze?"1":""}"></div>
+   <div class="fld full" id="kmMw"${M.keuze?" hidden":""}><label for="kmM">Doorsturen naar</label>${inp("kmM",M.contact,'type="email" placeholder="e-mailadres"'+d)}</div>
+   <label class="sp-nat full" for="kmBb" id="kmBbw"${M.keuze?"":" hidden"}><input type="checkbox" id="kmBb"${M.bijbetalen!==false?" checked":""}${d}><span><b>Bijbetalen boven het budget</b><small>Met Bancontact, tot € 150 per kind.</small></span></label>
    <div class="fld full"><label for="kmG">Waarde per geboortejaar</label><textarea id="kmG" style="height:86px;min-height:0;font-family:inherit"${d}>${esc(M.groepen)}</textarea><span class="help">Eén regel per groep, bv. <b>2016-2020: 50,00 EUR per kind</b> of <b>2015: cadeau voorzien door VBHA</b>.</span></div>
   </div></div>
   <div class="full bar" style="margin:0"><button type="button" class="btn sm" data-km="voorbeeld">${ic("mails")}Voorbeeld van de mail</button><button type="button" class="btn sm ghost" data-km="standaard"${d}>Standaardtekst</button></div>`}
-const kmLees=()=>({kopie:$("#kmK").value.trim(),cadeau:$("#kmC").checked,sites:$("#kmS").value.trim(),tot:$("#kmT").value,contact:$("#kmM").value.trim(),keuze:!!($("#kmKz")&&$("#kmKz").checked),groepen:$("#kmG").value.trim()});
+const kmLees=()=>({kopie:$("#kmK").value.trim(),cadeau:$("#kmC").checked,sites:$("#kmS").value.trim(),tot:$("#kmT").value,contact:$("#kmM").value.trim(),keuze:!!($("#kmKz")&&$("#kmKz").value),bijbetalen:!!($("#kmBb")&&$("#kmBb").checked),groepen:$("#kmG").value.trim()});
 {const _k=kfInst;kfInst=function(){_k.apply(this,arguments);const f=$("#fKfI");if(!f)return;f.insertAdjacentHTML("beforeend",kfMailHtml());
   const ok=$("#kiOk");if(!ok||!ok.onclick)return;const _o=ok.onclick;
   ok.onclick=async function(ev){const M=kmLees();if(M.kopie&&M.kopie.split(/[,;\s]+/).filter(Boolean).some(x=>!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x))){toast("Het adres voor de kopie klopt niet.",true);return}if(M.contact&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(M.contact)){toast("Het adres om het cadeau door te sturen klopt niet.",true);return}
@@ -4472,6 +4473,10 @@ kfExport=async function(){const st=kfStats(),c=st.c,M=kfMailCfg(),G=kfGroepenC(M
   const ages=[];for(let a=0;a<=c.leeftijd;a++)ages.push({Leeftijd:a,"Aantal cadeautjes":st.per.get(a)||0});if(st.onbekend)ages.push({Leeftijd:"onbekend","Aantal cadeautjes":st.onbekend});
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(ages),"Cadeautjes per leeftijd");
   const out=XLSX.write(wb,{bookType:"xlsx",type:"array"});await save("VBHA_Kinderfeest_"+JAAR+".xlsx",new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}))};
+
+document.addEventListener("click",e=>{const b=e.target.closest("[data-kmw]");if(!b||b.disabled)return;const on=b.dataset.kmw==="1";
+  b.parentElement.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));const h=$("#kmKz");if(h)h.value=on?"1":"";
+  const m=$("#kmMw"),bb=$("#kmBbw");if(m)m.hidden=on;if(bb)bb.hidden=!on});
 
 /* ============ Banket: korting volgens het puntensysteem ============
    Instelling (Banket › tandwiel): kortingAan + kostprijs (= prijs). De status komt uit de punten van het vorige jaar,
@@ -7264,7 +7269,7 @@ function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L
   const chip=(k,l,n)=>`<button type="button" class="${KFCD.f===k?"on":""}" data-kfc="f" data-v="${k}">${l}${n!=null?` <span class="muted">${n}</span>`:""}</button>`;
   const rij=x=>{const [c,l]=kfcStLbl[x.st];return `<tr><td><b>${esc(x.k.naam)}</b><div class="muted small">${x.a==null?"?":x.a+" j"}</div></td><td>${esc(x.r.lid||"")}${mag?` <button type="button" class="kcd-ln" data-kfc="link" data-id="${esc(x.r.id)}" title="Keuzelink kopiëren" aria-label="Keuzelink kopiëren">${ic("link")}</button>`:""}</td>
     <td class="num">${x.B.bedrag!=null?eur(x.B.bedrag):"–"}</td><td><span class="pill ${c}">${l}</span>${x.st==="bon"&&canWrite&&!x.besteld?` <button type="button" class="kcd-ln" data-kfc="weg" data-id="${esc(x.r.id)}" data-i="${x.i}" data-n="bon" title="Keuze bon wissen" aria-label="Keuze bon wissen">×</button>`:""}${x.st==="gekozen"?x.k.cadeau.items.map((it,n)=>kfcItem(it,x,n)).join(""):""}</td>
-    <td class="num">${x.st==="gekozen"?eur(x.k.cadeau.totaal):x.st==="bon"||x.st==="geenkeuze"?eur(x.B.bedrag):""}</td>
+    <td class="num">${x.st==="gekozen"?eur(x.k.cadeau.totaal)+(x.k.cadeau.extra>0?`<div class="small" style="color:${x.k.cadeau.betaald?"#15803d":"#b45309"}">${x.k.cadeau.betaald?"+ "+eur(x.k.cadeau.extra)+" bijbetaald":eur(x.k.cadeau.extra)+" bijbetaling open"}</div>`:""):x.st==="bon"||x.st==="geenkeuze"?eur(x.B.bedrag):""}</td>
     <td class="c">${x.st==="vbha"||x.st==="open"?"":`<input type="checkbox" data-kfc="besteld" data-id="${esc(x.r.id)}" data-i="${x.i}"${x.besteld?" checked":""}${mag?"":" disabled"} aria-label="Besteld" title="${x.besteld?"Besteld op "+fmtDate(String(x.k.besteld.op).slice(0,10))+(x.k.besteld.door?" door "+esc(x.k.besteld.door):""):"Besteld"}">`}</td></tr>`};
   return `<div class="panel kcd"><div class="panel-h"><h2>Cadeaus</h2><span class="muted small">kiezen tot en met ${esc(fmtDate(M.tot))}${kfcVoorbij()?" · afgesloten":""}</span><span class="grow"></span>
     ${mag?`<button type="button" class="btn sm" data-kfc="controle" title="Prijs en voorraad opnieuw opvragen bij de winkels">Opnieuw controleren</button><button type="button" class="btn sm" data-kfc="vergelijk" title="Voor elk gekozen product de prijs bij de andere winkel opzoeken (zelfde EAN)">Prijzen vergelijken</button><button type="button" class="btn sm primary" data-kfc="bestel">${ic("download")}Bestellijst</button>`:""}</div>
