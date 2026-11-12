@@ -7480,7 +7480,12 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-vga]
    Sms'en naar een groep leden (dezelfde groepen als bij Mails), het bestuur of losse nummers, via BudgetSMS (/api/mail?f=sms).
    Functie "sms" in de rechten: standaard enkel voor de administrator (voor alle andere gebruikers verborgen).
    Elke verstuurde sms komt in het logboek (tabel "sms"); onderaan de pagina staan de laatste verzendingen. */
-{if(!ROUTES.some(r=>r[0]==="sms"))ROUTES.push(["sms","Sms"]);const c=NAV.find(n=>n.id==="communicatie");if(c&&!c.items.some(i=>i[0]==="sms")){const k=c.items.findIndex(i=>i[0]==="mails");c.items.splice(k<0?c.items.length:k+1,0,["sms","Sms"])}}
+{if(!ROUTES.some(r=>r[0]==="sms"))ROUTES.push(["sms","Sms"]);const c=NAV.find(n=>n.id==="communicatie");if(c){const k=c.items.findIndex(i=>i[0]==="sms");if(k>=0)c.items.splice(k,1);const m=c.items.find(i=>i[0]==="mails");if(m)m[1]="Communicatie"}}
+/* Mails en Sms samen op één pagina "Communicatie" met tabs; menu blijft op Communicatie staan.
+   Het recht "sms" blijft apart (NAV_ALIAS zou het anders aan Mails koppelen): standaard enkel admin. */
+var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.sms="mails";
+{const _r=recht;recht=function(r){if(r==="sms"){if(ROL==="admin")return "bewerken";if(typeof SIM_U!=="undefined"&&SIM_U&&ROL!==ROL_ECHT&&SIM_U.rechten)return SIM_U.rechten.sms||"geen";return (RECHTEN&&ROL===ROL_ECHT&&RECHTEN.sms)||"geen"}return _r.apply(this,arguments)}}
+function comTabs(act){if(recht("sms")==="geen")return "";return `<div class="ka-tabs" role="tablist"><a role="tab" href="#mails" class="${act==="mails"?"on":""}">Mail</a><a role="tab" href="#sms" class="${act==="sms"?"on":""}">Sms</a></div>`}
 const SMS={groep:"bestuur",los:"",tekst:"",uit:new Set(),dienst:null,log:null};
 const smsNr=t=>{let d=String(t||"").replace(/[^\d+]/g,"");if(d.startsWith("+"))d=d.slice(1);else if(d.startsWith("00"))d=d.slice(2);else if(d.startsWith("0")&&d.length>=9)d="32"+d.slice(1);return /^\d{9,15}$/.test(d)?d:""};
 const smsGsm=t=>{const n=smsNr(t);return n&&(!n.startsWith("32")||/^324\d{8}$/.test(n))?n:""}; // Belgische vaste nummers kunnen geen sms ontvangen
@@ -7500,13 +7505,13 @@ const smsVul=(t,r)=>String(t||"").replace(/\{voornaam\}/gi,r.voornaam||"");
 function smsDelen(t){const n=t.length;return !n?0:n<=160?1:Math.ceil(n/153)}
 async function smsLaad(){if(!SMS.dienst){SMS.dienst={laden:true};api("/api/mail?f=sms&tegoed=1").then(j=>{SMS.dienst=j;if(route()==="sms")renderBody()}).catch(()=>{SMS.dienst={aan:false}})}
   if(!SMS.log){SMS.log=[];try{const {data}=await SB.from("logboek").select("id,ts,wie,nieuw").eq("tabel","sms").order("id",{ascending:false}).limit(60);SMS.log=data||[];if(route()==="sms")renderBody()}catch(e){}}}
-VIEWS.sms=()=>({title:"Sms",sub:"Sms'en naar leden, bestuur of losse nummers",body(){
-  if(ROL!=="admin"&&recht("sms")==="geen")return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
+VIEWS.sms=()=>({title:"Communicatie",body(){
+  if(recht("sms")==="geen")return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
   if(!SMS.dienst||!SMS.log)smsLaad();const D=SMS.dienst||{};const G=smsGroepen(),g=G.find(x=>x.id===SMS.groep)||G[0];const mag=canWrite;
   const sel=g.list.filter(r=>!SMS.uit.has(r.id));const tekst=SMS.tekst,del=smsDelen(smsVul(tekst,{voornaam:"Xxxxxxxx"}));
   const opt=[...new Set(G.map(x=>x.sect))].map(s=>`<optgroup label="${esc(s)}">${G.filter(x=>x.sect===s).map(x=>`<option value="${esc(x.id)}"${x.id===g.id?" selected":""}>${esc(x.label)} (${x.list.length})</option>`).join("")}</optgroup>`).join("");
   const log=(SMS.log||[]).reduce((m,r)=>{const k=(r.nieuw&&r.nieuw.batch)||r.ts.slice(0,16);(m[k]||(m[k]={ts:r.ts,wie:r.wie,tekst:r.nieuw&&r.nieuw.tekst,n:0,ok:0}));m[k].n++;if(r.nieuw&&r.nieuw.ok)m[k].ok++;return m},{});
-  return `<div class="grid g2 sms-g" style="align-items:start">
+  return comTabs("sms")+`<div class="grid g2 sms-g" style="align-items:start">
    <div class="panel"><div class="panel-h"><h2>Nieuwe sms</h2><span class="grow"></span>${D.laden?'<span class="muted small">laden…</span>':D.aan?`<span class="pill ok">${esc(D.afzender||"VBHA")}${D.tegoed?" · tegoed "+esc(D.tegoed):""}</span>`:'<span class="pill warn">sms-dienst niet ingesteld</span>'}</div><div class="panel-b stack">
     <div class="fld"><label for="smsG">Naar</label><select id="smsG">${opt}</select></div>
     ${g.id==="los"?`<div class="fld"><label for="smsLos">Gsm-nummers</label><textarea id="smsLos" rows="3" placeholder="0476 12 34 56, 0499 …">${esc(SMS.los)}</textarea></div>`:""}
@@ -7541,3 +7546,4 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-sms]
 .sms-act{display:flex;align-items:center;justify-content:space-between;gap:10px}.sms-l{max-height:none}.sms-r{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 16px;border-top:1px solid var(--line);cursor:pointer}
 .sms-r:first-child{border-top:0}.sms-r input{accent-color:var(--accent);width:16px;height:16px}.sms-r small{color:var(--muted);font-variant-numeric:tabular-nums}.sms-z{padding:10px 16px;border-top:1px solid var(--line)}
 @media(max-width:860px){.sms-g{grid-template-columns:1fr}}`;document.head.appendChild(st)}
+{const _v=VIEWS.mails;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.title="Communicatie";v.body=function(){return comTabs("mails")+String(b.apply(this,arguments))};return v};Object.assign(n,_v);VIEWS.mails=n}
