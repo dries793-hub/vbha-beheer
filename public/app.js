@@ -4342,7 +4342,7 @@ function inkBetaal(id){const d=S.documenten.get(id);if(!d)return;const B=inkBeta
     ${fld("ipM","Mededeling",inp("ipM",B.med,'maxlength="140" placeholder="+++123/4567/89012+++ of vrije tekst"'))}
     <label class="sp-nat full" for="ipS" id="ipSw" hidden><input type="checkbox" id="ipS" checked><span><b id="ipSt">Splitsen</b><small id="ipSs"></small></span></label></div>
    <div class="ink-qr"><div id="ipQ"></div><p class="muted small" id="ipT"></p></div></div>`,
-   `<button class="btn" data-act="closeModal">Sluiten</button>`,{wide:true});
+   `<button type="button" class="btn ghost" data-inkdzet="${esc(id)}" style="margin-right:auto">Via domiciliëring</button><button class="btn" data-act="closeModal">Sluiten</button>`,{wide:true});
   const teken=()=>{const naam=inkAscii($("#ipN").value).slice(0,70),iban=$("#ipI").value.replace(/\s+/g,"").toUpperCase(),bedrag=Number(String($("#ipB").value).replace(/\s/g,"").replace(",",".")),med=$("#ipM").value.trim(),q=$("#ipQ"),t=$("#ipT");
     const fout=!naam?"Vul de begunstigde in.":!inkIbanOk(iban)?"Dit IBAN-nummer klopt niet.":!(bedrag>0&&bedrag<1e6)?"Vul een geldig bedrag in.":"";
     if(fout||!window.qrcode){q.innerHTML=`<div class="ink-qc"><div class="ink-qr-leeg">${esc(fout||"QR-code niet beschikbaar")}</div></div>`;t.textContent="";$("#ipSw").hidden=true;$(".ink-pay").classList.remove("split");return}
@@ -4369,12 +4369,18 @@ function inkBetaal(id){const d=S.documenten.get(id);if(!d)return;const B=inkBeta
       :`Scan met de Argenta-app (of een andere bankapp): de overschrijving van <b>${eur(bedrag)}</b> aan <b>${esc(naam)}</b> staat dan klaar om te bevestigen.${isOgm?"":med?" Mededeling als vrije tekst.":""}${n>1?` <span style="color:#b91c1c">Let op: hoger dan de daglimiet van ${eur(lim)}.</span>`:""}`};
   ["#ipN","#ipI","#ipB","#ipM"].forEach(s=>$(s).addEventListener("input",()=>{toon=null;teken()}));$("#ipS").addEventListener("change",teken);
   $("#ipT").addEventListener("click",e=>{const x=e.target.closest("[data-ipnu]");if(!x)return;toon=Number(x.dataset.ipnu);teken()});teken()}
+/* domiciliëring / SEPA Direct Debit: zo'n factuur wordt automatisch van de rekening gehaald, niet zelf betalen */
+const INK_DOMI=/domicili|direct\s*debit|prelevement|lastschrift|sepa[\s-]*incasso|(automatisch|via\s*uw\s*bank)\s*(van\s*(uw|je)\s*rekening\s*)?(afgehouden|gedebiteerd|afgeschreven|ingehouden|geind|gedomicilieerd)|wordt\s*(automatisch\s*)?(van\s*(uw|je)\s*rekening\s*)?(gedebiteerd|afgehouden|afgeschreven)|niet\s*(zelf\s*)?(te\s*)?(betalen|overschrijven)|u\s*hoeft\s*niets\s*te\s*(doen|betalen)/;
+function inkDomi(d){const o=d&&d.inkomend&&d.inkomend.domi;if(o===true||o===false)return o;const A=INK.txt.get(d.id);return!!(A&&!A.fout&&INK_DOMI.test(A.tekst||""))}
 {const _r=inkRij;inkRij=function(d){const h=_r(d);if(!inkMag()||!inkOpen(d))return h;const i=h.indexOf('</div><div class="ink-b">');if(i<0)return h;
+  if(inkDomi(d))return h.slice(0,i)+`<button type="button" class="pill ink-domi" data-inkdomi="${esc(d.id)}" title="Wordt automatisch van de rekening gehaald (domiciliëring). Klik als dit niet klopt.">Domiciliëring</button>`+h.slice(i);
   return h.slice(0,i)+`<button type="button" class="btn sm" data-inkbet="${esc(d.id)}" title="QR-code om te betalen met de bankapp">${ic("bank")}Betalen</button>`+h.slice(i)}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-inkdomi]");if(!b)return;e.preventDefault();const id=b.dataset.inkdomi;
+  confirmBox("Wordt deze factuur toch niet via domiciliëring betaald? Dan verschijnt de knop Betalen opnieuw.","Zelf betalen",()=>{const x=S.documenten.get(id);if(!x)return;const ink={...(x.inkomend||{}),domi:false};S.documenten.set(id,{...x,inkomend:ink});write("documenten",id,{...stripId(x),inkomend:ink}).catch(err=>toast(err.message,true));renderBody()})});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-inkbet]");if(!b)return;e.preventDefault();inkBetaal(b.dataset.inkbet)});
 {const st=document.createElement("style");st.textContent=`.ink-pay{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:20px;align-items:start}.ink-qr{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
 #ipQ{display:flex;flex-wrap:wrap;gap:16px;justify-content:center}.ink-qd{display:flex;flex-direction:column;align-items:center;gap:2px}.ink-qc{width:220px;height:220px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;display:grid;place-items:center;margin-top:6px}.ink-qc svg{width:100%;height:100%}
-.ink-qr .lnkb{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline}.ink-qr-leeg{font-size:13px;color:var(--muted);padding:12px}
+.ink-domi{border:0;cursor:pointer;background:#e4edfd;color:#2f6fe4;font-weight:600}.ink-qr .lnkb{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline}.ink-qr-leeg{font-size:13px;color:var(--muted);padding:12px}
 @media(max-width:700px){.ink-pay{grid-template-columns:1fr}}`;document.head.appendChild(st)}
 /* dashboard: gesplitste betaling (daglimiet) - de volgende betaling staat klaar */
 function inkBetWacht(){if(!inkMag())return[];const nu=new Date(todayISO()+"T12:00:00");
@@ -4387,6 +4393,8 @@ function inkBetWacht(){if(!inkMag())return[];const nu=new Date(todayISO()+"T12:0
   return x+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-inkbg]");if(!b)return;e.preventDefault();const d=S.documenten.get(b.dataset.inkbg);if(!d||!d.inkomend||!d.inkomend.betaalPlan)return;
   const ink={...d.inkomend,betaalPlan:{...d.inkomend.betaalPlan,gedaan:Number(b.dataset.i)}};S.documenten.set(d.id,{...d,inkomend:ink});renderBody();try{await write("documenten",d.id,{...stripId(d),inkomend:ink})}catch(x){}});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-inkdzet]");if(!b)return;e.preventDefault();const id=b.dataset.inkdzet,x=S.documenten.get(id);if(!x)return;
+  const ink={...(x.inkomend||{}),domi:true};S.documenten.set(id,{...x,inkomend:ink});write("documenten",id,{...stripId(x),inkomend:ink}).catch(err=>toast(err.message,true));closeModal();toast("Gemarkeerd: wordt via domiciliëring betaald.");renderBody()});
 
 /* ============ Dashboard: meldingen voor de boekhouding ============
    - transacties die nog verwerkt moeten worden (na het inladen van de bankgegevens)
