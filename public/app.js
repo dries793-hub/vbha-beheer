@@ -7931,7 +7931,7 @@ async function tbAutoBetaald(){if(!tbMag()||!canWrite)return;for(const r of TB.l
 function tbRij(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],b=r.status==="betaald"?tbBoeking(r):null;
   const acts=[];if(canWrite){
     if(r.status==="aangevraagd")acts.push(`<button type="button" class="btn sm" data-tb="kopie" data-id="${esc(r.id)}">${ic("copy")}Link kopiëren</button>`);
-    if(r.status==="ingediend"){acts.push(`<button type="button" class="btn sm" data-tb="ok" data-id="${esc(r.id)}">${ic("check")}Goedkeuren</button>`);acts.push(`<button type="button" class="btn sm ghost" data-tb="nee" data-id="${esc(r.id)}">Weigeren</button>`)}
+    if(r.status==="ingediend"){acts.push(`<button type="button" class="btn sm" data-tb="ok" data-id="${esc(r.id)}">${ic("check")}Goedkeuren en betalen</button>`);acts.push(`<button type="button" class="btn sm ghost" data-tb="nee" data-id="${esc(r.id)}">Weigeren</button>`)}
     if(r.status==="goedgekeurd"){acts.push(`<button type="button" class="btn sm" data-tb="betaal" data-id="${esc(r.id)}">${ic("bank")}Betalen</button>`);acts.push(`<button type="button" class="btn sm ghost" data-tb="betaald" data-id="${esc(r.id)}">Op betaald zetten</button>`)}}
   return `<div class="tb-r"><div class="tb-m"><div class="tb-t"><button type="button" class="tb-nm" data-tb="detail" data-id="${esc(r.id)}">${esc(d.naam)}</button><span class="pill ${c}">${l}</span>${d.soort==="onkosten"?'<span class="pill neutral">onkostennota</span>':""}${d.geenBon?'<span class="pill warn">zonder bewijsstuk</span>':""}</div>
     <div class="muted small">${esc(d.reden||"")}${d.datum?" · "+fmtDate(d.datum):""}${d.iban?" · "+esc(String(d.iban).replace(/(.{4})/g,"$1 ").trim()):""}${d.ibanAnders?` · <b style="color:var(--bad,#b42318)">ander IBAN dan gekend (…${esc(d.ibanAnders)})</b>`:""}${d.bon?` · <button type="button" class="lnkb" data-tb="bon" data-id="${esc(r.id)}">bewijsstuk</button>`:""}</div>
@@ -7962,7 +7962,7 @@ function tbQr(r){const d=r.data,naam=inkAscii(d.tnv||d.naam).slice(0,70),iban=St
     <p class="muted small" style="margin-top:12px">Scan met de Argenta-app. Zodra de betaling in de transacties staat, gaat ze vanzelf op betaald.</p></div></div>`,`<button class="btn" data-act="closeModal">Sluiten</button>`,{wide:true})}
 document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]");if(f){TB.f=f.dataset.tbf;renderBody();return}
   const t=e.target.closest("[data-tb]");if(!t)return;e.preventDefault();const a=t.dataset.tb,r=TB.lijst&&TB.lijst.find(x=>x.id===t.dataset.id);
-  const zet=async(st,extra={})=>{try{const j=await tbApi({actie:"zet",id:r.id,status:st,...extra});TB.lijst=j.lijst;renderBody()}catch(x){toast(x.message,true)}};
+  const zet=async(st,extra={})=>{try{const j=await tbApi({actie:"zet",id:r.id,status:st,...extra});TB.lijst=j.lijst;renderBody();return true}catch(x){toast(x.message,true);return false}};
   if(a==="nieuw"){tbForm();return}
   if(a==="mailOnk"){const n=($("#tbMn")||{}).value.trim(),l=[...S.leden.values()].find(x=>naamVol(x).trim()===n);if(!l){toast("Kies een lid uit de lijst.",true);return}if(!l.email){toast("Van dit lid is geen e-mailadres gekend.",true);return}
     t.disabled=true;try{const j=await tbApi({actie:"mailOnkost",lidId:l.id});toast("Link gemaild naar "+naamVol(l).trim()+" ("+j.aan+").");$("#tbMn").value=""}catch(x){toast(x.message,true)}t.disabled=false;return}
@@ -7982,7 +7982,7 @@ document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]
   if(a==="mail"){const em=($("#tbMl")||{}).value.trim();if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(em)){toast("Vul een geldig e-mailadres in.",true);return}t.disabled=true;
     try{const j=await tbApi({actie:"mail",id:r.id,email:em});TB.lijst=j.lijst;closeModal();toast("Mail met de link verstuurd naar "+em+".");renderBody()}catch(x){toast(x.message,true);t.disabled=false}return}
   if(a==="bon"){try{const j=await tbApi({actie:"bon",id:r.id});if(j.url)window.open(j.url,"_blank","noopener")}catch(x){toast(x.message,true)}return}
-  if(a==="ok"){confirmBox(`Onkosten van <b>${esc(r.data.naam)}</b> (${eur(r.data.bedrag)}) goedkeuren?`,"Goedkeuren",()=>zet("goedgekeurd"));return}
+  if(a==="ok"){confirmBox(`Onkosten van <b>${esc(r.data.naam)}</b> (${eur(r.data.bedrag)}) goedkeuren en betalen?`,"Goedkeuren en betalen",async()=>{if(!(await zet("goedgekeurd")))return;const n=(TB.lijst||[]).find(x=>x.id===r.id);if(n&&n.data&&n.data.iban)tbQr(n);else toast("Goedgekeurd. Er is nog geen rekeningnummer om te betalen.")});return}
   if(a==="nee"){modal("Weigeren",`<div class="fld"><label for="tbW">Reden (optioneel)</label><input id="tbW" maxlength="300"></div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="tbWok">Weigeren</button>`);$("#tbWok").onclick=()=>{const rd=$("#tbW").value.trim();closeModal();zet("geweigerd",{reden:rd})};return}
   if(a==="betaal"){tbQr(r);return}
   if(a==="betaald"){confirmBox(`${eur(r.data.bedrag)} aan <b>${esc(r.data.naam)}</b> op betaald zetten?`,"Op betaald zetten",()=>zet("betaald"));return}
