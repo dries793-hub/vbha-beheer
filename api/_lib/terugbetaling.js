@@ -112,6 +112,15 @@ export async function terugApp(req, res) {
       const { error } = await sb.from("terugbetalingen").update({ status: st, data: d, gewijzigd: nu() }).eq("id", row.id); if (error) throw error;
       return res.status(200).json(await lijst());
     }
+    if (b.actie === "bewerk") { // eigenschappen aanpassen
+      const d = { ...row.data }, naam = clean(b.naam, 80), bedrag = bedragVan(b.bedrag), reden = clean(b.reden, 300), email = clean(b.email, 160), iban = String(b.iban || "").replace(/\s+/g, "").toUpperCase();
+      if (!naam) throw httpErr(400, "Vul de naam in."); if (!bedrag) throw httpErr(400, "Vul een geldig bedrag in."); if (!reden) throw httpErr(400, "Vul de reden in.");
+      if (!mailOk(email)) throw httpErr(400, "Dit e-mailadres klopt niet."); if (iban && !ibanOk(iban)) throw httpErr(400, "Dit IBAN-nummer klopt niet.");
+      Object.assign(d, { naam, bedrag, reden, email, iban, ...(/^\d{4}-\d{2}-\d{2}$/.test(b.datum || "") ? { datum: b.datum } : {}), gewijzigdDoor: wie });
+      const st = row.status === "aangevraagd" && iban ? "goedgekeurd" : row.status === "goedgekeurd" && !iban ? "aangevraagd" : row.status;
+      const { error } = await sb.from("terugbetalingen").update({ data: d, status: st, gewijzigd: nu() }).eq("id", row.id); if (error) throw error;
+      return res.status(200).json(await lijst());
+    }
     if (b.actie === "mail") { // link om het rekeningnummer door te geven per mail versturen (via de mailwachtrij)
       const d = row.data, aan = clean(b.email || d.email, 160);
       if (!aan || !mailOk(aan)) throw httpErr(400, "Geen geldig e-mailadres.");
