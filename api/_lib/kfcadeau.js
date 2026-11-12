@@ -261,7 +261,7 @@ export async function kfCadeauPubliek(req, res) {
     if (k.besteld && k.besteld.op) throw httpErr(409, "Het cadeau van " + k.naam + " is al besteld en kan niet meer gewijzigd worden.");
     if (k.cadeau && k.cadeau.betaald) throw httpErr(409, "Voor het cadeau van " + k.naam + " werd al bijbetaald. Wil je iets wijzigen, neem dan contact met ons op.");
     const B = budgetVan(k.geb, M);
-    if (B.voorzien || B.budget == null) throw httpErr(400, `Voor ${k.naam} voorziet de vereniging het cadeau.`);
+    if (B.voorzien || B.budget == null) throw httpErr(400, `Voor ${k.naam} voorziet de vriendenkring het cadeau.`);
     let cadeau;
     if (b.bon) cadeau = { bon: true, op: new Date().toISOString() };
     else {
