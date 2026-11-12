@@ -7334,7 +7334,10 @@ function szDicht(){if(SZ.box){SZ.box.remove();SZ.box=null}SZ.L=[];SZ.i=-1}
 function szToon(inp){const L=szZoek(inp);SZ.el=inp;SZ.L=L;SZ.i=-1;if(!L.length){szDicht();return}
   if(!SZ.box){SZ.box=document.createElement("div");SZ.box.className="sz-box";SZ.box.setAttribute("role","listbox");document.body.appendChild(SZ.box)}
   const r=inp.getBoundingClientRect();Object.assign(SZ.box.style,{left:(r.left+scrollX)+"px",top:(r.bottom+scrollY+4)+"px",width:r.width+"px"});
-  SZ.box.innerHTML=L.map((v,i)=>`<button type="button" class="sz-o" role="option" data-szi="${i}">${esc(v)}</button>`).join("")}
+  SZ.box.innerHTML=L.map((v,i)=>`<button type="button" class="sz-o" role="option" data-szi="${i}">${esc(v)}${szBestuur(v)?'<span class="sz-st" title="Bestuurslid" aria-label="bestuurslid">★</span>':""}</button>`).join("")}
+// bestuursleden krijgen een sterretje in de voorstellen (naam als "Voornaam Naam" of "Naam Voornaam", eventueel met extra info erachter)
+function szBestuur(v){if(!S.leden)return false;const n=norm(v);if(!SZ.bst||SZ.bstN!==S.leden.size){SZ.bstN=S.leden.size;SZ.bst=[];for(const l of S.leden.values())if(l.bestuur&&!l.geenLid)SZ.bst.push(norm((l.voornaam||"")+" "+(l.naam||"")).trim(),norm((l.naam||"")+" "+(l.voornaam||"")).trim())}
+  return SZ.bst.some(b=>b&&(n===b||n.startsWith(b+" ")||n.startsWith(b+"(")))}
 function szKies(i){const inp=SZ.el,v=SZ.L[i];if(!inp||v==null)return;inp.value=v;szDicht();inp.dispatchEvent(new Event("input",{bubbles:true}));inp.dispatchEvent(new Event("change",{bubbles:true}))}
 function szMarkeer(){if(!SZ.box)return;[...SZ.box.children].forEach((b,i)=>b.classList.toggle("on",i===SZ.i))}
 document.addEventListener("focusin",e=>{const t=e.target;if(t&&t.tagName==="INPUT"&&t.hasAttribute("list")){t.dataset.szList=t.getAttribute("list");t.removeAttribute("list");t.setAttribute("autocomplete","off")}});
