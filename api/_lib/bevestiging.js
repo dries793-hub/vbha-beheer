@@ -122,7 +122,7 @@ export async function kfMailHtml(sb, d, { A, c, jaar, link }) {
     html += p("Dit jaar kan je zoals vorig jaar zelf het cadeau voor je kind(eren) kiezen.")
       + (sitesT ? p(`Ga hiervoor naar de website ${sitesT} en kies 1 of meerdere cadeaus volgens de waarde die hieronder per kind vermeld staat.`) : "")
       + (perKind.length ? `<ul style="margin:0 0 15px;padding-left:22px">${perKind.map(({ k, g }) => `<li style="margin:0 0 4px"><b>${esc(k.naam)}</b>: ${waarde(g.tekst)}</li>`).join("")}</ul>` : "")
-      + (M.keuze ? ((perKind.some(x => /\d/.test(x.g.tekst)) ? p(`Kies het cadeau${totL ? ` <b>tot en met ${esc(totL)}</b>` : ""} via de knop hieronder: plak de link van het product, wij controleren meteen de prijs en de voorraad. Wij bestellen de cadeaus zelf.`)
+      + (M.keuze ? ((perKind.some(x => /\d/.test(x.g.tekst)) ? p(`Kies het cadeau${totL ? ` <b>tot en met ${esc(totL)}</b>` : ""} via de knop hieronder: plak de link van het product, wij controleren meteen de prijs en de voorraad..`)
         + knop("Cadeau kiezen", link || (site() + "/cadeau")) : "")
       + p(`Gelieve ook te letten op de beschikbaarheid en levertijden van de producten.<br>Wie ${totL ? "tegen " + esc(totL) + " " : ""}niets kiest, krijgt een waardebon van bol.com t.w.v. het bedrag hierboven.`))
         : (
