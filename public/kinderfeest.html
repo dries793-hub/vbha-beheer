@@ -119,7 +119,7 @@ input[type=date]{width:100%;font:inherit;font-size:16px;padding:10px 12px;border
 .lp-i:hover,.lp-i.on{background:var(--sunken)}
 .lp-i b{font-weight:700}
 .lp-leeg{padding:11px 14px;font-size:14px;color:var(--muted)}
-.mhint{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.mhint{margin:6px 0 0;font-size:13px;color:var(--muted)}.lnkb{border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--accent);text-decoration:underline;cursor:pointer}
 .lp input.lp-ok{border-color:var(--good);background:var(--good-soft)}
 .bevestig{text-align:center;padding:34px 24px}
 .bevestig .ic{width:72px;height:72px;border-radius:50%;background:var(--good-soft);color:var(--good);display:grid;place-items:center;margin:0 auto 16px}
@@ -160,7 +160,7 @@ html,body{overflow-x:hidden}
   <div id="box"><form class="card" id="f" novalidate>
     <div class="grid">
       <div class="full"><label for="lid">Naam van het lid</label><input type="text" id="lid" placeholder="Begin je naam te typen…" maxlength="100"></div>
-      <div class="full"><label for="mail">E-mailadres</label><input type="email" id="mail" autocomplete="email" inputmode="email" maxlength="120"><p class="mhint" id="mhint" hidden>Dit is het adres dat we van dit lid hebben (deels verborgen). Ander adres gebruiken? Typ het gewoon hier.</p></div>
+      <div class="full"><label for="mail">E-mailadres</label><input type="email" id="mail" autocomplete="email" inputmode="email" maxlength="120"><p class="mhint" id="mhint" hidden>Ander adres gebruiken? Typ het gewoon hier.</p></div>
       <div class="full"><span class="lbl">Kinderen</span><div id="kids" style="display:flex;flex-direction:column;gap:10px"></div><button type="button" class="kadd" id="add">+ Nog een kind toevoegen</button></div>
       <div class="full"><label for="opm">Opmerking</label><textarea id="opm" maxlength="400" placeholder="Optioneel"></textarea></div>
     </div>
@@ -179,7 +179,11 @@ document.addEventListener("click",async e=>{const b=e.target.closest(".cp");if(!
 let CFG={datum:"2026-12-19",leeftijd:11,max:8},KIDS=[{naam:"",geb:""}];
 function gesloten(wat,j){$("#box").innerHTML=`<div class="card bevestig"><div class="ic" style="background:var(--sunken);color:var(--muted)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
   <h2>De inschrijvingen zijn afgesloten</h2><p class="lead2">${j.gesloten==="verlopen"&&j.totTekst?"Inschrijven voor "+wat+" kon tot en met "+esc(j.totTekst)+".":"Je kan je op dit moment niet inschrijven voor "+wat+"."} Neem voor vragen contact op met iemand van het bestuur.</p></div>`}
-fetch("/api/kinderfeest").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;CFG={...CFG,...j};
+const VQ=new URLSearchParams(location.search);
+fetch("/api/kinderfeest"+(VQ.get("v")?"?v="+encodeURIComponent(VQ.get("v"))+"&t="+encodeURIComponent(VQ.get("t")||""):"")).then(r=>r.ok?r.json():null).then(j=>{if(!j)return;CFG={...CFG,...j};
+  if(j.vul){const i=$("#lid");i.value=j.vul.lid;i.dataset.id=j.vul.lidId;i.classList.add("lp-ok");if(typeof alCheck==="function")alCheck(i,j.vul.lidId);
+    const m=$("#mail");if(m&&j.vul.mail){m.value=j.vul.mail;m.dataset.auto="1";m.type="text";$("#mhint").hidden=false}
+    if(j.vul.kinderen&&j.vul.kinderen.length)KIDS=j.vul.kinderen.map(k=>({naam:k.naam,geb:k.geb}));try{history.replaceState(null,"",location.pathname)}catch(e){}}
   $("#h1").textContent="Kinderfeest "+j.jaar;document.title="Kinderfeest "+j.jaar+" · VBHA";
   const d=new Date(j.datum+"T12:00");if(!isNaN(d))$("#kWan").textContent=d.toLocaleDateString("nl-BE",{weekday:"short",day:"numeric",month:"long",year:"numeric"});
   if(j.tijd)$("#kUur").textContent="om "+j.tijd;if(j.locatie){const p=j.locatie.split(" - ");$("#kWaar").textContent=p[0];$("#kAdr").textContent=p.slice(1).join(" - ")}
@@ -211,7 +215,7 @@ $("#f").addEventListener("submit",async e=>{e.preventDefault();read();const er=$
   const b=$("#go");b.disabled=true;b.textContent="Bezig…";
   try{const r=await fetch("/api/kinderfeest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({lid,lidId,email:auto?"":mail,lidMail:auto,kinderen:KIDS,opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0})});
     const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Inschrijven lukte niet.");
-    $("#box").innerHTML=`<div class="card ok"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Bedankt!</h2><p>De inschrijving van ${esc(lid)} is goed ontvangen.</p><p class="sum">${KIDS.map(k=>esc(k.naam.trim())).join(", ")}</p>${j.cadeau?`<div class="kc-go"><b>Kies nu al de cadeaus</b><p>De link staat ook in je bevestigingsmail.</p><a class="btn-go" href="${esc(j.cadeau)}">Cadeaus kiezen →</a></div>`:'<p class="sum">Tot op het kinderfeest!</p>'}<p style="margin-top:16px"><button type="button" class="cp" onclick="location.reload()">Nog een gezin inschrijven</button></p></div>`;window.scrollTo({top:0,behavior:"smooth"})}
+    $("#box").innerHTML=`<div class="card ok"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Bedankt!</h2><p>De inschrijving van ${esc(lid)} is goed ontvangen.</p><p class="sum">${KIDS.map(k=>esc(k.naam.trim())).join(", ")}</p>${j.cadeau?`<div class="kc-go"><b>Kies nu al de cadeaus</b><p>De link staat ook in je bevestigingsmail.</p><a class="btn-go" href="${esc(j.cadeau)}">Cadeaus kiezen →</a></div>`:'<p class="sum">Tot op het kinderfeest!</p>'}</div>`;window.scrollTo({top:0,behavior:"smooth"})}
   catch(x){er.textContent=x.message;b.disabled=false;b.textContent="Inschrijving versturen"}});
 /* naam van het lid kiezen: suggesties terwijl je typt */
 function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");const box=document.createElement("div");box.className="lp-l";box.hidden=true;box.setAttribute("role","listbox");wrap.append(box);
@@ -219,7 +223,7 @@ function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");co
   const mark=(n,q)=>{const t=q.trim().split(/\s+/).filter(Boolean);let h=esc(n);for(const x of t){const re=new RegExp("("+x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i");h=h.replace(re,"<b>$1</b>")}return h};
   const teken=q=>{if(!L.length){box.innerHTML=q.trim().length>=3?'<div class="lp-leeg">Geen lid gevonden met deze naam.</div>':"";box.hidden=q.trim().length<3;return}
     box.innerHTML=L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${mark(l.toon||l.naam,q)}</button>`).join("");box.hidden=false};
-  const kies=l=>{inp.value=l.toon||l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.toon||l.naam;alCheck(inp,l.id);
+  const kies=l=>{inp.value=l.toon||l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.toon||l.naam;alCheck(inp,l.id);vulAanbod(l);
     const m=$("#mail");if(m&&(!m.value.trim()||m.dataset.auto)){if(l.mail){m.value=l.mail;m.dataset.auto="1";m.type="text";$("#mhint").hidden=false}else if(m.dataset.auto){m.value="";delete m.dataset.auto;m.type="email";$("#mhint").hidden=true}}};
   inp.addEventListener("input",()=>{if(inp.dataset.id){AC++;alMeld(inp,"")}delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;
     if(q.trim().length<3){L=[];box.hidden=true;return}
@@ -229,6 +233,12 @@ function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");co
     else if(e.key==="Enter"){e.preventDefault();kies(L[sel<0?0:sel])}else if(e.key==="Escape"){box.hidden=true}});
   box.addEventListener("mousedown",e=>{const b=e.target.closest(".lp-i");if(!b)return;e.preventDefault();kies(L[+b.dataset.i])});
   inp.addEventListener("blur",()=>setTimeout(()=>{box.hidden=true;if(!inp.dataset.id&&L.length===1&&inp.value.trim())kies(L[0])},150));}
+/* kinderen van vorig jaar: link naar het e-mailadres van het lid (niet rechtstreeks tonen: zo ziet niemand de kinderen van een ander lid) */
+function vulAanbod(l){let e=$("#vulA");if(!e){e=document.createElement("p");e.id="vulA";e.className="mhint";$("#lid").parentElement.append(e)}
+  const leeg=!KIDS.some(k=>k.naam.trim()||k.geb);if(!l||!l.mail||!leeg){e.hidden=true;return}
+  e.hidden=false;e.innerHTML=`Vorig jaar al ingeschreven? <button type="button" class="lnkb" id="vulGo">Stuur me een link</button> naar ${esc(l.mail)} met je kinderen al ingevuld.`;
+  $("#vulGo").onclick=async()=>{const b=$("#vulGo");b.disabled=true;try{await fetch("/api/kinderfeest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({actie:"vullink",lidId:l.id})})}catch(x){}
+    e.innerHTML="Als we kinderen van vorig jaar kennen, krijg je zo meteen een mail met een link. Je kan ook gewoon hieronder verder invullen."}}
 lidPicker($("#lid"));
 /* zelf iets aanpassen aan het voorgestelde adres: dan geldt het getypte adres */
 $("#mail").addEventListener("focus",e=>{const m=e.target;if(m.dataset.auto){m.select()}});
