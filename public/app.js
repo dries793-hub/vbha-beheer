@@ -7929,7 +7929,10 @@ if(!ROUTES.some(r=>r[0]==="terug"))ROUTES.push(["terug","Terugbetalingen"]);
 ICON.terug=ICON.terug||'<path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>';
 {const b=NAV.find(n=>n.id==="boekhouding");if(b&&!b.items.some(i=>i[0]==="terug")){const k=b.items.findIndex(i=>i[0]==="facturen");b.items.splice(k<0?b.items.length:k+1,0,["terug","Terugbetalingen"])}}
 if(!FUNC.some(x=>x[0]==="terug")){const k=FUNC.findIndex(x=>x[0]==="facturen");FUNC.splice(k<0?FUNC.length:k+1,0,["terug","Terugbetalingen",["terug"],"Financiën"]);FUNC_VAN.terug="terug"}
-const tbMag=()=>ROL==="admin"||recht("terug")!=="geen";
+/* iedereen ziet Terugbetalingen (zijn eigen aanvragen); goedkeuren en betalen enkel admin en wie Terugbetalingen mag bewerken */
+const TB_RECHT=recht;{const _r=recht;recht=function(r){const v=_r.apply(this,arguments);return((typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS[r])||r)==="terug"&&v==="geen"?"lezen":v}}
+const tbMag=()=>true,tbVol=()=>ROL==="admin"||TB_RECHT("terug")==="bewerken";
+const tbKan=r=>tbVol()||(!!r&&r.eigen&&!["betaald","goedgekeurd"].includes(r.status));
 const TB={lijst:null,link:"",f:"open",laden:false};
 const TB_ST={aangevraagd:["neutral","Wacht op rekeningnummer"],ingediend:["warn","Te keuren"],goedgekeurd:["info","Te betalen"],betaald:["ok","Betaald"],geweigerd:["nok","Geweigerd"]};
 async function tbApi(b){return api("/api/mail?f=terug",{method:"POST",body:JSON.stringify(b)})}
@@ -7937,18 +7940,18 @@ async function tbLaad(){if(TB.laden)return;TB.laden=true;try{const j=await tbApi
 /* uitgaande transactie met hetzelfde bedrag naar hetzelfde IBAN (na de aanvraag) = betaald */
 function tbBoeking(r){const d=r.data,ib=String(d.iban||"").replace(/\s+/g,"").toUpperCase();if(!ib)return null;const van=String(d.op||r.gemaakt||"").slice(0,10);
   return [...S.boekingen.values()].find(b=>b.richting==="uit"&&String(b.iban||"").replace(/\s+/g,"").toUpperCase()===ib&&Math.abs(num(b.bedrag)-num(d.bedrag))<0.005&&String(b.datum)>=van)||null}
-async function tbAutoBetaald(){if(!tbMag()||!canWrite)return;for(const r of TB.lijst||[]){if(r.status!=="goedgekeurd")continue;const b=tbBoeking(r);if(!b)continue;
+async function tbAutoBetaald(){if(!tbVol())return;for(const r of TB.lijst||[]){if(r.status!=="goedgekeurd")continue;const b=tbBoeking(r);if(!b)continue;
   try{const j=await tbApi({actie:"zet",id:r.id,status:"betaald"});TB.lijst=j.lijst}catch(e){}}}
 function tbRij(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],b=r.status==="betaald"?tbBoeking(r):null;
-  const acts=[];if(canWrite){
+  const acts=[];if(tbVol()){
     if(r.status==="aangevraagd")acts.push(`<button type="button" class="btn sm" data-tb="kopie" data-id="${esc(r.id)}">${ic("copy")}Link kopiëren</button>`);
     if(r.status==="ingediend"){acts.push(`<button type="button" class="btn sm" data-tb="ok" data-id="${esc(r.id)}">${ic("check")}Goedkeuren en betalen</button>`);acts.push(`<button type="button" class="btn sm ghost" data-tb="nee" data-id="${esc(r.id)}">Weigeren</button>`)}
     if(r.status==="goedgekeurd"){acts.push(`<button type="button" class="btn sm" data-tb="betaal" data-id="${esc(r.id)}">${ic("bank")}Betalen</button>`);acts.push(`<button type="button" class="btn sm ghost" data-tb="betaald" data-id="${esc(r.id)}">Op betaald zetten</button>`)}}
   return `<div class="tb-r"><div class="tb-m"><div class="tb-t"><button type="button" class="tb-nm" data-tb="detail" data-id="${esc(r.id)}">${esc(d.naam)}</button><span class="pill ${c}">${l}</span>${d.soort==="onkosten"?'<span class="pill neutral">onkostennota</span>':""}${d.geenBon?'<span class="pill warn">zonder bewijsstuk</span>':""}</div>
     <div class="muted small">${esc(d.reden||"")}${d.datum?" · "+fmtDate(d.datum):""}${d.iban?" · "+esc(String(d.iban).replace(/(.{4})/g,"$1 ").trim()):""}${d.ibanAnders?` · <b style="color:var(--bad,#b42318)">ander IBAN dan gekend (…${esc(d.ibanAnders)})</b>`:""}${d.bon?` · <button type="button" class="lnkb" data-tb="bon" data-id="${esc(r.id)}">bewijsstuk</button>`:""}</div>
     ${r.status==="betaald"?`<div class="muted small">Betaald${d.betaaldOp?" op "+fmtDate(String(d.betaaldOp).slice(0,10)):""}${b?" · transactie "+fmtDate(b.datum):""}</div>`:r.status==="geweigerd"&&d.weigerReden?`<div class="muted small">Reden: ${esc(d.weigerReden)}</div>`:""}</div>
-   <b class="tb-b">${eur(d.bedrag)}</b><div class="tb-a">${acts.join("")}${canWrite?`<button type="button" class="iconbtn" data-tb="weg" data-id="${esc(r.id)}" title="Verwijderen" aria-label="Verwijderen">${ic("prul")}</button>`:""}</div></div>`}
-VIEWS.terug=()=>({title:"Terugbetalingen",actions:tbMag()&&canWrite?`<button class="btn" data-tb="link">${ic("link")}Link onkostennota</button><button class="btn primary" data-tb="nieuw">${ic("plus")}Nieuwe terugbetaling</button>`:"",body(){
+   <b class="tb-b">${eur(d.bedrag)}</b><div class="tb-a">${acts.join("")}${tbKan(r)?`<button type="button" class="iconbtn" data-tb="weg" data-id="${esc(r.id)}" title="Verwijderen" aria-label="Verwijderen">${ic("prul")}</button>`:""}</div></div>`}
+VIEWS.terug=()=>({title:"Terugbetalingen",actions:tbMag()?`<button class="btn" data-tb="link">${ic("link")}Link onkostennota</button><button class="btn primary" data-tb="nieuw">${ic("plus")}Nieuwe terugbetaling</button>`:"",body(){
   if(!tbMag())return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
   if(!TB.lijst){tbLaad();return '<div class="panel"><div class="empty">Laden…</div></div>'}
   const OPEN=["aangevraagd","ingediend","goedgekeurd"],L=TB.lijst.filter(r=>TB.f==="alle"||(TB.f==="open"?OPEN.includes(r.status):r.status===TB.f));
@@ -7963,7 +7966,7 @@ async function tbVerklein(file){if(file.type==="application/pdf"){if(file.size>4
   const sc=Math.min(1,2000/Math.max(bmp.width,bmp.height)),cv=document.createElement("canvas");cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);cv.getContext("2d").drawImage(bmp,0,0,cv.width,cv.height);
   return{data:cv.toDataURL("image/jpeg",.82),naam:(file.name||"bon").replace(/\.[^.]+$/,"")+".jpg"}}
 async function tbIbanVan(l){const f=$("#tbI");if(!f)return;if(f.value===TBF.mask){f.value="";f.classList.remove("tb-okv")}TBF.mask="";if(!l)return;
-  try{const j=await tbApi({actie:"lidiban",lidId:l.id});const ib=String(j.iban||"");if(ib&&$("#tbI")&&!f.value.trim()){TBF.mask=ib.slice(0,4)+" •••• •••• "+ib.slice(-4);f.value=TBF.mask;f.classList.add("tb-okv")}}catch(e){}}
+  try{const j=await tbApi({actie:"lidiban",lidId:l.id});const ib=String(j.iban||"");if((ib||j.masker)&&$("#tbI")&&!f.value.trim()){TBF.mask=j.masker||(ib.slice(0,4)+" •••• •••• "+ib.slice(-4));f.value=TBF.mask;f.classList.add("tb-okv")}}catch(e){}}
 function tbForm(){const leden=[...S.leden.values()].filter(l=>!l.geenLid&&!l.dubbelVan).sort((a,b)=>naamVol(a).localeCompare(naamVol(b),"nl"));
   const zoek=n=>leden.find(x=>naamVol(x).trim()===String(n||"").trim()),ik=tbMijnLid(),vd=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);TBF={mask:"",bon:null};
   modal("Nieuwe terugbetaling",`<form id="fTb" class="form">
@@ -7999,7 +8002,7 @@ document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]
     if(!n){err.textContent="Vul de naam in.";return}if(!(bd>0)){err.textContent="Vul een bedrag in.";return}if(!g("#tbR")){err.textContent="Schrijf kort waarvoor de kosten waren.";return}if(!TBF.bon&&!$("#tbGeen").checked){$("#tbGeenW").hidden=false;err.textContent="Voeg een foto van het kasticket of de factuur toe, of vink aan dat je er geen hebt.";return}if(iban&&!inkIbanOk(iban)){err.textContent="Dit IBAN-nummer klopt niet.";return}
     const l=[...S.leden.values()].find(x=>naamVol(x).trim()===n&&!x.dubbelVan);t.disabled=true;
     try{const j=await tbApi({actie:"maak",naam:n,bedrag:bd,reden:g("#tbR"),datum:g("#tbD"),bon:TBF.bon,geenBon:!TBF.bon&&$("#tbGeen").checked,iban,lidId:l?l.id:""});TB.lijst=j.lijst;TB.f="open";renderBody();
-      if(iban||j.ibanVorig)toast(j.ibanVorig?"Gekend rekeningnummer gebruikt: klaar om te betalen.":"Terugbetaling klaar om te betalen.");else tbLinkModal("Link voor "+esc(n),j.link,`Stuur deze link naar <b>${esc(n)}</b>. Daar vult hij of zij het rekeningnummer in; daarna kan je hier betalen.`,j.lijst.find(x=>x.id===j.id))}
+      if(!tbVol()){closeModal();toast("Ingediend. Na goedkeuring wordt het bedrag teruggestort.")}else if(iban||j.ibanVorig){closeModal();toast(j.ibanVorig?"Gekend rekeningnummer gebruikt: klaar om te betalen.":"Terugbetaling klaar om te betalen.")}else tbLinkModal("Link voor "+esc(n),j.link,`Stuur deze link naar <b>${esc(n)}</b>. Daar vult hij of zij het rekeningnummer in; daarna kan je hier betalen.`,j.lijst.find(x=>x.id===j.id))}
     catch(x){err.textContent=x.message;t.disabled=false}return}
   if(!r)return;
   if(a==="detail"){tbDetail(r);return}
@@ -8022,7 +8025,7 @@ document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]
   return x+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 // wie de pagina Terugbetalingen opent, heeft de doorgegeven rekeningnummers gezien
 {const _v=VIEWS.terug;VIEWS.terug=function(){const v=_v.apply(this,arguments);const b=v.body;v.body=function(){const h=b.apply(this,arguments);
-  if(canWrite&&TB.lijst)for(const r of TB.lijst.filter(r=>r.data.nieuw&&r.status==="goedgekeurd")){r.data.nieuw=false;tbApi({actie:"gezien",id:r.id}).catch(()=>{})}return h};return v}}
+  if(tbVol()&&TB.lijst)for(const r of TB.lijst.filter(r=>r.data.nieuw&&r.status==="goedgekeurd")){r.data.nieuw=false;tbApi({actie:"gezien",id:r.id}).catch(()=>{})}return h};return v}}
 {const st=document.createElement("style");st.textContent=`.tb-r{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}.tb-r:first-child{border-top:0}
 .tb-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.tb-b{font-variant-numeric:tabular-nums;white-space:nowrap}.tb-a{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .tb-a .iconbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}.lnkb{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline}
@@ -8031,7 +8034,7 @@ document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]
 @media(max-width:700px){.tb-r{grid-template-columns:minmax(0,1fr) auto}.tb-a{grid-column:1/-1;justify-content:flex-start}.tb-qr{grid-template-columns:1fr}}`;document.head.appendChild(st)}
 
 /* eigenschappen van een terugbetaling of onkostennota (klik op de naam) */
-function tbDetail(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],dis=canWrite?"":" disabled",dt=x=>x?new Date(x).toLocaleString("nl-BE",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"";
+function tbDetail(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],dis=tbKan(r)?"":" disabled",dt=x=>x?new Date(x).toLocaleString("nl-BE",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"";
   const H=[[d.op||r.gemaakt,d.soort==="onkosten"?"Ingediend via het formulier":"Aangemaakt"+(d.door?" door "+d.door:"")],...(d.gemaild||[]).map(x=>[x.op,"Link gemaild naar "+x.aan]),[d.ibanOp,"Rekeningnummer doorgegeven"],[d.goedgekeurdOp,"Goedgekeurd"+(d.goedgekeurdDoor?" door "+d.goedgekeurdDoor:"")],[d.geweigerdOp,"Geweigerd"+(d.weigerReden?": "+d.weigerReden:"")],[d.betaaldOp,"Betaald"]].filter(x=>x[0]).sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
   modal(esc(d.naam),`<div class="tb-dh"><span class="pill ${c}">${l}</span><span class="pill neutral">${d.soort==="onkosten"?"onkostennota":"terugbetaling"}</span>${d.bon?`<button type="button" class="btn sm ghost" data-tb="bon" data-id="${esc(r.id)}">Bewijsstuk bekijken</button>`:""}${r.link&&r.status==="aangevraagd"?`<button type="button" class="btn sm ghost" data-tb="kopie" data-id="${esc(r.id)}">${ic("link")}Link</button>`:""}</div>
    <form id="fTd" class="form">${fld("tdN","Naam",inp("tdN",d.naam,'maxlength="80"'+dis))}${fld("tdE","E-mail",inp("tdE",d.email||"",'type="email" maxlength="160"'+dis))}
@@ -8039,7 +8042,7 @@ function tbDetail(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],
     ${fld("tdR","Reden",inp("tdR",d.reden||"",'maxlength="300"'+dis),"full")}${fld("tdI","Rekeningnummer (IBAN)",inp("tdI",String(d.iban||"").replace(/(.{4})/g,"$1 ").trim(),'maxlength="42"'+dis)+(d.ibanAnders?`<div class="small" style="color:var(--bad,#b42318);margin-top:4px">Gekend rekeningnummer van dit lid eindigt op …${esc(d.ibanAnders)}. Controleer voor je betaalt.</div>`:""),"full")}
     <div class="full"><span class="lbl">Verloop</span><div class="tb-h">${H.map(([o,t])=>`<div><span class="muted small">${esc(dt(o))}</span><span>${esc(t)}</span></div>`).join("")}</div></div>
     <div class="err full" id="tdErr"></div></form>`,
-   canWrite?`<button class="btn danger" data-tb="weg" data-id="${esc(r.id)}" style="margin-right:auto">Verwijderen</button><button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-tb="bewaar" data-id="${esc(r.id)}">Bewaren</button>`:`<button class="btn" data-act="closeModal">Sluiten</button>`)}
+   tbKan(r)?`<button class="btn danger" data-tb="weg" data-id="${esc(r.id)}" style="margin-right:auto">Verwijderen</button><button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-tb="bewaar" data-id="${esc(r.id)}">Bewaren</button>`:`<button class="btn" data-act="closeModal">Sluiten</button>`)}
 {const st=document.createElement("style");st.textContent=`.tb-nm{border:0;background:none;padding:0;font:inherit;font-weight:700;color:var(--ink);cursor:pointer}.tb-nm:hover{color:var(--accent);text-decoration:underline}
 .tb-dh{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.tb-h{display:flex;flex-direction:column;gap:4px;font-size:13.5px}.tb-h div{display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px}`;document.head.appendChild(st)}
 
