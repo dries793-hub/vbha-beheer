@@ -160,7 +160,7 @@ html,body{overflow-x:hidden}
   <div id="box"><form class="card" id="f" novalidate>
     <div class="grid">
       <div class="full"><label for="lid">Naam van het lid</label><input type="text" id="lid" placeholder="Begin je naam te typen…" maxlength="100"></div>
-      <div class="full"><label for="mail">E-mailadres</label><input type="email" id="mail" autocomplete="email" inputmode="email" maxlength="120"><p class="mhint" id="mhint" hidden>Ander adres gebruiken? Typ het gewoon hier.</p></div>
+      <div class="full"><label for="mail">E-mailadres</label><input type="email" id="mail" autocomplete="email" inputmode="email" maxlength="120"><p class="mhint" id="mhint" hidden></p></div>
       <div class="full"><span class="lbl">Kinderen</span><div id="kids" style="display:flex;flex-direction:column;gap:10px"></div><button type="button" class="kadd" id="add">+ Nog een kind toevoegen</button></div>
       <div class="full"><label for="opm">Opmerking</label><textarea id="opm" maxlength="400" placeholder="Optioneel"></textarea></div>
     </div>
@@ -223,8 +223,7 @@ function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");co
   const mark=(n,q)=>{const t=q.trim().split(/\s+/).filter(Boolean);let h=esc(n);for(const x of t){const re=new RegExp("("+x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i");h=h.replace(re,"<b>$1</b>")}return h};
   const teken=q=>{if(!L.length){box.innerHTML=q.trim().length>=3?'<div class="lp-leeg">Geen lid gevonden met deze naam.</div>':"";box.hidden=q.trim().length<3;return}
     box.innerHTML=L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${mark(l.toon||l.naam,q)}</button>`).join("");box.hidden=false};
-  const kies=l=>{inp.value=l.toon||l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.toon||l.naam;alCheck(inp,l.id);vulAanbod(l);
-    const m=$("#mail");if(m&&(!m.value.trim()||m.dataset.auto)){if(l.mail){m.value=l.mail;m.dataset.auto="1";m.type="text";$("#mhint").hidden=false}else if(m.dataset.auto){m.value="";delete m.dataset.auto;m.type="email";$("#mhint").hidden=true}}};
+  const kies=l=>{inp.value=l.toon||l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.toon||l.naam;alCheck(inp,l.id);herken()};
   inp.addEventListener("input",()=>{if(inp.dataset.id){AC++;alMeld(inp,"")}delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;
     if(q.trim().length<3){L=[];box.hidden=true;return}
     T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[];}catch(e){L=[]}if(inp.value===q)teken(q)},160)});
@@ -233,12 +232,12 @@ function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");co
     else if(e.key==="Enter"){e.preventDefault();kies(L[sel<0?0:sel])}else if(e.key==="Escape"){box.hidden=true}});
   box.addEventListener("mousedown",e=>{const b=e.target.closest(".lp-i");if(!b)return;e.preventDefault();kies(L[+b.dataset.i])});
   inp.addEventListener("blur",()=>setTimeout(()=>{box.hidden=true;if(!inp.dataset.id&&L.length===1&&inp.value.trim())kies(L[0])},150));}
-/* kinderen van vorig jaar: link naar het e-mailadres van het lid (niet rechtstreeks tonen: zo ziet niemand de kinderen van een ander lid) */
-function vulAanbod(l){let e=$("#vulA");if(!e){e=document.createElement("p");e.id="vulA";e.className="mhint";$("#lid").parentElement.append(e)}
-  const leeg=!KIDS.some(k=>k.naam.trim()||k.geb);if(!l||!l.mail||!leeg){e.hidden=true;return}
-  e.hidden=false;e.innerHTML=`Vorig jaar al ingeschreven? <button type="button" class="lnkb" id="vulGo">Stuur me een link</button> naar ${esc(l.mail)} met je kinderen al ingevuld.`;
-  $("#vulGo").onclick=async()=>{const b=$("#vulGo");b.disabled=true;try{await fetch("/api/kinderfeest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({actie:"vullink",lidId:l.id})})}catch(x){}
-    e.innerHTML="Als we kinderen van vorig jaar kennen, krijg je zo meteen een mail met een link. Je kan ook gewoon hieronder verder invullen."}}
+/* kinderen van vorig jaar: naam van het lid + hetzelfde e-mailadres als vorig jaar => kinderen automatisch invullen */
+let HK="";async function herken(){const id=($("#lid")||{}).dataset.id,m=(($("#mail")||{}).value||"").trim();if(!id||!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(m))return;
+  if(KIDS.some(k=>k.naam.trim()||k.geb))return;const sl=id+"|"+m.toLowerCase();if(sl===HK)return;HK=sl;
+  try{const r=await fetch("/api/kinderfeest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({actie:"herken",lidId:id,email:m})});const j=await r.json().catch(()=>({}));
+    if(j.kinderen&&j.kinderen.length&&!KIDS.some(k=>k.naam.trim()||k.geb)){KIDS=j.kinderen.map(k=>({naam:k.naam,geb:k.geb}));draw();const h=$("#mhint");if(h){h.textContent="We vulden je kinderen van vorig jaar in. Kijk ze even na.";h.hidden=false}}}catch(e){}}
+$("#mail").addEventListener("change",herken);$("#mail").addEventListener("blur",herken);
 lidPicker($("#lid"));
 /* zelf iets aanpassen aan het voorgestelde adres: dan geldt het getypte adres */
 $("#mail").addEventListener("focus",e=>{const m=e.target;if(m.dataset.auto){m.select()}});
