@@ -7266,7 +7266,7 @@ function kfcAlt(it){const a=it.alt;if(!a||a.geen||!(Number(a.prijs)>0))return"";
 // één pot per gezin (zoals op de keuzepagina): bijbetalen enkel wat het gezin samen boven alle budgetten gaat
 function kfcPot(r){const K=(r.kinderen||[]).map(k=>({k,B:kfcBudget(k.geb)})).filter(x=>x.B.bedrag!=null&&!x.B.vbha);
   const g=K.filter(x=>x.k.cadeau&&(x.k.cadeau.bon||(x.k.cadeau.items||[]).length)),pot=K.reduce((t,x)=>t+x.B.bedrag,0),potG=g.reduce((t,x)=>t+x.B.bedrag,0);
-  const best=g.reduce((t,x)=>t+(x.k.cadeau.bon?x.B.bedrag:Number(x.k.cadeau.totaal)||0),0),extra=Math.max(0,Math.round((best-potG)*100)/100),bet=Number(r.bijbetaald)||0,alles=K.length&&g.length===K.length;
+  const best=g.reduce((t,x)=>t+(x.k.cadeau.bon?x.B.bedrag:Number(x.k.cadeau.keuzeTotaal??x.k.cadeau.totaal)||0),0),extra=Math.max(0,Math.round((best-potG)*100)/100),bet=Number(r.bijbetaald)||0,alles=K.length&&g.length===K.length;
   return{pot,best,extra,bet,alles,open:alles?Math.max(0,Math.round((extra-bet)*100)/100):0}}
 function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L=kfcKids();if(!L.length)return"";const s=kfcStats(L),M=kfMailCfg(),mag=canWrite;
   const pas=x=>KFCD.f==="alle"||(KFCD.f==="bon"?(x.st==="bon"||x.st==="geenkeuze"||x.st==="vbha"):KFCD.f==="bij"?kfcPot(x.r).extra>0:x.st===KFCD.f);
