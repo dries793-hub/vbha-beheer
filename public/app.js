@@ -6568,7 +6568,7 @@ var RECHTEN=null;
 const FUNC=[["leden","Ledenlijst",["leden"],"Leden"],["punten","Puntensysteem",["punten"],"Leden"],
   ["overzicht","Overzicht",["boekhouding"],"Financiën"],["financien","Transacties",["boekingen","verwerken"],"Financiën"],["facturen","Facturen",["facturen","inkomend"],"Financiën"],["begroting","Begroting",["begroting"],"Financiën"],["historiek","Historiek",["historiek"],"Financiën"],["kassa","Kassa",["kassa"],"Financiën"],
   ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"],"Activiteiten"],["kalverdeling","Dozen meegeven of terugbrengen",[],"Activiteiten"],["fuif","In Vier en Vlam",["fuif"],"Activiteiten"],["banket","Banket",["banket"],"Activiteiten"],["kinderfeest","Kinderfeest",["kinderfeest"],"Activiteiten"],["familiedag","Familiedag",["familiedag"],"Activiteiten"],
-  ["agenda","Agenda en verslagen",["agenda","verslagen"],"Administratie"],["mails","Communicatie – mail",["mails"],"Administratie"],["sms","Communicatie – sms",["sms"],"Administratie"],["sponsors","Sponsors",["sponsors"],"Administratie"],["documenten","Documenten",["documenten"],"Administratie"],["website","Website",["website"],"Administratie"],["shiften","Shiften",["shiften"],"Administratie"],["fotos","Fotoalbums",["fotos"],"Administratie"],
+  ["agenda","Agenda en verslagen",["agenda","verslagen"],"Administratie"],["mails","Communicatie – mail",["mails"],"Administratie"],["sms","Communicatie – sms",["sms"],"Administratie"],["social","Communicatie – sociale media",["social"],"Administratie"],["sponsors","Sponsors",["sponsors"],"Administratie"],["documenten","Documenten",["documenten"],"Administratie"],["website","Website",["website"],"Administratie"],["shiften","Shiften",["shiften"],"Administratie"],["fotos","Fotoalbums",["fotos"],"Administratie"],
   ["webshop","Webshop",["webshop"],"Webshop"]];
 const FUNC_VAN={};for(const [f,,rs] of FUNC)for(const r of rs)FUNC_VAN[r]=f;
 const RECHT_LBL={geen:"Verborgen",lezen:"Lezen",bewerken:"Bewerken"};
@@ -7486,8 +7486,8 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-vga]
 /* Mails en Sms samen op één pagina "Communicatie" met tabs; menu blijft op Communicatie staan.
    Het recht "sms" blijft apart (NAV_ALIAS zou het anders aan Mails koppelen): standaard enkel admin. */
 var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.sms="mails";
-{const _r=recht;recht=function(r){if(r==="sms"){if(ROL==="admin")return "bewerken";if(typeof SIM_U!=="undefined"&&SIM_U&&ROL!==ROL_ECHT&&SIM_U.rechten)return SIM_U.rechten.sms||"geen";return (RECHTEN&&ROL===ROL_ECHT&&RECHTEN.sms)||"geen"}return _r.apply(this,arguments)}}
-function comTabs(act){if(recht("sms")==="geen")return "";return `<div class="ka-tabs" role="tablist"><a role="tab" href="#mails" class="${act==="mails"?"on":""}">Mail</a><a role="tab" href="#sms" class="${act==="sms"?"on":""}">Sms</a></div>`}
+{const _r=recht;recht=function(r){if(r==="sms"||r==="social"){if(ROL==="admin")return "bewerken";if(typeof SIM_U!=="undefined"&&SIM_U&&ROL!==ROL_ECHT&&SIM_U.rechten)return SIM_U.rechten[r]||"geen";return (RECHTEN&&ROL===ROL_ECHT&&RECHTEN[r])||"geen"}return _r.apply(this,arguments)}}
+function comTabs(act){const T=[["mails","Mail"],["sms","Sms"],["social","Sociale media"]].filter(([k])=>k==="mails"||recht(k)!=="geen");if(T.length<2)return "";return `<div class="ka-tabs" role="tablist">${T.map(([k,l])=>`<a role="tab" href="#${k}" class="${act===k?"on":""}">${l}</a>`).join("")}</div>`}
 const SMS={groep:"bestuur",los:"",tekst:"",uit:new Set(),dienst:null,log:null};
 const smsNr=t=>{let d=String(t||"").replace(/[^\d+]/g,"");if(d.startsWith("+"))d=d.slice(1);else if(d.startsWith("00"))d=d.slice(2);else if(d.startsWith("0")&&d.length>=9)d="32"+d.slice(1);return /^\d{9,15}$/.test(d)?d:""};
 const smsGsm=t=>{const n=smsNr(t);return n&&(!n.startsWith("32")||/^324\d{8}$/.test(n))?n:""}; // Belgische vaste nummers kunnen geen sms ontvangen
@@ -7555,3 +7555,93 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-sms]
     if(canWrite)h=h.replace('<h2>Ontvangers</h2><span class="grow"></span>',`<h2>Ontvangers</h2><span class="grow"></span><button class="btn sm ml-kb" data-act="mlLijstBeheer" type="button">${ic("leden")}Mailinglijsten</button>`);
     return comTabs("mails")+h};return v};Object.assign(n,_v);VIEWS.mails=n}
 {const st=document.createElement("style");st.textContent=`.ml-kb{flex:none;white-space:nowrap}.ml-ed-p>.panel-h,.ml-ed-p+.panel>.panel-h{gap:8px}`;document.head.appendChild(st)}
+
+/* ============ Communicatie › Sociale media ============
+   Post klaarzetten met tekst, foto's en link; meteen of op een tijdstip publiceren op Facebook, Instagram en de eigen website.
+   Alles via de server (/api/mail?f=social, functie "social"): de Meta-sleutels staan enkel in Vercel. Geplande posts publiceert een geplande taak (elke 5 min). */
+if(!ROUTES.some(r=>r[0]==="social"))ROUTES.push(["social","Sociale media"]);
+NAV_ALIAS.social="mails";
+ICON.facebook='<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M15.5 8h-1.6A2.4 2.4 0 0 0 11.5 10.4V20.5M9 13h5.5"/>';
+ICON.prul='<path d="M4 7h16M9.5 7V4.5h5V7M6 7l1 13h10l1-13M10 11v6M14 11v6"/>';
+ICON.instagram='<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6" fill="currentColor"/>';
+ICON.website=ICON.website||'<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/>';
+const SO_K=[["facebook","Facebook"],["instagram","Instagram"],["website","Website"]];
+const SO_ST={concept:["neutral","Concept"],gepland:["info","Gepland"],bezig:["warn","Bezig…"],gepubliceerd:["ok","Gepubliceerd"],deels:["warn","Deels gelukt"],fout:["nok","Mislukt"]};
+const SOC={posts:null,kop:{},laden:false,ed:null,busy:false};
+const soLeeg=()=>({id:null,tekst:"",titel:"",link:"",fotos:[],kanalen:{facebook:!!SOC.kop.facebook,instagram:!!SOC.kop.instagram,website:!SOC.kop.facebook&&!SOC.kop.instagram},modus:"nu",plan:""});
+async function soApi(b){return api("/api/mail?f=social",{method:"POST",body:JSON.stringify(b)})}
+async function soLaad(){if(SOC.laden)return;SOC.laden=true;try{const j=await soApi({actie:"lijst"});SOC.posts=j.posts;SOC.kop=j.koppeling||{};if(SOC.ed&&!SOC.ed.id&&!SOC.ed.tekst&&!SOC.ed.fotos.length)SOC.ed=soLeeg()}catch(e){SOC.posts=[];toast(e.message,true)}SOC.laden=false;if(route()==="social")renderBody()}
+const soDt=iso=>new Date(iso).toLocaleString("nl-BE",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+const soLokaal=iso=>{const d=iso?new Date(iso):new Date(Date.now()+3600e3);d.setSeconds(0,0);return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,16)};
+function soKan(E,k,l){const aan=E.kanalen[k],gek=k==="website"||SOC.kop[k];
+  return `<button type="button" class="so-k${aan?" on":""}" data-sok="${k}" aria-pressed="${aan}"${canWrite?"":" disabled"}>${ic(k)}<span>${l}</span>${gek?"":'<small>niet gekoppeld</small>'}</button>`}
+function soPost(r){const d=r.data,[cl,lb]=SO_ST[r.status]||["neutral",r.status],R=d.resultaten||{},K=SO_K.filter(([k])=>d.kanalen&&d.kanalen[k]);
+  const f=(d.fotos||[])[0];
+  return `<div class="so-p"><div class="so-th">${f&&f.url?`<img src="${esc(f.url)}" alt="" loading="lazy">`:`<span>${ic("mails")}</span>`}${(d.fotos||[]).length>1?`<b>${d.fotos.length}</b>`:""}</div>
+   <div class="so-m"><div class="so-t">${esc(d.titel||d.tekst||"(geen tekst)")}</div>
+    <div class="so-s"><span class="pill ${cl}">${lb}</span>${r.status==="gepland"&&r.plan?`<span>${esc(soDt(r.plan))}</span>`:d.gepubliceerd?`<span>${esc(soDt(d.gepubliceerd))}</span>`:""}
+     ${K.map(([k,l])=>{const x=R[k];return x&&x.ok&&x.url?`<a class="so-c ok" href="${esc(x.url)}" target="_blank" rel="noopener" title="Bekijken op ${l}">${ic(k)}</a>`:`<span class="so-c${x?x.ok?" ok":" nok":""}" title="${esc(l+(x&&!x.ok?": "+x.fout:""))}">${ic(k)}</span>`}).join("")}</div>
+    ${K.some(([k])=>R[k]&&!R[k].ok)?`<div class="so-f">${K.filter(([k])=>R[k]&&!R[k].ok).map(([k,l])=>`${l}: ${esc(R[k].fout)}`).join("<br>")}</div>`:""}</div>
+   ${canWrite?`<div class="so-a">${["concept","gepland","fout","deels"].includes(r.status)?`<button type="button" class="btn sm ghost" data-soa="bewerk" data-id="${esc(r.id)}">Bewerken</button>`:""}${["fout","deels"].includes(r.status)?`<button type="button" class="btn sm" data-soa="nu" data-id="${esc(r.id)}">Opnieuw</button>`:r.status==="concept"||r.status==="gepland"?`<button type="button" class="btn sm" data-soa="nu" data-id="${esc(r.id)}">Nu publiceren</button>`:""}${r.status!=="bezig"?`<button type="button" class="iconbtn" data-soa="weg" data-id="${esc(r.id)}" title="Verwijderen" aria-label="Verwijderen">${ic("prul")}</button>`:""}</div>`:""}</div>`}
+VIEWS.social=()=>({title:"Communicatie",body(){
+  if(recht("social")==="geen")return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
+  if(!SOC.posts){soLaad();return comTabs("social")+'<div class="panel"><div class="empty">Laden…</div></div>'}
+  const E=SOC.ed||(SOC.ed=soLeeg()),d=canWrite&&!SOC.busy?"":" disabled",ig=E.kanalen.instagram,lang=E.tekst.length;
+  const P=SOC.posts,gr=[["Gepland",P.filter(r=>r.status==="gepland"||r.status==="bezig").sort((a,b)=>String(a.plan).localeCompare(String(b.plan)))],["Concepten en fouten",P.filter(r=>["concept","fout","deels"].includes(r.status))],["Gepubliceerd",P.filter(r=>r.status==="gepubliceerd")]];
+  return comTabs("social")+`<div class="grid g2 so-g" style="align-items:start">
+  <div class="panel"><div class="panel-h"><h2>${E.id?"Post bewerken":"Nieuwe post"}</h2><span class="grow"></span>${E.id?`<button type="button" class="btn sm ghost" data-soa="nieuw">Nieuwe post</button>`:""}</div><div class="panel-b stack">
+   <div class="so-ks">${SO_K.map(([k,l])=>soKan(E,k,l)).join("")}</div>
+   ${E.kanalen.website?`<div class="fld"><label for="soTi">Titel op de website</label><input id="soTi" maxlength="140" value="${esc(E.titel)}"${d}></div>`:""}
+   <div class="fld"><label for="soTx">Tekst</label><textarea id="soTx" rows="6" maxlength="2200" placeholder="Wat wil je delen?"${d}>${esc(E.tekst)}</textarea><div class="muted small so-n"><span id="soN">${lang} / 2200</span></div></div>
+   <div class="fld"><label for="soLi">Link <span class="muted">(optioneel)</span></label><input id="soLi" type="url" inputmode="url" placeholder="https://…" value="${esc(E.link)}"${d}></div>
+   <div class="fld"><span class="lbl">Foto's${ig?' <span class="muted">(Instagram: minstens 1)</span>':""}</span><div class="so-fs">${E.fotos.map((f,i)=>`<div class="so-fo"><img src="${esc(f.url||"")}" alt=""><button type="button" data-sofx="${i}" aria-label="Foto weghalen"${d}>${ic("x")}</button></div>`).join("")}${E.fotos.length<10?`<label class="so-up${d?" dis":""}">${SOC.upl?'<span class="spin"></span>':ic("plus")}<input type="file" accept="image/*" multiple hidden data-soup${d}></label>`:""}</div></div>
+   <div class="fld"><span class="lbl">Wanneer</span><div class="seg so-w">${[["nu","Meteen"],["plan","Op een tijdstip"]].map(([v,l])=>`<button type="button" data-sow="${v}" class="${E.modus===v?"on":""}"${d}>${l}</button>`).join("")}</div>
+    ${E.modus==="plan"?`<input id="soPl" type="datetime-local" value="${esc(E.plan||soLokaal())}" style="margin-top:8px"${d}>`:""}</div>
+   <div class="so-act"><button type="button" class="btn ghost" data-soa="concept"${d}>Opslaan als concept</button><button type="button" class="btn primary" data-soa="${E.modus==="plan"?"plan":"pub"}"${d}>${SOC.busy?"Bezig…":E.modus==="plan"?"Inplannen":"Publiceren"}</button></div>
+  </div></div>
+  <div class="panel"><div class="panel-h"><h2>Posts</h2></div>${P.length?gr.filter(g=>g[1].length).map(([t,L])=>`<div class="so-gh">${t}</div>${L.map(soPost).join("")}`).join(""):'<div class="empty">Nog geen posts.</div>'}</div></div>`}});
+const soEd=()=>SOC.ed||(SOC.ed=soLeeg());
+document.addEventListener("input",e=>{const t=e.target,E=SOC.ed;if(!E)return;if(t.id==="soTx"){E.tekst=t.value;const n=$("#soN");if(n)n.textContent=t.value.length+" / 2200"}else if(t.id==="soTi")E.titel=t.value;else if(t.id==="soLi")E.link=t.value.trim();else if(t.id==="soPl")E.plan=t.value});
+document.addEventListener("change",async e=>{const t=e.target;if(!t.matches||!t.matches("[data-soup]"))return;const E=soEd(),F=[...t.files].slice(0,10-E.fotos.length);if(!F.length)return;SOC.upl=true;renderBody();
+  try{for(const f of F){const r=await fotoVerklein(f,1600,0.85);let cv=r.canvas;const q=cv.width/cv.height;
+      // Instagram aanvaardt enkel verhoudingen tussen 4:5 (staand) en 1,91:1 (liggend): zo nodig het midden bijsnijden
+      if(q<0.8||q>1.91){const w=q<0.8?cv.width:Math.round(cv.height*1.91),h=q<0.8?Math.round(cv.width/0.8):cv.height,c2=document.createElement("canvas");c2.width=w;c2.height=h;c2.getContext("2d").drawImage(cv,(cv.width-w)/2,(cv.height-h)/2,w,h,0,0,w,h);cv=c2}
+      const data=cv.toDataURL("image/jpeg",0.85);const j=await soApi({actie:"foto",data});E.fotos.push({pad:j.pad,url:j.url,w:cv.width,h:cv.height})}}
+  catch(x){toast(x.message||"Foto opladen mislukt.",true)}SOC.upl=false;renderBody()});
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-sok],[data-sow],[data-sofx],[data-soa]");if(!b||route()!=="social")return;e.preventDefault();const E=soEd();
+  if(b.dataset.sok){E.kanalen[b.dataset.sok]=!E.kanalen[b.dataset.sok];renderBody();return}
+  if(b.dataset.sow){E.modus=b.dataset.sow;if(E.modus==="plan"&&!E.plan)E.plan=soLokaal();renderBody();return}
+  if(b.dataset.sofx!=null){E.fotos.splice(+b.dataset.sofx,1);renderBody();return}
+  const a=b.dataset.soa,id=b.dataset.id,r=id&&SOC.posts.find(x=>x.id===id);
+  if(a==="nieuw"){SOC.ed=soLeeg();renderBody();return}
+  if(a==="bewerk"&&r){const d=r.data;SOC.ed={id:r.id,tekst:d.tekst||"",titel:d.titel||"",link:d.link||"",fotos:(d.fotos||[]).map(f=>({...f})),kanalen:{...d.kanalen},modus:r.status==="gepland"?"plan":"nu",plan:r.plan?soLokaal(r.plan):""};renderBody();window.scrollTo({top:0,behavior:"smooth"});return}
+  if(a==="weg"&&r){const web=r.data.resultaten&&r.data.resultaten.website&&r.data.resultaten.website.ok,fb=["facebook","instagram"].some(k=>r.data.resultaten&&r.data.resultaten[k]&&r.data.resultaten[k].ok);
+    confirmBox(`Deze post verwijderen?${web?"<br>Hij verdwijnt ook van de website.":""}${fb?"<br><span class=\"muted small\">Op Facebook en Instagram blijft hij staan; verwijder hem daar zelf.</span>":""}`,"Verwijderen",async()=>{try{const j=await soApi({actie:"verwijder",id});SOC.posts=j.posts;if(SOC.ed&&SOC.ed.id===id)SOC.ed=soLeeg();renderBody()}catch(x){toast(x.message,true)}});return}
+  if(a==="nu"&&r){confirmBox(`Deze post nu publiceren op ${SO_K.filter(([k])=>r.data.kanalen[k]).map(x=>x[1]).join(", ")}?`,"Publiceren",async()=>{toast("Bezig met publiceren…");try{const j=await soApi({actie:"publiceer",id});SOC.posts=j.posts;renderBody();soMeld(j.pub)}catch(x){toast(x.message,true);soLaad()}});return}
+  if(["concept","plan","pub"].includes(a)){
+    const kan=SO_K.filter(([k])=>E.kanalen[k]).map(x=>x[1]);
+    const doe=async()=>{SOC.busy=true;renderBody();
+      try{const j=await soApi({actie:"bewaar",id:E.id,modus:a==="pub"?"nu":a,plan:E.modus==="plan"&&E.plan?new Date(E.plan).toISOString():null,post:{tekst:E.tekst,titel:E.titel,link:E.link,fotos:E.fotos.map(({pad,w,h})=>({pad,w,h})),kanalen:E.kanalen}});
+        SOC.posts=j.posts;SOC.ed=soLeeg();SOC.busy=false;renderBody();if(a==="pub")soMeld(j.pub);else toast(a==="plan"?"Ingepland.":"Opgeslagen als concept.")}
+      catch(x){SOC.busy=false;renderBody();toast(x.message,true)}};
+    if(a==="pub")confirmBox(`Nu publiceren op <b>${esc(kan.join(", "))}</b>?`,"Publiceren",doe);else doe()}});
+function soMeld(p){if(!p)return;const R=p.data.resultaten||{},K=SO_K.filter(([k])=>p.data.kanalen[k]);
+  modal(p.status==="gepubliceerd"?"Gepubliceerd":p.status==="deels"?"Deels gepubliceerd":"Publiceren mislukt",`<div class="stack" style="gap:8px">${K.map(([k,l])=>{const x=R[k]||{};return `<div class="so-r">${ic(k)}<b>${l}</b><span class="grow">${x.ok?(x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">Bekijken</a>`:"Gelukt"):`<span style="color:var(--bad,#b91c1c)">${esc(x.fout||"Niet gelukt")}</span>`}</span></div>`}).join("")}</div>`,`<button class="btn primary" data-act="closeModal">Sluiten</button>`)}
+{const st=document.createElement("style");st.textContent=`.so-ks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.so-k{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font:inherit;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer}
+.so-k svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.so-k small{font-size:11px;font-weight:500;color:var(--muted)}
+.so-k.on{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--surface))}
+.so-n{text-align:right;margin-top:4px}.so-fs{display:flex;flex-wrap:wrap;gap:8px}.so-fo{position:relative;width:76px;height:76px;border-radius:10px;overflow:hidden;background:var(--sunken)}
+.so-fo img{width:100%;height:100%;object-fit:cover}.so-fo button{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0}
+.so-fo button svg{width:12px;height:12px;stroke:#fff;stroke-width:2.5;fill:none}.so-up{width:76px;height:76px;border:1.5px dashed var(--line);border-radius:10px;display:grid;place-items:center;cursor:pointer;color:var(--muted)}
+.so-up svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2}.so-up.dis{opacity:.5;pointer-events:none}.so-w{display:inline-flex;width:auto;max-width:max-content}.so-a .iconbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
+.so-act{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}.so-gh{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:12px 16px 4px}
+.so-p{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:start;padding:10px 16px;border-top:1px solid var(--line)}.so-gh+.so-p{border-top:0}
+.so-th{position:relative;width:52px;height:52px;border-radius:9px;overflow:hidden;background:var(--sunken);display:grid;place-items:center;color:var(--muted)}.so-th img{width:100%;height:100%;object-fit:cover}
+.so-th svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7}.so-th b{position:absolute;right:3px;bottom:3px;background:rgba(0,0,0,.65);color:#fff;font-size:10.5px;border-radius:6px;padding:0 5px}
+.so-t{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.so-s{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;font-size:12.5px;color:var(--muted)}
+.so-c{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--sunken);color:var(--muted)}.so-c svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8}
+.so-c.ok{background:var(--good-soft,#e7f6ee);color:var(--good,#15803d)}.so-c.nok{background:#fde8e8;color:#b91c1c}.so-f{font-size:12px;color:#b91c1c;margin-top:4px}
+.so-a{display:flex;gap:6px;align-items:center}.so-r{display:flex;gap:10px;align-items:center}.so-r svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}
+@media(max-width:860px){.so-g{grid-template-columns:1fr}.so-p{grid-template-columns:44px minmax(0,1fr)}.so-th{width:44px;height:44px}.so-a{grid-column:2}}`;document.head.appendChild(st)}
