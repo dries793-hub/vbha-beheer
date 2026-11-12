@@ -1546,11 +1546,13 @@ html{scrollbar-gutter:stable}
   .kcd .kc-c .kc-p img,.kcd .kc-c .kc-ph{width:32px;height:32px}
   .kcd .kc-gh{padding:10px 14px}
 }
-/* kinderfeest › cadeaus: filterknoppen op de gsm als losse knopjes die netjes doorlopen */
+/* kinderfeest › cadeaus: filterknoppen op de gsm op één rij (korte labels) */
+.kc-f .ts{display:none}
 @media (max-width:760px){
-  .seg.kc-f{display:flex;flex-wrap:wrap;gap:6px;border:0;border-radius:0;background:none;overflow:visible}
-  .seg.kc-f button{flex:0 0 auto;border:1px solid var(--line-strong)!important;border-radius:999px;padding:7px 13px;background:var(--surface);font-size:14px}
-  .seg.kc-f button.on{background:var(--navy);border-color:var(--navy)!important;color:var(--navy-ink)}
+  .seg.kc-f{display:flex;width:100%;overflow:hidden}
+  .seg.kc-f button{flex:1 1 auto;min-width:0;padding:8px 4px;font-size:13px;text-align:center}
+  .seg.kc-f button:last-child{border-right:0}
+  .kc-f .tl{display:none}.kc-f .ts{display:inline}
 }
 </style>
 <style>
