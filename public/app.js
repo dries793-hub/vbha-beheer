@@ -7382,6 +7382,23 @@ function kfcDash(){try{if(!canWrite||(typeof ROL!=="undefined"&&ROL!=="admin"&&!
   return `<div class="nmeld" role="status" data-kfcd="1"><span class="nm-ic">${ic("kinderfeest")}</span><div class="nm-body"><b>Kinderfeest: cadeaus bestellen voor ${L.length} ${L.length===1?"kind":"kinderen"}</b><div class="small muted">${pr?pr+(pr===1?" product":" producten"):""}${pr&&bn?" · ":""}${bn?bn+(bn===1?" bon":" bonnen")+" bol.com":""}</div>
     <div><button type="button" class="nm-btn" data-kfc="bestel">${ic("download")}Bestellijst</button></div></div></div>`}catch(e){return""}}
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return kfcDash()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+/* ---------- "Cadeautjes per leeftijd" als taartdiagram, naast "Voorziene kost cadeaus" ---------- */
+function kfLeeftijdTaart(){const st=kfStats(),c=st.c,A=[];for(let a=0;a<=c.leeftijd;a++){const n=st.per.get(a)||0;if(n)A.push([a===0?"< 1 jaar":a+" jaar",n])}if(st.onbekend)A.push(["onbekend",st.onbekend]);
+  const tot=A.reduce((t,x)=>t+x[1],0);if(!tot)return"";
+  const KL=["#c0161f","#2563eb","#16a34a","#d97706","#7c3aed","#0891b2","#db2777","#65a30d","#ea580c","#4f46e5","#0d9488","#a16207","#be123c"];
+  const R=52,C=2*Math.PI*R;let off=0;
+  const seg=A.map(([l,n],i)=>{const len=n/tot*C,s=`<circle r="${R}" cx="70" cy="70" fill="none" stroke="${KL[i%KL.length]}" stroke-width="26" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"><title>${esc(l)}: ${n}</title></circle>`;off+=len;return s}).join("");
+  return `<div class="panel"><div class="panel-h"><h2>Cadeautjes per leeftijd</h2></div><div class="panel-b"><div class="kf-taart">
+    <svg viewBox="0 0 140 140" width="160" height="160" role="img" aria-label="Cadeautjes per leeftijd"><g transform="rotate(-90 70 70)">${seg}</g><text x="70" y="68" text-anchor="middle" font-size="22" font-weight="700" fill="currentColor">${tot}</text><text x="70" y="86" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">cadeaus</text></svg>
+    <div class="kf-leg">${A.map(([l,n],i)=>`<div><i style="background:${KL[i%KL.length]}"></i><span>${esc(l)}</span><b>${n}</b><small>${Math.round(n/tot*100)} %</small></div>`).join("")}</div></div></div></div>`}
+{const _v=VIEWS.kinderfeest;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=String(b.apply(this,arguments));
+  const re1=/<div class="panel"><div class="panel-h"><h2>Cadeautjes per leeftijd<\/h2>[\s\S]*?<\/div><\/div><\/div>/,re2=/<div class="panel"><div class="panel-h"><h2>Voorziene kost cadeaus<\/h2>[\s\S]*?<\/span><\/div><\/div><\/div>/;
+  const m1=h.match(re1);if(!m1)return h;const m2=h.match(re2);const taart=kfLeeftijdTaart()||m1[0];
+  h=h.replace(re1,"\u0000");if(m2)h=h.replace(re2,"");
+  return h.replace("\u0000",()=>`<div class="grid g2 kf-dub" style="align-items:start">${taart}${m2?m2[0]:""}</div>`)};return v};Object.assign(n,_v);VIEWS.kinderfeest=n}
+{const st=document.createElement("style");st.textContent=`.kf-taart{display:flex;align-items:center;gap:24px;flex-wrap:wrap;justify-content:center}.kf-taart svg{flex:none}
+.kf-leg{display:grid;grid-template-columns:repeat(2,minmax(120px,auto));gap:6px 22px;font-size:14px}.kf-leg div{display:flex;align-items:center;gap:8px}.kf-leg i{width:11px;height:11px;border-radius:3px;flex:none}.kf-leg span{flex:1}.kf-leg small{color:var(--muted);min-width:34px;text-align:right}
+.kf-dub>.panel{margin:0;min-width:0}@media(max-width:860px){.kf-dub{grid-template-columns:1fr}}`;document.head.appendChild(st)}
 
 /* ============ Bestuursvergadering: aanwezig of verontschuldigd ============
    Bestuursleden geven het door via de knop in de herinneringsmail (/vergadering?i=&t=) of hier in de agenda.
