@@ -188,7 +188,7 @@ export async function productInfo(url) {
 }
 
 /* ---------- budget per kind ---------- */
-export function kfcInstellingen(c, jaar) { const datum = c.datum || jaar + "-12-19"; return { ...kfMailDef(jaar, datum), ...(c.mail || {}), datum }; }
+export function kfcInstellingen(c, jaar) { const datum = c.datum || jaar + "-12-19"; return { ...kfMailDef(jaar, datum), ...(c.mail || {}), tot: kfMailDef(jaar, datum).tot, datum }; } // kiezen kan altijd tot 10 dagen voor het feest
 export function budgetVan(geb, M) {
   const y = Number(String(geb || "").slice(0, 4)), g = kfGroepen(M.groepen).find(x => y >= x.van && y <= x.tot);
   if (!g) return { budget: null, tekst: "" };
