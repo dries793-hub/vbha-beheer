@@ -6699,7 +6699,7 @@ const FUNC=[["leden","Ledenlijst",["leden"],"Leden"],["punten","Puntensysteem",[
   ["webshop","Webshop",["webshop"],"Webshop"]];
 const FUNC_VAN={};for(const [f,,rs] of FUNC)for(const r of rs)FUNC_VAN[r]=f;
 const RECHT_LBL={geen:"Verborgen",lezen:"Lezen",bewerken:"Bewerken"};
-function rechtenVanProfiel(rol){const o={};for(const [f] of FUNC)o[f]=rol==="admin"?"bewerken":rol==="boekhouder"&&["financien","facturen","overzicht","historiek","begroting"].includes(f)?"bewerken":"lezen";return o}
+function rechtenVanProfiel(rol){const o={};for(const [f] of FUNC)o[f]=rol==="admin"?"bewerken":rol==="boekhouder"&&["financien","facturen","terug","overzicht","historiek","begroting"].includes(f)?"bewerken":"lezen";return o}
 function recht(r){r=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS[r])||r;if(ROL==="admin")return "bewerken";const f=FUNC_VAN[r];if(!f)return "lezen";if(f==="sms")return (RECHTEN&&ROL===ROL_ECHT&&RECHTEN.sms)||"geen"; // sms: standaard verborgen voor iedereen behalve de administrator
 
   if(RECHTEN&&ROL===ROL_ECHT)return RECHTEN[f]||"geen";return ROL==="boekhouder"&&BOEK_ROUTES.has(r)?"bewerken":"lezen"}
@@ -7908,15 +7908,16 @@ function krSugInit(root,extra){const inp=root.querySelector("#krQ"),ul=root.quer
 .kr-sug em{font-style:normal;font-size:12px;color:var(--muted);white-space:nowrap}.kr-sug em.ok{color:var(--good,#15803d)}.kr-sug em.res{color:var(--info,#2563eb)}.kr-sug-leeg{padding:10px;color:var(--muted);font-size:14px}
 `;document.head.appendChild(st)}
 
-/* ============ Facturen › Terugbetalingen ============
+/* ============ Financiën › Terugbetalingen ============
    Geld dat de vriendenkring aan iemand moet betalen: terugbetalingen (link om het IBAN op te vragen) en onkostennota's
    die (bestuurs)leden zelf indienen via /terugbetaling (met foto van het kasticket). Gegevens enkel via de server (/api/mail?f=terug).
    Betalen: betaal-QR-code voor de bankapp; zodra een uitgaande transactie met hetzelfde bedrag en IBAN binnenkomt, staat ze op betaald. */
-NAV_ALIAS.terug="facturen";
+/* eigen menu-item onder Financiën en eigen functie in de rechten (standaard: admin en boekhouding) */
 if(!ROUTES.some(r=>r[0]==="terug"))ROUTES.push(["terug","Terugbetalingen"]);
-{const f=FUNC.find(x=>x[0]==="facturen");if(f&&!f[2].includes("terug")){f[2].push("terug");FUNC_VAN.terug="facturen"}}
-{const _t=fcTabs;fcTabs=function(act){if(!TB.lijst&&fcMag())tbLaad();const h=_t(act),n=TB.lijst?TB.lijst.filter(r=>["aangevraagd","ingediend","goedgekeurd"].includes(r.status)).length:0;
-  return h.replace("</nav>",`<a href="#terug" class="${act==="terug"?"on":""}"${act==="terug"?' aria-current="page"':""}>Terugbetalingen${n?`<span class="cnt">${n}</span>`:""}</a></nav>`)}}
+ICON.terug=ICON.terug||'<path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>';
+{const b=NAV.find(n=>n.id==="boekhouding");if(b&&!b.items.some(i=>i[0]==="terug")){const k=b.items.findIndex(i=>i[0]==="facturen");b.items.splice(k<0?b.items.length:k+1,0,["terug","Terugbetalingen"])}}
+if(!FUNC.some(x=>x[0]==="terug")){const k=FUNC.findIndex(x=>x[0]==="facturen");FUNC.splice(k<0?FUNC.length:k+1,0,["terug","Terugbetalingen",["terug"],"Financiën"]);FUNC_VAN.terug="terug"}
+const tbMag=()=>ROL==="admin"||recht("terug")!=="geen";
 const TB={lijst:null,link:"",f:"open",laden:false};
 const TB_ST={aangevraagd:["neutral","Wacht op rekeningnummer"],ingediend:["warn","Te keuren"],goedgekeurd:["info","Te betalen"],betaald:["ok","Betaald"],geweigerd:["nok","Geweigerd"]};
 async function tbApi(b){return api("/api/mail?f=terug",{method:"POST",body:JSON.stringify(b)})}
@@ -7924,7 +7925,7 @@ async function tbLaad(){if(TB.laden)return;TB.laden=true;try{const j=await tbApi
 /* uitgaande transactie met hetzelfde bedrag naar hetzelfde IBAN (na de aanvraag) = betaald */
 function tbBoeking(r){const d=r.data,ib=String(d.iban||"").replace(/\s+/g,"").toUpperCase();if(!ib)return null;const van=String(d.op||r.gemaakt||"").slice(0,10);
   return [...S.boekingen.values()].find(b=>b.richting==="uit"&&String(b.iban||"").replace(/\s+/g,"").toUpperCase()===ib&&Math.abs(num(b.bedrag)-num(d.bedrag))<0.005&&String(b.datum)>=van)||null}
-async function tbAutoBetaald(){if(!fcMag()||!canWrite)return;for(const r of TB.lijst||[]){if(r.status!=="goedgekeurd")continue;const b=tbBoeking(r);if(!b)continue;
+async function tbAutoBetaald(){if(!tbMag()||!canWrite)return;for(const r of TB.lijst||[]){if(r.status!=="goedgekeurd")continue;const b=tbBoeking(r);if(!b)continue;
   try{const j=await tbApi({actie:"zet",id:r.id,status:"betaald"});TB.lijst=j.lijst}catch(e){}}}
 function tbRij(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],b=r.status==="betaald"?tbBoeking(r):null;
   const acts=[];if(canWrite){
@@ -7935,12 +7936,12 @@ function tbRij(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],b=r
     <div class="muted small">${esc(d.reden||"")}${d.datum?" · "+fmtDate(d.datum):""}${d.iban?" · "+esc(String(d.iban).replace(/(.{4})/g,"$1 ").trim()):""}${d.bon?` · <button type="button" class="lnkb" data-tb="bon" data-id="${esc(r.id)}">bewijsstuk</button>`:""}</div>
     ${r.status==="betaald"?`<div class="muted small">Betaald${d.betaaldOp?" op "+fmtDate(String(d.betaaldOp).slice(0,10)):""}${b?" · transactie "+fmtDate(b.datum):""}</div>`:r.status==="geweigerd"&&d.weigerReden?`<div class="muted small">Reden: ${esc(d.weigerReden)}</div>`:""}</div>
    <b class="tb-b">${eur(d.bedrag)}</b><div class="tb-a">${acts.join("")}${canWrite?`<button type="button" class="iconbtn" data-tb="weg" data-id="${esc(r.id)}" title="Verwijderen" aria-label="Verwijderen">${ic("prul")}</button>`:""}</div></div>`}
-VIEWS.terug=()=>({title:"Facturen",actions:fcMag()&&canWrite?`<button class="btn" data-tb="link">${ic("link")}Link onkostennota</button><button class="btn primary" data-tb="nieuw">${ic("plus")}Nieuwe terugbetaling</button>`:"",body(){
-  if(!fcMag())return fcTabs("terug")+'<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
-  if(!TB.lijst){tbLaad();return fcTabs("terug")+'<div class="panel"><div class="empty">Laden…</div></div>'}
+VIEWS.terug=()=>({title:"Terugbetalingen",actions:tbMag()&&canWrite?`<button class="btn" data-tb="link">${ic("link")}Link onkostennota</button><button class="btn primary" data-tb="nieuw">${ic("plus")}Nieuwe terugbetaling</button>`:"",body(){
+  if(!tbMag())return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
+  if(!TB.lijst){tbLaad();return '<div class="panel"><div class="empty">Laden…</div></div>'}
   const OPEN=["aangevraagd","ingediend","goedgekeurd"],L=TB.lijst.filter(r=>TB.f==="alle"||(TB.f==="open"?OPEN.includes(r.status):r.status===TB.f));
   const som=TB.lijst.filter(r=>r.status==="goedgekeurd").reduce((s,r)=>s+num(r.data.bedrag),0);
-  return fcTabs("terug")+`<div class="bar fc-bar"><div class="seg">${[["open","Open"],["betaald","Betaald"],["geweigerd","Geweigerd"],["alle","Alle"]].map(([k,l])=>`<button type="button" data-tbf="${k}" class="${TB.f===k?"on":""}">${l}</button>`).join("")}</div><span class="grow"></span>${som?`<span class="muted">Nog te betalen: <b>${eur(som)}</b></span>`:""}</div>
+  return `<div class="bar fc-bar"><div class="seg">${[["open","Open"],["betaald","Betaald"],["geweigerd","Geweigerd"],["alle","Alle"]].map(([k,l])=>`<button type="button" data-tbf="${k}" class="${TB.f===k?"on":""}">${l}</button>`).join("")}</div><span class="grow"></span>${som?`<span class="muted">Nog te betalen: <b>${eur(som)}</b></span>`:""}</div>
    <div class="panel">${L.length?L.map(tbRij).join(""):`<div class="empty">${TB.f==="open"?"Geen openstaande terugbetalingen.":"Niets gevonden."}</div>`}</div>`}});
 function tbForm(){const leden=[...S.leden.values()].filter(l=>!l.geenLid).sort((a,b)=>naamVol(a).localeCompare(naamVol(b),"nl"));
   modal("Nieuwe terugbetaling",`<form id="fTb" class="form">
