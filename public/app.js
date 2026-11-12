@@ -4274,6 +4274,44 @@ function inkKiesVoor(b,bid){const p=norm(b.partij||b.mededeling||""),w=p.split("
   return `<div class="full ink-fb">${ic("verslagen")}<select class="sel" id="inkB" style="flex:1;min-width:0"><option value="">Factuur koppelen…</option>${D.map(d=>`<option value="${esc(d.id)}">${esc(lab(d))}</option>`).join("")}</select><button type="button" class="btn sm" data-inkb="${esc(bid)}">Koppelen</button></div>`}
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-inkb]");if(!t)return;e.preventDefault();const s=$("#inkB");if(!s||!s.value){toast("Kies eerst een factuur.",true);return}
   t.disabled=true;try{await inkKoppel(s.value,t.dataset.inkb);closeModal()}catch(x){t.disabled=false;toast(x.message,true)}});
+/* ---------- Betalen: QR-code (EPC/SEPA) om een inkomende factuur met de bankapp (Argenta) te betalen ----------
+   Rechtstreeks een overschrijving klaarzetten bij Argenta kan niet: Enable Banking laat betalingen enkel toe voor bedrijven met een PISP-vergunning.
+   De bankapp scant de QR-code en vult begunstigde, IBAN, bedrag en mededeling zelf in. */
+const inkIbanOk=i=>{i=String(i||"").replace(/\s+/g,"").toUpperCase();if(!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(i))return false;const r=(i.slice(4)+i.slice(0,4)).replace(/[A-Z]/g,c=>c.charCodeAt(0)-55);let m=0;for(const ch of r)m=(m*10+Number(ch))%97;return m===1};
+const inkEigenIban=()=>new Set([String(cfg().rekeningnummer||"").replace(/\s+/g,"").toUpperCase(),"BE43973068100401"]);
+const inkIbanFmt=i=>String(i||"").replace(/\s+/g,"").toUpperCase().replace(/(.{4})/g,"$1 ").trim();
+const inkAscii=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Za-z0-9 .,'+\-\/&()]/g," ").replace(/\s+/g," ").trim();
+{const _a=inkAnalyse;inkAnalyse=function(t){const r=_a(t),E=inkEigenIban(),L=[];
+  for(const m of String(t||"").toUpperCase().matchAll(/\b([A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){2,7}(?:[ ]?[A-Z0-9]{1,4})?)\b/g)){const c=m[1].replace(/\s+/g,"");let i="";for(let n=Math.min(34,c.length);n>=15;n--)if(inkIbanOk(c.slice(0,n))){i=c.slice(0,n);break}if(i&&!E.has(i)&&!L.includes(i))L.push(i)}
+  r.ibans=L;return r}}
+function inkBetaalData(d){const A=INK.txt.get(d.id)||{},E=inkEigenIban(),naam=inkVan(d)||"",n=norm(naam);
+  let iban=(A.ibans||[])[0]||"";
+  if(!iban&&n){const b=[...S.boekingen.values()].filter(b=>b.richting==="uit"&&b.iban&&!E.has(String(b.iban).replace(/\s+/g,"").toUpperCase())&&norm(b.partij||"").includes(n.split(" ")[0])).sort((a,b)=>String(b.datum).localeCompare(String(a.datum)))[0];if(b)iban=String(b.iban).replace(/\s+/g,"").toUpperCase()}
+  const rest=Math.round(((inkTot(d)||A.totaal||0)-inkSom(d.id))*100)/100;
+  return{naam,iban,bedrag:rest>0?rest:(A.totaal||""),med:A.ogm?`+++${A.ogm.slice(0,3)}/${A.ogm.slice(3,7)}/${A.ogm.slice(7)}+++`:A.nr?"Factuur "+A.nr:""}}
+function inkBetaal(id){const d=S.documenten.get(id);if(!d)return;const B=inkBetaalData(d);
+  modal("Factuur betalen",`<div class="ink-pay"><div class="form">
+    ${fld("ipN","Begunstigde",inp("ipN",B.naam,'maxlength="70"'),"full")}
+    ${fld("ipI","IBAN",inp("ipI",inkIbanFmt(B.iban),'maxlength="42" placeholder="BE.. .... .... ...."'),"full")}
+    ${fld("ipB","Bedrag (€)",inp("ipB",B.bedrag?Number(B.bedrag).toFixed(2).replace(".",","):"",'inputmode="decimal"'))}
+    ${fld("ipM","Mededeling",inp("ipM",B.med,'maxlength="140" placeholder="+++123/4567/89012+++ of vrije tekst"'))}</div>
+   <div class="ink-qr"><div id="ipQ"></div><p class="muted small" id="ipT"></p></div></div>`,
+   `<button class="btn" data-act="closeModal">Sluiten</button>`,{wide:true});
+  const teken=()=>{const naam=inkAscii($("#ipN").value).slice(0,70),iban=$("#ipI").value.replace(/\s+/g,"").toUpperCase(),bedrag=Number(String($("#ipB").value).replace(/\s/g,"").replace(",",".")),med=$("#ipM").value.trim(),q=$("#ipQ"),t=$("#ipT");
+    const fout=!naam?"Vul de begunstigde in.":!inkIbanOk(iban)?"Dit IBAN-nummer klopt niet.":!(bedrag>0&&bedrag<1e6)?"Vul een geldig bedrag in.":"";
+    if(fout||!window.qrcode){q.innerHTML=`<div class="ink-qr-leeg">${esc(fout||"QR-code niet beschikbaar")}</div>`;t.textContent="";return}
+    // gestructureerde mededeling (OGM) in het referentieveld, anders vrije tekst
+    const og=med.replace(/\D/g,""),isOgm=/^\+{0,3}\s*\d{3}\s*\/?\s*\d{4}\s*\/?\s*\d{5}\s*\+{0,3}$/.test(med)&&og.length===12&&(Number(og.slice(0,10))%97||97)===Number(og.slice(10));
+    const txt=["BCD","002","1","SCT","",naam,iban,"EUR"+bedrag.toFixed(2),"",isOgm?og:"",isOgm?"":inkAscii(med).slice(0,140)].join("\n");
+    const qr=qrcode(0,"M");qr.addData(txt);qr.make();q.innerHTML=qr.createSvgTag({cellSize:5,margin:3,scalable:true});
+    t.innerHTML=`Scan met de Argenta-app (of een andere bankapp): de overschrijving van <b>${eur(bedrag)}</b> aan <b>${esc(naam)}</b> staat dan klaar om te bevestigen.${isOgm?"":med?" Mededeling als vrije tekst.":""}`};
+  ["#ipN","#ipI","#ipB","#ipM"].forEach(s=>$(s).addEventListener("input",teken));teken()}
+{const _r=inkRij;inkRij=function(d){const h=_r(d);if(!inkMag()||!inkOpen(d))return h;const i=h.indexOf('</div><div class="ink-b">');if(i<0)return h;
+  return h.slice(0,i)+`<button type="button" class="btn sm" data-inkbet="${esc(d.id)}" title="QR-code om te betalen met de bankapp">${ic("bank")}Betalen</button>`+h.slice(i)}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-inkbet]");if(!b)return;e.preventDefault();inkBetaal(b.dataset.inkbet)});
+{const st=document.createElement("style");st.textContent=`.ink-pay{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:20px;align-items:start}.ink-qr{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+#ipQ{width:220px;height:220px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;display:grid;place-items:center}#ipQ svg{width:100%;height:100%}.ink-qr-leeg{font-size:13px;color:var(--muted);padding:12px}
+@media(max-width:700px){.ink-pay{grid-template-columns:1fr}}`;document.head.appendChild(st)}
 
 /* ============ Dashboard: meldingen voor de boekhouding ============
    - transacties die nog verwerkt moeten worden (na het inladen van de bankgegevens)
