@@ -353,11 +353,18 @@ export async function kfCadeauApp(req, res) {
       const { data: row } = await sb.from("kinderfeest").select("id,data").eq("id", String(b.id || "")).maybeSingle(); if (!row) throw httpErr(404, "Inschrijving niet gevonden.");
       const d = row.data, k = (d.kinderen || [])[Number(b.kind)], it = k && k.cadeau && (k.cadeau.items || [])[Number(b.item)];
       if (!it) throw httpErr(404, "Product niet gevonden.");
-      let alt = null, fout = null; try { alt = await vergelijkProduct(it); } catch (e) { fout = String(e.message || e); }
-      const nieuw = { ...it, alt: alt ? { winkel: alt.winkel, url: alt.url, naam: alt.naam, prijs: alt.prijs, op: new Date().toISOString() } : { geen: true, op: new Date().toISOString() } };
-      const kinderen = d.kinderen.map((x, j) => j !== Number(b.kind) ? x : { ...x, cadeau: { ...x.cadeau, items: x.cadeau.items.map((y, n) => n === Number(b.item) ? nieuw : y) } });
+      // in één beweging: eigen winkel opnieuw (prijs, voorraad) én de andere winkel (zelfde EAN)
+      let alt = null, fout = null, p = null;
+      const [r1, r2v] = await Promise.allSettled([productInfo(it.url), it.artikelnr ? vergelijkProduct(it) : Promise.resolve(null)]);
+      if (r1.status === "fulfilled") p = r1.value;
+      if (r2v.status === "fulfilled") alt = r2v.value; else fout = String((r2v.reason && r2v.reason.message) || r2v.reason);
+      const nu = new Date().toISOString();
+      let nieuw = { ...it, alt: alt ? { winkel: alt.winkel, url: alt.url, naam: alt.naam, prijs: alt.prijs, op: nu } : { geen: true, op: nu } };
+      if (p && p.auto) { nieuw = { ...nieuw, naam: p.naam || it.naam, prijs: p.prijs, levertijd: p.levertijd || null, foto: p.foto || it.foto, beschikbaar: p.beschikbaar, auto: true, gecontroleerd: p.gecontroleerd || nu, vorigePrijs: p.prijs !== it.prijs ? it.prijs : it.vorigePrijs }; delete nieuw.controleMislukt; }
+      else nieuw = { ...nieuw, gecontroleerd: nu, controleMislukt: true };
+      const kinderen = d.kinderen.map((x, j) => { if (j !== Number(b.kind)) return x; const items = x.cadeau.items.map((y, n) => n === Number(b.item) ? nieuw : y); return { ...x, cadeau: { ...x.cadeau, items, totaal: r2(items.reduce((t, y) => t + (Number(y.prijs) || 0), 0)) } }; });
       const { error } = await sb.from("kinderfeest").update({ data: { ...d, kinderen } }).eq("id", row.id); if (error) throw error;
-      return res.status(200).json({ ok: true, alt: nieuw.alt, fout });
+      return res.status(200).json({ ok: true, item: nieuw, alt: nieuw.alt, fout, gewijzigd: !!(p && p.auto && (p.prijs !== it.prijs || p.beschikbaar !== it.beschikbaar)) });
     }
     if (b.actie === "controle") {
       const A = await algemeen(sb), jaar = Number(b.jaar) || A.jaar;
