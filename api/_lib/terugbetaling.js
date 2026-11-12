@@ -112,6 +112,22 @@ export async function terugApp(req, res) {
       const { error } = await sb.from("terugbetalingen").update({ status: st, data: d, gewijzigd: nu() }).eq("id", row.id); if (error) throw error;
       return res.status(200).json(await lijst());
     }
+    if (b.actie === "mail") { // link om het rekeningnummer door te geven per mail versturen (via de mailwachtrij)
+      const d = row.data, aan = clean(b.email || d.email, 160);
+      if (!aan || !mailOk(aan)) throw httpErr(400, "Geen geldig e-mailadres.");
+      if (d.iban && row.status !== "aangevraagd") throw httpErr(409, "Het rekeningnummer is al gekend.");
+      const { huisstijl, kaderBlok, knop, p, esc } = await import("./bevestiging.js");
+      const vn = String(d.naam || "").split(" ")[0], bd = "€ " + Number(d.bedrag).toFixed(2).replace(".", ",");
+      const html = huisstijl(p(`Beste ${esc(vn || "lid")},`)
+        + p(`De Vriendenkring betaalt je <b>${bd}</b> terug${d.reden ? ` voor <b>${esc(d.reden)}</b>` : ""}.`)
+        + kaderBlok("Wat moet je doen?", p("Geef via de knop hieronder je rekeningnummer (IBAN) door. Daarna schrijven we het bedrag zo snel mogelijk naar je over.", "margin:0"))
+        + knop("Rekeningnummer doorgeven", tbLink(row.id)), "Vriendenkring Brandweer Hoofdpost Aalst");
+      const { error } = await sb.from("mail_wachtrij").insert({ batch: "terug-" + row.id, data: { aan, aanNaam: d.naam || "", onderwerp: "Terugbetaling: geef je rekeningnummer door", html, label: "Terugbetaling" } });
+      if (error) throw error;
+      const nd = { ...d, email: aan, gemaild: [...(d.gemaild || []), { op: nu(), aan, door: wie }] };
+      await sb.from("terugbetalingen").update({ data: nd, gewijzigd: nu() }).eq("id", row.id);
+      return res.status(200).json({ ...(await lijst()), ok: true, aan });
+    }
     if (b.actie === "gezien") { await sb.from("terugbetalingen").update({ data: { ...row.data, nieuw: false } }).eq("id", row.id); return res.status(200).json(await lijst()); }
     if (b.actie === "weg") {
       if (row.data.bon && row.data.bon.pad) await sb.storage.from(BUCKET).remove([row.data.bon.pad]).catch(() => {});
