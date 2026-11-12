@@ -921,12 +921,12 @@ function krHistory(M){const E=Object.values(M).sort((a,b)=>(b.at||"").localeComp
 /* De kaart blijft bestaan als één element dat na elke hertekening terug in #krSlot gehangen wordt. */
 function krHost(){if(KR.host)return KR.host;const h=document.createElement("div");h.className="kr-host";
   h.innerHTML=`<div class="kr-map" id="krMap" role="application" aria-label="Kaart van de straten van Aalst-centrum, Gijzegem, Hofstade en Nieuwerkerken"></div>
-  <button type="button" class="kr-search" id="krSearchOpen" aria-haspopup="dialog">${ic("search")}<span>Zoek een straat…</span></button>
+  <div class="kr-search kr-si">${ic("search")}<input id="krQ" type="search" placeholder="Zoek een straat…" autocomplete="off" enterkeyhint="go" aria-label="Zoek een straat"><ul class="kr-sug" id="krSug" hidden></ul></div>
   <div class="kr-zoom"><button type="button" id="krZin" aria-label="Inzoomen">+</button><button type="button" id="krZout" aria-label="Uitzoomen">−</button><button type="button" id="krFit" aria-label="Hele kaart tonen" title="Hele kaart tonen">${ic("kaart")}</button></div>
   <section class="kr-card" id="krCard" hidden aria-labelledby="krCardT"><div class="kr-card-h"><div class="kr-card-t"><h3 id="krCardT"></h3><span id="krCardM"></span><button type="button" class="kr-link kr-wie" id="krWie" data-w hidden>Naam wijzigen</button><button type="button" class="kr-link kr-wie" id="krDeel" data-w hidden>Slechts een deel aanduiden</button></div><button type="button" class="btn ghost sm" id="krCardX" aria-label="Sluiten">${ic("x")}</button></div>
   <div class="kr-multi" id="krMulti" hidden></div>
   <div class="kr-seg" data-w role="group" aria-label="Status van de straat"><button type="button" id="krTodo" aria-pressed="true">Te doen</button><button type="button" id="krResBtn" aria-pressed="false">Reserveren</button><button type="button" id="krDone" aria-pressed="false">${KR_CHECK}Gedaan</button></div></section>`;
-  h.querySelector("#krSearchOpen").onclick=krOpenSearch;
+  krSugInit(h,s=>{const m=krAll()[s.id];return m?`<em class="${m.status==="reserved"?"res":"ok"}">${m.status==="reserved"?"gereserveerd"+(m.by?" · "+esc(m.by):""):"gedaan"}</em>`:""});
   h.querySelector("#krZin").onclick=()=>KR.map&&KR.map.zoomIn();
   h.querySelector("#krZout").onclick=()=>KR.map&&KR.map.zoomOut();
   h.querySelector("#krFit").onclick=()=>KR.map&&KR.map.fitBounds(KR.bounds,{padding:[20,20]});
@@ -7880,3 +7880,24 @@ div.vr-r{grid-template-columns:86px minmax(0,1fr) auto auto}.vr-r input{accent-c
 .vr-add{display:grid!important;grid-template-columns:150px minmax(0,1fr) 110px 110px auto;gap:8px;margin-top:8px}.vr-add input,.vr-add select{min-width:0}
 .vr-ps{display:flex;flex-direction:column;gap:8px}.vr-p{display:grid;grid-template-columns:minmax(0,1fr) 80px auto 32px;gap:8px;align-items:center}.vr-x{width:32px}
 @media(max-width:760px){.vr-add{grid-template-columns:1fr 1fr}.vr-add .vr-ao{grid-column:1/-1}.vr-r{grid-template-columns:auto 70px minmax(0,1fr) auto}div.vr-r{grid-template-columns:70px minmax(0,1fr) auto auto}}`;document.head.appendChild(st)}
+
+/* zoeken op de kaart zelf: vanaf 3 letters een lijstje onder de zoekbalk, de kaart blijft zichtbaar */
+function krSugInit(root,extra){const inp=root.querySelector("#krQ"),ul=root.querySelector("#krSug");if(!inp||!ul)return;let hits=[],act=-1;
+  const teken=()=>{ul.querySelectorAll("button").forEach((b,i)=>b.classList.toggle("on",i===act))};
+  const toon=()=>{const q=krFold(inp.value.trim());hits=q.length>=3?KR_SORTED.filter(s=>krFold(s.n).includes(q)||krFold(s.w).startsWith(q)).slice(0,8):[];act=hits.length?0:-1;
+    ul.innerHTML=hits.map((s,i)=>`<li><button type="button" data-i="${i}"><span>${esc(s.n)}<small>${esc(s.w)}</small></span>${extra?extra(s):""}</button></li>`).join("")+(q.length>=3&&!hits.length?'<li class="kr-sug-leeg">Geen straat gevonden.</li>':"");
+    ul.hidden=q.length<3;teken()};
+  const kies=s=>{ul.hidden=true;inp.value="";inp.blur();krPick(s)};
+  inp.addEventListener("input",toon);inp.addEventListener("focus",()=>{if(inp.value.trim().length>=3)toon()});
+  inp.addEventListener("blur",()=>setTimeout(()=>{ul.hidden=true},150));
+  inp.addEventListener("keydown",e=>{if(e.key==="ArrowDown"&&hits.length){e.preventDefault();act=(act+1)%hits.length;teken()}else if(e.key==="ArrowUp"&&hits.length){e.preventDefault();act=(act-1+hits.length)%hits.length;teken()}
+    else if(e.key==="Enter"&&hits.length){e.preventDefault();kies(hits[Math.max(0,act)])}else if(e.key==="Escape"){inp.value="";ul.hidden=true;inp.blur()}});
+  ul.addEventListener("mousedown",e=>e.preventDefault());ul.addEventListener("click",e=>{const b=e.target.closest("[data-i]");if(b)kies(hits[+b.dataset.i])})}
+{const st=document.createElement("style");st.textContent=`
+.kr-si{cursor:text}.kr-si input{flex:1;min-width:0;border:0;outline:0;background:none;padding:0;font:inherit;color:var(--ink)}.kr-si input::placeholder{color:var(--muted)}.kr-si input::-webkit-search-cancel-button{cursor:pointer}
+.kr-si:focus-within{border-color:var(--info);color:var(--ink)}
+.kr-sug{position:absolute;top:calc(100% + 6px);left:0;right:0;margin:0;padding:4px;list-style:none;background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r);box-shadow:0 8px 24px rgba(17,18,20,.16);max-height:min(340px,55vh);overflow:auto}
+.kr-sug button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border:0;border-radius:8px;background:none;font:inherit;font-size:14.5px;color:var(--ink);text-align:left;cursor:pointer}
+.kr-sug button:hover,.kr-sug button.on{background:var(--sunken,#f1f2f3)}.kr-sug button>span:first-child{display:flex;flex-direction:column;min-width:0}.kr-sug small{color:var(--muted);font-size:12.5px}
+.kr-sug em{font-style:normal;font-size:12px;color:var(--muted);white-space:nowrap}.kr-sug em.ok{color:var(--good,#15803d)}.kr-sug em.res{color:var(--info,#2563eb)}.kr-sug-leeg{padding:10px;color:var(--muted);font-size:14px}
+`;document.head.appendChild(st)}
