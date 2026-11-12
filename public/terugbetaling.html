@@ -157,7 +157,7 @@ html,body{overflow-x:hidden}
 .geen{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px;font-weight:500;cursor:pointer}.geen[hidden]{display:none}.geen input{width:18px;height:18px;accent-color:var(--accent)}
 .lp{position:relative}.lp-l{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:20;max-height:280px;overflow-y:auto}
 .lp-l[hidden]{display:none}.lp-i{display:block;width:100%;text-align:left;border:0;background:none;padding:11px 14px;font:inherit;font-size:15px;color:var(--ink);cursor:pointer}.lp-i+.lp-i{border-top:1px solid var(--line)}
-.lp-i:hover,.lp-i.on{background:var(--sunken)}.lp-leeg{padding:11px 14px;font-size:14px;color:var(--muted)}.lp input.lp-ok{border-color:var(--good);background:var(--good-soft)}
+.lp-i:hover,.lp-i.on{background:var(--sunken)}.lp-leeg{padding:11px 14px;font-size:14px;color:var(--muted)}.lp input.lp-ok,#iban.lp-ok{border-color:var(--good);background:var(--good-soft)}
 @media(max-width:520px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -211,16 +211,23 @@ function toonOnkost(){$("#h1").textContent="Onkosten terugvragen";$("#lead").tex
   $("#bon").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;$("#bonT").textContent="Bezig…";try{BON=await verklein(f);$("#bonT").textContent="✓ "+(f.name||"bewijsstuk");$("#upl").classList.add("ok")}catch(x){BON=null;$("#bonT").textContent=x.message;$("#upl").classList.remove("ok")}});
   $("#f").addEventListener("submit",async e=>{e.preventDefault();const v=s=>$(s).value.trim(),err=$("#err");
     const bedrag=Number(v("#bedrag").replace(/\s/g,"").replace(",","."));
-    const f=!v("#naam")?"Vul je naam in.":!(bedrag>0)?"Vul het bedrag in.":!v("#reden")?"Schrijf kort waarvoor de kosten waren.":!BON&&!$("#geenBon").checked?($("#geenW").hidden=false,"Voeg een foto van het kasticket of de factuur toe, of vink aan dat je er geen hebt."):v("#iban")&&!ibanOk(v("#iban"))?"Dit rekeningnummer klopt niet. Kijk het even na.":"";
+    const f=!v("#naam")?"Vul je naam in.":!(bedrag>0)?"Vul het bedrag in.":!v("#reden")?"Schrijf kort waarvoor de kosten waren.":!BON&&!$("#geenBon").checked?($("#geenW").hidden=false,"Voeg een foto van het kasticket of de factuur toe, of vink aan dat je er geen hebt."):v("#iban")&&v("#iban")!==MASK&&!ibanOk(v("#iban"))?"Dit rekeningnummer klopt niet. Kijk het even na.":"";
     if(f){err.textContent=f;return}const b=$("#f .btn");b.disabled=true;b.textContent="Bezig met versturen…";err.textContent="";
-    try{await api({actie:"onkost",naam:v("#naam"),lidId:$("#naam").dataset.id||"",bedrag,datum:v("#datum"),reden:v("#reden"),iban:v("#iban"),bon:BON,geenBon:!BON&&$("#geenBon").checked,website:v("#website"),duur:Date.now()-T0});
+    try{await api({actie:"onkost",naam:v("#naam"),lidId:$("#naam").dataset.id||"",bedrag,datum:v("#datum"),reden:v("#reden"),iban:v("#iban")===MASK?"":v("#iban"),bon:BON,geenBon:!BON&&$("#geenBon").checked,website:v("#website"),duur:Date.now()-T0});
       $("#lead").textContent="";$("#box").innerHTML=OK("Bedankt!",`Je onkosten van ${eur(bedrag)} zijn doorgegeven. Na goedkeuring storten we het bedrag terug.`)}
     catch(x){err.textContent=x.message;b.disabled=false;b.textContent="Indienen"}})}
+/* gekend rekeningnummer van het gekozen lid (gedeeltelijk verborgen) */
+let MASK="";
+async function ibanVan(id){const f=$("#iban");if(!f)return;try{const r=await fetch("/api/terug?lid="+encodeURIComponent(id));const j=r.ok?await r.json():{};
+  if(j.iban&&(!f.value.trim()||f.value===MASK)){MASK=j.iban;f.value=MASK;f.classList.add("lp-ok")}}catch(e){}}
+function ibanWis(){const f=$("#iban");if(f&&MASK&&f.value===MASK){f.value="";f.classList.remove("lp-ok")}MASK=""}
+document.addEventListener("focusin",e=>{if(e.target.id==="iban"&&MASK&&e.target.value===MASK)e.target.select()});
+document.addEventListener("input",e=>{if(e.target.id==="iban"&&MASK&&e.target.value!==MASK){e.target.classList.remove("lp-ok");if(e.target.value.includes("•"))e.target.value=""}},true);
 /* naam kiezen uit de leden (vanaf 3 letters) */
 function lidPicker(inp,box){let T=0,L=[],sel=-1;
   const teken=()=>{box.innerHTML=L.length?L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${esc(l.toon||l.naam)}</button>`).join(""):'<div class="lp-leeg">Geen lid gevonden. Je mag je naam gewoon volledig typen.</div>';box.hidden=false};
-  const kies=l=>{inp.value=l.toon||l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true};
-  inp.addEventListener("input",()=>{delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;if(q.trim().length<3){L=[];box.hidden=true;return}
+  const kies=l=>{inp.value=l.toon||l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;ibanVan(l.id)};
+  inp.addEventListener("input",()=>{if(inp.dataset.id)ibanWis();delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;if(q.trim().length<3){L=[];box.hidden=true;return}
     T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[]}catch(e){L=[]}if(inp.value===q)teken()},160)});
   inp.addEventListener("keydown",e=>{if(box.hidden||!L.length)return;if(e.key==="ArrowDown"){e.preventDefault();sel=(sel+1)%L.length;teken()}else if(e.key==="ArrowUp"){e.preventDefault();sel=(sel-1+L.length)%L.length;teken()}else if(e.key==="Enter"){e.preventDefault();kies(L[sel<0?0:sel])}else if(e.key==="Escape")box.hidden=true});
   box.addEventListener("mousedown",e=>{const b=e.target.closest(".lp-i");if(!b)return;e.preventDefault();kies(L[+b.dataset.i])});

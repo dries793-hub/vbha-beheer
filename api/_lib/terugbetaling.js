@@ -76,6 +76,12 @@ export default async function terugPubliek(req, res) {
       try { const { meldPush } = await import("./push.js"); await meldPush(sb, "boek", { titel: "Nieuwe onkostennota", tekst: `${naam} · € ${bedrag.toFixed(2).replace(".", ",")} · ${reden.slice(0, 60)}`, url: "/#terug", tag: "tb-" + id }); } catch (e) { console.error("push onkost", e); }
       return res.status(200).json({ ok: true });
     }
+    if (req.method === "GET" && b.lid) { // onkostenformulier: gekend rekeningnummer van het gekozen lid, gedeeltelijk verborgen
+      await rateLimit(sb, req, "lidiban", 30, 600, httpErr);
+      const { data } = await sb.from("lid_iban").select("iban").eq("lid_id", String(b.lid).slice(0, 60)).maybeSingle();
+      const ib = data && ibanOk(data.iban) ? String(data.iban) : "";
+      return res.status(200).json({ ok: true, iban: ib ? ib.slice(0, 4) + " •••• •••• " + ib.slice(-4) : "" });
+    }
     // persoonlijke link: IBAN doorgeven voor een terugbetaling
     const id = String(b.i || ""), t = String(b.t || "");
     if (!klopt(id, t)) throw httpErr(404, "Deze link is niet (meer) geldig.");
