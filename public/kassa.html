@@ -275,7 +275,7 @@ function slaap(){try{if(WL)WL.release()}catch(e){}WL=null}
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")wakker()});
 ["click","touchend"].forEach(t=>document.addEventListener(t,()=>{if(!WL)wakker()},{passive:true}));
 async function laad(){ST=await post({actie:"stand"});wakker();$("#hNaam").textContent="Kassa · "+ST.naam;hoofd()}
-function menuTeken(){$("#menuL").innerHTML=`<button type="button" id="wgWissel">Wisselgeld-hulp <b>${WG?"aan":"uit"}</b></button><button type="button" id="herlaad">Kassa vernieuwen</button><button type="button" id="afmeld">Afmelden</button>`}
+function menuTeken(){$("#menuL").innerHTML=`<button type="button" id="wgWissel">Wisselgeld-hulp <b>${WG?"aan":"uit"}</b></button><button type="button" id="herlaad">Kassa vernieuwen</button><button type="button" id="naarApp">Naar het dashboard</button><button type="button" id="afmeld">Afmelden</button>`}
 function hoofd(){if(!ST)return;$("#menu").hidden=false;const t=ST.totalen||{};$("#hTot").textContent=`${t.verkopen||0} verkopen · ${eur((t.bancontact||0)+(t.cash||0))}`}
 const tabs=()=>ST&&ST.scan?`<div class="ks-tabs"><button type="button" data-tab="verkoop" class="${TAB==="verkoop"?"on":""}">Verkopen</button><button type="button" data-tab="scan" class="${TAB==="scan"?"on":""}">Scannen</button></div>`:"";
 function toon(){if(!ST)return;if(!ST.scan)TAB="verkoop";if(TAB==="scan")scanner();else{stop();verkoopScherm()}}
@@ -330,6 +330,8 @@ document.addEventListener("click",e=>{if(e.target.closest("[data-min]")){const k
   if(!e.target.closest("#menuL")&&!$("#menuL").hidden)$("#menuL").hidden=true;
   if(id==="wgWissel"){zetWG(!WG);menuTeken();return}
   if(id==="herlaad"){$("#menuL").hidden=true;laad().then(toon).catch(fout);return}
+  // terug naar de beheer-app (die draait op het eigen adres, ook als de kassa via vbha.be geopend werd)
+  if(id==="naarApp"){$("#menuL").hidden=true;location.href=/(^|\.)vbha\.be$/i.test(location.hostname)?"https://vbha-beheer.vercel.app/#dashboard":"/#dashboard";return}
   if(id==="afmeld"){$("#menuL").hidden=true;login();return}
   if(id==="wgUit"){zetWG(false);cashBevestig();return}
   if(id==="leeg"){MAND={};verkoopScherm()}else if(id==="afr")bancontact();else if(id==="cash"){if(!mandTot())gratisVerkoop();else cashScherm()}
