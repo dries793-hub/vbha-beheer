@@ -7954,7 +7954,7 @@ document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]
   const t=e.target.closest("[data-tb]");if(!t)return;e.preventDefault();const a=t.dataset.tb,r=TB.lijst&&TB.lijst.find(x=>x.id===t.dataset.id);
   const zet=async(st,extra={})=>{try{const j=await tbApi({actie:"zet",id:r.id,status:st,...extra});TB.lijst=j.lijst;renderBody()}catch(x){toast(x.message,true)}};
   if(a==="nieuw"){tbForm();return}
-  if(a==="link"){tbLinkModal("Link onkostennota",TB.link||location.origin+"/terugbetaling","Stuur deze link naar (bestuurs)leden. Ze vullen hun onkosten in met een foto van het kasticket en hun rekeningnummer; de aanvraag verschijnt hier om goed te keuren.");return}
+  if(a==="link"){tbLinkModal("Link onkostennota",TB.link||"https://vbha.be/terugbetaling","Stuur deze link naar (bestuurs)leden. Ze vullen hun onkosten in met een foto van het kasticket en hun rekeningnummer; de aanvraag verschijnt hier om goed te keuren.");return}
   if(a==="kopieer"){const i=$("#tbLk");try{await navigator.clipboard.writeText(i.value);toast("Link gekopieerd.")}catch(x){i.select();document.execCommand("copy");toast("Link gekopieerd.")}return}
   if(a==="maak"){const g=s=>$(s).value.trim(),err=$("#tbErr"),n=g("#tbN"),bd=num(g("#tbB")),iban=g("#tbI").replace(/\s+/g,"").toUpperCase();
     if(!n){err.textContent="Vul in aan wie.";return}if(!(bd>0)){err.textContent="Vul een bedrag in.";return}if(!g("#tbR")){err.textContent="Vul de reden in.";return}if(iban&&!inkIbanOk(iban)){err.textContent="Dit IBAN-nummer klopt niet.";return}

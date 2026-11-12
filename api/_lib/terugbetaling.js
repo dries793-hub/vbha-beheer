@@ -14,7 +14,7 @@ const BUCKET = "documenten";
 const sleutel = () => String(process.env.BETAAL_GEHEIM || process.env.SUPABASE_SERVICE_ROLE_KEY || "");
 export const tbToken = id => crypto.createHmac("sha256", sleutel()).update(`vbha-terug|${id}`).digest("base64url").slice(0, 22);
 const klopt = (id, t) => { if (!sleutel() || !id || typeof t !== "string") return false; const a = Buffer.from(tbToken(id)), b = Buffer.from(t); return a.length === b.length && crypto.timingSafeEqual(a, b); };
-const site = () => String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, "");
+const site = () => "https://vbha.be"; // openbare links altijd via het eigen domein
 export const tbLink = id => `${site()}/terugbetaling?i=${encodeURIComponent(id)}&t=${tbToken(id)}`;
 export const onkostLink = () => `${site()}/terugbetaling`;
 const nu = () => new Date().toISOString();
