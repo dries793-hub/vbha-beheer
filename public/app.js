@@ -3545,6 +3545,8 @@ function fcInstel(){const c=fcCfg(),H=c.herinnering,j=new Date().getFullYear(),p
    ${fld("fiOnd","Onderwerp",inp("fiOnd",c.mailOnderwerp,'placeholder="Factuur {nr} - {vereniging}"'),"full")}
    <div class="fld full"><label for="fiTxt">Tekst boven de factuurgegevens</label><textarea id="fiTxt" rows="3" placeholder="Hartelijk dank voor je steun aan de {vereniging}. In bijlage vind je factuur {nr}.">${esc(c.mailTekst)}</textarea><span class="help">Je kan {naam}, {nr}, {bedrag}, {vervaldatum} en {vereniging} gebruiken. De betaalgegevens, de betaalknop en de PDF worden altijd toegevoegd.</span></div>
    ${fld("fiKop","Kopie van elke mail naar",inp("fiKop",c.kopie,'placeholder="bv. penningmeester@vbha.be"'),"full")}
+   <div class="fc-sec full"><h4>Inkomende facturen betalen</h4></div>
+   ${fld("fiLim","Daglimiet betalingen bij de bank (€)",`<input id="fiLim" inputmode="decimal" value="${esc(String(c.betaalLimiet??5000).replace(".",","))}">`)}<div class="fld"><span class="help" style="margin-top:26px">Boven dit bedrag kan je de betaal-QR-code in meerdere betalingen splitsen.</span></div>
    <div class="fc-sec full"><h4>Automatische herinneringen</h4></div>
    <label class="sp-nat full" for="fiHa"><input type="checkbox" id="fiHa"${H.aan?" checked":""}><span><b>Herinnering mailen bij onbetaalde facturen</b><small>Elke ochtend controleert de server de vervallen facturen. Betaalde facturen worden overgeslagen.</small></span></label>
    ${fld("fiHd","Eerste herinnering",`<select id="fiHd" class="sel">${[1,3,5,7,10,14,21,30].map(n=>`<option value="${n}"${n===num(H.dagenNaVerval)?" selected":""}>${n} dagen na de vervaldatum</option>`).join("")}</select>`)}
@@ -3558,6 +3560,7 @@ async function fcInstelBewaar(volgend){const c=fcCfg(),j=new Date().getFullYear(
   const start={...(c.start||{})};
   const d={...stripId(S.config.get("facturen")||{}),adres:$("#fiAd").value.trim(),kbo:g("#fiKbo"),bic:g("#fiBic"),email:g("#fiMail"),telefoon:g("#fiTel"),website:g("#fiWeb"),vervaldagen:num($("#fiVd").value),voettekst:$("#fiVt").value.trim(),btwPlichtig:!!$("#fiBtwP").checked,rechtsvorm:g("#fiRv"),rpr:g("#fiRpr"),voorwaarden:$("#fiVw").value.trim(),
     start,mailOnderwerp:g("#fiOnd"),mailTekst:$("#fiTxt").value.trim(),kopie:kop.join(", "),herinnering:{aan:$("#fiHa").checked,dagenNaVerval:num($("#fiHd").value),interval:num($("#fiHi").value),max:num($("#fiHm").value)},aanmaning:{pct:num($("#fiAp").value),forfait:num($("#fiAf").value),termijn:num($("#fiAt").value)}};
+  {const l=num($("#fiLim").value);d.betaalLimiet=l>0?l:5000}
   try{await write("config","facturen",d);closeModal();toast("Instellingen bewaard.")}catch(x){$("#fiErr").textContent="Bewaren lukte niet: "+(x.message||"")}}
 
 /* ---------- acties ---------- */
@@ -4294,23 +4297,33 @@ function inkBetaal(id){const d=S.documenten.get(id);if(!d)return;const B=inkBeta
     ${fld("ipN","Begunstigde",inp("ipN",B.naam,'maxlength="70"'),"full")}
     ${fld("ipI","IBAN",inp("ipI",inkIbanFmt(B.iban),'maxlength="42" placeholder="BE.. .... .... ...."'),"full")}
     ${fld("ipB","Bedrag (€)",inp("ipB",B.bedrag?Number(B.bedrag).toFixed(2).replace(".",","):"",'inputmode="decimal"'))}
-    ${fld("ipM","Mededeling",inp("ipM",B.med,'maxlength="140" placeholder="+++123/4567/89012+++ of vrije tekst"'))}</div>
+    ${fld("ipM","Mededeling",inp("ipM",B.med,'maxlength="140" placeholder="+++123/4567/89012+++ of vrije tekst"'))}
+    <label class="sp-nat full" for="ipS" id="ipSw" hidden><input type="checkbox" id="ipS" checked><span><b id="ipSt">Splitsen</b><small id="ipSs"></small></span></label></div>
    <div class="ink-qr"><div id="ipQ"></div><p class="muted small" id="ipT"></p></div></div>`,
    `<button class="btn" data-act="closeModal">Sluiten</button>`,{wide:true});
   const teken=()=>{const naam=inkAscii($("#ipN").value).slice(0,70),iban=$("#ipI").value.replace(/\s+/g,"").toUpperCase(),bedrag=Number(String($("#ipB").value).replace(/\s/g,"").replace(",",".")),med=$("#ipM").value.trim(),q=$("#ipQ"),t=$("#ipT");
     const fout=!naam?"Vul de begunstigde in.":!inkIbanOk(iban)?"Dit IBAN-nummer klopt niet.":!(bedrag>0&&bedrag<1e6)?"Vul een geldig bedrag in.":"";
-    if(fout||!window.qrcode){q.innerHTML=`<div class="ink-qr-leeg">${esc(fout||"QR-code niet beschikbaar")}</div>`;t.textContent="";return}
+    if(fout||!window.qrcode){q.innerHTML=`<div class="ink-qc"><div class="ink-qr-leeg">${esc(fout||"QR-code niet beschikbaar")}</div></div>`;t.textContent="";$("#ipSw").hidden=true;$(".ink-pay").classList.remove("split");return}
     // gestructureerde mededeling (OGM) in het referentieveld, anders vrije tekst
     const og=med.replace(/\D/g,""),isOgm=/^\+{0,3}\s*\d{3}\s*\/?\s*\d{4}\s*\/?\s*\d{5}\s*\+{0,3}$/.test(med)&&og.length===12&&(Number(og.slice(0,10))%97||97)===Number(og.slice(10));
     const txt=["BCD","002","1","SCT","",naam,iban,"EUR"+bedrag.toFixed(2),"",isOgm?og:"",isOgm?"":inkAscii(med).slice(0,140)].join("\n");
-    const qr=qrcode(0,"M");qr.addData(txt);qr.make();q.innerHTML=qr.createSvgTag({cellSize:5,margin:3,scalable:true});
-    t.innerHTML=`Scan met de Argenta-app (of een andere bankapp): de overschrijving van <b>${eur(bedrag)}</b> aan <b>${esc(naam)}</b> staat dan klaar om te bevestigen.${isOgm?"":med?" Mededeling als vrije tekst.":""}`};
-  ["#ipN","#ipI","#ipB","#ipM"].forEach(s=>$(s).addEventListener("input",teken));teken()}
+    // daglimiet bij de bank: boven het limiet kan het bedrag over meerdere dagen verdeeld worden (instelbaar bij Facturen › Instellingen)
+    const lim=Number(fcCfg().betaalLimiet)||5000,n=Math.ceil(bedrag/lim-1e-9),sw=$("#ipSw"),split=n>1&&$("#ipS").checked;
+    sw.hidden=n<=1;if(n>1){$("#ipSt").textContent=`In ${n} betalingen splitsen`;$("#ipSs").textContent=`Het bedrag is hoger dan de daglimiet van ${eur(lim)}. Betaal elk deel op een andere dag.`}
+    const delen=[];if(split){const c=Math.round(bedrag*100),basis=Math.floor(c/n);for(let i=0;i<n;i++)delen.push((i<n-1?basis:c-basis*(n-1))/100)}else delen.push(bedrag);
+    const vrij=isOgm?"":inkAscii(med).slice(0,140);
+    $(".ink-pay").classList.toggle("split",delen.length>1);
+    q.innerHTML=delen.map((b,i)=>{const qr=qrcode(0,"M");qr.addData(["BCD","002","1","SCT","",naam,iban,"EUR"+b.toFixed(2),"",isOgm?og:"",vrij].join("\n"));qr.make();
+      return `<div class="ink-qd">${delen.length>1?`<b>Betaling ${i+1} van ${delen.length}</b><span class="muted small">${i?`dag ${i+1}`:"vandaag"} · ${eur(b)}</span>`:""}<div class="ink-qc">${qr.createSvgTag({cellSize:5,margin:3,scalable:true})}</div></div>`}).join("");
+    t.innerHTML=delen.length>1?`Scan elke dag één QR-code met de Argenta-app. Samen is dat <b>${eur(bedrag)}</b> aan <b>${esc(naam)}</b>, telkens met dezelfde mededeling. De app koppelt beide betalingen daarna aan de factuur.`
+      :`Scan met de Argenta-app (of een andere bankapp): de overschrijving van <b>${eur(bedrag)}</b> aan <b>${esc(naam)}</b> staat dan klaar om te bevestigen.${isOgm?"":med?" Mededeling als vrije tekst.":""}${n>1?` <span style="color:#b91c1c">Let op: hoger dan de daglimiet van ${eur(lim)}.</span>`:""}`};
+  ["#ipN","#ipI","#ipB","#ipM"].forEach(s=>$(s).addEventListener("input",teken));$("#ipS").addEventListener("change",teken);teken()}
 {const _r=inkRij;inkRij=function(d){const h=_r(d);if(!inkMag()||!inkOpen(d))return h;const i=h.indexOf('</div><div class="ink-b">');if(i<0)return h;
   return h.slice(0,i)+`<button type="button" class="btn sm" data-inkbet="${esc(d.id)}" title="QR-code om te betalen met de bankapp">${ic("bank")}Betalen</button>`+h.slice(i)}}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-inkbet]");if(!b)return;e.preventDefault();inkBetaal(b.dataset.inkbet)});
 {const st=document.createElement("style");st.textContent=`.ink-pay{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:20px;align-items:start}.ink-qr{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
-#ipQ{width:220px;height:220px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;display:grid;place-items:center}#ipQ svg{width:100%;height:100%}.ink-qr-leeg{font-size:13px;color:var(--muted);padding:12px}
+#ipQ{display:flex;flex-wrap:wrap;gap:16px;justify-content:center}.ink-qd{display:flex;flex-direction:column;align-items:center;gap:2px}.ink-qc{width:220px;height:220px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;display:grid;place-items:center;margin-top:6px}.ink-qc svg{width:100%;height:100%}
+.ink-pay.split{grid-template-columns:1fr}.ink-pay.split .ink-qr{border-top:1px solid var(--line);padding-top:16px}.ink-qr-leeg{font-size:13px;color:var(--muted);padding:12px}
 @media(max-width:700px){.ink-pay{grid-template-columns:1fr}}`;document.head.appendChild(st)}
 
 /* ============ Dashboard: meldingen voor de boekhouding ============
