@@ -1,6 +1,6 @@
 import { admin, sendError, httpErr } from "./sb.js";
 import { stuurBevestiging } from "./bevestiging.js";
-import { clean, body, nieuwId, algemeen, configDoc, spamCheck, actieveLeden, inschrijving, alIngeschreven, AL_TEKST, rateLimit } from "./publiek.js";
+import { clean, body, nieuwId, algemeen, configDoc, spamCheck, actieveLeden, inschrijving, alIngeschreven, AL_TEKST, rateLimit, vandaagISO } from "./publiek.js";
 import { meldPush } from "./push.js";
 import { kfCadeauPubliek } from "./kfcadeau.js";
 
@@ -53,6 +53,10 @@ export default async function handler(req, res) {
     if (error) throw error;
     await meldPush(sb, "iedereen", { titel: "Nieuwe inschrijving kinderfeest", tekst: `${lid} · ${kinderen.length} ${kinderen.length === 1 ? "kind" : "kinderen"}`, url: "/#kinderfeest", tag: "ins-kf-" + kid });
     try { await stuurBevestiging(sb, "kinderfeest", kid); } catch (e) { console.error("bevestiging", e); }
-    res.status(200).json({ ok: true, ...I, kinderen });
+    // cadeaukiezer aan en nog binnen de termijn: meteen de persoonlijke keuzelink teruggeven
+    let cadeau = null;
+    try { const { kfcLink, kfcInstellingen, budgetVan } = await import("./kfcadeau.js"); const c = await configDoc(sb, "kf_" + I.jaar), M = kfcInstellingen(c, I.jaar);
+      if (M.cadeau !== false && M.keuze === true && vandaagISO() <= M.tot && kinderen.some(k => budgetVan(k.geb, M).budget != null)) cadeau = kfcLink(kid).replace(/^https?:\/\/[^/]+/, ""); } catch (e) { console.error("kfc link", e); }
+    res.status(200).json({ ok: true, ...I, kinderen, cadeau });
   } catch (e) { sendError(res, e); }
 }
