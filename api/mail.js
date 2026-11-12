@@ -33,6 +33,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "sponsorbev") return await sponsorBevestiging(req, res); // sponsorbevestiging (PDF / mail)
     if (req.query && req.query.f === "kf-voorbeeld") return await kfVoorbeeld(req, res); // voorbeeld bevestigingsmail kinderfeest
     if (req.query && req.query.f === "sms") return await smsApi(req, res); // sms via BudgetSMS (shiften)
+    if (req.query && req.query.f === "social") { const { default: socialApi } = await import("./_lib/social.js"); return await socialApi(req, res); } // sociale media: posts klaarzetten en publiceren (ook geplande taak)
     if (req.query && req.query.f === "bcsplit") { // Bancontact-bulkstortingen opsplitsen (knop in de app of beheerder met geplande-taaksleutel)
       const { requireUser, isDbCron, admin } = await import("./_lib/sb.js"); const { splitsBulk } = await import("./_lib/bcsplit.js");
       let sb; if (req.method === "POST" && await isDbCron(req)) sb = admin(); else { if (req.method !== "POST") return res.status(405).json({ error: "Gebruik POST" }); await requireUser(req, { boek: true }); sb = admin(); }
