@@ -38,6 +38,7 @@ input:focus{outline:none;border-color:var(--info);box-shadow:0 0 0 3px var(--inf
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .pay{margin-top:18px;padding:14px 16px;border-radius:10px;background:var(--sunken);font-size:14px}
 .pay b{font-variant-numeric:tabular-nums}
+.vg-ok{margin:0 0 14px;padding:12px 14px;border-radius:10px;background:#dcfce7;color:#14532d;font-size:15px}
 .err{color:var(--accent);font-weight:500;min-height:0;margin:14px 0 0}
 .err:empty{display:none}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin-top:18px;width:100%;padding:13px 18px;border:0;border-radius:8px;background:var(--accent);color:#fff;font:600 16px var(--f);cursor:pointer}
@@ -171,21 +172,25 @@ html,body{overflow-x:hidden}
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const lang=iso=>new Date(iso+"T12:00:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-const Q=new URLSearchParams(location.search),ID=Q.get("i")||"",TOK=Q.get("t")||"";
+const Q=new URLSearchParams(location.search),ID=Q.get("i")||"",TOK=Q.get("t")||"",LID=Q.get("l")||"",WIL=Q.get("s")||"";
 let V=null,MIJ="";try{MIJ=localStorage.getItem("vbha_vg_lid")||""}catch(e){}
-async function api(b){const r=await fetch("/api/vergadering"+(b?"":"?i="+encodeURIComponent(ID)+"&t="+encodeURIComponent(TOK)),b?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({i:ID,t:TOK,...b})}:{});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Er ging iets mis.");return j}
+async function api(b){const r=await fetch("/api/vergadering"+(b?"":"?i="+encodeURIComponent(ID)+"&t="+encodeURIComponent(TOK)+(LID?"&l="+encodeURIComponent(LID):"")),b?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({i:ID,t:TOK,...(LID?{l:LID}:{}),...b})}:{});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Er ging iets mis.");return j}
+let BEV="";
 function teken(fout){const A=V.antwoorden||{},nA=Object.values(A).filter(s=>s==="aanwezig").length,nV=Object.values(A).filter(s=>s==="verontschuldigd").length;
   $("#h1").textContent=V.titel;
   $("#box").innerHTML=`<div class="card"><div class="vg-info"><div><b>${esc(lang(V.datum).replace(/^./,c=>c.toUpperCase()))}</b>${V.uur?" om "+esc(V.uur):""}</div>${V.locatie?`<div>${esc(V.locatie)}</div>`:""}</div>
    ${V.open?"":`<p class="err" style="margin:0 0 12px">Deze vergadering is voorbij; doorgeven kan niet meer.</p>`}
+   ${BEV?`<div class="vg-ok">${BEV}</div>`:""}
    <div class="vg-l">${V.leden.map(l=>{const s=A[l.id]||"";return `<div class="vg-r${l.id===MIJ?" mij":""}"><div class="n">${esc(l.naam)}<small>${s==="aanwezig"?"Aanwezig":s==="verontschuldigd"?"Verontschuldigd":"Nog niet doorgegeven"}</small></div>
      <div class="vg-b"><button type="button" class="a${s==="aanwezig"?" on":""}" data-l="${esc(l.id)}" data-s="aanwezig"${V.open?"":" disabled"}>Aanwezig</button><button type="button" class="v${s==="verontschuldigd"?" on":""}" data-l="${esc(l.id)}" data-s="verontschuldigd"${V.open?"":" disabled"}>Verontschuldigd</button></div></div>`}).join("")}</div>
-   <div class="vg-tel"><span><b>${nA}</b> aanwezig</span><span><b>${nV}</b> verontschuldigd</span><span><b>${V.leden.length-nA-nV}</b> nog niet</span></div>
+   ${V.eigen?"":`<div class="vg-tel"><span><b>${nA}</b> aanwezig</span><span><b>${nV}</b> verontschuldigd</span><span><b>${V.leden.length-nA-nV}</b> nog niet</span></div>`}
    ${fout?`<p class="err">${esc(fout)}</p>`:""}</div>`}
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-l]");if(!b||!V||!V.open)return;const lid=b.dataset.l,cur=(V.antwoorden||{})[lid]||"",s=cur===b.dataset.s?"":b.dataset.s;
   document.querySelectorAll(`[data-l="${CSS.escape(lid)}"]`).forEach(x=>x.disabled=true);
-  try{V=await api({lid,s});MIJ=lid;try{localStorage.setItem("vbha_vg_lid",lid)}catch(x){}teken()}catch(x){teken(x.message)}});
-api().then(j=>{V=j;teken()}).catch(x=>{$("#box").innerHTML=`<div class="card"><p style="margin:0">${esc(x.message)}</p></div>`});
+  try{V=await api({lid,s});MIJ=lid;BEV=V.eigen?(s==="aanwezig"?"Bedankt! Je staat genoteerd als <b>aanwezig</b>.":s==="verontschuldigd"?"Bedankt! Je staat genoteerd als <b>verontschuldigd</b>.":"Je antwoord is gewist."):"";try{localStorage.setItem("vbha_vg_lid",lid)}catch(x){}teken()}catch(x){teken(x.message)}});
+api().then(async j=>{V=j;if(V.eigen){$(".lead").textContent="Klopt het niet? Kies hieronder je juiste antwoord.";const l=V.leden[0];
+   if(l&&V.open&&["aanwezig","verontschuldigd"].includes(WIL)){if(V.antwoorden[l.id]!==WIL){try{V=await api({lid:l.id,s:WIL})}catch(x){teken(x.message);return}}BEV=WIL==="aanwezig"?"Bedankt! Je staat genoteerd als <b>aanwezig</b>.":"Bedankt! Je staat genoteerd als <b>verontschuldigd</b>.";
+   try{history.replaceState(null,"",location.pathname+"?i="+encodeURIComponent(ID)+"&l="+encodeURIComponent(LID)+"&t="+encodeURIComponent(TOK))}catch(x){}}}teken()}).catch(x=>{$("#box").innerHTML=`<div class="card"><p style="margin:0">${esc(x.message)}</p></div>`});
 </script>
 </body>
 </html>
