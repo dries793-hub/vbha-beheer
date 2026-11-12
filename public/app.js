@@ -7390,7 +7390,7 @@ function kfLeeftijdTaart(){const st=kfStats(),c=st.c,A=[];for(let a=0;a<=c.leeft
   const seg=A.map(([l,n],i)=>{const len=n/tot*C,s=`<circle r="${R}" cx="70" cy="70" fill="none" stroke="${KL[i%KL.length]}" stroke-width="26" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"><title>${esc(l)}: ${n}</title></circle>`;off+=len;return s}).join("");
   return `<div class="panel"><div class="panel-h"><h2>Cadeautjes per leeftijd</h2></div><div class="panel-b"><div class="kf-taart">
     <svg viewBox="0 0 140 140" width="160" height="160" role="img" aria-label="Cadeautjes per leeftijd"><g transform="rotate(-90 70 70)">${seg}</g><text x="70" y="68" text-anchor="middle" font-size="22" font-weight="700" fill="currentColor">${tot}</text><text x="70" y="86" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">cadeaus</text></svg>
-    <div class="kf-leg">${A.map(([l,n],i)=>`<div><i style="background:${KL[i%KL.length]}"></i><span>${esc(l)}</span><b>${n}</b><small>${Math.round(n/tot*100)} %</small></div>`).join("")}</div></div></div></div>`}
+    <div class="kf-leg">${A.map(([l,n],i)=>`<div><i style="background:${KL[i%KL.length]}"></i><span>${esc(l)}</span><b>${n}</b></div>`).join("")}</div></div></div></div>`}
 {const _v=VIEWS.kinderfeest;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=String(b.apply(this,arguments));
   const re1=/<div class="panel"><div class="panel-h"><h2>Cadeautjes per leeftijd<\/h2>[\s\S]*?<\/div><\/div><\/div>/,re2=/<div class="panel"><div class="panel-h"><h2>Voorziene kost cadeaus<\/h2>[\s\S]*?<\/span><\/div><\/div><\/div>/;
   const m1=h.match(re1);if(!m1)return h;const m2=h.match(re2);const taart=kfLeeftijdTaart()||m1[0];
