@@ -1504,6 +1504,9 @@ textarea.ag-info{min-height:76px;height:auto;field-sizing:content;max-height:220
 .kc-v input[type=checkbox],.kcd-b input[type=checkbox],.kcd input[type=checkbox]{accent-color:var(--accent,#c0161f);width:17px;height:17px;cursor:pointer}
 .kc-gr .kc-gh,.kc-l>.kc-gr:first-of-type .kc-gh{background:#f8f8f9}
 .kcd-sh{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.kcd-sh h4{margin:0}.kcd-sh .btn svg{fill:none;stroke:currentColor;stroke-width:2}
+/* vaste paginabreedte: ruimte voor de schuifbalk altijd voorzien, zodat de inhoud niet verspringt tussen korte en lange pagina's */
+html{scrollbar-gutter:stable}
+@supports not (scrollbar-gutter:stable){html{overflow-y:scroll}}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
