@@ -7967,7 +7967,7 @@ VIEWS.terug=()=>({title:"Terugbetalingen",actions:tbMag()?`${tbVol()?`<button cl
   const som=TB.lijst.filter(r=>r.status==="goedgekeurd").reduce((s,r)=>s+num(r.data.bedrag),0);
   return `<div class="bar fc-bar"><div class="seg">${[["open","Open"],["betaald","Betaald"],["geweigerd","Geweigerd"],["alle","Alle"]].map(([k,l])=>`<button type="button" data-tbf="${k}" class="${TB.f===k?"on":""}">${l}</button>`).join("")}</div><span class="grow"></span>${som?`<span class="muted">Nog te betalen: <b>${eur(som)}</b></span>`:""}</div>
    <div class="panel">${L.length?L.map(tbRij).join(""):`<div class="empty">${TB.f==="open"?"Geen openstaande terugbetalingen.":"Niets gevonden."}</div>`}</div>`}});
-function tbMijnLid(){const em=String(ME&&ME.email||"").toLowerCase(),nm=norm(ME_NAME||"");const L=[...S.leden.values()].filter(l=>!l.geenLid&&!l.dubbelVan);
+function tbMijnLid(){const sim=typeof SIM_U!=="undefined"&&SIM_U&&ROL!==ROL_ECHT?SIM_U:null,em=String(sim?sim.email:ME&&ME.email||"").toLowerCase(),nm=norm(sim?sim.naam||"":ME_NAME||"");const L=[...S.leden.values()].filter(l=>!l.geenLid&&!l.dubbelVan);
   return L.find(l=>em&&String(l.email||"").toLowerCase()===em)||L.find(l=>nm&&(norm(naamVol(l))===nm||norm((l.voornaam||"")+" "+(l.naam||""))===nm))||null}
 let TBF={mask:"",bon:null};
 async function tbVerklein(file){if(file.type==="application/pdf"){if(file.size>4e6)throw new Error("De PDF is te groot (max. 4 MB).");return{data:await new Promise((ok,nok)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=nok;r.readAsDataURL(file)}),naam:file.name}}
