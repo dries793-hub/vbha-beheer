@@ -3545,8 +3545,6 @@ function fcInstel(){const c=fcCfg(),H=c.herinnering,j=new Date().getFullYear(),p
    ${fld("fiOnd","Onderwerp",inp("fiOnd",c.mailOnderwerp,'placeholder="Factuur {nr} - {vereniging}"'),"full")}
    <div class="fld full"><label for="fiTxt">Tekst boven de factuurgegevens</label><textarea id="fiTxt" rows="3" placeholder="Hartelijk dank voor je steun aan de {vereniging}. In bijlage vind je factuur {nr}.">${esc(c.mailTekst)}</textarea><span class="help">Je kan {naam}, {nr}, {bedrag}, {vervaldatum} en {vereniging} gebruiken. De betaalgegevens, de betaalknop en de PDF worden altijd toegevoegd.</span></div>
    ${fld("fiKop","Kopie van elke mail naar",inp("fiKop",c.kopie,'placeholder="bv. penningmeester@vbha.be"'),"full")}
-   <div class="fc-sec full"><h4>Inkomende facturen betalen</h4></div>
-   ${fld("fiLim","Daglimiet betalingen bij de bank (€)",`<input id="fiLim" inputmode="decimal" value="${esc(String(c.betaalLimiet??5000).replace(".",","))}">`)}<div class="fld"><span class="help" style="margin-top:26px">Boven dit bedrag kan je de betaal-QR-code in meerdere betalingen splitsen.</span></div>
    <div class="fc-sec full"><h4>Automatische herinneringen</h4></div>
    <label class="sp-nat full" for="fiHa"><input type="checkbox" id="fiHa"${H.aan?" checked":""}><span><b>Herinnering mailen bij onbetaalde facturen</b><small>Elke ochtend controleert de server de vervallen facturen. Betaalde facturen worden overgeslagen.</small></span></label>
    ${fld("fiHd","Eerste herinnering",`<select id="fiHd" class="sel">${[1,3,5,7,10,14,21,30].map(n=>`<option value="${n}"${n===num(H.dagenNaVerval)?" selected":""}>${n} dagen na de vervaldatum</option>`).join("")}</select>`)}
@@ -3560,7 +3558,6 @@ async function fcInstelBewaar(volgend){const c=fcCfg(),j=new Date().getFullYear(
   const start={...(c.start||{})};
   const d={...stripId(S.config.get("facturen")||{}),adres:$("#fiAd").value.trim(),kbo:g("#fiKbo"),bic:g("#fiBic"),email:g("#fiMail"),telefoon:g("#fiTel"),website:g("#fiWeb"),vervaldagen:num($("#fiVd").value),voettekst:$("#fiVt").value.trim(),btwPlichtig:!!$("#fiBtwP").checked,rechtsvorm:g("#fiRv"),rpr:g("#fiRpr"),voorwaarden:$("#fiVw").value.trim(),
     start,mailOnderwerp:g("#fiOnd"),mailTekst:$("#fiTxt").value.trim(),kopie:kop.join(", "),herinnering:{aan:$("#fiHa").checked,dagenNaVerval:num($("#fiHd").value),interval:num($("#fiHi").value),max:num($("#fiHm").value)},aanmaning:{pct:num($("#fiAp").value),forfait:num($("#fiAf").value),termijn:num($("#fiAt").value)}};
-  {const l=num($("#fiLim").value);d.betaalLimiet=l>0?l:5000}
   try{await write("config","facturen",d);closeModal();toast("Instellingen bewaard.")}catch(x){$("#fiErr").textContent="Bewaren lukte niet: "+(x.message||"")}}
 
 /* ---------- acties ---------- */
@@ -4175,6 +4172,8 @@ function inkInstel(){const s=INK.srv||{},F=s.filter||{aan:true,woorden:"",afzend
    <label class="sp-nat full" for="ikF"><input type="checkbox" id="ikF"${F.aan!==false?" checked":""}><span><b>Enkel mails die op een factuur lijken</b><small>Een PDF wordt bewaard als het onderwerp of de bestandsnaam een van deze woorden bevat, of als de mail van een vertrouwde afzender komt (bv. doorgestuurd door jou of Jojanneke).</small></span></label>
    ${fld("ikW","Woorden",inp("ikW",F.woorden||"",'placeholder="factuur, invoice, rekening, nota"'),"full")}
    <div class="fld full"><label for="ikV">Vertrouwde afzenders (elke PDF wordt bewaard)</label><textarea id="ikV" style="height:60px;min-height:0" placeholder="bv. dries@vbha.be, jojanneke@…">${esc(F.afzenders||"")}</textarea></div>
+   <div class="fc-sec full"><h4>Betalen</h4></div>
+   ${fld("ikLim","Daglimiet betalingen bij de bank (€)",`<input id="ikLim" inputmode="decimal" value="${esc(String(fcCfg().betaalLimiet??5000).replace(".",","))}">`)}<div class="fld"><span class="help" style="margin-top:26px">Boven dit bedrag wordt de betaal-QR-code over meerdere dagen gesplitst.</span></div>
    ${(s.log||[]).length?`<div class="full fc-sec"><h4>Laatst verwerkt</h4><div class="ink-log">${s.log.slice(0,8).map(x=>`<div><span class="muted small">${new Date(x.op).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span><span class="small"><b>${esc(x.onderwerp||"")}</b> · ${esc(x.van||"")} · ${esc(x.status||"")}</span></div>`).join("")}</div></div>`:""}
    <div class="err full" id="ikErr"></div></form>`,
    `<button class="btn" data-ink="test">Verbinding testen</button>${s.ingesteld?`<button type="button" class="btn" data-ink="haal">Nu ophalen</button>`:""}<span class="grow"></span><button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-ink="instelOk">Bewaren</button>`,{wide:true})}
@@ -4235,7 +4234,9 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ink]
   else if(a==="weg"){const d=S.documenten.get(id);if(!d)return;confirmBox(`Factuur <b>${esc(d.naam)}</b> verwijderen?`,"Verwijderen",async()=>{try{await SB.storage.from(DOC_BUCKET).remove([d.pad])}catch(x){}await write("documenten",id,null,{del:true});toast("Verwijderd.")})}
   else if(a==="instel"){if(!INK.srv)await inkSrv();inkInstel()}
   else if(a==="instelOk"){const f=inkLeesForm(),err=$("#ikErr");if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(f.adres)){err.textContent="Vul een geldig e-mailadres in.";return}
-    t.disabled=true;try{await api("/api/mail?f=inkomend",{method:"POST",body:JSON.stringify({actie:"instellingen",...f})});closeModal();toast("Instellingen bewaard.");inkSrv()}catch(x){err.textContent=x.message}finally{t.disabled=false}}
+    const lim=num($("#ikLim").value);if(!(lim>0)){err.textContent="Vul een geldige daglimiet in.";return}
+    t.disabled=true;try{if(lim!==Number(fcCfg().betaalLimiet??5000)){const c={...stripId(S.config.get("facturen")||{}),betaalLimiet:lim};await write("config","facturen",c)}
+      await api("/api/mail?f=inkomend",{method:"POST",body:JSON.stringify({actie:"instellingen",...f})});closeModal();toast("Instellingen bewaard.");inkSrv()}catch(x){err.textContent=x.message}finally{t.disabled=false}}
   else if(a==="test"){const f=inkLeesForm(),err=$("#ikErr");t.disabled=true;err.textContent="";
     try{await api("/api/mail?f=inkomend",{method:"POST",body:JSON.stringify({actie:"instellingen",...f})});const j=await api("/api/mail?f=inkomend",{method:"POST",body:JSON.stringify({actie:"test"})});toast(`Verbinding gelukt: ${j.mails} mails in ${f.map}.`);INK.srv=null;await inkSrv();$("#ikP")&&($("#ikP").value="")}
     catch(x){err.textContent=x.message}finally{t.disabled=false}}
