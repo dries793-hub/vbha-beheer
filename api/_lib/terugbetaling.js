@@ -113,6 +113,18 @@ export async function terugApp(req, res) {
     if (b.actie === "lidibanZet") { const lidId = clean(b.lidId, 60), iban = String(b.iban || "").replace(/\s+/g, "").toUpperCase(); if (!lidId) throw httpErr(400, "Geen lid.");
       if (!iban) { await sb.from("lid_iban").delete().eq("lid_id", lidId); return res.status(200).json({ ok: true, iban: "" }); }
       if (!ibanOk(iban)) throw httpErr(400, "Dit IBAN-nummer klopt niet."); await lidIbanZet(sb, lidId, iban, "app"); return res.status(200).json({ ok: true, iban }); }
+    if (b.actie === "mailOnkost") { // algemene link voor onkostennota's naar een lid mailen (gekend e-mailadres uit de ledenlijst)
+      const { data: l } = await sb.from("leden").select("id,data").eq("id", String(b.lidId || "")).maybeSingle();
+      if (!l) throw httpErr(404, "Lid niet gevonden."); const aan = String(l.data.email || "").trim(); if (!mailOk(aan) || !aan) throw httpErr(400, "Van dit lid is geen e-mailadres gekend.");
+      const { huisstijl, kaderBlok, knop, p, esc } = await import("./bevestiging.js");
+      const html = huisstijl(p(`Beste ${esc(l.data.voornaam || "lid")},`)
+        + p("Heb je kosten gemaakt voor de Vriendenkring? Via de knop hieronder vraag je ze eenvoudig terug.")
+        + kaderBlok("Hoe werkt het?", p("Kies je naam, vul het bedrag en de reden in, voeg een foto van het kasticket of de factuur toe en geef je rekeningnummer door. Na goedkeuring storten we het bedrag terug.", "margin:0"))
+        + knop("Onkosten terugvragen", onkostLink()), "Vriendenkring Brandweer Hoofdpost Aalst");
+      const { error } = await sb.from("mail_wachtrij").insert({ batch: "onkost-" + l.id + "-" + Date.now().toString(36), data: { aan, aanNaam: `${l.data.voornaam || ""} ${l.data.naam || ""}`.trim(), onderwerp: "Onkosten terugvragen bij de Vriendenkring", html, label: "Onkostennota" } });
+      if (error) throw error;
+      return res.status(200).json({ ok: true, aan });
+    }
     if (b.actie === "maak") { // terugbetaling aanmaken: link om het IBAN op te vragen (of meteen met IBAN)
       const naam = clean(b.naam, 80), bedrag = bedragVan(b.bedrag), reden = clean(b.reden, 300), email = clean(b.email, 160), iban = String(b.iban || "").replace(/\s+/g, "").toUpperCase();
       if (!naam) throw httpErr(400, "Vul de naam in."); if (!bedrag) throw httpErr(400, "Vul een geldig bedrag in."); if (!reden) throw httpErr(400, "Vul de reden in.");
