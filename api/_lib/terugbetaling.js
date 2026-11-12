@@ -142,7 +142,7 @@ export async function terugApp(req, res) {
       const vorig = iban ? "" : await bekendIban(sb, lidId, naam), ib = iban || vorig;
       let em = email; if (!em && lidId) { const { data: l } = await sb.from("leden").select("data").eq("id", lidId).maybeSingle(); const m = String(l?.data?.email || "").trim(); if (m && mailOk(m)) em = m; }
       const datum = /^\d{4}-\d{2}-\d{2}$/.test(b.datum || "") ? b.datum : "", bon = await bonBewaar(sb, id, b.bon);
-      const { error } = await sb.from("terugbetalingen").insert({ id, status: ib ? "goedgekeurd" : "aangevraagd", data: { soort: "terugbetaling", naam, email: em, bedrag, reden, ...(datum ? { datum } : {}), ...(bon ? { bon } : {}), iban: ib || "", ...(vorig ? { ibanVorig: true } : {}), lidId, categorie: clean(b.categorie, 60), door: wie, op: nu() } });
+      const { error } = await sb.from("terugbetalingen").insert({ id, status: ib ? "goedgekeurd" : "aangevraagd", data: { soort: "terugbetaling", naam, email: em, bedrag, reden, ...(datum ? { datum } : {}), ...(bon ? { bon } : {}), ...(!bon && b.geenBon ? { geenBon: true } : {}), iban: ib || "", ...(vorig ? { ibanVorig: true } : {}), lidId, categorie: clean(b.categorie, 60), door: wie, op: nu() } });
       if (error) throw error;
       if (iban && lidId) await lidIbanZet(sb, lidId, iban, "app");
       return res.status(200).json({ ...(await lijst()), id, link: tbLink(id), ibanVorig: !!vorig });
