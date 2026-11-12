@@ -54,6 +54,7 @@ export default async function terugPubliek(req, res) {
       const bon = await bonBewaar(sb, id, b.bon);
       const { error } = await sb.from("terugbetalingen").insert({ id, status: "ingediend", data: { soort: "onkosten", naam, email, iban, bedrag, reden, datum, bon, op: nu(), nieuw: true } });
       if (error) throw error;
+      try { const { meldPush } = await import("./push.js"); await meldPush(sb, "boek", { titel: "Nieuwe onkostennota", tekst: `${naam} · € ${bedrag.toFixed(2).replace(".", ",")} · ${reden.slice(0, 60)}`, url: "/#terug", tag: "tb-" + id }); } catch (e) { console.error("push onkost", e); }
       return res.status(200).json({ ok: true });
     }
     // persoonlijke link: IBAN doorgeven voor een terugbetaling
@@ -70,6 +71,7 @@ export default async function terugPubliek(req, res) {
     const tnv = clean(b.tnv, 80) || d.naam;
     const nieuw = { ...d, iban, tnv, ibanOp: nu(), nieuw: true };
     const { error } = await sb.from("terugbetalingen").update({ data: nieuw, status: row.status === "aangevraagd" ? "goedgekeurd" : row.status, gewijzigd: nu() }).eq("id", id); if (error) throw error;
+    try { const { meldPush } = await import("./push.js"); await meldPush(sb, "boek", { titel: "Rekeningnummer doorgegeven", tekst: `${d.naam} · € ${Number(d.bedrag).toFixed(2).replace(".", ",")} klaar om terug te betalen`, url: "/#terug", tag: "tb-" + id }); } catch (e) { console.error("push terug", e); }
     d.iban = iban; return res.status(200).json({ ...toon(), ibanGekend: true, ibanEind: iban.slice(-4), status: row.status === "aangevraagd" ? "goedgekeurd" : row.status });
   } catch (e) { sendError(res, e); }
 }
