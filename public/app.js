@@ -4399,7 +4399,7 @@ dtScan(document);
    Instellingen in Kinderfeest › tandwiel; bewaard in config kf_<jaar>.mail. De server stuurt de mail na elke inschrijving via de website
    naar het adres van het lid of het adres dat de inschrijver opgaf. */
 function kfMailDef(datum){const Y=Number(String(datum||"").slice(0,4))||JAAR,d=agD(datum||Y+"-12-19");d.setDate(d.getDate()-10);
-  return{cadeau:true,sites:"www.dreamland.be, www.bol.com",tot:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"),contact:"jojanneke.lariviere@zonezuidoost.be",kopie:"jojanneke.lariviere@zonezuidoost.be",
+  return{cadeau:true,sites:"www.dreamland.be, www.bol.com",tot:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"),contact:"jojanneke.lariviere@zonezuidoost.be",kopie:"",
     groepen:`${Y-11}: cadeau voorzien door VBHA\n${Y-10}-${Y-6}: 50,00 EUR per kind\n${Y-5}-${Y}: 35,00 EUR per kind`}}
 function kfMailCfg(){const c=kfCfg();return{...kfMailDef(c.datum),...(c.mail||{}),tot:kfMailDef(c.datum).tot}}
 function kfMailHtml(){const M=kfMailCfg(),d=canWrite?"":" disabled";
