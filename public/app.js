@@ -2161,10 +2161,9 @@ function kfInst(){const c=kfCfg();
   modal("Kinderfeest "+JAAR,`<form id="fKfI" class="form">${insVelden(c,JAAR+"-12-07","")}
     ${fld("kiD","Datum feest",inp("kiD",c.datum,'name="datum" type="date"'))}${fld("kiT","Uur",inp("kiT",c.tijd,'name="tijd"'))}
     ${fld("kiL","Locatie",inp("kiL",c.locatie,'name="locatie"'),"full")}
-    ${fld("kiA","Kinderen toegelaten tot leeftijd",inp("kiA",c.leeftijd===""||c.leeftijd==null?"":Number(c.leeftijd)+1,'name="leeftijd" type="number" min="1" max="19"'))}
 </form>`,
     `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="kiOk">Bewaren</button>`);
-  $("#kiOk").onclick=async()=>{const f={datum:$("#kiD").value,tijd:$("#kiT").value,locatie:$("#kiL").value,leeftijd:$("#kiA").value===""?"":String(Number($("#kiA").value)-1)},ins=insLees();closeModal();await write("config","kf_"+JAAR,{...stripId(S.config.get("kf_"+JAAR)||{}),open:ins.open,...(/^\d{4}-\d{2}-\d{2}$/.test(ins.inschrijvenTot)?{inschrijvenTot:ins.inschrijvenTot}:{}),datum:f.datum,tijd:f.tijd.trim(),locatie:f.locatie.trim(),leeftijd:Math.max(0,Math.round(num(f.leeftijd)))||12});toast("Instellingen kinderfeest bewaard.")}}
+  $("#kiOk").onclick=async()=>{const f={datum:$("#kiD").value,tijd:$("#kiT").value,locatie:$("#kiL").value,leeftijd:kfCfg().leeftijd},ins=insLees();closeModal();await write("config","kf_"+JAAR,{...stripId(S.config.get("kf_"+JAAR)||{}),open:ins.open,...(/^\d{4}-\d{2}-\d{2}$/.test(ins.inschrijvenTot)?{inschrijvenTot:ins.inschrijvenTot}:{}),datum:f.datum,tijd:f.tijd.trim(),locatie:f.locatie.trim(),leeftijd:Math.max(0,Math.round(num(f.leeftijd)))||12});toast("Instellingen kinderfeest bewaard.")}}
 
 /* ---------- import uit Google Forms (antwoordenblad als .xlsx of .csv) ---------- */
 let KFIMP=null;
@@ -4404,10 +4403,10 @@ function kfMailDef(datum){const Y=Number(String(datum||"").slice(0,4))||JAAR,d=a
     groepen:`${Y-11}: cadeau voorzien door VBHA\n${Y-10}-${Y-6}: 50,00 EUR per kind\n${Y-5}-${Y}: 35,00 EUR per kind`}}
 function kfMailCfg(){const c=kfCfg();return{...kfMailDef(c.datum),...(c.mail||{})}}
 function kfMailHtml(){const M=kfMailCfg(),d=canWrite?"":" disabled";
-  const w=!M.cadeau?"geen":M.keuze?"1":"0";
-  return `<input type="hidden" id="kmK" value="${esc(M.kopie??"")}"><input type="hidden" id="kmC" value="${M.cadeau?"1":""}">
-  <div class="fld full"><label>Cadeaus</label><div class="km-wijze" role="radiogroup" aria-label="Cadeaus">${[["geen","Geen","x"],["0","Klassiek","mails"],["1","Cadeaukiezer","cadeau"]].map(([k,l,i])=>`<button type="button" role="radio" aria-checked="${w===k}" data-kmw="${k}" class="km-o${w===k?" on":""}"${d}><span class="km-i">${k==="1"?'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12M12 8v12.5M12 8c-1.2-2.6-3.2-4-4.6-3.4-1.3.6-1 2.6.6 3.4H12zM12 8c1.2-2.6 3.2-4 4.6-3.4 1.3.6 1 2.6-.6 3.4H12z"/></svg>':ic(i)}</span><b>${l}</b><small>${k==="geen"?"geen cadeau-info":k==="0"?"per mail":"online kiezen"}</small></button>`).join("")}</div><input type="hidden" id="kmKz" value="${M.keuze?"1":""}"></div>
-  <div class="full km-velden" id="kmV"${M.cadeau?"":" hidden"}><div class="form" style="padding:0">
+  const w=M.keuze?"1":"0";
+  return `<input type="hidden" id="kmK" value="${esc(M.kopie??"")}"><input type="hidden" id="kmC" value="1">
+  <div class="fld full"><label>Cadeaus</label><div class="km-wijze" role="radiogroup" aria-label="Cadeaus">${[["0","Klassiek","mails"],["1","Cadeaukiezer","cadeau"]].map(([k,l,i])=>`<button type="button" role="radio" aria-checked="${w===k}" data-kmw="${k}" class="km-o${w===k?" on":""}"${d}><span class="km-i">${k==="1"?'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12M12 8v12.5M12 8c-1.2-2.6-3.2-4-4.6-3.4-1.3.6-1 2.6.6 3.4H12zM12 8c1.2-2.6 3.2-4 4.6-3.4 1.3.6 1 2.6-.6 3.4H12z"/></svg>':ic(i)}</span><b>${l}</b><small>${k==="0"?"per mail":"online kiezen"}</small></button>`).join("")}</div><input type="hidden" id="kmKz" value="${M.keuze?"1":""}"></div>
+  <div class="full km-velden" id="kmV"><div class="form" style="padding:0">
    ${fld("kmS","Websites",inp("kmS",M.sites,'placeholder="www.dreamland.be, www.bol.com"'+d))}${fld("kmT","Cadeau doorgeven vóór",`<input id="kmT" type="date" value="${esc(M.tot)}"${d}>`)}
    <div class="fld full" id="kmMw"${M.keuze?" hidden":""}><label for="kmM">Doorsturen naar</label>${inp("kmM",M.contact,'type="email" placeholder="e-mailadres"'+d)}</div>
    <div class="fld" id="kmPpw"${M.keuze?"":" hidden"}><label for="kmPp">Korting Pluspas bol.com (%)</label><input id="kmPp" type="number" min="0" max="49" step="0.1" value="${esc(String(M.pluspas??5.5))}"${d}></div>
@@ -4474,7 +4473,7 @@ kfExport=async function(){const st=kfStats(),c=st.c,M=kfMailCfg(),G=kfGroepenC(M
 document.addEventListener("click",e=>{const b=e.target.closest("[data-kmw]");if(!b||b.disabled)return;const on=b.dataset.kmw==="1",geen=b.dataset.kmw==="geen";
   b.parentElement.querySelectorAll("button").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-checked",x===b)});const h=$("#kmKz");if(h)h.value=on?"1":"";const c=$("#kmC");if(c)c.value=geen?"":"1";const v=$("#kmV");if(v)v.hidden=geen;
   const m=$("#kmMw"),bb=$("#kmBbw"),pp=$("#kmPpw");if(m)m.hidden=on;if(bb)bb.hidden=!on;if(pp)pp.hidden=!on});
-{const st=document.createElement("style");st.textContent=`.km-wijze{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+{const st=document.createElement("style");st.textContent=`.km-wijze{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .km-o{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:1.5px solid var(--line-strong);border-radius:12px;background:var(--surface);color:var(--ink);cursor:pointer;font:inherit;text-align:center}
 .km-o:hover{border-color:var(--ink)}.km-o b{font-size:14px}.km-o small{font-size:12px;color:var(--muted)}
 .km-i{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--sunken);color:var(--muted)}.km-i svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
