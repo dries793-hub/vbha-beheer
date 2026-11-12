@@ -7790,3 +7790,93 @@ const soBron={
 document.addEventListener("click",e=>{const b=e.target.closest("[data-sopost]");if(!b)return;e.preventDefault();const f=soBron[b.dataset.sopost];if(f)soVanuit(f())});
 for(const [r,k] of [["kinderfeest","kf"],["banket","bk"],["fuif","fu"],["familiedag","fd"]]){const _v=VIEWS[r];if(!_v)continue;
   const n=function(){const v=_v.apply(this,arguments);if(recht("social")!=="geen")v.actions=`<button type="button" class="btn" data-sopost="${k}">${ic("delen")}Post maken</button>`+String(v.actions||"");return v};Object.assign(n,_v);VIEWS[r]=n}
+
+/* ============ Financiën › Transacties › Verrekeningen (splitwise) ============
+   Een activiteit die samen met een andere vereniging georganiseerd wordt (bv. 150 jaar met de Vriendenkring Moorsel):
+   onze kant = alle transacties in de gekozen categorie (alle jaren, optioneel binnen een periode);
+   hun kant = kosten en inkomsten die we hier zelf invullen (die komen NIET in onze transacties).
+   Het resultaat wordt verdeeld volgens de afgesproken verdeelsleutel; de app toont wie nog hoeveel aan wie moet betalen.
+   Bewaard in config/"verrekeningen": {lijst:[{id,naam,categorie,vanaf,tot,partners:[{id,naam,pct}],posten:[{id,partner,datum,omschrijving,bedrag,richting}],uitgesloten:[boekingId],afgerond}]} */
+NAV_ALIAS.verrekening="boekingen";
+if(!ROUTES.some(r=>r[0]==="verrekening"))ROUTES.push(["verrekening","Verrekeningen"]);
+{const f=FUNC.find(x=>x[0]==="financien");if(f&&!f[2].includes("verrekening")){f[2].push("verrekening");FUNC_VAN.verrekening="financien"}}
+{const _t=bkTabs;bkTabs=function(act){const h=_t(act);return h.replace("</div>",`<a role="tab" href="#verrekening" class="${act==="verrekening"?"on":""}">Verrekeningen</a></div>`)}}
+const VR_ONS="vbha";
+const vrCfg=()=>{const c=S.config.get("verrekeningen")||{};return{lijst:Array.isArray(c.lijst)?c.lijst:[]}};
+async function vrBewaar(L){const c={...stripId(S.config.get("verrekeningen")||{}),lijst:L};S.config.set("verrekeningen",{...c,id:"verrekeningen"});await write("config","verrekeningen",c)}
+function vrBoek(v){return[...S.boekingen.values()].filter(b=>b.categorie===v.categorie&&(!v.vanaf||String(b.datum)>=v.vanaf)&&(!v.tot||String(b.datum)<=v.tot)).sort((a,b)=>String(a.datum).localeCompare(String(b.datum)))}
+/* berekening: per partij inkomsten, kosten, netto; aandeel volgens verdeelsleutel; verschil -> betalingen */
+function vrReken(v){const P=v.partners||[],uit=new Set(v.uitgesloten||[]),R={};
+  for(const p of P)R[p.id]={p,in:0,uit:0};
+  for(const b of vrBoek(v)){if(uit.has(b.id)||!R[VR_ONS])continue;R[VR_ONS][b.richting==="uit"?"uit":"in"]+=num(b.bedrag)}
+  for(const x of v.posten||[]){if(!R[x.partner])continue;R[x.partner][x.richting==="uit"?"uit":"in"]+=num(x.bedrag)}
+  const tin=Object.values(R).reduce((s,r)=>s+r.in,0),tuit=Object.values(R).reduce((s,r)=>s+r.uit,0),res=r2(tin-tuit),som=P.reduce((s,p)=>s+num(p.pct),0)||1;
+  for(const r of Object.values(R)){r.in=r2(r.in);r.uit=r2(r.uit);r.net=r2(r.in-r.uit);r.deel=r2(res*num(r.p.pct)/som);r.saldo=r2(r.net-r.deel)}
+  // wie te veel heeft (saldo > 0) betaalt aan wie te weinig heeft
+  const geef=Object.values(R).filter(r=>r.saldo>0.004).map(r=>({id:r.p.id,b:r.saldo})),krijg=Object.values(R).filter(r=>r.saldo<-0.004).map(r=>({id:r.p.id,b:-r.saldo})),bet=[];
+  geef.sort((a,b)=>b.b-a.b);krijg.sort((a,b)=>b.b-a.b);
+  while(geef.length&&krijg.length){const g=geef[0],k=krijg[0],x=r2(Math.min(g.b,k.b));bet.push({van:g.id,aan:k.id,bedrag:x});g.b=r2(g.b-x);k.b=r2(k.b-x);if(g.b<=0.004)geef.shift();if(k.b<=0.004)krijg.shift()}
+  return{R,tin:r2(tin),tuit:r2(tuit),res,bet}}
+const vrNaam=(v,id)=>((v.partners||[]).find(p=>p.id===id)||{}).naam||id;
+const VR={open:{}};
+VIEWS.verrekening=()=>({title:"Transacties",actions:canWrite?`<button class="btn primary" data-vr="nieuw">${ic("plus")}Nieuwe verrekening</button>`:"",body(){
+  const L=vrCfg().lijst;
+  return bkTabs("verrekening")+(L.length?L.map(vrKaart).join(""):`<div class="panel"><div class="empty">Nog geen verrekeningen.<div class="muted small" style="margin-top:6px">Organiseer je een activiteit samen met een andere vereniging? Kies de categorie, vul hun kosten en inkomsten in en de app berekent wie nog aan wie moet betalen.</div>${canWrite?`<div style="margin-top:12px"><button class="btn primary" data-vr="nieuw">${ic("plus")}Nieuwe verrekening</button></div>`:""}</div></div>`)}});
+function vrKaart(v){const c=vrReken(v),P=v.partners||[],B=vrBoek(v),uit=new Set(v.uitgesloten||[]),open=VR.open[v.id]||{},d=canWrite?"":" disabled";
+  const per=v.vanaf||v.tot?` · ${v.vanaf?fmtDate(v.vanaf):"…"} – ${v.tot?fmtDate(v.tot):"…"}`:"";
+  return `<div class="panel vr-k"><div class="panel-h"><div style="min-width:0"><h2>${esc(v.naam||v.categorie)}</h2><div class="muted small">Categorie <b>${esc(v.categorie)}</b>${per} · verdeelsleutel ${P.map(p=>esc(p.naam)+" "+num(p.pct)+"%").join(" / ")}</div></div><span class="grow"></span>
+    ${v.afgerond?'<span class="pill ok">Afgerond</span>':'<span class="pill info">Lopend</span>'}${canWrite?`<button type="button" class="btn sm ghost" data-vr="bewerk" data-id="${esc(v.id)}">Instellingen</button>`:""}</div>
+   <div class="panel-b stack">
+    <div class="vr-uit">${c.bet.length?c.bet.map(x=>`<div class="vr-bet">${ic("bank")}<span><b>${esc(vrNaam(v,x.van))}</b> betaalt <b class="vr-bd">${eur(x.bedrag)}</b> aan <b>${esc(vrNaam(v,x.aan))}</b></span></div>`).join(""):`<div class="vr-bet ok">${ic("check")}<span>Alles is in evenwicht: niemand moet nog iets betalen.</span></div>`}
+     <div class="muted small">Totaal resultaat ${eur(c.res)} (inkomsten ${eur(c.tin)} − kosten ${eur(c.tuit)})</div></div>
+    <div class="tablewrap"><table class="vr-t"><thead><tr><th>Partij</th><th class="num">Inkomsten</th><th class="num">Kosten</th><th class="num">Netto</th><th class="num">Aandeel</th><th class="num">Verschil</th></tr></thead><tbody>
+     ${P.map(p=>{const r=c.R[p.id];return `<tr><td><b>${esc(p.naam)}</b> <span class="muted small">${num(p.pct)}%</span></td><td class="num">${eur(r.in)}</td><td class="num">${eur(r.uit)}</td><td class="num">${eur(r.net)}</td><td class="num">${eur(r.deel)}</td><td class="num ${r.saldo>0.004?"vr-min":r.saldo<-0.004?"vr-plus":""}">${r.saldo>0.004?"moet "+eur(r.saldo)+" geven":r.saldo<-0.004?"krijgt "+eur(-r.saldo):"—"}</td></tr>`}).join("")}</tbody></table></div>
+    <details${open.ons?" open":""} data-vrd="ons" data-id="${esc(v.id)}"><summary><b>Onze transacties</b> <span class="muted small">${B.length-B.filter(b=>uit.has(b.id)).length} van ${B.length} meegeteld</span></summary>
+     <div class="vr-l">${B.map(b=>`<label class="vr-r"><input type="checkbox" data-vrx="${esc(b.id)}" data-id="${esc(v.id)}"${uit.has(b.id)?"":" checked"}${d}><span class="muted small">${fmtDate(b.datum)}</span><span class="trunc">${esc(b.partij||"")} <span class="muted small">${esc(b.mededeling||"")}</span></span><b class="num ${b.richting==="uit"?"vr-min":"vr-plus"}">${b.richting==="uit"?"−":"+"}${eur(b.bedrag)}</b></label>`).join("")||'<div class="muted small" style="padding:10px">Geen transacties in deze categorie.</div>'}</div>
+     <div class="muted small" style="margin-top:6px">Vink een transactie uit als ze niet mee mag tellen, bv. de verrekening zelf zodra die betaald is.</div></details>
+    ${P.filter(p=>p.id!==VR_ONS).map(p=>{const X=(v.posten||[]).filter(x=>x.partner===p.id).sort((a,b)=>String(a.datum).localeCompare(String(b.datum)));
+      return `<details${open[p.id]!==false?" open":""} data-vrd="${esc(p.id)}" data-id="${esc(v.id)}"><summary><b>Kosten en inkomsten van ${esc(p.naam)}</b> <span class="muted small">${X.length} ${X.length===1?"post":"posten"} · niet in onze transacties</span></summary>
+       <div class="vr-l">${X.map(x=>`<div class="vr-r"><span class="muted small">${x.datum?fmtDate(x.datum):""}</span><span class="trunc">${esc(x.omschrijving||"")}</span><b class="num ${x.richting==="uit"?"vr-min":"vr-plus"}">${x.richting==="uit"?"−":"+"}${eur(num(x.bedrag))}</b>${canWrite?`<button type="button" class="iconbtn" data-vr="postWeg" data-id="${esc(v.id)}" data-p="${esc(x.id)}" aria-label="Verwijderen" title="Verwijderen">${ic("prul")}</button>`:""}</div>`).join("")||'<div class="muted small" style="padding:10px">Nog niets ingevuld.</div>'}</div>
+       ${canWrite?`<div class="fld vr-add" data-id="${esc(v.id)}" data-p="${esc(p.id)}"><input type="date" class="vr-ad" value="${todayISO()}" aria-label="Datum"><input class="vr-ao" placeholder="Omschrijving (bv. drank, affiches)" maxlength="120"><select class="sel vr-ar" aria-label="Soort"><option value="uit">Kost</option><option value="in">Inkomst</option></select><input class="vr-ab" inputmode="decimal" placeholder="Bedrag" aria-label="Bedrag"><button type="button" class="btn sm" data-vr="postAdd">${ic("plus")}Toevoegen</button></div>`:""}</details>`}).join("")}
+   </div></div>`}
+function vrForm(v){const nieuw=!v;v=v||{partners:[{id:VR_ONS,naam:"VBHA",pct:50},{id:"p"+Date.now().toString(36),naam:"",pct:50}]};const cats=catList(ctx());
+  modal(nieuw?"Nieuwe verrekening":"Verrekening instellen",`<form id="fVr" class="form">
+   ${fld("vrN","Naam",inp("vrN",v.naam||"",'maxlength="80" placeholder="bv. 150 jaar met Vriendenkring Moorsel"'),"full")}
+   ${fld("vrC","Categorie (onze transacties)",`<select id="vrC" class="sel">${cats.map(c=>`<option${c===v.categorie?" selected":""}>${esc(c)}</option>`).join("")}</select>`,"full")}
+   ${fld("vrV","Vanaf (optioneel)",`<input id="vrV" type="date" value="${esc(v.vanaf||"")}">`)}${fld("vrT","Tot en met (optioneel)",`<input id="vrT" type="date" value="${esc(v.tot||"")}">`)}
+   <div class="full fc-sec"><h4>Partijen en verdeelsleutel</h4></div>
+   <div class="full vr-ps" id="vrPs">${v.partners.map(p=>vrPartRij(p)).join("")}</div>
+   <div class="full"><button type="button" class="btn sm ghost" data-vr="partAdd">${ic("plus")}Partij toevoegen</button></div>
+   ${nieuw?"":`<label class="sp-nat full" for="vrA"><input type="checkbox" id="vrA"${v.afgerond?" checked":""}><span><b>Afgerond</b><small>De verrekening is betaald en afgesloten.</small></span></label>`}
+   <div class="err full" id="vrErr"></div></form>`,
+   `${nieuw?"":`<button class="btn danger" data-vr="weg" data-id="${esc(v.id)}" style="margin-right:auto">Verwijderen</button>`}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-vr="bewaar" data-id="${esc(v.id||"")}">Bewaren</button>`)}
+const vrPartRij=p=>`<div class="vr-p" data-pid="${esc(p.id)}"><input class="vr-pn" value="${esc(p.naam)}" placeholder="Naam van de vereniging" maxlength="60"${p.id===VR_ONS?" readonly":""}><input class="vr-pp" inputmode="decimal" value="${esc(String(p.pct??""))}" aria-label="Aandeel in procent"><span class="muted">%</span>${p.id===VR_ONS?'<span class="vr-x"></span>':`<button type="button" class="iconbtn" data-vr="partWeg" aria-label="Partij verwijderen">${ic("prul")}</button>`}</div>`;
+document.addEventListener("toggle",e=>{const d=e.target;if(!d.matches||!d.matches("details[data-vrd]"))return;const o=VR.open[d.dataset.id]||(VR.open[d.dataset.id]={});o[d.dataset.vrd]=d.open},true);
+document.addEventListener("change",async e=>{const x=e.target.closest&&e.target.closest("[data-vrx]");if(!x)return;const L=vrCfg().lijst.map(v=>({...v})),v=L.find(y=>y.id===x.dataset.id);if(!v)return;
+  const U=new Set(v.uitgesloten||[]);x.checked?U.delete(x.dataset.vrx):U.add(x.dataset.vrx);v.uitgesloten=[...U];try{await vrBewaar(L)}catch(er){}renderBody()});
+document.addEventListener("click",async e=>{const t=e.target.closest("[data-vr]");if(!t)return;e.preventDefault();const a=t.dataset.vr,L=vrCfg().lijst.map(v=>({...v})),v=L.find(y=>y.id===t.dataset.id);
+  if(a==="nieuw"){vrForm(null);return}if(a==="bewerk"&&v){vrForm(v);return}
+  if(a==="partAdd"){$("#vrPs").insertAdjacentHTML("beforeend",vrPartRij({id:"p"+Date.now().toString(36),naam:"",pct:""}));return}
+  if(a==="partWeg"){t.closest(".vr-p").remove();return}
+  if(a==="weg"&&v){confirmBox(`Verrekening <b>${esc(v.naam||v.categorie)}</b> verwijderen? De ingevulde kosten en inkomsten van de andere partijen gaan verloren. Onze transacties blijven ongewijzigd.`,"Verwijderen",async()=>{await vrBewaar(L.filter(y=>y.id!==v.id));toast("Verrekening verwijderd.");renderBody()});return}
+  if(a==="bewaar"){const err=$("#vrErr"),P=[...document.querySelectorAll("#vrPs .vr-p")].map(r=>({id:r.dataset.pid,naam:r.querySelector(".vr-pn").value.trim(),pct:num(r.querySelector(".vr-pp").value)}));
+    if(P.length<2){err.textContent="Voeg minstens één andere partij toe.";return}if(P.some(p=>!p.naam)){err.textContent="Geef elke partij een naam.";return}
+    const som=r2(P.reduce((s,p)=>s+p.pct,0));if(Math.abs(som-100)>0.01){err.textContent=`De verdeelsleutel moet samen 100% zijn (nu ${som}%).`;return}
+    const id=t.dataset.id||"vr"+Date.now().toString(36),oud=L.find(y=>y.id===id)||{},ids=new Set(P.map(p=>p.id));
+    const n={...oud,id,naam:$("#vrN").value.trim(),categorie:$("#vrC").value,vanaf:$("#vrV").value||"",tot:$("#vrT").value||"",partners:P,posten:(oud.posten||[]).filter(x=>ids.has(x.partner)),uitgesloten:oud.uitgesloten||[],afgerond:!!($("#vrA")&&$("#vrA").checked)};
+    const i=L.findIndex(y=>y.id===id);if(i>=0)L[i]=n;else L.unshift(n);t.disabled=true;try{await vrBewaar(L);closeModal();toast("Verrekening bewaard.");if(route()!=="verrekening")location.hash="#verrekening";else renderBody()}catch(x){err.textContent="Bewaren lukte niet: "+(x.message||"");t.disabled=false}return}
+  if(a==="postAdd"){const w=t.closest(".vr-add"),vv=L.find(y=>y.id===w.dataset.id);if(!vv)return;const bd=num(w.querySelector(".vr-ab").value),om=w.querySelector(".vr-ao").value.trim();
+    if(!(bd>0)){toast("Vul een bedrag in.",true);return}if(!om){toast("Vul een omschrijving in.",true);return}
+    vv.posten=[...(vv.posten||[]),{id:"x"+Date.now().toString(36),partner:w.dataset.p,datum:w.querySelector(".vr-ad").value||"",omschrijving:om,bedrag:bd,richting:w.querySelector(".vr-ar").value}];
+    try{await vrBewaar(L);renderBody()}catch(x){toast("Bewaren lukte niet.",true)}return}
+  if(a==="postWeg"&&v){v.posten=(v.posten||[]).filter(x=>x.id!==t.dataset.p);try{await vrBewaar(L);renderBody()}catch(x){toast("Verwijderen lukte niet.",true)}return}});
+{const st=document.createElement("style");st.textContent=`.vr-k+.vr-k{margin-top:16px}.vr-uit{display:flex;flex-direction:column;gap:8px}
+.vr-bet{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:var(--accent-soft,#fcebec);font-size:15px}.vr-bet svg{width:22px;height:22px;flex:none;fill:none;stroke:var(--accent);stroke-width:1.8}
+.vr-bet.ok{background:var(--good-soft,#e7f6ee)}.vr-bet.ok svg{stroke:var(--good,#15803d)}.vr-bd{font-size:17px}
+.vr-t{width:100%}.vr-t th,.vr-t td{padding:8px 10px}.vr-min{color:#b91c1c}.vr-plus{color:var(--good,#15803d)}
+details[data-vrd]>summary{cursor:pointer;padding:6px 0}.vr-l{border:1px solid var(--line);border-radius:10px;max-height:360px;overflow:auto;margin-top:6px}
+.vr-r{display:grid;grid-template-columns:auto 86px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 12px;border-top:1px solid var(--line);font-size:14px}.vr-r:first-child{border-top:0}
+div.vr-r{grid-template-columns:86px minmax(0,1fr) auto auto}.vr-r input{accent-color:var(--accent)}.vr-r .iconbtn svg,.vr-p .iconbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
+.vr-add{display:grid!important;grid-template-columns:150px minmax(0,1fr) 110px 110px auto;gap:8px;margin-top:8px}.vr-add input,.vr-add select{min-width:0}
+.vr-ps{display:flex;flex-direction:column;gap:8px}.vr-p{display:grid;grid-template-columns:minmax(0,1fr) 80px auto 32px;gap:8px;align-items:center}.vr-x{width:32px}
+@media(max-width:760px){.vr-add{grid-template-columns:1fr 1fr}.vr-add .vr-ao{grid-column:1/-1}.vr-r{grid-template-columns:auto 70px minmax(0,1fr) auto}div.vr-r{grid-template-columns:70px minmax(0,1fr) auto auto}}`;document.head.appendChild(st)}
