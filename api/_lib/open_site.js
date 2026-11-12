@@ -42,7 +42,7 @@ function nieuwsHtml(n, c) {
   const dt = d && !isNaN(d) ? `${d.getDate()} ${maand[d.getMonth()]} ${d.getFullYear()}` : "";
   return `<section class="hero eigen nieuws${f ? "" : " zonder"}" id="nieuws">${f ? `<figure class="photo"><img data-s-img="nieuws" src="/api/openbaar?f=sitefoto&amp;k=nieuws&amp;v=${esc(f.v)}" alt="" width="${f.w}" height="${f.h}" loading="lazy"></figure>` : ""}<div>`
     + `<p class="kicker">Nieuws van de vriendenkring${dt ? ` · ${esc(dt)}` : ""}</p>` + (n.titel ? `<h2 class="h2g">${esc(n.titel)}</h2>` : "")
-    + (n.tekst ? n.tekst.split(/\n{2,}/).map(p => `<p class="lead">${esc(p).replace(/\n/g, "<br>")}</p>`).join("") : "") + knopHtml(n.link ? [{ label: "Meer info", url: n.link, stijl: "rood" }] : []) + `</div></section>`;
+    + (n.tekst ? n.tekst.split(/\n{2,}/).map(p => `<p class="lead">${esc(p).replace(/\n/g, "<br>")}</p>`).join("") : "") + knopHtml(n.knop && n.knop.url ? [{ label: n.knop.label || "Meer info", url: n.knop.url, stijl: "rood" }] : []) + `</div></section>`;
 }
 export function schoon(c) {
   c = c && typeof c === "object" ? c : {};
@@ -61,7 +61,7 @@ export function schoon(c) {
     o.volgorde = L;
   }
   const n = c.nieuws;
-  o.nieuws = n && typeof n === "object" && (n.titel || n.tekst) ? { id: tekst(n.id, 40), titel: tekst(n.titel, 140), tekst: String(n.tekst || "").trim().slice(0, 2200), link: veiligeUrl(n.link), datum: tekst(n.datum, 40) } : null;
+  o.nieuws = c.nieuws_aan !== false && n && typeof n === "object" && (n.titel || n.tekst) ? { id: tekst(n.id, 40), titel: tekst(n.titel, 140), tekst: String(n.tekst || "").trim().slice(0, 2200), datum: tekst(n.datum, 40), knop: n.knop && veiligeUrl(n.knop.url) ? { label: tekst(n.knop.label, 60) || "Meer info", url: veiligeUrl(n.knop.url) } : null } : null;
   o.fotos = {};
   for (const k of ["kalender", "viv", ...(o.nieuws ? ["nieuws"] : []), ...o.eigen.map(e => e.id)]) { const f = c.fotos && c.fotos[k]; if (f && typeof f.pad === "string" && (f.pad.startsWith("Website/") || /^\/w\/[\w.-]+\.(jpe?g|png|webp)$/i.test(f.pad))) o.fotos[k] = { pad: f.pad, v: String(f.v || "1").replace(/\W/g, "").slice(0, 20), w: Number(f.w) || 1600, h: Number(f.h) || 1067 }; }
   return o;
