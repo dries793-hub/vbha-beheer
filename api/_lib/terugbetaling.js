@@ -26,6 +26,16 @@ export function ibanOk(i) {
 const bedragVan = v => { const n = Number(String(v ?? "").replace(/\s/g, "").replace(",", ".")); return n > 0 && n < 100000 ? r2(n) : 0; };
 const mailOk = e => !e || /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(e);
 
+/* rekeningnummer van een vorige terugbetaling of onkostennota onthouden (zelfde lid, anders zelfde naam) */
+async function lidIbanZet(sb, lidId, iban, bron) { if (!lidId || !ibanOk(iban)) return; try { await sb.from("lid_iban").upsert({ lid_id: lidId, iban: String(iban).replace(/\s+/g, "").toUpperCase(), bron: String(bron || "").slice(0, 60), op: nu() }); } catch (e) { console.error("lid_iban", e); } }
+async function bekendIban(sb, lidId, naam) {
+  if (lidId) { const { data } = await sb.from("lid_iban").select("iban").eq("lid_id", lidId).maybeSingle(); if (data && ibanOk(data.iban)) return data.iban; }
+  const q = sb.from("terugbetalingen").select("data,gemaakt").neq("data->>iban", "").order("gemaakt", { ascending: false }).limit(1);
+  if (lidId) { const { data } = await q.eq("data->>lidId", lidId); if (data && data[0] && ibanOk(data[0].data.iban)) return data[0].data.iban; }
+  const n = String(naam || "").trim(); if (!n) return "";
+  const { data } = await sb.from("terugbetalingen").select("data,gemaakt").neq("data->>iban", "").ilike("data->>naam", n.replace(/[%_]/g, "")).order("gemaakt", { ascending: false }).limit(1);
+  return data && data[0] && ibanOk(data[0].data.iban) ? data[0].data.iban : "";
+}
 /* bon (foto of PDF) bewaren: in de browser al verkleind; max. 4 MB */
 async function bonBewaar(sb, id, b) {
   if (!b || !b.data) return null;
@@ -47,16 +57,19 @@ export default async function terugPubliek(req, res) {
       const naam = clean(b.naam, 80), email = clean(b.email, 160), iban = String(b.iban || "").replace(/\s+/g, "").toUpperCase(), bedrag = bedragVan(b.bedrag), reden = clean(b.reden, 300), datum = /^\d{4}-\d{2}-\d{2}$/.test(b.datum || "") ? b.datum : vandaagISO();
       if (!naam) throw httpErr(400, "Vul je naam in.");
       if (!mailOk(email)) throw httpErr(400, "Dit e-mailadres klopt niet.");
-      if (!ibanOk(iban)) throw httpErr(400, "Dit rekeningnummer (IBAN) klopt niet.");
+      if (iban && !ibanOk(iban)) throw httpErr(400, "Dit rekeningnummer (IBAN) klopt niet.");
       if (!bedrag) throw httpErr(400, "Vul een geldig bedrag in.");
       if (!reden) throw httpErr(400, "Schrijf kort waarvoor de kosten waren.");
       // gekozen lid: e-mailadres en lidnummer uit de ledenlijst (het formulier vraagt geen e-mailadres meer)
       let lidId = "", lidMail = "";
       if (b.lidId) { const { data: l } = await sb.from("leden").select("id,data").eq("id", String(b.lidId).slice(0, 60)).maybeSingle(); if (l && !l.data.geenLid) { lidId = l.id; lidMail = String(l.data.email || "").trim(); } }
+      const ibanOk2 = iban || await bekendIban(sb, lidId, lidId ? "" : naam);
+      if (!ibanOk2) throw httpErr(400, "Vul je rekeningnummer (IBAN) in.");
       const id = "ok-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       const bon = await bonBewaar(sb, id, b.bon);
-      const { error } = await sb.from("terugbetalingen").insert({ id, status: "ingediend", data: { soort: "onkosten", naam, email: email || (mailOk(lidMail) ? lidMail : ""), lidId, iban, bedrag, reden, datum, bon, op: nu(), nieuw: true } });
+      const { error } = await sb.from("terugbetalingen").insert({ id, status: "ingediend", data: { soort: "onkosten", naam, email: email || (mailOk(lidMail) ? lidMail : ""), lidId, iban: ibanOk2, ibanVorig: !iban, bedrag, reden, datum, bon, op: nu(), nieuw: true } });
       if (error) throw error;
+      if (iban && lidId) await lidIbanZet(sb, lidId, iban, "onkostennota");
       try { const { meldPush } = await import("./push.js"); await meldPush(sb, "boek", { titel: "Nieuwe onkostennota", tekst: `${naam} · € ${bedrag.toFixed(2).replace(".", ",")} · ${reden.slice(0, 60)}`, url: "/#terug", tag: "tb-" + id }); } catch (e) { console.error("push onkost", e); }
       return res.status(200).json({ ok: true });
     }
@@ -74,6 +87,7 @@ export default async function terugPubliek(req, res) {
     const tnv = clean(b.tnv, 80) || d.naam;
     const nieuw = { ...d, iban, tnv, ibanOp: nu(), nieuw: true };
     const { error } = await sb.from("terugbetalingen").update({ data: nieuw, status: row.status === "aangevraagd" ? "goedgekeurd" : row.status, gewijzigd: nu() }).eq("id", id); if (error) throw error;
+    if (d.lidId) await lidIbanZet(sb, d.lidId, iban, "terugbetaling");
     try { const { meldPush } = await import("./push.js"); await meldPush(sb, "boek", { titel: "Rekeningnummer doorgegeven", tekst: `${d.naam} · € ${Number(d.bedrag).toFixed(2).replace(".", ",")} klaar om terug te betalen`, url: "/#terug", tag: "tb-" + id }); } catch (e) { console.error("push terug", e); }
     d.iban = iban; return res.status(200).json({ ...toon(), ibanGekend: true, ibanEind: iban.slice(-4), status: row.status === "aangevraagd" ? "goedgekeurd" : row.status });
   } catch (e) { sendError(res, e); }
@@ -84,7 +98,7 @@ export async function terugApp(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
     if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
-    const b = body(req), lees = b.actie === "lijst" || b.actie === "bon";
+    const b = body(req), lees = b.actie === "lijst" || b.actie === "bon" || b.actie === "lidiban";
     const { user } = await requireUser(req, lees ? { functie: "facturen" } : { write: true, functie: "facturen" });
     const sb = admin();
     let wie = user.email || ""; try { const { data } = await sb.from("bestuur").select("naam").eq("user_id", user.id).maybeSingle(); if (data && data.naam) wie = data.naam; } catch {}
@@ -95,14 +109,20 @@ export async function terugApp(req, res) {
       const { data: r } = await sb.from("terugbetalingen").select("data").eq("id", String(b.id || "")).maybeSingle(); if (!r || !r.data.bon) throw httpErr(404, "Geen bewijsstuk.");
       const { data } = await sb.storage.from(BUCKET).createSignedUrl(r.data.bon.pad, 600); return res.status(200).json({ ok: true, url: data ? data.signedUrl : "" });
     }
+    if (b.actie === "lidiban") { const { data } = await sb.from("lid_iban").select("iban,bron,op").eq("lid_id", String(b.lidId || "")).maybeSingle(); return res.status(200).json({ ok: true, iban: data ? data.iban : "", op: data ? data.op : null }); }
+    if (b.actie === "lidibanZet") { const lidId = clean(b.lidId, 60), iban = String(b.iban || "").replace(/\s+/g, "").toUpperCase(); if (!lidId) throw httpErr(400, "Geen lid.");
+      if (!iban) { await sb.from("lid_iban").delete().eq("lid_id", lidId); return res.status(200).json({ ok: true, iban: "" }); }
+      if (!ibanOk(iban)) throw httpErr(400, "Dit IBAN-nummer klopt niet."); await lidIbanZet(sb, lidId, iban, "app"); return res.status(200).json({ ok: true, iban }); }
     if (b.actie === "maak") { // terugbetaling aanmaken: link om het IBAN op te vragen (of meteen met IBAN)
       const naam = clean(b.naam, 80), bedrag = bedragVan(b.bedrag), reden = clean(b.reden, 300), email = clean(b.email, 160), iban = String(b.iban || "").replace(/\s+/g, "").toUpperCase();
       if (!naam) throw httpErr(400, "Vul de naam in."); if (!bedrag) throw httpErr(400, "Vul een geldig bedrag in."); if (!reden) throw httpErr(400, "Vul de reden in.");
       if (!mailOk(email)) throw httpErr(400, "Dit e-mailadres klopt niet."); if (iban && !ibanOk(iban)) throw httpErr(400, "Dit IBAN-nummer klopt niet.");
-      const id = "tb-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      const { error } = await sb.from("terugbetalingen").insert({ id, status: iban ? "goedgekeurd" : "aangevraagd", data: { soort: "terugbetaling", naam, email, bedrag, reden, iban: iban || "", lidId: clean(b.lidId, 60), categorie: clean(b.categorie, 60), door: wie, op: nu() } });
+      const id = "tb-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), lidId = clean(b.lidId, 60);
+      const vorig = iban ? "" : await bekendIban(sb, lidId, naam), ib = iban || vorig;
+      const { error } = await sb.from("terugbetalingen").insert({ id, status: ib ? "goedgekeurd" : "aangevraagd", data: { soort: "terugbetaling", naam, email, bedrag, reden, iban: ib || "", ...(vorig ? { ibanVorig: true } : {}), lidId, categorie: clean(b.categorie, 60), door: wie, op: nu() } });
       if (error) throw error;
-      return res.status(200).json({ ...(await lijst()), id, link: tbLink(id) });
+      if (iban && lidId) await lidIbanZet(sb, lidId, iban, "app");
+      return res.status(200).json({ ...(await lijst()), id, link: tbLink(id), ibanVorig: !!vorig });
     }
     const { data: row } = await sb.from("terugbetalingen").select("id,data,status").eq("id", String(b.id || "")).maybeSingle(); if (!row) throw httpErr(404, "Niet gevonden.");
     if (b.actie === "zet") {
@@ -122,6 +142,7 @@ export async function terugApp(req, res) {
       Object.assign(d, { naam, bedrag, reden, email, iban, ...(/^\d{4}-\d{2}-\d{2}$/.test(b.datum || "") ? { datum: b.datum } : {}), gewijzigdDoor: wie });
       const st = row.status === "aangevraagd" && iban ? "goedgekeurd" : row.status === "goedgekeurd" && !iban ? "aangevraagd" : row.status;
       const { error } = await sb.from("terugbetalingen").update({ data: d, status: st, gewijzigd: nu() }).eq("id", row.id); if (error) throw error;
+      if (iban && d.lidId) await lidIbanZet(sb, d.lidId, iban, "app");
       return res.status(200).json(await lijst());
     }
     if (b.actie === "mail") { // link om het rekeningnummer door te geven per mail versturen (via de mailwachtrij)

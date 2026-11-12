@@ -7968,7 +7968,7 @@ document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]
     if(!n){err.textContent="Vul in aan wie.";return}if(!(bd>0)){err.textContent="Vul een bedrag in.";return}if(!g("#tbR")){err.textContent="Vul de reden in.";return}if(iban&&!inkIbanOk(iban)){err.textContent="Dit IBAN-nummer klopt niet.";return}
     const l=[...S.leden.values()].find(x=>naamVol(x).trim()===n);t.disabled=true;
     try{const j=await tbApi({actie:"maak",naam:n,bedrag:bd,reden:g("#tbR"),email:g("#tbE"),iban,lidId:l?l.id:""});TB.lijst=j.lijst;TB.f="open";renderBody();
-      if(iban)toast("Terugbetaling klaar om te betalen.");else tbLinkModal("Link voor "+esc(n),j.link,`Stuur deze link naar <b>${esc(n)}</b>. Daar vult hij of zij het rekeningnummer in; daarna kan je hier betalen.`,j.lijst.find(x=>x.id===j.id))}
+      if(iban||j.ibanVorig)toast(j.ibanVorig?"Gekend rekeningnummer gebruikt: klaar om te betalen.":"Terugbetaling klaar om te betalen.");else tbLinkModal("Link voor "+esc(n),j.link,`Stuur deze link naar <b>${esc(n)}</b>. Daar vult hij of zij het rekeningnummer in; daarna kan je hier betalen.`,j.lijst.find(x=>x.id===j.id))}
     catch(x){err.textContent=x.message;t.disabled=false}return}
   if(!r)return;
   if(a==="detail"){tbDetail(r);return}
@@ -8011,3 +8011,14 @@ function tbDetail(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],
    canWrite?`<button class="btn danger" data-tb="weg" data-id="${esc(r.id)}" style="margin-right:auto">Verwijderen</button><button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-tb="bewaar" data-id="${esc(r.id)}">Bewaren</button>`:`<button class="btn" data-act="closeModal">Sluiten</button>`)}
 {const st=document.createElement("style");st.textContent=`.tb-nm{border:0;background:none;padding:0;font:inherit;font-weight:700;color:var(--ink);cursor:pointer}.tb-nm:hover{color:var(--accent);text-decoration:underline}
 .tb-dh{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.tb-h{display:flex;flex-direction:column;gap:4px;font-size:13.5px}.tb-h div{display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px}`;document.head.appendChild(st)}
+
+/* ledenfiche: gekend rekeningnummer (enkel admin en boekhouding; bewaard op de server, niet in de ledenlijst) */
+{const _t=toonLid;toonLid=function(id){const r=_t.apply(this,arguments);if(!fcMag())return r;
+  tbApi({actie:"lidiban",lidId:id}).then(j=>{const dl=document.querySelector(".modal dl.kv");if(!dl||dl.querySelector("[data-lidiban]"))return;
+    dl.insertAdjacentHTML("beforeend",`<dt>Rekeningnummer</dt><dd data-lidiban>${j.iban?esc(j.iban.replace(/(.{4})/g,"$1 ").trim()):"–"}${canWrite?` <button type="button" class="lnkb" data-lidibanw="${esc(id)}">${j.iban?"wijzigen":"toevoegen"}</button>`:""}</dd>`)}).catch(()=>{});return r}}
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-lidibanw]");if(!b)return;e.preventDefault();const id=b.dataset.lidibanw,dd=b.closest("dd");
+  const oud=(dd.firstChild&&dd.firstChild.nodeType===3?dd.firstChild.textContent:"").replace("–","").trim();
+  dd.innerHTML=`<span class="tb-ib"><input id="lidIb" value="${esc(oud)}" placeholder="BE.. .... .... ...." maxlength="42"><button type="button" class="btn sm" id="lidIbOk">Bewaren</button></span>`;$("#lidIb").focus();
+  $("#lidIbOk").onclick=async()=>{const v=$("#lidIb").value.replace(/\s+/g,"").toUpperCase();if(v&&!inkIbanOk(v)){toast("Dit IBAN-nummer klopt niet.",true);return}
+    try{const j=await tbApi({actie:"lidibanZet",lidId:id,iban:v});dd.innerHTML=`${j.iban?esc(j.iban.replace(/(.{4})/g,"$1 ").trim()):"–"} <button type="button" class="lnkb" data-lidibanw="${esc(id)}">${j.iban?"wijzigen":"toevoegen"}</button>`;toast("Rekeningnummer bewaard.")}catch(x){toast(x.message,true)}}});
+{const st=document.createElement("style");st.textContent=`.tb-ib{display:flex;gap:6px}.tb-ib input{flex:1;min-width:0}`;document.head.appendChild(st)}
