@@ -5406,9 +5406,9 @@ function kaTabBody(act,zonderKnoppen){const jaar=kaJaar(act),L=kaTrans(act,jaar)
   const toon=KA_UI.alles?L:T.B,per=[...T.per.entries()].sort((a,b)=>b[1].b-a[1].b);
   return `${zonderKnoppen?"":`<div class="ka-kop"><div></div>
     <div class="ka-kop-b">${adm?`<button class="btn" data-ka="inst" data-act="${act}">${ic("instellingen")}Tegels en instellingen</button>`:""}<button class="btn primary" data-ka="open" data-act="${act}">${ic("kassa")}Kassa openen</button></div></div>`}
-  <div class="tiles"><div class="tile hero"><span class="lbl">Totaal kassa</span><span class="val">${kaEur(T.tot)}</span><span class="hint">${T.B.length} ${T.B.length===1?"verkoop":"verkopen"}</span></div>
-    <div class="tile"><span class="lbl">Bancontact</span><span class="val">${kaEur(T.bc)}</span><span class="hint">${T.B.filter(t=>t.betaalwijze!=="cash").length} verkopen</span></div>
-    <div class="tile"><span class="lbl">Cash</span><span class="val">${kaEur(T.cash)}</span><span class="hint">${T.B.filter(t=>t.betaalwijze==="cash").length} verkopen</span></div></div>
+  <div class="tiles"><div class="tile hero"><span class="lbl">Totaal kassa</span><span class="val">${kaEur(T.tot)}</span></div>
+    <div class="tile"><span class="lbl">Bancontact</span><span class="val">${kaEur(T.bc)}</span></div>
+    <div class="tile"><span class="lbl">Cash</span><span class="val">${kaEur(T.cash)}</span></div></div>
   <div class="grid g2" style="align-items:start">
    ${kaTelPanel(act)}
    ${kaCashPanel(act)}
@@ -5548,14 +5548,13 @@ function kaTelPanel(act){if(!kaTelMag())return"";if(!KA_TEL.d){kaTelLaad();retur
   const jaar=kaJaar(act)||JAAR,T=kaTelVan(act,jaar),cash=kaTot(kaTrans(act,jaar)).cash,b=T.begin?T.begin.tot:0,verw=r2(b+cash);
   const wie=t=>t?`<span class="muted small">${esc(new Date(t.op).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))}${t.door?" · "+esc(t.door):""}</span>`:"";
   const v=T.eind?r2(T.eind.tot-verw):null;
-  return `<div class="panel" style="min-width:0"><div class="panel-h"><h2>Kassatelling</h2></div><div class="panel-b"><div class="fu-ko">
+  return `<div class="panel" style="min-width:0"><div class="panel-h"><h2>Kassatelling</h2><span class="grow"></span><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn sm" data-katel="begin" data-act="${esc(act)}">Beginkassa</button><button class="btn sm" data-katel="eind" data-act="${esc(act)}">Eindtelling</button></div></div><div class="panel-b"><div class="fu-ko">
    <div class="fu-kr"><span>Beginkassa (wisselgeld)</span>${wie(T.begin)}<b>${T.begin?kaEur(b):'<span class="muted">niet geteld</span>'}</b></div>
    <div class="fu-kr"><span>Cash verkopen</span><span></span><b>${kaEur(cash)}</b></div>
    <div class="fu-kr"><span>Verwacht in de kassa</span><span></span><b>${kaEur(verw)}</b></div>
    <div class="fu-kr"><span>Eindtelling</span>${wie(T.eind)}<b>${T.eind?kaEur(T.eind.tot):'<span class="muted">niet geteld</span>'}</b></div>
    ${T.eind?`<div class="fu-kr"><span>Verschil</span><span></span><b style="color:${Math.abs(v)<0.005?"#15803d":"#b91c1c"}">${Math.abs(v)<0.005?"klopt":(v>0?"+ ":"− ")+kaEur(Math.abs(v))}</b></div>
-   <div class="fu-kt tot"><span>Opbrengst cash (eind − begin)</span><b>${kaEur(r2(T.eind.tot-b))}</b></div>`:""}</div>
-   <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" data-katel="begin" data-act="${esc(act)}">${ic("kassa")}Beginkassa</button><button class="btn" data-katel="eind" data-act="${esc(act)}">${ic("kassa")}Eindtelling</button></div></div></div>`}
+   <div class="fu-kt tot"><span>Opbrengst cash (eind − begin)</span><b>${kaEur(r2(T.eind.tot-b))}</b></div>`:""}</div></div></div>`}
 function kaTelModal(act,soort){const jaar=kaJaar(act)||JAAR,T=kaTelVan(act,jaar),st={...((T[soort]||{}).st||{})};
   const rij=w=>`<div class="ka-tr"><b>${kaCoupL(w)}</b><button type="button" class="btn iconbtn" data-ktm="${w}" aria-label="Eén minder">−</button><input inputmode="numeric" data-kti="${w}" value="${st[String(w)]||""}" placeholder="0" aria-label="Aantal ${kaCoupL(w)}"><button type="button" class="btn iconbtn" data-ktp="${w}" aria-label="Eén meer">+</button><span class="muted" data-kts="${w}"></span></div>`;
   modal(soort==="begin"?"Beginkassa":"Eindtelling",`<div class="stack"><div class="ka-tg"><div><div class="lbl">Briefjes</div>${KA_COUP.filter(w=>w>=5).map(rij).join("")}</div><div><div class="lbl">Munten</div>${KA_COUP.filter(w=>w<5).map(rij).join("")}</div></div>
