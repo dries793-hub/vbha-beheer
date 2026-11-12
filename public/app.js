@@ -7260,12 +7260,17 @@ function kfcItem(it,x,n){const t=it.auto===false?'<span class="pill warn">niet g
   const pv=it.vorigePrijs!=null&&it.vorigePrijs!==it.prijs?` <span class="muted small">(was ${eur(it.vorigePrijs)})</span>`:"";
   return `<div class="kcd-it">${x&&canWrite&&!x.besteld?`<button type="button" class="kcd-ln" data-kfc="weg" data-id="${esc(x.r.id)}" data-i="${x.i}" data-n="${n}" title="Uit de cadeaulijst halen" aria-label="Uit de cadeaulijst halen">×</button> `:""}<a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.naam||it.url)}</a> <span class="muted small">${esc(it.winkel||"")}</span> <b>${eur(it.prijs)}</b>${pv} ${t}${it.levertijd?`<div class="muted small">${esc(it.levertijd)}</div>`:""}${kfcAlt(it)}</div>`}
 function kfcAlt(it){const a=it.alt;if(!a||a.geen||!(Number(a.prijs)<Number(it.prijs)-0.004))return"";return `<div class="small" style="color:var(--good,#18794A)">Goedkoper bij ${esc(a.winkel)}: <a href="${esc(a.url)}" target="_blank" rel="noopener"><b>${eur(a.prijs)}</b></a> (− ${eur(it.prijs-a.prijs)})</div>`}
+// één pot per gezin (zoals op de keuzepagina): bijbetalen enkel wat het gezin samen boven alle budgetten gaat
+function kfcPot(r){const K=(r.kinderen||[]).map(k=>({k,B:kfcBudget(k.geb)})).filter(x=>x.B.bedrag!=null&&!x.B.vbha);
+  const g=K.filter(x=>x.k.cadeau&&(x.k.cadeau.bon||(x.k.cadeau.items||[]).length)),pot=K.reduce((t,x)=>t+x.B.bedrag,0),potG=g.reduce((t,x)=>t+x.B.bedrag,0);
+  const best=g.reduce((t,x)=>t+(x.k.cadeau.bon?x.B.bedrag:Number(x.k.cadeau.totaal)||0),0),extra=Math.max(0,Math.round((best-potG)*100)/100),bet=Number(r.bijbetaald)||0,alles=K.length&&g.length===K.length;
+  return{pot,best,extra,bet,alles,open:alles?Math.max(0,Math.round((extra-bet)*100)/100):0}}
 function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L=kfcKids();if(!L.length)return"";const s=kfcStats(L),M=kfMailCfg(),mag=canWrite;
-  const pas=x=>KFCD.f==="alle"||(KFCD.f==="bon"?(x.st==="bon"||x.st==="geenkeuze"):KFCD.f==="bij"?(x.st==="gekozen"&&x.k.cadeau.extra>0):x.st===KFCD.f);
+  const pas=x=>KFCD.f==="alle"||(KFCD.f==="bon"?(x.st==="bon"||x.st==="geenkeuze"):KFCD.f==="bij"?kfcPot(x.r).extra>0:x.st===KFCD.f);
   // per gezin (inschrijving)
   const G=new Map();for(const x of L){if(!G.has(x.r.id))G.set(x.r.id,{r:x.r,K:[]});G.get(x.r.id).K.push(x)}
   const gez=[...G.values()].filter(g=>g.K.some(pas)).sort((a,b)=>String(a.r.lid||"").localeCompare(String(b.r.lid||""),"nl"));
-  const bijOpen=L.filter(x=>x.st==="gekozen"&&x.k.cadeau.extra>0&&!x.k.cadeau.betaald),bijOk=L.filter(x=>x.st==="gekozen"&&x.k.cadeau.extra>0&&x.k.cadeau.betaald);
+  const P=[...G.values()].map(g=>kfcPot(g.r)),bijOpen=P.filter(p=>p.extra>0&&p.bet<p.extra-0.004),bijOk=P.filter(p=>p.extra>0&&p.bet>=p.extra-0.004);
   const totGek=L.filter(x=>x.st==="gekozen").reduce((t,x)=>t+(Number(x.k.cadeau.totaal)||0),0);
   const chip=(k,l,n)=>`<button type="button" class="${KFCD.f===k?"on":""}" data-kfc="f" data-v="${k}">${l}${n!=null?` <span class="muted">${n}</span>`:""}</button>`;
   const foto=it=>it.foto?`<img src="${esc(it.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:'<span class="kc-ph"></span>';
@@ -7278,13 +7283,14 @@ function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L
     let body="";
     if(x.st==="gekozen"){const tot=Number(C.totaal)||0,pct=B?Math.min(100,Math.round(tot/B*100)):0;
       body=`<div class="kc-ps">${C.items.map((it,n)=>prod(it,x,n)).join("")}</div>
-        <div class="kc-tot"><div class="kc-bar"><span style="width:${pct}%"${tot>B+0.004?' class="te"':""}></span></div><span>${eur(tot)} van ${eur(B)}</span>${C.extra>0?`<span class="pill ${C.betaald?"ok":"warn"}">${C.betaald?"+ "+eur(C.extra)+" bijbetaald":eur(C.extra)+" bijbetaling open"}</span>`:""}</div>`}
+        <div class="kc-tot"><div class="kc-bar"><span style="width:${pct}%"${tot>B+0.004?' class="te"':""}></span></div><span>${eur(tot)} van ${eur(B)}</span></div>`}
     else if(x.st==="bon"||x.st==="geenkeuze")body=`<div class="kc-bon">Bon bol.com van <b>${eur(B)}</b>${x.st==="geenkeuze"?" (niets gekozen voor de deadline)":""}${x.st==="bon"&&mag&&!x.besteld?` <button type="button" class="kcd-ln" data-kfc="weg" data-id="${esc(x.r.id)}" data-i="${x.i}" data-n="bon" title="Keuze bon wissen" aria-label="Keuze bon wissen">${ic("x")}</button>`:""}</div>`;
     const vink=x.st==="open"?"":`<label class="kc-best${x.besteld?" on":""}" title="${x.besteld?"Besteld op "+fmtDate(String(x.k.besteld.op).slice(0,10))+(x.k.besteld.door?" door "+esc(x.k.besteld.door):""):""}"><input type="checkbox" data-kfc="besteld" data-id="${esc(x.r.id)}" data-i="${x.i}"${x.besteld?" checked":""}${mag?"":" disabled"}> ${x.besteld?"Besteld":"Nog te bestellen"}</label>`;
     return `<div class="kc-k">${kop}${body}${vink?`<div class="kc-kf">${vink}</div>`:""}</div>`};
-  const gezin=g=>{const K=g.K.filter(pas),n=g.K.filter(x=>x.st!=="vbha"),klaar=n.filter(x=>x.st!=="open").length;
+  const gezin=g=>{const K=g.K.filter(pas),n=g.K.filter(x=>x.st!=="vbha"),klaar=n.filter(x=>x.st!=="open").length,p=kfcPot(g.r);
+    const pv=n.length>1&&p.pot?`<div class="kc-pot"><span>Samen ${eur(p.best)} van ${eur(p.pot)}</span>${p.extra>0?`<span class="pill ${p.bet>=p.extra-0.004?"ok":"warn"}">${p.bet>=p.extra-0.004?"+ "+eur(p.extra)+" bijbetaald":(p.alles?eur(p.open)+" bijbetaling open":eur(p.extra)+" boven budget (nog niet alles gekozen)")}</span>`:""}</div>`:p.extra>0?`<div class="kc-pot"><span class="pill ${p.bet>=p.extra-0.004?"ok":"warn"}">${p.bet>=p.extra-0.004?"+ "+eur(p.extra)+" bijbetaald":eur(p.open)+" bijbetaling open"}</span></div>`:"";
     return `<div class="kc-g"><div class="kc-gh"><b>${esc(g.r.lid||"")}</b><span class="muted small">${n.length?`${klaar}/${n.length} gekozen`:""}</span><span class="grow"></span>${mag?`<button type="button" class="btn sm ghost" data-kfc="link" data-id="${esc(g.r.id)}" title="Persoonlijke keuzelink kopiëren">${ic("link")}Keuzelink</button>`:""}</div>
-      <div class="kc-ks">${K.map(kind).join("")}</div></div>`};
+      ${pv}<div class="kc-ks">${K.map(kind).join("")}</div></div>`};
   return `<div class="panel kcd"><div class="panel-h"><h2>Cadeaus</h2><span class="muted small">kiezen tot en met ${esc(fmtDate(M.tot))}${kfcVoorbij()?" · afgesloten":""}</span><span class="grow"></span>
     ${mag?`<button type="button" class="btn sm" data-kfc="controle" title="Prijs en voorraad opnieuw opvragen bij de winkels">Opnieuw controleren</button><button type="button" class="btn sm" data-kfc="vergelijk" title="Voor elk gekozen product de prijs bij de andere winkel opzoeken (zelfde EAN)">Prijzen vergelijken</button><button type="button" class="btn sm primary" data-kfc="bestel">${ic("download")}Bestellijst</button>`:""}</div>
    <div class="panel-b"><div class="tiles kcd-t">

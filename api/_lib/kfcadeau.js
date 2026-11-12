@@ -208,26 +208,34 @@ async function laad(sb, id, t) {
 function view(row, M, open) {
   const d = row.data;
   return { lid: d.lid || "", jaar: d.jaar, datum: M.datum, tot: M.tot, open, sites: M.sites,
-    bijbetalen: bijMag(M), maxExtra: MAX_EXTRA, ...bijStand(d),
+    bijbetalen: bijMag(M), maxExtra: MAX_EXTRA, ...bijStand(d, M),
     kinderen: (d.kinderen || []).map((k, i) => { const b = budgetVan(k.geb, M), a = lft(k.geb, M.datum); return { i, naam: k.naam, leeftijd: a, ...b, cadeau: k.cadeau || null, besteld: !!(k.besteld && k.besteld.op) }; }) };
 }
 /* ---------- bijbetalen boven het budget (Bancontact) ----------
-   kinderen[i].cadeau.extra = wat boven het budget gaat; cadeau.betaald = true zodra dat betaald is.
-   Eén betaling per inschrijving voor alle kinderen samen (data.betaling, zoals bij de andere betalingen). */
+   Eén pot per gezin: de budgetten van de kinderen tellen samen. Een kind mag over zijn budget gaan als een ander kind eronder blijft.
+   Wat het gezin samen boven de pot gaat, betaalt het bij; pas als voor elk kind met een budget gekozen is (cadeau of bon).
+   Een bon telt als het volle budget van dat kind. data.bijbetaald = wat al betaald werd; daarna liggen die keuzes vast. */
 const MAX_EXTRA = 150;
 const bijMag = M => M.bijbetalen !== false;
-export function bijStand(d) {
-  const K = (d.kinderen || []).filter(k => k.cadeau && k.cadeau.extra > 0);
-  const open = r2(K.filter(k => !k.cadeau.betaald).reduce((s, k) => s + k.cadeau.extra, 0));
+export function bijStand(d, M) {
+  const K = (d.kinderen || []).map(k => ({ k, B: budgetVan(k.geb, M) })).filter(x => x.B.budget != null);
+  const gekozen = K.filter(x => x.k.cadeau && (x.k.cadeau.bon || (x.k.cadeau.items || []).length));
+  const pot = r2(gekozen.reduce((s, x) => s + x.B.budget, 0)), potAlles = r2(K.reduce((s, x) => s + x.B.budget, 0));
+  const besteed = r2(gekozen.reduce((s, x) => s + (x.k.cadeau.bon ? x.B.budget : Number(x.k.cadeau.totaal) || 0), 0));
+  const extra = r2(Math.max(0, besteed - pot)), bijbetaald = r2(Number(d.bijbetaald) || 0), alles = K.length > 0 && gekozen.length === K.length;
   const b = d.betaling || null;
-  return { extraTotaal: r2(K.reduce((s, k) => s + k.cadeau.extra, 0)), teBetalen: open, betaling: b ? { status: b.status, bedrag: b.bedrag } : null };
+  return { pot: potAlles, besteed, extraTotaal: extra, bijbetaald, alleGekozen: alles, teBetalen: alles ? r2(Math.max(0, extra - bijbetaald)) : 0, extraVoorlopig: alles ? 0 : extra,
+    betaling: b ? { status: b.status, bedrag: b.bedrag } : null };
 }
-// na een gelukte betaling (betaal.js): alle kinderen met een open bijbetaling op betaald
+// na een gelukte betaling (betaal.js): bedrag bij data.bijbetaald; de gekozen cadeaus liggen vast
 export async function kfBijbetaald(sb, id) {
   const { data: row } = await sb.from("kinderfeest").select("id,data").eq("id", String(id)).maybeSingle(); if (!row) return;
-  const d = row.data, op = new Date().toISOString();
-  const kinderen = (d.kinderen || []).map(k => k.cadeau && k.cadeau.extra > 0 && !k.cadeau.betaald ? { ...k, cadeau: { ...k.cadeau, betaald: true, betaaldOp: op } } : k);
-  const { error } = await sb.from("kinderfeest").update({ data: { ...d, kinderen } }).eq("id", row.id); if (error) throw error;
+  const d = row.data, op = new Date().toISOString(), bedrag = Number(d.betaling && d.betaling.bedrag) || 0;
+  const kinderen = (d.kinderen || []).map(k => k.cadeau && !k.cadeau.betaald ? { ...k, cadeau: { ...k.cadeau, betaald: true, betaaldOp: op } } : k);
+  const nd = { ...d, kinderen, bijbetaald: r2((Number(d.bijbetaald) || 0) + bedrag) };
+  const { configDoc } = await import("./publiek.js"); const M = kfcInstellingen(await configDoc(sb, "kf_" + d.jaar), d.jaar);
+  if (!bijStand(nd, M).teBetalen && !(d.cadeau && d.cadeau.doorgegeven)) nd.cadeau = { doorgegeven: true, op, door: "ouder (keuzepagina)" };
+  const { error } = await sb.from("kinderfeest").update({ data: nd }).eq("id", row.id); if (error) throw error;
 }
 
 /* ---------- openbaar: GET ?cadeau=<id>&t=..  |  POST {cadeau,t,actie:"check"|"bewaar"} ---------- */
@@ -250,7 +258,7 @@ export async function kfCadeauPubliek(req, res) {
       const { onlineConfigured } = await import("./betaalprovider.js");
       if (b.actie === "betaalstatus") { if (row.data.betaling) await controleerBetaling(sb, "kinderfeest", row); const { data: r2w } = await sb.from("kinderfeest").select("id,data").eq("id", row.id).maybeSingle(); return res.status(200).json(view(r2w, M, open)); }
       if (!onlineConfigured()) throw httpErr(501, "Online betalen is niet ingesteld.");
-      const bedrag = bijStand(row.data).teBetalen; if (!(bedrag > 0)) throw httpErr(400, "Er is niets bij te betalen.");
+      const bedrag = bijStand(row.data, M).teBetalen; if (!(bedrag > 0)) throw httpErr(400, "Er is niets bij te betalen.");
       const bt = await startBetaling(sb, req, "kinderfeest", row, { bedrag, jaar: row.data.jaar, terug: `/cadeau?i=${encodeURIComponent(row.id)}&t=${encodeURIComponent(String(b.t))}&betaling=terug` });
       return res.status(200).json({ status: bt.status, checkout: bt.checkout || null, deeplink: bt.deeplink || null, qrcode: bt.qrcode || null, bedrag: bt.bedrag });
     }
@@ -279,17 +287,18 @@ export async function kfCadeauPubliek(req, res) {
           return { ...p, naam, prijs: r2(prijs), auto: false };
         }));
         const totaal = r2(items.reduce((s, x) => s + x.prijs, 0));
-        const extra = r2(Math.max(0, totaal - B.budget)), eu = n => "€ " + n.toFixed(2).replace(".", ",");
-        if (extra > 0.004 && !bijMag(M)) throw httpErr(400, `Samen kosten deze cadeaus ${eu(totaal)}. Het budget voor ${k.naam} is ${eu(B.budget)}.`);
-        if (extra > MAX_EXTRA) throw httpErr(400, `Samen kosten deze cadeaus ${eu(totaal)}: dat is ${eu(extra)} boven het budget van ${eu(B.budget)}. Bijbetalen kan tot ${eu(MAX_EXTRA)}.`);
-        if (extra > 0.004 && b.bijbetalen !== true) throw httpErr(400, `Je gaat ${eu(extra)} boven het budget. Bevestig dat je dit bijbetaalt.`);
-        cadeau = { items, totaal, ...(extra > 0.004 ? { extra } : {}), op: new Date().toISOString() };
+        cadeau = { items, totaal, op: new Date().toISOString() };
       }
     }
     const kinderen = d.kinderen.map((x, j) => { if (j !== i) return x; const n = { ...x }; if (cadeau) n.cadeau = cadeau; else delete n.cadeau; return n; });
-    const moet = kinderen.filter(x => { const bb = budgetVan(x.geb, M); return bb.budget != null; });
     const nd = { ...d, kinderen };
-    if (moet.length && moet.every(x => x.cadeau) && !bijStand(nd).teBetalen && !(d.cadeau && d.cadeau.doorgegeven)) nd.cadeau = { doorgegeven: true, op: new Date().toISOString(), door: "ouder (keuzepagina)" };
+    // één pot per gezin: enkel wat het gezin samen boven alle budgetten gaat, moet bijbetaald worden
+    { const S = bijStand(nd, M), ov = r2(S.besteed - (S.pot > 0 ? S.pot : 0)), eu = n => "€ " + n.toFixed(2).replace(".", ",");
+      const nu = r2(Math.max(0, S.besteed - kinderen.reduce((t, x) => { const bb = budgetVan(x.geb, M); return t + (bb.budget != null && x.cadeau ? bb.budget : 0); }, 0)));
+      if (ov > 0.004 && !bijMag(M)) throw httpErr(400, `Samen gaan de cadeaus ${eu(ov)} boven het totale budget van ${eu(S.pot)}. Haal iets uit een mandje.`);
+      if (ov > MAX_EXTRA) throw httpErr(400, `Samen gaan de cadeaus ${eu(ov)} boven het totale budget van ${eu(S.pot)}. Bijbetalen kan tot ${eu(MAX_EXTRA)}.`);
+      if (nu > 0.004 && S.alleGekozen && b.bijbetalen !== true) throw httpErr(400, `Je gaat samen ${eu(nu)} boven het budget. Bevestig dat je dit bijbetaalt.`); }
+    if (kinderen.every(x => budgetVan(x.geb, M).budget == null || x.cadeau) && !bijStand(nd, M).teBetalen && !(d.cadeau && d.cadeau.doorgegeven)) nd.cadeau = { doorgegeven: true, op: new Date().toISOString(), door: "ouder (keuzepagina)" };
     const { error } = await sb.from("kinderfeest").update({ data: nd }).eq("id", row.id); if (error) throw error;
     return res.status(200).json(view({ ...row, data: nd }, M, open));
   } catch (e) { sendError(res, e); }
