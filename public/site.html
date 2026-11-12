@@ -140,17 +140,18 @@
     header img{height:30px}.hsub{display:none}
   }
   @media (max-width:420px){.admin.shop svg{display:none}.top{gap:6px}.admin{font-size:13px}}
-/* Nieuws van de vriendenkring: compacte kader met rode rand */
-.hero.nieuws{display:grid;grid-template-columns:200px minmax(0,1fr)!important;justify-content:stretch;align-items:center;gap:24px;background:var(--surface);border:1.5px solid var(--accent);border-radius:16px;padding:20px 24px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+/* Nieuws van de vriendenkring: compacte kader met rode rand; de foto altijd volledig (niet bijgesneden, niet uitgerekt) */
+.hero.nieuws{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr)!important;justify-content:stretch;align-items:center;gap:28px;background:var(--surface);border:1.5px solid var(--accent);border-radius:16px;padding:20px 24px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .hero.nieuws.zonder{grid-template-columns:1fr!important}
-.hero.nieuws .photo{max-width:none;margin:0}
-.hero.nieuws .photo img{width:100%;height:auto;max-height:200px;object-fit:cover;border-radius:10px;display:block}
+.hero.nieuws .photo{max-width:none;margin:0;display:flex;justify-content:center;background:none;border:0}
+.hero.nieuws .photo a{display:block;line-height:0;border-radius:10px;overflow:hidden}
+.hero.nieuws .photo img{width:auto;height:auto;max-width:100%;max-height:340px;object-fit:contain;border-radius:10px;display:block}
 .hero.nieuws .kicker{font-size:.78rem;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
 .hero.nieuws .h2g{font-size:1.2rem;line-height:1.25}
 .hero.nieuws .lead{font-size:.95rem;margin-top:6px;max-width:none;line-height:1.5}
 .hero.nieuws .lead + .lead{margin-top:8px}
 .hero.nieuws .btns{margin-top:12px}
-@media (max-width:700px){.hero.nieuws{grid-template-columns:1fr!important;padding:16px;gap:14px}.hero.nieuws .photo img{max-height:220px}}
+@media (max-width:700px){.hero.nieuws{grid-template-columns:1fr!important;padding:16px;gap:14px}.hero.nieuws .photo img{max-height:320px}.hero.nieuws .h2g{font-size:1.1rem}.hero.nieuws .lead{font-size:.92rem}}
 </style>
 </head>
 <body>
