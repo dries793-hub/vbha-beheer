@@ -64,12 +64,15 @@ export default async function terugPubliek(req, res) {
       let lidId = "", lidMail = "";
       if (b.lidId) { const { data: l } = await sb.from("leden").select("id,data").eq("id", String(b.lidId).slice(0, 60)).maybeSingle(); if (l && !l.data.geenLid) { lidId = l.id; lidMail = String(l.data.email || "").trim(); } }
       const ibanOk2 = iban || await bekendIban(sb, lidId, lidId ? "" : naam);
+      // via het openbare formulier mag een gekend rekeningnummer van een lid nooit overschreven worden (iedereen kan een naam kiezen)
+      let gekend = ""; if (iban && lidId) { const { data: g } = await sb.from("lid_iban").select("iban").eq("lid_id", lidId).maybeSingle(); gekend = g && ibanOk(g.iban) ? g.iban : ""; }
+      const ibanAnders = !!(gekend && gekend !== iban);
       if (!ibanOk2) throw httpErr(400, "Vul je rekeningnummer (IBAN) in.");
       const id = "ok-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       const bon = await bonBewaar(sb, id, b.bon);
-      const { error } = await sb.from("terugbetalingen").insert({ id, status: "ingediend", data: { soort: "onkosten", naam, email: email || (mailOk(lidMail) ? lidMail : ""), lidId, iban: ibanOk2, ibanVorig: !iban, bedrag, reden, datum, bon, ...(!bon && b.geenBon ? { geenBon: true } : {}), op: nu(), nieuw: true } });
+      const { error } = await sb.from("terugbetalingen").insert({ id, status: "ingediend", data: { soort: "onkosten", naam, email: email || (mailOk(lidMail) ? lidMail : ""), lidId, iban: ibanOk2, ibanVorig: !iban, bedrag, reden, datum, bon, ...(!bon && b.geenBon ? { geenBon: true } : {}), ...(ibanAnders ? { ibanAnders: gekend.slice(-4) } : {}), op: nu(), nieuw: true } });
       if (error) throw error;
-      if (iban && lidId) await lidIbanZet(sb, lidId, iban, "onkostennota");
+      if (iban && lidId && !gekend) await lidIbanZet(sb, lidId, iban, "onkostennota");
       try { const { meldPush } = await import("./push.js"); await meldPush(sb, "boek", { titel: "Nieuwe onkostennota", tekst: `${naam} · € ${bedrag.toFixed(2).replace(".", ",")} · ${reden.slice(0, 60)}`, url: "/#terug", tag: "tb-" + id }); } catch (e) { console.error("push onkost", e); }
       return res.status(200).json({ ok: true });
     }
