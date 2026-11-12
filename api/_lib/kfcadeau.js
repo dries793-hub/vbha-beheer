@@ -227,6 +227,39 @@ export function bijStand(d, M) {
   return { pot: potAlles, besteed, extraTotaal: extra, bijbetaald, alleGekozen: alles, teBetalen: alles ? r2(Math.max(0, extra - bijbetaald)) : 0, extraVoorlopig: alles ? 0 : extra,
     betaling: b ? { status: b.status, bedrag: b.bedrag } : null };
 }
+/* ---------- bevestigingsmail naar de ouder ----------
+   - zodra voor alle kinderen met een budget gekozen is en er niets (meer) bij te betalen is (ook na een wijziging);
+   - na een gelukte bijbetaling met Bancontact (met "betaling ontvangen"). */
+export async function kfCadeauMail(sb, id, { betaald = 0 } = {}) {
+  try {
+    const { smtpConfigured, afzender, verstuur } = await import("./smtp.js");
+    if (!smtpConfigured()) return false;
+    const { data: row } = await sb.from("kinderfeest").select("id,data").eq("id", String(id)).maybeSingle(); if (!row) return false;
+    const d = row.data, aan = String(d.email || "").trim(); if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(aan)) return false;
+    const { huisstijl, kaderBlok, tabel, rij, p } = await import("./bevestiging.js");
+    const A = await algemeen(sb), M = kfcInstellingen(await configDoc(sb, "kf_" + d.jaar), d.jaar), S = bijStand(d, M);
+    let voornaam = String(d.lid || "").split(" ").slice(-1)[0];
+    if (d.lidId) { const { data: l } = await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle(); if (l && l.data && l.data.voornaam) voornaam = l.data.voornaam; }
+    const e = x => String(x ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const eu = n => "€" + Number(n || 0).toLocaleString("nl-BE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const kids = (d.kinderen || []).map(k => {
+      const B = budgetVan(k.geb, M), c = k.cadeau;
+      if (B.voorzien || B.budget == null) return kaderBlok(e(k.naam), p("De vriendenkring voorziet zelf een cadeau.", "margin:0"));
+      if (c && c.bon) return kaderBlok(e(k.naam), p(`Een bon van bol.com van <b>${eu(B.budget)}</b>.`, "margin:0"));
+      if (c && (c.items || []).length) return kaderBlok(e(k.naam), tabel([...c.items.map(it => rij(e(it.winkel || ""), `${e(it.naam || "")} &middot; <b>${eu(it.prijs)}</b>`)), rij("Totaal", `<b>${eu(c.totaal)}</b> (budget ${eu(B.budget)})`)]));
+      return "";
+    }).join("");
+    const nKids = (d.kinderen || []).filter(k => budgetVan(k.geb, M).budget != null).length;
+    const pot = nKids > 1 ? p(`Samen ${eu(S.besteed)} van het totale budget van ${eu(S.pot)}.`) : "";
+    const bet = betaald > 0 ? kaderBlok("Bijbetaling ontvangen", p(`We ontvingen je betaling van <b>${eu(betaald)}</b> met Bancontact. Bedankt!`, "margin:0"), "#1a7f45", "#f1faf4") : "";
+    const vast = (d.kinderen || []).some(k => k.cadeau && k.cadeau.betaald);
+    const wijzig = !vast && vandaagISO() <= M.tot ? p(`Wil je nog iets wijzigen? Dat kan tot en met ${e(lang(M.tot))} via <a href="${e(kfcLink(row.id))}">je cadeaupagina</a>.`) : "";
+    const html = p(`Beste ${e(voornaam)},`) + p(betaald > 0 ? "Je bijbetaling is in orde: we bestellen de cadeaus die je koos voor het kinderfeest." : "Bedankt! We ontvingen je cadeaukeuze voor het kinderfeest.") + bet + kids + pot + wijzig + p(`Tot op het kinderfeest${M.datum ? " van " + e(lang(M.datum)) : ""}!`);
+    const [r] = await verstuur([{ aan, aanNaam: d.lid || "", onderwerp: betaald > 0 ? `VBHA - Bijbetaling ontvangen, cadeaus kinderfeest ${d.jaar}` : `VBHA - Cadeaukeuze kinderfeest ${d.jaar} ontvangen`, html: huisstijl(html, A.vereniging), van: afzender() }]);
+    return !!(r && r.ok);
+  } catch (x) { console.error("kfCadeauMail", x); return false; }
+}
+const lang = iso => { const [y, m, d] = String(iso || "").slice(0, 10).split("-").map(Number); return y ? new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("nl-BE", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }) : ""; };
 // na een gelukte betaling (betaal.js): bedrag bij data.bijbetaald; de gekozen cadeaus liggen vast
 export async function kfBijbetaald(sb, id) {
   const { data: row } = await sb.from("kinderfeest").select("id,data").eq("id", String(id)).maybeSingle(); if (!row) return;
@@ -236,6 +269,7 @@ export async function kfBijbetaald(sb, id) {
   const { configDoc } = await import("./publiek.js"); const M = kfcInstellingen(await configDoc(sb, "kf_" + d.jaar), d.jaar);
   if (!bijStand(nd, M).teBetalen && !(d.cadeau && d.cadeau.doorgegeven)) nd.cadeau = { doorgegeven: true, op, door: "ouder (keuzepagina)" };
   const { error } = await sb.from("kinderfeest").update({ data: nd }).eq("id", row.id); if (error) throw error;
+  if (bedrag > 0) await kfCadeauMail(sb, row.id, { betaald: bedrag });
 }
 
 /* ---------- openbaar: GET ?cadeau=<id>&t=..  |  POST {cadeau,t,actie:"check"|"bewaar"} ---------- */
@@ -300,6 +334,7 @@ export async function kfCadeauPubliek(req, res) {
       if (nu > 0.004 && S.alleGekozen && b.bijbetalen !== true) throw httpErr(400, `Je gaat samen ${eu(nu)} boven het budget. Bevestig dat je dit bijbetaalt.`); }
     if (kinderen.every(x => budgetVan(x.geb, M).budget == null || x.cadeau) && !bijStand(nd, M).teBetalen && !(d.cadeau && d.cadeau.doorgegeven)) nd.cadeau = { doorgegeven: true, op: new Date().toISOString(), door: "ouder (keuzepagina)" };
     const { error } = await sb.from("kinderfeest").update({ data: nd }).eq("id", row.id); if (error) throw error;
+    { const S = bijStand(nd, M); if (S.alleGekozen && !S.teBetalen) await kfCadeauMail(sb, row.id); }
     return res.status(200).json(view({ ...row, data: nd }, M, open));
   } catch (e) { sendError(res, e); }
 }
