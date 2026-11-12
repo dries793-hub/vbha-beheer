@@ -7356,7 +7356,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-kfc]
       const d={...stripId(r),kinderen};S.kinderfeest.set(r.id,{...d,id:r.id});try{await write("kinderfeest",r.id,d);toast("Weggehaald.");renderBody()}catch(x){toast(x.message,true)}});return}
   else if(a==="vergelijk"){e.preventDefault();const L=[];for(const x of kfcKids())if(x.st==="gekozen"&&!x.besteld)x.k.cadeau.items.forEach((it,n)=>{if(it.artikelnr&&!(it.alt&&it.alt.op&&Date.now()-Date.parse(it.alt.op)<6*3600e3))L.push({x,n})});
     if(!L.length){toast("Alles is de laatste 6 uur al vergeleken.");return}
-    confirmBox(`De prijs van <b>${L.length}</b> ${L.length===1?"product":"producten"} opzoeken bij de andere winkel? Dat duurt ongeveer ${Math.max(1,Math.round(L.length*30/60))} minuten en kost enkele opvragingen bij Zyte per product.`,"Vergelijken",async()=>{
+    confirmBox(`De prijs van <b>${L.length}</b> ${L.length===1?"product":"producten"} opzoeken bij de andere winkel?`,"Vergelijken",async()=>{
       t.disabled=true;let i=0,goedkoper=0;for(const {x,n} of L){i++;t.textContent=`Vergelijken ${i}/${L.length}…`;
         try{const j=await api("/api/mail?f=kfcadeau",{method:"POST",body:JSON.stringify({actie:"vergelijk",id:x.r.id,kind:x.i,item:n})});
           const r=S.kinderfeest.get(x.r.id);if(r){const it=r.kinderen[x.i].cadeau.items[n];it.alt=j.alt;if(j.alt&&!j.alt.geen&&j.alt.prijs<it.prijs-0.004)goedkoper++}}catch(err){}}
