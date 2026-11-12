@@ -4406,12 +4406,12 @@ function kfMailCfg(){const c=kfCfg();return{...kfMailDef(c.datum),...(c.mail||{}
 function kfMailHtml(){const M=kfMailCfg(),d=canWrite?"":" disabled";
   const w=!M.cadeau?"geen":M.keuze?"1":"0";
   return `<input type="hidden" id="kmK" value="${esc(M.kopie??"")}"><input type="hidden" id="kmC" value="${M.cadeau?"1":""}">
-  <div class="fld full"><label>Cadeaus</label><div class="seg km-wijze" role="group" aria-label="Cadeaus">${[["geen","Geen"],["0","Klassiek (per mail)"],["1","Cadeaukiezer"]].map(([k,l])=>`<button type="button" data-kmw="${k}" class="${w===k?"on":""}"${d}>${l}</button>`).join("")}</div><input type="hidden" id="kmKz" value="${M.keuze?"1":""}"></div>
+  <div class="fld full"><label>Cadeaus</label><div class="km-wijze" role="radiogroup" aria-label="Cadeaus">${[["geen","Geen","x"],["0","Klassiek","mails"],["1","Cadeaukiezer","cadeau"]].map(([k,l,i])=>`<button type="button" role="radio" aria-checked="${w===k}" data-kmw="${k}" class="km-o${w===k?" on":""}"${d}><span class="km-i">${k==="1"?'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v7.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V12M12 8v12.5M12 8c-1.2-2.6-3.2-4-4.6-3.4-1.3.6-1 2.6.6 3.4H12zM12 8c1.2-2.6 3.2-4 4.6-3.4 1.3.6 1 2.6-.6 3.4H12z"/></svg>':ic(i)}</span><b>${l}</b><small>${k==="geen"?"geen cadeau-info":k==="0"?"per mail":"online kiezen"}</small></button>`).join("")}</div><input type="hidden" id="kmKz" value="${M.keuze?"1":""}"></div>
   <div class="full km-velden" id="kmV"${M.cadeau?"":" hidden"}><div class="form" style="padding:0">
    ${fld("kmS","Websites",inp("kmS",M.sites,'placeholder="www.dreamland.be, www.bol.com"'+d))}${fld("kmT","Cadeau doorgeven vóór",`<input id="kmT" type="date" value="${esc(M.tot)}"${d}>`)}
    <div class="fld full" id="kmMw"${M.keuze?" hidden":""}><label for="kmM">Doorsturen naar</label>${inp("kmM",M.contact,'type="email" placeholder="e-mailadres"'+d)}</div>
    <div class="fld" id="kmPpw"${M.keuze?"":" hidden"}><label for="kmPp">Korting Pluspas bol.com (%)</label><input id="kmPp" type="number" min="0" max="49" step="0.1" value="${esc(String(M.pluspas??5.5))}"${d}></div>
-   <label class="sp-nat full" for="kmBb" id="kmBbw"${M.keuze?"":" hidden"}><input type="checkbox" id="kmBb"${M.bijbetalen!==false?" checked":""}${d}><span><b>Bijbetalen boven het budget</b><small>Met Bancontact, tot € 150 per kind.</small></span></label>
+   <label class="sp-nat full" for="kmBb" id="kmBbw"${M.keuze?"":" hidden"}><input type="checkbox" id="kmBb"${M.bijbetalen!==false?" checked":""}${d}><span><b>Bijbetalen boven het budget</b><small>Met Bancontact, tot € 150 per gezin.</small></span></label>
    <div class="fld full"><label for="kmG">Waarde per geboortejaar</label><textarea id="kmG" style="height:86px;min-height:0;font-family:inherit"${d}>${esc(M.groepen)}</textarea><span class="help">Eén regel per groep, bv. <b>2016-2020: 50,00 EUR per kind</b> of <b>2015: cadeau voorzien door VBHA</b>.</span></div>
   </div></div>
   <div class="full bar" style="margin:0"><button type="button" class="btn sm" data-km="voorbeeld">${ic("mails")}Voorbeeld van de mail</button><button type="button" class="btn sm ghost" data-km="standaard"${d}>Standaardtekst</button></div>`}
@@ -4472,8 +4472,13 @@ kfExport=async function(){const st=kfStats(),c=st.c,M=kfMailCfg(),G=kfGroepenC(M
   const out=XLSX.write(wb,{bookType:"xlsx",type:"array"});await save("VBHA_Kinderfeest_"+JAAR+".xlsx",new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}))};
 
 document.addEventListener("click",e=>{const b=e.target.closest("[data-kmw]");if(!b||b.disabled)return;const on=b.dataset.kmw==="1",geen=b.dataset.kmw==="geen";
-  b.parentElement.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));const h=$("#kmKz");if(h)h.value=on?"1":"";const c=$("#kmC");if(c)c.value=geen?"":"1";const v=$("#kmV");if(v)v.hidden=geen;
+  b.parentElement.querySelectorAll("button").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-checked",x===b)});const h=$("#kmKz");if(h)h.value=on?"1":"";const c=$("#kmC");if(c)c.value=geen?"":"1";const v=$("#kmV");if(v)v.hidden=geen;
   const m=$("#kmMw"),bb=$("#kmBbw"),pp=$("#kmPpw");if(m)m.hidden=on;if(bb)bb.hidden=!on;if(pp)pp.hidden=!on});
+{const st=document.createElement("style");st.textContent=`.km-wijze{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.km-o{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:1.5px solid var(--line-strong);border-radius:12px;background:var(--surface);color:var(--ink);cursor:pointer;font:inherit;text-align:center}
+.km-o:hover{border-color:var(--ink)}.km-o b{font-size:14px}.km-o small{font-size:12px;color:var(--muted)}
+.km-i{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--sunken);color:var(--muted)}.km-i svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.km-o.on{border-color:var(--accent);background:var(--accent-soft,#fcebec)}.km-o.on .km-i{background:var(--accent);color:#fff}.km-o:disabled{cursor:default;opacity:.7}`;document.head.appendChild(st)}
 
 /* ============ Banket: korting volgens het puntensysteem ============
    Instelling (Banket › tandwiel): kortingAan + kostprijs (= prijs). De status komt uit de punten van het vorige jaar,
@@ -7411,6 +7416,35 @@ function kfLeeftijdTaart(){const st=kfStats(),c=st.c,A=[];for(let a=0;a<=c.leeft
   api("/api/mail?f=kfcadeau",{method:"POST",body:JSON.stringify({actie:"link",id})}).then(j=>{const u=$("#kfcUrl"),o=$("#kfcOp");if(u)u.value=j.url;if(o)o.href=j.url;
     const c=$("#kfcCp");if(c)c.onclick=()=>{navigator.clipboard.writeText(j.url).then(()=>toast("Link gekopieerd.")).catch(()=>{u.select();toast("Kopieer de geselecteerde link.",true)})};if(u)u.onfocus=()=>u.select()}).catch(()=>{const u=$("#kfcUrl");if(u)u.placeholder="Link ophalen lukte niet."})}}
 {const st=document.createElement("style");st.textContent=`.kf-kpr{display:flex;gap:6px;align-items:center}.kf-kpr input{flex:1;min-width:0;font-size:13px}.kf-kpr .btn{flex:none}`;document.head.appendChild(st)}
+/* ---------- "Waarde per geboortejaar" als tabel met rijen (bewaart nog altijd als tekst in #kmG en het VBHA-bedrag in #kfVb) ---------- */
+function kfgRijen(){return kfkGroepen(($("#kmG")||{}).value||"").map(g=>({van:g.van,tot:g.tot,vb:g.vbha||g.bedrag==null,bedrag:g.bedrag}))}
+function kfgTeken(R){const w=$("#kfgW");if(!w)return;const d=canWrite?"":" disabled",vb=($("#kfVb")||{}).value||"";
+  w.innerHTML=`<div class="kfg-h"><span>Geboortejaar</span><span>Cadeau</span><span>Bedrag</span><span></span></div>${R.map((r,i)=>`<div class="kfg-r" data-i="${i}">
+    <div class="kfg-j"><input type="number" class="kfg-van" value="${r.van||""}" min="2000" max="2100" aria-label="Van"${d}><span>–</span><input type="number" class="kfg-tot" value="${r.tot||""}" min="2000" max="2100" aria-label="Tot en met"${d}></div>
+    <select class="kfg-t"${d}><option value="b"${r.vb?"":" selected"}>Ouders kiezen</option><option value="v"${r.vb?" selected":""}>Bon vriendenkring</option></select>
+    <div class="sfx"><input type="number" class="kfg-b" min="0" step="0.01" inputmode="decimal" value="${r.vb?esc(vb):r.bedrag!=null?r.bedrag:""}"${d}><span>€</span></div>
+    ${canWrite?`<button type="button" class="kfg-x" aria-label="Groep verwijderen">${ic("x")}</button>`:"<span></span>"}</div>`).join("")}
+    ${canWrite?`<button type="button" class="btn sm ghost kfg-add">${ic("plus")}Groep toevoegen</button>`:""}`}
+function kfgLees(){const R=[...document.querySelectorAll("#kfgW .kfg-r")].map(e=>({van:Number(e.querySelector(".kfg-van").value)||0,tot:Number(e.querySelector(".kfg-tot").value)||0,vb:e.querySelector(".kfg-t").value==="v",bedrag:e.querySelector(".kfg-b").value}));return R}
+function kfgSchrijf(){const R=kfgLees(),g=$("#kmG"),v=$("#kfVb");let vb=null;
+  const L=R.filter(r=>r.van).map(r=>{const a=Math.min(r.van,r.tot||r.van),b=Math.max(r.van,r.tot||r.van),j=a===b?String(a):a+"-"+b;
+    if(r.vb){if(r.bedrag!=="")vb=r.bedrag;return j+": cadeau voorzien door VBHA"}const n=Number(String(r.bedrag).replace(",","."));return j+": "+(Number.isFinite(n)&&r.bedrag!==""?n.toFixed(2).replace(".",","):"0,00")+" EUR per kind"});
+  if(g)g.value=L.join("\n");if(v&&vb!=null)v.value=vb;
+  document.querySelectorAll("#kfgW .kfg-r").forEach(e=>{const t=e.querySelector(".kfg-t").value==="v",b=e.querySelector(".kfg-b");if(t&&vb!=null&&document.activeElement!==b)b.value=vb})}
+{const _k=kfInst;kfInst=function(){_k.apply(this,arguments);const g=$("#kmG");if(!g)return;const f=g.closest(".fld"),fv=($("#kfVb")||document.createElement("i")).closest(".fld");
+  f.style.display="none";if(fv)fv.style.display="none";f.insertAdjacentHTML("afterend",`<div class="fld full"><label>Cadeau per geboortejaar</label><div id="kfgW" class="kfg"></div></div>`);kfgTeken(kfgRijen())}}
+document.addEventListener("input",e=>{if(e.target.closest&&e.target.closest("#kfgW"))kfgSchrijf()});
+document.addEventListener("change",e=>{if(e.target.classList&&e.target.classList.contains("kfg-t")){kfgSchrijf();kfgTeken(kfgRijen())}});
+document.addEventListener("click",e=>{const x=e.target.closest(".kfg-x"),a=e.target.closest(".kfg-add");if(x){x.closest(".kfg-r").remove();kfgSchrijf();kfgTeken(kfgRijen());return}
+  if(a){e.preventDefault();const R=kfgRijen(),y=Math.max(...R.map(r=>r.tot||0),Number(JAAR)-12)+1;R.push({van:y,tot:y,vb:false,bedrag:null});kfgTeken(R);return}
+  if(e.target.closest('[data-km="standaard"]'))setTimeout(()=>kfgTeken(kfgRijen()),0)});
+{const st=document.createElement("style");st.textContent=`.kfg{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.kfg-h,.kfg-r{display:grid;grid-template-columns:minmax(150px,1.2fr) minmax(150px,1.3fr) 110px 32px;gap:8px;align-items:center;padding:6px 10px}
+.kfg-h{background:var(--sunken);font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}.kfg-r{border-top:1px solid var(--line)}
+.kfg-j{display:flex;align-items:center;gap:6px}.kfg-j input{min-width:0;width:100%}.kfg-j span{color:var(--muted)}
+.kfg-r select,.kfg-r input{min-width:0}.kfg-x{border:0;background:none;color:var(--muted);cursor:pointer;width:28px;height:28px;border-radius:6px;display:grid;place-items:center}.kfg-x:hover{background:#fdecec;color:#b91c1c}
+.kfg-x svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.kfg .kfg-add{margin:8px 10px}
+@media(max-width:560px){.kfg-h{display:none}.kfg-r{grid-template-columns:1fr 1fr;}.kfg-j{grid-column:1/-1}}`;document.head.appendChild(st)}
 
 /* ============ Bestuursvergadering: aanwezig of verontschuldigd ============
    Bestuursleden geven het door via de knop in de herinneringsmail (/vergadering?i=&t=) of hier in de agenda.
