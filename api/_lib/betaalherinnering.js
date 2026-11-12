@@ -106,7 +106,7 @@ async function lidgeldLijst(sb, cfg) {
     if (nm(l.info).includes("ere-voorzitter")) continue;
     const j = JL.get(J + "_" + r.id) || {};
     if (j.lidgeld === "OK" || j.lidgeld === "NOK") { if (j.lidgeld === "OK") continue; } // NOK = bewust niet betaald: wel herinneren
-    else { const n1 = nm(l.naam), n2 = nm(l.voornaam); if (lidBoek.some(b => b.lidId === r.id || (n1 && n2 && (b.m.includes("lidgeld") || b.c.startsWith("lidgeld")) && b.m.includes(n1) && b.m.includes(n2)))) continue; }
+    else { const n1 = nm(l.naam), n2 = nm(l.voornaam), kp = x => String(x || "").replace(/[^a-z0-9]/g, ""), k1 = kp(n1), k2 = kp(n2); if (lidBoek.some(b => b.lidId === r.id || (n1 && n2 && (b.m.includes("lidgeld") || b.c.startsWith("lidgeld")) && ((b.m.includes(n1) && b.m.includes(n2)) || (k1 && k2 && kp(b.m).includes(k1) && kp(b.m).includes(k2)))))) continue; }
     if (l.betaling && l.betaling.status === "SUCCEEDED" && Number(l.betaling.jaar) === J) continue;
     const bedrag = Number(l.categorie === "Erewacht" ? LG.erewacht : LG.gewoon) || 0;
     if (!(bedrag > 0)) continue;
