@@ -7596,12 +7596,13 @@ VIEWS.social=()=>({title:"Communicatie",body(){
    <div class="fld"><label for="soLi">Link <span class="muted">(optioneel)</span></label><input id="soLi" type="url" inputmode="url" placeholder="https://…" value="${esc(E.link)}"${d}></div>
    <div class="fld"><span class="lbl">Foto's${ig?' <span class="muted">(Instagram: minstens 1)</span>':""}</span><div class="so-fs">${E.fotos.map((f,i)=>`<div class="so-fo"><img src="${esc(f.url||"")}" alt=""><button type="button" data-sofx="${i}" aria-label="Foto weghalen"${d}>${ic("x")}</button></div>`).join("")}${E.fotos.length<10?`<label class="so-up${d?" dis":""}">${SOC.upl?'<span class="spin"></span>':ic("plus")}<input type="file" accept="image/*" multiple hidden data-soup${d}></label>`:""}</div></div>
    <div class="fld"><span class="lbl">Wanneer</span><div class="seg so-w">${[["nu","Meteen"],["plan","Op een tijdstip"]].map(([v,l])=>`<button type="button" data-sow="${v}" class="${E.modus===v?"on":""}"${d}>${l}</button>`).join("")}</div>
-    ${E.modus==="plan"?`<input id="soPl" type="datetime-local" value="${esc(E.plan||soLokaal())}" style="margin-top:8px"${d}>`:""}</div>
+    ${E.modus==="plan"?`<div class="so-dt"><input id="soPd" type="date" value="${esc((E.plan||soLokaal()).slice(0,10))}" aria-label="Datum"${d}><input id="soPt" type="text" inputmode="numeric" maxlength="5" placeholder="uu:mm" value="${esc((E.plan||soLokaal()).slice(11,16))}" aria-label="Uur (24 uur)"${d}></div>`:""}</div>
    <div class="so-act"><button type="button" class="btn ghost" data-soa="concept"${d}>Opslaan als concept</button><button type="button" class="btn primary" data-soa="${E.modus==="plan"?"plan":"pub"}"${d}>${SOC.busy?"Bezig…":E.modus==="plan"?"Inplannen":"Publiceren"}</button></div>
   </div></div>
   <div class="panel"><div class="panel-h"><h2>Posts</h2></div>${P.length?gr.filter(g=>g[1].length).map(([t,L])=>`<div class="so-gh">${t}</div>${L.map(soPost).join("")}`).join(""):'<div class="empty">Nog geen posts.</div>'}</div></div>`}});
 const soEd=()=>SOC.ed||(SOC.ed=soLeeg());
-document.addEventListener("input",e=>{const t=e.target,E=SOC.ed;if(!E)return;if(t.id==="soTx"){E.tekst=t.value;const n=$("#soN");if(n)n.textContent=t.value.length+" / 2200"}else if(t.id==="soTi")E.titel=t.value;else if(t.id==="soLi")E.link=t.value.trim();else if(t.id==="soPl")E.plan=t.value});
+document.addEventListener("input",e=>{const t=e.target,E=SOC.ed;if(!E)return;if(t.id==="soTx"){E.tekst=t.value;const n=$("#soN");if(n)n.textContent=t.value.length+" / 2200"}else if(t.id==="soTi")E.titel=t.value;else if(t.id==="soLi")E.link=t.value.trim();else if(t.id==="soPd"||t.id==="soPt"){const D=$("#soPd"),T=$("#soPt");if(t.id==="soPt"){let v=t.value.replace(/[^\d:]/g,"");if(/^\d{3,4}$/.test(v))v=v.slice(0,v.length-2)+":"+v.slice(-2);if(v!==t.value)t.value=v}
+  const m=String(T&&T.value||"").match(/^(\d{1,2}):(\d{2})$/),dv=D&&D.value;E.plan=dv&&m&&+m[1]<24&&+m[2]<60?dv+"T"+m[1].padStart(2,"0")+":"+m[2]:"";}});
 document.addEventListener("change",async e=>{const t=e.target;if(!t.matches||!t.matches("[data-soup]"))return;const E=soEd(),F=[...t.files].slice(0,10-E.fotos.length);if(!F.length)return;SOC.upl=true;renderBody();
   try{for(const f of F){const r=await fotoVerklein(f,1600,0.85);let cv=r.canvas;const q=cv.width/cv.height;
       // Instagram aanvaardt enkel verhoudingen tussen 4:5 (staand) en 1,91:1 (liggend): zo nodig het midden bijsnijden
@@ -7620,6 +7621,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-sok]
   if(a==="nu"&&r){confirmBox(`Deze post nu publiceren op ${SO_K.filter(([k])=>r.data.kanalen[k]).map(x=>x[1]).join(", ")}?`,"Publiceren",async()=>{toast("Bezig met publiceren…");try{const j=await soApi({actie:"publiceer",id});SOC.posts=j.posts;renderBody();soMeld(j.pub)}catch(x){toast(x.message,true);soLaad()}});return}
   if(["concept","plan","pub"].includes(a)){
     const kan=SO_K.filter(([k])=>E.kanalen[k]).map(x=>x[1]);
+    if(a==="plan"&&!E.plan){toast("Vul een geldige datum en een uur in (24 uur, bv. 19:30).",true);return}
     const doe=async()=>{SOC.busy=true;renderBody();
       try{const j=await soApi({actie:"bewaar",id:E.id,modus:a==="pub"?"nu":a,plan:E.modus==="plan"&&E.plan?new Date(E.plan).toISOString():null,post:{tekst:E.tekst,titel:E.titel,link:E.link,fotos:E.fotos.map(({pad,w,h})=>({pad,w,h})),kanalen:E.kanalen}});
         SOC.posts=j.posts;SOC.ed=soLeeg();SOC.busy=false;renderBody();if(a==="pub")soMeld(j.pub);else toast(a==="plan"?"Ingepland.":"Opgeslagen als concept.")}
@@ -7634,7 +7636,7 @@ function soMeld(p){if(!p)return;const R=p.data.resultaten||{},K=SO_K.filter(([k]
 .so-n{text-align:right;margin-top:4px}.so-fs{display:flex;flex-wrap:wrap;gap:8px}.so-fo{position:relative;width:76px;height:76px;border-radius:10px;overflow:hidden;background:var(--sunken)}
 .so-fo img{width:100%;height:100%;object-fit:cover}.so-fo button{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0}
 .so-fo button svg{width:12px;height:12px;stroke:#fff;stroke-width:2.5;fill:none}.so-up{width:76px;height:76px;border:1.5px dashed var(--line);border-radius:10px;display:grid;place-items:center;cursor:pointer;color:var(--muted)}
-.so-up svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2}.so-up.dis{opacity:.5;pointer-events:none}.so-w{display:inline-flex;width:auto;max-width:max-content}.so-a .iconbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
+.so-up svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2}.so-up.dis{opacity:.5;pointer-events:none}.so-dt{display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:8px;margin-top:8px}.so-w{display:inline-flex;width:auto;max-width:max-content}.so-a .iconbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
 .so-act{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}.so-gh{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:12px 16px 4px}
 .so-p{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:start;padding:10px 16px;border-top:1px solid var(--line)}.so-gh+.so-p{border-top:0}
 .so-th{position:relative;width:52px;height:52px;border-radius:9px;overflow:hidden;background:var(--sunken);display:grid;place-items:center;color:var(--muted)}.so-th img{width:100%;height:100%;object-fit:cover}
