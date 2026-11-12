@@ -7297,7 +7297,7 @@ function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L
   const gezin=g=>{const K=g.K.filter(pas),n=g.K.filter(x=>x.st!=="vbha"),klaar=n.filter(x=>x.st!=="open").length,p=kfcPot(g.r);
     const pot=n.length>1&&p.pot?`<span class="muted small">samen ${eur(p.best)} van ${eur(p.pot)}</span>`:"";
     const bij=p.extra>0?`<span class="pill ${p.bet>=p.extra-0.004?"ok":"warn"}">${p.bet>=p.extra-0.004?"+ "+eur(p.extra)+" bijbetaald":(p.alles?eur(p.open)+" bijbetaling open":eur(p.extra)+" boven budget")}</span>`:"";
-    return `<div class="kc-gr"><div class="kc-gh"><div class="kc-gt"><button type="button" class="kc-gn" data-act="kfToon" data-id="${esc(g.r.id)}" title="Inschrijving openen">${esc(g.r.lid||"")}</button>${mag?`<button type="button" class="kc-kl" data-kfc="link" data-id="${esc(g.r.id)}">${ic("link")}Keuzepagina</button>`:""}</div>${bij}</div>${K.map(kind).join("")}</div>`};
+    return `<div class="kc-gr"><div class="kc-gh"><div class="kc-gt"><button type="button" class="kc-gn" data-act="kfToon" data-id="${esc(g.r.id)}" title="Inschrijving openen">${esc(g.r.lid||"")}</button></div>${bij}</div>${K.map(kind).join("")}</div>`};
   return `<div class="panel kcd"><div class="panel-h"><h2>Cadeaus</h2>${kfcVoorbij()?'<span class="pill neutral">afgesloten</span>':""}<span class="grow"></span>
     ${mag?`<button type="button" class="btn sm" data-kfc="controle" title="Prijs en voorraad opnieuw opvragen bij de winkels">Opnieuw controleren</button><button type="button" class="btn sm" data-kfc="vergelijk" title="Voor elk gekozen product de prijs bij de andere winkel opzoeken (zelfde EAN)">Prijzen vergelijken</button><button type="button" class="btn sm primary" data-kfc="bestel">${ic("download")}Bestellijst</button>`:""}</div>
    <div class="panel-b"><div class="tiles kcd-t">
@@ -7403,6 +7403,13 @@ function kfLeeftijdTaart(){const st=kfStats(),c=st.c,A=[];for(let a=0;a<=c.leeft
 {const st=document.createElement("style");st.textContent=`.kf-taart{display:flex;align-items:center;gap:24px;flex-wrap:wrap;justify-content:center}.kf-taart svg{flex:none}
 .kf-leg{display:grid;grid-template-columns:repeat(2,minmax(120px,auto));gap:6px 22px;font-size:14px}.kf-leg div{display:flex;align-items:center;gap:8px}.kf-leg i{width:11px;height:11px;border-radius:3px;flex:none}.kf-leg span{flex:1}.kf-leg small{color:var(--muted);min-width:34px;text-align:right}
 .kf-dub>.panel{margin:0;min-width:0}@media(max-width:860px){.kf-dub{grid-template-columns:1fr}}`;document.head.appendChild(st)}
+
+/* keuzepagina (link, kopiëren, openen) in het venster van de inschrijving (klik op de naam van het lid) */
+{const _f=kfForm;kfForm=function(r,id){_f.apply(this,arguments);if(!id||!kfMailCfg().cadeau||!kfMailCfg().keuze||!canWrite)return;const e=$("#kfErr");if(!e)return;
+  e.insertAdjacentHTML("beforebegin",`<div class="fld full kf-kp"><label>Keuzepagina</label><div class="kf-kpr"><input id="kfcUrl" readonly placeholder="Link laden…"><button type="button" class="btn sm" id="kfcCp">${ic("copy")}Kopiëren</button><a class="btn sm" id="kfcOp" target="_blank" rel="noopener">${ic("link")}Openen</a></div></div>`);
+  api("/api/mail?f=kfcadeau",{method:"POST",body:JSON.stringify({actie:"link",id})}).then(j=>{const u=$("#kfcUrl"),o=$("#kfcOp");if(u)u.value=j.url;if(o)o.href=j.url;
+    const c=$("#kfcCp");if(c)c.onclick=()=>{navigator.clipboard.writeText(j.url).then(()=>toast("Link gekopieerd.")).catch(()=>{u.select();toast("Kopieer de geselecteerde link.",true)})};if(u)u.onfocus=()=>u.select()}).catch(()=>{const u=$("#kfcUrl");if(u)u.placeholder="Link ophalen lukte niet."})}}
+{const st=document.createElement("style");st.textContent=`.kf-kpr{display:flex;gap:6px;align-items:center}.kf-kpr input{flex:1;min-width:0;font-size:13px}.kf-kpr .btn{flex:none}`;document.head.appendChild(st)}
 
 /* ============ Bestuursvergadering: aanwezig of verontschuldigd ============
    Bestuursleden geven het door via de knop in de herinneringsmail (/vergadering?i=&t=) of hier in de agenda.
