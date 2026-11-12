@@ -1,4 +1,4 @@
-import { requireUser, httpErr, sendError, isDbCron } from "./sb.js";
+import { requireUser, httpErr, sendError, isDbCron, admin } from "./sb.js";
 
 /* Sms via BudgetSMS (https://www.budgetsms.net), HTTP API sendsms.
    Nodig in Vercel: BUDGETSMS_USERNAME, BUDGETSMS_USERID, BUDGETSMS_HANDLE; optioneel BUDGETSMS_FROM (afzender, max. 11 letters/cijfers, standaard VBHA,
@@ -35,11 +35,22 @@ export default async function smsApi(req, res) {
       const e = (t.match(/^ERR\s+(\d+)/) || [])[1];
       return res.status(200).json({ aan: true, afzender: afzender(), antwoord: /^OK/.test(t) ? "OK, tegoed " + t.replace(/^OK\s*/, "") : (FOUT[e] || t.slice(0, 60)) });
     }
-    if (req.method === "GET") { await requireUser(req); return res.status(200).json({ aan: smsAan(), afzender: afzender() }); }
+    if (req.method === "GET") {
+      // ?tegoed=1: pagina Sms (functie sms) toont ook het resterende tegoed
+      if (req.query && req.query.tegoed) { await requireUser(req, { functie: "sms" });
+        if (!smsAan()) return res.status(200).json({ aan: false, afzender: afzender() });
+        let tegoed = null;
+        try { const q = new URLSearchParams({ username: env("BUDGETSMS_USERNAME"), userid: env("BUDGETSMS_USERID"), handle: env("BUDGETSMS_HANDLE") });
+          const t = (await (await fetch("https://api.budgetsms.net/checkcredit/?" + q.toString())).text()).trim(); const m = t.match(/^OK\s+([\d.]+)/); if (m) tegoed = "€ " + Number(m[1]).toFixed(2).replace(".", ","); } catch {}
+        return res.status(200).json({ aan: true, afzender: afzender(), tegoed });
+      }
+      await requireUser(req); return res.status(200).json({ aan: smsAan(), afzender: afzender() });
+    }
     if (req.method !== "POST") throw httpErr(405, "Niet toegelaten");
-    await requireUser(req, { write: true, functie: "shiften" });
-    if (!smsAan()) throw httpErr(503, "De sms-dienst is nog niet ingesteld.");
     let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+    const module = b.module === "sms";
+    const { user, sb } = await requireUser(req, { write: true, functie: module ? "sms" : "shiften" });
+    if (!smsAan()) throw httpErr(503, "De sms-dienst is nog niet ingesteld.");
     const L = (Array.isArray(b.berichten) ? b.berichten : []).slice(0, 40);
     if (!L.length) throw httpErr(400, "Geen berichten.");
     const resultaten = []; let kost = 0;
@@ -51,6 +62,15 @@ export default async function smsApi(req, res) {
         if (!r.ok && ["1001", "1002", "1003", "1004"].includes(r.code)) { for (const x of L.slice(L.indexOf(m) + 1)) resultaten.push({ label: String(x.label || "").slice(0, 80), ok: false, fout: r.fout }); break; } }
       catch (e) { resultaten.push({ label, ok: false, fout: "BudgetSMS niet bereikbaar" }); }
     }
+    // sms'en van de pagina Sms komen in het logboek (tabel sms): de pagina toont er de verzendingen uit
+    if (module) try {
+      let wie = user && user.email || "";
+      try { const { data } = await (sb || admin()).from("bestuur").select("naam").eq("user_id", user.id).maybeSingle(); if (data && data.naam) wie = data.naam; } catch {}
+      const batch = String(b.batch || "").slice(0, 40), tekst = String(L[0] && L[0].tekst || "").slice(0, 300);
+      const rows = L.map((m, i) => ({ wie: String(wie).slice(0, 120), tabel: "sms", doc_id: nummer(m.tel) || String(m.label || "").slice(0, 80), actie: "verstuurd",
+        nieuw: { batch, aan: String(m.label || "").slice(0, 80), tekst: String(m.tekst || "").slice(0, 640), ok: !!(resultaten[i] && resultaten[i].ok), ...(resultaten[i] && resultaten[i].fout ? { fout: resultaten[i].fout } : {}) } }));
+      if (rows.length) await admin().from("logboek").insert(rows);
+    } catch (e) { console.error("logboek sms", e); }
     return res.status(200).json({ resultaten, kost: Math.round(kost * 1000) / 1000 });
   } catch (e) { return sendError(res, e); }
 }

@@ -6566,12 +6566,13 @@ var RECHTEN=null;
 const FUNC=[["leden","Ledenlijst",["leden"],"Leden"],["punten","Puntensysteem",["punten"],"Leden"],
   ["overzicht","Overzicht",["boekhouding"],"Financiën"],["financien","Transacties",["boekingen","verwerken"],"Financiën"],["facturen","Facturen",["facturen","inkomend"],"Financiën"],["begroting","Begroting",["begroting"],"Financiën"],["historiek","Historiek",["historiek"],"Financiën"],["kassa","Kassa",["kassa"],"Financiën"],
   ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"],"Activiteiten"],["kalverdeling","Dozen meegeven of terugbrengen",[],"Activiteiten"],["fuif","In Vier en Vlam",["fuif"],"Activiteiten"],["banket","Banket",["banket"],"Activiteiten"],["kinderfeest","Kinderfeest",["kinderfeest"],"Activiteiten"],["familiedag","Familiedag",["familiedag"],"Activiteiten"],
-  ["agenda","Agenda en verslagen",["agenda","verslagen"],"Administratie"],["mails","Mails",["mails"],"Administratie"],["sponsors","Sponsors",["sponsors"],"Administratie"],["documenten","Documenten",["documenten"],"Administratie"],["website","Website",["website"],"Administratie"],["shiften","Shiften",["shiften"],"Administratie"],["fotos","Fotoalbums",["fotos"],"Administratie"],
+  ["agenda","Agenda en verslagen",["agenda","verslagen"],"Administratie"],["mails","Mails",["mails"],"Administratie"],["sponsors","Sponsors",["sponsors"],"Administratie"],["documenten","Documenten",["documenten"],"Administratie"],["website","Website",["website"],"Administratie"],["shiften","Shiften",["shiften"],"Administratie"],["fotos","Fotoalbums",["fotos"],"Administratie"],["sms","Sms",["sms"],"Administratie"],
   ["webshop","Webshop",["webshop"],"Webshop"]];
 const FUNC_VAN={};for(const [f,,rs] of FUNC)for(const r of rs)FUNC_VAN[r]=f;
 const RECHT_LBL={geen:"Verborgen",lezen:"Lezen",bewerken:"Bewerken"};
 function rechtenVanProfiel(rol){const o={};for(const [f] of FUNC)o[f]=rol==="admin"?"bewerken":rol==="boekhouder"&&["financien","facturen","overzicht","historiek","begroting"].includes(f)?"bewerken":"lezen";return o}
-function recht(r){r=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS[r])||r;if(ROL==="admin")return "bewerken";const f=FUNC_VAN[r];if(!f)return "lezen";
+function recht(r){r=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS[r])||r;if(ROL==="admin")return "bewerken";const f=FUNC_VAN[r];if(!f)return "lezen";if(f==="sms")return (RECHTEN&&ROL===ROL_ECHT&&RECHTEN.sms)||"geen"; // sms: standaard verborgen voor iedereen behalve de administrator
+
   if(RECHTEN&&ROL===ROL_ECHT)return RECHTEN[f]||"geen";return ROL==="boekhouder"&&BOEK_ROUTES.has(r)?"bewerken":"lezen"}
 magSchrijven=function(r){return recht(r||route())==="bewerken"};
 // menu en toegang: verborgen functies uit het menu halen en de pagina niet tonen
@@ -7474,3 +7475,69 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-vga]
 .vga-r{display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid var(--line);border-radius:10px}.vga-r.ik{border-color:var(--accent)}.vga-n{flex:1;min-width:0;font-weight:500}
 .vga-s{flex:none}.vga-s button.on.aanwezig{background:#15803d!important;color:#fff!important}.vga-s button.on.verontschuldigd{background:#b45309!important;color:#fff!important}.vga-s button:disabled{opacity:.55;cursor:default}
 @media(max-width:560px){.vga-r{flex-wrap:wrap}.vga-s{width:100%}.vga-s button{flex:1}}`;document.head.appendChild(st)}
+
+/* ============ Administratie › Sms ============
+   Sms'en naar een groep leden (dezelfde groepen als bij Mails), het bestuur of losse nummers, via BudgetSMS (/api/mail?f=sms).
+   Functie "sms" in de rechten: standaard enkel voor de administrator (voor alle andere gebruikers verborgen).
+   Elke verstuurde sms komt in het logboek (tabel "sms"); onderaan de pagina staan de laatste verzendingen. */
+{if(!ROUTES.some(r=>r[0]==="sms"))ROUTES.push(["sms","Sms"]);const c=NAV.find(n=>n.id==="communicatie");if(c&&!c.items.some(i=>i[0]==="sms")){const k=c.items.findIndex(i=>i[0]==="mails");c.items.splice(k<0?c.items.length:k+1,0,["sms","Sms"])}}
+const SMS={groep:"bestuur",los:"",tekst:"",uit:new Set(),dienst:null,log:null};
+const smsNr=t=>{let d=String(t||"").replace(/[^\d+]/g,"");if(d.startsWith("+"))d=d.slice(1);else if(d.startsWith("00"))d=d.slice(2);else if(d.startsWith("0")&&d.length>=9)d="32"+d.slice(1);return /^\d{9,15}$/.test(d)?d:""};
+const smsGsm=t=>{const n=smsNr(t);return n&&(!n.startsWith("32")||/^324\d{8}$/.test(n))?n:""}; // Belgische vaste nummers kunnen geen sms ontvangen
+const smsToon=n=>n.startsWith("32")?"0"+n.slice(2,5)+" "+n.slice(5,7)+" "+n.slice(7,9)+" "+n.slice(9):"+"+n;
+function smsGroepen(){const G=[];
+  const viaLid=x=>{let l=x.lidId&&S.leden.get(x.lidId);if(!l&&x.email){const e=String(x.email).trim().toLowerCase();l=[...S.leden.values()].find(y=>String(y.email||"").trim().toLowerCase()===e)}return l};
+  const best=[...S.leden.values()].filter(l=>l.bestuur&&!l.geenLid).map(l=>({id:"l:"+l.id,naam:naamVol(l),voornaam:l.voornaam||"",tel:l.telefoon}));
+  G.push({sect:"Leden",id:"bestuur",label:"Bestuursleden",list:best});
+  if(typeof groepen==="function")for(const g of groepen()){if(g.id==="los")continue;
+    G.push({sect:g.sect,id:g.id,label:g.label,list:g.list.map(x=>{const l=viaLid(x);const sp=!l&&g.id==="sponsors"?[...S.sponsors.values()].find(s=>spNaam(s)===x.bedrijf||(x.email&&s.email===x.email)):null;
+      return{id:l?"l:"+l.id:"x:"+(x.email||x.label),naam:l?naamVol(l):(x.label||x.naam||""),voornaam:l?(l.voornaam||""):(x.voornaam||""),tel:l?l.telefoon:(sp&&sp.telefoon)||""}})})}
+  G.push({sect:"Andere",id:"los",label:"Losse nummers",list:String(SMS.los||"").split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean).map(x=>({id:"n:"+x,naam:smsToon(smsGsm(x)||x),voornaam:"",tel:x}))});
+  // per groep: dubbele nummers weg, en wie geen gsm-nummer heeft apart
+  for(const g of G){const seen=new Set(),zonder=[];g.list=g.list.filter(r=>{const n=smsGsm(r.tel);if(!n){zonder.push(r);return false}if(seen.has(n))return false;seen.add(n);r.nr=n;return true});g.zonder=zonder}
+  return G}
+const smsVul=(t,r)=>String(t||"").replace(/\{voornaam\}/gi,r.voornaam||"");
+function smsDelen(t){const n=t.length;return !n?0:n<=160?1:Math.ceil(n/153)}
+async function smsLaad(){if(!SMS.dienst){SMS.dienst={laden:true};api("/api/mail?f=sms&tegoed=1").then(j=>{SMS.dienst=j;if(route()==="sms")renderBody()}).catch(()=>{SMS.dienst={aan:false}})}
+  if(!SMS.log){SMS.log=[];try{const {data}=await SB.from("logboek").select("id,ts,wie,nieuw").eq("tabel","sms").order("id",{ascending:false}).limit(60);SMS.log=data||[];if(route()==="sms")renderBody()}catch(e){}}}
+VIEWS.sms=()=>({title:"Sms",sub:"Sms'en naar leden, bestuur of losse nummers",body(){
+  if(ROL!=="admin"&&recht("sms")==="geen")return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
+  if(!SMS.dienst||!SMS.log)smsLaad();const D=SMS.dienst||{};const G=smsGroepen(),g=G.find(x=>x.id===SMS.groep)||G[0];const mag=canWrite;
+  const sel=g.list.filter(r=>!SMS.uit.has(r.id));const tekst=SMS.tekst,del=smsDelen(smsVul(tekst,{voornaam:"Xxxxxxxx"}));
+  const opt=[...new Set(G.map(x=>x.sect))].map(s=>`<optgroup label="${esc(s)}">${G.filter(x=>x.sect===s).map(x=>`<option value="${esc(x.id)}"${x.id===g.id?" selected":""}>${esc(x.label)} (${x.list.length})</option>`).join("")}</optgroup>`).join("");
+  const log=(SMS.log||[]).reduce((m,r)=>{const k=(r.nieuw&&r.nieuw.batch)||r.ts.slice(0,16);(m[k]||(m[k]={ts:r.ts,wie:r.wie,tekst:r.nieuw&&r.nieuw.tekst,n:0,ok:0}));m[k].n++;if(r.nieuw&&r.nieuw.ok)m[k].ok++;return m},{});
+  return `<div class="grid g2 sms-g" style="align-items:start">
+   <div class="panel"><div class="panel-h"><h2>Nieuwe sms</h2><span class="grow"></span>${D.laden?'<span class="muted small">laden…</span>':D.aan?`<span class="pill ok">${esc(D.afzender||"VBHA")}${D.tegoed?" · tegoed "+esc(D.tegoed):""}</span>`:'<span class="pill warn">sms-dienst niet ingesteld</span>'}</div><div class="panel-b stack">
+    <div class="fld"><label for="smsG">Naar</label><select id="smsG">${opt}</select></div>
+    ${g.id==="los"?`<div class="fld"><label for="smsLos">Gsm-nummers</label><textarea id="smsLos" rows="3" placeholder="0476 12 34 56, 0499 …">${esc(SMS.los)}</textarea></div>`:""}
+    <div class="fld"><label for="smsT">Tekst</label><textarea id="smsT" rows="5" maxlength="612" placeholder="Beste {voornaam}, …"${mag?"":" disabled"}>${esc(tekst)}</textarea>
+      <div class="sms-tel muted small"><span id="smsN">${tekst.length} tekens${del>1?` · ${del} sms-delen per persoon`:""}</span><button type="button" class="lnkb" data-sms="vn">{voornaam} invoegen</button></div></div>
+    <div class="sms-act"><span><b id="smsCnt">${sel.length}</b> ${sel.length===1?"ontvanger":"ontvangers"}</span><button type="button" class="btn primary" data-sms="stuur"${mag&&D.aan&&sel.length&&tekst.trim()?"":" disabled"}>${ic("mails")}Versturen</button></div>
+   </div></div>
+   <div class="panel"><div class="panel-h"><h2>Ontvangers</h2><span class="grow"></span>${g.list.length?`<button type="button" class="btn sm ghost" data-sms="alle">Alles</button><button type="button" class="btn sm ghost" data-sms="geen">Niets</button>`:""}</div>
+    <div class="sms-l">${g.list.map(r=>`<label class="sms-r"><input type="checkbox" data-smsr="${esc(r.id)}"${SMS.uit.has(r.id)?"":" checked"}><span>${esc(r.naam)}</span><small>${esc(smsToon(r.nr))}</small></label>`).join("")||'<div class="empty">Niemand met een gsm-nummer in deze groep.</div>'}
+    ${g.zonder.length?`<div class="sms-z muted small">Geen gsm-nummer: ${g.zonder.map(r=>esc(r.naam)).join(", ")}</div>`:""}</div></div></div>
+   <div class="panel" style="margin-top:16px"><div class="panel-h"><h2>Verstuurd</h2></div><div class="list">${Object.values(log).slice(0,15).map(x=>`<div class="li" style="padding:10px 16px;gap:12px"><div class="grow" style="min-width:0"><div class="trunc">${esc(x.tekst||"")}</div><div class="muted small">${esc(new Date(x.ts).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))} · ${esc(x.wie||"")}</div></div><span class="pill ${x.ok===x.n?"ok":"warn"}">${x.ok}/${x.n}</span></div>`).join("")||'<div class="empty">Nog niets verstuurd.</div>'}</div></div>`}});
+document.addEventListener("change",e=>{if(e.target.id==="smsG"){SMS.groep=e.target.value;SMS.uit=new Set();renderBody();return}
+  const c=e.target.closest&&e.target.closest("[data-smsr]");if(c){c.checked?SMS.uit.delete(c.dataset.smsr):SMS.uit.add(c.dataset.smsr);smsTel()}});
+document.addEventListener("input",e=>{if(e.target.id==="smsT"){SMS.tekst=e.target.value;smsTel()}else if(e.target.id==="smsLos"){SMS.los=e.target.value;clearTimeout(SMS.lt);SMS.lt=setTimeout(()=>{const p=e.target.selectionStart;renderBody();const t=$("#smsLos");if(t){t.focus();t.setSelectionRange(p,p)}},700)}});
+function smsTel(){const G=smsGroepen(),g=G.find(x=>x.id===SMS.groep)||G[0],n=g.list.filter(r=>!SMS.uit.has(r.id)).length,t=SMS.tekst,d=smsDelen(smsVul(t,{voornaam:"Xxxxxxxx"}));
+  const a=$("#smsN");if(a)a.textContent=`${t.length} tekens${d>1?` · ${d} sms-delen per persoon`:""}`;const c=$("#smsCnt");if(c)c.textContent=n;
+  const b=document.querySelector('[data-sms="stuur"]');if(b)b.disabled=!(canWrite&&SMS.dienst&&SMS.dienst.aan&&n&&t.trim())}
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-sms]");if(!b)return;e.preventDefault();const a=b.dataset.sms;
+  const G=smsGroepen(),g=G.find(x=>x.id===SMS.groep)||G[0];
+  if(a==="alle"){SMS.uit=new Set();renderBody();return}if(a==="geen"){SMS.uit=new Set(g.list.map(r=>r.id));renderBody();return}
+  if(a==="vn"){const t=$("#smsT");if(!t)return;const p=t.selectionStart??t.value.length;t.value=t.value.slice(0,p)+"{voornaam}"+t.value.slice(t.selectionEnd??p);SMS.tekst=t.value;t.focus();smsTel();return}
+  if(a==="stuur"){const L=g.list.filter(r=>!SMS.uit.has(r.id)),t=SMS.tekst.trim();if(!L.length||!t)return;
+    confirmBox(`<b>${L.length}</b> ${L.length===1?"sms":"sms'en"} versturen naar <b>${esc(g.label)}</b>?<div class="muted small" style="margin-top:8px">Voorbeeld: ${esc(smsVul(t,L[0]))}</div>`,"Versturen",async()=>{
+      const batch="sms-"+Date.now().toString(36);let ok=0,kost=0;const fout=[];toast("Bezig met versturen…");
+      for(let i=0;i<L.length;i+=40){const deel=L.slice(i,i+40);
+        try{const j=await api("/api/mail?f=sms",{method:"POST",body:JSON.stringify({module:"sms",batch,berichten:deel.map(r=>({tel:r.nr,tekst:smsVul(t,r),label:r.naam}))})});
+          for(const r of j.resultaten||[]){if(r.ok)ok++;else fout.push(r)}kost+=j.kost||0}catch(x){fout.push({label:"(rest)",fout:x.message});break}}
+      SMS.log=null;SMS.dienst=null;
+      modal("Sms versturen",`<p style="margin:0">${ok} van ${L.length} ${L.length===1?"sms":"sms'en"} verstuurd${kost?` (kost ${eur(kost)})`:""}.</p>${fout.length?`<ul style="margin:10px 0 0">${fout.map(r=>`<li><b>${esc(r.label||"")}</b>: ${esc(r.fout||"")}</li>`).join("")}</ul>`:""}`,`<button class="btn primary" data-act="closeModal">Sluiten</button>`);
+      if(ok===L.length)SMS.tekst="";renderBody()})}});
+{const st=document.createElement("style");st.textContent=`.sms-tel{display:flex;justify-content:space-between;gap:10px;margin-top:4px}.lnkb{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline}
+.sms-act{display:flex;align-items:center;justify-content:space-between;gap:10px}.sms-l{max-height:none}.sms-r{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 16px;border-top:1px solid var(--line);cursor:pointer}
+.sms-r:first-child{border-top:0}.sms-r input{accent-color:var(--accent);width:16px;height:16px}.sms-r small{color:var(--muted);font-variant-numeric:tabular-nums}.sms-z{padding:10px 16px;border-top:1px solid var(--line)}
+@media(max-width:860px){.sms-g{grid-template-columns:1fr}}`;document.head.appendChild(st)}
