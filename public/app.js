@@ -8033,8 +8033,8 @@ function gdKandidaten(){if(ROL!=="admin")return[];let C;try{C=ctx()}catch(e){ret
   return [...C.rows.values()].filter(r=>r.huidig&&r.lid.categorie!=="Erewacht"&&!r.jl.vrijstelling&&!r.jl.goudMail&&r.p&&r.p.totaal>=g).sort((a,b)=>naamVol(a.lid).localeCompare(naamVol(b.lid),"nl"))}
 function gdMelding(){const L=gdKandidaten();if(!L.length)return"";
   return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("check")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
-   <div class="gd-l">${L.slice(0,12).map(r=>`<div class="gd-r"><span><b>${esc(naamVol(r.lid))}</b> <span class="muted small">${r.p.totaal} punten${r.lid.email?"":" · geen e-mailadres"}</span></span>
-    <span class="gd-a"><button type="button" class="btn sm" data-gd="mail" data-id="${esc(r.lid.id)}"${r.lid.email?"":" disabled"}>${ic("mails")}Proficiat-mail</button><button type="button" class="btn sm ghost" data-gd="overslaan" data-id="${esc(r.lid.id)}">Overslaan</button></span></div>`).join("")}</div>
+   <div class="gd-l">${L.slice(0,12).map(r=>`<div class="gd-r"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten${r.lid.email?"":" · geen e-mailadres"}</span></span>
+    <span class="gd-a"><button type="button" class="btn sm" data-gd="mail" data-id="${esc(r.lid.id)}"${r.lid.email?"":" disabled"}>${ic("mails")}<span class="gd-tl">Proficiat-mail</span></button><button type="button" class="btn sm ghost" data-gd="overslaan" data-id="${esc(r.lid.id)}">Overslaan</button></span></div>`).join("")}</div>
    ${L.length>1?`<div class="gd-al"><button type="button" class="btn sm primary" data-gd="mailAlle">${ic("mails")}Iedereen een proficiat-mail sturen</button></div>`:""}</div></div>`}
 async function gdDoe(actie,ids){try{const j=await api("/api/mail?f=goud",{method:"POST",body:JSON.stringify({actie,lidIds:ids,jaar:JAAR})});
     const nu=new Date().toISOString();for(const x of j.resultaten||[]){const id=JAAR+"_"+x.lidId,cur=S.jaarleden.get(id)||{id,jaar:JAAR,lidId:x.lidId};S.jaarleden.set(id,{...cur,goudMail:{op:nu,via:"app",verstuurd:x.verstuurd}})}
@@ -8046,4 +8046,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-gd]");if(!
   if(a==="overslaan")gdDoe("overslaan",[r.lid.id])});
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return gdMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 {const st=document.createElement("style");st.textContent=`.gd-l{display:flex;flex-direction:column;gap:6px;margin-top:8px}.gd-r{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.gd-a{display:flex;gap:6px}.gd-al{margin-top:10px}`;document.head.appendChild(st)}
+.gd-n{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;min-width:0}.gd-a{display:flex;gap:6px;flex:none}.gd-al{margin-top:10px}
+@media(max-width:760px){.gd-l{gap:0;margin-top:6px}.gd-r{flex-wrap:nowrap;padding:8px 0;border-top:1px solid rgba(0,0,0,.08)}.gd-r:first-child{border-top:0}
+ .gd-n{flex-direction:column;align-items:flex-start;gap:0}.gd-n b{font-size:15px}.gd-tl{display:none}.gd-a .btn{padding:6px 10px}.gd-a .btn svg{margin:0}
+ .gd-al .btn{width:100%;justify-content:center}}`;document.head.appendChild(st)}
