@@ -391,6 +391,38 @@ export async function kfCadeauApp(req, res) {
       }
       return res.status(200).json({ ok: true, gecontroleerd: n, gewijzigd, nietBeschikbaar: weg, mislukt });
     }
+    // ouders die zich inschreven vóór de cadeaukiezer aan stond: mail met hun persoonlijke keuzelink (via de mailwachtrij)
+    if (b.actie === "meld") {
+      const A = await algemeen(sb), jaar = Number(b.jaar) || A.jaar, c = await configDoc(sb, "kf_" + jaar), M = kfcInstellingen(c, jaar);
+      if (!(M.cadeau !== false && M.keuze === true)) throw httpErr(400, "De cadeaukiezer staat niet aan.");
+      if (vandaagISO() > M.tot) throw httpErr(400, "De keuzetermijn is voorbij.");
+      const { data: rows, error } = await sb.from("kinderfeest").select("id,data").eq("data->>jaar", String(jaar)); if (error) throw error;
+      const sinds = M.keuzeSinds || "9999";
+      const L = (rows || []).filter(r => { const d = r.data || {}; const K = (d.kinderen || []).filter(k => budgetVan(k.geb, M).budget != null);
+        return K.length && !K.every(k => k.cadeau) && !d.cadeauMeld && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(String(d.email || "").trim()) && String((d.bevestiging && d.bevestiging.op) || d.aangemeld || "") < sinds; });
+      if (b.dry) return res.status(200).json({ aantal: L.length, wie: L.map(r => r.data.lid) });
+      if (!L.length) return res.status(200).json({ aantal: 0 });
+      const { huisstijl, kaderBlok, p } = await import("./bevestiging.js");
+      const e = x => String(x ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+      const eu = n => "€" + Number(n || 0).toLocaleString("nl-BE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const tot = lang(M.tot), batch = "kfmeld-" + jaar + "-" + Date.now();
+      const knop = u => `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 18px"><tr><td bgcolor="#C0161F" style="border-radius:8px"><a href="${e(u)}" style="display:inline-block;padding:12px 22px;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px">Cadeau kiezen</a></td></tr></table>`;
+      const rijen = [];
+      for (const r of L) {
+        const d = r.data; let vn = String(d.lid || "").split(" ").slice(-1)[0];
+        if (d.lidId) { const { data: l } = await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle(); if (l && l.data && l.data.voornaam) vn = l.data.voornaam; }
+        const kids = (d.kinderen || []).map(k => { const B = budgetVan(k.geb, M); return B.budget != null ? `<li style="margin:0 0 4px"><b>${e(k.naam)}</b>: cadeau ter waarde van <b>${eu(B.budget)}</b></li>` : B.voorzien ? `<li style="margin:0 0 4px"><b>${e(k.naam)}</b>: de vriendenkring voorziet zelf een cadeau</li>` : ""; }).join("");
+        const html = p(`Beste ${e(vn)},`) + p("Goed nieuws: het cadeau voor je kind(eren) kies je dit jaar gewoon online. Je hoeft niets meer door te mailen.")
+          + (kids ? `<ul style="margin:0 0 15px;padding-left:22px">${kids}</ul>` : "")
+          + p(`Kies het cadeau <b>tot en met ${e(tot)}</b> via de knop hieronder: plak de link van het product, wij controleren meteen de prijs en de voorraad. Indien je tegen ${e(tot)} geen keuze doorgeeft, krijg je een waardebon van bol.com t.w.v. het bedrag hierboven.`)
+          + knop(kfcLink(r.id)) + p("Gaf je je keuze al door per mail? Dan hoef je niets meer te doen.");
+        rijen.push({ batch, data: { aan: String(d.email).trim(), aanNaam: d.lid || "", onderwerp: `VBHA - Kies nu online het cadeau voor het kinderfeest ${jaar}`, html: huisstijl(html, A.vereniging), antwoordAan: "info@vbha.be" } });
+      }
+      const { error: e2 } = await sb.from("mail_wachtrij").insert(rijen); if (e2) throw e2;
+      const op = new Date().toISOString();
+      for (const r of L) await sb.from("kinderfeest").update({ data: { ...r.data, cadeauMeld: op } }).eq("id", r.id);
+      return res.status(200).json({ aantal: rijen.length });
+    }
     throw httpErr(400, "Onbekende actie.");
   } catch (e) { sendError(res, e); }
 }
