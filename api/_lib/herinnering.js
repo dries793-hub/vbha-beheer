@@ -3,13 +3,13 @@ import { smtpConfigured, afzender, verstuur } from "./smtp.js";
 import { vandaagISO, configDoc } from "./publiek.js";
 import { pushVanDaag, vgPushVandaag } from "./push.js";
 import { huisstijl } from "./bevestiging.js";
-import { vgLink, vgBestuur } from "./open_vergadering.js";
+import { vgLink, vgLidLink, vgBestuur } from "./open_vergadering.js";
 
 // Herinneringsmail vóór een vergadering uit de agenda (collectie "vergaderingen").
 // Instellingen in config "herinneringen" (app: Instellingen › Herinneringen): aan, ontvangers, dagen vooraf, uur, soorten.
 // Een geplande taak in Supabase (pg_cron, functie herinnering_cron) roept elk uur aan; er wordt enkel verstuurd op het gekozen uur.
 // Een vergadering die binnen de termijn valt en nog geen herinnering kreeg, krijgt er één (ook als een dag gemist werd).
-const DEF = { aan: true, ontvangers: "bestuur@vbha.be", dagen: 5, uur: 8, soorten: [] };
+const DEF = { aan: true, ontvangers: "", dagen: 5, uur: 8, soorten: [] };
 const instellingen = async sb => ({ ...DEF, ...(await configDoc(sb, "herinneringen")) });
 const uurNu = () => Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Brussels", hour: "2-digit", hour12: false }).format(new Date()));
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -31,23 +31,44 @@ ${v.uur ? `<p style="margin:0 0 5px">&bull; <b>Uur:</b> ${esc(v.uur)}</p>` : ""}
 ${v.locatie ? `<p style="margin:0 0 5px">&bull; <b>Locatie:</b> ${esc(v.locatie)}</p>` : ""}
 ${punten.length ? `<p style="margin:12px 0 5px"><b>Agenda</b></p><ol style="margin:0;padding-left:22px">${punten.map(p => `<li style="margin:0 0 4px">${esc(p)}</li>`).join("")}</ol>` : ""}
 </td></tr></table>
-${v.id && vgBestuur(v) ? `<p style="margin:0 0 12px">Ben je erbij? Duid hieronder aan of je <b>aanwezig</b> of <b>verontschuldigd</b> bent.</p>
-<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 18px"><tr><td bgcolor="#C0161F" style="border-radius:8px"><a href="${esc(vgLink(v.id))}" style="display:inline-block;padding:12px 22px;${F}font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px">Aanwezig of verontschuldigd</a></td></tr></table>` : `<p style="margin:0 0 15px">Kan je er niet bij zijn? Laat het dan even weten.</p>`}
+${v.id && vgBestuur(v) ? KNOP : `<p style="margin:0 0 15px">Kan je er niet bij zijn? Laat het dan even weten.</p>`}
 <p style="margin:0;color:#888888;font-size:12.5px">Deze herinnering wordt automatisch verstuurd vanuit VBHA Beheer, ${cfg.dagen} ${cfg.dagen === 1 ? "dag" : "dagen"} voor elke vergadering in de agenda.</p>
 `, "Vriendenkring Brandweer Hoofdpost Aalst", { groet: false });
   return { aan: "", aanNaam: "Bestuur VBHA", onderwerp: `Herinnering: ${titel} op ${lang(v.datum).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase())}${v.uur ? " om " + v.uur : ""}`, html };
 }
 
 const ontvangers = cfg => String(cfg.ontvangers || "").split(/[,;\s]+/).map(x => x.trim()).filter(x => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x));
-// + de e-mailadressen van alle gebruikers van de app (tabel bestuur), zonder dubbels
-async function alleOntvangers(sb, cfg) {
-  const L = [...ontvangers(cfg)];
-  const { data } = await sb.from("bestuur").select("email");
-  for (const r of data || []) { const e = String((r && r.email) || "").trim(); if (/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(e)) L.push(e); }
-  const gezien = new Set(); return L.filter(e => { const k = e.toLowerCase(); if (gezien.has(k)) return false; gezien.add(k); return true; });
-}
 const site = () => String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, "");
 
+
+/* ---------- aanwezig/verontschuldigd in de mails ----------
+   De mail bevat KNOP als plaatshouder; per ontvanger komt daar:
+   - een bestuurslid uit de ledenlijst: twee persoonlijke knoppen (Aanwezig / Verontschuldigd) die meteen registreren,
+     ook zonder account in de app;
+   - iemand anders: één knop naar de algemene lijst. */
+const KNOP = "<!--VGKNOP-->";
+const knopA = (href, tekst, kleur) => `<td bgcolor="${kleur}" style="border-radius:8px"><a href="${esc(href)}" style="display:inline-block;padding:12px 20px;${F}font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px">${tekst}</a></td>`;
+function knoppen(vid, lid) {
+  if (lid) return `<p style="margin:0 0 12px">Ben je erbij? Klik op je antwoord:</p>
+<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 18px"><tr>${knopA(vgLidLink(vid, lid, "aanwezig"), "&#10003; Aanwezig", "#15803d")}<td style="width:10px"></td>${knopA(vgLidLink(vid, lid, "verontschuldigd"), "Verontschuldigd", "#b45309")}</tr></table>`;
+  return `<p style="margin:0 0 12px">Duid hieronder aan wie <b>aanwezig</b> of <b>verontschuldigd</b> is.</p>
+<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 18px"><tr>${knopA(vgLink(vid), "Aanwezig of verontschuldigd", "#C0161F")}</tr></table>`;
+}
+const EMAIL = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/;
+const nrm = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+/* Ontvangers: elk bestuurslid uit de ledenlijst (persoonlijk), daarna gebruikers van de app die geen bestuurslid zijn
+   en de extra ontvangers uit de instellingen (algemeen). Een adres krijgt de mail maar één keer per persoon. */
+async function vgOntvangers(sb, cfg) {
+  const [{ data: leden }, { data: gebr }] = await Promise.all([sb.from("leden").select("id,data").eq("data->>bestuur", "true"), sb.from("bestuur").select("email,naam")]);
+  const L = (leden || []).filter(r => !r.data.geenLid), uit = [], gezien = new Set();
+  const voeg = (aan, lid, naam) => { aan = String(aan || "").trim(); if (!EMAIL.test(aan)) return; const k = aan.toLowerCase() + "|" + (lid || ""); if (gezien.has(k) || (!lid && [...gezien].some(x => x.startsWith(aan.toLowerCase() + "|")))) return; gezien.add(k); uit.push({ aan, lid: lid || null, naam: naam || "", voornaam: lid ? String(naam || "").split(" ")[0] : "" }); };
+  for (const l of L) voeg(l.data.email, l.id, ((l.data.voornaam || "") + " " + (l.data.naam || "")).trim());
+  for (const g of gebr || []) { if (L.some(l => nrm(l.data.email) === nrm(g.email) || nrm((l.data.voornaam || "") + " " + (l.data.naam || "")) === nrm(g.naam))) continue; voeg(g.email, null, g.naam); }
+  for (const e of ontvangers(cfg)) voeg(e, null, "");
+  return uit;
+}
+const zonderLid = L => L.map(x => x.aan);
+const groet = (html, o) => o.voornaam ? html.replace("Beste bestuursleden,", "Beste " + esc(o.voornaam) + ",") : html;
 export async function herinneringen(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (!(await isDbCron(req))) throw httpErr(403, "Geen toegang");
@@ -59,7 +80,7 @@ export async function herinneringen(req, res) {
   if (!smtpConfigured()) return res.status(200).json({ push, mail: "niet ingesteld" });
   if (!cfg.aan) return res.status(200).json({ uit: true, push });
   if (uurNu() !== Number(cfg.uur)) return res.status(200).json({ wacht: true, uur: cfg.uur, push });
-  const aan = await alleOntvangers(sb, cfg); if (!aan.length) return res.status(200).json({ geenOntvangers: true });
+  const aan = await vgOntvangers(sb, cfg); if (!aan.length) return res.status(200).json({ geenOntvangers: true });
   const tot = plusDagen(nu, Number(cfg.dagen) || 5);
   const { data, error } = await sb.from("vergaderingen").select("id,data").gte("data->>datum", nu).lte("data->>datum", tot);
   if (error) throw error;
@@ -69,7 +90,7 @@ export async function herinneringen(req, res) {
     if (!v.datum || v.herinnerdVoor === v.datum) continue; // al verstuurd voor deze datum (bij een nieuwe datum komt er een nieuwe herinnering)
     if (cfg.soorten && cfg.soorten.length && !cfg.soorten.includes(v.soort || "Andere")) continue;
     const m = mail({ ...v, id: r.id }, dagenTot(nu, v.datum), site(), cfg);
-    const uit = await verstuur(aan.map((a, i) => ({ ...m, aan: a, van: afzender(), ...(i ? { geenBcc: true } : {}) })));
+    const uit = await verstuur(aan.map((o, i) => ({ ...m, html: groet(m.html, o).replace(KNOP, knoppen(r.id, o.lid)), aan: o.aan, aanNaam: o.naam || m.aanNaam, van: afzender(), ...(i ? { geenBcc: true } : {}) })));
     if (uit.some(x => x && x.ok)) {
       await sb.rpc("vg_zet", { vid: r.id, patch: { herinnerdVoor: v.datum, herinnerdOp: new Date().toISOString() } });
       verstuurd.push(r.id);
@@ -107,7 +128,7 @@ export async function afgerondMail(v, nv, bijlagenLen) {
   if (nv) html += kaderBlok("Volgende " + esc((nv.soort || "vergadering").toLowerCase()), tabel([
     rij("Datum", `<b>${esc(lang(nv.datum))}</b>`), nv.uur ? rij("Uur", esc(nv.uur)) : "", nv.locatie ? rij("Locatie", esc(nv.locatie)) : "", nv.titel ? rij("Onderwerp", esc(nv.titel)) : ""])
     + (punten.length ? `<p style="margin:12px 0 5px"><b>Agenda</b></p><ol style="margin:0;padding-left:22px">${punten.map(x => `<li style="margin:0 0 4px">${esc(x)}</li>`).join("")}</ol>` : ""));
-  if (nv && nv.id && vgBestuur(nv)) html += p("Zet de datum alvast in je agenda en laat weten of je erbij bent:") + `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 18px"><tr><td bgcolor="#C0161F" style="border-radius:8px"><a href="${esc(vgLink(nv.id))}" style="display:inline-block;padding:12px 22px;${F}font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px">Aanwezig of verontschuldigd</a></td></tr></table>`;
+  if (nv && nv.id && vgBestuur(nv)) html += p("Zet de datum alvast in je agenda.") + KNOP;
   else html += p(nv ? "Zet de datum alvast in je agenda. Kan je er niet bij zijn? Laat het dan even weten." : "Opmerkingen bij het verslag? Antwoord gewoon op deze mail.");
   const onderwerp = `Verslag ${titel.toLowerCase() === soort ? soort : titel} ${lang(v.datum).replace(/^\S+ /, "")}${nv ? " - volgende vergadering " + lang(nv.datum).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase()) : ""}`;
   return { onderwerp, html, huisstijl };
@@ -132,13 +153,13 @@ export async function vergaderingAfgerond(req, res) {
       bijlagen.push({ naam: doc.data.naam || "Verslag.pdf", type: doc.data.type || "application/pdf", data: Buffer.from(await blob.arrayBuffer()) });
     }
   }
-  const cfg = await instellingen(sb), aan = await alleOntvangers(sb, cfg);
+  const cfg = await instellingen(sb), aan = await vgOntvangers(sb, cfg);
   if (!aan.length) throw httpErr(400, "Er zijn geen ontvangers ingesteld (Instellingen › Herinneringen).");
   const { onderwerp, html, huisstijl } = await afgerondMail(v, nv, bijlagen.length > 0);
   const m = { aanNaam: "Bestuur VBHA", onderwerp, html: huisstijl(html, "Vriendenkring Brandweer Hoofdpost Aalst"), bijlagen, van: afzender() };
-  const uit = await verstuur(aan.map((a, i) => ({ ...m, aan: a, ...(i ? { geenBcc: true } : {}) })));
+  const uit = await verstuur(aan.map((o, i) => ({ ...m, html: nv && nv.id ? groet(m.html, o).replace(KNOP, knoppen(nv.id, o.lid)) : groet(m.html, o), aan: o.aan, aanNaam: o.naam || m.aanNaam, ...(i ? { geenBcc: true } : {}) })));
   const ok = uit.some(x => x && x.ok);
   if (!ok) throw httpErr(502, "Versturen mislukt: " + ((uit[0] && uit[0].fout) || "onbekende fout"));
-  await sb.from("vergaderingen").update({ data: { ...v, afgerond: { ...af, gemaild: new Date().toISOString(), aan: aan.join(", ") } } }).eq("id", r.id);
-  res.status(200).json({ aan, bijlage: bijlagen.length > 0 });
+  await sb.from("vergaderingen").update({ data: { ...v, afgerond: { ...af, gemaild: new Date().toISOString(), aan: zonderLid(aan).join(", ") } } }).eq("id", r.id);
+  res.status(200).json({ aan: zonderLid(aan), bijlage: bijlagen.length > 0 });
 }

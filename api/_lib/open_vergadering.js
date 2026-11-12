@@ -16,8 +16,16 @@ function klopt(id, t) {
   const a = Buffer.from(vgToken(id)), b = Buffer.from(t);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
+// persoonlijke link per bestuurslid (ook zonder account): enkel voor dat lid geldig
+export const vgLidToken = (id, lid) => crypto.createHmac("sha256", sleutel()).update(`vbha-vergadering|${id}|${lid}`).digest("base64url").slice(0, 22);
+function kloptLid(id, lid, t) {
+  if (!sleutel() || !id || !lid || typeof t !== "string") return false;
+  const a = Buffer.from(vgLidToken(id, lid)), b = Buffer.from(t);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 const site = () => String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, "");
 export const vgLink = id => `${site()}/vergadering?i=${encodeURIComponent(id)}&t=${vgToken(id)}`;
+export const vgLidLink = (id, lid, s) => `${site()}/vergadering?i=${encodeURIComponent(id)}&l=${encodeURIComponent(lid)}&t=${vgLidToken(id, lid)}${s ? "&s=" + s : ""}`;
 export const vgBestuur = v => /bestuur/i.test((v && v.soort) || "");
 const S_OK = ["aanwezig", "verontschuldigd"];
 const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -43,18 +51,19 @@ export default async function vergaderingPubliek(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
     const sb = admin(), b = req.method === "POST" ? body(req) : (req.query || {});
-    const id = String(b.i || ""), t = String(b.t || "");
-    if (!klopt(id, t)) throw httpErr(404, "Deze link is niet (meer) geldig.");
+    const id = String(b.i || ""), t = String(b.t || ""), eigen = String(b.l || "");
+    if (eigen ? !kloptLid(id, eigen, t) : !klopt(id, t)) throw httpErr(404, "Deze link is niet (meer) geldig.");
     const row = await vergadering(sb, id); if (!row) throw httpErr(404, "Deze vergadering bestaat niet meer.");
     const v = row.data || {}; if (!vgBestuur(v)) throw httpErr(404, "Deze link is niet (meer) geldig.");
     const L = await bestuursleden(sb);
-    const uit = ant => ({ ok: true, titel: v.titel || v.soort || "Bestuursvergadering", soort: v.soort || "", datum: v.datum, uur: v.uur || "", locatie: v.locatie || "", open: open(v),
-      leden: L.map(l => ({ id: l.id, naam: (l.voornaam + " " + l.naam).trim() })), antwoorden: Object.fromEntries(Object.entries(ant || {}).map(([k, x]) => [k, x && x.s])) });
+    const zicht = eigen ? L.filter(l => l.id === eigen) : L;
+    const uit = ant => ({ ok: true, eigen: !!eigen, titel: v.titel || v.soort || "Bestuursvergadering", soort: v.soort || "", datum: v.datum, uur: v.uur || "", locatie: v.locatie || "", open: open(v),
+      leden: zicht.map(l => ({ id: l.id, naam: (l.voornaam + " " + l.naam).trim() })), antwoorden: Object.fromEntries(Object.entries(ant || {}).map(([k, x]) => [k, x && x.s])) });
     if (req.method === "GET") return res.status(200).json(uit(v.antwoorden));
     if (req.method !== "POST") throw httpErr(405, "Niet toegelaten");
     await rateLimit(sb, req, "vergadering", 40, 600, httpErr);
     if (!open(v)) throw httpErr(409, "Deze vergadering is voorbij; doorgeven kan niet meer.");
-    const lid = String(b.lid || ""); if (!L.some(l => l.id === lid)) throw httpErr(400, "Kies je naam in de lijst.");
+    const lid = String(b.lid || ""); if (!zicht.some(l => l.id === lid)) throw httpErr(400, eigen ? "Deze link is enkel voor je eigen antwoord." : "Kies je naam in de lijst.");
     const s = String(b.s || ""); if (s && !S_OK.includes(s)) throw httpErr(400, "Kies aanwezig of verontschuldigd.");
     return res.status(200).json(uit(await zet(sb, id, lid, s, "link")));
   } catch (e) { sendError(res, e); }

@@ -3310,7 +3310,7 @@ function spToewijzen(bid){const b=S.boekingen.get(bid);if(!b)return;const C=ctx(
    Herinneringsmail voor vergaderingen (config "herinneringen"): de server (api/_lib/herinnering.js) leest deze instellingen;
    een geplande taak in Supabase roept elk uur aan en de server verstuurt enkel op het gekozen uur. */
 if(!ROUTES.some(r=>r[0]==="herinneringen"))ROUTES.push(["herinneringen","Herinneringen"]);
-const HR_DEF={aan:true,ontvangers:"bestuur@vbha.be",dagen:5,uur:8,soorten:[]};
+const HR_DEF={aan:true,ontvangers:"",dagen:5,uur:8,soorten:[]};
 const hrCfg=()=>({...HR_DEF,...(S.config.get("herinneringen")||{})});
 VIEWS.herinneringen=()=>({title:"Instellingen",sub:"Herinneringen",body(){
   const c=hrCfg(),d=canWrite?"":" disabled",nu=todayISO();
@@ -3319,7 +3319,7 @@ VIEWS.herinneringen=()=>({title:"Instellingen",sub:"Herinneringen",body(){
   return instTabs("herinneringen")+`<div class="grid g2" style="align-items:start">
   <form class="panel" id="fHr"><div class="panel-h"><h2>Herinnering vergaderingen</h2></div><div class="panel-b"><div class="form">
     <label class="sp-nat full" for="hrAan"><input type="checkbox" id="hrAan"${c.aan?" checked":""}${d}><span><b>Herinneringsmail versturen</b><small>Automatisch een mail met datum, uur, locatie en agenda vóór elke vergadering in de agenda.</small></span></label>
-    ${fld("hrAanW","Ontvangers",`<input id="hrAanW" value="${esc(c.ontvangers)}" placeholder="bestuur@vbha.be"${d}>`,"full")}<p class="muted small full" style="margin:-6px 0 0">Alle gebruikers van de app krijgen de mail ook op hun eigen adres.</p>
+    ${fld("hrAanW","Extra ontvangers",`<input id="hrAanW" value="${esc(c.ontvangers)}" placeholder="leeg laten = enkel de bestuursleden"${d}>`,"full")}<p class="muted small full" style="margin:-6px 0 0">Elk bestuurslid uit de ledenlijst krijgt de mail op zijn eigen adres, met knoppen om aanwezig of verontschuldigd aan te duiden (ook zonder account). Vul hier enkel extra ontvangers in.</p>
     <span class="help full muted small" style="margin-top:-6px;color:var(--muted)">Meerdere adressen scheid je met een komma.</span>
     ${fld("hrDagen","Hoeveel dagen vooraf",`<select id="hrDagen" class="sel"${d}>${[1,2,3,4,5,6,7,10,14].map(n=>`<option value="${n}"${n===Number(c.dagen)?" selected":""}>${n} ${n===1?"dag":"dagen"}</option>`).join("")}</select>`)}
     ${fld("hrUur","Op welk uur",`<select id="hrUur" class="sel"${d}>${[6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].map(n=>`<option value="${n}"${n===Number(c.uur)?" selected":""}>${n}u00</option>`).join("")}</select>`)}
@@ -3329,7 +3329,7 @@ VIEWS.herinneringen=()=>({title:"Instellingen",sub:"Herinneringen",body(){
   <div class="panel"><div class="panel-h"><h2>Volgende herinneringen</h2></div>${!c.aan?'<div class="empty">Herinneringen staan uit.</div>':komend.length?`<div class="list">${komend.map(v=>`<div class="li" style="display:block;padding:12px 16px"><div><b>${esc(v.titel||v.soort||"Vergadering")}</b> <span class="muted small">${esc(agLang(v.datum))}${v.uur?" om "+esc(v.uur):""}</span></div>
      <div class="muted small">${v.herinnerdVoor===v.datum?"✓ Herinnering verstuurd":"Herinnering op "+esc(verstuurOp(v))}</div></div>`).join("")}</div>`:'<div class="empty">Geen komende vergaderingen in de agenda.</div>'}</div></div>`}});
 async function hrBewaar(){const ont=$("#hrAanW").value.split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean);const fout=ont.filter(x=>!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x));
-  if($("#hrAan").checked&&!ont.length){toast("Vul minstens één ontvanger in.",true);return}if(fout.length){toast("Geen geldig e-mailadres: "+fout.join(", "),true);return}
+if(fout.length){toast("Geen geldig e-mailadres: "+fout.join(", "),true);return}
   const alle=$$('input[name="hrS"]'),aan=alle.filter(i=>i.checked).map(i=>i.value);if(!aan.length){toast("Kies minstens één soort vergadering.",true);return}
   await write("config","herinneringen",{...stripId(S.config.get("herinneringen")||{}),aan:$("#hrAan").checked,ontvangers:ont.join(", "),dagen:Number($("#hrDagen").value),uur:Number($("#hrUur").value),soorten:aan.length===alle.length?[]:aan});toast("Herinneringen bewaard.")}
 async function hrTest(b){b.disabled=true;try{const j=await api("/api/mail?f=herinnering-test",{method:"POST",body:"{}"});toast("Voorbeeld verstuurd naar "+j.aan+".")}catch(x){toast(x.message,true)}finally{b.disabled=false}}
@@ -3774,7 +3774,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-spi]
    In een vergadering: verslag (PDF) opladen + bevestigen dat de vergadering afgerond is + datum van de volgende vergadering.
    Daarna: verslag in Documenten › Verslagen, volgende vergadering in de agenda, mail met het verslag in bijlage naar het bestuur
    (ontvangers uit Instellingen › Herinneringen, standaard bestuur@vbha.be). */
-const vaOntv=()=>String((S.config.get("herinneringen")||{}).ontvangers||"bestuur@vbha.be");
+const vaOntv=()=>String((S.config.get("herinneringen")||{}).ontvangers||"");
 const vaPlus=(iso,n)=>{const d=agD(iso);d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 function vaBlok(v,id){const af=v.afgerond;
   if(af){const nv=af.volgendeId&&S.vergaderingen.get(af.volgendeId),doc=af.verslagDoc&&S.documenten.get(af.verslagDoc);
@@ -3801,7 +3801,7 @@ function vaDialoog(id){const v=S.vergaderingen.get(id);if(!v)return;const al=vaB
    ${fld("va_soort","Soort",`<select id="va_soort" class="sel">${selOpts(VG_SOORT,v.soort||"Bestuursvergadering")}</select>`)}${fld("va_datum","Datum *",`<input id="va_datum" type="date" value="${vd}">`)}
    ${uurVeld("va_uur",(al&&al.uur)||v.uur||"20:00","")}${fld("va_loc","Waar",inp("va_loc",(al&&al.locatie)||v.locatie,'maxlength="160"'))}
    <div class="fld full"><label for="va_ag">Agenda (optioneel)</label><textarea id="va_ag" style="height:80px;min-height:0" placeholder="Eén punt per regel">${esc((al&&al.agenda)||"")}</textarea></div>
-   <label class="sp-nat full" for="vaMail"><input type="checkbox" id="vaMail" checked><span><b>Mail naar ${esc(vaOntv())} en alle gebruikers</b><small>Met het verslag in bijlage en de datum van de volgende vergadering.</small></span></label>
+   <label class="sp-nat full" for="vaMail"><input type="checkbox" id="vaMail" checked><span><b>Mail naar alle bestuursleden${vaOntv()?" en "+esc(vaOntv()):""}</b><small>Met het verslag in bijlage en de datum van de volgende vergadering.</small></span></label>
    <div class="err full" id="vaErr"></div></form>`,
    `<button class="btn" data-va="terug" data-id="${esc(id)}">Annuleren</button><button class="btn primary" data-va="ok" data-id="${esc(id)}">Afronden</button>`)}
 function vaDropHtml(v){const f=VA_FILE;
