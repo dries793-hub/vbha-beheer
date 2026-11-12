@@ -7931,7 +7931,7 @@ function tbRij(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],b=r
     if(r.status==="aangevraagd")acts.push(`<button type="button" class="btn sm" data-tb="kopie" data-id="${esc(r.id)}">${ic("copy")}Link kopiëren</button>`);
     if(r.status==="ingediend"){acts.push(`<button type="button" class="btn sm" data-tb="ok" data-id="${esc(r.id)}">${ic("check")}Goedkeuren</button>`);acts.push(`<button type="button" class="btn sm ghost" data-tb="nee" data-id="${esc(r.id)}">Weigeren</button>`)}
     if(r.status==="goedgekeurd"){acts.push(`<button type="button" class="btn sm" data-tb="betaal" data-id="${esc(r.id)}">${ic("bank")}Betalen</button>`);acts.push(`<button type="button" class="btn sm ghost" data-tb="betaald" data-id="${esc(r.id)}">Op betaald zetten</button>`)}}
-  return `<div class="tb-r"><div class="tb-m"><div class="tb-t"><b>${esc(d.naam)}</b><span class="pill ${c}">${l}</span>${d.soort==="onkosten"?'<span class="pill neutral">onkostennota</span>':""}</div>
+  return `<div class="tb-r"><div class="tb-m"><div class="tb-t"><button type="button" class="tb-nm" data-tb="detail" data-id="${esc(r.id)}">${esc(d.naam)}</button><span class="pill ${c}">${l}</span>${d.soort==="onkosten"?'<span class="pill neutral">onkostennota</span>':""}</div>
     <div class="muted small">${esc(d.reden||"")}${d.datum?" · "+fmtDate(d.datum):""}${d.iban?" · "+esc(String(d.iban).replace(/(.{4})/g,"$1 ").trim()):""}${d.bon?` · <button type="button" class="lnkb" data-tb="bon" data-id="${esc(r.id)}">bewijsstuk</button>`:""}</div>
     ${r.status==="betaald"?`<div class="muted small">Betaald${d.betaaldOp?" op "+fmtDate(String(d.betaaldOp).slice(0,10)):""}${b?" · transactie "+fmtDate(b.datum):""}</div>`:r.status==="geweigerd"&&d.weigerReden?`<div class="muted small">Reden: ${esc(d.weigerReden)}</div>`:""}</div>
    <b class="tb-b">${eur(d.bedrag)}</b><div class="tb-a">${acts.join("")}${canWrite?`<button type="button" class="iconbtn" data-tb="weg" data-id="${esc(r.id)}" title="Verwijderen" aria-label="Verwijderen">${ic("prul")}</button>`:""}</div></div>`}
@@ -7971,6 +7971,9 @@ document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]
       if(iban)toast("Terugbetaling klaar om te betalen.");else tbLinkModal("Link voor "+esc(n),j.link,`Stuur deze link naar <b>${esc(n)}</b>. Daar vult hij of zij het rekeningnummer in; daarna kan je hier betalen.`,j.lijst.find(x=>x.id===j.id))}
     catch(x){err.textContent=x.message;t.disabled=false}return}
   if(!r)return;
+  if(a==="detail"){tbDetail(r);return}
+  if(a==="bewaar"){const g=s=>$(s).value.trim(),err=$("#tdErr");t.disabled=true;
+    try{const j=await tbApi({actie:"bewerk",id:r.id,naam:g("#tdN"),email:g("#tdE"),bedrag:num(g("#tdB")),datum:g("#tdD"),reden:g("#tdR"),iban:g("#tdI")});TB.lijst=j.lijst;closeModal();toast("Bewaard.");renderBody()}catch(x){err.textContent=x.message;t.disabled=false}return}
   if(a==="kopie"){tbLinkModal("Link voor "+esc(r.data.naam),r.link,`Stuur deze link naar <b>${esc(r.data.naam)}</b> om het rekeningnummer door te geven.`,r);return}
   if(a==="mail"){const em=($("#tbMl")||{}).value.trim();if(!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(em)){toast("Vul een geldig e-mailadres in.",true);return}t.disabled=true;
     try{const j=await tbApi({actie:"mail",id:r.id,email:em});TB.lijst=j.lijst;closeModal();toast("Mail met de link verstuurd naar "+em+".");renderBody()}catch(x){toast(x.message,true);t.disabled=false}return}
@@ -7995,3 +7998,16 @@ document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]
 .tb-lk{display:flex;gap:8px}.tb-ml{display:flex;gap:6px;flex:1;min-width:0}.tb-ml input{flex:1;min-width:0}.tb-lk input{flex:1;min-width:0}.tb-sh{display:flex;gap:8px;margin-top:10px}
 .tb-qr{display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px;align-items:start}
 @media(max-width:700px){.tb-r{grid-template-columns:minmax(0,1fr) auto}.tb-a{grid-column:1/-1;justify-content:flex-start}.tb-qr{grid-template-columns:1fr}}`;document.head.appendChild(st)}
+
+/* eigenschappen van een terugbetaling of onkostennota (klik op de naam) */
+function tbDetail(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],dis=canWrite?"":" disabled",dt=x=>x?new Date(x).toLocaleString("nl-BE",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"";
+  const H=[[d.op||r.gemaakt,d.soort==="onkosten"?"Ingediend via het formulier":"Aangemaakt"+(d.door?" door "+d.door:"")],...(d.gemaild||[]).map(x=>[x.op,"Link gemaild naar "+x.aan]),[d.ibanOp,"Rekeningnummer doorgegeven"],[d.goedgekeurdOp,"Goedgekeurd"+(d.goedgekeurdDoor?" door "+d.goedgekeurdDoor:"")],[d.geweigerdOp,"Geweigerd"+(d.weigerReden?": "+d.weigerReden:"")],[d.betaaldOp,"Betaald"]].filter(x=>x[0]).sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
+  modal(esc(d.naam),`<div class="tb-dh"><span class="pill ${c}">${l}</span><span class="pill neutral">${d.soort==="onkosten"?"onkostennota":"terugbetaling"}</span>${d.bon?`<button type="button" class="btn sm ghost" data-tb="bon" data-id="${esc(r.id)}">Bewijsstuk bekijken</button>`:""}${r.link&&r.status==="aangevraagd"?`<button type="button" class="btn sm ghost" data-tb="kopie" data-id="${esc(r.id)}">${ic("link")}Link</button>`:""}</div>
+   <form id="fTd" class="form">${fld("tdN","Naam",inp("tdN",d.naam,'maxlength="80"'+dis))}${fld("tdE","E-mail",inp("tdE",d.email||"",'type="email" maxlength="160"'+dis))}
+    ${fld("tdB","Bedrag (€)",inp("tdB",num(d.bedrag).toFixed(2).replace(".",","),'inputmode="decimal"'+dis))}${fld("tdD","Datum",`<input id="tdD" type="date" value="${esc(d.datum||"")}"${dis}>`)}
+    ${fld("tdR","Reden",inp("tdR",d.reden||"",'maxlength="300"'+dis),"full")}${fld("tdI","Rekeningnummer (IBAN)",inp("tdI",String(d.iban||"").replace(/(.{4})/g,"$1 ").trim(),'maxlength="42"'+dis),"full")}
+    <div class="full"><span class="lbl">Verloop</span><div class="tb-h">${H.map(([o,t])=>`<div><span class="muted small">${esc(dt(o))}</span><span>${esc(t)}</span></div>`).join("")}</div></div>
+    <div class="err full" id="tdErr"></div></form>`,
+   canWrite?`<button class="btn danger" data-tb="weg" data-id="${esc(r.id)}" style="margin-right:auto">Verwijderen</button><button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-tb="bewaar" data-id="${esc(r.id)}">Bewaren</button>`:`<button class="btn" data-act="closeModal">Sluiten</button>`)}
+{const st=document.createElement("style");st.textContent=`.tb-nm{border:0;background:none;padding:0;font:inherit;font-weight:700;color:var(--ink);cursor:pointer}.tb-nm:hover{color:var(--accent);text-decoration:underline}
+.tb-dh{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.tb-h{display:flex;flex-direction:column;gap:4px;font-size:13.5px}.tb-h div{display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px}`;document.head.appendChild(st)}
