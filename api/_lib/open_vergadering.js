@@ -23,7 +23,7 @@ function kloptLid(id, lid, t) {
   const a = Buffer.from(vgLidToken(id, lid)), b = Buffer.from(t);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
-const site = () => String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, "");
+const site = () => "https://vbha.be"; // openbare links (in mails en op papier) altijd via het eigen domein
 export const vgLink = id => `${site()}/vergadering?i=${encodeURIComponent(id)}&t=${vgToken(id)}`;
 export const vgLidLink = (id, lid, s) => `${site()}/vergadering?i=${encodeURIComponent(id)}&l=${encodeURIComponent(lid)}&t=${vgLidToken(id, lid)}${s ? "&s=" + s : ""}`;
 export const vgBestuur = v => /bestuur/i.test((v && v.soort) || "");

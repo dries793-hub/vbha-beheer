@@ -16,7 +16,7 @@ export function kfcKlopt(id, t) {
   const a = Buffer.from(kfcToken(id)), b = Buffer.from(t);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
-const site = () => String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, "");
+const site = () => "https://vbha.be"; // openbare links (in mails en op papier) altijd via het eigen domein
 const PVELD = ["url", "winkel", "naam", "prijs", "foto", "artikelnr", "beschikbaar", "levertijd", "gecontroleerd"];
 const pTekst = p => PVELD.map(k => k + "=" + (p[k] == null ? "" : String(p[k]))).join("|");
 export const tekenProduct = p => crypto.createHmac("sha256", sleutel()).update("vbha-product|" + pTekst(p)).digest("base64url").slice(0, 32);

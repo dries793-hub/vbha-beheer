@@ -18,7 +18,7 @@ const lang = iso => { if (!iso) return ""; const [y, m, d] = String(iso).slice(0
 const kort = iso => { if (!iso) return ""; const [y, m, d] = String(iso).slice(0, 10).split("-").map(Number); return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("nl-BE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }); };
 const plusDagen = (iso, n) => { const [y, m, d] = String(iso).slice(0, 10).split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
 const vandaag = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-const site = () => String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, "");
+const site = () => "https://vbha.be"; // openbare links (in mails en op papier) altijd via het eigen domein
 const p = (t, st = "margin:0 0 16px") => `<p style="${st}">${t}</p>`;
 /* ---------- huisstijl van de mails (2026): hoofding zoals op de facturen, inhoud in de stijl van de website ----------
    Werkt in Gmail, Apple Mail, Outlook (ook 2010-2019 via de VML-knop en vaste breedte) en op gsm. */

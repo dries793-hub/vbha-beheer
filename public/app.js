@@ -1550,7 +1550,7 @@ VIEWS.instellingen=()=>({title:"Instellingen",sub:"Boekjaren, puntensysteem, lij
   <form class="panel" id="fCfg"><div class="panel-h"><h2>Algemeen</h2></div><div class="panel-b"><div class="form">
     <div class="fld"><label for="cNaam">Naam vereniging</label><input id="cNaam" name="vereniging" value="${esc(c.vereniging)}"${d}></div>
     <div class="full bar" data-w><button class="btn primary" type="submit">Bewaren</button></div></div></div></form>
-  <div class="panel"><div class="panel-h"><h2>Inschrijfformulier voor nieuwe leden</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:10px"><span style="font-size:14px;color:var(--muted)">Deel deze link met wie lid wil worden. Iedereen kan het formulier invullen zonder aan te melden. Nieuwe leden komen meteen in de ledenlijst en je krijgt een melding op het dashboard.</span><div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(location.origin+"/inschrijven")}" aria-label="Link naar het inschrijfformulier" onclick="this.select()"><button class="btn" data-act="kopieerLink" data-v="${esc(location.origin+"/inschrijven")}">${ic("copy")}Kopiëren</button><a class="btn" href="/inschrijven" target="_blank" rel="noopener">Openen</a></div></div></div>
+  <div class="panel"><div class="panel-h"><h2>Inschrijfformulier voor nieuwe leden</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:10px"><span style="font-size:14px;color:var(--muted)">Deel deze link met wie lid wil worden. Iedereen kan het formulier invullen zonder aan te melden. Nieuwe leden komen meteen in de ledenlijst en je krijgt een melding op het dashboard.</span><div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc("https://vbha.be/inschrijven")}" aria-label="Link naar het inschrijfformulier" onclick="this.select()"><button class="btn" data-act="kopieerLink" data-v="${esc("https://vbha.be/inschrijven")}">${ic("copy")}Kopiëren</button><a class="btn" href="/inschrijven" target="_blank" rel="noopener">Openen</a></div></div></div>
   <div class="note info">Toegang geven: nodig een bestuurslid uit in Supabase via Authentication › Users › Invite user. Na het kiezen van een wachtwoord kan die persoon alles bekijken en bewerken. Voor alleen-lezen zet je de rol in de tabel <span class="kbd">bestuur</span> op <span class="kbd">lezer</span>. Je bent aangemeld als <b>${esc(ME?ME.email:"")}</b>.</div>`}});
 
 /* ============ modals ============ */
@@ -2550,7 +2550,7 @@ document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.docq
 
 /* ---- Deellinks: een map delen met een externe ---- */
 const deelToken=()=>{const b=new Uint8Array(24);crypto.getRandomValues(b);return btoa(String.fromCharCode(...b)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")};
-const deelUrl=t=>location.origin+"/deel?t="+t;
+const deelUrl=t=>"https://vbha.be/deel?t="+t;
 const deelDag=iso=>{const [y,m,d]=String(iso||"").split("-");return d?d+"/"+m+"/"+y:""};
 const deelPlus=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.toLocaleDateString("sv-SE")};
 async function deelLijst(m){const {data,error}=await SB.from("deellinks").select("id,data").eq("data->>map",m);if(error)throw sbErr(error);
@@ -2721,7 +2721,7 @@ function mlAgendaHtml(){const L=mlAgendaItems();if(!L.length)return"<p><em>Er st
   return L.map(x=>{const rij=[`&bull; <strong>Datum:</strong> ${esc(mlLang(x.datum))}`];if(x.uur)rij.push(`&bull; <strong>Tijd:</strong> ${esc(x.uur)}`);if(x.locatie)rij.push(`&bull; <strong>Locatie:</strong> ${esc(x.locatie)}`);
     let extra=x.info?`<p>${esc(x.info).replace(/\n/g,"<br>")}</p>`:"";
     if(x.id==="bk"||x.id==="kf"){const c=x.id==="bk"?bkCfg():kfCfg();const st=insStatus(c,JAAR+(x.id==="bk"?"-12-01":"-12-07"));
-      if(st.open)extra+=`<p>Inschrijven kan tot en met ${esc(mlKort(st.tot))}.</p><p data-blok="knop"><a href="${location.origin}/${x.id==="bk"?"banket":"kinderfeest"}">Inschrijven ${x.id==="bk"?"banket":"kinderfeest"}</a></p>`}
+      if(st.open)extra+=`<p>Inschrijven kan tot en met ${esc(mlKort(st.tot))}.</p><p data-blok="knop"><a href="https://vbha.be/${x.id==="bk"?"banket":"kinderfeest"}">Inschrijven ${x.id==="bk"?"banket":"kinderfeest"}</a></p>`}
     return `<div data-blok="kader"><h2>${esc(x.titel)}</h2>${rij.map(p=>"<p>"+p+"</p>").join("")}${extra}</div>`}).join("")}
 
 /* ---------- huisstijl (2026): hoofding zoals op de facturen, inhoud in de stijl van de website ----------
@@ -3720,7 +3720,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-fkl]
 const SPI_DEF=[{id:"brandweerman",naam:"Brandweerman",bedrag:150,omschrijving:"1 vak · 1 maand · Toegankelijk instappakket"},{id:"sergeant",naam:"Sergeant",bedrag:250,omschrijving:"Dubbel vak · 1 maand · Meer ruimte voor uw logo"},{id:"luitenant",naam:"Luitenant",bedrag:500,omschrijving:"Dubbel vak · om de 2 maanden · 6 vermeldingen per jaar"},{id:"kolonel",naam:"Kolonel",bedrag:1000,omschrijving:"Dubbel vak · elke maand · 12 maanden topzichtbaarheid"}];
 function spiCfg(){const c=S.config.get("sponsoring")||{},nu=new Date(),kj=Number(c.kalenderjaar)||(nu.getFullYear()+(nu.getMonth()>=8?2:1));
   return{open:c.open!==false,kalenderjaar:kj,deadline:c.deadline||((kj-1)+"-09-01"),formules:Array.isArray(c.formules)&&c.formules.length?c.formules:SPI_DEF,vrij:{aan:true,min:50,...(c.vrij||{})},melding:c.melding??"info@vbha.be",logoMail:c.logoMail||"info@vbha.be"}}
-const spiUrl=()=>location.origin+"/sponsor";
+const spiUrl=()=>"https://vbha.be/sponsor";
 const spiMag=()=>ROL==="admin";
 function spiQr(txt,cell){if(!window.qrcode)return null;const q=qrcode(0,"M");q.addData(txt);q.make();return q}
 function spiFormRij(f,i){return `<div class="spi-f" data-i="${i}"><input class="spi-n" value="${esc(f.naam||"")}" placeholder="Naam" aria-label="Naam formule"><span class="spi-e"><span>€</span><input class="spi-b" inputmode="decimal" value="${esc(String(f.bedrag??"").replace(".",","))}" aria-label="Bedrag"></span>
@@ -4846,7 +4846,7 @@ function kaToon(id){const a=S.kalenderaanvragen.get(id);if(!a||a.lat==null||!KR.
 async function kaStatus(id){const a=S.kalenderaanvragen.get(id);if(!a||!canWrite)return;const {id:_i,...d}=a;
   const n={...d,status:a.status==="gedaan"?"open":"gedaan",nieuw:false,...(a.status==="gedaan"?{gedaanOp:null,gedaanDoor:null}:{gedaanOp:new Date().toISOString(),gedaanDoor:ME_NAME||""})};
   S.kalenderaanvragen.set(id,{...n,id});dirty=true;kaTeken();try{await write("kalenderaanvragen",id,n)}catch(e){}renderBody()}
-function kaPanel(){const L0=kaLijst(),open=L0.filter(a=>a.status!=="gedaan").length,url=location.origin+"/kalender";
+function kaPanel(){const L0=kaLijst(),open=L0.filter(a=>a.status!=="gedaan").length,url="https://vbha.be/kalender";
   const rij=a=>{const g=a.status==="gedaan";return `<tr class="${g?"ka-g":""}"><td><button type="button" class="kr-link" data-ka="toon" data-id="${esc(a.id)}"${a.lat==null?" disabled":""} title="${a.lat==null?"Adres niet gevonden op de kaart":"Toon op de kaart"}"><span class="ka-mini${g?" ok":""}"></span>${esc(a.adres)}</button>${a.lat==null?' <span class="pill warn">niet op kaart</span>':""}${a.tochNiet?' <span class="pill nok" title="De straat stond als bedeeld, maar de bewoner kreeg geen kalender">toch niet ontvangen</span>':""}${a.nieuw?' <span class="pill info">nieuw</span>':""}</td>
     <td class="nowrap small muted">${esc(kaDT(a.aangemeld))}${a.bron==="manueel"?" · manueel":""}</td>
     <td class="nowrap ka-act">${canWrite?`<button type="button" class="btn sm${g?"":" primary"}" data-ka="status" data-id="${esc(a.id)}">${g?"✓ Gebust":"Gebust?"}</button><button type="button" class="ka-x" data-ka="wis" data-id="${esc(a.id)}" aria-label="Verwijderen" title="Verwijderen">✕</button>`:g?'<span class="pill ok">Gebust</span>':'<span class="pill nok">Open</span>'}</td></tr>`};
@@ -4878,7 +4878,7 @@ function kaMelding(){const L0=kaLijst().filter(a=>a.nieuw);if(!L0.length)return"
 
 /* ---- tandwiel op de pagina Kalenderronde: link naar de openbare aanvraagpagina ---- */
 {const _v=VIEWS.ronde;const n=function(){const v=_v.apply(this,arguments);if(typeof ADM!=="function"||ADM())v.actions=String(v.actions||"")+`<button class="btn iconbtn" data-act="kaInst" aria-label="Instellingen kalenderronde" title="Instellingen kalenderronde">${ic("instellingen")}</button>`;return v};Object.assign(n,_v);VIEWS.ronde=n}
-function kaInst(){const u=location.origin+"/kalender",k=location.origin+"/kaart";
+function kaInst(){const u="https://vbha.be/kalender",k="https://vbha.be/kaart";
   const rij=(t,h,url,bestand)=>`<div class="pi-sec ka-qrs"><h4>${t}</h4><p class="pi-note" style="margin:0 0 8px">${h}</p><div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(url)}" onclick="this.select()"><button type="button" class="btn" data-act="kopieerLink" data-v="${esc(url)}">${ic("copy")}Kopiëren</button><a class="btn" href="${esc(url)}" target="_blank" rel="noopener">Openen</a></div>
     <div class="ka-qr"><img alt="QR-code naar ${esc(url)}" src="${kaQr(url,8)}" width="148" height="148"><div class="ka-qr-b"><span class="muted small">QR-code, bv. voor een affiche, Facebook of de website.</span><button type="button" class="btn sm" data-kaqr="kopie" data-v="${esc(url)}">${ic("copy")}QR kopiëren</button><button type="button" class="btn sm" data-kaqr="png" data-v="${esc(url)}" data-n="${esc(bestand)}">${ic("download")}QR downloaden</button></div></div></div>`;
   modal("Instellingen kalenderronde",rij("Kalender aan huis","Openbare pagina waar mensen hun adres doorgeven, zodat we zeker langskomen. Elk adres verschijnt als rode stip op de kaart en in de lijst onder de kaart.",u,"QR kalender aan huis")+rij("Openbare kalenderkaart","Kaart zonder aanmelden met de stand van de ronde (zonder namen of aangevraagde adressen).",k,"QR kalenderkaart"),`<button class="btn" data-act="closeModal">Sluiten</button>`)}
@@ -5049,7 +5049,7 @@ document.addEventListener("click",e=>{const t=e.target.closest('[data-act="kalIn
   const ok=$("#fiOk");if(!ok||!ok.onclick)return;const _o=ok.onclick;
   ok.onclick=async function(ev){const n=$("#fiNaam").value.trim();if(!n){toast("Vul de naam van de vereniging in.",true);return}
     const cur=S.config.get("algemeen")||{};S.config.set("algemeen",{...cur,id:"algemeen",vereniging:n});return _o.call(this,ev)}}}
-{const _l=ledenInst;ledenInst=function(){_l.apply(this,arguments);return; /* blok "Inschrijfformulier voor nieuwe leden" niet meer tonen (op vraag) */const c=$("#liCat");const sec=c&&c.closest(".pi-sec");if(!sec)return;const u=location.origin+"/inschrijven";
+{const _l=ledenInst;ledenInst=function(){_l.apply(this,arguments);return; /* blok "Inschrijfformulier voor nieuwe leden" niet meer tonen (op vraag) */const c=$("#liCat");const sec=c&&c.closest(".pi-sec");if(!sec)return;const u="https://vbha.be/inschrijven";
   sec.insertAdjacentHTML("afterend",`<div class="pi-sec"><h4>Inschrijfformulier voor nieuwe leden</h4><p class="pi-note" style="margin:0 0 8px">Deel deze link met wie lid wil worden. Iedereen kan het formulier invullen zonder aan te melden. Nieuwe leden komen meteen in de ledenlijst en je krijgt een melding op het dashboard.</p>
    <div class="bar" style="margin:0"><input class="sel" style="flex:1;min-width:0" readonly value="${esc(u)}" aria-label="Link naar het inschrijfformulier" onclick="this.select()"><button type="button" class="btn" data-act="kopieerLink" data-v="${esc(u)}">${ic("copy")}Kopiëren</button><a class="btn" href="/inschrijven" target="_blank" rel="noopener">Openen</a></div></div>`)}}
 
@@ -5282,7 +5282,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-fu]"
   else if(a==="annuleer"){const r=S.tickets.get(id);if(typeof ADM==="function"&&!ADM())return;confirmBox(`Gekochte tickets zijn niet annuleerbaar. Enkel een administrator kan dit uitzonderlijk doen.<br><br>Bestelling van <b>${esc(fuNaam(r))}</b> toch annuleren? De tickets worden ongeldig${r.punten?" en de kaarten in het puntensysteem worden teruggeteld":""}.<br><small class="muted">Het geld terugstorten doe je zelf.</small>`,"Toch annuleren",async()=>{try{await api("/api/mail?f=fuif",{method:"POST",body:JSON.stringify({actie:"annuleer",id})});toast("Bestelling geannuleerd.")}catch(x){toast(x.message,true)}})}});
 
 /* ---------- instellingen ---------- */
-function fuInst(){const c=fuCfg(),d=canWrite?"":" disabled",u=location.origin+"/fuif";
+function fuInst(){const c=fuCfg(),d=canWrite?"":" disabled",u="https://vbha.be/fuif";
   modal("Instellingen "+(c.naam||"fuif"),`<form id="fFu" class="form" onsubmit="return false">
     <div class="full spi-st"><div class="spi-st-r"><label class="spi-sw" for="fuOpen"><input type="checkbox" id="fuOpen" role="switch"${c.open!==false?" checked":""}${d}><span class="spi-sw-t" aria-hidden="true"></span><b>Online ticketverkoop open</b></label><span class="pill ${fuStatus(c).k==="open"?"ok":"neutral"}" style="margin-left:auto">${esc(fuStatus(c).t)}</span></div><small class="muted" style="display:block;margin-top:6px">De verkoop sluit ook vanzelf bij de start van de fuif (datum en uur bij "Deuren open"). Zonder uur: om middernacht na de fuif.</small></div>
     ${fld("fuN","Naam",inp("fuN",c.naam,d))}${fld("fuD","Datum",`<input id="fuD" type="date" value="${esc(c.datum)}"${d}>`)}
@@ -5347,7 +5347,7 @@ async function fuCheck(txt){if(!FUS)return;FUS.bezig=true;const r=$("#fuRes");
 
 /* ---------- gastlogin kassa: kassacode (enkel scannen, 24 uur geldig op een toestel) ---------- */
 const fuKassaTot=c=>c.kassa&&c.kassa.code?(Date.parse(c.kassa.sinds||"")||0)+864e5:0;
-function fuKassaHtml(c){const tot=fuKassaTot(c),verl=tot&&Date.now()>tot,k=c.kassa&&c.kassa.code&&!verl?c.kassa.code:"",u=location.origin+"/kassa"+(k?"?code="+k:"");
+function fuKassaHtml(c){const tot=fuKassaTot(c),verl=tot&&Date.now()>tot,k=c.kassa&&c.kassa.code&&!verl?c.kassa.code:"",u="https://vbha.be/kassa"+(k?"?code="+k:"");
   return `<div class="pi-sec ka-qrs"><h4>Gastlogin voor de kassa</h4><p class="pi-note" style="margin:0 0 8px">Mensen aan de kassa die geen bestuurslid zijn, scannen via <b>${esc(location.host)}/kassa</b> met een kassacode. Ze kunnen enkel tickets en drankkaarten scannen en verkopen, niets anders zien of wijzigen. Een kassacode is <b>1 dag geldig</b>. Maak je een nieuwe code, dan werkt de oude meteen niet meer.</p>
     ${k?`<p class="small" style="margin:0 0 8px"><span class="pill ok">Geldig tot ${esc(new Date(tot).toLocaleString("nl-BE",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))}</span></p>`:verl?'<p class="small" style="margin:0 0 8px"><span class="pill neutral">De vorige kassacode is verlopen</span></p>':""}
     ${k?`<div class="bar" style="margin:0;align-items:center"><span style="font:700 24px ui-monospace,Menlo,monospace;letter-spacing:.18em">${esc(k)}</span><span class="grow"></span>${canWrite?`<button type="button" class="btn sm" data-fu="kassacode">Nieuwe code</button><button type="button" class="btn sm ghost danger" data-fu="kassauit">Uitschakelen</button>`:""}</div>
@@ -5571,7 +5571,7 @@ function kassaInst(act){const c=kaCfg();KA_ED.act=act||(kaActs()[c.actief]?c.act
     if(fout.length){$("#kaErr").innerHTML=fout.map(esc).join("<br>");return}
     const acts={};for(const [a,L] of Object.entries(KA_ED.tegels))acts[a]={tegels:L.map(t=>({id:t.id,naam:String(t.naam).trim().slice(0,40),prijs:Math.round(Number(t.prijs)*100)/100,kleur:t.kleur||"grijs",icoon:t.icoon||"",...((c=>c&&c!==KA_CAT[a]?{categorie:String(c).trim().slice(0,60)}:{})(t.categorie||(/^a-/.test(a)?kaCatDef(a):""))),...(t.inkom?{inkom:true}:{})}))};
     closeModal();await kaBewaar({activiteiten:{...(kaCfg().activiteiten||{}),[KA_ED.act]:acts[KA_ED.act]}});toast("Kassategels bewaard. De kassa neemt ze binnen een minuut over.");render(true)}}
-function kaEdTeken(){const E=KA_ED,L=E.tegels[E.act]||[],code=kaCode(),tot=kaCodeTot(code),geldig=code&&tot>Date.now(),u=location.origin+"/kassa"+(geldig?"?code="+code.code:"");
+function kaEdTeken(){const E=KA_ED,L=E.tegels[E.act]||[],code=kaCode(),tot=kaCodeTot(code),geldig=code&&tot>Date.now(),u="https://vbha.be/kassa"+(geldig?"?code="+code.code:"");
   const kl=k=>(KASSA_KLEUREN[k]||KASSA_KLEUREN.grijs);
   $("#kaEd").innerHTML=`${E.mode==="tegels"?"":`<div class="pi-sec"><h4>Actieve kassa</h4><div class="seg ka-seg" role="radiogroup">${Object.entries(kaActs()).map(([a,n])=>`<button type="button" class="${E.actief===a?"on":""}" data-kae="actief" data-v="${a}">${esc(n)}</button>`).join("")}</div>
       <div class="spi-st" style="margin-top:12px"><div class="spi-st-r"><label class="spi-sw" for="kaScan"><input type="checkbox" id="kaScan" role="switch"${E.scan?" checked":""}><span class="spi-sw-t" aria-hidden="true"></span><b>Scanfunctie</b></label></div></div></div>`}
@@ -5783,7 +5783,7 @@ async function shItemBewaar(){const g=i=>($("#"+i).value||"").trim(),prijs=Math.
 
 /* ---------- instellingen ---------- */
 let SHT=null;
-function shInst(){const c=shCfg(),u=location.origin+"/shop";SHT=c.tarieven.map(t=>({...t}));
+function shInst(){const c=shCfg(),u="https://vbha.be/shop";SHT=c.tarieven.map(t=>({...t}));
   modal("Instellingen webshop",`<form id="fShI" class="form" onsubmit="return false">
     <div class="full spi-st"><div class="spi-st-r"><label class="spi-sw" for="shO"><input type="checkbox" id="shO" role="switch"${c.open!==false?" checked":""}><span class="spi-sw-t" aria-hidden="true"></span><b>Webshop open</b></label></div></div>
     ${fld("shIN","Naam van de webshop",inp("shIN",c.naam))}${fld("shIA","Afhaaladres (kazerne)",inp("shIA",c.afhaaladres))}
@@ -7972,9 +7972,13 @@ document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]
   if(a==="weg"){confirmBox(`Deze ${r.data.soort==="onkosten"?"onkostennota":"terugbetaling"} van <b>${esc(r.data.naam)}</b> verwijderen?`,"Verwijderen",async()=>{try{const j=await tbApi({actie:"weg",id:r.id});TB.lijst=j.lijst;renderBody()}catch(x){toast(x.message,true)}});return}});
 /* dashboard: nieuwe onkostennota's om goed te keuren */
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){if(!fcMag())return b.apply(this,arguments);if(!TB.lijst)tbLaad();
-  const L=(TB.lijst||[]).filter(r=>r.status==="ingediend");
-  const x=L.length?`<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>${L.length===1?"Een onkostennota":L.length+" onkostennota's"} om goed te keuren</b><div class="nm-l">${L.slice(0,5).map(r=>`<a class="nm-i" href="#terug"><b>${esc(r.data.naam)}</b><span>${eur(r.data.bedrag)} · ${esc(String(r.data.reden||"").slice(0,40))}</span></a>`).join("")}</div></div></div>`:"";
+  const L=(TB.lijst||[]).filter(r=>r.status==="ingediend"),I=(TB.lijst||[]).filter(r=>r.status==="goedgekeurd"&&r.data.nieuw&&r.data.ibanOp);
+  const y=I.length?`<div class="nmeld dm-b" role="status"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>${I.length===1?"Rekeningnummer doorgegeven":I.length+" rekeningnummers doorgegeven"}: klaar om terug te betalen</b><div class="nm-l">${I.slice(0,5).map(r=>`<a class="nm-i" href="#terug"><b>${esc(r.data.naam)}</b><span>${eur(r.data.bedrag)} · ${esc(String(r.data.reden||"").slice(0,40))}</span></a>`).join("")}</div></div></div>`:"";
+  const x=y+(L.length?`<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>${L.length===1?"Een onkostennota":L.length+" onkostennota's"} om goed te keuren</b><div class="nm-l">${L.slice(0,5).map(r=>`<a class="nm-i" href="#terug"><b>${esc(r.data.naam)}</b><span>${eur(r.data.bedrag)} · ${esc(String(r.data.reden||"").slice(0,40))}</span></a>`).join("")}</div></div></div>`:"");
   return x+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+// wie de pagina Terugbetalingen opent, heeft de doorgegeven rekeningnummers gezien
+{const _v=VIEWS.terug;VIEWS.terug=function(){const v=_v.apply(this,arguments);const b=v.body;v.body=function(){const h=b.apply(this,arguments);
+  if(canWrite&&TB.lijst)for(const r of TB.lijst.filter(r=>r.data.nieuw&&r.status==="goedgekeurd")){r.data.nieuw=false;tbApi({actie:"gezien",id:r.id}).catch(()=>{})}return h};return v}}
 {const st=document.createElement("style");st.textContent=`.tb-r{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}.tb-r:first-child{border-top:0}
 .tb-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.tb-b{font-variant-numeric:tabular-nums;white-space:nowrap}.tb-a{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .tb-a .iconbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}.lnkb{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline}
