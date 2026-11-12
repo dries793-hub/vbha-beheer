@@ -4159,19 +4159,22 @@ function inkAnalyse(t){const tekst=String(t||""),bedragen=[],tot=[];
   const dRe=/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](20\d{2})/;const dm=tekst.match(new RegExp("(?:factuur\\s*datum|datum\\s*factuur|invoice\\s*date|date\\s*de\\s*facture|datum)\\s*[:]?\\s*"+dRe.source,"i"))||tekst.match(dRe);
   let datum="";if(dm){const n=dm.length-3,dd=+dm[n],mm=+dm[n+1],yy=+dm[n+2];if(dd>=1&&dd<=31&&mm>=1&&mm<=12)datum=`${yy}-${String(mm).padStart(2,"0")}-${String(dd).padStart(2,"0")}`}
   return{tekst:norm(tekst),bedragen:[...new Set(bedragen)],totaal,ogm,nr,datum}}
+/* woorden die niets zeggen over de leverancier: onze eigen naam en gemeente (staan als klant op elke factuur) */
+let INK_STOP=null;function inkStop(){if(INK_STOP)return INK_STOP;const eigen=norm((S.config&&S.config.get&&S.config.get("algemeen")||{}).vereniging||"Vriendenkring Brandweer Hoofdpost Aalst");
+  INK_STOP=new Set(["bvba","comm","vzw","sprl","nv","bv","srl","company","invoicing","factuur","facturatie","belgie","belgium","aalst","brandweer","vriendenkring","hoofdpost","zone","zuidoost",...eigen.split(/[^a-z0-9]+/).filter(x=>x.length>=4)]);return INK_STOP}
 function inkVoorstel(d){const A=INK.txt.get(d.id);if(!A||A.fout)return[];const dag=inkDatum(d),t0=new Date(dag+"T12:00").getTime();const lev=norm(inkVan(d));
   const al=inkSom(d.id),tot=inkTot(d)||A.totaal||0,doel=al>0&&tot?Math.round((tot-al)*100)/100:A.totaal;
   const V=[...S.boekingen.values()].filter(b=>b.richting==="uit"&&!b.documentId).map(b=>{let sc=0;const w=[];
     if(doel&&Math.abs(b.bedrag-doel)<0.005){sc+=5;w.push(al>0?"resterend bedrag":"zelfde bedrag")}else if(A.bedragen.some(v=>Math.abs(v-b.bedrag)<0.005)){sc+=3;w.push("bedrag in de factuur")}
     const med=String(b.mededeling||"");if(A.ogm&&med.replace(/\D/g,"").includes(A.ogm)){sc+=6;w.push("gestructureerde mededeling")}
     if(A.nr&&A.nr.length>=4&&med.toUpperCase().replace(/\s/g,"").includes(A.nr.toUpperCase())){sc+=5;w.push("factuurnummer")}
-    const p=norm(b.partij||"").split(/[^a-z0-9]+/).filter(x=>x.length>=4&&!["bvba","comm","vzw","sprl"].includes(x));if(p.some(x=>A.tekst.includes(x)||lev.includes(x))){sc+=3;w.push("naam leverancier")}
+    const p=norm(b.partij||"").split(/[^a-z0-9]+/).filter(x=>x.length>=4&&!inkStop().has(x));if(p.some(x=>A.tekst.includes(x)||lev.includes(x))){sc+=3;w.push("naam leverancier")}
     const dd=Math.abs(new Date(b.datum+"T12:00").getTime()-t0)/864e5;if(dd>120)sc-=3;else if(dd<=30)sc+=1;
     return{b,bs:[b],sc,w}}).filter(x=>x.sc>=3&&x.w.length).sort((a,b)=>b.sc-a.sc||Math.abs(new Date(a.b.datum)-t0)-Math.abs(new Date(b.b.datum)-t0)).slice(0,3);
   // in 2 keer betaald (betaallimiet): 2 transacties die samen het bedrag vormen
   if(doel&&!V.some(x=>x.w.includes("zelfde bedrag")||x.w.includes("resterend bedrag"))){
     const K=[...S.boekingen.values()].filter(b=>b.richting==="uit"&&!b.documentId&&Math.abs(new Date(b.datum+"T12:00")-t0)/864e5<=120);
-    const pw=b=>norm(b.partij||"").split(/[^a-z0-9]+/).filter(x=>x.length>=4&&!["bvba","comm","vzw","sprl"].includes(x));
+    const pw=b=>norm(b.partij||"").split(/[^a-z0-9]+/).filter(x=>x.length>=4&&!inkStop().has(x));
     for(const x of paarVoorstel(K,doel)){const lv=x.bs.some(b=>pw(b).some(y=>A.tekst.includes(y)||lev.includes(y)));if(!x.zelfde&&!lv)continue;
       V.unshift({bs:x.bs,sc:9,w:["2 betalingen samen = "+eur(doel)].concat(lv?["naam leverancier"]:[])})}}
   return V.slice(0,3)}
