@@ -7269,7 +7269,7 @@ function kfcPot(r){const K=(r.kinderen||[]).map(k=>({k,B:kfcBudget(k.geb)})).fil
   const best=g.reduce((t,x)=>t+(x.k.cadeau.bon?x.B.bedrag:Number(x.k.cadeau.totaal)||0),0),extra=Math.max(0,Math.round((best-potG)*100)/100),bet=Number(r.bijbetaald)||0,alles=K.length&&g.length===K.length;
   return{pot,best,extra,bet,alles,open:alles?Math.max(0,Math.round((extra-bet)*100)/100):0}}
 function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L=kfcKids();if(!L.length)return"";const s=kfcStats(L),M=kfMailCfg(),mag=canWrite;
-  const pas=x=>KFCD.f==="alle"||(KFCD.f==="bon"?(x.st==="bon"||x.st==="geenkeuze"):KFCD.f==="bij"?kfcPot(x.r).extra>0:KFCD.f==="gekozen"?(x.st==="gekozen"||x.st==="vbha"):x.st===KFCD.f);
+  const pas=x=>KFCD.f==="alle"||(KFCD.f==="bon"?(x.st==="bon"||x.st==="geenkeuze"||x.st==="vbha"):KFCD.f==="bij"?kfcPot(x.r).extra>0:x.st===KFCD.f);
   // per gezin (inschrijving)
   const G=new Map();for(const x of L){if(!G.has(x.r.id))G.set(x.r.id,{r:x.r,K:[]});G.get(x.r.id).K.push(x)}
   const gez=[...G.values()].filter(g=>g.K.some(pas)).sort((a,b)=>KFCD.d*String(a.r.lid||"").localeCompare(String(b.r.lid||""),"nl"));
@@ -7301,19 +7301,19 @@ function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L
   return `<div class="panel kcd"><div class="panel-h"><h2>Cadeaus</h2>${kfcVoorbij()?'<span class="pill neutral">afgesloten</span>':""}<span class="grow"></span>
     ${mag?`<button type="button" class="btn sm" data-kfc="controle" title="Prijs en voorraad opnieuw opvragen bij de winkels">Opnieuw controleren</button><button type="button" class="btn sm" data-kfc="vergelijk" title="Voor elk gekozen product de prijs bij de andere winkel opzoeken (zelfde EAN)">Prijzen vergelijken</button><button type="button" class="btn sm primary" data-kfc="bestel">${ic("download")}Bestellijst</button>`:""}</div>
    <div class="panel-b"><div class="tiles kcd-t">
-     <div class="tile"><span class="lbl">Gekozen</span><span class="val">${s.gekozen+s.vbha}</span></div>
-     <div class="tile"><span class="lbl">Bon bol.com</span><span class="val">${s.bon+s.geenkeuze}</span></div>
+     <div class="tile"><span class="lbl">Gekozen</span><span class="val">${s.gekozen}</span></div>
+     <div class="tile"><span class="lbl">Bon bol.com</span><span class="val">${s.bon+s.geenkeuze+s.vbha}</span></div>
      <div class="tile"><span class="lbl">Nog niet gekozen</span><span class="val">${s.open}</span></div>
      <div class="tile"><span class="lbl">Bijbetalingen</span><span class="val">${bijOpen.length+bijOk.length}</span></div></div>
-   <div class="kc-zb"><div class="search">${ic("search")}<input id="kcdQ" placeholder="Zoek op lid, kind of product" value="${esc(KFCQ)}" autocomplete="off"></div><div class="seg kc-f" role="group" aria-label="Filter cadeaus">${chip("alle","Alle")}${chip("gekozen","Gekozen",s.gekozen+s.vbha)}${chip("bon","Bon",s.bon+s.geenkeuze)}${chip("open","Nog niet gekozen",s.open)}${bijOpen.length+bijOk.length?chip("bij","Bijbetaling",bijOpen.length+bijOk.length):""}</div></div>
+   <div class="kc-zb"><div class="search">${ic("search")}<input id="kcdQ" placeholder="Zoek op lid, kind of product" value="${esc(KFCQ)}" autocomplete="off"></div><div class="seg kc-f" role="group" aria-label="Filter cadeaus">${chip("alle","Alle")}${chip("gekozen","Gekozen",s.gekozen)}${chip("bon","Bon",s.bon+s.geenkeuze+s.vbha)}${chip("open","Nog niet gekozen",s.open)}${bijOpen.length+bijOk.length?chip("bij","Bijbetaling",bijOpen.length+bijOk.length):""}</div></div>
    <div class="kc-l"><div class="kc-r kc-hd">${th("naam","Kind")}<div class="kc-b">Budget</div><div>Keuze</div>${th("bedrag","Bedrag","kc-t")}${th("besteld","Besteld","kc-v")}</div>${(plat?plat.map(kind).join(""):gez.map(gezin).join(""))||'<div class="empty">Geen kinderen in deze selectie.</div>'}</div></div></div>`}
 // bestellijst per winkel + bonnen
-function kfcBestel(){const L=kfcKids(),W={},bon=[];for(const x of L){if(x.st==="gekozen")for(const it of x.k.cadeau.items)(W[it.winkel]||(W[it.winkel]=[])).push({x,it});if(x.st==="bon"||x.st==="geenkeuze")bon.push(x)}
+function kfcBestel(){const L=kfcKids(),W={},bon=[];for(const x of L){if(x.st==="gekozen")for(const it of x.k.cadeau.items)(W[it.winkel]||(W[it.winkel]=[])).push({x,it});if(x.st==="bon"||x.st==="geenkeuze"||x.st==="vbha")bon.push(x)}
   const vink=x=>`<label class="cbx small"><input type="checkbox" data-kfc="besteld" data-id="${esc(x.r.id)}" data-i="${x.i}"${x.besteld?" checked":""}${canWrite?"":" disabled"}> besteld</label>`;
   const sec=Object.entries(W).map(([w,L2])=>`<div class="pi-sec"><h4>${esc(w)} · ${L2.length} ${L2.length===1?"product":"producten"} · ${eur(L2.reduce((s,y)=>s+(Number(y.it.prijs)||0),0))}</h4>
     ${L2.map(({x,it})=>`<div class="kcd-b"><div style="min-width:0"><b>${esc(it.naam||"")}</b> <span class="muted small">voor ${esc(x.k.naam)} (${esc(x.r.lid||"")})</span>${it.beschikbaar===false?' <span class="pill nok">niet op voorraad</span>':""}${kfcAlt(it)}</div><span class="nowrap"><b>${eur(it.prijs)}</b></span><a class="btn sm" href="${esc(it.url)}" target="_blank" rel="noopener">Openen</a>${vink(x)}</div>`).join("")}</div>`).join("");
   modal("Bestellijst cadeaus kinderfeest",`${kfcPluspasHtml()}${sec||'<p class="muted">Nog geen gekozen cadeaus.</p>'}
-    ${bon.length?`<div class="pi-sec"><h4>Bonnen bol.com · ${bon.length} · ${eur(bon.reduce((s,x)=>s+(x.B.bedrag||0),0))}</h4>${bon.map(x=>`<div class="kcd-b"><div><b>${esc(x.k.naam)}</b> <span class="muted small">${esc(x.r.lid||"")}${x.st==="geenkeuze"?" · geen keuze":""}</span></div><span class="nowrap"><b>${eur(x.B.bedrag)}</b></span><span></span>${vink(x)}</div>`).join("")}</div>`:""}`,
+    ${bon.length?`<div class="pi-sec"><h4>Bonnen bol.com · ${bon.length} · ${eur(bon.reduce((s,x)=>s+(x.B.bedrag||0),0))}</h4>${bon.map(x=>`<div class="kcd-b"><div><b>${esc(x.k.naam)}</b> <span class="muted small">${esc(x.r.lid||"")}${x.st==="geenkeuze"?" · geen keuze":x.st==="vbha"?" · voorzien door de vriendenkring":""}</span></div><span class="nowrap">${x.B.bedrag!=null?`<b>${eur(x.B.bedrag)}</b>`:'<span class="muted small">bedrag?</span>'}</span><span></span>${vink(x)}</div>`).join("")}</div>`:""}`,
     `<button class="btn" data-kfc="xlsx" style="margin-right:auto">${ic("download")}Excel</button><button class="btn primary" data-act="closeModal">Sluiten</button>`,{wide:true})}
 /* ---------- bonnen kopen via Pluspas (korting enkel op bonnen van bol.com; Dreamland zonder korting) ----------
    Per winkel: wat er nog besteld moet worden (gekozen producten + bonnen bol.com voor wie een bon koos of niets koos).
