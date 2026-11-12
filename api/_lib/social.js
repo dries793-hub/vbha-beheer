@@ -81,7 +81,8 @@ async function zetNieuws(sb, id, d, datum) {
     const { error } = await sb.storage.from(BUCKET).copy(f.pad, pad); if (error) throw new Error("Foto kon niet naar de website gekopieerd worden.");
     fotos.nieuws = { pad, v, w: f.w || null, h: f.h || null };
   }
-  const nieuws = d ? { id, titel: t(d.titel, 140), tekst: t(d.tekst, 2200), link: d.link || "", datum } : null;
+  const knop = d && d.webKnop && d.webKnop.aan && (d.webKnop.url || d.link) ? { label: t(d.webKnop.label, 60) || "Meer info", url: d.webKnop.url || d.link } : null;
+  const nieuws = d ? { id, titel: t(d.titel, 140), tekst: t(d.tekst, 2200), knop, datum } : null;
   const { error } = await sb.from("config").upsert({ id: "website", data: { ...c, nieuws, fotos } }); if (error) throw error;
   if (oud) await sb.storage.from(BUCKET).remove([oud]).catch(() => {});
 }
@@ -117,7 +118,8 @@ async function publiceer(sb, row) {
 function schoon(p) {
   const fotos = (Array.isArray(p.fotos) ? p.fotos : []).slice(0, 10).filter(f => f && typeof f.pad === "string" && f.pad.startsWith("Social/")).map(f => ({ pad: f.pad, w: Number(f.w) || null, h: Number(f.h) || null }));
   const k = p.kanalen || {};
-  return { tekst: t(p.tekst, 2200), titel: t(p.titel, 140), link: veiligeUrl(p.link), fotos, kanalen: { facebook: !!k.facebook, instagram: !!k.instagram, website: !!k.website } };
+  return { tekst: t(p.tekst, 2200), titel: t(p.titel, 140), link: veiligeUrl(p.link), fotos, kanalen: { facebook: !!k.facebook, instagram: !!k.instagram, website: !!k.website },
+    webKnop: p.webKnop && p.webKnop.aan ? { aan: true, label: t(p.webKnop.label, 60) || "Meer info", url: veiligeUrl(p.webKnop.url) } : { aan: false } };
 }
 
 export default async function socialApi(req, res) {

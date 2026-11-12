@@ -6212,6 +6212,7 @@ VIEWS.website=()=>({title:"Website",sub:"Startpagina vbha.be",
   actions:`<a class="btn" href="https://vbha.be" target="_blank" rel="noopener">${ic("link")}Website openen</a>`,
   body(){const W=wsWerk(),d=canWrite?"":" disabled";const ta=(id,k,max)=>`<textarea id="${id}" data-wsk="${k}" maxlength="${max}" rows="3"${d}>${esc(W[k]||"")}</textarea>`;
     return `<div class="panel"><div class="panel-h"><h2>Wat staat er op de startpagina?</h2></div><div class="panel-b ws-bl">
+      <div class="ws-vr"><label class="ws-row"><span class="ws-sw"><input type="checkbox" data-wsnieuws${W.nieuws_aan!==false?" checked":""}${d}><i></i></span><span><b>Nieuws van de vriendenkring</b><small>Altijd bovenaan: de laatste post van Sociale media${W.nieuws&&W.nieuws.titel?" ("+esc(W.nieuws.titel)+")":" (nog geen post)"}</small></span></label></div>
       ${wsVolg(W).map((k,i,L)=>{const t=esc(wsNaam(W,k));return `<div class="ws-vr"><label class="ws-row"><span class="ws-sw"><input type="checkbox" data-wsblok="${k}"${wsAan(W,k)?" checked":""}${d}><i></i></span><span><b>${t}</b></span></label>${canWrite?`<span class="ws-pijl"><button type="button" class="btn sm iconbtn" data-wsvolg="${k}" data-r="-1" title="Hoger" aria-label="${t} hoger"${i?"":" disabled"}>▲</button><button type="button" class="btn sm iconbtn" data-wsvolg="${k}" data-r="1" title="Lager" aria-label="${t} lager"${i<L.length-1?"":" disabled"}>▼</button></span>`:""}</div>`}).join("")}</div></div>
     <div class="grid g2" style="align-items:start">
     <div class="panel${W.blokken.viv?"":" ws-uit"}"><div class="panel-h"><h2>In Vier en Vlam</h2>${W.blokken.viv?'<span class="pill ok">aan</span>':'<span class="pill neutral">uit</span>'}</div><div class="panel-b"><div class="form">
@@ -6238,6 +6239,7 @@ VIEWS.website.after=()=>{const W=wsWerk();for(const k of Object.keys(W.fotos||{}
 function wsStat(){const s=$("#wsStat");if(s)s.textContent=wsGewijzigd()?"Je hebt wijzigingen die nog niet gepubliceerd zijn.":"Alles is gepubliceerd.";const h=$('[data-wsact="herstel"]');if(h)h.disabled=!wsGewijzigd()}
 document.addEventListener("input",e=>{const k=e.target.dataset&&e.target.dataset.wsk;if(!k)return;wsWerk()[k]=e.target.value;wsStat()});
 document.addEventListener("change",async e=>{const t=e.target;
+  if(t.dataset&&"wsnieuws" in t.dataset){wsWerk().nieuws_aan=t.checked;renderBody();return}
   if(t.dataset&&t.dataset.wsblok){const W=wsWerk(),e=(W.eigen||[]).find(x=>x.id===t.dataset.wsblok);if(e)e.aan=t.checked;else W.blokken[t.dataset.wsblok]=t.checked;renderBody();return}
   if(t.dataset&&t.dataset.wsup){const k=t.dataset.wsup,f=t.files&&t.files[0];if(!f)return;const el=$(`[data-wsimg="${k}"]`);if(el)el.innerHTML='<span class="muted small">Foto verwerken…</span>';
     try{const r=await fotoVerklein(f,1600,0.85);const v=Date.now().toString(36),pad=`Website/${k}-${v}.jpg`;
@@ -7581,7 +7583,7 @@ ICON.website=ICON.website||'<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/>'
 const SO_K=[["facebook","Facebook"],["instagram","Instagram"],["website","Website"]];
 const SO_ST={concept:["neutral","Concept"],gepland:["info","Gepland"],bezig:["warn","Bezig…"],gepubliceerd:["ok","Gepubliceerd"],deels:["warn","Deels gelukt"],fout:["nok","Mislukt"]};
 const SOC={posts:null,kop:{},laden:false,ed:null,busy:false};
-const soLeeg=()=>({id:null,tekst:"",titel:"",link:"",fotos:[],kanalen:{facebook:!!SOC.kop.facebook,instagram:!!SOC.kop.instagram,website:!SOC.kop.facebook&&!SOC.kop.instagram},modus:"nu",plan:""});
+const soLeeg=()=>({id:null,tekst:"",titel:"",link:"",fotos:[],kanalen:{facebook:!!SOC.kop.facebook,instagram:!!SOC.kop.instagram,website:!SOC.kop.facebook&&!SOC.kop.instagram},webKnop:{aan:false,label:"",url:""},modus:"nu",plan:""});
 async function soApi(b){return api("/api/mail?f=social",{method:"POST",body:JSON.stringify(b)})}
 async function soLaad(){if(SOC.laden)return;SOC.laden=true;try{const j=await soApi({actie:"lijst"});SOC.posts=j.posts;SOC.kop=j.koppeling||{};if(SOC.ed&&!SOC.ed.id&&!SOC.ed.tekst&&!SOC.ed.fotos.length)SOC.ed=soLeeg()}catch(e){SOC.posts=[];toast(e.message,true)}SOC.laden=false;if(route()==="social")renderBody()}
 const soDt=iso=>new Date(iso).toLocaleString("nl-BE",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
@@ -7604,7 +7606,8 @@ VIEWS.social=()=>({title:"Communicatie",body(){
   return comTabs("social")+`<div class="grid g2 so-g" style="align-items:start">
   <div class="panel"><div class="panel-h"><h2>${E.id?"Post bewerken":"Nieuwe post"}</h2><span class="grow"></span>${E.id?`<button type="button" class="btn sm ghost" data-soa="nieuw">Nieuwe post</button>`:""}</div><div class="panel-b stack">
    <div class="so-ks">${SO_K.map(([k,l])=>soKan(E,k,l)).join("")}</div>
-   ${E.kanalen.website?`<div class="fld"><label for="soTi">Titel op de website</label><input id="soTi" maxlength="140" value="${esc(E.titel)}"${d}></div>`:""}
+   ${E.kanalen.website?`<div class="fld"><label for="soTi">Titel op de website</label><input id="soTi" maxlength="140" value="${esc(E.titel)}"${d}></div>
+   <div class="so-wk"><label class="so-wkl"><input type="checkbox" id="soWk"${E.webKnop.aan?" checked":""}${d}> Knop op de website</label>${E.webKnop.aan?`<div class="fld so-wkf"><input id="soWkL" maxlength="60" placeholder="Meer info" value="${esc(E.webKnop.label)}" aria-label="Tekst op de knop"${d}><input id="soWkU" type="url" inputmode="url" placeholder="${esc(E.link||"https://…")}" value="${esc(E.webKnop.url)}" aria-label="Link van de knop"${d}></div>`:""}</div>`:""}
    <div class="fld"><label for="soTx">Tekst</label><textarea id="soTx" rows="6" maxlength="2200" placeholder="Wat wil je delen?"${d}>${esc(E.tekst)}</textarea><div class="muted small so-n"><span id="soN">${lang} / 2200</span></div></div>
    <div class="fld"><label for="soLi">Link <span class="muted">(optioneel)</span></label><input id="soLi" type="url" inputmode="url" placeholder="https://…" value="${esc(E.link)}"${d}></div>
    <div class="fld"><span class="lbl">Foto's${ig?' <span class="muted">(Instagram: minstens 1)</span>':""}</span><div class="so-fs">${E.fotos.map((f,i)=>`<div class="so-fo"><img src="${esc(f.url||"")}" alt=""><button type="button" data-sofx="${i}" aria-label="Foto weghalen"${d}>${ic("x")}</button></div>`).join("")}${E.fotos.length<10?`<label class="so-up${d?" dis":""}">${SOC.upl?'<span class="spin"></span>':ic("plus")}<input type="file" accept="image/*" multiple hidden data-soup${d}></label>`:""}</div></div>
@@ -7614,8 +7617,9 @@ VIEWS.social=()=>({title:"Communicatie",body(){
   </div></div>
   <div class="panel"><div class="panel-h"><h2>Posts</h2></div>${P.length?gr.filter(g=>g[1].length).map(([t,L])=>`<div class="so-gh">${t}</div>${L.map(soPost).join("")}`).join(""):'<div class="empty">Nog geen posts.</div>'}</div></div>`}});
 const soEd=()=>SOC.ed||(SOC.ed=soLeeg());
-document.addEventListener("input",e=>{const t=e.target,E=SOC.ed;if(!E)return;if(t.id==="soTx"){E.tekst=t.value;const n=$("#soN");if(n)n.textContent=t.value.length+" / 2200"}else if(t.id==="soTi")E.titel=t.value;else if(t.id==="soLi")E.link=t.value.trim();else if(t.id==="soPd"||t.id==="soPt"){const D=$("#soPd"),T=$("#soPt");if(t.id==="soPt"){let v=t.value.replace(/[^\d:]/g,"");if(/^\d{3,4}$/.test(v))v=v.slice(0,v.length-2)+":"+v.slice(-2);if(v!==t.value)t.value=v}
+document.addEventListener("input",e=>{const t=e.target,E=SOC.ed;if(!E)return;if(t.id==="soTx"){E.tekst=t.value;const n=$("#soN");if(n)n.textContent=t.value.length+" / 2200"}else if(t.id==="soTi")E.titel=t.value;else if(t.id==="soLi")E.link=t.value.trim();else if(t.id==="soWkL")E.webKnop.label=t.value;else if(t.id==="soWkU")E.webKnop.url=t.value.trim();else if(t.id==="soPd"||t.id==="soPt"){const D=$("#soPd"),T=$("#soPt");if(t.id==="soPt"){let v=t.value.replace(/[^\d:]/g,"");if(/^\d{3,4}$/.test(v))v=v.slice(0,v.length-2)+":"+v.slice(-2);if(v!==t.value)t.value=v}
   const m=String(T&&T.value||"").match(/^(\d{1,2}):(\d{2})$/),dv=D&&D.value;E.plan=dv&&m&&+m[1]<24&&+m[2]<60?dv+"T"+m[1].padStart(2,"0")+":"+m[2]:"";}});
+document.addEventListener("change",e=>{if(e.target.id==="soWk"&&SOC.ed){SOC.ed.webKnop.aan=e.target.checked;renderBody()}});
 document.addEventListener("change",async e=>{const t=e.target;if(!t.matches||!t.matches("[data-soup]"))return;const E=soEd(),F=[...t.files].slice(0,10-E.fotos.length);if(!F.length)return;SOC.upl=true;renderBody();
   try{for(const f of F){const r=await fotoVerklein(f,1600,0.85);let cv=r.canvas;const q=cv.width/cv.height;
       // Instagram aanvaardt enkel verhoudingen tussen 4:5 (staand) en 1,91:1 (liggend): zo nodig het midden bijsnijden
@@ -7628,7 +7632,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-sok]
   if(b.dataset.sofx!=null){E.fotos.splice(+b.dataset.sofx,1);renderBody();return}
   const a=b.dataset.soa,id=b.dataset.id,r=id&&SOC.posts.find(x=>x.id===id);
   if(a==="nieuw"){SOC.ed=soLeeg();renderBody();return}
-  if(a==="bewerk"&&r){const d=r.data;SOC.ed={id:r.id,tekst:d.tekst||"",titel:d.titel||"",link:d.link||"",fotos:(d.fotos||[]).map(f=>({...f})),kanalen:{...d.kanalen},modus:r.status==="gepland"?"plan":"nu",plan:r.plan?soLokaal(r.plan):""};renderBody();window.scrollTo({top:0,behavior:"smooth"});return}
+  if(a==="bewerk"&&r){const d=r.data;SOC.ed={id:r.id,tekst:d.tekst||"",titel:d.titel||"",link:d.link||"",fotos:(d.fotos||[]).map(f=>({...f})),kanalen:{...d.kanalen},webKnop:{aan:!!(d.webKnop&&d.webKnop.aan),label:(d.webKnop&&d.webKnop.label)||"",url:(d.webKnop&&d.webKnop.url)||""},modus:r.status==="gepland"?"plan":"nu",plan:r.plan?soLokaal(r.plan):""};renderBody();window.scrollTo({top:0,behavior:"smooth"});return}
   if(a==="weg"&&r){const web=r.data.resultaten&&r.data.resultaten.website&&r.data.resultaten.website.ok,fb=["facebook","instagram"].some(k=>r.data.resultaten&&r.data.resultaten[k]&&r.data.resultaten[k].ok);
     confirmBox(`Deze post verwijderen?${web?"<br>Stond hij als nieuws op de website, dan komt daar de vorige nieuwspost terug.":""}${fb?"<br><span class=\"muted small\">Op Facebook en Instagram blijft hij staan; verwijder hem daar zelf.</span>":""}`,"Verwijderen",async()=>{try{const j=await soApi({actie:"verwijder",id});SOC.posts=j.posts;if(SOC.ed&&SOC.ed.id===id)SOC.ed=soLeeg();renderBody()}catch(x){toast(x.message,true)}});return}
   if(a==="nu"&&r){confirmBox(`Deze post nu publiceren op ${SO_K.filter(([k])=>r.data.kanalen[k]).map(x=>x[1]).join(", ")}?`,"Publiceren",async()=>{toast("Bezig met publiceren…");try{const j=await soApi({actie:"publiceer",id});SOC.posts=j.posts;renderBody();soMeld(j.pub)}catch(x){toast(x.message,true);soLaad()}});return}
@@ -7636,7 +7640,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-sok]
     const kan=SO_K.filter(([k])=>E.kanalen[k]).map(x=>x[1]);
     if(a==="plan"&&!E.plan){toast("Vul een geldige datum en een uur in (24 uur, bv. 19:30).",true);return}
     const doe=async()=>{SOC.busy=true;renderBody();
-      try{const j=await soApi({actie:"bewaar",id:E.id,modus:a==="pub"?"nu":a,plan:E.modus==="plan"&&E.plan?new Date(E.plan).toISOString():null,post:{tekst:E.tekst,titel:E.titel,link:E.link,fotos:E.fotos.map(({pad,w,h})=>({pad,w,h})),kanalen:E.kanalen}});
+      try{const j=await soApi({actie:"bewaar",id:E.id,modus:a==="pub"?"nu":a,plan:E.modus==="plan"&&E.plan?new Date(E.plan).toISOString():null,post:{tekst:E.tekst,titel:E.titel,link:E.link,fotos:E.fotos.map(({pad,w,h})=>({pad,w,h})),kanalen:E.kanalen,webKnop:E.webKnop}});
         SOC.posts=j.posts;SOC.ed=soLeeg();SOC.busy=false;renderBody();if(a==="pub")soMeld(j.pub);else toast(a==="plan"?"Ingepland.":"Opgeslagen als concept.")}
       catch(x){SOC.busy=false;renderBody();toast(x.message,true)}};
     if(a==="pub")confirmBox(`Nu publiceren op <b>${esc(kan.join(", "))}</b>?`,"Publiceren",doe);else doe()}});
@@ -7649,7 +7653,7 @@ function soMeld(p){if(!p)return;const R=p.data.resultaten||{},K=SO_K.filter(([k]
 .so-n{text-align:right;margin-top:4px}.so-fs{display:flex;flex-wrap:wrap;gap:8px}.so-fo{position:relative;width:76px;height:76px;border-radius:10px;overflow:hidden;background:var(--sunken)}
 .so-fo img{width:100%;height:100%;object-fit:cover}.so-fo button{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0}
 .so-fo button svg{width:12px;height:12px;stroke:#fff;stroke-width:2.5;fill:none}.so-up{width:76px;height:76px;border:1.5px dashed var(--line);border-radius:10px;display:grid;place-items:center;cursor:pointer;color:var(--muted)}
-.so-up svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2}.so-up.dis{opacity:.5;pointer-events:none}.so-dt{display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:8px;margin-top:8px}.so-w{display:inline-flex;width:auto;max-width:max-content}.so-a .iconbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
+.so-up svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2}.so-up.dis{opacity:.5;pointer-events:none}.so-wk{display:flex;flex-direction:column;gap:8px}.so-wkl{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}.so-wkl input{accent-color:var(--accent);width:16px;height:16px}.so-wkf{display:grid!important;margin:0;grid-template-columns:160px minmax(0,1fr);gap:8px}.so-dt{display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:8px;margin-top:8px}.so-w{display:inline-flex;width:auto;max-width:max-content}.so-a .iconbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
 .so-act{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}.so-gh{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:12px 16px 4px}
 .so-p{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:start;padding:10px 16px;border-top:1px solid var(--line)}.so-gh+.so-p{border-top:0}
 .so-th{position:relative;width:52px;height:52px;border-radius:9px;overflow:hidden;background:var(--sunken);display:grid;place-items:center;color:var(--muted)}.so-th img{width:100%;height:100%;object-fit:cover}
@@ -7665,7 +7669,7 @@ function soMeld(p){if(!p)return;const R=p.data.resultaten||{},K=SO_K.filter(([k]
 function soVanuit({titel,datum,uur,locatie,info,link}){
   const dt=/^\d{4}-\d{2}-\d{2}$/.test(datum||"")?new Date(datum+"T12:00:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long"}):"";
   const tekst=[titel,[dt?"📅 "+dt+(uur?" om "+uur:""):"",locatie?"📍 "+locatie:""].filter(Boolean).join("\n"),info||"",link?"Inschrijven of meer info via de link.":""].filter(Boolean).join("\n\n");
-  SOC.ed={...soLeeg(),titel:String(titel||"").slice(0,140),tekst:tekst.slice(0,2200),link:link||"",kanalen:{facebook:SOC.kop.facebook!==false,instagram:false,website:true}};
+  SOC.ed={...soLeeg(),titel:String(titel||"").slice(0,140),tekst:tekst.slice(0,2200),link:link||"",kanalen:{facebook:SOC.kop.facebook!==false,instagram:false,website:true},webKnop:link?{aan:true,label:"Inschrijven",url:link}:{aan:false,label:"",url:""}};
   closeModal();location.hash="#social";if(route()==="social")renderBody();toast("Post klaargezet. Voeg nog een foto toe als je ook op Instagram wil posten.")}
 const soBron={
   kf:()=>{const c=kfCfg();return{titel:"Kinderfeest",datum:c.datum,uur:c.tijd,locatie:c.locatie,info:c.info,link:"https://vbha.be/kinderfeest"}},
