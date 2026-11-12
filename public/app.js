@@ -1086,8 +1086,8 @@ function krOpenSearch(){if(!KR.sp){const p=document.createElement("section");p.c
 function krCloseSearch(){if(!KR.sp)return;KR.sp.querySelector("#krSpIn").blur();KR.sp.hidden=true}
 function krPick(s){krCloseSearch();krZoomTo(s.id);krSelect(s.id)}
 function krResults(){const q=krFold(KR.sp.querySelector("#krSpIn").value.trim()),M=krAll();
-  KR.hits=q?KR_SORTED.filter(s=>krFold(s.n).includes(q)||krFold(s.w).startsWith(q)):KR_SORTED;
-  KR.sp.querySelector("#krSpEmpty").hidden=KR.hits.length>0;
+  KR.hits=q.length>=3?KR_SORTED.filter(s=>krFold(s.n).includes(q)||krFold(s.w).startsWith(q)):[];
+  KR.sp.querySelector("#krSpEmpty").hidden=KR.hits.length>0||q.length<3;
   KR.sp.querySelector("#krSpList").replaceChildren(...KR.hits.map(s=>{const li=document.createElement("li"),b=document.createElement("button");b.type="button";
     const nm=document.createElement("span");nm.textContent=s.n;const sm=document.createElement("small");sm.textContent=s.w+" · "+krAdr(s.a);nm.append(sm);b.append(nm);
     const m=M[s.id];if(m){const d=document.createElement("span");d.className="kr-ok";if(m.status==="reserved"){d.classList.add("res");d.append("gereserveerd · "+(m.by||""))}else{d.innerHTML=KR_CHECK;d.append(m.by||"gedaan")}b.append(d)}
