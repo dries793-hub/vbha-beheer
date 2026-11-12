@@ -7624,7 +7624,8 @@ document.addEventListener("change",async e=>{const t=e.target;if(!t.matches||!t.
   try{for(const f of F){const r=await fotoVerklein(f,1600,0.85);let cv=r.canvas;const q=cv.width/cv.height;
       // Instagram aanvaardt enkel verhoudingen tussen 4:5 (staand) en 1,91:1 (liggend): zo nodig het midden bijsnijden
       if(q<0.8||q>1.91){const w=q<0.8?cv.width:Math.round(cv.height*1.91),h=q<0.8?Math.round(cv.width/0.8):cv.height,c2=document.createElement("canvas");c2.width=w;c2.height=h;c2.getContext("2d").drawImage(cv,(cv.width-w)/2,(cv.height-h)/2,w,h,0,0,w,h);cv=c2}
-      const data=cv.toDataURL("image/jpeg",0.85);const j=await soApi({actie:"foto",data});E.fotos.push({pad:j.pad,url:j.url,w:cv.width,h:cv.height})}}
+      const data=cv.toDataURL("image/jpeg",0.85);const j=await soApi({actie:"foto",data});E.fotos.push({pad:j.pad,url:j.url,w:cv.width,h:cv.height});
+      if(Math.max(cv.width,cv.height)<1080)toast(`Deze foto is klein (${cv.width}×${cv.height}). Op de website en Instagram kan ze wazig ogen; gebruik liefst de originele foto.`,true)}}
   catch(x){toast(x.message||"Foto opladen mislukt.",true)}SOC.upl=false;renderBody()});
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-sok],[data-sow],[data-sofx],[data-soa]");if(!b||route()!=="social")return;e.preventDefault();const E=soEd();
   if(b.dataset.sok){E.kanalen[b.dataset.sok]=!E.kanalen[b.dataset.sok];renderBody();return}
