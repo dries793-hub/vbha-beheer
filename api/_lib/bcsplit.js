@@ -57,34 +57,51 @@ export async function splitsBulk(sb, { ids = null, proef = false } = {}) {
   const per = await onlinePerDag(sb);
   let nr = {};
   for (const b of alle) nr[b.jaar] = Math.max(nr[b.jaar] || 0, Number(b.nr) || 0);
-  for (const b of todo) {
-    const m = String(b.mededeling).trim().match(RE), dag = `${m[1]}-${m[2]}-${m[3]}`;
-    const L = per.get(dag) || [], totaal = r2(Number(b.bedrag) || 0), gekend = r2(L.reduce((s, x) => s + x.bedrag, 0));
-    if (gekend > totaal + 0.001) { uit.overgeslagen.push({ id: b.id, reden: `online betalingen van ${dag} (${gekend}) zijn meer dan de storting (${totaal})` }); continue; }
+  // Bancontact stort de betalingen van één dag soms in meerdere bedragen (meerdere stortingen met dezelfde datum):
+  // die worden samen verdeeld. Wat van die dag al eerder werd uitgesplitst, telt niet opnieuw mee.
+  const perDag = new Map();
+  for (const b of todo) { const m = String(b.mededeling).trim().match(RE), dag = `${m[1]}-${m[2]}-${m[3]}`; (perDag.get(dag) || perDag.set(dag, []).get(dag)).push(b); }
+  const dagVan = b => { if (b.bulk && b.bulk.dag) return b.bulk.dag; const o = b.bulkVan && alle.find(x => x.id === b.bulkVan); return o && o.bulk ? o.bulk.dag : null; };
+  for (const [dag, G] of perDag) {
+    G.sort((a, b) => (Number(b.bedrag) || 0) - (Number(a.bedrag) || 0));
+    const [jj, mm, dd] = dag.split("-"), dagTxt = `${dd}/${mm}`;
+    const L = per.get(dag) || [], totaal = r2(G.reduce((s, b) => s + (Number(b.bedrag) || 0), 0));
     // elke online betaling apart (lidgeld, banket, familiedag, tickets, webshop, sponsoring, facturen); de kassa per categorie
     const groep = new Map();
     for (const x of L) { const k = x.bron === "kassa" ? "K:" + x.cat : "P:" + x.bron + ":" + x.id + ":" + x.cat; const g = groep.get(k) || { cat: x.cat, lidId: x.cat === "Lidgeld" ? x.lidId || null : null, bedrag: 0, wie: [] }; g.bedrag = r2(g.bedrag + x.bedrag); if (x.wie) g.wie.push(x.wie); groep.set(k, g); }
-    const delen = [...groep.values()];
+    // al uitgesplitst voor deze dag (vorige storting van dezelfde dag): per categorie aftrekken
+    const al = new Map();
+    for (const b of alle) if (b.regelNaam === "Bancontact uitgesplitst" && !/niet via de app/.test(b.mededeling || "") && dagVan(b) === dag) al.set(b.categorie, r2((al.get(b.categorie) || 0) + (Number(b.bedrag) || 0)));
+    const delen = [];
+    for (const g of groep.values()) { const af = Math.min(al.get(g.cat) || 0, g.bedrag); if (af) al.set(g.cat, r2(al.get(g.cat) - af)); const bd = r2(g.bedrag - af); if (bd > 0.004) delen.push({ ...g, bedrag: bd }); }
+    const gekend = r2(delen.reduce((s, d) => s + d.bedrag, 0));
+    if (gekend > totaal + 0.001) { for (const b of G) uit.overgeslagen.push({ id: b.id, reden: `online betalingen van ${dag} (${gekend}) zijn meer dan de storting${G.length > 1 ? "en" : ""} (${totaal})` }); continue; }
     const rest = r2(totaal - gekend);
     if (rest > 0.004) delen.push({ cat: "Kalenders", lidId: null, bedrag: rest, wie: [], rest: true });
     if (!delen.length) continue;
-    const dagTxt = `${m[3]}/${m[2]}`;
     const med = d => d.rest ? `Bancontact ${dagTxt}: niet via de app (bv. kalenders)` : `Bancontact ${dagTxt}: ${d.cat}${d.wie.length ? " – " + [...new Set(d.wie)].slice(0, 6).join(", ") + (d.wie.length > 6 ? " …" : "") : ""}`;
-    const basis = { ...b }; delete basis.id;
-    if (proef) { uit.plan.push({ id: b.id, dag, totaal, delen: delen.map(d => ({ cat: d.cat, bedrag: d.bedrag, mededeling: med(d) })) }); continue; }
-    const [eerste, ...andere] = delen;
-    const bulk = { totaal, dag, delen: delen.length, mededeling: b.mededeling, op: new Date().toISOString() };
-    const upd = { ...basis, bedrag: eerste.bedrag, categorie: eerste.cat, lidId: eerste.lidId, status: null, regelNaam: "Bancontact uitgesplitst", mededeling: med(eerste), bulk };
-    const { error: e1 } = await sb.from("boekingen").update({ data: upd }).eq("id", b.id); if (e1) throw e1;
-    let i = 0;
-    for (const d of andere) {
-      i++; nr[b.jaar] = (nr[b.jaar] || 0) + 1;
-      const { bankRef, ...zonderRef } = basis;
-      const data = { ...zonderRef, nr: nr[b.jaar], bedrag: d.bedrag, categorie: d.cat, lidId: d.lidId, status: null, regelNaam: "Bancontact uitgesplitst", mededeling: med(d), bulkVan: b.id };
-      const { error } = await sb.from("boekingen").upsert({ id: `${b.id}-d${i}`, data }); if (error) throw error;
-      uit.delen++;
+    // de delen over de stortingen verdelen: elke storting wordt precies gevuld (een deel kan over twee stortingen lopen)
+    const rij = delen.map(d => ({ ...d })), verdeeld = G.map(b => { let plaats = r2(Number(b.bedrag) || 0); const D = [];
+      while (plaats > 0.004 && rij.length) { const d = rij[0], bd = r2(Math.min(d.bedrag, plaats)); D.push({ ...d, bedrag: bd }); d.bedrag = r2(d.bedrag - bd); plaats = r2(plaats - bd); if (d.bedrag <= 0.004) rij.shift(); }
+      return { b, D }; });
+    for (const { b, D } of verdeeld) {
+      if (!D.length) continue;
+      if (proef) { uit.plan.push({ id: b.id, dag, totaal: r2(Number(b.bedrag) || 0), delen: D.map(d => ({ cat: d.cat, bedrag: d.bedrag, mededeling: med(d) })) }); continue; }
+      const basis = { ...b }; delete basis.id;
+      const [eerste, ...andere] = D;
+      const bulk = { totaal: r2(Number(b.bedrag) || 0), dag, delen: D.length, mededeling: b.mededeling, op: new Date().toISOString(), ...(G.length > 1 ? { samenMet: G.filter(x => x.id !== b.id).map(x => x.id) } : {}) };
+      const upd = { ...basis, bedrag: eerste.bedrag, categorie: eerste.cat, lidId: eerste.lidId, status: null, regelNaam: "Bancontact uitgesplitst", mededeling: med(eerste), bulk };
+      const { error: e1 } = await sb.from("boekingen").update({ data: upd }).eq("id", b.id); if (e1) throw e1;
+      let i = 0;
+      for (const d of andere) {
+        i++; nr[b.jaar] = (nr[b.jaar] || 0) + 1;
+        const { bankRef, ...zonderRef } = basis;
+        const data = { ...zonderRef, nr: nr[b.jaar], bedrag: d.bedrag, categorie: d.cat, lidId: d.lidId, status: null, regelNaam: "Bancontact uitgesplitst", mededeling: med(d), bulkVan: b.id };
+        const { error } = await sb.from("boekingen").upsert({ id: `${b.id}-d${i}`, data }); if (error) throw error;
+        uit.delen++;
+      }
+      uit.gesplitst++;
     }
-    uit.gesplitst++;
   }
   return uit;
 }
