@@ -130,11 +130,7 @@ export default async function socialApi(req, res) {
   try {
     if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
     if (await isDbCron(req)) { // geplande taak: posts waarvan het tijdstip voorbij is
-      const sb = admin();
-      { let q = req.body || {}; if (typeof q === "string") { try { q = JSON.parse(q); } catch { q = {}; } } // TIJDELIJK: foto's uit /_tmp naar de opslag (Social/) zetten
-        if (q.actie === "tmpfoto") { const uit = []; for (const n of ["sintbarbara2026", "korpsdag2026"]) { const r = await fetch("https://vbha.be/_tmp/" + n + ".jpg"); if (!r.ok) { uit.push(n + ": " + r.status); continue; }
-          const { error } = await sb.storage.from("documenten").upload("Social/" + n + ".jpg", Buffer.from(await r.arrayBuffer()), { contentType: "image/jpeg", upsert: true }); uit.push(n + ": " + (error ? error.message : "ok")); }
-          return res.status(200).json({ uit }); } } const { data } = await sb.from("social_posts").select("id,data").eq("status", "gepland").lte("plan", nu()).limit(5);
+      const sb = admin(); const { data } = await sb.from("social_posts").select("id,data").eq("status", "gepland").lte("plan", nu()).limit(5);
       const uit = []; for (const r of data || []) uit.push(await publiceer(sb, r));
       return res.status(200).json({ ok: true, gepubliceerd: uit.filter(Boolean).length });
     }
