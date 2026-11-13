@@ -4048,6 +4048,10 @@ const vaBestuur=()=>[...S.leden.values()].filter(l=>l.bestuur&&!l.geenLid).sort(
 let VA_PDFJS=null;
 /* pdf.js gebruikt Promise.withResolvers (pas sinds Safari/iOS 17.4): aanvullen in de pagina én in de worker (pdfjs/worker-pf.mjs), zodat oudere iPhones de PDF ook kunnen lezen */
 if(!Promise.withResolvers)Promise.withResolvers=function(){let a,b;const p=new this((r,j)=>{a=r;b=j});return{promise:p,resolve:a,reject:b}};
+/* Safari kent "for await" over een ReadableStream niet (pdf.js gebruikt dat bij het lezen van de tekst) */
+if(typeof ReadableStream!=="undefined"&&!ReadableStream.prototype[Symbol.asyncIterator]){ReadableStream.prototype.values=function({preventCancel=false}={}){const rd=this.getReader();
+  return{async next(){try{const r=await rd.read();if(r.done)rd.releaseLock();return r}catch(e){rd.releaseLock();throw e}},async return(v){if(!preventCancel){const c=rd.cancel(v);rd.releaseLock();await c}else rd.releaseLock();return{done:true,value:v}},[Symbol.asyncIterator](){return this}}};
+  ReadableStream.prototype[Symbol.asyncIterator]=ReadableStream.prototype.values}
 async function vaTekst(file){if(!VA_PDFJS)VA_PDFJS=import("/pdfjs/pdf.min.mjs").then(m=>{m.GlobalWorkerOptions.workerSrc="/pdfjs/worker-pf.mjs";return m}).catch(e=>{VA_PDFJS=null;throw e});
   const L=await VA_PDFJS,doc=await L.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;let t="";
   for(let i=1;i<=Math.min(doc.numPages,2);i++){const c=await (await doc.getPage(i)).getTextContent();t+=c.items.map(x=>x.str+(x.hasEOL?"\n":"")).join("")+"\n"}
@@ -4163,8 +4167,8 @@ function inkAnalyse(t){const tekst=String(t||""),bedragen=[],tot=[];
   const dRe=/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](20\d{2})/;const dm=tekst.match(new RegExp("(?:factuur\\s*datum|datum\\s*factuur|invoice\\s*date|date\\s*de\\s*facture|datum)\\s*[:]?\\s*"+dRe.source,"i"))||tekst.match(dRe);
   let datum="";if(dm){const n=dm.length-3,dd=+dm[n],mm=+dm[n+1],yy=+dm[n+2];if(dd>=1&&dd<=31&&mm>=1&&mm<=12)datum=`${yy}-${String(mm).padStart(2,"0")}-${String(dd).padStart(2,"0")}`}
   // leverancier uit de factuur zelf (handig als iemand de factuur doorstuurde): blok "Van"/"Leverancier", niet onze eigen naam
-  let lev="";{const m=tekst.match(/(?:^|\n)\s*(?:van|from|de|leverancier|verkoper|supplier|fournisseur)\s*:?\s*\n\s*([^\n]{3,60})/i)||tekst.match(/(?:^|\n)\s*(?:leverancier|verkoper|supplier)\s*:\s*([^\n]{3,60})/i);
-    if(m){const x=m[1].trim();if(!/vriendenkring|brandweer\s*hoofdpost|vbha/i.test(x)&&/[a-z]{3}/i.test(x))lev=x}}
+  let lev="";{const m=tekst.match(/(?:^|\n)\s*(?:van|from|leverancier|verkoper|supplier|fournisseur)\s*:?\s*\n\s*([^\n]{3,60})/i)||tekst.match(/(?:^|\n)\s*(?:leverancier|verkoper|supplier)\s*:\s*([^\n]{3,60})/i);
+    if(m){const x=m[1].trim();if(!/vriendenkring|brandweer\s*hoofdpost|vbha|^(aan|to|à|klant|client|factuur)\b/i.test(x)&&/[a-z]{3}/i.test(x))lev=x}}
   return{tekst:norm(tekst),bedragen:[...new Set(bedragen)],totaal,ogm,nr,datum,lev}}
 /* woorden die niets zeggen over de leverancier: onze eigen naam en gemeente (staan als klant op elke factuur) */
 let INK_STOP=null;function inkStop(){if(INK_STOP)return INK_STOP;const eigen=norm((S.config&&S.config.get&&S.config.get("algemeen")||{}).vereniging||"Vriendenkring Brandweer Hoofdpost Aalst");
