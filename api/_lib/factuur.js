@@ -273,7 +273,7 @@ function groetVan(k) {
 function vul(t, f, cfg, T) {
   return String(t || "").replace(/\{(\w+)\}/g, (m, k) => ({ naam: (f.klant && (f.klant.contact || f.klant.naam)) || "", nr: f.nr || "", bedrag: eur(T.totaal), vervaldatum: kort(f.vervaldatum), vereniging: cfg.vereniging }[k] ?? m));
 }
-export function factuurMail(f, cfg, soort = "factuur", status) {
+export function factuurMail(f, cfg, soort = "factuur", status, extra = "") {
   const T = totalen(f), k = f.klant || {}, credit = f.type === "credit";
   const groet = groetVan(k);
   const open = status ? status.open : T.totaal;
@@ -288,6 +288,7 @@ export function factuurMail(f, cfg, soort = "factuur", status) {
     html += p(`Ondanks onze factuur${(f.verzonden || []).some(v => v.soort === "herinnering" && v.ok) || f.eerderHerinnerd ? " en onze herinnering" : ""} hebben wij voor factuur <b>${esc(f.nr)}</b> van ${esc(kort(f.datum))} nog geen${status && status.ontvangen > 0 ? " volledige" : ""} betaling ontvangen. De vervaldatum was ${esc(kort(f.vervaldatum))}.`)
       + p(`Zoals vermeld in onze betalingsvoorwaarden rekenen wij vanaf nu verwijlintresten en een forfaitaire schadevergoeding aan.`)
       + p(`Wij vragen je het totaal van <b>${eur(A.totaal)}</b> uiterlijk op <b>${esc(lang(A.tot))}</b> over te schrijven. Zonder betaling binnen deze termijn zien wij ons genoodzaakt verdere stappen tot invordering te zetten.`)
+      + String(extra || "").trim().split(/\n\s*\n/).filter(x => x.trim()).map(x => p(esc(x.trim()).replace(/\n/g, "<br>"))).join("")
       + p(`Heb je intussen al betaald? Dan kruisten onze berichten elkaar en mag je deze aanmaning als niet verzonden beschouwen.`, "margin:0 0 15px;font-size:13.5px;color:#666666");
     html += kaderBlok("Aanmaning factuur " + esc(f.nr), tabel([
       rij("Openstaand bedrag", eur(A.open)),
@@ -369,14 +370,14 @@ export async function maakDefinitief(sb, row, cfg) {
   throw httpErr(409, "Kon geen uniek factuurnummer toekennen. Probeer opnieuw.");
 }
 
-async function verstuurFactuur(sb, row, cfg, soort, aanExtra) {
+async function verstuurFactuur(sb, row, cfg, soort, aanExtra, extraTekst) {
   const f = { ...row.data, id: row.id };
   const aan = String(aanExtra || (f.klant && f.klant.email) || "").trim();
   if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(aan)) throw httpErr(400, "Geen geldig e-mailadres voor deze klant.");
   if (!smtpConfigured()) throw httpErr(501, "Versturen is niet ingesteld (SMTP in Vercel).");
   const st = f.type === "credit" ? null : await statusVan(sb, row);
   if ((soort === "herinnering" || soort === "aanmaning") && st && st.betaald) throw httpErr(409, "Deze factuur is al betaald.");
-  const m = factuurMail(f, cfg, soort, st);
+  const m = factuurMail(f, cfg, soort, st, extraTekst);
   const bijlagen = [{ naam: soort === "aanmaning" ? pdfNaam(f).replace(/^Factuur/i, "Aanmaning") : pdfNaam(f), type: "application/pdf", data: factuurPdf(f, cfg, { status: st, aanmaning: soort === "aanmaning" ? f.aanmaning : null }) }];
   const berichten = [{ aan, aanNaam: (f.klant && (f.klant.contact || f.klant.naam)) || "", onderwerp: m.onderwerp, html: m.html, van: factuurAfzender(), bijlagen, antwoordAan: FACTUUR_ADRES() }];
   const kopie = String(cfg.kopie || "").split(/[,;\s]+/).filter(x => /@/.test(x) && x.toLowerCase() !== aan.toLowerCase());
@@ -424,7 +425,7 @@ export async function factuurActie(req, res) {
     // eerst de kosten bewaren, dan versturen (de status rekent ze mee)
     await bewaar(sb, row.id, { ...row.data, aanmaning: A, geenHerinnering: true });
     let log;
-    try { log = await verstuurFactuur(sb, await haal(sb, row.id), cfg, "aanmaning", b.aan); }
+    try { log = await verstuurFactuur(sb, await haal(sb, row.id), cfg, "aanmaning", b.aan, String(b.tekst || "").slice(0, 2000)); }
     catch (e) { const nu = await haal(sb, row.id); const { aanmaning, ...rest } = nu.data; await bewaar(sb, row.id, { ...rest, ...(row.data.aanmaning ? { aanmaning: row.data.aanmaning } : {}), geenHerinnering: !!row.data.geenHerinnering }); throw e; }
     return res.status(200).json({ log, data: (await haal(sb, row.id)).data });
   }
