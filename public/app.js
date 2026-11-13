@@ -6322,6 +6322,20 @@ function bgBeheer(){const D=bgDoc();
 .bgb-r{display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface,#fff)}.bgb-n{flex:1;min-width:0;display:flex;flex-direction:column}.bgb-n small{color:var(--muted);font-size:12px}
 .bgb-r .iconbtn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.bgb-r .danger{color:var(--bad,#b91c1c)}
 .bgb-nw{display:flex;gap:8px}.bgb-nw input{flex:1;min-width:0;height:38px;padding:0 10px;border:1px solid var(--line-strong,#ccced2);border-radius:8px;font:inherit}`;document.head.appendChild(st)}
+/* Exporteren links onderaan in Activiteiten beheren (tandwiel): overzicht + één blad per activiteit */
+{const _b=bgBeheer;bgBeheer=function(){_b.apply(this,arguments);if(typeof voetExport==="function")voetExport("bgExport","Exporteren")}}
+function bgExport(){const D=bgDoc(),wb=XLSX.utils.book_new(),n2=x=>Math.round((Number(x)||0)*100)/100;
+  const ov=D.tabs.map(t=>{const s=bgSom(t),w=bgWerkelijk(t);return{Activiteit:t.naam,Categorie:t.categorie||"",Personen:Number(t.personen)||0,"Begrote kosten":s.k,"Begrote opbrengsten":s.o,"Begroot resultaat":s.r,
+    "Werkelijke inkomsten":w?w.i:"","Werkelijke kosten":w?w.u:"","Werkelijk resultaat":w?w.r:""}});
+  const tot=ov.reduce((a,r)=>({k:a.k+r["Begrote kosten"],o:a.o+r["Begrote opbrengsten"],r:a.r+r["Begroot resultaat"],w:a.w+(Number(r["Werkelijk resultaat"])||0)}),{k:0,o:0,r:0,w:0});
+  ov.push({Activiteit:"Totaal",Categorie:"",Personen:"","Begrote kosten":n2(tot.k),"Begrote opbrengsten":n2(tot.o),"Begroot resultaat":n2(tot.r),"Werkelijke inkomsten":"","Werkelijke kosten":"","Werkelijk resultaat":n2(tot.w)});
+  const breed=rows=>Object.keys(rows[0]||{a:1}).map(k=>({wch:Math.min(40,Math.max(10,k.length+2,...rows.map(x=>String(x[k]??"").length)))}));
+  const w1=XLSX.utils.json_to_sheet(ov);w1["!cols"]=breed(ov);XLSX.utils.book_append_sheet(wb,w1,"Overzicht "+JAAR);
+  const namen=new Set();for(const t of D.tabs){const R=(t.posten||[]).map(p=>({Soort:p.soort==="opbrengst"?"Opbrengst":"Kost",Omschrijving:p.naam||"","Per persoon":p.pp?"ja":"",Aantal:p.pp?(Number(t.personen)||0):(Number(p.aantal)||0),Prijs:n2(p.prijs),Totaal:bgLijn(p,t)}));
+    if(!R.length)continue;let nm=String(t.naam||"Activiteit").replace(/[\\\/?*\[\]:]/g,"").slice(0,28)||"Activiteit";while(namen.has(nm))nm=nm.slice(0,26)+"_"+namen.size;namen.add(nm);
+    const ws=XLSX.utils.json_to_sheet(R);ws["!cols"]=breed(R);XLSX.utils.book_append_sheet(wb,ws,nm)}
+  save(`VBHA_Begroting_${JAAR}.xlsx`,XLSX.write(wb,{type:"array",bookType:"xlsx"}));toast("Begroting geëxporteerd.")}
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="bgExport"]');if(!b)return;e.preventDefault();e.stopPropagation();try{bgExport()}catch(x){toast(x.message,true)}},true);
 
 /* ============ Administratie › Website (startpagina vbha.be) ============
    config/"website": {blokken:{viv,kalender,steun,sponsors}, kal_titel, kal_tekst, viv_titel, viv_datum, viv_tekst, fotos:{kalender|viv:{pad,v,w,h}}}
