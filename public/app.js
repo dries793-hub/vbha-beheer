@@ -4046,7 +4046,9 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-va]");if(!
    of opnieuw opladen nooit dubbel telt. */
 const vaBestuur=()=>[...S.leden.values()].filter(l=>l.bestuur&&!l.geenLid).sort((a,b)=>String(a.voornaam).localeCompare(String(b.voornaam),"nl"));
 let VA_PDFJS=null;
-async function vaTekst(file){if(!VA_PDFJS)VA_PDFJS=import("/pdfjs/pdf.min.mjs").then(m=>{m.GlobalWorkerOptions.workerSrc="/pdfjs/pdf.worker.min.mjs";return m});
+/* pdf.js gebruikt Promise.withResolvers (pas sinds Safari/iOS 17.4): aanvullen in de pagina én in de worker (pdfjs/worker-pf.mjs), zodat oudere iPhones de PDF ook kunnen lezen */
+if(!Promise.withResolvers)Promise.withResolvers=function(){let a,b;const p=new this((r,j)=>{a=r;b=j});return{promise:p,resolve:a,reject:b}};
+async function vaTekst(file){if(!VA_PDFJS)VA_PDFJS=import("/pdfjs/pdf.min.mjs").then(m=>{m.GlobalWorkerOptions.workerSrc="/pdfjs/worker-pf.mjs";return m}).catch(e=>{VA_PDFJS=null;throw e});
   const L=await VA_PDFJS,doc=await L.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;let t="";
   for(let i=1;i<=Math.min(doc.numPages,2);i++){const c=await (await doc.getPage(i)).getTextContent();t+=c.items.map(x=>x.str+(x.hasEOL?"\n":"")).join("")+"\n"}
   return t}
