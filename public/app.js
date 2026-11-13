@@ -1065,7 +1065,7 @@ function krKiesPersoonMeer(ids,st,pre){pre=pre||[];const res=st==="reserved",A={
     const l=by?krLidVanNaam(by):null;if(by)ls.set("rondeWie",by);closeModal();KR.busy=true;const now=new Date().toISOString();
     const ops=[...pre,...krSegWeg(ids.filter(id=>!KR_DEEL.has(id))),...ids.map(id=>{const cur=A[id],zelfde=cur&&(cur.status==="reserved")===res;const eig=!by&&cur&&cur.status==="reserved"?cur:null;const doc={jaar:JAAR,straat:id,status:res?"reserved":"done",by:eig?eig.by:l?naamVol(l).trim():by,lidId:eig?(eig.lidId||null):l?l.id:null,at:zelfde?cur.at:now,...(zelfde?{gewijzigd:now}:{}),...(KR_DEEL.has(id)?{deel:true}:{})};S.ronde.set(JAAR+"_"+id,{...doc,id:JAAR+"_"+id});return["ronde",JAAR+"_"+id,doc]})];if(deel)KR.dsel=new Set();
     if(KR.map)krStyleAll();krCard();
-    try{await writeMany(ops,()=>{});toast((deel?ids.length+(ids.length===1?" stuk ":" stukken "):ids.length+" straten ")+(res?"gereserveerd":"op gedaan gezet")+".")}catch(e){handleWriteError(e)}finally{KR.busy=false}if(KR.map)krStyleAll();krCard()};
+    try{await writeMany(ops,()=>{});toast((deel?ids.length+(ids.length===1?" stuk ":" stukken "):ids.length+" straten ")+(res?"gereserveerd":"op gedaan gezet")+".");if(!deel){KR.ss=new Set();KR.sel=null}}catch(e){handleWriteError(e)}finally{KR.busy=false}if(KR.map)krStyleAll();krCard()};
   $("#krWieOk").onclick=ok;inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();ok()}})}
 function krVraagNaam(next){
   modal("Wie ben je?",`<p style="margin:0;color:var(--muted)">Je naam staat bij de straten die je afwerkt. Zo weten de anderen wie waar liep. Hij wordt op dit toestel onthouden.</p>
