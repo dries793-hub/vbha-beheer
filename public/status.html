@@ -152,7 +152,6 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
     const max=Math.max(D.goud,P.totaal)||1,pc=v=>Math.min(100,v/max*100),pct=pc(P.totaal);
     const tick=[...(D.brons>0?[["Brons",D.brons]]:[]),["Zilver",D.zilver],["Goud",D.goud]];
     const volg=P.ere?"Als erewacht blijf je goud.":P.vrij?`Je bent vrijgesteld: in ${Y+1} krijg je goud.`:P.naar?`Nog <b>${P.nodig} punten</b> voor ${nm(P.naar).toLowerCase()}.`:`Goud voor ${Y+1} heb je al binnen. Proficiat!`;
-    const w=P.onderdelen.filter(o=>o.per).map(o=>`${o.naam.toLowerCase()} ${o.per} pt per ${o.eenheid[0]}`).join(" · ");
     $("#box").innerHTML=`<div class="sp">
      <div class="sp-c"><div class="sp-top"><span class="sp-j">Nu · ${Y}</span><span class="sp-badge ${N.status}">${nm(N.status)}</span></div>
       <div class="sp-big">${N.korting}% korting</div><p class="sp-s">op betalende activiteiten in ${Y}. ${waarom}</p>${rijen(N.onderdelen||[])}</div>
@@ -160,7 +159,7 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
       <div class="sp-big">${P.totaal} punten</div><p class="sp-s">${P.totaal?`al verzameld in ${Y}.`:`Je punten van ${Y} tellen voor ${Y+1}. Je hebt er nog geen.`}</p>${rijen(P.onderdelen)}
       ${P.ere||P.vrij?"":`<div class="sp-bar" aria-hidden="true"><i style="width:${pct}%"></i>${tick.map(([,v])=>`<u style="left:${pc(v)}%"></u>`).join("")}</div><div class="sp-sch">${tick.map(([n,v])=>`<span style="left:${pc(v)}%">${n} ${v}</span>`).join("")}</div>`}
       <p class="sp-n">${volg}</p></div>
-     <p class="sp-w">${w?"Punten verdien je met: "+esc(w)+". ":""}<a href="/reglement">Reglement</a></p></div>`})
+     <p class="sp-w"><a href="/reglement">Hoe werkt het puntensysteem?</a></p></div>`})
   .catch(e=>fout(e.message));
 </script>
 </body>
