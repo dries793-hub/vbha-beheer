@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "sms") return await smsApi(req, res); // sms via BudgetSMS (shiften)
     if (req.query && req.query.f === "goud") { const { goudApp } = await import("./_lib/goudmail.js"); return await goudApp(req, res); } // proficiat-mail goudstatus (admin)
     if (req.query && req.query.f === "statuslink") { // persoonlijke statuspagina van een lid openen vanuit de lidfiche
-      const { sb } = await requireUser(req); const id = String(req.query.id || "");
+      const { sb, rol } = await requireUser(req); if (rol !== "admin") throw httpErr(403, "Enkel voor de administrator."); const id = String(req.query.id || "");
       const { data: row } = await sb.from("leden").select("id").eq("id", id).maybeSingle(); if (!row) throw httpErr(404, "Lid niet gevonden");
       const { tekenStatus } = await import("./_lib/lidlink.js"); const { site } = await import("./_lib/bevestiging.js"); const j = new Date().getFullYear();
       return res.status(200).json({ link: `${site()}/status?l=${encodeURIComponent(id)}&j=${j}&t=${tekenStatus(id, j)}` });
