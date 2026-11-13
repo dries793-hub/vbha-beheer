@@ -8157,9 +8157,10 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-lidi
 /* ============ Dashboard (admin): goudstatus behaald ============
    Lid haalt met de punten van dit werkjaar de goudstatus (niet erewacht, niet enkel door vrijstelling) en kreeg nog geen
    proficiat-mail (jaarleden.goudMail ontbreekt) -> melding met "Proficiat-mail sturen" of "Overslaan" (server: /api/mail?f=goud). */
-function gdKandidaten(){if(ROL!=="admin")return[];let C;try{C=ctx()}catch(e){return[]}const g=C.c&&C.c.drempels&&C.c.drempels.goud;if(!g)return[];
+const gdAutoAan=()=>((S.config.get("algemeen")||{}).goudMail||{}).aan!==false;
+function gdKandidaten(alle){if(ROL!=="admin"&&!alle)return[];let C;try{C=ctx()}catch(e){return[]}const g=C.c&&C.c.drempels&&C.c.drempels.goud;if(!g)return[];
   return [...C.rows.values()].filter(r=>r.huidig&&r.lid.categorie!=="Erewacht"&&!r.jl.vrijstelling&&!r.jl.goudMail&&r.p&&r.p.totaal>=g).sort((a,b)=>naamVol(a.lid).localeCompare(naamVol(b.lid),"nl"))}
-function gdMelding(){const L=gdKandidaten();if(!L.length)return"";
+function gdMelding(){if(gdAutoAan())return"";const L=gdKandidaten();if(!L.length)return"";
   return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("check")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
    <div class="gd-l">${L.slice(0,12).map(r=>`<div class="gd-r"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten${r.lid.email?"":" · geen e-mailadres"}</span></span>
     <span class="gd-a"><button type="button" class="btn sm" data-gd="mail" data-id="${esc(r.lid.id)}"${r.lid.email?"":" disabled"}>${ic("mails")}<span class="gd-tl">Proficiat-mail</span></button></span></div>`).join("")}</div>
@@ -8180,6 +8181,13 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-gd]");if(!
  .gd-al .btn{width:100%;justify-content:center}}`;document.head.appendChild(st)}
 document.addEventListener("change",e=>{if(e.target&&e.target.id==="mpBestuur"){try{localStorage.setItem("vbha_mp_bestuur",e.target.checked?"1":"0")}catch(x){}renderBody()}});
 {const st=document.createElement("style");st.textContent=`.mp-b{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted,#667);font-weight:500;white-space:nowrap}.mp-b input{margin:0;width:16px;height:16px;accent-color:var(--red,#c8102e)}`;document.head.appendChild(st)}
+
+/* Automatische proficiat-mail staat aan: zodra iemand goud haalt, laat de app de server de mail meteen versturen
+   (anders pas bij de geplande taak, één keer per uur). */
+{let bezig=false,laatst=0;setInterval(async()=>{if(bezig||!gdAutoAan()||typeof canWrite==="undefined"||!canWrite||Date.now()-laatst<60000)return;const aj=Number((S.config.get("algemeen")||{}).actiefJaar)||0;if(aj&&aj!==JAAR)return;
+  let L;try{L=gdKandidaten(true).filter(r=>r.lid.email)}catch(e){return}if(!L.length)return;bezig=true;laatst=Date.now();
+  try{const j=await api("/api/mail?f=goud",{method:"POST",body:JSON.stringify({actie:"auto"})});
+    if(j&&!j.uit){const nu=new Date().toISOString();for(const r of L){const id=JAAR+"_"+r.lid.id,cur=S.jaarleden.get(id);if(cur&&!cur.goudMail)S.jaarleden.set(id,{...cur,goudMail:{op:nu,verstuurd:true}})}dirty=true}}catch(e){}finally{bezig=false}},15000)}
 
 /* ---- Kalenderronde: wie vorig jaar kalenders buste, kan dezelfde straten opnieuw reserveren (blok in de mail "de kalenders zijn er") ----
    Velden {straten_vorig_jaar}, {dozen_vorig_jaar}, {kalender_tegen} en de persoonlijke link {link_straten} (/kaart?l=&j=&t=@@SIG@@, de server ondertekent). */
