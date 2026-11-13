@@ -4641,7 +4641,20 @@ async function bkHerbereken(L){const bc=bkCfg();let n=0;
 // prijs en korting tonen bij een inschrijving
 {const _f=bkForm;bkForm=function(r,id){_f(r,id);if(!id||!r||!r.korting)return;const e=$("#biErr");if(e)e.insertAdjacentHTML("beforebegin",`<div class="full bk-kr">${medal(r.status||"BRONS")}<span>${r.korting}% korting · <b>${eur(r.prijsPP)}</b> per persoon</span></div>`)}}
 /* ---------- export (knop "Exporteren") ---------- */
-{const _v=VIEWS.banket;const n=function(){const v=_v.apply(this,arguments);v.actions=String(v.actions||"").replace('<button class="btn primary" data-w data-act="bkNieuw">',`<button class="btn" data-act="bkExport">${ic("download")}Exporteren</button><button class="btn primary" data-w data-act="bkNieuw">`);return v};Object.assign(n,_v);VIEWS.banket=n}
+/* Exporteren staat links onderaan in de instellingen (banket en ledenlijst) */
+function voetExport(act,lbl){setTimeout(()=>{const ft=document.querySelector("#modal .modal-f");if(!ft||ft.querySelector("[data-act="+act+"]"))return;
+  ft.insertAdjacentHTML("afterbegin",`<button type="button" class="btn ft-exp" data-act="${act}">${ic("download")}<span>${lbl}</span></button>`)},0)}
+{const _i=bkInst;bkInst=function(){_i.apply(this,arguments);voetExport("bkExport","Exporteren")}}
+{const _i=ledenInst;ledenInst=function(){_i.apply(this,arguments);if(ROL==="admin"||recht("leden")!=="geen")voetExport("ledenExport","Exporteren")}}
+async function ledenExport(){let ib={};try{ib=(await api("/api/mail?f=terug",{method:"POST",body:JSON.stringify({actie:"ibanlijst"})})).ibans||{}}catch(e){}
+  let C;try{C=ctx()}catch(e){C=null}const L=[...S.leden.values()].filter(l=>!l.dubbelVan).sort((a,b)=>naamVol(a).localeCompare(naamVol(b),"nl"));
+  const rows=L.map(l=>{const r=C&&C.rows.get(l.id);return{Naam:l.naam||"",Voornaam:l.voornaam||"",Categorie:l.categorie||"",Bestuur:l.bestuur?"ja":"","Geen lid":l.geenLid?"ja":"",
+    "E-mail":l.email||"",Telefoon:l.telefoon||"",Adres:l.adres||"","Lid sinds":l.lidSinds||"","Lid tot":l.lidTot||"",Rekeningnummer:ib[l.id]?String(ib[l.id]).replace(/(.{4})/g,"$1 ").trim():"",
+    ["Lidgeld "+JAAR]:r?(r.lg&&r.lg.ok?"betaald":r.huidig?"open":""):"",["Punten "+JAAR]:r&&r.p?r.p.totaal:"",Status:r&&r.status?String(r.status):"",Info:l.info||""}});
+  const ws=XLSX.utils.json_to_sheet(rows);ws["!cols"]=Object.keys(rows[0]||{}).map(k=>({wch:Math.min(40,Math.max(10,k.length+2,...rows.map(x=>String(x[k]??"").length)))}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Leden");save(`VBHA_Leden_${new Date().toISOString().slice(0,10)}.xlsx`,XLSX.write(wb,{type:"array",bookType:"xlsx"}));toast(rows.length+" leden geëxporteerd.")}
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="ledenExport"]');if(!b)return;e.preventDefault();e.stopPropagation();ledenExport().catch(x=>toast(x.message,true))},true);
+{const st=document.createElement("style");st.textContent=`.modal-f .ft-exp{margin-right:auto}@media(max-width:640px){.modal-f .ft-exp{flex:0 0 auto!important;padding-left:12px;padding-right:12px}.modal-f .ft-exp span{display:none}.modal-f .ft-exp svg{margin:0}}`;document.head.appendChild(st)}
 bkSheet=function(){return bkRows().map(x=>({Naam:x.r.naam,Formule:x.r.personen===2?"Met partner":"Alleen",Categorie:(x.lid&&x.lid.categorie)||"",Personen:x.r.personen===2?2:1,"Menu lid":x.r.menu1,"Menu partner":x.r.personen===2?x.r.menu2:"",Opmerking:x.r.opmerking||"",
   Status:x.r.status?x.r.status.charAt(0)+x.r.status.slice(1).toLowerCase():"",Korting:x.r.korting?x.r.korting/100:"","Prijs per persoon":x.r.prijsPP!=null&&x.r.prijsPP!==""?num(x.r.prijsPP):num(bkCfg().prijs),
   Bedrag:x.due,Betaald:x.p.ok?"Ja":x.p.deel?"Deels ("+x.p.bedrag+")":"Nee",Ingeschreven:x.r.ingediend||"",Bron:x.r.bron==="formulier"?"Website":"Manueel"}))};
@@ -4675,6 +4688,16 @@ kfLijst=function(){return [...S.kinderfeest.values()].filter(r=>r.jaar===JAAR).s
       ${r.opmerking?`<span class="bk-opm">${esc(r.opmerking)}</span>`:""}</span>
       <span class="ml-r bk-r"><b>${eur(x.due)}</b>${pill}</span></button>`}).join("")||'<div class="empty">Nog geen inschrijvingen.</div>'}</div>`;
   return mob+h}}
+/* puntensysteem: volledige puntenlijst van het werkjaar naar Excel */
+{const _i=puntInst;puntInst=function(){_i.apply(this,arguments);voetExport("puntenExport","Exporteren")}}
+function puntenExport(){const C=ctx(),w=(C.c&&C.c.gewichten)||{};const L=[...C.rows.values()].filter(r=>r.huidig).sort((a,b)=>(b.p?b.p.totaal:0)-(a.p?a.p.totaal:0)||naamVol(a.lid).localeCompare(naamVol(b.lid),"nl"));
+  const rows=L.map(r=>{const j=r.jl||{},p=r.p||{};return{Naam:r.lid.naam||"",Voornaam:r.lid.voornaam||"",Categorie:r.lid.categorie||"",Bestuur:r.lid.bestuur?"ja":"",
+    "Kaarten fuif":j.kaarten||0,"Punten kaarten":p.kaarten||0,"Kalenders (dozen)":j.kalUitgevoerd||0,"Punten kalenders":p.kalenders||0,Shiften:j.shifts||0,"Punten shiften":p.shifts||0,
+    Vergaderingen:j.vergaderingen||0,"Punten vergaderingen":p.vergaderingen||0,"Extra (omschrijving)":j.extraTekst||"","Extra punten":p.extra||0,Totaal:p.totaal||0,
+    Status:r.status?String(r.status):"",Vrijstelling:j.vrijstelling?"ja":"",["Lidgeld "+JAAR]:r.lg&&r.lg.ok?"betaald":"open"}});
+  const ws=XLSX.utils.json_to_sheet(rows);ws["!cols"]=Object.keys(rows[0]||{Naam:""}).map(k=>({wch:Math.min(36,Math.max(9,k.length+2,...rows.map(x=>String(x[k]??"").length)))}));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Punten "+JAAR);save(`VBHA_Punten_${JAAR}.xlsx`,XLSX.write(wb,{type:"array",bookType:"xlsx"}));toast(rows.length+" leden geëxporteerd.")}
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="puntenExport"]');if(!b)return;e.preventDefault();e.stopPropagation();try{puntenExport()}catch(x){toast(x.message,true)}},true);
 
 /* ============ Kalenderronde: kaart op volledig scherm ============
    Knop in de zoombalk. Het kader wordt over het hele venster gelegd (werkt ook op iPhone); waar het kan ook echt volledig scherm
@@ -7822,7 +7845,7 @@ const soBron={
   ag:()=>({titel:($("#agT")||{}).value||"",datum:($("#agD")||{}).value||"",uur:($("#agU")||{}).value||"",locatie:($("#agL")||{}).value||"",info:($("#agI")||{}).value||""})};
 document.addEventListener("click",e=>{const b=e.target.closest("[data-sopost]");if(!b)return;e.preventDefault();const f=soBron[b.dataset.sopost];if(f)soVanuit(f())});
 for(const [r,k] of [["kinderfeest","kf"],["banket","bk"],["fuif","fu"],["familiedag","fd"]]){const _v=VIEWS[r];if(!_v)continue;
-  const n=function(){const v=_v.apply(this,arguments);if(recht("social")!=="geen")v.actions=`<button type="button" class="btn" data-sopost="${k}">${ic("delen")}Post maken</button>`+String(v.actions||"");return v};Object.assign(n,_v);VIEWS[r]=n}
+  const n=function(){const v=_v.apply(this,arguments);if(false&&recht("social")!=="geen")v.actions=`<button type="button" class="btn" data-sopost="${k}">${ic("delen")}Post maken</button>`+String(v.actions||"");return v};Object.assign(n,_v);VIEWS[r]=n}
 
 /* ============ Financiën › Transacties › Verrekeningen (splitwise) ============
    Een activiteit die samen met een andere vereniging georganiseerd wordt (bv. 150 jaar met de Vriendenkring Moorsel):

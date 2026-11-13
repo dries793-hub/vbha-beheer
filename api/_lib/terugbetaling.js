@@ -128,6 +128,9 @@ export async function terugApp(req, res) {
       const { data: r } = await sb.from("terugbetalingen").select("data,status").eq("id", String(b.id || "")).maybeSingle(); if (!r || !r.data.bon || !(vol || eigen(r))) throw httpErr(404, "Geen bewijsstuk.");
       const { data } = await sb.storage.from(BUCKET).createSignedUrl(r.data.bon.pad, 600); return res.status(200).json({ ok: true, url: data ? data.signedUrl : "" });
     }
+    if (b.actie === "ibanlijst") { // ledenexport: alle gekende rekeningnummers (enkel wie rekeningnummers mag zien)
+      if (!ibanRecht) return res.status(200).json({ ok: true, ibans: {} });
+      const { data } = await sb.from("lid_iban").select("lid_id,iban"); return res.status(200).json({ ok: true, ibans: Object.fromEntries((data || []).map(r => [r.lid_id, r.iban])) }); }
     if (b.actie === "lidiban" && !ibanRecht) { // gewone gebruiker: gedeeltelijk verborgen (voor het formulier)
       const { data } = await sb.from("lid_iban").select("iban").eq("lid_id", String(b.lidId || "")).maybeSingle(); return res.status(200).json({ ok: true, iban: "", masker: data && ibanOk(data.iban) ? masker(data.iban) : "" }); }
     if (b.actie === "lidiban") { const { data } = await sb.from("lid_iban").select("iban,bron,op").eq("lid_id", String(b.lidId || "")).maybeSingle(); return res.status(200).json({ ok: true, iban: data ? data.iban : "", op: data ? data.op : null }); }
