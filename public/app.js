@@ -4181,7 +4181,7 @@ function inkVoorstel(d){const A=INK.txt.get(d.id);if(!A||A.fout)return[];const d
     if(A.nr&&A.nr.length>=4&&med.toUpperCase().replace(/\s/g,"").includes(A.nr.toUpperCase())){sc+=5;w.push("factuurnummer")}
     const p=norm(b.partij||"").split(/[^a-z0-9]+/).filter(x=>x.length>=4&&!inkStop().has(x));if(p.some(x=>A.tekst.includes(x)||lev.includes(x))){sc+=3;w.push("naam leverancier")}
     const dd=Math.abs(new Date(b.datum+"T12:00").getTime()-t0)/864e5;if(dd>120)sc-=3;else if(dd<=30)sc+=1;
-    return{b,bs:[b],sc,w}}).filter(x=>x.sc>=3&&x.w.length).sort((a,b)=>b.sc-a.sc||Math.abs(new Date(a.b.datum)-t0)-Math.abs(new Date(b.b.datum)-t0)).slice(0,3);
+    return{b,bs:[b],sc,w}}).filter(x=>x.sc>=3&&x.w.some(v=>v!=="naam leverancier")).sort((a,b)=>b.sc-a.sc||Math.abs(new Date(a.b.datum)-t0)-Math.abs(new Date(b.b.datum)-t0)).slice(0,3);
   // in 2 keer betaald (betaallimiet): 2 transacties die samen het bedrag vormen
   if(doel&&!V.some(x=>x.w.includes("zelfde bedrag")||x.w.includes("resterend bedrag"))){
     const K=[...S.boekingen.values()].filter(b=>b.richting==="uit"&&!b.documentId&&Math.abs(new Date(b.datum+"T12:00")-t0)/864e5<=120);
