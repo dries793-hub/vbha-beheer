@@ -287,7 +287,7 @@ export function factuurMail(f, cfg, soort = "factuur", status, extra = "") {
     onderwerp = `Aanmaning: factuur ${f.nr} - ${cfg.vereniging}`;
     html += p(`Ondanks onze factuur${(f.verzonden || []).some(v => v.soort === "herinnering" && v.ok) || f.eerderHerinnerd ? " en onze herinnering" : ""} hebben wij voor factuur <b>${esc(f.nr)}</b> van ${esc(kort(f.datum))} nog geen${status && status.ontvangen > 0 ? " volledige" : ""} betaling ontvangen. De vervaldatum was ${esc(kort(f.vervaldatum))}.`)
       + p(`Zoals vermeld in onze betalingsvoorwaarden rekenen wij vanaf nu verwijlintresten en een forfaitaire schadevergoeding aan.`)
-      + p(`Wij vragen je het totaal van <b>${eur(A.totaal)}</b> uiterlijk op <b>${esc(lang(A.tot))}</b> over te schrijven. Zonder betaling binnen deze termijn zien wij ons genoodzaakt verdere stappen tot invordering te zetten.`)
+      + p(`Wij vragen je het totaal van <b>${eur(A.totaal)}</b> uiterlijk op <b>${esc(lang(A.tot).replace(/^\p{Lu}/u, c => c.toLowerCase()))}</b> over te schrijven. Zonder betaling binnen deze termijn zien wij ons genoodzaakt verdere stappen tot invordering te zetten.`)
       + String(extra || "").trim().split(/\n\s*\n/).filter(x => x.trim()).map(x => p(esc(x.trim()).replace(/\n/g, "<br>"))).join("")
       + p(`Heb je intussen al betaald? Dan kruisten onze berichten elkaar en mag je deze aanmaning als niet verzonden beschouwen.`, "margin:0 0 15px;font-size:13.5px;color:#666666");
     html += kaderBlok("Aanmaning factuur " + esc(f.nr), tabel([
@@ -295,7 +295,7 @@ export function factuurMail(f, cfg, soort = "factuur", status, extra = "") {
       A.intrest ? rij(`Verwijlintrest ${String(A.pct).replace(".", ",")}% (${A.dagen} dagen)`, eur(A.intrest)) : "",
       A.forfait ? rij("Forfaitaire schadevergoeding", eur(A.forfait)) : "",
       rij("Totaal te betalen", `<b>${eur(A.totaal)}</b>`),
-      rij("Uiterlijk op", `<b>${esc(lang(A.tot))}</b>`),
+      rij("Uiterlijk op", `<b>${esc(lang(A.tot).replace(/^\p{Lu}/u, c => c.toLowerCase()))}</b>`),
     ]));
     html += kaderBlok("Betalen", tabel([rij("Bedrag", `<b>${eur(open)}</b>`), rij("Rekening", `<b>${esc(String(cfg.iban).replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim())}</b>`), rij("Begunstigde", esc(cfg.vereniging)), rij("Mededeling", `<b>${esc(ogmFmt(f.ogm) || f.nr)}</b>`)]), "#b30000", "#fdf2f2")
       + knop("Online betalen met Bancontact of QR-code", betaalLink(f.id))
