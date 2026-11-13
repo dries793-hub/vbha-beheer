@@ -149,7 +149,7 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
     const een=o=>o.aantal!=null?`${o.aantal} ${o.aantal===1?o.eenheid[0]:o.eenheid[1]} · `:"";
     const rijen=L=>L.filter(o=>o.punten).map(o=>`<div class="sp-r"><span>${esc(o.naam)}</span><span>${een(o)}<b>${o.punten} pt</b></span></div>`).join("");
     const waarom=N.ere?"Erewacht: altijd de maximale korting.":N.vrij?`Je was in ${N.puntenJaar} vrijgesteld van het puntensysteem.`:N.start?`Het puntensysteem startte in ${N.puntenJaar+1}: iedereen krijgt goud.`:`Dankzij je <b>${N.totaal} punten</b> uit ${N.puntenJaar}.`;
-    const max=Math.max(D.goud,P.totaal)||1,pc=v=>Math.min(100,v/max*100),pct=pc(P.totaal);
+    const max=D.goud||1,pc=v=>Math.min(100,v/max*100),pct=pc(P.totaal);
     const tick=[...(D.brons>0?[["Brons",D.brons]]:[]),["Zilver",D.zilver],["Goud",D.goud]];
     const volg=P.ere?"Als erewacht blijf je goud.":P.vrij?`Je bent vrijgesteld: in ${Y+1} krijg je goud.`:P.naar?`Nog <b>${P.nodig} punten</b> voor ${nm(P.naar).toLowerCase()}.`:`Goud voor ${Y+1} heb je al binnen. Proficiat!`;
     $("#box").innerHTML=`<div class="sp">
