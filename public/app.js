@@ -2862,11 +2862,14 @@ let ML_T=null;
 function mailPreview(){const M=mailState(),list=mailRecips();const fr=$("#mlFrame"),hd=$("#mHead");if(!fr)return;
   const dummy={email:"",voornaam:"Voornaam",naam:"Naam Voornaam",bedrag:30,mededeling:"Naam Voornaam "+(/^bk/.test(UI.mailGroep||"")?"Banket":"lidgeld")+" "+JAAR,label:"(geen ontvangers)"};
   M.idx=Math.max(0,Math.min(M.idx||0,Math.max(0,list.length-1)));const r=list[M.idx]||dummy;
-  hd.innerHTML=`<div class="ml-nav"><button class="btn sm" data-act="mlPrev" aria-label="Vorige"${M.idx>0?"":" disabled"}>‹</button><span>${list.length?(M.idx+1)+" / "+list.length:"geen ontvangers"}</span><button class="btn sm" data-act="mlNext" aria-label="Volgende"${M.idx<list.length-1?"":" disabled"}>›</button></div>
+  hd.innerHTML=`<div class="ml-nav"><button class="btn sm" data-act="mlPrev" aria-label="Vorige"${M.idx>0?"":" disabled"}>‹</button><span>${list.length?(M.idx+1)+" / "+list.length:"geen ontvangers"}</span><button class="btn sm" data-act="mlNext" aria-label="Volgende"${M.idx<list.length-1?"":" disabled"}>›</button>${list.length>1?`<input type="text" class="ml-zk" id="mlZk" placeholder="Zoek op naam…" autocomplete="off" aria-label="Voorbeeld zoeken op naam" value="${esc(M.zoek||"")}">`:""}</div>
     <div class="ml-meta"><div><span>Aan</span><b class="trunc">${esc(r.label)}${r.email&&String(r.label).toLowerCase()!==String(r.email).toLowerCase()?` <small>&lt;${esc(r.email)}&gt;</small>`:""}</b></div><div><span>Onderwerp</span><b class="trunc">${esc(vul(M.onderwerp,r))}</b></div></div>`;
   const h=mailHtml(r,M).replace("<head>",'<head><base target="_blank">');
   fr.onload=()=>{try{const b=fr.contentDocument.documentElement;fr.style.height=Math.max(320,b.scrollHeight+4)+"px"}catch(e){}};
   fr.srcdoc=h}
+document.addEventListener("input",e=>{if(e.target.id!=="mlZk")return;const M=mailState(),q=norm(e.target.value);M.zoek=e.target.value;if(!q)return;
+  const list=mailRecips(),i=list.findIndex(r=>norm([r.label,r.voornaam,r.naam,r.email,r.bedrijf].join(" ")).includes(q));if(i<0||i===M.idx)return;
+  M.idx=i;const pos=e.target.selectionStart;mailPreview();const z=$("#mlZk");if(z){z.focus();try{z.setSelectionRange(pos,pos)}catch(x){}}});
 const mlPrevLater=()=>{clearTimeout(ML_T);ML_T=setTimeout(mailPreview,250)};
 function mlDirty(){MAIL.dirty=true;const e=$("#mlDirty");if(e)e.textContent="Niet bewaard"}
 
