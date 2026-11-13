@@ -80,7 +80,7 @@ export async function syncAll(sb, { manueel = false } = {}) {
   }
   // Bancontact-bulkstortingen meteen opsplitsen volgens de online betalingen van die dag (rest: Kalenders)
   try { const sp = await splitsBulk(sb); if (sp.gesplitst) totaal.gesplitst = sp.gesplitst; } catch (e) { console.error("splitsBulk", e); }
-  if (totaal.nieuw || totaal.fouten.length) {
+  if (totaal.nieuw || totaal.fouten.length || !manueel) { // automatische ophaling altijd loggen, ook zonder nieuwe transacties
     await sb.from("imports").insert({ id: crypto.randomUUID(), data: { tijd: nu.toISOString(), bestand: "Enable Banking", bron: "api", jaar: nu.getFullYear(), nieuw: totaal.nieuw, dubbel: totaal.dubbel, open: totaal.open, fouten: totaal.fouten } });
   }
   try { await bankPush(sb, kops, totaal, nu); } catch (e) { console.error("bankPush", e); }
