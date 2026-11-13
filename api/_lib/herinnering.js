@@ -109,7 +109,10 @@ export async function herinneringTest(req, res) {
   const { data } = await admin().from("vergaderingen").select("id,data").gte("data->>datum", nu).order("data->>datum", { ascending: true }).limit(1);
   const v = (data && data[0] && { ...data[0].data, id: data[0].id }) || { soort: "Bestuursvergadering", datum: plusDagen(nu, Number(cfg.dagen) || 5), uur: "19u30", locatie: "Kazerne Aalst", agenda: "Verslag vorige vergadering\nVaria" };
   const m = mail(v, dagenTot(nu, v.datum), site(), cfg);
-  const [r] = await verstuur([{ ...m, aan: user.email, onderwerp: "[VOORBEELD] " + m.onderwerp, van: afzender() }]);
+  // de knoppen zoals een bestuurslid ze krijgt: met de eigen (persoonlijke) knoppen als je in de ledenlijst staat, anders de algemene knop
+  let lidId = null; if (v.id) { const { data: L } = await admin().from("leden").select("id").ilike("data->>email", String(user.email || "").trim()).limit(1); lidId = (L && L[0] && L[0].id) || null; }
+  const html = v.id ? m.html.replace(KNOP, knoppen(v.id, lidId)) : m.html;
+  const [r] = await verstuur([{ ...m, html, aan: user.email, onderwerp: "[VOORBEELD] " + m.onderwerp, van: afzender() }]);
   if (!r || !r.ok) throw httpErr(502, "Versturen lukte niet" + (r && r.fout ? ": " + r.fout : ""));
   res.status(200).json({ ok: true, aan: user.email });
 }
