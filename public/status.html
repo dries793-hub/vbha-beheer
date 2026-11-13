@@ -123,7 +123,7 @@ html,body{overflow-x:hidden}
 <style>
 .sp-hero{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .sp-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;color:#fff;font-weight:700;letter-spacing:.06em;font-size:15px}
-.sp-badge.BRONS{background:#a5703f}.sp-badge.ZILVER{background:#8d959e}.sp-badge.GOUD{background:#c19a2e}
+.sp-badge.BRONS{background:#a5703f}.sp-badge.ZILVER{background:#8d959e}.sp-badge.GOUD{background:#c19a2e}.sp-badge.GEEN{background:#9aa0a6}
 .sp-k{font-size:14px;color:var(--muted)}.sp-k b{color:var(--ink)}
 .sp-h{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:26px 0 10px}
 .sp-t{width:100%;border-collapse:collapse;font-size:15px}.sp-t td{padding:10px 0;border-top:1px solid var(--line)}.sp-t tr:first-child td{border-top:0}
@@ -138,7 +138,7 @@ html,body{overflow-x:hidden}
 const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const Q=new URLSearchParams(location.search),l=Q.get("l"),j=Q.get("j"),t=Q.get("t");
 const fout=m=>{$("#lead").textContent="";$("#box").innerHTML=`<div class="card"><p>${esc(m)}</p><p><a href="/reglement">Reglement puntensysteem bekijken</a></p></div>`};
-const nm=s=>s.charAt(0)+s.slice(1).toLowerCase();
+const nm=s=>s==="GEEN"?"Geen status":s.charAt(0)+s.slice(1).toLowerCase();
 if(!l||!j||!t)fout("Deze link is onvolledig. Gebruik de link uit de mail die je van ons kreeg.");
 else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({l,j,t})}).then(async r=>{const x=await r.json().catch(()=>({}));if(!r.ok)throw new Error(x.error||"Er ging iets mis. Probeer het later opnieuw.");return x})
   .then(x=>{const N=x.nu,P=x.punten,Y=x.jaar,D=x.drempels;
@@ -150,7 +150,7 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
     $("#box").innerHTML=`<div class="card"><div class="sp-hero"><span class="sp-badge ${N.status}">${nm(N.status)}</span><span class="sp-k">Jouw status in ${Y} · <b>${N.korting}% korting</b> op betalende activiteiten</span></div><p class="sp-k" style="margin:10px 0 0">${esc(uitleg)}</p></div>
      <div class="sp-h">Punten verzameld in ${Y}</div>
      <div class="card"><table class="sp-t"><tbody>${rijen}</tbody><tfoot><tr><td>Totaal</td><td class="n">${P.totaal} pt</td></tr></tfoot></table>
-      ${P.ere||P.vrij?"":`<div class="sp-bar" aria-hidden="true"><i style="width:${pct}%"></i></div><div class="sp-sch"><span>Brons</span><span>Zilver ${D.zilver} pt</span><span>Goud ${D.goud} pt</span></div>`}
+      ${P.ere||P.vrij?"":`<div class="sp-bar" aria-hidden="true"><i style="width:${pct}%"></i></div><div class="sp-sch">${D.brons>0?`<span>0</span>`:""}<span>Brons${D.brons>0?" "+D.brons+" pt":""}</span><span>Zilver ${D.zilver} pt</span><span>Goud ${D.goud} pt</span></div>`}
       <p class="sp-n">Status voor ${Y+1}: <b>${nm(P.volgend)}</b> (${P.kortingVolgend}% korting). ${volg}</p></div>
      <div class="sp-l"><a href="/reglement">Hoe werkt het puntensysteem?</a></div>`})
   .catch(e=>fout(e.message));

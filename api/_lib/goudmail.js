@@ -86,15 +86,15 @@ export async function goudApp(req, res) {
    Per lid wordt in de afgeschermde tabel punten_mailstand bijgehouden wat het laatst gemeld werd. Pas als er 30 minuten niets meer aan het lid veranderde,
    gaat er één mail (zo krijgt wie meerdere dozen na elkaar ingevuld krijgt maar één bericht). De eerste keer worden enkel de standen bewaard. */
 const ONDERDELEN = [["kaarten", "kaarten", "verkoop kaarten fuif"], ["kalUitgevoerd", "kalenders", "kalenders bussen"], ["shifts", "shifts", "hulp bij activiteiten"], ["vergaderingen", "vergaderingen", "vergaderingen"]];
-const STATUS = { brons: "Brons", zilver: "Zilver", goud: "Goud" };
-const statusVan = (pt, dr) => pt >= dr.goud ? "goud" : pt >= dr.zilver ? "zilver" : "brons";
+const STATUS = { geen: "geen status", brons: "Brons", zilver: "Zilver", goud: "Goud" };
+const statusVan = (pt, dr) => pt >= dr.goud ? "goud" : pt >= dr.zilver ? "zilver" : pt >= (dr.brons || 0) ? "brons" : "geen";
 const stand = j => ({ kaarten: j.kaarten || 0, kalUitgevoerd: j.kalUitgevoerd || 0, shifts: j.shifts || 0, vergaderingen: j.vergaderingen || 0, extraPunten: j.extraPunten || 0 });
 export function puntenHtml(voornaam, Y, { regels, totaal, status, statusNieuw, statusVorig }, A, lidId) {
   const st = `<b>${STATUS[status]}</b>`;
   return huisstijl(
     p(`Beste ${esc(voornaam || "lid")},`)
     + (regels.length ? p("Zonet werden er nieuwe punten voor je toegevoegd:") + kaderBlok("Nieuwe punten", regels.map(r => p(`<b>+${r.pt} pt</b> voor ${esc(r.naam)}${r.n ? ` (${r.n})` : ""}`, "margin:0 0 6px")).join("")) : "")
-    + p(`Jouw totaal voor ${Y} bedraagt nu <b>${totaal} punten</b>. ${statusNieuw ? `Daarmee ga je van ${STATUS[statusVorig]} naar ${st} voor ${Y + 1}.` : `Daarmee is je status voor ${Y + 1} ${st}.`}`)
+    + p(`Jouw totaal voor ${Y} bedraagt nu <b>${totaal} punten</b>. ${statusNieuw ? `Daarmee ga je van ${STATUS[statusVorig]} naar ${st} voor ${Y + 1}.` : status === "geen" ? `Daarmee heb je voor ${Y + 1} nog geen status.` : `Daarmee is je status voor ${Y + 1} ${st}.`}`)
     + p("Bedankt voor je inzet voor de Vriendenkring!")
     + (lidId ? knop("Bekijk al je punten", statusLink(lidId, Y)) : knop("Reglement puntensysteem", site() + "/reglement")),
     A.vereniging || "Vriendenkring Brandweer Hoofdpost Aalst");

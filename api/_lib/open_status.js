@@ -8,14 +8,14 @@ import { lidStatus, jaarCfg } from "./status.js";
 /* /api/reglement (GET): de cijfers van het reglement (openbaar).
    /api/status (POST {l, j, t}): persoonlijke pagina via de ondertekende link uit de mail: status van het huidige werkjaar
    en de punten die dit werkjaar per onderdeel verzameld werden (en wat dat betekent voor volgend jaar). */
-const KLEUR = { BRONS: "#a5703f", ZILVER: "#8d959e", GOUD: "#c19a2e" };
+const KLEUR = { GEEN: "#9aa0a6", BRONS: "#a5703f", ZILVER: "#8d959e", GOUD: "#c19a2e" };
 export async function reglement(req, res) {
   res.setHeader("Cache-Control", "public, max-age=300");
   const sb = admin(), A = await algemeen(sb), j = Number(req.query?.j) || A.jaar, c = await jaarCfg(sb, j);
   return res.status(200).json({ jaar: j, vereniging: A.vereniging, gewichten: c.gewichten, drempels: c.drempels, korting: c.korting });
 }
 export function statusHtml(L, S, j) {
-  const badge = `<span style="display:inline-block;padding:4px 12px;border-radius:999px;background:${KLEUR[S.status]};color:#ffffff;font-weight:bold;letter-spacing:.5px">${esc(S.status)}</span>`;
+  const badge = `<span style="display:inline-block;padding:4px 12px;border-radius:999px;background:${KLEUR[S.status]};color:#ffffff;font-weight:bold;letter-spacing:.5px">${esc(S.status === "GEEN" ? "GEEN STATUS" : S.status)}</span>`;
   return p(`Beste ${esc(L.voornaam || L.naam || "")},`) + p(`Je vroeg je status op voor het werkjaar <b>${j}</b>.`)
     + kaderBlok("Jouw status " + j, tabel([rij("Status", badge), rij("Korting", `<b>${S.korting}%</b> op de kostprijs van betalende activiteiten (bv. het banket)`)]))
     + p(S.ere ? "Als lid van de erewacht geniet je steeds de maximale korting." : S.vrij ? `Omdat je in ${S.puntenJaar} vrijgesteld was van het puntensysteem, krijg je de goudstatus.` : S.start ? `Het puntensysteem startte pas in ${S.puntenJaar + 1}. Daarom krijgt iedereen dit jaar de goudstatus.` : `Je status is gebaseerd op de punten die je in ${S.puntenJaar} verdiende met je inzet voor de vereniging.`)
@@ -45,11 +45,11 @@ export default async function handler(req, res) {
     ].map(o => ({ ...o, punten: o.aantal * (o.per || 0) }));
     if (J.extraPunten) onderdelen.push({ naam: J.extraTekst ? "Extra: " + J.extraTekst : "Extra punten", aantal: null, punten: J.extraPunten || 0 });
     const totaal = onderdelen.reduce((t, o) => t + o.punten, 0), ere = L.categorie === "Erewacht", vrij = !ere && !!J.vrijstelling;
-    const volgend = ere || vrij ? "GOUD" : totaal >= dr.goud ? "GOUD" : totaal >= dr.zilver ? "ZILVER" : "BRONS";
-    const tot = volgend === "GOUD" ? 0 : (volgend === "ZILVER" ? dr.goud : dr.zilver) - totaal;
+    const volgend = ere || vrij ? "GOUD" : totaal >= dr.goud ? "GOUD" : totaal >= dr.zilver ? "ZILVER" : totaal >= (dr.brons || 0) ? "BRONS" : "GEEN";
+    const tot = volgend === "GOUD" ? 0 : (volgend === "ZILVER" ? dr.goud : volgend === "BRONS" ? dr.zilver : dr.brons) - totaal;
     return res.status(200).json({ ok: true, voornaam: L.voornaam || "", jaar: Y,
       nu: { status: S.status, korting: S.korting, ere: S.ere, vrij: S.vrij, start: S.start, puntenJaar: S.puntenJaar },
-      punten: { totaal, onderdelen, volgend, ere, vrij, nodig: tot > 0 ? tot : 0, naar: volgend === "BRONS" ? "ZILVER" : volgend === "ZILVER" ? "GOUD" : null, kortingVolgend: Number(c.korting[volgend.toLowerCase()]) || 0 },
-      drempels: dr });
+      punten: { totaal, onderdelen, volgend, ere, vrij, nodig: tot > 0 ? tot : 0, naar: volgend === "GEEN" ? "BRONS" : volgend === "BRONS" ? "ZILVER" : volgend === "ZILVER" ? "GOUD" : null, kortingVolgend: Number(c.korting[volgend.toLowerCase()]) || 0 },
+      drempels: { brons: 0, ...dr } });
   } catch (e) { sendError(res, e); }
 }
