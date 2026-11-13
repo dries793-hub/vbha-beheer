@@ -4376,7 +4376,10 @@ function inkBetaal(id){const d=S.documenten.get(id);if(!d)return;const B=inkBeta
   $("#ipT").addEventListener("click",e=>{const x=e.target.closest("[data-ipnu]");if(!x)return;toon=Number(x.dataset.ipnu);teken()});teken()}
 /* domiciliëring / SEPA Direct Debit: zo'n factuur wordt automatisch van de rekening gehaald, niet zelf betalen */
 const INK_DOMI=/domicili|direct\s*debit|prelevement|lastschrift|sepa[\s-]*incasso|(automatisch|via\s*uw\s*bank)\s*(van\s*(uw|je)\s*rekening\s*)?(afgehouden|gedebiteerd|afgeschreven|ingehouden|geind|gedomicilieerd)|wordt\s*(automatisch\s*)?(van\s*(uw|je)\s*rekening\s*)?(gedebiteerd|afgehouden|afgeschreven)|niet\s*(zelf\s*)?(te\s*)?(betalen|overschrijven)|u\s*hoeft\s*niets\s*te\s*(doen|betalen)/;
-function inkDomi(d){const o=d&&d.inkomend&&d.inkomend.domi;if(o===true||o===false)return o;const A=INK.txt.get(d.id);return!!(A&&!A.fout&&INK_DOMI.test(A.tekst||""))}
+function inkDomi(d,diep){const o=d&&d.inkomend&&d.inkomend.domi;if(o===true||o===false)return o;const A=INK.txt.get(d.id);if(A&&!A.fout&&INK_DOMI.test(A.tekst||""))return true;
+  /* tekst niet leesbaar of zonder vermelding: zelfde leverancier als een eerdere factuur via domiciliëring, of Bancontact (kosten worden altijd afgehouden) */
+  const v=norm(inkVan(d)||"");if(!v)return false;if(/bancontact|payconiq/.test(v))return true;if(diep)return false;
+  for(const x of S.documenten.values())if(x.id!==d.id&&x.inkomend&&norm(inkVan(x)||"")===v&&inkDomi(x,true))return true;return false}
 {const _r=inkRij;inkRij=function(d){const h=_r(d);if(!inkMag()||!inkOpen(d))return h;const i=h.indexOf('</div><div class="ink-b">');if(i<0)return h;
   if(inkDomi(d))return h.slice(0,i)+`<button type="button" class="pill ink-domi" data-inkdomi="${esc(d.id)}" title="Wordt automatisch van de rekening gehaald (domiciliëring). Klik als dit niet klopt.">Domiciliëring</button>`+h.slice(i);
   return h.slice(0,i)+`<button type="button" class="btn sm" data-inkbet="${esc(d.id)}" title="QR-code om te betalen met de bankapp">${ic("bank")}Betalen</button>`+h.slice(i)}}
