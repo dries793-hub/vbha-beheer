@@ -4151,7 +4151,7 @@ const inkOpen=d=>{if(!inkBoekVan(d.id).length)return true;const t=inkTot(d);retu
 /* ---------- tekst uit de PDF en voorstel van transacties ---------- */
 async function inkLees(d){if(INK.txt.has(d.id)||INK.bezig.has(d.id)||!/pdf/i.test(d.type||d.naam))return;INK.bezig.add(d.id);
   try{const r=await fetch(await docUrl(d,false));const f=new File([await r.blob()],d.naam,{type:"application/pdf"});INK.txt.set(d.id,inkAnalyse(await vaTekst(f)))}
-  catch(e){console.warn("pdf lezen",e);INK.txt.set(d.id,{fout:true})}finally{INK.bezig.delete(d.id);if(route()==="inkomend")inkHerteken();inkAutoPlan()}}
+  catch(e){console.warn("pdf lezen",e);INK.txt.set(d.id,{fout:true,reden:String((e&&(e.name||"")+": "+(e.message||e))||"onbekend").slice(0,160)})}finally{INK.bezig.delete(d.id);if(route()==="inkomend")inkHerteken();inkAutoPlan()}}
 function inkAnalyse(t){const tekst=String(t||""),bedragen=[],tot=[];
   const re=/(?:€|EUR)?\s*(-?\d{1,3}(?:[.\s ]\d{3})*,\d{2}|-?\d+,\d{2}|-?\d+\.\d{2})(?!\d)/g;
   for(const lijn of tekst.split(/\n/)){let m;const isTot=/totaal|te betalen|total|bedrag|saldo|amount due|à payer/i.test(lijn);
@@ -4162,7 +4162,10 @@ function inkAnalyse(t){const tekst=String(t||""),bedragen=[],tot=[];
   // factuurdatum: eerst na "factuurdatum"/"datum", anders de eerste datum in de tekst
   const dRe=/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](20\d{2})/;const dm=tekst.match(new RegExp("(?:factuur\\s*datum|datum\\s*factuur|invoice\\s*date|date\\s*de\\s*facture|datum)\\s*[:]?\\s*"+dRe.source,"i"))||tekst.match(dRe);
   let datum="";if(dm){const n=dm.length-3,dd=+dm[n],mm=+dm[n+1],yy=+dm[n+2];if(dd>=1&&dd<=31&&mm>=1&&mm<=12)datum=`${yy}-${String(mm).padStart(2,"0")}-${String(dd).padStart(2,"0")}`}
-  return{tekst:norm(tekst),bedragen:[...new Set(bedragen)],totaal,ogm,nr,datum}}
+  // leverancier uit de factuur zelf (handig als iemand de factuur doorstuurde): blok "Van"/"Leverancier", niet onze eigen naam
+  let lev="";{const m=tekst.match(/(?:^|\n)\s*(?:van|from|de|leverancier|verkoper|supplier|fournisseur)\s*:?\s*\n\s*([^\n]{3,60})/i)||tekst.match(/(?:^|\n)\s*(?:leverancier|verkoper|supplier)\s*:\s*([^\n]{3,60})/i);
+    if(m){const x=m[1].trim();if(!/vriendenkring|brandweer\s*hoofdpost|vbha/i.test(x)&&/[a-z]{3}/i.test(x))lev=x}}
+  return{tekst:norm(tekst),bedragen:[...new Set(bedragen)],totaal,ogm,nr,datum,lev}}
 /* woorden die niets zeggen over de leverancier: onze eigen naam en gemeente (staan als klant op elke factuur) */
 let INK_STOP=null;function inkStop(){if(INK_STOP)return INK_STOP;const eigen=norm((S.config&&S.config.get&&S.config.get("algemeen")||{}).vereniging||"Vriendenkring Brandweer Hoofdpost Aalst");
   INK_STOP=new Set(["bvba","comm","vzw","sprl","nv","bv","srl","company","invoicing","factuur","facturatie","belgie","belgium","aalst","brandweer","vriendenkring","hoofdpost","zone","zuidoost",...eigen.split(/[^a-z0-9]+/).filter(x=>x.length>=4)]);return INK_STOP}
@@ -4190,7 +4193,7 @@ function inkRij(d){const L=inkBoekVan(d.id),nieuw=d.inkomend&&d.inkomend.nieuw&&
   if(L.length&&!inkOpen(d))return `<div class="ink-r">${kop}<div class="ink-b">${L.map(b=>`<div class="ink-t"><span>${fmtDate(b.datum)} · <b>${esc(b.partij||b.mededeling||"")}</b> · ${eur(b.bedrag)}${b.categorie?` · <span class="muted">${esc(b.categorie)}</span>`:""}</span>${m?`<button type="button" class="btn sm ghost" data-ink="los" data-id="${esc(b.id)}">Ontkoppelen</button>`:""}</div>`).join("")}</div></div>`;
   const A=INK.txt.get(d.id),V=inkVoorstel(d);if(!A)inkLees(d);
   const kand=[...S.boekingen.values()].filter(b=>b.richting==="uit"&&!b.documentId).sort((a,b)=>String(b.datum).localeCompare(String(a.datum))).slice(0,250);
-  return `<div class="ink-r">${kop}<div class="ink-b">${L.length?`${linked}<div class="small"><span class="pill warn">deels betaald</span> ${eur(inkSom(d.id))} van ${eur(inkTot(d))} · nog <b>${eur(Math.round((inkTot(d)-inkSom(d.id))*100)/100)}</b> te koppelen ${m?`<button type="button" class="btn sm ghost" data-ink="volledig" data-id="${esc(d.id)}" title="Het bedrag in de factuur werd verkeerd gelezen of de rest wordt niet betaald">Toch volledig</button>`:""}</div>`:""}${!A?'<div class="muted small">Factuur wordt gelezen…</div>':A.fout?'<div class="muted small">De tekst van deze factuur kon niet gelezen worden; kies de transactie zelf.</div>':
+  return `<div class="ink-r">${kop}<div class="ink-b">${L.length?`${linked}<div class="small"><span class="pill warn">deels betaald</span> ${eur(inkSom(d.id))} van ${eur(inkTot(d))} · nog <b>${eur(Math.round((inkTot(d)-inkSom(d.id))*100)/100)}</b> te koppelen ${m?`<button type="button" class="btn sm ghost" data-ink="volledig" data-id="${esc(d.id)}" title="Het bedrag in de factuur werd verkeerd gelezen of de rest wordt niet betaald">Toch volledig</button>`:""}</div>`:""}${!A?'<div class="muted small">Factuur wordt gelezen…</div>':A.fout?'<div class="muted small">De tekst van deze factuur kon niet gelezen worden; kies de transactie zelf.'+(A.reden?' <span style="opacity:.7">('+esc(A.reden)+')</span>':'')+'</div>':
     `<div class="muted small">${A.totaal?"Bedrag in de factuur: <b>"+eur(A.totaal)+"</b>":"Geen bedrag gevonden"}${A.nr?" · factuurnr. "+esc(A.nr):""}${A.ogm?" · mededeling "+esc(A.ogm):""}</div>`}
    ${V.map(x=>`<div class="ink-t ink-v"><span>${x.bs.map(y=>`${fmtDate(y.datum)} · <b>${esc(y.partij||y.mededeling||"")}</b> · ${eur(y.bedrag)}`).join(" <b>+</b> ")}<span class="muted small"> · ${esc(x.w.join(", "))}</span></span>${m?`<button type="button" class="btn sm primary" data-ink="koppel" data-id="${esc(d.id)}" data-b="${esc(x.bs.map(y=>y.id).join(","))}">${x.bs.length>1?"Samen koppelen":"Koppelen"}</button>`:""}</div>`).join("")}
    ${A&&!V.length&&!A.fout?'<div class="muted small">Nog geen passende transactie gevonden. Is de factuur nog niet betaald? Na de volgende bankimport verschijnt het voorstel vanzelf.</div>':""}
@@ -4305,7 +4308,9 @@ document.addEventListener("input",e=>{if(e.target.id==="ikA"){const h=INK_HOSTS[
 /* ---------- bestandsnaam: Bedrijf_factuurnr_datum.pdf (na het lezen van de PDF, en opnieuw bij het koppelen aan een transactie) ---------- */
 const inkStuk=t=>String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\b(bvba|bv|nv|vzw|comm\.?v|sprl|srl|sa)\b\.?/gi,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40);
 function inkBedrijf(d,b){const i=d.inkomend||{};const x=i.leverancier||(b&&b.partij)||i.vanNaam||(i.van?String(i.van).split("@")[1]||i.van:"");return inkStuk(String(x).replace(/\.(be|com|nl|eu|net|org)$/i,""))||"Onbekend"}
-async function inkHernoem(d,b){if(!d||!inkMag())return;const A=INK.txt.get(d.id)||{};const i=d.inkomend||{};
+async function inkHernoem(d,b){if(!d||!inkMag())return;const A=INK.txt.get(d.id)||{};let i=d.inkomend||{};
+  /* doorgestuurde factuur: de afzender (bv. een bestuurslid) is niet de leverancier; neem de naam uit de factuur en hernoem opnieuw */
+  if(A.lev&&!b&&(!i.leverancier||(i.vanNaam&&norm(i.leverancier)===norm(i.vanNaam)))&&norm(A.lev)!==norm(i.leverancier||"")){i={...i,leverancier:A.lev,hernoemd:undefined};d={...d,inkomend:i}}
   if(i.hernoemd==="boeking"||(i.hernoemd&&!b))return;
   const naam=`${inkBedrijf(d,b)}_${inkStuk(A.nr)||"zonder-nr"}_${A.datum||inkDatum(d)||"zonder-datum"}.pdf`;
   if(naam===d.naam&&i.hernoemd){return}
