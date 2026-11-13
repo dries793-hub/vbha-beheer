@@ -34,6 +34,12 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "kf-voorbeeld") return await kfVoorbeeld(req, res); // voorbeeld bevestigingsmail kinderfeest
     if (req.query && req.query.f === "sms") return await smsApi(req, res); // sms via BudgetSMS (shiften)
     if (req.query && req.query.f === "goud") { const { goudApp } = await import("./_lib/goudmail.js"); return await goudApp(req, res); } // proficiat-mail goudstatus (admin)
+    if (req.query && req.query.f === "statuslink") { // persoonlijke statuspagina van een lid openen vanuit de lidfiche
+      const { sb } = await requireUser(req); const id = String(req.query.id || "");
+      const { data: row } = await sb.from("leden").select("id").eq("id", id).maybeSingle(); if (!row) throw httpErr(404, "Lid niet gevonden");
+      const { tekenStatus } = await import("./_lib/lidlink.js"); const { site } = await import("./_lib/bevestiging.js"); const j = new Date().getFullYear();
+      return res.status(200).json({ link: `${site()}/status?l=${encodeURIComponent(id)}&j=${j}&t=${tekenStatus(id, j)}` });
+    }
     if (req.query && req.query.f === "terug") { const { terugApp } = await import("./_lib/terugbetaling.js"); return await terugApp(req, res); } // terugbetalingen en onkostennota's
     if (req.query && req.query.f === "social") { const { default: socialApi } = await import("./_lib/social.js"); return await socialApi(req, res); } // sociale media: posts klaarzetten en publiceren (ook geplande taak)
     if (req.query && req.query.f === "bcsplit") { // Bancontact-bulkstortingen opsplitsen (knop in de app of beheerder met geplande-taaksleutel)

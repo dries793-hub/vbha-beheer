@@ -1598,7 +1598,7 @@ function toonLid(id){
    <div class="fld" data-w><label for="lgOv">Lidgeldstatus</label><select id="lgOv" data-lgov="${esc(id)}">${selOpts([["","Automatisch (uit de boekhouding)"],["OK","Manueel: betaald"],["NOK","Manueel: niet betaald"]],r.jl.lidgeld||"")}</select></div>
    ${!r.lg.ok?`<button class="btn primary" data-w data-act="lidgeldBetaald" data-id="${esc(id)}" style="align-self:flex-start">Lidgeld ontvangen boeken</button>`:""}
    ${l.categorie!=="Erewacht"?`<div><b>Punten ${JAAR}</b>: ${r.p.totaal} &nbsp;${medal(r.status)}${r.jl&&r.jl.vrijstelling?` <span class="pill info" title="${esc(r.jl.vrijstelling.reden||"")}">vrijgesteld</span>`:""}</div>${vrijHtml(l,id,r)}`:""}</div></div>`+lidgeldHistHtml(l,r);
-  modal(naamVol(l),body,`<button class="btn ghost danger" data-w id="lidDel">Verwijderen</button><span class="grow"></span>${l.email&&lidMailMag()?`<button class="btn" data-lidmail="${esc(l.email)}">${ic("mails")}Mail sturen</button>`:""}<button class="btn" data-act="closeModal">Sluiten</button><button class="btn primary" data-w id="lidEdit">Gegevens wijzigen</button>`,{wide:true});
+  modal(naamVol(l),body,`<button class="btn ghost danger" data-w id="lidDel">Verwijderen</button><span class="grow"></span><button class="btn" data-act="lidStatusLink" data-id="${esc(l.id)}">${ic("reglement")}Statuspagina</button>${l.email&&lidMailMag()?`<button class="btn" data-lidmail="${esc(l.email)}">${ic("mails")}Mail sturen</button>`:""}<button class="btn" data-act="closeModal">Sluiten</button><button class="btn primary" data-w id="lidEdit">Gegevens wijzigen</button>`,{wide:true});
   $("#lidEdit").onclick=()=>{modal("Lid wijzigen",lidForm(l),`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="lidOk">Bewaren</button>`);
     $("#lidOk").onclick=async()=>{const d=readLid();if(!d)return;if(!d.geenLid&&(l.geenLid||(l.lidTot&&l.lidTot<JAAR))&&d.lidTot&&d.lidTot<JAAR&&d.lidTot===l.lidTot)d.lidTot=null;if(d.geenLid&&!l.geenLid&&l.lidTot&&l.lidTot<JAAR)d.geenLid=false;closeModal();await write("leden",id,{...stripId(S.leden.get(id)||l),...d});toast(d.geenLid&&!l.geenLid?naamVol(d)+" is nu oud lid.":"Gegevens bewaard.")}};
   $("#lidDel").onclick=()=>confirmBox(`<b>${esc(naamVol(l))}</b> definitief verwijderen? Wil je iemand enkel niet meer als lid tonen, vul dan beter "Lid tot en met" in.`,"Verwijderen",async()=>{await write("leden",id,null,{del:true});toast("Lid verwijderd.")});
@@ -1964,6 +1964,7 @@ document.addEventListener("click",async e=>{
     case"puntInst":puntInst();break;
     case"finInst":finInst();break;
     case"ledenInst":ledenInst();break;
+    case"lidStatusLink":{const w=window.open("about:blank","_blank");try{const j=await api("/api/mail?f=statuslink&id="+encodeURIComponent(t.dataset.id));if(w){w.opener=null;w.location.href=j.link}else location.href=j.link}catch(e){if(w)w.close();toast(e.message||"Link ophalen mislukt.")}break}
     case"ledenSort":{const v=t.dataset.v,cur=ledenSort();let n;
       if(v==="naam")n=cur.k==="naam"?{k:"voornaam",d:1}:{k:"naam",d:1};
       else n=cur.k===v?{k:v,d:-cur.d}:{k:v,d:(v==="status"||v==="lidgeld")?-1:1};
@@ -6036,7 +6037,7 @@ document.addEventListener("click",e=>{if(!e.target.closest("#spOk"))return;const
    (de punten van werkjaar J bepalen de status en kortingen in J+1). */
 function vrijHtml(l,id,r){const v=r&&r.jl&&r.jl.vrijstelling,w=typeof canWrite==="undefined"||canWrite;
   if(!w&&!v)return "";
-  return `<label class="sp-nat vrij-l" for="vrijC" style="margin-top:8px"><input type="checkbox" id="vrijC" data-vrij="${esc(id)}"${v?" checked":""}${w?"":" disabled"}><span><b>Vrijstelling puntensysteem</b><small>Bv. ziekte.${v&&v.op?` Gegeven op ${esc(fmtDate(String(v.op).slice(0,10)))}${v.door?" door "+esc(v.door):""}.`:""}</small></span></label>
+  return `<label class="sp-nat vrij-l" for="vrijC" style="margin-top:8px"><input type="checkbox" id="vrijC" data-vrij="${esc(id)}"${v?" checked":""}${w?"":" disabled"}><span><b>Vrijstelling puntensysteem</b>${v&&v.op?`<small>Gegeven op ${esc(fmtDate(String(v.op).slice(0,10)))}${v.door?" door "+esc(v.door):""}.</small>`:""}</span></label>
    <input type="text" id="vrijR" data-vrijr="${esc(id)}" placeholder="Reden (optioneel), bv. langdurig ziek" value="${esc((v&&v.reden)||"")}" maxlength="120" style="margin-top:8px;width:100%;padding:9px 12px;border:1px solid var(--line-strong);border-radius:8px;font:inherit;background:var(--surface);color:var(--ink)"${v&&w?"":" hidden"}>`}
 document.addEventListener("change",async e=>{const t=e.target;
   if(t.dataset&&t.dataset.vrij){const id=t.dataset.vrij,aan=t.checked,r=$("#vrijR");
