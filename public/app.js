@@ -990,7 +990,7 @@ function krCard(){const c=KR.host&&KR.host.querySelector("#krCard");if(!c)return
     const st=ids.map(id=>A[id]?(A[id].status==="reserved"?"r":"d"):"t");const all=v=>st.every(x=>x===v);
     c.hidden=false;c.classList.add("multi");c.querySelector("#krCardT").textContent=ids.length+" straten geselecteerd";
     c.querySelector("#krCardM").textContent="Tik een straat aan om ze toe te voegen, nog eens om ze weg te halen.";c.querySelector("#krWie").hidden=true;
-    mu.hidden=false;mu.innerHTML=`<div class="kr-sum"><div><b>${krNum(tot)}</b><span>adressen</span></div><div><b>${krNum(doz)}</b><span>${doz===1?"doos":"dozen"} <small>(${pd} per doos)</small></span></div></div>
+    mu.hidden=false;mu.innerHTML=`<div class="kr-sum"><div><b>${krNum(tot)}</b><span>adressen</span></div><div><b>${krNum(doz)}</b><span>${doz===1?"doos":"dozen"}</span></div></div>
       <ul class="kr-ml">${L.map((x,k)=>`<li><span class="kr-ml-n">${esc(x.n)}${A[x.id]?`<small>${A[x.id].status==="reserved"?"gereserveerd":"gedaan"}</small>`:""}</span><span class="kr-ml-a">${krNum(x.a)}</span></li>`).join("")}</ul>`;
     c.querySelector("#krDone").setAttribute("aria-pressed",String(all("d")));c.querySelector("#krResBtn").setAttribute("aria-pressed",String(all("r")));c.querySelector("#krTodo").setAttribute("aria-pressed",String(all("t")));return}
   c.classList.remove("multi");mu.hidden=true;mu.innerHTML="";
