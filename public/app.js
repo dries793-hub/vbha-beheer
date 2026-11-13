@@ -1042,8 +1042,8 @@ function krKiesPersoon(id,st){if(Array.isArray(id))return krKiesPersoonMeer(id,s
     const zelfde=cur&&(cur.status==="reserved")===res;
     const doc={jaar:JAAR,straat:id,status:res?"reserved":"done",by:l?naamVol(l).trim():by,lidId:l?l.id:null,at:zelfde?cur.at:new Date().toISOString(),...(zelfde?{gewijzigd:new Date().toISOString()}:{})};
     S.ronde.set(JAAR+"_"+id,{...doc,id:JAAR+"_"+id});if(KR.map)krStyleAll();krCard();
-    try{await write("ronde",JAAR+"_"+id,doc);const weg=krSegWeg([id]);if(weg.length)await writeMany(weg,()=>{})}catch(e){}finally{KR.busy=false}
-    if(KR.map)krStyleAll();krCard()};
+    let gelukt=false;try{await write("ronde",JAAR+"_"+id,doc);gelukt=true;const weg=krSegWeg([id]);if(weg.length)await writeMany(weg,()=>{})}catch(e){}finally{KR.busy=false}
+    if(gelukt&&KR.sel===id&&!KR.deel){KR.ss=new Set();KR.sel=null}if(KR.map)krStyleAll();krCard()};
   $("#krWieOk").onclick=ok;inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();ok()}})}
 /* Deelmodus: de gekozen stukken krijgen de status; was de hele straat aangeduid, dan wordt ze eerst in stukken opgesplitst. */
 async function krZetDeel(st){if(!canWrite||KR.busy)return;const sid=KR.deel,ids=[...KR.dsel];if(!ids.length){toast("Tik eerst een of meer stukken van de straat aan.",true);return}
