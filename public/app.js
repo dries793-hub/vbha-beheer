@@ -7793,7 +7793,7 @@ function soPost(r){const d=r.data,[cl,lb]=SO_ST[r.status]||["neutral",r.status],
   return `<div class="so-p"><div class="so-th">${f&&f.url?`<img src="${esc(f.url)}" alt="" loading="lazy">`:`<span>${ic("mails")}</span>`}${(d.fotos||[]).length>1?`<b>${d.fotos.length}</b>`:""}</div>
    <div class="so-m"><div class="so-t">${esc(d.titel||d.tekst||"(geen tekst)")}</div>
     <div class="so-s"><span class="pill ${cl}">${lb}</span>${r.status==="gepland"&&r.plan?`<span>${esc(soDt(r.plan))}</span>`:d.gepubliceerd?`<span>${esc(soDt(d.gepubliceerd))}</span>`:""}
-     ${K.map(([k,l])=>{const x=R[k];return x&&x.ok&&x.url?`<a class="so-c ok" href="${esc(x.url)}" target="_blank" rel="noopener" title="Bekijken op ${l}">${ic(k)}</a>`:`<span class="so-c${x?x.ok?" ok":" nok":""}" title="${esc(l+(x&&!x.ok?": "+x.fout:""))}">${ic(k)}</span>`}).join("")}</div>
+     <span class="so-cs">${K.map(([k,l])=>{const x=R[k];return x&&x.ok&&x.url?`<a class="so-c ok" href="${esc(x.url)}" target="_blank" rel="noopener" title="Bekijken op ${l}">${ic(k)}</a>`:`<span class="so-c${x?x.ok?" ok":" nok":""}" title="${esc(l+(x&&!x.ok?": "+x.fout:""))}">${ic(k)}</span>`}).join("")}</span></div>
     ${K.some(([k])=>R[k]&&!R[k].ok)?`<div class="so-f">${K.filter(([k])=>R[k]&&!R[k].ok).map(([k,l])=>`${l}: ${esc(R[k].fout)}`).join("<br>")}</div>`:""}</div>
    ${canWrite?`<div class="so-a">${["concept","gepland","fout","deels"].includes(r.status)?`<button type="button" class="btn sm ghost" data-soa="bewerk" data-id="${esc(r.id)}">Bewerken</button>`:""}${["fout","deels"].includes(r.status)?`<button type="button" class="btn sm" data-soa="nu" data-id="${esc(r.id)}">Opnieuw</button>`:r.status==="concept"||r.status==="gepland"?`<button type="button" class="btn sm" data-soa="nu" data-id="${esc(r.id)}">Nu publiceren</button>`:""}${r.status!=="bezig"?`<button type="button" class="iconbtn" data-soa="weg" data-id="${esc(r.id)}" title="Verwijderen" aria-label="Verwijderen">${ic("prul")}</button>`:""}</div>`:""}</div>`}
 VIEWS.social=()=>({title:"Communicatie",body(){
@@ -7858,6 +7858,7 @@ function soMeld(p){if(!p)return;const R=p.data.resultaten||{},K=SO_K.filter(([k]
 .so-p{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:start;padding:10px 16px;border-top:1px solid var(--line)}.so-gh+.so-p{border-top:0}
 .so-th{position:relative;width:52px;height:52px;border-radius:9px;overflow:hidden;background:var(--sunken);display:grid;place-items:center;color:var(--muted)}.so-th img{width:100%;height:100%;object-fit:cover}
 .so-th svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7}.so-th b{position:absolute;right:3px;bottom:3px;background:rgba(0,0,0,.65);color:#fff;font-size:10.5px;border-radius:6px;padding:0 5px}
+.so-cs{display:inline-flex;gap:6px;align-items:center;flex:none}.so-s{flex-wrap:wrap!important;row-gap:4px}.so-s>*{flex:none}
 .so-t{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .so-s{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;font-size:12.5px;color:var(--muted)}
 .so-c{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--sunken);color:var(--muted)}.so-c svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8}
