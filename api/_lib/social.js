@@ -39,9 +39,9 @@ async function fotoUrls(sb, fotos) {
 const wacht = ms => new Promise(r => setTimeout(r, ms));
 
 async function naarFacebook(sb, d) {
-  const page = env("META_PAGE_ID"), bericht = d.tekst + (d.link ? "\n\n" + d.link : ""); // bij foto's staat de link in de tekst
+  const page = env("META_PAGE_ID"), bericht = metTags(d.tekst + (d.link ? "\n\n" + d.link : ""), d); // bij foto's staat de link in de tekst
   let postId;
-  if (!d.fotos.length) postId = (await graph(`${page}/feed`, { message: d.tekst, ...(d.link ? { link: d.link } : {}) })).id;
+  if (!d.fotos.length) postId = (await graph(`${page}/feed`, { message: metTags(d.tekst, d), ...(d.link ? { link: d.link } : {}) })).id;
   else {
     const urls = await fotoUrls(sb, d.fotos);
     if (urls.length === 1) { const j = await graph(`${page}/photos`, { url: urls[0], caption: bericht }); postId = j.post_id || j.id; }
@@ -58,7 +58,7 @@ async function igKlaar(id) { // Instagram verwerkt de foto eerst; wachten tot de
 }
 async function naarInstagram(sb, d) {
   if (!d.fotos.length) throw new Error("Instagram vraagt minstens één foto.");
-  const ig = env("META_IG_USER_ID"), urls = await fotoUrls(sb, d.fotos.slice(0, 10)), caption = d.tekst + (d.link ? "\n\n" + d.link : "");
+  const ig = env("META_IG_USER_ID"), urls = await fotoUrls(sb, d.fotos.slice(0, 10)), caption = metTags(d.tekst + (d.link ? "\n\n" + d.link : ""), d);
   let creatie;
   if (urls.length === 1) { creatie = (await graph(`${ig}/media`, { image_url: urls[0], caption })).id; }
   else {
@@ -115,10 +115,13 @@ async function publiceer(sb, row) {
   return { id: row.id, status, data: nieuw };
 }
 
+// hashtags: enkel letters/cijfers/_; altijd met #; max. 30 (Instagram)
+const tags = v => [...new Set(String(v || "").split(/[\s,;]+/).map(x => x.replace(/^#+/, "").replace(/[^\p{L}\p{N}_]/gu, "")).filter(Boolean))].slice(0, 30).map(x => "#" + x).join(" ");
+const metTags = (tekst, d) => d.hashtags ? (tekst ? tekst + "\n\n" : "") + d.hashtags : tekst;
 function schoon(p) {
   const fotos = (Array.isArray(p.fotos) ? p.fotos : []).slice(0, 10).filter(f => f && typeof f.pad === "string" && f.pad.startsWith("Social/")).map(f => ({ pad: f.pad, w: Number(f.w) || null, h: Number(f.h) || null }));
   const k = p.kanalen || {};
-  return { tekst: t(p.tekst, 2200), titel: t(p.titel, 140), link: veiligeUrl(p.link), fotos, kanalen: { facebook: !!k.facebook, instagram: !!k.instagram, website: !!k.website },
+  return { tekst: t(p.tekst, 2200), titel: t(p.titel, 140), link: veiligeUrl(p.link), hashtags: tags(p.hashtags), fotos, kanalen: { facebook: !!k.facebook, instagram: !!k.instagram, website: !!k.website },
     webKnop: p.webKnop && p.webKnop.aan ? { aan: true, label: t(p.webKnop.label, 60) || "Meer info", url: veiligeUrl(p.webKnop.url) } : { aan: false } };
 }
 
