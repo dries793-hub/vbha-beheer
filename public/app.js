@@ -8160,7 +8160,12 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-lidi
 const gdAutoAan=()=>((S.config.get("algemeen")||{}).goudMail||{}).aan!==false;
 function gdKandidaten(alle){if(ROL!=="admin"&&!alle)return[];let C;try{C=ctx()}catch(e){return[]}const g=C.c&&C.c.drempels&&C.c.drempels.goud;if(!g)return[];
   return [...C.rows.values()].filter(r=>r.huidig&&r.lid.categorie!=="Erewacht"&&!r.jl.vrijstelling&&!r.jl.goudMail&&r.p&&r.p.totaal>=g).sort((a,b)=>naamVol(a.lid).localeCompare(naamVol(b.lid),"nl"))}
-function gdMelding(){if(gdAutoAan())return"";const L=gdKandidaten();if(!L.length)return"";
+function gdMeldingAuto(){if(ROL!=="admin")return"";let C;try{C=ctx()}catch(e){return""}const g=C.c&&C.c.drempels&&C.c.drempels.goud;if(!g)return"";const grens=Date.now()-3*864e5;
+  const L=[...C.rows.values()].filter(r=>r.huidig&&r.lid.categorie!=="Erewacht"&&!r.jl.vrijstelling&&r.p&&r.p.totaal>=g&&(!r.jl.goudMail||(r.jl.goudMail.via!=="bulk"&&!r.jl.goudMail.reden&&Date.parse(r.jl.goudMail.op||0)>grens))).sort((a,b)=>naamVol(a.lid).localeCompare(naamVol(b.lid),"nl"));
+  if(!L.length)return"";
+  return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("check")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
+   <div class="gd-l">${L.slice(0,12).map(r=>{const m=r.jl.goudMail;return `<div class="gd-r"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten · ${!r.lid.email?"geen e-mailadres":m&&m.verstuurd?"proficiat-mail verstuurd op "+fmtDate(String(m.op).slice(0,10)):"proficiat-mail wordt automatisch verstuurd"}</span></span></div>`}).join("")}</div></div></div>`}
+function gdMelding(){if(gdAutoAan())return gdMeldingAuto();const L=gdKandidaten();if(!L.length)return"";
   return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("check")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
    <div class="gd-l">${L.slice(0,12).map(r=>`<div class="gd-r"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten${r.lid.email?"":" · geen e-mailadres"}</span></span>
     <span class="gd-a"><button type="button" class="btn sm" data-gd="mail" data-id="${esc(r.lid.id)}"${r.lid.email?"":" disabled"}>${ic("mails")}<span class="gd-tl">Proficiat-mail</span></button></span></div>`).join("")}</div>
