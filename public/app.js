@@ -8202,7 +8202,7 @@ ML_LINKS.push(["{link_straten}","Straten van vorig jaar opnieuw reserveren"]);
 
 /* ---- Puntensysteem: extra inspanning in één keer aan meerdere leden toekennen (knop tussen Reglement en Instellingen) ---- */
 {const _v=VIEWS.punten;const n=function(){const v=_v.apply(this,arguments);
-  v.actions=String(v.actions||"").replace('<button class="btn iconbtn" data-w data-act="puntInst"',`<button class="btn" data-w data-act="ptExtraBulk">${ic("plus")}Punten toevoegen</button><button class="btn iconbtn" data-w data-act="puntInst"`);return v};
+  v.actions=String(v.actions||"").replace('<button class="btn iconbtn" data-w data-act="puntInst"',`<button class="btn primary" data-w data-act="ptExtraBulk">${ic("plus")}Punten toevoegen</button><button class="btn iconbtn" data-w data-act="puntInst"`).replace('<button class="btn primary" data-act="docRol" data-v="reglement"','<button class="btn dark" data-act="docRol" data-v="reglement"');return v};
   Object.assign(n,_v);VIEWS.punten=n}
 function ptExtraBulk(){const C=ctx(),L=C.leden.filter(l=>l.categorie!=="Erewacht").sort((a,b)=>(a.naam||"").localeCompare(b.naam||"","nl")||(a.voornaam||"").localeCompare(b.voornaam||"","nl"));const sel=new Set();
   let soort="extra";const SRT=[["shifts","Shifts"],["vergaderingen","Vergaderingen"],["kaarten","Kaarten"],["extra","Extra inspanning"]];
@@ -8231,3 +8231,12 @@ document.addEventListener("click",e=>{if(e.target.closest('[data-act="ptExtraBul
 {const st=document.createElement("style");st.textContent=`.pe-seg{display:flex;margin:0 0 16px;flex-wrap:wrap}.pe-seg button{flex:1}#peTw[hidden]{display:none}
 .pe-bar{display:flex;align-items:center;gap:6px;margin:14px 0 6px;font-size:13.5px;color:var(--muted)}
 .pe-l{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:10px}.pe-r{display:flex;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid var(--line);cursor:pointer;font-size:14.5px}.pe-r:first-child{border-top:0}.pe-r[hidden]{display:none}.pe-r input{width:18px;height:18px;margin:0}`;document.head.appendChild(st)}
+/* extra inspanningen op de pagina enkel tonen (toevoegen gaat via "Punten toevoegen"); de administrator kan een lijn verwijderen */
+extraHtml=function(r){const L=extraLijnen(r.jl).filter(x=>(x.tekst||"").trim()||+x.punten),adm=ROL_ECHT==="admin"&&ROL==="admin";
+  if(!L.length)return '<span class="muted">–</span>';
+  return `<div class="xro">${L.map((x,i)=>`<span class="xro-r"><span>${esc(x.tekst||"Extra")}</span><b>${+x.punten||0} pt</b>${adm?`<button type="button" class="xro-x" data-act="xWeg1" data-id="${esc(r.lid.id)}" data-i="${i}" aria-label="Verwijderen" title="Verwijderen">${ic("x")}</button>`:""}</span>`).join("")}</div>`};
+document.addEventListener("click",async e=>{const b=e.target.closest('[data-act="xWeg1"]');if(!b||ROL!=="admin")return;e.stopPropagation();
+  const id=b.dataset.id,jl=S.jaarleden.get(JAAR+"_"+id)||{},L=extraLijnen(jl).filter(x=>(x.tekst||"").trim()||+x.punten),x=L[+b.dataset.i];if(!x)return;
+  confirmBox(`<b>${esc(x.tekst||"Extra")}</b> (${+x.punten||0} pt) verwijderen?`,"Verwijderen",async()=>{L.splice(+b.dataset.i,1);await saveExtras(id,L);renderBody()})},true);
+{const st=document.createElement("style");st.textContent=`.xro{display:flex;flex-direction:column;gap:4px}.xro-r{display:flex;align-items:center;gap:8px;font-size:14px}.xro-r>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.xro-r>b{white-space:nowrap;font-variant-numeric:tabular-nums}
+.xro-x{border:0;background:none;padding:2px;cursor:pointer;color:var(--muted);display:inline-grid;place-items:center}.xro-x svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}.xro-x:hover{color:var(--accent)}`;document.head.appendChild(st)}
