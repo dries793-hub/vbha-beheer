@@ -8202,7 +8202,7 @@ ML_LINKS.push(["{link_straten}","Straten van vorig jaar opnieuw reserveren"]);
 
 /* ---- Puntensysteem: extra inspanning in één keer aan meerdere leden toekennen (knop tussen Reglement en Instellingen) ---- */
 {const _v=VIEWS.punten;const n=function(){const v=_v.apply(this,arguments);
-  v.actions=String(v.actions||"").replace('<button class="btn iconbtn" data-w data-act="puntInst"',`<button class="btn primary" data-w data-act="ptExtraBulk">${ic("plus")}Punten toevoegen</button><button class="btn iconbtn" data-w data-act="puntInst"`).replace('<button class="btn primary" data-act="docRol" data-v="reglement"','<button class="btn dark" data-act="docRol" data-v="reglement"');return v};
+  v.actions=String(v.actions||"").replace('<button class="btn iconbtn" data-w data-act="puntInst"',`<button class="btn primary" data-w data-act="ptExtraBulk">${ic("plus")}Punten toevoegen</button><button class="btn iconbtn" data-w data-act="puntInst"`).replace('<button class="btn primary" data-act="docRol" data-v="reglement"','<button class="btn" data-act="docRol" data-v="reglement"');return v};
   Object.assign(n,_v);VIEWS.punten=n}
 function ptExtraBulk(){const C=ctx(),L=C.leden.filter(l=>l.categorie!=="Erewacht").sort((a,b)=>(a.naam||"").localeCompare(b.naam||"","nl")||(a.voornaam||"").localeCompare(b.voornaam||"","nl"));const sel=new Set();
   let soort="extra";const SRT=[["shifts","Shifts"],["vergaderingen","Vergaderingen"],["kaarten","Kaarten"],["extra","Extra inspanning"]];
