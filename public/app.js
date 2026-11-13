@@ -3662,7 +3662,7 @@ async function fcAanmaning(id){const f=S.facturen.get(id);if(!f)return;const j=a
    ${fld("amO","Openstaand bedrag",`<input id="amO" value="${eur(A.open)}" disabled>`)}${fld("amP","Verwijlintrest (% per jaar)",`<input id="amP" inputmode="decimal" value="${v(A.pct)}">`)}
    ${fld("amI","Intrest (€)",`<input id="amI" inputmode="decimal" value="${v(A.intrest)}">`)}${fld("amF","Forfaitaire schadevergoeding (€)",`<input id="amF" inputmode="decimal" value="${v(A.forfait)}">`)}
    ${fld("amT","Nieuwe betaaltermijn",`<select id="amT" class="sel">${[8,10,14,15,30].map(n=>`<option value="${n}"${n===A.termijn?" selected":""}>${n} dagen</option>`).join("")}</select>`)}${fld("amA","Naar",`<input id="amA" type="email" value="${esc((f.klant&&f.klant.email)||"")}">`)}
-   <div class="fld full"><label for="amX">Extra tekst in de mail <span class="muted">(optioneel)</span></label><textarea id="amX" rows="3" maxlength="2000"></textarea></div>
+   <div class="fld full"><label for="amX">Extra tekst in de mail <span class="muted">(optioneel)</span></label><textarea id="amX" rows="3" maxlength="2000" style="min-height:0;height:96px"></textarea></div>
    <div class="full fc-tt" id="amTot" style="display:flex;justify-content:space-between;font-weight:700;font-size:16px"></div>
    <p class="full muted small" style="margin:0">De kosten komen bij de factuur: de factuur is pas betaald als het totaal binnen is. Je kan ze later nog laten vallen. Automatische herinneringen stoppen voor deze factuur.</p><div class="err full" id="amErr"></div></div>`,
    `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn" id="amPdf">Voorbeeld PDF</button><button class="btn primary" id="amOk">Aanmaning versturen</button>`,{wide:true});
