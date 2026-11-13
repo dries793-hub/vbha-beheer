@@ -8202,11 +8202,12 @@ ML_LINKS.push(["{link_straten}","Straten van vorig jaar opnieuw reserveren"]);
 
 /* ---- Puntensysteem: extra inspanning in één keer aan meerdere leden toekennen (knop tussen Reglement en Instellingen) ---- */
 {const _v=VIEWS.punten;const n=function(){const v=_v.apply(this,arguments);
-  v.actions=String(v.actions||"").replace('<button class="btn iconbtn" data-w data-act="puntInst"',`<button class="btn" data-w data-act="ptExtraBulk">${ic("plus")}Extra punten</button><button class="btn iconbtn" data-w data-act="puntInst"`);return v};
+  v.actions=String(v.actions||"").replace('<button class="btn iconbtn" data-w data-act="puntInst"',`<button class="btn" data-w data-act="ptExtraBulk">${ic("plus")}Punten toevoegen</button><button class="btn iconbtn" data-w data-act="puntInst"`);return v};
   Object.assign(n,_v);VIEWS.punten=n}
 function ptExtraBulk(){const C=ctx(),L=C.leden.filter(l=>l.categorie!=="Erewacht").sort((a,b)=>(a.naam||"").localeCompare(b.naam||"","nl")||(a.voornaam||"").localeCompare(b.voornaam||"","nl"));const sel=new Set();
-  modal("Extra punten "+JAAR,`<div class="form"><div class="fld full"><label for="peT">Omschrijving</label><input id="peT" type="text" placeholder="Bv. opbouw tent 150 jaar"></div>
-    <div class="fld"><label for="peP">Punten per lid</label><div class="sfx"><input id="peP" type="number" min="1" step="1" inputmode="numeric"><span>pt</span></div></div>
+  let soort="extra";const SRT=[["extra","Extra inspanning"],["shifts","Shifts"],["vergaderingen","Vergaderingen"],["kaarten","Kaarten"]];
+  modal("Punten toevoegen "+JAAR,`<div class="seg pe-seg" role="group" aria-label="Soort">${SRT.map(([k,l])=>`<button type="button" data-pes="${k}"${k==="extra"?' class="on"':""}>${l}</button>`).join("")}</div><div class="form"><div class="fld full" id="peTw"><label for="peT">Omschrijving</label><input id="peT" type="text" placeholder="Bv. opbouw tent 150 jaar"></div>
+    <div class="fld"><label for="peP" id="pePl">Punten per lid</label><div class="sfx"><input id="peP" type="number" min="1" step="1" inputmode="numeric"><span id="pePs">pt</span></div></div>
     <div class="fld"><label for="peQ">Leden</label><input id="peQ" type="search" placeholder="Zoek…" autocomplete="off"></div></div>
     <div class="pe-bar"><span id="peN">0 gekozen</span><span class="grow"></span><button type="button" class="btn sm ghost" id="peAl">Alle zichtbare</button><button type="button" class="btn sm ghost" id="peGeen">Geen</button></div>
     <div class="pe-l" id="peL">${L.map(l=>`<label class="pe-r" data-q="${esc(norm(naamVol(l)+" "+l.voornaam+" "+l.naam))}"><input type="checkbox" value="${esc(l.id)}"><span><b>${esc(l.naam)}</b> ${esc(l.voornaam||"")}</span></label>`).join("")}</div>`,
@@ -8215,14 +8216,17 @@ function ptExtraBulk(){const C=ctx(),L=C.leden.filter(l=>l.categorie!=="Erewacht
   $("#peL").addEventListener("change",e=>{const c=e.target;if(c.type!=="checkbox")return;c.checked?sel.add(c.value):sel.delete(c.value);tel()});
   $("#peQ").addEventListener("input",e=>{const q=norm(e.target.value);document.querySelectorAll("#peL .pe-r").forEach(r=>{r.hidden=!!q&&!r.dataset.q.includes(q)})});
   const zet=v=>{document.querySelectorAll("#peL .pe-r").forEach(r=>{if(r.hidden&&v)return;const c=r.querySelector("input");c.checked=v;v?sel.add(c.value):sel.delete(c.value)});tel()};
+  document.querySelectorAll("[data-pes]").forEach(b=>b.onclick=()=>{soort=b.dataset.pes;document.querySelectorAll("[data-pes]").forEach(x=>x.classList.toggle("on",x===b));const ex=soort==="extra";
+    $("#peTw").hidden=!ex;$("#pePl").textContent=ex?"Punten per lid":"Aantal per lid";$("#pePs").textContent=ex?"pt":({shifts:"shifts",vergaderingen:"verg.",kaarten:"kaarten"})[soort];if(!ex&&!$("#peP").value)$("#peP").value=1});
   $("#peAl").onclick=()=>zet(true);$("#peGeen").onclick=()=>zet(false);
   setTimeout(()=>{const i=$("#peT");if(i)i.focus()},40);
   $("#peOk").onclick=async()=>{const t=$("#peT").value.trim(),p=Math.round(num($("#peP").value));
-    if(!t){toast("Vul een omschrijving in.",true);return}if(!(p>0)){toast("Vul het aantal punten in.",true);return}if(!sel.size){toast("Kies minstens één lid.",true);return}
+    const ex=soort==="extra";if(ex&&!t){toast("Vul een omschrijving in.",true);return}if(!(p>0)){toast(ex?"Vul het aantal punten in.":"Vul het aantal in.",true);return}if(!sel.size){toast("Kies minstens één lid.",true);return}
     const b=$("#peOk");b.disabled=true;b.textContent="Bezig…";
-    try{for(const id of sel){const jl=S.jaarleden.get(JAAR+"_"+id)||{};await saveExtras(id,[...extraLijnen(jl),{tekst:t,punten:p}])}
-      closeModal();renderBody();toast(`${p} punten toegekend aan ${sel.size} ${sel.size===1?"lid":"leden"}.`)}
+    try{for(const id of sel){const jl=S.jaarleden.get(JAAR+"_"+id)||{};if(ex)await saveExtras(id,[...extraLijnen(jl),{tekst:t,punten:p}]);else await setJL(id,{[soort]:(Number(jl[soort])||0)+p})}
+      closeModal();renderBody();toast(`${ex?p+" punten":"+"+p+" "+({shifts:p===1?"shift":"shifts",vergaderingen:p===1?"vergadering":"vergaderingen",kaarten:p===1?"kaart":"kaarten"})[soort]} voor ${sel.size} ${sel.size===1?"lid":"leden"}.`)}
     catch(x){toast("Niet gelukt: "+(x.message||x),true);b.disabled=false;b.textContent="Toekennen"}}}
 document.addEventListener("click",e=>{if(e.target.closest('[data-act="ptExtraBulk"]'))ptExtraBulk()});
-{const st=document.createElement("style");st.textContent=`.pe-bar{display:flex;align-items:center;gap:6px;margin:14px 0 6px;font-size:13.5px;color:var(--muted)}
+{const st=document.createElement("style");st.textContent=`.pe-seg{display:flex;margin:0 0 16px;flex-wrap:wrap}.pe-seg button{flex:1}#peTw[hidden]{display:none}
+.pe-bar{display:flex;align-items:center;gap:6px;margin:14px 0 6px;font-size:13.5px;color:var(--muted)}
 .pe-l{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:10px}.pe-r{display:flex;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid var(--line);cursor:pointer;font-size:14.5px}.pe-r:first-child{border-top:0}.pe-r[hidden]{display:none}.pe-r input{width:18px;height:18px;margin:0}`;document.head.appendChild(st)}
