@@ -8180,21 +8180,25 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-gd]");if(!
 document.addEventListener("change",e=>{if(e.target&&e.target.id==="mpBestuur"){try{localStorage.setItem("vbha_mp_bestuur",e.target.checked?"1":"0")}catch(x){}renderBody()}});
 {const st=document.createElement("style");st.textContent=`.mp-b{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted,#667);font-weight:500;white-space:nowrap}.mp-b input{margin:0;width:16px;height:16px;accent-color:var(--red,#c8102e)}`;document.head.appendChild(st)}
 
-/* ---- Kalenderronde: wie vorig jaar kalenders buste, kan dezelfde straten opnieuw reserveren ----
-   Doelgroep "Busten kalenders in J-1", velden {straten_vorig_jaar}, {dozen_vorig_jaar}, {kalender_tegen} en de persoonlijke
-   link {link_straten} (/kaart?l=&j=&t=@@SIG@@, de server ondertekent). Op die pagina reserveert het lid zijn straten met één knop. */
+/* ---- Kalenderronde: wie vorig jaar kalenders buste, kan dezelfde straten opnieuw reserveren (blok in de mail "de kalenders zijn er") ----
+   Velden {straten_vorig_jaar}, {dozen_vorig_jaar}, {kalender_tegen} en de persoonlijke link {link_straten} (/kaart?l=&j=&t=@@SIG@@, de server ondertekent). */
 function khVorig(lidId,Y){const lid=S.leden.get(lidId);if(!lid)return[];const nm=[norm(lid.voornaam+" "+lid.naam),norm(lid.naam+" "+lid.voornaam)],out=new Set();
   for(const d of S.ronde.values()){if(Number(d.jaar)!==Y-1||d.status!=="done"||!d.straat)continue;if(d.lidId?d.lidId!==lidId:!(d.by&&nm.includes(norm(d.by))))continue;out.add(d.straat)}return[...out]}
 function khInfo(id){const s=KR.byId.get(String(id).split("~")[0]);if(!s)return null;if(!String(id).includes("~"))return{n:s.n,a:s.a};
   const d=KR_DEEL.get(id),n=(KR_DELEN.get(s.id)||[]).length;return{n:s.n+(n>1&&d?" (deel "+d.nr+")":""),a:d?d.a:0}}
 function khDozen(ids){const pd=Number(jaarCfg(JAAR).perDoos)||100;return Math.ceil(ids.reduce((t,id)=>t+((khInfo(id)||{}).a||0),0)/pd)}
 const khAan=()=>((S.config.get("algemeen")||{}).kalVorig||{}).aan===true;
-{const _g=groepen;groepen=function(){const G=_g.apply(this,arguments);if(!khAan()||G.some(g=>g.id==="kalvorig"))return G;const a=G.find(g=>g.id==="alle");if(!a)return G;
-  const list=a.list.filter(r=>r.lidId&&khVorig(r.lidId,JAAR).length);const i=G.findIndex(g=>g.sect!=="Leden");
-  G.splice(i<0?G.length:i,0,{...a,sect:"Kalenders",id:"kalvorig",label:"Busten kalenders in "+(JAAR-1),list,geblokt:[]});return G}}
 {const _m=mlMap;mlMap=function(r){const m=_m.apply(this,arguments);const ids=r&&r.lidId?khVorig(r.lidId,JAAR):[],tg=String(jaarCfg(JAAR).kalTegen||"");
-  m.straten_vorig_jaar=ids.map(id=>(khInfo(id)||{n:id}).n).join(", ");m.dozen_vorig_jaar=ids.length?String(khDozen(ids)):"";
+  m.straten_vorig_jaar=ids.map(id=>(khInfo(id)||{n:id}).n).join(", ");{const n=ids.length?khDozen(ids):0;m.dozen_vorig_jaar=ids.length?n+(n===1?" doos":" dozen"):""}
   m.kalender_tegen=/^\d{4}-\d{2}-\d{2}$/.test(tg)?tg.slice(8,10)+"/"+tg.slice(5,7)+"/"+tg.slice(0,4):"";
   m.link_straten=r&&r.lidId?`${location.origin}/kaart?l=${encodeURIComponent(r.lidId)}&j=${JAAR}&t=@@SIG@@`:location.origin+"/kaart";return m}}
 ML_VELDEN.push(["Kalenders",[["straten_vorig_jaar","Straten vorig jaar"],["dozen_vorig_jaar","Dozen voor die straten"],["kalender_tegen","In de bus tegen"],["link_straten","Straten opnieuw reserveren (persoonlijk)"]]]);
 ML_LINKS.push(["{link_straten}","Straten van vorig jaar opnieuw reserveren"]);
+/* In de mail "de kalenders zijn er": het blok over de straten van vorig jaar enkel tonen aan wie vorig jaar busten (en als de functie aan staat).
+   Blok = kader en/of alinea's met {straten_vorig_jaar}, {dozen_vorig_jaar} of {link_straten}. Zonder datum valt de alinea met {kalender_tegen} weg. */
+{const _v=vul;const KH_RE=/\{(straten_vorig_jaar|dozen_vorig_jaar|link_straten)\}/;
+  const weg=(s,html,re)=>html?s.replace(/<div data-blok="kader">(?:(?!<\/div>)[\s\S])*?<\/div>/g,x=>re.test(x)?"":x).replace(/<p\b[^>]*>(?:(?!<\/p>)[\s\S])*?<\/p>/g,x=>re.test(x)?"":x):s.split(/\n/).filter(l=>!re.test(l)).join("\n");
+  vul=function(t,r,html){let s=String(t||"");
+    if(KH_RE.test(s)&&!(khAan()&&r&&r.lidId&&khVorig(r.lidId,JAAR).length))s=weg(s,html,KH_RE);
+    if(/\{kalender_tegen\}/.test(s)&&!/^\d{4}-\d{2}-\d{2}$/.test(String(jaarCfg(JAAR).kalTegen||"")))s=weg(s,html,/\{kalender_tegen\}/);
+    return _v.call(this,s,r,html)}}
