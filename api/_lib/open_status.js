@@ -6,8 +6,8 @@ import { kloptStatus } from "./lidlink.js";
 import { lidStatus, jaarCfg } from "./status.js";
 
 /* /api/reglement (GET): de cijfers van het reglement (openbaar).
-   /api/status (POST {l, j, t}): een lid vraagt via de ondertekende link uit de mail zijn status op voor werkjaar j;
-   de status gaat per mail naar het gekende adres van het lid (zonder exacte punten). Max. 1 mail per 10 minuten. */
+   /api/status (POST {l, j, t}): persoonlijke pagina via de ondertekende link uit de mail: status van het huidige werkjaar
+   en de punten die dit werkjaar per onderdeel verzameld werden (en wat dat betekent voor volgend jaar). */
 const KLEUR = { BRONS: "#a5703f", ZILVER: "#8d959e", GOUD: "#c19a2e" };
 export async function reglement(req, res) {
   res.setHeader("Cache-Control", "public, max-age=300");
@@ -33,16 +33,23 @@ export default async function handler(req, res) {
     if (!kloptStatus(l, j, String(b.t || ""))) throw httpErr(400, "Deze link is niet (meer) geldig. Gebruik de link uit je mail.");
     const { data: row } = await sb.from("leden").select("data").eq("id", l).maybeSingle();
     if (!row) throw httpErr(404, "Dit lid werd niet gevonden.");
-    const L = row.data || {}, aan = String(L.email || "").trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(aan)) throw httpErr(400, "We hebben geen e-mailadres van je. Antwoord op de mail van het bestuur om je status te vragen.");
-    const laatst = Date.parse(L.statusGevraagd || "") || 0;
-    if (Date.now() - laatst < 10 * 60000) return res.status(200).json({ ok: true, aan: masker(aan), al: true });
-    if (!smtpConfigured()) throw httpErr(503, "Mails versturen lukt op dit moment niet. Probeer het later opnieuw.");
-    const S = await lidStatus(sb, l, j), A = await algemeen(sb), naam = S.status.charAt(0) + S.status.slice(1).toLowerCase();
-    const html = statusHtml(L, S, j);
-    const [r] = await verstuur([{ aan, aanNaam: [L.voornaam, L.naam].filter(Boolean).join(" "), onderwerp: `VBHA - Jouw status ${j}: ${naam}`, html: huisstijl(html, A.vereniging), van: afzender() }]);
-    if (!r || !r.ok) throw httpErr(502, "De mail kon niet verstuurd worden. Probeer het later opnieuw.");
-    await sb.from("leden").update({ data: { ...L, statusGevraagd: new Date().toISOString() } }).eq("id", l);
-    return res.status(200).json({ ok: true, aan: masker(aan) });
+    // persoonlijke statuspagina: status van dit werkjaar + de punten die dit jaar al verzameld zijn (geldt het hele jaar, ook met een link van vorig jaar)
+    const L = row.data || {}, A = await algemeen(sb), Y = Number(A.jaar) || j;
+    const S = await lidStatus(sb, l, Y), c = await jaarCfg(sb, Y), w = c.gewichten, dr = c.drempels;
+    const { data: jr } = await sb.from("jaarleden").select("data").eq("id", Y + "_" + l).maybeSingle(); const J = (jr && jr.data) || {};
+    const onderdelen = [
+      { naam: "Kalenders bussen", aantal: J.kalUitgevoerd || 0, eenheid: ["doos", "dozen"], per: w.kalenders },
+      { naam: "Hulp bij activiteiten", aantal: J.shifts || 0, eenheid: ["shift", "shiften"], per: w.shifts },
+      { naam: "Verkoop kaarten fuif", aantal: J.kaarten || 0, eenheid: ["kaart", "kaarten"], per: w.kaarten },
+      { naam: "Vergaderingen", aantal: J.vergaderingen || 0, eenheid: ["vergadering", "vergaderingen"], per: w.vergaderingen }
+    ].map(o => ({ ...o, punten: o.aantal * (o.per || 0) }));
+    if (J.extraPunten) onderdelen.push({ naam: J.extraTekst ? "Extra: " + J.extraTekst : "Extra punten", aantal: null, punten: J.extraPunten || 0 });
+    const totaal = onderdelen.reduce((t, o) => t + o.punten, 0), ere = L.categorie === "Erewacht", vrij = !ere && !!J.vrijstelling;
+    const volgend = ere || vrij ? "GOUD" : totaal >= dr.goud ? "GOUD" : totaal >= dr.zilver ? "ZILVER" : "BRONS";
+    const tot = volgend === "GOUD" ? 0 : (volgend === "ZILVER" ? dr.goud : dr.zilver) - totaal;
+    return res.status(200).json({ ok: true, voornaam: L.voornaam || "", jaar: Y,
+      nu: { status: S.status, korting: S.korting, ere: S.ere, vrij: S.vrij, start: S.start, puntenJaar: S.puntenJaar },
+      punten: { totaal, onderdelen, volgend, ere, vrij, nodig: tot > 0 ? tot : 0, naar: volgend === "BRONS" ? "ZILVER" : volgend === "ZILVER" ? "GOUD" : null, kortingVolgend: Number(c.korting[volgend.toLowerCase()]) || 0 },
+      drempels: dr });
   } catch (e) { sendError(res, e); }
 }
