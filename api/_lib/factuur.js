@@ -191,7 +191,7 @@ export function factuurPdf(f, cfg, { status, aanmaning: AM } = {}) {
   pdf.tekst(R - 8, y + 6, geld(AM ? AM.totaal : T.totaal), { size: 12, bold: true, kleur: "#ffffff", align: "right" });
   y += 40;
   if (AM) {
-    const txt = `Ondanks onze factuur${(f.verzonden || []).some(v => v.soort === "herinnering" && v.ok) || f.eerderHerinnerd ? " en herinnering" : ""} ontvingen wij nog geen${AM.open < T.totaal - 0.004 ? " volledige" : ""} betaling. Overeenkomstig onze betalingsvoorwaarden en de wet van 2 augustus 2002 betreffende de bestrijding van de betalingsachterstand bij handelstransacties zijn van rechtswege verwijlintresten en een forfaitaire schadevergoeding verschuldigd. Gelieve het totaal uiterlijk op ${dmy(AM.tot)} te betalen. Zonder betaling binnen deze termijn zetten wij verdere stappen tot invordering.`;
+    const txt = `Voor deze factuur ontvingen wij${(f.verzonden || []).some(v => v.soort === "herinnering" && v.ok) || f.eerderHerinnerd ? ", ondanks onze herinnering," : ""} nog geen${AM.open < T.totaal - 0.004 ? " volledige" : ""} betaling. Overeenkomstig onze betalingsvoorwaarden en de wet van 2 augustus 2002 betreffende de bestrijding van de betalingsachterstand bij handelstransacties zijn van rechtswege verwijlintresten en een forfaitaire schadevergoeding verschuldigd. Gelieve het totaal uiterlijk op ${dmy(AM.tot)} te betalen. Zonder betaling binnen deze termijn zetten wij verdere stappen tot invordering.`;
     const regels = afbreken(txt, 9.5, false, Wb);
     regels.forEach((rg, i) => pdf.tekst(L, y + i * 12.5, rg, { size: 9.5 }));
     y += regels.length * 12.5 + 14;
@@ -285,7 +285,7 @@ export function factuurMail(f, cfg, soort = "factuur", status, extra = "") {
   } else if (soort === "aanmaning" && f.aanmaning) {
     const A = f.aanmaning;
     onderwerp = `Aanmaning: factuur ${f.nr} - ${cfg.vereniging}`;
-    html += p(`Ondanks onze factuur${(f.verzonden || []).some(v => v.soort === "herinnering" && v.ok) || f.eerderHerinnerd ? " en onze herinnering" : ""} hebben wij voor factuur <b>${esc(f.nr)}</b> van ${esc(kort(f.datum))} nog geen${status && status.ontvangen > 0 ? " volledige" : ""} betaling ontvangen. De vervaldatum was ${esc(kort(f.vervaldatum))}.`)
+    html += p(`Voor onze factuur <b>${esc(f.nr)}</b> van ${esc(kort(f.datum))} hebben wij${(f.verzonden || []).some(v => v.soort === "herinnering" && v.ok) || f.eerderHerinnerd ? ", ondanks onze herinnering," : ""} nog geen${status && status.ontvangen > 0 ? " volledige" : ""} betaling ontvangen. De vervaldatum was ${esc(kort(f.vervaldatum))}.`)
       + p(`Zoals vermeld in onze betalingsvoorwaarden rekenen wij vanaf nu verwijlintresten en een forfaitaire schadevergoeding aan.`)
       + p(`Wij vragen je het totaal van <b>${eur(A.totaal)}</b> uiterlijk op <b>${esc(lang(A.tot).replace(/^\p{Lu}/u, c => c.toLowerCase()))}</b> over te schrijven. Zonder betaling binnen deze termijn zien wij ons genoodzaakt verdere stappen tot invordering te zetten.`)
       + String(extra || "").trim().split(/\n\s*\n/).filter(x => x.trim()).map(x => p(esc(x.trim()).replace(/\n/g, "<br>"))).join("")
