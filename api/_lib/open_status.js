@@ -5,6 +5,9 @@ import { algemeen, body, masker, rateLimit } from "./publiek.js";
 import { kloptStatus } from "./lidlink.js";
 import { lidStatus, jaarCfg } from "./status.js";
 
+// extra inspanningen: elke lijn apart (oudere gegevens: één lijn met de samengevoegde tekst)
+const extraRijen = J => { const L = Array.isArray(J.extras) ? J.extras.filter(x => x && ((x.tekst || "").trim() || Number(x.punten))) : (J.extraPunten ? [{ tekst: J.extraTekst || "", punten: J.extraPunten }] : []);
+  return L.map(x => ({ naam: (x.tekst || "").trim() || "Extra inspanning", aantal: null, punten: Number(x.punten) || 0 })); };
 /* /api/reglement (GET): de cijfers van het reglement (openbaar).
    /api/status (POST {l, j, t}): persoonlijke pagina via de ondertekende link uit de mail: status van het huidige werkjaar
    en de punten die dit werkjaar per onderdeel verzameld werden (en wat dat betekent voor volgend jaar). */
@@ -44,7 +47,7 @@ export default async function handler(req, res) {
       { naam: "Verkoop kaarten fuif", aantal: J.kaarten || 0, eenheid: ["kaart", "kaarten"], per: w.kaarten },
       { naam: "Vergaderingen", aantal: J.vergaderingen || 0, eenheid: ["vergadering", "vergaderingen"], per: w.vergaderingen }
     ].map(x => ({ ...x, punten: x.aantal * (x.per || 0) }));
-      if (J.extraPunten) o.push({ naam: J.extraTekst ? "Extra: " + J.extraTekst : "Extra punten", aantal: null, punten: J.extraPunten || 0 }); return o; };
+      o.push(...extraRijen(J)); return o; };
     const vorigDelen = S.ere || S.vrij || S.start ? [] : delen(JV, S.cfgVorig.gewichten);
     const onderdelen = [
       { naam: "Kalenders bussen", aantal: J.kalUitgevoerd || 0, eenheid: ["doos", "dozen"], per: w.kalenders },
@@ -52,7 +55,7 @@ export default async function handler(req, res) {
       { naam: "Verkoop kaarten fuif", aantal: J.kaarten || 0, eenheid: ["kaart", "kaarten"], per: w.kaarten },
       { naam: "Vergaderingen", aantal: J.vergaderingen || 0, eenheid: ["vergadering", "vergaderingen"], per: w.vergaderingen }
     ].map(o => ({ ...o, punten: o.aantal * (o.per || 0) }));
-    if (J.extraPunten) onderdelen.push({ naam: J.extraTekst ? "Extra: " + J.extraTekst : "Extra punten", aantal: null, punten: J.extraPunten || 0 });
+    onderdelen.push(...extraRijen(J));
     const totaal = onderdelen.reduce((t, o) => t + o.punten, 0), ere = L.categorie === "Erewacht", vrij = !ere && !!J.vrijstelling;
     const volgend = ere || vrij ? "GOUD" : totaal >= dr.goud ? "GOUD" : totaal >= dr.zilver ? "ZILVER" : totaal >= (dr.brons || 0) ? "BRONS" : "GEEN";
     const tot = volgend === "GOUD" ? 0 : (volgend === "ZILVER" ? dr.goud : volgend === "BRONS" ? dr.zilver : dr.brons) - totaal;
