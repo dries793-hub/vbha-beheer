@@ -3664,7 +3664,7 @@ async function fcAanmaning(id){const f=S.facturen.get(id);if(!f)return;const j=a
    ${fld("amT","Nieuwe betaaltermijn",`<select id="amT" class="sel">${[8,10,14,15,30].map(n=>`<option value="${n}"${n===A.termijn?" selected":""}>${n} dagen</option>`).join("")}</select>`)}${fld("amA","Naar",`<input id="amA" type="email" value="${esc((f.klant&&f.klant.email)||"")}">`)}
    <div class="fld full"><label for="amX">Extra tekst in de mail <span class="muted">(optioneel)</span></label><textarea id="amX" rows="3" maxlength="2000" style="min-height:0;height:96px"></textarea></div>
    <div class="full fc-tt" id="amTot" style="display:flex;justify-content:space-between;font-weight:700;font-size:16px"></div>
-   <p class="full muted small" style="margin:0">De kosten komen bij de factuur: de factuur is pas betaald als het totaal binnen is. Je kan ze later nog laten vallen. Automatische herinneringen stoppen voor deze factuur.</p><div class="err full" id="amErr"></div></div>`,
+   <div class="err full" id="amErr"></div></div>`,
    `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn" id="amPdf">Voorbeeld PDF</button><button class="btn primary" id="amOk">Aanmaning versturen</button>`,{wide:true});
   let handI=false;const opties=()=>({pct:num($("#amP").value),intrest:num($("#amI").value),forfait:num($("#amF").value),termijn:num($("#amT").value)});
   const upd=()=>{if(!handI)$("#amI").value=v(r2(A.open*num($("#amP").value)/100*A.dagen/365));const o=opties();$("#amTot").innerHTML=`<span>Totaal te betalen</span><span>${eur(r2(A.open+o.intrest+o.forfait))}</span>`};
