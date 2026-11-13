@@ -8205,7 +8205,7 @@ ML_LINKS.push(["{link_straten}","Straten van vorig jaar opnieuw reserveren"]);
   v.actions=String(v.actions||"").replace('<button class="btn iconbtn" data-w data-act="puntInst"',`<button class="btn" data-w data-act="ptExtraBulk">${ic("plus")}Punten toevoegen</button><button class="btn iconbtn" data-w data-act="puntInst"`);return v};
   Object.assign(n,_v);VIEWS.punten=n}
 function ptExtraBulk(){const C=ctx(),L=C.leden.filter(l=>l.categorie!=="Erewacht").sort((a,b)=>(a.naam||"").localeCompare(b.naam||"","nl")||(a.voornaam||"").localeCompare(b.voornaam||"","nl"));const sel=new Set();
-  let soort="extra";const SRT=[["extra","Extra inspanning"],["shifts","Shifts"],["vergaderingen","Vergaderingen"],["kaarten","Kaarten"]];
+  let soort="extra";const SRT=[["shifts","Shifts"],["vergaderingen","Vergaderingen"],["kaarten","Kaarten"],["extra","Extra inspanning"]];
   modal("Punten toevoegen "+JAAR,`<div class="seg pe-seg" role="group" aria-label="Soort">${SRT.map(([k,l])=>`<button type="button" data-pes="${k}"${k==="extra"?' class="on"':""}>${l}</button>`).join("")}</div><div class="form"><div class="fld full" id="peTw"><label for="peT">Omschrijving</label><input id="peT" type="text" placeholder="Bv. opbouw tent 150 jaar"></div>
     <div class="fld"><label for="peP" id="pePl">Punten per lid</label><div class="sfx"><input id="peP" type="number" min="1" step="1" inputmode="numeric"><span id="pePs">pt</span></div></div>
     <div class="fld"><label for="peQ">Leden</label><input id="peQ" type="search" placeholder="Zoek…" autocomplete="off"></div></div>
@@ -8218,8 +8218,9 @@ function ptExtraBulk(){const C=ctx(),L=C.leden.filter(l=>l.categorie!=="Erewacht
   const zet=v=>{document.querySelectorAll("#peL .pe-r").forEach(r=>{if(r.hidden&&v)return;const c=r.querySelector("input");c.checked=v;v?sel.add(c.value):sel.delete(c.value)});tel()};
   document.querySelectorAll("[data-pes]").forEach(b=>b.onclick=()=>{soort=b.dataset.pes;document.querySelectorAll("[data-pes]").forEach(x=>x.classList.toggle("on",x===b));const ex=soort==="extra";
     $("#peTw").hidden=!ex;$("#pePl").textContent=ex?"Punten per lid":"Aantal per lid";$("#pePs").textContent=ex?"pt":({shifts:"shifts",vergaderingen:"verg.",kaarten:"kaarten"})[soort];if(!ex&&!$("#peP").value)$("#peP").value=1});
+  document.querySelector("[data-pes]").click();
   $("#peAl").onclick=()=>zet(true);$("#peGeen").onclick=()=>zet(false);
-  setTimeout(()=>{const i=$("#peT");if(i)i.focus()},40);
+  
   $("#peOk").onclick=async()=>{const t=$("#peT").value.trim(),p=Math.round(num($("#peP").value));
     const ex=soort==="extra";if(ex&&!t){toast("Vul een omschrijving in.",true);return}if(!(p>0)){toast(ex?"Vul het aantal punten in.":"Vul het aantal in.",true);return}if(!sel.size){toast("Kies minstens één lid.",true);return}
     const b=$("#peOk");b.disabled=true;b.textContent="Bezig…";
