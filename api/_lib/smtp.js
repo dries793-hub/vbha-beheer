@@ -1,5 +1,6 @@
 // Minimale SMTP-client (TLS op poort 465, AUTH LOGIN) zonder extra pakketten.
 // Nodig in Vercel: SMTP_HOST (bv. send.one.com), SMTP_PORT (465), SMTP_USER, SMTP_PASS. Optioneel: MAIL_FROM_NAAM.
+import { metSocial } from "./mailsocial.js";
 import tls from "node:tls";
 import crypto from "node:crypto";
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -41,6 +42,7 @@ export function bouwBericht({ van, aan, aanNaam, onderwerp, html, antwoordAan, b
   const buiten = "vbhm-" + crypto.randomBytes(8).toString("hex");
   const mixed = Array.isArray(bijlagen) && bijlagen.length > 0;
   const domein = van.email.split("@")[1] || "localhost";
+  html = metSocial(html);
   const volledig = /<html/i.test(html) ? html : `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${html}</body></html>`;
   return [
     "From: " + adres(van.email, van.naam),
