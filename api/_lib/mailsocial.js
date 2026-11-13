@@ -3,7 +3,7 @@ const BASIS = "https://vbha.be";
 const ICONEN = [["fb", "https://www.facebook.com/vbha.aalst", "Facebook"], ["ig", "https://www.instagram.com/vbha.aalst", "Instagram"], ["mail", "mailto:info@vbha.be", "Mail"]];
 export function socialRij() {
   return `<!--vb-social--><table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center" style="margin:0 auto"><tr>${ICONEN.map(([k, u, t]) =>
-    `<td style="padding:0 5px"><a href="${u}" target="_blank" style="text-decoration:none"><img src="${BASIS}/mail/${k}.png" width="36" height="36" alt="${t}" style="display:block;width:36px;height:36px;border:0"></a></td>`).join("")}</tr></table>`;
+    `<td style="padding:0 4px"><a href="${u}" target="_blank" style="text-decoration:none"><img src="${BASIS}/mail/${k}.png" width="26" height="26" alt="${t}" style="display:block;width:26px;height:26px;border:0"></a></td>`).join("")}</tr></table>`;
 }
 /* in een mail zonder iconen (bv. sjablonen uit de app) de iconen onderaan toevoegen */
 export function metSocial(html) {
