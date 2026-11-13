@@ -143,7 +143,12 @@ export async function vergaderingAfgerond(req, res) {
   if (!r) throw httpErr(404, "Vergadering niet gevonden");
   const v = r.data || {}, af = v.afgerond || {};
   const { data: vr } = af.volgendeId ? await sb.from("vergaderingen").select("data").eq("id", af.volgendeId).maybeSingle() : { data: null };
-  const nv = vr && vr.data && { ...vr.data, id: af.volgendeId };
+  let nv = vr && vr.data && { ...vr.data, id: af.volgendeId };
+  if (!nv) { // geen volgende vergadering gekozen: de eerstvolgende uit de agenda (zelfde soort) nemen
+    const { data: L } = await sb.from("vergaderingen").select("id,data").gt("data->>datum", String(v.datum || "")).order("data->>datum", { ascending: true }).limit(20);
+    const zelfde = (L || []).find(x => x.id !== r.id && String(x.data.soort || "").toLowerCase() === String(v.soort || "").toLowerCase()) || null;
+    if (zelfde) nv = { ...zelfde.data, id: zelfde.id };
+  }
   const bijlagen = [];
   if (af.verslagDoc) {
     const { data: doc } = await sb.from("documenten").select("data").eq("id", af.verslagDoc).maybeSingle();
