@@ -87,7 +87,9 @@ export async function inkomendOphalen(sb, { max = 25, test = false } = {}) {
         const { data: al } = await sb.from("documenten").select("id").eq("data->inkomend->>mailId", mailId).limit(1);
         if (al && al.length) { item.status = "al ontvangen"; L.push(item); laatste = uid; continue; }
         const ontvangen = (() => { const d = new Date(H.date || ""); return isNaN(d) ? new Date().toISOString() : d.toISOString(); })();
-        const leverancier = leverancierUit(m.tekst);
+        // doorgestuurde factuur: "Fw: Factuur 2026-259 van Brouwerij X | via Accountable" -> leverancier uit het onderwerp
+        const uitOnderwerp = (() => { const o = String(onderwerp || ""); if (!/^\s*(fw|fwd|tr|doorst)/i.test(o)) return ""; const m2 = o.match(/\bvan\s+(.+?)(?:\s*[|(]|\s+via\s|$)/i); return m2 ? m2[1].trim().slice(0, 80) : ""; })();
+        const leverancier = uitOnderwerp || leverancierUit(m.tekst);
         let n = 0;
         for (const b of pdfs) {
           const id = "doc-" + Date.now().toString(36) + crypto.randomBytes(3).toString("hex"), naam = (b.naam && b.naam !== "bijlage" ? b.naam : (onderwerp || "factuur") + ".pdf").slice(0, 150);
