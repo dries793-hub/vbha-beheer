@@ -127,9 +127,7 @@ export default async function socialApi(req, res) {
   try {
     if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
     if (await isDbCron(req)) { // geplande taak: posts waarvan het tijdstip voorbij is
-      const sb = admin();
-      let cb = req.body || {}; if (typeof cb === "string") { try { cb = JSON.parse(cb); } catch { cb = {}; } }
-      if (cb.actie === "kalimport") return res.status(200).json(await kalImport(sb, req)); // eenmalig: kalenderfoto's 2027 in de opslag zetten const { data } = await sb.from("social_posts").select("id,data").eq("status", "gepland").lte("plan", nu()).limit(5);
+      const sb = admin(); const { data } = await sb.from("social_posts").select("id,data").eq("status", "gepland").lte("plan", nu()).limit(5);
       const uit = []; for (const r of data || []) uit.push(await publiceer(sb, r));
       return res.status(200).json({ ok: true, gepubliceerd: uit.filter(Boolean).length });
     }
@@ -188,17 +186,3 @@ export default async function socialApi(req, res) {
   } catch (e) { return sendError(res, e); }
 }
 
-/* eenmalige import (enkel via de geplande taak/DB): versleutelde kalenderfoto's uit /_tmp ontsleutelen en in Social/ bewaren */
-async function kalImport(sb, req) {
-  const crypto = await import("node:crypto");
-  const { data: g } = await sb.from("cron_geheim").select("sleutel").eq("id", 27).maybeSingle(); if (!g) throw httpErr(400, "Geen sleutel.");
-  const key = Buffer.from(g.sleutel, "hex"), host = req.headers["x-forwarded-host"] || req.headers.host, uit = [];
-  for (let m = 1; m <= 12; m++) {
-    const n = String(m).padStart(2, "0"), r = await fetch(`https://${host}/_tmp/k27-${n}.bin`); if (!r.ok) throw new Error("Bestand " + n + " niet gevonden");
-    const b = Buffer.from(await r.arrayBuffer()), d = crypto.createDecipheriv("aes-256-gcm", key, b.subarray(0, 12)); d.setAuthTag(b.subarray(12, 28));
-    const jpg = Buffer.concat([d.update(b.subarray(28)), d.final()]), pad = `Social/kalender2027-${n}.jpg`;
-    const { error } = await sb.storage.from(BUCKET).upload(pad, jpg, { contentType: "image/jpeg", upsert: true }); if (error) throw error;
-    uit.push({ m, pad, kb: Math.round(jpg.length / 1024) });
-  }
-  return { ok: true, uit };
-}
