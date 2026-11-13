@@ -5074,11 +5074,11 @@ VIEWS.kalcontrole=()=>({title:"Kalenders "+JAAR,sub:"Controle: dozen naast de aa
   Object.assign(n,_v);VIEWS.kalenders=n}
 function kalInst(){if(typeof ADM==="function"&&!ADM())return;const c=jaarCfg(JAAR);
   const f=(id,l,v,suf,h)=>`<div class="fld"><label for="${id}">${l}</label><div class="sfx"><input id="${id}" type="number" min="1" step="1" inputmode="numeric" value="${v}"><span>${suf}</span></div>${h?`<small class="muted">${h}</small>`:""}</div>`;
-  modal("Instellingen kalenders "+JAAR,`<div class="form">${f("kiS","Kalenderdozen dit jaar",c.kalenderStock,"dozen")}${f("kiP","Kalenders per doos",c.perDoos||100,"stuks")}</div>`,
+  modal("Instellingen kalenders "+JAAR,`<div class="form">${f("kiS","Kalenderdozen dit jaar",c.kalenderStock,"dozen")}${f("kiP","Kalenders per doos",c.perDoos||100,"stuks")}<div class="fld"><label for="kiT">In de bus tegen</label><input id="kiT" type="date" value="${esc(c.kalTegen||"")}"></div></div>`,
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kiOk">Bewaren</button>`);
   $("#kiOk").onclick=async()=>{const s=Math.round(num($("#kiS").value)),p=Math.round(num($("#kiP").value));
     if(!(s>=0)){toast("Vul het aantal dozen in.",true);return}if(!(p>=1)){toast("Vul het aantal kalenders per doos in.",true);return}
-    const b=$("#kiOk");b.disabled=true;try{const cur=stripId(S.jaren.get(String(JAAR))||{jaar:JAAR});await write("jaren",String(JAAR),{...cur,jaar:JAAR,kalenderStock:s,perDoos:p});closeModal();toast("Kalenderinstellingen "+JAAR+" bewaard.");render(true)}
+    const b=$("#kiOk");b.disabled=true;try{const cur=stripId(S.jaren.get(String(JAAR))||{jaar:JAAR});await write("jaren",String(JAAR),{...cur,jaar:JAAR,kalenderStock:s,perDoos:p,kalTegen:/^\d{4}-\d{2}-\d{2}$/.test($("#kiT").value)?$("#kiT").value:""});closeModal();toast("Kalenderinstellingen "+JAAR+" bewaard.");render(true)}
     catch(x){toast("Niet gelukt: "+(x.message||x),true);b.disabled=false}}}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="kalInst"]');if(t)kalInst()});
 
@@ -8179,3 +8179,21 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-gd]");if(!
  .gd-al .btn{width:100%;justify-content:center}}`;document.head.appendChild(st)}
 document.addEventListener("change",e=>{if(e.target&&e.target.id==="mpBestuur"){try{localStorage.setItem("vbha_mp_bestuur",e.target.checked?"1":"0")}catch(x){}renderBody()}});
 {const st=document.createElement("style");st.textContent=`.mp-b{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted,#667);font-weight:500;white-space:nowrap}.mp-b input{margin:0;width:16px;height:16px;accent-color:var(--red,#c8102e)}`;document.head.appendChild(st)}
+
+/* ---- Kalenderronde: wie vorig jaar kalenders buste, kan dezelfde straten opnieuw reserveren ----
+   Doelgroep "Busten kalenders in J-1", velden {straten_vorig_jaar}, {dozen_vorig_jaar}, {kalender_tegen} en de persoonlijke
+   link {link_straten} (/kaart?l=&j=&t=@@SIG@@, de server ondertekent). Op die pagina reserveert het lid zijn straten met één knop. */
+function khVorig(lidId,Y){const lid=S.leden.get(lidId);if(!lid)return[];const nm=[norm(lid.voornaam+" "+lid.naam),norm(lid.naam+" "+lid.voornaam)],out=new Set();
+  for(const d of S.ronde.values()){if(Number(d.jaar)!==Y-1||d.status!=="done"||!d.straat)continue;if(d.lidId?d.lidId!==lidId:!(d.by&&nm.includes(norm(d.by))))continue;out.add(d.straat)}return[...out]}
+function khInfo(id){const s=KR.byId.get(String(id).split("~")[0]);if(!s)return null;if(!String(id).includes("~"))return{n:s.n,a:s.a};
+  const d=KR_DEEL.get(id),n=(KR_DELEN.get(s.id)||[]).length;return{n:s.n+(n>1&&d?" (deel "+d.nr+")":""),a:d?d.a:0}}
+function khDozen(ids){const pd=Number(jaarCfg(JAAR).perDoos)||100;return Math.ceil(ids.reduce((t,id)=>t+((khInfo(id)||{}).a||0),0)/pd)}
+{const _g=groepen;groepen=function(){const G=_g.apply(this,arguments);if(G.some(g=>g.id==="kalvorig"))return G;const a=G.find(g=>g.id==="alle");if(!a)return G;
+  const list=a.list.filter(r=>r.lidId&&khVorig(r.lidId,JAAR).length);const i=G.findIndex(g=>g.sect!=="Leden");
+  G.splice(i<0?G.length:i,0,{...a,sect:"Kalenders",id:"kalvorig",label:"Busten kalenders in "+(JAAR-1),list,geblokt:[]});return G}}
+{const _m=mlMap;mlMap=function(r){const m=_m.apply(this,arguments);const ids=r&&r.lidId?khVorig(r.lidId,JAAR):[],tg=String(jaarCfg(JAAR).kalTegen||"");
+  m.straten_vorig_jaar=ids.map(id=>(khInfo(id)||{n:id}).n).join(", ");m.dozen_vorig_jaar=ids.length?String(khDozen(ids)):"";
+  m.kalender_tegen=/^\d{4}-\d{2}-\d{2}$/.test(tg)?tg.slice(8,10)+"/"+tg.slice(5,7)+"/"+tg.slice(0,4):"";
+  m.link_straten=r&&r.lidId?`${location.origin}/kaart?l=${encodeURIComponent(r.lidId)}&j=${JAAR}&t=@@SIG@@`:location.origin+"/kaart";return m}}
+ML_VELDEN.push(["Kalenders",[["straten_vorig_jaar","Straten vorig jaar"],["dozen_vorig_jaar","Dozen voor die straten"],["kalender_tegen","In de bus tegen"],["link_straten","Straten opnieuw reserveren (persoonlijk)"]]]);
+ML_LINKS.push(["{link_straten}","Straten van vorig jaar opnieuw reserveren"]);
