@@ -4448,7 +4448,7 @@ function mpToestelHtml(){
   if(!MP.srv)return `<div class="muted small">Laden…</div>`;
   const aan=!!MP.sub&&Notification.permission==="granted",n=MP.srv.toestellen||0;
   return `<div class="mp-st"><span class="mp-dot${aan?" on":""}"></span><div><b>${aan?"Meldingen staan aan op dit toestel":"Meldingen staan uit op dit toestel"}</b><div class="muted small">${esc(mpToestel())}${n?` · ${n} ${n===1?"toestel":"toestellen"} aangemeld op jouw naam`:""}</div></div></div>
-   <div class="bar" style="margin:10px 0 0">${aan?`<button class="btn" type="button" data-mp="uit">Uitzetten op dit toestel</button><button class="btn" type="button" data-mp="test">${ic("bel")}Testmelding</button>`:`<button class="btn primary" type="button" data-mp="aan">${ic("bel")}Meldingen aanzetten op dit toestel</button>`}</div>`+(aan?mpVoorkeurHtml():"")}
+   <div class="bar" style="margin:10px 0 0">${aan?`<button class="btn" type="button" data-mp="uit">Uitzetten op dit toestel</button>`:`<button class="btn primary" type="button" data-mp="aan">${ic("bel")}Meldingen aanzetten op dit toestel</button>`}</div>`+(aan?mpVoorkeurHtml():"")}
 function mpVoorkeurHtml(){const v={uur:9,dagen:[0],vergaderingen:true,activiteiten:true,meldingen:true,...((MP.srv&&MP.srv.voorkeur)||{})};
   const dg=[[0,"Zelfde dag"],[1,"1 dag vooraf"],[3,"3 dagen vooraf"],[5,"5 dagen vooraf"]];
   return `<div class="mp-vk"><h4>Wat wil je ontvangen op dit toestel?</h4><div class="form">
@@ -5131,8 +5131,7 @@ const ADM_ROUTES=[...INST_IDS,"gebruikers"];
 if(!ROUTES.some(r=>r[0]==="meldingen"))ROUTES.push(["meldingen","Meldingen"]);
 VIEWS.meldingen=()=>({title:"Meldingen",sub:"Een melding op je gsm of computer op de dag van een vergadering of activiteit",
   body(){if(!MP.srv&&!MP.bezig){MP.bezig=true;setTimeout(()=>mpLaad().finally(()=>{MP.bezig=false}),0)}const c=mpCfg();
-    return `<div class="panel mp-eigen"><div class="panel-h"><h2>Dit toestel</h2></div><div class="panel-b" id="mpToestel">${mpToestelHtml()}</div></div>
-    <p class="muted small mp-uitleg">${c.aan?`Staan de meldingen aan, dan krijg je om ${Number(c.uur)||9}u een melding op de dag van ${[c.vergaderingen?"een vergadering":"",c.activiteiten?"een activiteit":""].filter(Boolean).join(" of ")||"een activiteit"}. Je zet ze per toestel aan: doe dit dus op elke gsm of computer waarop je ze wilt krijgen.`:"De vereniging verstuurt momenteel geen pushmeldingen."}</p>`}});
+    return `<div class="panel mp-eigen"><div class="panel-h"><h2>Dit toestel</h2></div><div class="panel-b" id="mpToestel">${mpToestelHtml()}</div></div>`}});
 // instellingenpagina's afschermen
 for(const k of ADM_ROUTES){const o=VIEWS[k];if(!o)continue;const n=function(){if(ADM())return o.apply(this,arguments);
     return{title:"Instellingen",body(){return `<div class="panel"><div class="panel-b"><p style="margin:0 0 12px">De instellingen zijn enkel toegankelijk voor de administrator.</p><a class="btn" href="#meldingen">${ic("bel")}Meldingen</a></div></div>`}}};
