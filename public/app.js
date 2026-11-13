@@ -4956,7 +4956,7 @@ function bkSaldoHtml(K){const c=bkSaldoCheck(K);
    <dl class="bnk-st"><div><dt>Saldo bij ${esc(c.bankNaam)}</dt><dd><b>${eur(c.bank)}</b> <small class="muted">op ${fmtDate(c.datum)}</small></dd></div>
    <div><dt>Saldo rekening in de app</dt><dd><b>${c.app==null?"–":eur(c.app)}</b> <small class="muted">t/m ${fmtDate(c.datum)}</small></dd></div>
    <div><dt>Opgehaald</dt><dd>${fmtDate(c.op.slice(0,10))} om ${new Date(c.op).toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})}</dd></div></dl>
-   ${ok||c.verschil==null?"":`<p class="small" style="margin:8px 0 0">${c.verschil>0?"De bank toont <b>meer</b> dan de app":"De bank toont <b>minder</b> dan de app"}. Mogelijke oorzaken: verrichtingen die nog niet ingelezen zijn of dubbel staan, een transactie op <i>Kas</i> die via de rekening liep (of omgekeerd), een verkeerde datum, of een beginsaldo van ${String(c.datum).slice(0,4)} dat niet klopt (tandwiel op <a href="#boekhouding">Financiën</a>). <a href="#boekingen">Naar transacties</a></p>`}</div>`}
+</div>`}
 function bankKoppelForm(K,open){return `<details class="bnk-new"${open?" open":""}><summary>${K.length?"Andere rekening koppelen":"Rekening koppelen"}</summary>
   <div class="form" data-w><div class="fld"><label for="ebBank">Bank</label><select id="ebBank"><option value="">Banken laden…</option></select></div>
   <div class="fld"><label for="ebType">Soort rekening</label><select id="ebType"><option value="business">Zakelijk (vzw)</option><option value="personal">Particulier</option></select></div>
@@ -4970,14 +4970,14 @@ bankHtml=function(B){setTimeout(fillBanks,0);
   const pill=!K.length?'<span class="pill neutral">Niet gekoppeld</span>':verl.length?'<span class="pill nok">Verlopen</span>':K.some(k=>{const d=bkDagen(k);return d!=null&&d<21})?'<span class="pill warn">Vernieuwen</span>':'<span class="pill ok">Gekoppeld</span>';
   const kaart=k=>{const d=bkDagen(k),weg=d!=null&&d<0,bijna=d!=null&&d>=0&&d<21,ls=k.laatste_sync;
     return `<div class="bnk-k${weg?" weg":""}">
-      <div class="bnk-top"><span class="bnk-logo" aria-hidden="true">${esc(String(k.aspsp||"B").slice(0,1).toUpperCase())}</span>
+      <div class="bnk-top">${/argenta/i.test(k.aspsp||"")?`<img class="bnk-logo" src="/argenta.png" alt="" aria-hidden="true">`:`<span class="bnk-logo" aria-hidden="true">${esc(String(k.aspsp||"B").slice(0,1).toUpperCase())}</span>`}
         <div class="bnk-id"><b>${esc(k.aspsp||"Bank")}</b>${(k.accounts||[]).map(a=>`<span>${esc(a.naam||"Rekening")}</span><span class="bnk-iban">${esc(bkIban(a.iban))}</span>`).join("")}</div></div>
       ${weg?`<div class="note warn" style="margin:0"><b>De toestemming is verlopen</b> sinds ${fmtDate(k.valid_until.slice(0,10))}. Er worden geen verrichtingen meer opgehaald tot je opnieuw koppelt.</div>`:""}
       <dl class="bnk-st"><div><dt>Toestemming tot</dt><dd>${k.valid_until?fmtDate(k.valid_until.slice(0,10)):"?"}${d!=null&&!weg?` <small class="${bijna?"bnk-w":"muted"}">nog ${d} ${d===1?"dag":"dagen"}</small>`:""}</dd></div>
         <div><dt>Laatst opgehaald</dt><dd>${ls?fmtDate(ls.slice(0,10))+" om "+new Date(ls).toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"}):"nog nooit"}</dd></div>
         <div><dt>Automatisch ophalen</dt><dd>9u · 13u · 17u</dd></div></dl>
       <div class="bnk-act" data-w>${weg||bijna?`<button class="btn primary sm" data-act="bankHerkoppel" data-bank="${esc(k.aspsp||"")}">${ic("bank")}Opnieuw koppelen</button>`:""}${weg?"":`<button class="btn${weg||bijna?"":" primary"} sm" data-act="bankSync">${ic("download")}Nu ophalen</button>`}<span class="grow"></span><button class="btn sm ghost danger" data-act="bankOntkoppel" data-id="${esc(k.id)}">Ontkoppelen</button></div></div>`};
-  return head(pill)+`<div class="panel-b stack">${K.length?K.map(kaart).join("")+bkSaldoHtml(K)+`<p class="muted small" style="margin:0">Opgehaalde verrichtingen lopen langs de <a href="#regels">automatische regels</a>; wat geen regel heeft, komt bij <a href="#verwerken">Te verwerken</a>. De bank vraagt om de zoveel maanden de toestemming te vernieuwen.</p>`:""}
+  return head(pill)+`<div class="panel-b stack">${K.length?K.map(kaart).join("")+bkSaldoHtml(K)+``:""}
     ${bankKoppelForm(K,!K.length)}</div>`};
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="bankHerkoppel"]');if(!t)return;e.preventDefault();e.stopPropagation();
   const det=$(".bnk-new");if(det)det.open=true;const sel=$("#ebBank"),b=t.dataset.bank;
