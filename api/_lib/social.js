@@ -127,9 +127,7 @@ export default async function socialApi(req, res) {
   try {
     if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
     if (await isDbCron(req)) { // geplande taak: posts waarvan het tijdstip voorbij is
-      const sb = admin();
-      let cb = req.body || {}; if (typeof cb === "string") { try { cb = JSON.parse(cb); } catch { cb = {}; } }
-      if (cb.actie === "voorbeelden") return res.status(200).json(await (await import("./voorbeelden.js")).alleVoorbeelden(sb)); // EENMALIG const { data } = await sb.from("social_posts").select("id,data").eq("status", "gepland").lte("plan", nu()).limit(5);
+      const sb = admin(); const { data } = await sb.from("social_posts").select("id,data").eq("status", "gepland").lte("plan", nu()).limit(5);
       const uit = []; for (const r of data || []) uit.push(await publiceer(sb, r));
       return res.status(200).json({ ok: true, gepubliceerd: uit.filter(Boolean).length });
     }
