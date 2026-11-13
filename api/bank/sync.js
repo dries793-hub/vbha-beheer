@@ -41,6 +41,8 @@ export async function syncAll(sb, { manueel = false } = {}) {
 
   const regels = (await selectAll(sb, "regels")).map(r => ({ id: r.id, ...r.data }));
   const leden = (await selectAll(sb, "leden")).map(r => ({ id: r.id, ...r.data }));
+  const facturen = (await selectAll(sb, "facturen").catch(() => [])).map(r => ({ id: r.id, ...r.data })).filter(f => f.nr && f.type !== "credit");
+  const sponsors = (await selectAll(sb, "sponsors").catch(() => [])).map(r => ({ id: r.id, ...r.data }));
   const nu = new Date();
   // Eerste synchronisatie: begin na de laatste bestaande rekeningboeking, zodat
   // verrichtingen die al via Excel of een bankbestand ingelezen zijn niet dubbel komen.
@@ -68,7 +70,7 @@ export async function syncAll(sb, { manueel = false } = {}) {
           txs.push(...(r.transactions || []));
           ck = r.continuation_key || null;
         } while (ck && ++guard < 50);
-        const r = await boekTransacties(sb, txs, { regels, leden, bron: d.aspsp || "Bank" });
+        const r = await boekTransacties(sb, txs, { regels, leden, facturen, sponsors, bron: d.aspsp || "Bank" });
         totaal.nieuw += r.nieuw; totaal.dubbel += r.dubbel; totaal.open += r.open;
       } catch (e) { totaal.fouten.push(`${acc.iban || acc.uid}: ${e.message}`); }
       if (manueel || !acc.saldo || String(acc.saldo.op || "").slice(0, 10) !== nu.toISOString().slice(0, 10)) {
@@ -98,7 +100,20 @@ async function bankPush(sb, kops, totaal, nu) {
   await meldPush(sb, "boek", { titel: weg ? "Koppeling met de bank verlopen" : "Koppeling met de bank verloopt binnenkort", tekst: weg ? `${x.d.aspsp || "Bank"}: er worden geen verrichtingen meer opgehaald. Koppel opnieuw.` : `${x.d.aspsp || "Bank"}: nog ${x.n} ${x.n === 1 ? "dag" : "dagen"} geldig. Koppel opnieuw om de toestemming te vernieuwen.`, url: "/#bank", tag: "bank" });
 }
 
-export async function boekTransacties(sb, txs, { regels, leden }) {
+/* Inkomende betaling van een eigen factuur (gestructureerde mededeling of factuurnummer) of van een gekende sponsor:
+   categorie van de factuur (anders Sponsoring) en de sponsor meteen invullen, nog vóór de automatische regels. */
+const ogmUit = t => { const m = String(t || "").match(/\+{3}\s*(\d{3})\s*\/\s*(\d{4})\s*\/\s*(\d{5})\s*\+{3}/) || String(t || "").match(/(?:^|\D)(\d{3})(\d{4})(\d{5})(?:\D|$)/); return m ? m[1] + m[2] + m[3] : ""; };
+function eigenFactuur(b, facturen, sponsors) {
+  if (b.richting !== "in") return null;
+  const ogm = ogmUit(b.mededeling), nrM = String(b.mededeling || "").toUpperCase().replace(/\s+/g, "").match(/F\d{6,7}/);
+  const f = (facturen || []).find(x => (ogm && String(x.ogm || "") === ogm) || (nrM && String(x.nr || "").toUpperCase() === nrM[0]));
+  if (f) { const sp = (f.klant && f.klant.sponsorId) || ""; return { categorie: f.categorie || (sp ? "Sponsoring" : ""), sponsorId: sp || null, naam: "Factuur " + f.nr }; }
+  const p = norm(b.partij); if (!p || Math.abs(b.bedrag) < 50) return null;
+  const s = (sponsors || []).find(x => { const n = norm(x.bedrijf || ""); return n.length >= 5 && (p === n || p.includes(n) || (p.length >= 8 && n.includes(p))); });
+  return s ? { categorie: "Sponsoring", sponsorId: s.id, naam: "Sponsor " + (s.bedrijf || "") } : null;
+}
+
+export async function boekTransacties(sb, txs, { regels, leden, facturen = [], sponsors = [] }) {
   const items = txs.map(mapTransaction).filter(b => b.datum && b.bedrag);
   const jaren = [...new Set(items.map(b => Number(b.datum.slice(0, 4))))];
   const out = { nieuw: 0, dubbel: 0, open: 0 };
@@ -114,10 +129,11 @@ export async function boekTransacties(sb, txs, { regels, leden }) {
       const id = b.bankRef ? `eb-${slug(b.bankRef).slice(0, 120)}` : `eb-${crypto.createHash("sha1").update(`${b.datum}|${b.bedrag}|${b.richting}|${b.partij}|${b.mededeling}`).digest("hex").slice(0, 24)}`;
       const fz = `${b.datum}|${b.bedrag}|${b.richting}|${norm(b.partij)}`;
       if (ids.has(id) || (b.bankRef && refs.has(b.bankRef)) || fuzzy.has(fz)) { out.dubbel++; continue; }
-      const s = suggest(b, regels, pidx);
+      const ef = eigenFactuur(b, facturen, sponsors);
+      const s = ef && ef.categorie ? { categorie: ef.categorie, naam: ef.naam, zeker: true } : suggest(b, regels, pidx);
       const categorie = s ? s.categorie : "";
       const status = s && !s.zeker ? "controle" : null;
-      const data = { ...b, jaar, nr: ++nr, categorie, rekening: "Rekening", bron: "api", status, regelNaam: s ? s.naam : "", lidId: categorie === "Lidgeld" ? findLid(b, leden, jaar) : null };
+      const data = { ...b, jaar, nr: ++nr, categorie, rekening: "Rekening", bron: "api", status, regelNaam: s ? s.naam : "", lidId: categorie === "Lidgeld" ? findLid(b, leden, jaar) : null, ...(ef && ef.sponsorId ? { sponsorId: ef.sponsorId } : {}) };
       const { error } = await sb.from("boekingen").insert({ id, data });
       if (error) { if (error.code === "23505") { out.dubbel++; nr--; continue; } throw error; }
       ids.add(id); if (b.bankRef) refs.add(b.bankRef); fuzzy.add(fz); out.nieuw++;
