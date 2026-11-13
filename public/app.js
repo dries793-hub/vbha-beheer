@@ -8235,7 +8235,9 @@ document.addEventListener("click",e=>{if(e.target.closest('[data-act="ptExtraBul
 const xAdm=()=>ROL_ECHT==="admin"&&ROL==="admin";
 const xLijst=jl=>extraLijnen(jl).filter(x=>(x.tekst||"").trim()||+x.punten);
 extraHtml=function(r){const L=xLijst(r.jl),tot=L.reduce((t,x)=>t+(+x.punten||0),0),tip=esc(L.map(x=>(x.tekst||"Extra")+": "+(+x.punten||0)+" pt").join("\n"));
-  return xAdm()?`<button type="button" class="pt-vast adm" data-act="xBew" data-id="${esc(r.lid.id)}"${tip?` title="${tip}"`:""}>${tot}</button>`:`<span class="pt-vast"${tip?` title="${tip}"`:""}>${tot}</span>`};
+  return xAdm()?`<button type="button" class="pt-vast adm" data-act="xBew" data-id="${esc(r.lid.id)}"${tip?` title="${tip}"`:""}>${tot}</button>`:L.length?`<button type="button" class="pt-vast adm" data-act="xToon" data-id="${esc(r.lid.id)}">${tot}</button>`:`<span class="pt-vast">${tot}</span>`};
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="xToon"]');if(!b)return;e.stopPropagation();const id=b.dataset.id,l=S.leden.get(id),L=xLijst(S.jaarleden.get(JAAR+"_"+id)||{});
+  modal(`Extra inspanningen ${JAAR}: ${esc(l?naamVol(l):"")}`,`<div class="xt">${L.map(x=>`<div class="xt-r"><span>${esc(x.tekst||"Extra")}</span><b>${+x.punten||0} pt</b></div>`).join("")}<div class="xt-r xt-tot"><span>Totaal</span><b>${L.reduce((t,x)=>t+(+x.punten||0),0)} pt</b></div></div>`,`<button class="btn" data-act="closeModal">Sluiten</button>`)},true);
 document.addEventListener("click",e=>{const b=e.target.closest('[data-act="xBew"]');if(!b||ROL!=="admin")return;e.stopPropagation();
   const id=b.dataset.id,l=S.leden.get(id),L=xLijst(S.jaarleden.get(JAAR+"_"+id)||{}).map(x=>({...x}));
   const rij=(x,i)=>`<div class="xe-r"><input type="text" data-xe="t" data-i="${i}" value="${esc(x.tekst||"")}" placeholder="Omschrijving"><div class="sfx"><input type="number" min="0" step="1" inputmode="numeric" data-xe="p" data-i="${i}" value="${+x.punten||0}"><span>pt</span></div><button type="button" class="btn sm ghost danger" data-xe="weg" data-i="${i}">Verwijderen</button></div>`;
@@ -8244,5 +8246,6 @@ document.addEventListener("click",e=>{const b=e.target.closest('[data-act="xBew"
   $("#xeL").addEventListener("input",ev=>{const t=ev.target,i=+t.dataset.i;if(t.dataset.xe==="t")L[i].tekst=t.value;else if(t.dataset.xe==="p")L[i].punten=Math.max(0,Math.round(num(t.value)))});
   $("#xeL").addEventListener("click",ev=>{const t=ev.target.closest('[data-xe="weg"]');if(!t)return;L.splice(+t.dataset.i,1);teken()});
   $("#xeOk").onclick=async()=>{await saveExtras(id,L.filter(x=>(x.tekst||"").trim()||+x.punten));closeModal();renderBody();toast("Aangepast.")}},true);
-{const st=document.createElement("style");st.textContent=`.xro{display:inline-flex;align-items:center;gap:10px;max-width:100%}.xro-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:14px}
+{const st=document.createElement("style");st.textContent=`.xt-r{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)}.xt-r:first-child{border-top:0}.xt-r b{white-space:nowrap}.xt-tot{border-top:2px solid var(--ink)}
+.xro{display:inline-flex;align-items:center;gap:10px;max-width:100%}.xro-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:14px}
 .xe-r{display:grid;grid-template-columns:1fr 110px auto;gap:8px;align-items:center}.xe-r+.xe-r{margin-top:8px}.xe-r input[type=text]{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);box-sizing:border-box}`;document.head.appendChild(st)}
