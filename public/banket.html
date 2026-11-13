@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}.logo-a{display:block;flex:none;line-height:0;border-radius:4px}.logo-a:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.lp-hint{margin:8px 0 0;font-size:13.5px;color:var(--muted)}
 </style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Banket · VBHA</title>
 <link rel="icon" href="/favicon.png">
@@ -151,7 +152,7 @@ html,body{overflow-x:hidden}
     <div class="fact" hidden><span>Prijs</span><b id="fPrijs">€65 per persoon</b><small id="fDead">inschrijven t.e.m. 1 december</small></div></div></section>
   <div id="box"><form class="card" id="f" novalidate>
     <div class="grid">
-      <div class="full"><label for="naam">Naam van het lid</label><input type="text" id="naam" name="naam" placeholder="Begin je naam te typen…" maxlength="100"><div class="lp-prijs" id="lpPrijs" hidden></div></div>
+      <div class="full"><label for="naam">Naam van het lid</label><input type="text" id="naam" name="naam" placeholder="Begin je naam te typen…" maxlength="100"><div class="lp-prijs" id="lpPrijs" hidden></div><p class="lp-hint" id="lpHint" hidden>Je korting volgens je status (brons, zilver of goud) wordt berekend zodra je je naam kiest.</p></div>
       <fieldset class="full" style="border:0;margin:0;padding:0"><legend class="lbl">Aanwezigheid</legend><div class="ch">
         <label><input type="radio" name="personen" value="1"><b>Ik kom alleen</b><span>1 persoon</span><span class="pr" data-pr="1"></span></label>
         <label><input type="radio" name="personen" value="2"><b>Ik kom met partner</b><span>2 personen</span><span class="pr" data-pr="2"></span></label></div></fieldset>
@@ -218,14 +219,14 @@ document.addEventListener("click",async e=>{if(e.target.id!=="bcNieuw")return;e.
 let INFO={prijs:65};
 function gesloten(wat,j){$("#box").innerHTML=`<div class="card bevestig"><div class="ic" style="background:var(--sunken);color:var(--muted)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
   <h2>De inschrijvingen zijn afgesloten</h2><p class="lead2">${j.gesloten==="verlopen"&&j.totTekst?"Inschrijven voor "+wat+" kon tot en met "+esc(j.totTekst)+".":"Je kan je op dit moment niet inschrijven voor "+wat+"."} Neem voor vragen contact op met iemand van het bestuur.</p></div>`}
-fetch("/api/banket").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;upd();$("#h1").textContent="Banket "+j.jaar;document.title="Banket "+j.jaar+" · VBHA";INFO.basis=j.prijs;$("#fPrijs").textContent=(j.kortingAan?"vanaf ":"")+eur(j.prijs)+" per persoon";if(j.kortingAan){const f=$("#fPrijs");f.textContent=eur(j.prijs)+" per persoon";const s=document.createElement("small");s.className="fk";s.textContent="korting volgens je status (brons, zilver, goud)";f.after(s)}if(j.totTekst)$("#fDead").textContent=(j.open===false?"inschrijven was mogelijk t.e.m. ":"inschrijven t.e.m. ")+j.totTekst;if(j.totTekst&&j.open!==false)$("#lTot").textContent=" tot en met "+j.totTekst;if(j.open===false)gesloten("het banket",j)}).catch(()=>{});
+fetch("/api/banket").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;upd();$("#h1").textContent="Banket "+j.jaar;document.title="Banket "+j.jaar+" · VBHA";INFO.basis=j.prijs;if(j.kortingAan&&!$("#naam").dataset.id)$("#lpHint").hidden=false;$("#fPrijs").textContent=(j.kortingAan?"vanaf ":"")+eur(j.prijs)+" per persoon";if(j.kortingAan){const f=$("#fPrijs");f.textContent=eur(j.prijs)+" per persoon";const s=document.createElement("small");s.className="fk";s.textContent="korting volgens je status (brons, zilver, goud)";f.after(s)}if(j.totTekst)$("#fDead").textContent=(j.open===false?"inschrijven was mogelijk t.e.m. ":"inschrijven t.e.m. ")+j.totTekst;if(j.totTekst&&j.open!==false)$("#lTot").textContent=" tot en met "+j.totTekst;if(j.open===false)gesloten("het banket",j)}).catch(()=>{});
 /* persoonlijke prijs (korting volgens de status van het lid) */
 function alMeld(inp,t){let m=document.getElementById("alMeld");const go=$("#go");
   if(!t){if(m)m.remove();if(go&&go.dataset.al){go.disabled=false;delete go.dataset.al}return}
   if(!m){m=document.createElement("div");m.id="alMeld";m.setAttribute("role","alert");m.style.cssText="margin:8px 0 0;padding:10px 12px;border-radius:10px;background:#fdecea;color:#8a1c12;border:1px solid #f5c2bd;font-size:14.5px;line-height:1.45";
     (inp.closest(".lp")||inp.parentElement).append(m)}
   const k=t.indexOf(". ");m.innerHTML=k>0?"<b>"+esc(t.slice(0,k+1))+"</b> "+esc(t.slice(k+2)):esc(t);if(go){go.disabled=true;go.dataset.al="1"}}
-let LP=0;async function lidPrijs(id){const el=$("#lpPrijs"),n=++LP;alMeld($("#naam"),"");
+let LP=0;async function lidPrijs(id){const el=$("#lpPrijs"),n=++LP;alMeld($("#naam"),"");{const h=$("#lpHint");if(h)h.hidden=!!id||!INFO.kortingAan}
   if(!id){INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
   try{const r=await fetch("/api/banket?lid="+encodeURIComponent(id));const j=await r.json();if(n!==LP)return;if(!r.ok)throw 0;
     if(j.al){alMeld($("#naam"),j.melding);INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
