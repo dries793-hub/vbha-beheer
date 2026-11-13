@@ -59,8 +59,10 @@ export async function goudApp(req, res) {
   try {
     if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
     const { rol } = await requireUser(req, { write: true });
-    if (rol !== "admin") throw httpErr(403, "Enkel voor de administrator.");
     let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+    // automatische proficiat-mail meteen laten lopen (de app vraagt dit zodra iemand goud haalt); zelfde regels als de geplande taak
+    if (b.actie === "auto") return res.status(200).json(await goudCron(admin()));
+    if (rol !== "admin") throw httpErr(403, "Enkel voor de administrator.");
     const sb = admin(), ids = (Array.isArray(b.lidIds) ? b.lidIds : []).map(String).slice(0, 100);
     if (!ids.length) throw httpErr(400, "Geen leden gekozen.");
     const { data: alg } = await sb.from("config").select("data").eq("id", "algemeen").maybeSingle();
