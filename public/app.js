@@ -681,12 +681,7 @@ function regelVan(b){const p=String(b.partij||"").trim();regelForm(p&&p.length>3
 /* bank */
 VIEWS.bank=()=>({title:"Bankimport",sub:"Rekeninguittreksels van Argenta inlezen",body(){
   const imps=[...S.imports.values()].sort((a,b)=>String(b.tijd||"").localeCompare(String(a.tijd||"")));
-  return instTabs("bank")+`<div class="grid g2" style="align-items:start">
-  <div class="panel"><div class="panel-h"><h2>Bestand importeren</h2></div><div class="panel-b stack">
-    <p style="margin:0">Exporteer in Argenta Online Banking je verrichtingen als CSV- of Excel-bestand en kies het hier. Je ziet eerst een voorbeeld. Er wordt niets bewaard tot je op Importeren klikt.</p>
-    <ul class="checks"><li>Elke regel krijgt de categorie van de eerste passende <a href="#regels">regel</a>.</li><li>Verrichtingen die al geboekt zijn, worden overgeslagen: zelfde bankreferentie, of zelfde datum, bedrag en tegenpartij.</li><li>Lidgelden worden op naam aan het juiste lid gekoppeld.</li><li>Wat geen regel heeft, komt bij <a href="#verwerken">Te verwerken</a>.</li></ul>
-    <div data-w><button class="btn primary" data-act="importBank">${ic("upload")}Bestand kiezen</button></div></div></div>
-  <div class="panel" id="bankKop"><div class="panel-h"><h2>Rechtstreekse koppeling met de bank</h2></div><div class="panel-b"><div class="muted">Status laden…</div></div></div></div>
+  return instTabs("bank")+`  <div class="panel" id="bankKop"><div class="panel-h"><h2>Rechtstreekse koppeling met de bank</h2></div><div class="panel-b"><div class="muted">Status laden…</div></div></div>
   <div class="panel"><div class="panel-h"><h2>Importgeschiedenis</h2></div><div class="tw"><table class="rcards"><thead><tr><th>Wanneer</th><th>Bestand</th><th>Bron</th><th>Boekjaar</th><th class="num">Nieuw</th><th class="num">Overgeslagen</th><th class="num">Te verwerken</th></tr></thead><tbody>
   ${imps.map(i=>`<tr><td class="nowrap">${(()=>{const t=new Date(i.tijd||"");if(isNaN(t))return esc(String(i.tijd||""));const p=new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Brussels",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).format(t);return fmtDate(p.slice(0,10))+" "+esc(p.slice(11,16))})()}</td><td class="trunc">${esc(i.bestand)}</td><td>${esc(i.bron==="api"?"Bankkoppeling":"Bestand")}</td><td>${esc(i.jaar)}</td><td class="num">${i.nieuw||0}</td><td class="num">${i.dubbel||0}</td><td class="num">${i.open||0}</td></tr>`).join("")||'<tr><td colspan="7" class="empty">Nog geen imports. Elke import van een bankbestand verschijnt hier.</td></tr>'}
   </tbody></table></div></div>`}});
