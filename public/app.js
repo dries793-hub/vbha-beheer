@@ -5074,7 +5074,7 @@ VIEWS.kalcontrole=()=>({title:"Kalenders "+JAAR,sub:"Controle: dozen naast de aa
   Object.assign(n,_v);VIEWS.kalenders=n}
 function kalInst(){if(typeof ADM==="function"&&!ADM())return;const c=jaarCfg(JAAR);
   const f=(id,l,v,suf,h)=>`<div class="fld"><label for="${id}">${l}</label><div class="sfx"><input id="${id}" type="number" min="1" step="1" inputmode="numeric" value="${v}"><span>${suf}</span></div>${h?`<small class="muted">${h}</small>`:""}</div>`;
-  modal("Instellingen kalenders "+JAAR,`<div class="form">${f("kiS","Kalenderdozen dit jaar",c.kalenderStock,"dozen")}${f("kiP","Kalenders per doos",c.perDoos||100,"stuks")}<div class="fld"><label for="kiT">In de bus tegen</label><input id="kiT" type="date" value="${esc(c.kalTegen||"")}"></div></div>`,
+  modal("Instellingen kalenders "+JAAR,`<div class="form">${f("kiS","Kalenderdozen dit jaar",c.kalenderStock,"dozen")}${f("kiP","Kalenders per doos",c.perDoos||100,"stuks")}<div class="fld"><label for="kiT">In de bus tegen</label><input id="kiT" type="date" value="${esc(c.kalTegen||"")}"></div></div><div class="pi-sec" style="margin-top:18px">${stOpt("kalVorig","Straten van vorig jaar opnieuw laten reserveren","")}</div>`,
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kiOk">Bewaren</button>`);
   $("#kiOk").onclick=async()=>{const s=Math.round(num($("#kiS").value)),p=Math.round(num($("#kiP").value));
     if(!(s>=0)){toast("Vul het aantal dozen in.",true);return}if(!(p>=1)){toast("Vul het aantal kalenders per doos in.",true);return}
@@ -6889,7 +6889,7 @@ document.addEventListener("click",e=>{const b=e.target.closest('[data-act="ptAan
 /* extra automatische mails: bij een hogere status en bij nieuwe punten (server: puntenCron, standaard uit) */
 function stOpt(k,lbl,d){const aan=((S.config.get("algemeen")||{})[k]||{}).aan===true;return`<label class="ws-row"><span class="ws-sw"><input type="checkbox" data-mailopt="${k}"${aan?" checked":""}${d}><i></i></span><span><b>${lbl}</b></span></label>`}
 document.addEventListener("change",async e=>{const k=e.target.dataset&&e.target.dataset.mailopt;if(!k)return;const c=S.config.get("algemeen")||{};
-  try{await write("config","algemeen",{...stripId(c),[k]:{...(c[k]||{}),aan:e.target.checked}});toast(e.target.checked?"Automatische mail staat aan.":"Automatische mail staat uit.")}catch(x){e.target.checked=!e.target.checked}});
+  try{await write("config","algemeen",{...stripId(c),[k]:{...(c[k]||{}),aan:e.target.checked}});toast(k==="kalVorig"?(e.target.checked?"Straten van vorig jaar opnieuw reserveren staat aan.":"Straten van vorig jaar opnieuw reserveren staat uit."):e.target.checked?"Automatische mail staat aan.":"Automatische mail staat uit.");if(k==="kalVorig")render(true)}catch(x){e.target.checked=!e.target.checked}});
 {const st=document.createElement("style");st.textContent=`.pi-sec .ws-row+.ws-row{margin-top:12px}`;document.head.appendChild(st)}
 
 /* ============ Activiteiten › Shiften: bord met helpers als tegels ============
@@ -8188,7 +8188,8 @@ function khVorig(lidId,Y){const lid=S.leden.get(lidId);if(!lid)return[];const nm
 function khInfo(id){const s=KR.byId.get(String(id).split("~")[0]);if(!s)return null;if(!String(id).includes("~"))return{n:s.n,a:s.a};
   const d=KR_DEEL.get(id),n=(KR_DELEN.get(s.id)||[]).length;return{n:s.n+(n>1&&d?" (deel "+d.nr+")":""),a:d?d.a:0}}
 function khDozen(ids){const pd=Number(jaarCfg(JAAR).perDoos)||100;return Math.ceil(ids.reduce((t,id)=>t+((khInfo(id)||{}).a||0),0)/pd)}
-{const _g=groepen;groepen=function(){const G=_g.apply(this,arguments);if(G.some(g=>g.id==="kalvorig"))return G;const a=G.find(g=>g.id==="alle");if(!a)return G;
+const khAan=()=>((S.config.get("algemeen")||{}).kalVorig||{}).aan===true;
+{const _g=groepen;groepen=function(){const G=_g.apply(this,arguments);if(!khAan()||G.some(g=>g.id==="kalvorig"))return G;const a=G.find(g=>g.id==="alle");if(!a)return G;
   const list=a.list.filter(r=>r.lidId&&khVorig(r.lidId,JAAR).length);const i=G.findIndex(g=>g.sect!=="Leden");
   G.splice(i<0?G.length:i,0,{...a,sect:"Kalenders",id:"kalvorig",label:"Busten kalenders in "+(JAAR-1),list,geblokt:[]});return G}}
 {const _m=mlMap;mlMap=function(r){const m=_m.apply(this,arguments);const ids=r&&r.lidId?khVorig(r.lidId,JAAR):[],tg=String(jaarCfg(JAAR).kalTegen||"");

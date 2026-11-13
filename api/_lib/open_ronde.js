@@ -109,6 +109,8 @@ async function herReserveer(req, res, b, doe) {
   const l = String(b.l || ""), j = Number(b.j);
   if (!kloptRonde(l, j, String(b.t || ""))) throw httpErr(400, "Deze link is niet (meer) geldig.");
   const A = await algemeen(sb);
+  const { data: cfgA } = await sb.from("config").select("data").eq("id", "algemeen").maybeSingle();
+  if (!(cfgA && cfgA.data && cfgA.data.kalVorig && cfgA.data.kalVorig.aan === true)) throw httpErr(400, "Straten van vorig jaar opnieuw reserveren kan op dit moment niet. Kies je straten gewoon op de kaart.");
   if (Number(A.jaar) !== j) throw httpErr(400, "Deze link was voor de kalenderronde van " + j + " en is niet meer geldig.");
   const { data: row } = await sb.from("leden").select("data").eq("id", l).maybeSingle();
   if (!row) throw httpErr(404, "Dit lid werd niet gevonden.");
