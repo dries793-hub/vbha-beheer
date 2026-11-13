@@ -1,4 +1,5 @@
 import { admin, isDbCron, httpErr, requireUser } from "./sb.js";
+import { socialRij } from "./mailsocial.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
 import { algemeen, configDoc, inschrijving, DEF_IBAN, lidgeldBoekingen, norm } from "./publiek.js";
 import { controleerBetaling } from "./betaal.js";
@@ -46,7 +47,8 @@ function huisstijl(inner, ver, { groet = true, voet = "" } = {}) {
 <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;border-collapse:separate">
 <tr><td align="center" bgcolor="#f7f7f7" style="padding:20px"><img src="${LOGO}" alt="${esc(ver)}" width="220" height="84" style="display:block;width:220px;height:84px;border:0"></td></tr>
 <tr><td class="vb-in" bgcolor="#ffffff" style="border-top:8px solid ${ROOD};border-bottom:8px solid ${ROOD};border-radius:14px;${F}font-size:15px;line-height:1.6;color:${INK};padding:32px 40px 26px">${modern(inner)}${groet ? p("Met vriendelijke groeten,<br><b>Het bestuur</b>", "margin:8px 0 0") : ""}</td></tr>
-<tr><td align="center" style="${F}font-size:11.5px;color:#9a9ca1;line-height:1.6;padding:14px 20px">${esc(ver)} &middot; <a href="https://www.vbha.be" style="color:#9a9ca1;text-decoration:underline">vbha.be</a>${voet ? " &middot; " + voet : ""}</td></tr>
+<tr><td align="center" style="padding:20px 20px 0">${socialRij()}</td></tr>
+<tr><td align="center" style="${F}font-size:11.5px;color:#9a9ca1;line-height:1.6;padding:12px 20px 14px">${esc(ver)} &middot; <a href="https://www.vbha.be" style="color:#9a9ca1;text-decoration:underline">vbha.be</a>${voet ? " &middot; " + voet : ""}</td></tr>
 </table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table></body></html>`;
