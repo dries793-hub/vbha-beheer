@@ -300,7 +300,7 @@ export function factuurMail(f, cfg, soort = "factuur", status, extra = "") {
     html += kaderBlok("Betalen", tabel([rij("Bedrag", `<b>${eur(open)}</b>`), rij("Rekening", `<b>${esc(String(cfg.iban).replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim())}</b>`), rij("Begunstigde", esc(cfg.vereniging)), rij("Mededeling", `<b>${esc(ogmFmt(f.ogm) || f.nr)}</b>`)]), "#b30000", "#fdf2f2")
       + knop("Online betalen met Bancontact of QR-code", betaalLink(f.id))
       + p(`Vragen? Antwoord gewoon op deze mail.`, "margin:0 0 15px;font-size:13.5px;color:#666666");
-    return { onderwerp, html: huisstijl(html, cfg.vereniging) };
+    return { onderwerp, html: huisstijl(html, cfg.vereniging, { extern: true }) };
   } else if (soort === "herinnering") {
     const n = (f.verzonden || []).filter(v => v.soort === "herinnering" && v.ok).length + 1;
     onderwerp = `${n > 1 ? n + "e herinnering" : "Herinnering"}: factuur ${f.nr} - ${cfg.vereniging}`;
@@ -323,7 +323,7 @@ export function factuurMail(f, cfg, soort = "factuur", status, extra = "") {
       + knop("Online betalen met Bancontact of QR-code", betaalLink(f.id));
   }
   html += p(`Vragen over deze ${credit ? "creditnota" : "factuur"}? Antwoord gewoon op deze mail.`, "margin:0 0 15px;font-size:13.5px;color:#666666");
-  return { onderwerp, html: huisstijl(html, cfg.vereniging) };
+  return { onderwerp, html: huisstijl(html, cfg.vereniging, { extern: true }) };
 }
 
 /* ---------- opslag ---------- */
@@ -488,7 +488,7 @@ export async function factuurOnlineBetaald(sb, id) {
     // de factuur met de vermelding "BETAALD (Bancontact)" mee in bijlage
     let bijlagen;
     try { const st = await statusVan(sb, row); bijlagen = [{ naam: pdfNaam(f), type: "application/pdf", data: factuurPdf({ ...f, id }, cfg, { status: st }) }]; } catch (e) { console.error("pdf betaald", e); }
-    await verstuur([{ aan, aanNaam: (f.klant && f.klant.naam) || "", onderwerp: `Betaling ontvangen voor factuur ${f.nr}`, html: huisstijl(html + (bijlagen ? p("In bijlage vind je de factuur, met de vermelding dat ze betaald is.") : ""), cfg.vereniging), van: factuurAfzender(), antwoordAan: FACTUUR_ADRES(), ...(bijlagen ? { bijlagen } : {}) }], { factuur: true });
+    await verstuur([{ aan, aanNaam: (f.klant && f.klant.naam) || "", onderwerp: `Betaling ontvangen voor factuur ${f.nr}`, html: huisstijl(html + (bijlagen ? p("In bijlage vind je de factuur, met de vermelding dat ze betaald is.") : ""), cfg.vereniging, { extern: true }), van: factuurAfzender(), antwoordAan: FACTUUR_ADRES(), ...(bijlagen ? { bijlagen } : {}) }], { factuur: true });
   }
   const vers = await haal(sb, id);
   await bewaar(sb, id, { ...vers.data, betaling: { ...vers.data.betaling, bevestigd: true } });

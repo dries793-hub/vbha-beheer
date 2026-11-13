@@ -91,7 +91,7 @@ export function bevMail(b, s, cfg) {
       b.tegenprestatie ? rij("Tegenprestatie", esc(b.tegenprestatie)) : "",
     ]))
     + p("Vragen? Antwoord gewoon op deze mail.", "margin:0 0 15px;font-size:13.5px;color:#666666");
-  return { onderwerp: `Sponsorbevestiging ${b.nr} - ${cfg.vereniging}`, html: huisstijl(html, cfg.vereniging) };
+  return { onderwerp: `Sponsorbevestiging ${b.nr} - ${cfg.vereniging}`, html: huisstijl(html, cfg.vereniging, { extern: true }) };
 }
 
 // Handtekening (tabel "handtekeningen", enkel leesbaar voor de server): wordt enkel gebruikt als de ondertekenaar exact die naam heeft.

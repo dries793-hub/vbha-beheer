@@ -451,7 +451,7 @@ async function sponsorUitnodigen(sb, b, user) {
     if (g.kaarten) { over.push({ id: r.id, reden: "kreeg al kaarten" }); continue; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(aan)) { over.push({ id: r.id, reden: "geen e-mailadres" }); continue; }
     const m = sponsorUitnodigingMail(sd, r.id, jk, c);
-    berichten.push({ batch, data: { aan, aanNaam: [sd.voornaam, sd.naam].filter(Boolean).join(" ") || sd.bedrijf || "", onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging), label: "Uitnodiging fuifkaarten sponsors" } });
+    berichten.push({ batch, data: { aan, aanNaam: [sd.voornaam, sd.naam].filter(Boolean).join(" ") || sd.bedrijf || "", onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging, { extern: true }), label: "Uitnodiging fuifkaarten sponsors" } });
     ok.push(r);
   }
   if (berichten.length) { const { error: e } = await sb.from("mail_wachtrij").insert(berichten); if (e) throw e; }
@@ -505,7 +505,7 @@ async function gastUitnodigen(sb, ids, user) {
       + knop("Mijn tickets aanvragen", gastLink(r.id, d.betaalToken))
       + p("De knop werkt één keer. Kom je niet? Dan hoef je niets te doen.", "margin:0 0 15px;font-size:13.5px;color:#666666")
       + p("Hopelijk tot dan!");
-    berichten.push({ batch, data: { aan: d.email, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" ") || d.organisatie || "", onderwerp: `Uitnodiging: gratis tickets voor ${c.naam}`, html: huisstijl(html, A.vereniging), label: "Uitnodiging genodigden fuif" } });
+    berichten.push({ batch, data: { aan: d.email, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" ") || d.organisatie || "", onderwerp: `Uitnodiging: gratis tickets voor ${c.naam}`, html: huisstijl(html, A.vereniging, { extern: true }), label: "Uitnodiging genodigden fuif" } });
     ok.push(r);
   }
   if (berichten.length) { const { error: e } = await sb.from("mail_wachtrij").insert(berichten); if (e) throw e; }

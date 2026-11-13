@@ -80,7 +80,7 @@ export function bevestigingMail(d, ins, C, { factuur, link, mededeling, nieuw })
     + knop("Online betalen met Bancontact of QR-code", link)
     + (ins.logo ? p("We ontvingen ook uw <b>logo</b>. Hartelijk dank!")
       : p(`<b>We ontvingen nog geen logo.</b> Stuur uw logo (liefst in hoge resolutie of als vectorbestand) nog door naar <a href="mailto:${esc(C.logoMail)}">${esc(C.logoMail)}</a>, of antwoord gewoon op deze mail.`));
-  return { onderwerp: `Bevestiging sponsoring brandweerkalender ${ins.kj}${factuur ? " - factuur " + factuur.nr : ""}`, html: huisstijl(html, C.vereniging) };
+  return { onderwerp: `Bevestiging sponsoring brandweerkalender ${ins.kj}${factuur ? " - factuur " + factuur.nr : ""}`, html: huisstijl(html, C.vereniging, { extern: true }) };
 }
 export function meldingMail(d, ins, C, nieuw) {
   const html = p(`${nieuw ? "Nieuwe sponsor" : "Sponsoring vernieuwd"} via de inschrijfpagina.`)
@@ -219,6 +219,6 @@ export async function sponsorBetaald(sb, id) {
   const d = row.data, bt = d.betaling || {}; if (bt.bevestigd || !okMail(String(d.email || ""))) return;
   const C = await spConfig(sb);
   const html = p(d.voornaam ? `Beste ${esc(d.voornaam)},` : "Beste,") + kaderBlok("&#10003; Betaling ontvangen", p(`We ontvingen uw betaling van <b>${eur(bt.bedrag)}</b> voor de sponsoring van de brandweerkalender ${esc(bt.jaar)} via Bancontact. Hartelijk dank voor uw steun!`, "margin:0"), "#1a7f45", "#f1faf4");
-  await verstuur([{ aan: d.email, aanNaam: d.bedrijf, onderwerp: `Betaling ontvangen - sponsoring brandweerkalender ${bt.jaar}`, html: huisstijl(html, C.vereniging), van: afzender() }]);
+  await verstuur([{ aan: d.email, aanNaam: d.bedrijf, onderwerp: `Betaling ontvangen - sponsoring brandweerkalender ${bt.jaar}`, html: huisstijl(html, C.vereniging, { extern: true }), van: afzender() }]);
   await sb.from("sponsors").update({ data: { ...d, betaling: { ...bt, bevestigd: true } } }).eq("id", id);
 }
