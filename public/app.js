@@ -7281,6 +7281,9 @@ document.addEventListener("input",e=>{if(e.target.dataset&&e.target.dataset.fdq!
 .fd-prl{display:flex;flex-direction:column;gap:8px}.fd-pr{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) 100px auto 32px;gap:8px;align-items:center}.fd-pr input{min-width:0;width:100%}.fd-g{display:inline-flex;gap:6px;align-items:center;font-size:13px;white-space:nowrap}.fd-g input{width:auto}
 @media (max-width:700px){.fd-pr{grid-template-columns:1fr 100px 32px;border:1px solid var(--line);border-radius:10px;padding:8px}.fd-pr [data-fp=naam]{grid-column:1/3}.fd-pr [data-fp=uitleg]{grid-column:1/4;grid-row:2}.fd-pr .sfx{grid-row:3;grid-column:2}.fd-g{grid-row:3;grid-column:1}.fd-pr .bg-x{grid-row:1;grid-column:3}}`;document.head.appendChild(st)}
 // dashboardmelding nieuwe inschrijvingen: familiedag meetellen is niet nodig; pushmelding volstaat
+/* Exporteren staat links onderaan in Instellingen familiedag */
+{const _v=VIEWS.familiedag;const n=function(){const v=_v.apply(this,arguments);v.actions=String(v.actions||"").replace(/<button class="btn" data-act="fdExport">[\s\S]*?<\/button>/,"");return v};Object.assign(n,_v);VIEWS.familiedag=n}
+{const _i=fdInst;fdInst=function(){_i.apply(this,arguments);if(typeof voetExport==="function")voetExport("fdExport","Exporteren")}}
 
 /* ============ Kalenderronde: meldingen van leden via de openbare kaart ============
    Tabel rondemeldingen (data: jaar, straten:[id], soort reserved|done, lidId, naam, toon, op, stand open|goedgekeurd|geweigerd).
