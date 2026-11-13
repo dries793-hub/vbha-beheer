@@ -157,7 +157,7 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
       <div class="sp-big">${N.korting}% korting</div><p class="sp-s">op betalende activiteiten in ${Y}. ${waarom}</p>${rijen(N.onderdelen||[])}</div>
      <div class="sp-c"><div class="sp-top"><span class="sp-j">Volgend jaar · ${Y+1}</span><span class="sp-badge ${P.volgend}">${nm(P.volgend)}</span></div>
       <div class="sp-big">${P.totaal} punten</div><p class="sp-s">${P.totaal?`al verzameld in ${Y}.`:`Je punten van ${Y} tellen voor ${Y+1}. Je hebt er nog geen.`}</p>${rijen(P.onderdelen)}
-      ${P.ere||P.vrij?"":`<div class="sp-bar" aria-hidden="true"><i style="width:${pct}%"></i>${tick.map(([,v])=>`<u style="left:${pc(v)}%"></u>`).join("")}</div><div class="sp-sch">${tick.map(([n,v])=>`<span style="left:${pc(v)}%">${n} ${v}</span>`).join("")}</div>`}
+      ${P.ere||P.vrij?"":`<div class="sp-bar" aria-hidden="true"><i style="width:${pct}%"></i>${tick.filter(([,v])=>pc(v)<100).map(([,v])=>`<u style="left:${pc(v)}%"></u>`).join("")}</div><div class="sp-sch">${tick.map(([n,v])=>`<span style="left:${pc(v)}%">${n} ${v}</span>`).join("")}</div>`}
       <p class="sp-n">${volg}</p></div>
      <p class="sp-w"><a href="/reglement">Hoe werkt het puntensysteem?</a></p></div>`})
   .catch(e=>fout(e.message));
