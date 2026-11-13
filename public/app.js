@@ -45,7 +45,7 @@ const ROUTES=[["logboek","Logboek"],["boekingen","Transacties"],["verwerken","Te
 const DEF_CONFIG={vereniging:"Vriendenkring Brandweer Hoofdpost Aalst",rekeningnummer:"",
   boekCategorieen:["Lidgeld","Banket","Kalenders","Jaarmarkt","Fuif","Sponsoring","Pontoise","Kinderfeest","Paasmaandagwandeling","Andere kosten","Andere opbrengsten"],
   ledenCategorieen:["Administratie","Vrijwilligers","Erewacht","Ploeg 1","Ploeg 2","Ploeg 3","Ploeg 4","Officieren"]};
-const DEF_JAAR={beginKas:0,beginRekening:0,gewichten:{kaarten:1,kalenders:25,shifts:35,vergaderingen:20},drempels:{zilver:65,goud:100},korting:{brons:20,zilver:35,goud:50},lidgeld:{gewoon:30,erewacht:20},kalenderStock:200,perDoos:100};
+const DEF_JAAR={beginKas:0,beginRekening:0,gewichten:{kaarten:1,kalenders:25,shifts:35,vergaderingen:20},drempels:{brons:0,zilver:65,goud:100},korting:{brons:20,zilver:35,goud:50},lidgeld:{gewoon:30,erewacht:20},kalenderStock:200,perDoos:100};
 const JUBILEA=[10,20,25,30,40,50,60];
 
 /* ============ toestand ============ */
@@ -85,7 +85,7 @@ function ctx(){
     else{const n1=norm(lid.naam),n2=norm(lid.voornaam);const kp=x=>String(x||"").replace(/[^a-z0-9]/g,""),k1=kp(n1),k2=kp(n2);const b=lidBoek.find(b=>b.lidId===lid.id||(n1&&n2&&b._m.includes("lidgeld")&&((b._m.includes(n1)&&b._m.includes(n2))||(k1&&k2&&kp(b._m).includes(k1)&&kp(b._m).includes(k2)))));lg=b?{ok:true,bron:"Betaling",boeking:b}:{ok:false,bron:""}}
     const w=c.gewichten;const p={kaarten:(jl.kaarten||0)*w.kaarten,kalenders:(jl.kalUitgevoerd||0)*w.kalenders,shifts:(jl.shifts||0)*w.shifts,vergaderingen:(jl.vergaderingen||0)*w.vergaderingen,extra:jl.extraPunten||0};
     p.totaal=p.kaarten+p.kalenders+p.shifts+p.vergaderingen+p.extra;
-    const status=!lg.ok?"niet actief":(lid.categorie==="Erewacht"||jl.vrijstelling)?"GOUD":p.totaal<c.drempels.zilver?"BRONS":p.totaal<c.drempels.goud?"ZILVER":"GOUD";
+    const status=!lg.ok?"niet actief":(lid.categorie==="Erewacht"||jl.vrijstelling)?"GOUD":p.totaal<(c.drempels.brons||0)?"GEEN":p.totaal<c.drempels.zilver?"BRONS":p.totaal<c.drempels.goud?"ZILVER":"GOUD";
     const bedrag=lid.categorie==="Erewacht"?c.lidgeld.erewacht:c.lidgeld.gewoon;
     const statusNu=stNuVan(lid,lg,Y,c);
     rows.set(lid.id,{lid,jl,lg,p,status,statusNu,bedrag,huidig:leden.includes(lid),jaren:lid.lidSinds?Y-lid.lidSinds:null});
@@ -344,8 +344,8 @@ function nieuwMelding(){const L=nieuweLeden();if(!L.length)return"";
 VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   const C=ctx();const cur=C.leden.map(l=>C.rows.get(l.id));
   const ok=cur.filter(r=>r.lg.ok).length,nok=cur.length-ok;
-  const st={GOUD:0,ZILVER:0,BRONS:0,"niet actief":0};cur.forEach(r=>st[r.status]++);
-  const actief=st.GOUD+st.ZILVER+st.BRONS;
+  const st={GOUD:0,ZILVER:0,BRONS:0,GEEN:0,"niet actief":0};cur.forEach(r=>st[r.status]++);
+  const actief=st.GOUD+st.ZILVER+st.BRONS+st.GEEN;
   const nieuw=cur.filter(r=>r.lid.lidSinds===JAAR).length;
   const jub=cur.filter(r=>r.jaren===25).sort((a,b)=>(a.lid.naam||"").localeCompare(b.lid.naam||"","nl"));
   const cats0=Object.entries(C.perCat).map(([k,v])=>({k,net:v.in-v.uit,...v})).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net));
@@ -448,7 +448,7 @@ function saldoChart(C){
     <rect x="${P}" y="0" width="${W-P-R}" height="${H}" fill="transparent" class="hov-hit"/>
   </svg><div class="dtip" hidden></div></div>`;
 }
-function medal(s){return s==="niet actief"?'<span class="medal na"><i></i>NIET ACTIEF</span>':'<span class="medal '+s+'"><i></i>'+s+'</span>'}
+function medal(s){if(s==="GEEN")return '<span class="medal geen"><i></i>GEEN STATUS</span>';return s==="niet actief"?'<span class="medal na"><i></i>NIET ACTIEF</span>':'<span class="medal '+s+'"><i></i>'+s+'</span>'}
 function sparkline(C){
   const pts=[[JAAR+"-01-01",C.c.beginKas+C.c.beginRekening],...C.reeks];
   if(pts.length<2)return '<div class="empty">Nog geen transacties.</div>';
@@ -485,7 +485,7 @@ function ledenTable(){
   if(UI.ledenF==="ok")list=list.filter(r=>r.lg.ok);if(UI.ledenF==="nok")list=list.filter(r=>!r.lg.ok&&r.huidig);
   if(q){const qq=q.replace(/-/g," ");list=list.filter(r=>{const t=norm([r.lid.naam,r.lid.voornaam,r.lid.adres,r.lid.email,r.lid.telefoon,r.lid.info,r.lid.categorie,r.huidig?(typeof stL==="function"?stL(r):""):"oud lid oudlid geen lid"].join(" "));return t.includes(q)||t.replace(/-/g," ").includes(qq)})}
   const LS=ledenSort(),vn=LS.k==="voornaam";
-  const STR={GOUD:3,ZILVER:2,BRONS:1};
+  const STR={GOUD:3,ZILVER:2,BRONS:1,GEEN:0.5};
   const key={naam:r=>[r.lid.naam,r.lid.voornaam],voornaam:r=>[r.lid.voornaam,r.lid.naam],status:r=>[r.huidig?(STR[stL(r)]||0):-1],lidgeld:r=>[r.huidig?(r.lg.ok?1:0):-1],categorie:r=>[r.lid.categorie||""],lidSinds:r=>[+r.lid.lidSinds||9999],lidnr:r=>[r.lid.lidnr!=null?+r.lid.lidnr:99999],email:r=>[String(r.lid.email||"").trim()?0:1,String(r.lid.email||"").trim().toLowerCase()]}[LS.k];
   const cmp=(a,b)=>{const x=key(a),y=key(b);for(let i=0;i<x.length;i++){const c=typeof x[i]==="number"?x[i]-y[i]:String(x[i]||"").localeCompare(String(y[i]||""),"nl");if(c)return c*LS.d}return (a.lid.naam||"").localeCompare(b.lid.naam||"","nl")||(a.lid.voornaam||"").localeCompare(b.lid.voornaam||"","nl")};
   list.sort(cmp);
@@ -697,7 +697,7 @@ VIEWS.punten=()=>({title:"Puntensysteem",actions:'<button class="btn primary" da
   const it=(v,l)=>`<div class="pt-c"><span>${l}</span><b>${v}</b></div>`,dr=C.c.drempels,k=C.c.korting;
   const st=(m,van)=>`<div class="pt-c">${medal(m)}<b>${van}</b></div>`;
   return `<div class="ptiles"><div class="ptile"><div class="pt-h">Punten per</div><div class="pt-row">${it(w.kalenders,"kalenderdoos")}${it(w.kaarten,"kaart")}${it(w.shifts,"shift")}${it(w.vergaderingen,"vergadering")}${it("vrij","extra")}</div></div>
-  <div class="ptile"><div class="pt-h">Status</div><div class="pt-row">${st("BRONS","0–"+(dr.zilver-1))}${st("ZILVER",dr.zilver+"–"+(dr.goud-1))}${st("GOUD",dr.goud+"+")}</div></div></div>
+  <div class="ptile"><div class="pt-h">Status</div><div class="pt-row">${dr.brons>0?st("GEEN","0–"+(dr.brons-1)):""}${st("BRONS",(dr.brons||0)+"–"+(dr.zilver-1))}${st("ZILVER",dr.zilver+"–"+(dr.goud-1))}${st("GOUD",dr.goud+"+")}</div></div></div>
   <div class="bar"><div class="search">${ic("search")}<input id="puntQ" data-live data-input="puntQ" placeholder="Zoek lid" value="${esc(UI.puntQ)}"></div>
   <div class="seg" role="group" aria-label="Sorteren">${[["naam",UI.puntSort==="voornaam"?"Op voornaam":"Op naam"],["totaal","Op punten"]].map(([k,l])=>`<button data-act="puntSort" data-v="${k}" class="${UI.puntSort===k||(k==="naam"&&UI.puntSort==="voornaam")?"on":""}">${l}</button>`).join("")}</div></div>
   <div class="panel" id="puntList">${puntTable()}</div>`}});
@@ -748,15 +748,16 @@ function puntInst(){const c=jaarCfg(JAAR),w=c.gewichten,dr=c.drempels,k=c.kortin
   const n=(id,l,v,suf)=>`<div class="fld"><label for="${id}">${l}</label><div class="sfx"><input id="${id}" type="number" min="0" step="1" inputmode="numeric" value="${v}"><span>${suf}</span></div></div>`;
   modal("Instellingen puntensysteem "+JAAR,`<div class="pi-sec"><h4>Punten per onderdeel</h4><div class="form">${n("piD","Kalenders bussen (per doos)",w.kalenders,"pt")}${n("piK","Verkoop kaart fuif (per stuk)",w.kaarten,"pt")}${n("piS","Hulp bij activiteit (per shift)",w.shifts,"pt")}${n("piV","Vergadering (bestuur)",w.vergaderingen,"pt")}</div></div>
   <div class="pi-sec"><h4>Status en korting</h4><div class="pi-grid"><span></span><span class="pi-c">Vanaf</span><span class="pi-c">Korting</span>
-  <span>${medal("BRONS")}</span><span class="pi-fix">0 pt</span><div class="sfx"><input id="piKb" type="number" min="0" max="100" inputmode="numeric" value="${k.brons}" aria-label="Korting brons"><span>%</span></div>
+  <span>${medal("BRONS")}</span><div class="sfx"><input id="piB" type="number" min="0" inputmode="numeric" value="${dr.brons||0}" aria-label="Brons vanaf"><span>pt</span></div><div class="sfx"><input id="piKb" type="number" min="0" max="100" inputmode="numeric" value="${k.brons}" aria-label="Korting brons"><span>%</span></div>
   <span>${medal("ZILVER")}</span><div class="sfx"><input id="piZ" type="number" min="0" inputmode="numeric" value="${dr.zilver}" aria-label="Zilver vanaf"><span>pt</span></div><div class="sfx"><input id="piKz" type="number" min="0" max="100" inputmode="numeric" value="${k.zilver}" aria-label="Korting zilver"><span>%</span></div>
   <span>${medal("GOUD")}</span><div class="sfx"><input id="piG" type="number" min="0" inputmode="numeric" value="${dr.goud}" aria-label="Goud vanaf"><span>pt</span></div><div class="sfx"><input id="piKg" type="number" min="0" max="100" inputmode="numeric" value="${k.goud}" aria-label="Korting goud"><span>%</span></div></div></div>
   `,
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="piOk">Bewaren</button>`);
-  $("#piOk").onclick=async()=>{const g=id=>Math.max(0,Math.round(num($("#"+id).value)));const z=g("piZ"),go=g("piG");
+  $("#piOk").onclick=async()=>{const g=id=>Math.max(0,Math.round(num($("#"+id).value)));const b=g("piB"),z=g("piZ"),go=g("piG");
+    if(z<=b){toast("Zilver moet hoger liggen dan brons.",true);return}
     if(go<=z){toast("Goud moet hoger liggen dan zilver.",true);return}
     const cur=stripId(S.jaren.get(String(JAAR))||{jaar:JAAR});
-    await write("jaren",String(JAAR),{...cur,jaar:JAAR,gewichten:{kaarten:g("piK"),kalenders:g("piD"),shifts:g("piS"),vergaderingen:g("piV")},drempels:{zilver:z,goud:go},korting:{brons:Math.min(100,g("piKb")),zilver:Math.min(100,g("piKz")),goud:Math.min(100,g("piKg"))}});
+    await write("jaren",String(JAAR),{...cur,jaar:JAAR,gewichten:{kaarten:g("piK"),kalenders:g("piD"),shifts:g("piS"),vergaderingen:g("piV")},drempels:{brons:b,zilver:z,goud:go},korting:{brons:Math.min(100,g("piKb")),zilver:Math.min(100,g("piKz")),goud:Math.min(100,g("piKg"))}});
     closeModal();toast("Puntensysteem "+JAAR+" bewaard.")}}
 function toonReglement(){const c=jaarCfg(JAAR),w=c.gewichten,dr=c.drempels,k=c.korting;
   modal("Reglement puntensysteem",`<div class="regl">
@@ -765,7 +766,7 @@ function toonReglement(){const c=jaarCfg(JAAR),w=c.gewichten,dr=c.drempels,k=c.k
   <h4>3. Toekenning van punten</h4><p>Elke taak of activiteit krijgt een specifieke puntenwaarde. Het bestuur noteert de punten van de deelnemers na elke activiteit. Het blijft de verantwoordelijkheid van elk lid om zijn of haar puntensaldo te controleren.</p>
   <table class="rtab"><thead><tr><th>Activiteit</th><th>Punten</th></tr></thead><tbody><tr><td>Verkoop kaarten fuif (per stuk)</td><td>${w.kaarten}</td></tr><tr><td>Bussen kalenders (per doos)</td><td>${w.kalenders}</td></tr><tr><td>Hulp bij activiteit (shift/opbouw/afbraak)</td><td>${w.shifts}</td></tr><tr><td>Extra inspanning (ontwerp kalender, aanbrengen sponsor, …)</td><td>50</td></tr><tr><td>Aanwezigheid op vergaderingen (bestuur)</td><td>${w.vergaderingen}</td></tr></tbody></table>
   <h4>4. Omzetting van punten in korting</h4><p>De verzamelde punten worden omgezet in een korting op de kostprijs van betalende activiteiten (bv. banket).</p>
-  <table class="rtab"><thead><tr><th>Punten per jaar</th><th>Voordeel</th><th>Type lid</th></tr></thead><tbody><tr><td>0–${dr.zilver-1}</td><td>${k.brons}% korting</td><td>${medal("BRONS")}</td></tr><tr><td>${dr.zilver}–${dr.goud-1}</td><td>${k.zilver}% korting</td><td>${medal("ZILVER")}</td></tr><tr><td>${dr.goud} of meer</td><td>${k.goud}% korting</td><td>${medal("GOUD")}</td></tr></tbody></table>
+  <table class="rtab"><thead><tr><th>Punten per jaar</th><th>Voordeel</th><th>Type lid</th></tr></thead><tbody>${dr.brons>0?`<tr><td>0–${dr.brons-1}</td><td>geen korting</td><td>${medal("GEEN")}</td></tr>`:""}<tr><td>${dr.brons||0}–${dr.zilver-1}</td><td>${k.brons}% korting</td><td>${medal("BRONS")}</td></tr><tr><td>${dr.zilver}–${dr.goud-1}</td><td>${k.zilver}% korting</td><td>${medal("ZILVER")}</td></tr><tr><td>${dr.goud} of meer</td><td>${k.goud}% korting</td><td>${medal("GOUD")}</td></tr></tbody></table>
   <h4>5. Regels rond gebruik</h4><ul><li>Punten zijn strikt persoonsgebonden en kunnen onder geen enkele voorwaarde verkocht, overgedragen of gedeeld worden met andere leden. Ze dienen uitsluitend ter beloning van de individuele inzet van het lid.</li><li>Punten die tijdens een werkjaar worden verzameld, zijn geldig voor het daaropvolgende inzetjaar. Ze kunnen enkel tijdens dat inzetjaar ingezet worden en vervallen bij de jaarlijkse reset. Punten doorschuiven naar een volgend werkjaar kan niet. Zo start elk lid elk jaar opnieuw met gelijke kansen.</li><li>Inzet wordt gewaardeerd op basis van vastgelegde categorieën. Het bestuur kan bij bijzondere inspanningen bijkomende punten toekennen.</li><li>Enkel leden die hun jaarlijkse lidgeld betaald hebben, kunnen punten verzamelen en inruilen. Is het lidgeld niet betaald, dan vervallen alle rechten op deelname aan het puntensysteem.</li><li>Punten geven recht op een korting van maximum ${k.goud}% van de kostprijs van een betalende activiteit. Volledig gratis deelnemen aan een activiteit is dus niet mogelijk.</li><li>Meent een lid te weinig punten ontvangen te hebben, dan kan dit binnen een redelijke termijn gemeld worden bij het bestuur. Het bestuur bekijkt de melding en neemt een definitieve, bindende beslissing.</li><li>Er is geen maximumaantal punten dat een lid kan verzamelen. Enkel de korting per activiteit is begrensd.</li><li>Enkel leden van de vriendenkring komen in aanmerking om punten te verzamelen. Brengt een lid een extern persoon (bv. partner) mee om te helpen, dan krijgt dat lid hiervoor extra punten.</li><li>Het bestuur kan tijdens het jaar extra afspraken maken voor activiteiten die spontaan tot stand komen en niet in dit reglement vermeld staan.</li></ul>
   <div class="regl-end"><b>Afsluitende opmerking</b><br>Het systeem is bedoeld om inzet zichtbaar en belonend te maken, niet om leden uit te melken of te rangschikken.</div></div>`,
   `<button class="btn" data-act="reglPrint">${ic("download")}Afdrukken / PDF</button><button class="btn primary" data-act="closeModal">Sluiten</button>`)}
@@ -1767,7 +1768,7 @@ function setJLid(id,patch){const cur=S.jaarleden.get(id);if(!cur)return;const d=
 /* ---------- jaar & export ---------- */
 async function saveJaar(f){
   const J0=jaarCfg(JAAR);const g=(k,def)=>f[k]===undefined?def:num(f[k]);const d={jaar:JAAR,beginKas:r2(g("beginKas",J0.beginKas)),beginRekening:r2(g("beginRekening",J0.beginRekening)),lidgeld:{gewoon:g("lg_gewoon",J0.lidgeld.gewoon),erewacht:g("lg_erewacht",J0.lidgeld.erewacht)},
-    gewichten:{kaarten:g("w_kaarten"),kalenders:g("w_kalenders"),shifts:g("w_shifts"),vergaderingen:g("w_vergaderingen")},drempels:{zilver:g("d_zilver"),goud:g("d_goud")},kalenderStock:g("kalenderStock"),perDoos:Math.max(1,g("perDoos")||100),kaartUrl:String(f.kaartUrl||"").trim()};
+    gewichten:{kaarten:g("w_kaarten"),kalenders:g("w_kalenders"),shifts:g("w_shifts"),vergaderingen:g("w_vergaderingen")},drempels:{brons:J0.drempels.brons||0,zilver:g("d_zilver"),goud:g("d_goud")},kalenderStock:g("kalenderStock"),perDoos:Math.max(1,g("perDoos")||100),kaartUrl:String(f.kaartUrl||"").trim()};
   await write("jaren",String(JAAR),{...stripId(S.jaren.get(String(JAAR))),...d});toast("Boekjaar "+JAAR+" bewaard.");
 }
 async function nieuwJaar(){const ys=jaren(),last=ys[ys.length-1];const prevJ=JAAR;JAAR=last;dirty=true;const C=ctx();const c=C.c;JAAR=prevJ;dirty=true;
@@ -6140,14 +6141,14 @@ const PUNTEN_START=()=>Number((S.config.get("algemeen")||{}).puntenStart)||2026;
 function stNuVan(lid,lg,Y,c){if(!lg||!lg.ok)return "niet actief";if(lid.categorie==="Erewacht"||isEreVoorzitter(lid))return "GOUD";
   const V=Y-1;if(V<PUNTEN_START())return "GOUD";const jl=S.jaarleden.get(V+"_"+lid.id)||{};if(jl.vrijstelling)return "GOUD";
   const w=c.gewichten;const t=(jl.kaarten||0)*w.kaarten+(jl.kalUitgevoerd||0)*w.kalenders+(jl.shifts||0)*w.shifts+(jl.vergaderingen||0)*w.vergaderingen+(jl.extraPunten||0);
-  return t<c.drempels.zilver?"BRONS":t<c.drempels.goud?"ZILVER":"GOUD"}
+  return t<(c.drempels.brons||0)?"GEEN":t<c.drempels.zilver?"BRONS":t<c.drempels.goud?"ZILVER":"GOUD"}
 UI.ledenStJ=UI.ledenStJ||"nu";
 const stL=r=>UI.ledenStJ==="volgend"?r.status:(r.statusNu||r.status);
 function stJaarSeg(){return `<div class="seg" role="group" aria-label="Status van welk jaar" title="Huidig: status die nu geldt (punten van ${JAAR-1}). Volgend jaar: status die het lid met de punten van ${JAAR} al verdiende.">${[["nu","Status "+JAAR],["volgend","Status "+(JAAR+1)]].map(([k,l])=>`<button data-act="ledenStJ" data-v="${k}" class="${UI.ledenStJ===k?"on":""}">${l}</button>`).join("")}</div>`}
 document.addEventListener("click",e=>{const t=e.target.closest('[data-act="ledenStJ"]');if(!t)return;UI.ledenStJ=t.dataset.v;render(true)});
 
 /* dashboard: status leden als taartdiagram */
-function stDonut(st,actief){const K=["GOUD","ZILVER","BRONS"],R=54,C=2*Math.PI*R;let off=0;
+function stDonut(st,actief){const K=["GOUD","ZILVER","BRONS",...(st.GEEN?["GEEN"]:[])],R=54,C=2*Math.PI*R;let off=0;
   const seg=K.map(k=>{const f=actief?st[k]/actief:0,len=f*C;const s=f>0?`<circle r="${R}" cx="70" cy="70" fill="none" stroke="var(--${k.toLowerCase()})" stroke-width="22" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 70 70)"><title>${k.charAt(0)+k.slice(1).toLowerCase()}: ${st[k]}</title></circle>`:"";off+=len;return s}).join("");
   return `<div class="st-donut"><svg viewBox="0 0 140 140" role="img" aria-label="Status van ${actief} actieve leden: ${K.map(k=>k.toLowerCase()+" "+st[k]).join(", ")}"><circle r="${R}" cx="70" cy="70" fill="none" stroke="var(--line)" stroke-width="22"/>${seg}<text x="70" y="68" text-anchor="middle" class="st-dn">${actief}</text><text x="70" y="86" text-anchor="middle" class="st-dl">actief</text></svg>
    <div class="st-leg">${K.map(k=>{const pc=actief?Math.round(st[k]/actief*100):0,c=`var(--${k.toLowerCase()})`;return `<div class="st-r" style="--c:${c}"><div class="st-rt"><span>${k.charAt(0)+k.slice(1).toLowerCase()}</span><b>${st[k]}</b></div><div class="st-rb"><i><em style="width:${pc}%"></em></i><small>${pc}%</small></div></div>`}).join("")}</div></div>`}
@@ -6870,8 +6871,8 @@ document.addEventListener("click",e=>{if(!e.target.closest('[data-act="stGoud"]'
 
 // doelgroepen per status (actieve leden): status die nu geldt (punten vorig jaar) en status voor volgend jaar (punten dit jaar)
 {const _g=groepen;groepen=function(){const G=_g.apply(this,arguments);const b=G.find(g=>g.id==="betaald");if(!b||G.some(g=>g.id.startsWith("st:")))return G;
-  const C=ctx(),nm={GOUD:"goud",ZILVER:"zilver",BRONS:"brons"},extra=[];
-  for(const [veld,jaar] of [["statusNu",JAAR],["status",JAAR+1]])for(const s of ["GOUD","ZILVER","BRONS"]){
+  const C=ctx(),nm={GOUD:"goud",ZILVER:"zilver",BRONS:"brons",GEEN:"geen status"},extra=[];
+  for(const [veld,jaar] of [["statusNu",JAAR],["status",JAAR+1]])for(const s of ["GOUD","ZILVER","BRONS",...(C.c.drempels.brons>0?["GEEN"]:[])]){
     const list=b.list.filter(r=>{const x=r.lidId&&C.rows.get(r.lidId);return x&&String(x[veld]||"").toUpperCase()===s});
     extra.push({...b,sect:"Status",id:"st:"+jaar+":"+s,label:`Status ${jaar}: ${nm[s]}${jaar===JAAR?"":" (tussenstand)"}`,list,geblokt:[]})}
   const i=G.findIndex(g=>g.sect!=="Leden");G.splice(i<0?G.length:i,0,...extra);return G}}
