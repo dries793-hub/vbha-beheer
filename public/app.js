@@ -8234,9 +8234,8 @@ document.addEventListener("click",e=>{if(e.target.closest('[data-act="ptExtraBul
 /* extra inspanningen op de pagina enkel tonen (toevoegen gaat via "Punten toevoegen"); de administrator klikt op de punten om aan te passen */
 const xAdm=()=>ROL_ECHT==="admin"&&ROL==="admin";
 const xLijst=jl=>extraLijnen(jl).filter(x=>(x.tekst||"").trim()||+x.punten);
-extraHtml=function(r){const L=xLijst(r.jl);if(!L.length)return '<span class="muted">–</span>';
-  const tot=L.reduce((t,x)=>t+(+x.punten||0),0),tk=L.map(x=>x.tekst||"Extra").join(", ");
-  return `<span class="xro"><span class="xro-t" title="${esc(L.map(x=>(x.tekst||"Extra")+": "+(+x.punten||0)+" pt").join("\n"))}">${esc(tk)}</span>${xAdm()?`<button type="button" class="pt-vast adm" data-act="xBew" data-id="${esc(r.lid.id)}" title="Aanpassen">${tot} pt</button>`:`<b class="pt-vast">${tot} pt</b>`}</span>`};
+extraHtml=function(r){const L=xLijst(r.jl),tot=L.reduce((t,x)=>t+(+x.punten||0),0),tip=esc(L.map(x=>(x.tekst||"Extra")+": "+(+x.punten||0)+" pt").join("\n"));
+  return xAdm()?`<button type="button" class="pt-vast adm" data-act="xBew" data-id="${esc(r.lid.id)}"${tip?` title="${tip}"`:""}>${tot}</button>`:`<span class="pt-vast"${tip?` title="${tip}"`:""}>${tot}</span>`};
 document.addEventListener("click",e=>{const b=e.target.closest('[data-act="xBew"]');if(!b||ROL!=="admin")return;e.stopPropagation();
   const id=b.dataset.id,l=S.leden.get(id),L=xLijst(S.jaarleden.get(JAAR+"_"+id)||{}).map(x=>({...x}));
   const rij=(x,i)=>`<div class="xe-r"><input type="text" data-xe="t" data-i="${i}" value="${esc(x.tekst||"")}" placeholder="Omschrijving"><div class="sfx"><input type="number" min="0" step="1" inputmode="numeric" data-xe="p" data-i="${i}" value="${+x.punten||0}"><span>pt</span></div><button type="button" class="btn sm ghost danger" data-xe="weg" data-i="${i}">Verwijderen</button></div>`;
