@@ -1,6 +1,8 @@
 import { jaarCfg } from "./status.js";
 import { huisstijl, kaderBlok, knop, p, esc, site } from "./bevestiging.js";
 import { algemeen } from "./publiek.js";
+import { tekenStatus } from "./lidlink.js";
+const statusLink = (lidId, Y) => `${site()}/status?l=${encodeURIComponent(lidId)}&j=${Y}&t=${tekenStatus(lidId, Y)}`;
 
 /* Automatische proficiat-mail: zodra een lid met de punten van dit werkjaar de goudstatus voor volgend jaar haalt.
    - Niet voor de erewacht (die is altijd goud) en niet voor wie enkel door een vrijstelling goud is.
@@ -10,14 +12,14 @@ import { algemeen } from "./publiek.js";
 const huidigJaar = () => Number(new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels", year: "numeric" }).format(new Date()));
 const punten = (j, w) => (j.kaarten || 0) * w.kaarten + (j.kalUitgevoerd || 0) * w.kalenders + (j.shifts || 0) * w.shifts + (j.vergaderingen || 0) * w.vergaderingen + (j.extraPunten || 0);
 
-export function goudHtml(voornaam, jaar, A) {
+export function goudHtml(voornaam, jaar, A, lidId) {
   const volgend = jaar + 1;
   return huisstijl(
     p(`Beste ${esc(voornaam || "lid")},`)
     + p(`<b>Proficiat!</b> Met je inzet dit jaar heb je de <b>goudstatus voor ${volgend}</b> behaald.`)
     + kaderBlok("Wat betekent dat?", p(`Als goudlid geniet je in ${volgend} van de <b>maximale korting</b> op onze betalende activiteiten, zoals het banket.`, "margin:0"))
     + p("Hartelijk dank voor je bijdrage aan de Vriendenkring. Dankzij leden zoals jij kunnen we elk jaar mooie activiteiten organiseren.")
-    + knop("Reglement puntensysteem", site() + "/reglement"),
+    + (lidId ? knop("Bekijk je status en punten", statusLink(lidId, jaar)) : knop("Reglement puntensysteem", site() + "/reglement")),
     A.vereniging || "Vriendenkring Brandweer Hoofdpost Aalst");
 }
 
@@ -42,7 +44,7 @@ export async function goudCron(sb) {
     const ere = lid.categorie === "Erewacht";
     const mail = !eersteKeer && !ere && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(String(lid.email || "").trim());
     zet.push({ id: r.id, data: { ...r.data, goudMail: { op: nu, verstuurd: mail, ...(ere ? { reden: "erewacht" } : eersteKeer ? { reden: "al goud bij de start" } : !mail ? { reden: "geen e-mailadres" } : {}) } } });
-    if (mail) mails.push({ batch: "goud-" + Y, data: { aan: String(lid.email).trim(), aanNaam: `${lid.voornaam || ""} ${lid.naam || ""}`.trim(), onderwerp: `Proficiat: je behaalde de goudstatus voor ${Y + 1}!`, html: goudHtml(lid.voornaam, Y, A), label: "Goudstatus" } });
+    if (mail) mails.push({ batch: "goud-" + Y, data: { aan: String(lid.email).trim(), aanNaam: `${lid.voornaam || ""} ${lid.naam || ""}`.trim(), onderwerp: `Proficiat: je behaalde de goudstatus voor ${Y + 1}!`, html: goudHtml(lid.voornaam, Y, A, lidId), label: "Goudstatus" } });
   }
   if (mails.length) { const { error } = await sb.from("mail_wachtrij").insert(mails); if (error) throw error; }
   for (const z of zet) await sb.from("jaarleden").update({ data: z.data }).eq("id", z.id);
@@ -70,7 +72,7 @@ export async function goudApp(req, res) {
       const jid = Y + "_" + l.id; const { data: jr } = await sb.from("jaarleden").select("id,data").eq("id", jid).maybeSingle();
       const jd = (jr && jr.data) || { jaar: Y, lidId: l.id };
       const mail = b.actie === "mail" && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(String(l.data.email || "").trim());
-      if (mail) mails.push({ batch: "goud-" + Y, data: { aan: String(l.data.email).trim(), aanNaam: `${l.data.voornaam || ""} ${l.data.naam || ""}`.trim(), onderwerp: `Proficiat: je behaalde de goudstatus voor ${Y + 1}!`, html: goudHtml(l.data.voornaam, Y, A), label: "Goudstatus" } });
+      if (mail) mails.push({ batch: "goud-" + Y, data: { aan: String(l.data.email).trim(), aanNaam: `${l.data.voornaam || ""} ${l.data.naam || ""}`.trim(), onderwerp: `Proficiat: je behaalde de goudstatus voor ${Y + 1}!`, html: goudHtml(l.data.voornaam, Y, A, l.id), label: "Goudstatus" } });
       const gm = { op: nu, via: "app", verstuurd: mail, ...(b.actie !== "mail" ? { reden: "overgeslagen" } : !mail ? { reden: "geen e-mailadres" } : {}) };
       const { error } = await sb.from("jaarleden").upsert({ id: jid, data: { ...jd, goudMail: gm } }); if (error) throw error;
       uit.push({ lidId: l.id, verstuurd: mail });
@@ -87,14 +89,14 @@ const ONDERDELEN = [["kaarten", "kaarten", "verkoop kaarten fuif"], ["kalUitgevo
 const STATUS = { brons: "Brons", zilver: "Zilver", goud: "Goud" };
 const statusVan = (pt, dr) => pt >= dr.goud ? "goud" : pt >= dr.zilver ? "zilver" : "brons";
 const stand = j => ({ kaarten: j.kaarten || 0, kalUitgevoerd: j.kalUitgevoerd || 0, shifts: j.shifts || 0, vergaderingen: j.vergaderingen || 0, extraPunten: j.extraPunten || 0 });
-export function puntenHtml(voornaam, Y, { regels, totaal, status, statusNieuw, statusVorig }, A) {
+export function puntenHtml(voornaam, Y, { regels, totaal, status, statusNieuw, statusVorig }, A, lidId) {
   const st = `<b>${STATUS[status]}</b>`;
   return huisstijl(
     p(`Beste ${esc(voornaam || "lid")},`)
     + (regels.length ? p("Zonet werden er nieuwe punten voor je toegevoegd:") + kaderBlok("Nieuwe punten", regels.map(r => p(`<b>+${r.pt} pt</b> voor ${esc(r.naam)}${r.n ? ` (${r.n})` : ""}`, "margin:0 0 6px")).join("")) : "")
     + p(`Jouw totaal voor ${Y} bedraagt nu <b>${totaal} punten</b>. ${statusNieuw ? `Daarmee ga je van ${STATUS[statusVorig]} naar ${st} voor ${Y + 1}.` : `Daarmee is je status voor ${Y + 1} ${st}.`}`)
     + p("Bedankt voor je inzet voor de Vriendenkring!")
-    + knop("Reglement puntensysteem", site() + "/reglement"),
+    + (lidId ? knop("Bekijk al je punten", statusLink(lidId, Y)) : knop("Reglement puntensysteem", site() + "/reglement")),
     A.vereniging || "Vriendenkring Brandweer Hoofdpost Aalst");
 }
 export async function puntenCron(sb) {
@@ -134,7 +136,7 @@ export async function puntenCron(sb) {
         const statusNieuw = SM.aan === true && x.ander && statusRang(x.st) > statusRang(x.m.status);
         mails.push({ batch: "punten-" + Y, data: { aan: String(lid.email).trim(), aanNaam: `${lid.voornaam || ""} ${lid.naam || ""}`.trim(),
           onderwerp: statusNieuw && !goudVia ? `Je status voor ${Y + 1}: ${STATUS[x.st]}` : `Nieuwe punten: je totaal is nu ${x.pt} pt`,
-          html: puntenHtml(lid.voornaam, Y, { regels: PM.aan === true ? regels : [], totaal: x.pt, status: x.st, statusNieuw: statusNieuw && !goudVia, statusVorig: x.m.status }, A), label: "Punten " + `${lid.voornaam || ""} ${lid.naam || ""}`.trim() } });
+          html: puntenHtml(lid.voornaam, Y, { regels: PM.aan === true ? regels : [], totaal: x.pt, status: x.st, statusNieuw: statusNieuw && !goudVia, statusVorig: x.m.status }, A, lidId), label: "Punten " + `${lid.voornaam || ""} ${lid.naam || ""}`.trim() } });
       }
     }
     standen.push({ id: x.r.id, stand: nieuwStand, op: nieuwStand.op });
