@@ -2646,7 +2646,7 @@ const mlGsm=()=>UI.mlDev?UI.mlDev==="gsm":innerWidth<760;
    Verzendgeschiedenis: collectie "mailings" {datum, onderwerp, sjabloon, groep, aantal, ok, fout[], door}. */
 // Menu Administratie: Mails meteen onder Agenda.
 {const c=NAV.find(n=>n.id==="communicatie");if(c){const m=c.items.findIndex(i=>i[0]==="mails");if(m>=0){const [it]=c.items.splice(m,1);const a=c.items.findIndex(i=>i[0]==="agenda");c.items.splice(a+1,0,it)}}}
-const ML_CATS=["Lidgeld","Activiteiten","Kalenders","Banket","Kinderfeest","Algemeen"];
+const ML_CATS=["Lidgeld","Activiteiten","Kalenders","Banket","Kinderfeest","Sponsors","Algemeen"];
 const ML_LOGO="https://impro.usercontent.one/appid/oneComWsb/domain/vbha.be/media/vbha.be/onewebmedia/logo%20VBHA%201.png";
 const ML_FONT="font-family:'Inter','Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;";
 const ML_VELDEN=[
