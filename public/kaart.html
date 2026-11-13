@@ -2261,4 +2261,29 @@ krLive();
   try{krCard()}catch(e){}
 })();
 </script>
+<script>
+/* ============ Persoonlijke link uit de mail: straten van vorig jaar opnieuw reserveren (/kaart?l=&j=&t=) ============ */
+(function(){const Q=new URLSearchParams(location.search),l=Q.get("l"),j=Q.get("j"),t=Q.get("t");if(!l||!j||!t)return;
+  const e2=x=>String(x??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const info=id=>{const s=KR.byId.get(String(id).split("~")[0]);if(!s)return null;if(!String(id).includes("~"))return{n:s.n,a:s.a};const d=KR_DEEL.get(id),n=(KR_DELEN.get(s.id)||[]).length;return{n:s.n+(n>1&&d?" (deel "+d.nr+")":""),a:d?d.a:0}};
+  const dag=d=>d?d.slice(8,10)+"/"+d.slice(5,7)+"/"+d.slice(0,4):"";
+  const bg=document.createElement("div");bg.className="km-bg";bg.innerHTML='<div class="km" role="dialog" aria-modal="true" aria-labelledby="khT"><p>Even laden…</p></div>';document.body.appendChild(bg);
+  const km=bg.querySelector(".km"),sluit=()=>bg.remove();bg.addEventListener("click",e=>{if(e.target===bg)sluit()});
+  const fout=m=>{km.innerHTML=`<h3 id="khT">Straten opnieuw reserveren</h3><p>${e2(m)}</p><div class="km-a"><button type="button" class="prim" id="khX">Naar de kaart</button></div>`;km.querySelector("#khX").onclick=sluit};
+  fetch(`/api/ronde?her=1&l=${encodeURIComponent(l)}&j=${encodeURIComponent(j)}&t=${encodeURIComponent(t)}`,{cache:"no-store"}).then(async r=>{const x=await r.json().catch(()=>({}));if(!r.ok)throw new Error(x.error||"Er ging iets mis.");return x}).then(x=>{
+    const L=x.straten.map(o=>({...o,...(info(o.s)||{n:o.s,a:0})})),vrij=L.filter(o=>o.st==="vrij"),mijn=L.filter(o=>o.st==="mijn");
+    const doz=A=>Math.ceil(A.reduce((s,o)=>s+o.a,0)/(PER_DOOS||100)),tg=x.tegen?` Let op: alle kalenders moeten in de brievenbussen zitten vóór <b>${dag(x.tegen)}</b>.`:"";
+    if(!L.length){fout("We vonden geen straten die je vorig jaar bedeelde.");return}
+    const lab={vrij:"",mijn:"al op jouw naam",bezet:"al door iemand anders gereserveerd"};
+    const lijst=`<ul class="kr-ml">${L.map(o=>`<li><span class="kr-ml-n">${e2(o.n)}${lab[o.st]?`<small>${lab[o.st]}</small>`:""}</span><span class="kr-ml-a">${krNum(o.a)}</span></li>`).join("")}</ul>`;
+    const klaar=(n,A)=>{km.innerHTML=`<h3 id="khT">Gereserveerd!</h3><p>${n?`${n} ${n===1?"straat staat":"straten staan"}`:"Je straten staan"} op jouw naam. Je hebt hiervoor <b>${krNum(doz(A))} ${doz(A)===1?"doos":"dozen"}</b> kalenders nodig. Neem contact op om ze af te halen.${tg}</p><div class="km-a"><button type="button" class="prim" id="khX">Naar de kaart</button></div>`;km.querySelector("#khX").onclick=sluit};
+    if(!vrij.length){if(mijn.length)klaar(0,mijn);else fout("De straten die je vorig jaar bedeelde, zijn dit jaar al door iemand anders gereserveerd. Kies gerust andere straten op de kaart.");return}
+    km.innerHTML=`<h3 id="khT">Jouw straten van vorig jaar</h3><p>${x.voornaam?"Dag "+e2(x.voornaam)+", vorig":"Vorig"} jaar buste je kalenders in deze straten. Wil je ze opnieuw voor jouw rekening nemen? Je hebt hiervoor <b>${krNum(doz(vrij))} ${doz(vrij)===1?"doos":"dozen"}</b> kalenders nodig.${tg}</p>${lijst}<p class="km-e" id="khE"></p>
+      <div class="km-a"><button type="button" id="khN">Niet nu</button><button type="button" class="prim" id="khOk">Reserveer ${vrij.length===1?"deze straat":"deze "+vrij.length+" straten"}</button></div>`;
+    km.querySelector("#khN").onclick=sluit;
+    const ok=km.querySelector("#khOk");ok.onclick=async()=>{ok.disabled=true;ok.textContent="Bezig…";
+      try{const r=await fetch("/api/ronde",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({her:1,l,j,t})});const y=await r.json().catch(()=>({}));if(!r.ok)throw new Error(y.error||"Reserveren mislukt.");
+        klaar((y.gereserveerd||[]).length,vrij);krLive()}catch(e){km.querySelector("#khE").textContent=e.message;ok.disabled=false;ok.textContent="Opnieuw proberen"}}})
+  .catch(e=>fout(e.message))})();
+</script>
 </body></html>
