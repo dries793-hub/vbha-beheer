@@ -145,13 +145,15 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
     document.title="Status "+(x.voornaam||"")+" · VBHA";$("#lead").textContent=(x.voornaam?"Dag "+x.voornaam+", hier":"Hier")+" vind je je status en je punten. Deze pagina blijft het hele jaar actueel.";
     const uitleg=N.ere?"Als lid van de erewacht geniet je steeds de maximale korting.":N.vrij?`Omdat je in ${N.puntenJaar} vrijgesteld was van het puntensysteem, heb je de goudstatus.`:N.start?`Het puntensysteem startte in ${N.puntenJaar+1}, daarom heb je dit jaar de goudstatus.`:`Op basis van je punten van ${N.puntenJaar}.`;
     const max=Math.max(D.goud,P.totaal)||1,pct=Math.min(100,Math.round(P.totaal/max*100));
-    const rijen=P.onderdelen.map(o=>`<tr><td>${esc(o.naam)}${o.aantal!=null?`<small>${o.aantal} ${o.aantal===1?o.eenheid[0]:o.eenheid[1]}${o.per?` × ${o.per} pt`:""}</small>`:""}</td><td class="n">${o.punten} pt</td></tr>`).join("");
+    const tab=(L,tot)=>`<table class="sp-t"><tbody>${L.map(o=>`<tr><td>${esc(o.naam)}${o.aantal!=null?`<small>${o.aantal} ${o.aantal===1?o.eenheid[0]:o.eenheid[1]}${o.per?` × ${o.per} pt`:""}</small>`:""}</td><td class="n">${o.punten} pt</td></tr>`).join("")}</tbody><tfoot><tr><td>Totaal</td><td class="n">${tot} pt</td></tr></tfoot></table>`;
     const volg=P.ere?"Als lid van de erewacht blijf je goud.":P.vrij?`Je bent dit jaar vrijgesteld, je krijgt in ${Y+1} de goudstatus.`:P.naar?`Nog <b>${P.nodig} punten</b> voor ${nm(P.naar)} in ${Y+1}.`:`Je hebt de goudstatus voor ${Y+1} al binnen. Proficiat!`;
-    $("#box").innerHTML=`<div class="card"><div class="sp-hero"><span class="sp-badge ${N.status}">${nm(N.status)}</span><span class="sp-k">Jouw status in ${Y} · <b>${N.korting}% korting</b> op betalende activiteiten</span></div><p class="sp-k" style="margin:10px 0 0">${esc(uitleg)}</p></div>
-     <div class="sp-h">Punten verzameld in ${Y}</div>
-     <div class="card"><table class="sp-t"><tbody>${rijen}</tbody><tfoot><tr><td>Totaal</td><td class="n">${P.totaal} pt</td></tr></tfoot></table>
+    $("#box").innerHTML=`<div class="sp-h" style="margin-top:0">Jouw status in ${Y}</div>
+     <div class="card"><div class="sp-hero"><span class="sp-badge ${N.status}">${nm(N.status)}</span><span class="sp-k"><b>${N.korting}% korting</b> op betalende activiteiten in ${Y}</span></div><p class="sp-k" style="margin:10px 0 0">${esc(uitleg)}</p>
+      ${N.onderdelen&&N.onderdelen.length?`<p class="sp-k" style="margin:18px 0 4px;font-weight:600;color:var(--ink)">Punten verzameld in ${N.puntenJaar}</p>${tab(N.onderdelen,N.totaal)}`:""}</div>
+     <div class="sp-h">Jouw status in ${Y+1}</div>
+     <div class="card"><p class="sp-k" style="margin:0 0 4px;font-weight:600;color:var(--ink)">Punten verzameld in ${Y}</p>${tab(P.onderdelen,P.totaal)}
       ${P.ere||P.vrij?"":`<div class="sp-bar" aria-hidden="true"><i style="width:${pct}%"></i></div><div class="sp-sch">${D.brons>0?`<span>0</span>`:""}<span>Brons${D.brons>0?" "+D.brons+" pt":""}</span><span>Zilver ${D.zilver} pt</span><span>Goud ${D.goud} pt</span></div>`}
-      <p class="sp-n">Status voor ${Y+1}: <b>${nm(P.volgend)}</b> (${P.kortingVolgend}% korting). ${volg}</p></div>
+      <p class="sp-n">Status voor ${Y+1} tot nu toe: <b>${nm(P.volgend)}</b> (${P.kortingVolgend}% korting). ${volg}</p></div>
      <div class="sp-l"><a href="/reglement">Hoe werkt het puntensysteem?</a></div>`})
   .catch(e=>fout(e.message));
 </script>

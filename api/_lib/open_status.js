@@ -36,7 +36,16 @@ export default async function handler(req, res) {
     // persoonlijke statuspagina: status van dit werkjaar + de punten die dit jaar al verzameld zijn (geldt het hele jaar, ook met een link van vorig jaar)
     const L = row.data || {}, A = await algemeen(sb), Y = Number(A.jaar) || j;
     const S = await lidStatus(sb, l, Y), c = await jaarCfg(sb, Y), w = c.gewichten, dr = c.drempels;
-    const { data: jr } = await sb.from("jaarleden").select("data").eq("id", Y + "_" + l).maybeSingle(); const J = (jr && jr.data) || {};
+    const [{ data: jr }, { data: jv }] = await Promise.all([sb.from("jaarleden").select("data").eq("id", Y + "_" + l).maybeSingle(), sb.from("jaarleden").select("data").eq("id", (Y - 1) + "_" + l).maybeSingle()]);
+    const J = (jr && jr.data) || {}, JV = (jv && jv.data) || {};
+    const delen = (J, w) => { const o = [
+      { naam: "Kalenders bussen", aantal: J.kalUitgevoerd || 0, eenheid: ["doos", "dozen"], per: w.kalenders },
+      { naam: "Hulp bij activiteiten", aantal: J.shifts || 0, eenheid: ["shift", "shiften"], per: w.shifts },
+      { naam: "Verkoop kaarten fuif", aantal: J.kaarten || 0, eenheid: ["kaart", "kaarten"], per: w.kaarten },
+      { naam: "Vergaderingen", aantal: J.vergaderingen || 0, eenheid: ["vergadering", "vergaderingen"], per: w.vergaderingen }
+    ].map(x => ({ ...x, punten: x.aantal * (x.per || 0) }));
+      if (J.extraPunten) o.push({ naam: J.extraTekst ? "Extra: " + J.extraTekst : "Extra punten", aantal: null, punten: J.extraPunten || 0 }); return o; };
+    const vorigDelen = S.ere || S.vrij || S.start ? [] : delen(JV, S.cfgVorig.gewichten);
     const onderdelen = [
       { naam: "Kalenders bussen", aantal: J.kalUitgevoerd || 0, eenheid: ["doos", "dozen"], per: w.kalenders },
       { naam: "Hulp bij activiteiten", aantal: J.shifts || 0, eenheid: ["shift", "shiften"], per: w.shifts },
@@ -48,7 +57,7 @@ export default async function handler(req, res) {
     const volgend = ere || vrij ? "GOUD" : totaal >= dr.goud ? "GOUD" : totaal >= dr.zilver ? "ZILVER" : totaal >= (dr.brons || 0) ? "BRONS" : "GEEN";
     const tot = volgend === "GOUD" ? 0 : (volgend === "ZILVER" ? dr.goud : volgend === "BRONS" ? dr.zilver : dr.brons) - totaal;
     return res.status(200).json({ ok: true, voornaam: L.voornaam || "", jaar: Y,
-      nu: { status: S.status, korting: S.korting, ere: S.ere, vrij: S.vrij, start: S.start, puntenJaar: S.puntenJaar },
+      nu: { status: S.status, korting: S.korting, ere: S.ere, vrij: S.vrij, start: S.start, puntenJaar: S.puntenJaar, onderdelen: vorigDelen, totaal: vorigDelen.reduce((t, o) => t + o.punten, 0) },
       punten: { totaal, onderdelen, volgend, ere, vrij, nodig: tot > 0 ? tot : 0, naar: volgend === "GEEN" ? "BRONS" : volgend === "BRONS" ? "ZILVER" : volgend === "ZILVER" ? "GOUD" : null, kortingVolgend: Number(c.korting[volgend.toLowerCase()]) || 0 },
       drempels: { brons: 0, ...dr } });
   } catch (e) { sendError(res, e); }
