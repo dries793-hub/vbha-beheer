@@ -909,11 +909,11 @@ function krHistory(M){const E=Object.values(M).sort((a,b)=>(b.at||"").localeComp
   if(!E.length)return '<div class="empty">Nog geen straten aangeduid voor '+JAAR+'. Tik een straat aan op de kaart en zet ze op Reserveren of Gedaan.</div>';
   const mob=`<div class="mlist" role="list">${E.map(m=>{const dl=KR_DEEL.get(m.straat),s=KR.byId.get(dl?dl.sid:m.straat);
     return `<div class="ml-row kr-mr" role="listitem"><button type="button" class="kr-mn" data-act="krToon" data-id="${esc(s.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(s.n)}</b>${dl?` <span class="pill neutral">deel ${dl.nr}</span>`:""}</span>
-      <span class="ml-s">${esc(s.w)}<span class="ml-dot">·</span>${dl?"± "+dl.a:s.a} adressen</span><span class="ml-s">${esc(m.by||"onbekend")}<span class="ml-dot">·</span>${esc(krDT(m.at))}</span></span>
+      <span class="ml-s">${esc(s.w)}<span class="ml-dot">·</span>${dl?"± "+dl.a:s.a} adressen</span><span class="ml-s">${esc(krWie(m))}<span class="ml-dot">·</span>${esc(krDT(m.at))}</span></span>
       <span class="ml-r">${m.status==="reserved"?'<span class="pill info">Gereserveerd</span>':'<span class="pill ok">Gedaan</span>'}</span></button>
       ${canWrite?`<button type="button" class="iconbtn2 kr-x" data-act="krWis" data-id="${esc(m.straat)}" aria-label="${esc(s.n)} terug op te doen zetten">${ic("x")}</button>`:""}</div>`}).join("")}</div>`;
   return mob+`<div class="tw dsk-only" style="max-height:440px"><table class="rcards" data-main="0"><thead><tr><th>Straat</th><th>Status</th><th>Deelgemeente</th><th class="num">Adressen</th><th>Door</th><th>Wanneer</th><th></th></tr></thead><tbody>${E.map(m=>{const dl=KR_DEEL.get(m.straat),s=KR.byId.get(dl?dl.sid:m.straat);
-    return `<tr><td><button type="button" class="kr-link" data-act="krToon" data-id="${esc(s.id)}" title="Toon op de kaart">${esc(s.n)}</button>${dl?` <span class="pill neutral">deel ${dl.nr}</span>`:""}</td><td>${m.status==="reserved"?'<span class="pill info">Gereserveerd</span>':'<span class="pill ok">Gedaan</span>'}</td><td class="muted">${esc(s.w)}</td><td class="num">${dl?"± "+dl.a:s.a}</td><td>${esc(m.by||"onbekend")}</td><td class="nowrap muted">${esc(krDT(m.at))}</td><td class="num"><button type="button" class="btn sm ghost danger" data-w data-act="krWis" data-id="${esc(m.straat)}" title="Terug op Te doen zetten" aria-label="${esc(s.n)} wissen">${ic("x")}</button></td></tr>`}).join("")}</tbody></table></div>`}
+    return `<tr><td><button type="button" class="kr-link" data-act="krToon" data-id="${esc(s.id)}" title="Toon op de kaart">${esc(s.n)}</button>${dl?` <span class="pill neutral">deel ${dl.nr}</span>`:""}</td><td>${m.status==="reserved"?'<span class="pill info">Gereserveerd</span>':'<span class="pill ok">Gedaan</span>'}</td><td class="muted">${esc(s.w)}</td><td class="num">${dl?"± "+dl.a:s.a}</td><td>${esc(krWie(m))}</td><td class="nowrap muted">${esc(krDT(m.at))}</td><td class="num"><button type="button" class="btn sm ghost danger" data-w data-act="krWis" data-id="${esc(m.straat)}" title="Terug op Te doen zetten" aria-label="${esc(s.n)} wissen">${ic("x")}</button></td></tr>`}).join("")}</tbody></table></div>`}
 
 /* De kaart blijft bestaan als één element dat na elke hertekening terug in #krSlot gehangen wordt. */
 function krHost(){if(KR.host)return KR.host;const h=document.createElement("div");h.className="kr-host";
@@ -1000,7 +1000,7 @@ function krCard(){const c=KR.host&&KR.host.querySelector("#krCard");if(!c)return
   if(!KR.sel||!KR.byId.has(KR.sel)){c.hidden=true;return}
   const s=KR.byId.get(KR.sel),m=krAll()[KR.sel],r=m&&m.status==="reserved";c.hidden=false;
   c.querySelector("#krCardT").textContent=s.n;
-  c.querySelector("#krCardM").textContent=s.w+" · "+krAdr(s.a)+(m?` · ${r?"gereserveerd":"gedaan"} door ${m.by||"onbekend"} · ${krDT(m.at)}`:"");
+  c.querySelector("#krCardM").textContent=s.w+" · "+krAdr(s.a)+(m?` · ${r?"gereserveerd":"gedaan"} door ${krWie(m)} · ${krDT(m.at)}`:"");
   const dv=krDeelVan(KR.sel),nseg=(KR_DELEN.get(KR.sel)||[]).length;
   if(!m&&dv.length){const nd=dv.filter(x=>x.m.status!=="reserved").length,nr=dv.length-nd;c.querySelector("#krCardM").textContent=s.w+" · "+krAdr(s.a)+` · deels: ${[nd?nd+" van "+nseg+" stukken gedaan":"",nr?nr+" gereserveerd":""].filter(Boolean).join(", ")}`}
   if(canWrite&&nseg>1){kd.hidden=false;kd.textContent=dv.length&&!m?"Delen bekijken of wijzigen":"Slechts een deel aanduiden"}
@@ -1030,13 +1030,13 @@ function krLidVanNaam(n){const q=norm(n);if(!q)return null;for(const l of S.lede
 function krKiesPersoon(id,st){if(Array.isArray(id))return krKiesPersoonMeer(id,st);const s=KR.byId.get(id);if(!s)return;const cur=krAll()[id];const res=st==="reserved";
   const namen=[...new Set([...ctx().leden.map(l=>naamVol(l).trim()),...[...S.ronde.values()].map(d=>d.by).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,"nl"));
   const start=cur&&cur.by?cur.by:ls.get("rondeWie","")||krNaam();
-  modal(s.n+(res?" reserveren":" afgewerkt"),`<div class="fld"><label for="krWieIn">${res?"Gereserveerd door":"Afgewerkt door"}</label><input id="krWieIn" list="krWieLijst" maxlength="60" autocomplete="off" placeholder="Begin te typen…" value="${esc(start)}"><datalist id="krWieLijst">${namen.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist><span class="help">Kies een lid uit de lijst of typ een andere naam.</span></div><p class="err" id="krWieErr" hidden></p>`,
+  modal(s.n+(res?" reserveren":" afgewerkt"),`<div class="fld"><label for="krWieIn">${res?"Gereserveerd door":"Afgewerkt door"}</label><input id="krWieIn" list="krWieLijst" maxlength="60" autocomplete="off" placeholder="Begin te typen…" value="${esc(start)}"><datalist id="krWieLijst">${namen.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist><span class="help">Kies een lid uit de lijst of typ een andere naam.</span></div>${krMeeVeld(cur&&cur.mee)}<p class="err" id="krWieErr" hidden></p>`,
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="krWieOk">${res?"Reserveren":"Op gedaan zetten"}</button>`);
-  const inp=$("#krWieIn"),er=$("#krWieErr");setTimeout(()=>{inp.focus();inp.select()},40);
+  const inp=$("#krWieIn"),er=$("#krWieErr");krMeeInit();setTimeout(()=>{inp.focus();inp.select()},40);
   const ok=async()=>{const by=inp.value.trim();if(!by){er.textContent="Geef een naam op.";er.hidden=false;inp.focus();return}
-    const l=krLidVanNaam(by);ls.set("rondeWie",by);closeModal();KR.busy=true;
+    const l=krLidVanNaam(by),mee=krMeeWaarde(l?naamVol(l):by);ls.set("rondeWie",by);closeModal();KR.busy=true;
     const zelfde=cur&&(cur.status==="reserved")===res;
-    const doc={jaar:JAAR,straat:id,status:res?"reserved":"done",by:l?naamVol(l).trim():by,lidId:l?l.id:null,at:zelfde?cur.at:new Date().toISOString(),...(zelfde?{gewijzigd:new Date().toISOString()}:{})};
+    const doc={jaar:JAAR,straat:id,status:res?"reserved":"done",by:l?naamVol(l).trim():by,lidId:l?l.id:null,...(mee&&mee.length?{mee}:{}),at:zelfde?cur.at:new Date().toISOString(),...(zelfde?{gewijzigd:new Date().toISOString()}:{})};
     S.ronde.set(JAAR+"_"+id,{...doc,id:JAAR+"_"+id});if(KR.map)krStyleAll();krCard();
     let gelukt=false;try{await write("ronde",JAAR+"_"+id,doc);gelukt=true;const weg=krSegWeg([id]);if(weg.length)await writeMany(weg,()=>{})}catch(e){}finally{KR.busy=false}
     if(gelukt&&KR.sel===id&&!KR.deel){KR.ss=new Set();KR.sel=null}if(KR.map)krStyleAll();krCard()};
@@ -1054,12 +1054,12 @@ function krKiesPersoonMeer(ids,st,pre){pre=pre||[];const res=st==="reserved",A={
   const tot=ids.reduce((t,id)=>t+krInfo(id).a,0);
   const resv=res?[]:[...new Set(ids.map(id=>A[id]&&A[id].status==="reserved"?A[id].by:"").filter(Boolean))],elk=!res&&resv.length>1,zonder=res||ids.some(id=>!(A[id]&&A[id].status==="reserved"&&A[id].by));
   const startN=resv.length===1?resv[0]:elk?"":(ls.get("rondeWie","")||krNaam());
-  modal((deel?krInfo(ids[0]).s.n+": "+ids.length+(ids.length===1?" stuk ":" stukken "):ids.length+" straten ")+(res?"reserveren":"op gedaan zetten"),`<p style="margin:0;color:var(--muted)">${deel?"± "+krNum(tot)+" adressen":ids.map(id=>esc(krInfo(id).n)).join(", ")+" · "+krNum(tot)+" adressen"}</p><div class="fld"><label for="krWieIn">${res?"Gereserveerd door":"Afgewerkt door"}</label><input id="krWieIn" list="krWieLijst" maxlength="60" autocomplete="off" placeholder="${elk?"Wie de straat reserveerde":"Begin te typen…"}" value="${esc(startN)}"><datalist id="krWieLijst">${namen.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist><span class="help">${elk?`Gereserveerd door ${esc(resv.join(", "))}. Laat leeg: elke straat krijgt de naam van wie ze reserveerde.`:"Kies een lid uit de lijst of typ een andere naam."}</span></div><p class="err" id="krWieErr" hidden></p>`,
+  modal((deel?krInfo(ids[0]).s.n+": "+ids.length+(ids.length===1?" stuk ":" stukken "):ids.length+" straten ")+(res?"reserveren":"op gedaan zetten"),`<p style="margin:0;color:var(--muted)">${deel?"± "+krNum(tot)+" adressen":ids.map(id=>esc(krInfo(id).n)).join(", ")+" · "+krNum(tot)+" adressen"}</p><div class="fld"><label for="krWieIn">${res?"Gereserveerd door":"Afgewerkt door"}</label><input id="krWieIn" list="krWieLijst" maxlength="60" autocomplete="off" placeholder="${elk?"Wie de straat reserveerde":"Begin te typen…"}" value="${esc(startN)}"><datalist id="krWieLijst">${namen.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist><span class="help">${elk?`Gereserveerd door ${esc(resv.join(", "))}. Laat leeg: elke straat krijgt de naam van wie ze reserveerde.`:"Kies een lid uit de lijst of typ een andere naam."}</span></div>${krMeeVeld((()=>{const M=ids.map(id=>JSON.stringify((A[id]&&A[id].mee)||[]));return M.every(x=>x===M[0])?JSON.parse(M[0]):[]})())}<p class="err" id="krWieErr" hidden></p>`,
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="krWieOk">${res?"Reserveren":"Op gedaan zetten"}</button>`);
-  const inp=$("#krWieIn"),er=$("#krWieErr");setTimeout(()=>{inp.focus();inp.select()},40);
+  const inp=$("#krWieIn"),er=$("#krWieErr");krMeeInit();setTimeout(()=>{inp.focus();inp.select()},40);
   const ok=async()=>{const by=inp.value.trim();if(!by&&zonder){er.textContent="Geef een naam op.";er.hidden=false;inp.focus();return}
-    const l=by?krLidVanNaam(by):null;if(by)ls.set("rondeWie",by);closeModal();KR.busy=true;const now=new Date().toISOString();
-    const ops=[...pre,...krSegWeg(ids.filter(id=>!KR_DEEL.has(id))),...ids.map(id=>{const cur=A[id],zelfde=cur&&(cur.status==="reserved")===res;const eig=!by&&cur&&cur.status==="reserved"?cur:null;const doc={jaar:JAAR,straat:id,status:res?"reserved":"done",by:eig?eig.by:l?naamVol(l).trim():by,lidId:eig?(eig.lidId||null):l?l.id:null,at:zelfde?cur.at:now,...(zelfde?{gewijzigd:now}:{}),...(KR_DEEL.has(id)?{deel:true}:{})};S.ronde.set(JAAR+"_"+id,{...doc,id:JAAR+"_"+id});return["ronde",JAAR+"_"+id,doc]})];if(deel)KR.dsel=new Set();
+    const l=by?krLidVanNaam(by):null,meeV=krMeeWaarde(l?naamVol(l):by);if(by)ls.set("rondeWie",by);closeModal();KR.busy=true;const now=new Date().toISOString();
+    const ops=[...pre,...krSegWeg(ids.filter(id=>!KR_DEEL.has(id))),...ids.map(id=>{const cur=A[id],zelfde=cur&&(cur.status==="reserved")===res;const eig=!by&&cur&&cur.status==="reserved"?cur:null;const doc={jaar:JAAR,straat:id,status:res?"reserved":"done",by:eig?eig.by:l?naamVol(l).trim():by,lidId:eig?(eig.lidId||null):l?l.id:null,...((()=>{const m2=meeV&&meeV.length?meeV:(eig&&eig.mee)||[];return m2.length?{mee:m2}:{}})()),at:zelfde?cur.at:now,...(zelfde?{gewijzigd:now}:{}),...(KR_DEEL.has(id)?{deel:true}:{})};S.ronde.set(JAAR+"_"+id,{...doc,id:JAAR+"_"+id});return["ronde",JAAR+"_"+id,doc]})];if(deel)KR.dsel=new Set();
     if(KR.map)krStyleAll();krCard();
     try{await writeMany(ops,()=>{});toast((deel?ids.length+(ids.length===1?" stuk ":" stukken "):ids.length+" straten ")+(res?"gereserveerd":"op gedaan gezet")+".");if(!deel){KR.ss=new Set();KR.sel=null}}catch(e){handleWriteError(e)}finally{KR.busy=false}if(KR.map)krStyleAll();krCard()};
   $("#krWieOk").onclick=ok;inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();ok()}})}
@@ -5028,7 +5028,7 @@ function kcData(){const C=ctx(),pd=Number(jaarCfg(JAAR).perDoos)||100,P=new Map(
     if(!P.has(k))P.set(k,{k,naam:l?naamVol(l):(naam||"?"),lid:!!l,mee:0,uit:0,hand:0,j:null,dA:0,dS:0,rA:0,rS:0,laatst:""});return P.get(k)};
   for(const j of kalStats(C).rows){const p=pers(j.lidId,kalNaam(j));p.j=j;p.uit=Math.round(((j.kalUitgevoerd||0)-(j.kalTerugRest||0))*100)/100;/* begonnen dozen: enkel wat effectief bedeeld werd */p.hand=j.kalOpgehaald||0;p.mee=p.uit+p.hand}
   const A=krAll(),D=krDelen();
-  const tel=(d,a)=>{if(!d)return;const p=pers(d.lidId,d.by||"Onbekend");if(d.status==="reserved"){p.rA+=a;p.rS++}else{p.dA+=a;p.dS++}if(String(d.at||"")>p.laatst)p.laatst=String(d.at||"")};
+  const tel=(d,a)=>{if(!d)return;for(const w of [{lidId:d.lidId,by:d.by},...(Array.isArray(d.mee)?d.mee:[])]){const p=pers(w.lidId,w.by||"Onbekend");if(d.status==="reserved"){p.rA+=a;p.rS++}else{p.dA+=a;p.dS++}if(String(d.at||"")>p.laatst)p.laatst=String(d.at||"")}};
   for(const s of KR_STREETS){if(A[s.id]){tel(A[s.id],s.a);continue}for(const x of KR_DELEN.get(s.id)||[])tel(D[x.id],x.a)}
   const L=[...P.values()].map(p=>{const dz=p.dA/pd;let st,verschil=0;
     if(!p.mee&&!p.dA)st=p.rA?"res":"ok";
@@ -8184,7 +8184,7 @@ document.addEventListener("change",e=>{if(e.target&&e.target.id==="mpBestuur"){t
 /* ---- Kalenderronde: wie vorig jaar kalenders buste, kan dezelfde straten opnieuw reserveren (blok in de mail "de kalenders zijn er") ----
    Velden {straten_vorig_jaar}, {dozen_vorig_jaar}, {kalender_tegen} en de persoonlijke link {link_straten} (/kaart?l=&j=&t=@@SIG@@, de server ondertekent). */
 function khVorig(lidId,Y){const lid=S.leden.get(lidId);if(!lid)return[];const nm=[norm(lid.voornaam+" "+lid.naam),norm(lid.naam+" "+lid.voornaam)],out=new Set();
-  for(const d of S.ronde.values()){if(Number(d.jaar)!==Y-1||d.status!=="done"||!d.straat)continue;if(d.lidId?d.lidId!==lidId:!(d.by&&nm.includes(norm(d.by))))continue;out.add(d.straat)}return[...out]}
+  for(const d of S.ronde.values()){if(Number(d.jaar)!==Y-1||d.status!=="done"||!d.straat)continue;const W=[{lidId:d.lidId,by:d.by},...(Array.isArray(d.mee)?d.mee:[])];if(!W.some(w=>w.lidId?w.lidId===lidId:!!(w.by&&nm.includes(norm(w.by)))))continue;out.add(d.straat)}return[...out]}
 function khInfo(id){const s=KR.byId.get(String(id).split("~")[0]);if(!s)return null;if(!String(id).includes("~"))return{n:s.n,a:s.a};
   const d=KR_DEEL.get(id),n=(KR_DELEN.get(s.id)||[]).length;return{n:s.n+(n>1&&d?" (deel "+d.nr+")":""),a:d?d.a:0}}
 function khDozen(ids){const pd=Number(jaarCfg(JAAR).perDoos)||100;return Math.ceil(ids.reduce((t,id)=>t+((khInfo(id)||{}).a||0),0)/pd)}
@@ -8253,3 +8253,21 @@ document.addEventListener("click",e=>{const b=e.target.closest('[data-act="xBew"
 {const st=document.createElement("style");st.textContent=`.xt-r{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)}.xt-r:first-child{border-top:0}.xt-r b{white-space:nowrap}.xt-tot{border-top:2px solid var(--ink)}
 .xro{display:inline-flex;align-items:center;gap:10px;max-width:100%}.xro-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:14px}
 .xe-r{display:grid;grid-template-columns:1fr 110px auto;gap:8px;align-items:center}.xe-r+.xe-r{margin-top:8px}.xe-r input[type=text]{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);box-sizing:border-box}`;document.head.appendChild(st)}
+
+/* ---- Kalenderronde: een straat op meerdere namen (per twee of in groep) ----
+   Het ronde-document krijgt naast by/lidId een lijst mee:[{by,lidId}]. Telt mee voor de overzichten per persoon
+   en voor "jouw straten van vorig jaar" (mail en herreservatie). */
+function krWie(m){if(!m)return"onbekend";const L=[m.by||"onbekend",...(Array.isArray(m.mee)?m.mee.map(x=>x&&x.by).filter(Boolean):[])];return L.length<2?L[0]:L.slice(0,-1).join(", ")+" en "+L[L.length-1]}
+function krMeeVeld(start){const L=(Array.isArray(start)?start:[]).map(x=>x&&x.by).filter(Boolean);
+  return `<div class="fld"><label for="krMeeIn">Samen met <span class="muted">(optioneel)</span></label><div class="kmee" id="krMee">${L.map(n=>`<span class="kmee-c" data-n="${esc(n)}">${esc(n)}<button type="button" aria-label="Verwijderen">×</button></span>`).join("")}<input id="krMeeIn" list="krWieLijst" autocomplete="off" placeholder="Naam toevoegen…"></div></div>`}
+function krMeeInit(){const box=$("#krMee"),inp=$("#krMeeIn");if(!box||!inp)return;
+  const voeg=()=>{const v=inp.value.trim();if(!v)return;if(![...box.querySelectorAll(".kmee-c")].some(c=>norm(c.dataset.n)===norm(v))){const c=document.createElement("span");c.className="kmee-c";c.dataset.n=v;c.textContent=v;const b=document.createElement("button");b.type="button";b.setAttribute("aria-label","Verwijderen");b.textContent="×";c.append(b);box.insertBefore(c,inp)}inp.value=""};
+  inp.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===","){e.preventDefault();e.stopPropagation();voeg()}else if(e.key==="Backspace"&&!inp.value){const c=inp.previousElementSibling;if(c&&c.classList.contains("kmee-c"))c.remove()}});
+  inp.addEventListener("change",voeg);inp.addEventListener("blur",voeg);
+  box.addEventListener("click",e=>{const b=e.target.closest(".kmee-c button");if(b)b.parentElement.remove();else inp.focus()})}
+/* namen uit het veld (+ wat nog in het invoerveld staat), zonder de hoofdpersoon; null = veld niet aangeraakt (niet aanwezig) */
+function krMeeWaarde(hoofd){const box=$("#krMee");if(!box)return null;const inp=$("#krMeeIn"),N=[...box.querySelectorAll(".kmee-c")].map(c=>c.dataset.n);if(inp&&inp.value.trim())N.push(inp.value.trim());
+  const h=norm(hoofd||""),gezien=new Set();return N.filter(n=>{const k=norm(n);if(!k||k===h||gezien.has(k))return false;gezien.add(k);return true}).map(n=>{const l=krLidVanNaam(n);return{by:l?naamVol(l).trim():n,lidId:l?l.id:null}})}
+{const st=document.createElement("style");st.textContent=`.kmee{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);min-height:44px;cursor:text}
+.kmee input{flex:1;min-width:140px;border:0!important;outline:0;box-shadow:none!important;padding:4px 2px!important;background:none;font:inherit;min-height:0}
+.kmee-c{display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 10px;border-radius:999px;background:var(--sunken);font-size:14px}.kmee-c button{border:0;background:none;cursor:pointer;font-size:16px;line-height:1;color:var(--muted);padding:0 4px}`;document.head.appendChild(st)}

@@ -116,15 +116,17 @@ async function herReserveer(req, res, b, doe) {
   if (!row) throw httpErr(404, "Dit lid werd niet gevonden.");
   const L = row.data || {}, toon = [L.voornaam, L.naam].filter(Boolean).join(" ");
   const nm = x => norm(x).replace(/\s+/g, " "), namen = [nm(`${L.voornaam || ""} ${L.naam || ""}`), nm(`${L.naam || ""} ${L.voornaam || ""}`)];
-  const vorig = [...new Set((await rondeRijen(sb, j - 1)).filter(d => d.status === "done" && (d.lidId ? d.lidId === l : d.by && namen.includes(nm(d.by)))).map(d => d.straat))];
+  const isMijn = d => [{ lidId: d.lidId, by: d.by }, ...(Array.isArray(d.mee) ? d.mee : [])].some(w => w && (w.lidId ? w.lidId === l : w.by && namen.includes(nm(w.by))));
+  const vorigRijen = (await rondeRijen(sb, j - 1)).filter(d => d.status === "done" && isMijn(d));
+  const vorig = [...new Set(vorigRijen.map(d => d.straat))];
   const nu = await rondeRijen(sb, j), bezet = new Set(nu.map(d => d.straat));
   const vrij = s => { if (bezet.has(s)) return false; const sid = s.split("~")[0]; if (s.includes("~")) return !bezet.has(sid); for (const x of bezet) if (x.startsWith(s + "~")) return false; return true; };
-  const mijn = new Set(nu.filter(d => d.lidId === l).map(d => d.straat));
+  const mijn = new Set(nu.filter(isMijn).map(d => d.straat));
   if (!doe) { const { data: jr } = await sb.from("jaren").select("data").eq("id", String(j)).maybeSingle(); const tg = String(jr?.data?.kalTegen || "");
     return res.status(200).json({ voornaam: L.voornaam || "", jaar: j, tegen: /^\d{4}-\d{2}-\d{2}$/.test(tg) ? tg : "", straten: vorig.map(s => ({ s, st: mijn.has(s) ? "mijn" : vrij(s) ? "vrij" : "bezet" })) }); }
   const nieuw = vorig.filter(vrij), at = new Date().toISOString();
   if (nieuw.length) {
-    const { error } = await sb.from("ronde").upsert(nieuw.map(s => ({ id: j + "_" + s, data: { jaar: j, straat: s, status: "reserved", by: toon, lidId: l, at, ...(s.includes("~") ? { deel: true } : {}), via: "mail vorig jaar" } })));
+    const { error } = await sb.from("ronde").upsert(nieuw.map(s => ({ id: j + "_" + s, data: { jaar: j, straat: s, status: "reserved", by: toon, lidId: l, ...(() => { const r = vorigRijen.find(d => d.straat === s) || {}; const m = [{ lidId: r.lidId || null, by: r.by }, ...(Array.isArray(r.mee) ? r.mee : [])].filter(w => w && w.by && !(w.lidId ? w.lidId === l : namen.includes(nm(w.by)))); return m.length ? { mee: m } : {}; })(), at, ...(s.includes("~") ? { deel: true } : {}), via: "mail vorig jaar" } })));
     if (error) throw error;
     try { await meldPush(sb, "admin", { titel: "Kalenderronde: straten opnieuw gereserveerd", tekst: `${toon} reserveerde ${nieuw.length} ${nieuw.length === 1 ? "straat" : "straten"} van vorig jaar`, url: "/#ronde" }); } catch (e) {}
   }
