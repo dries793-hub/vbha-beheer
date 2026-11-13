@@ -79,3 +79,69 @@ export async function goudApp(req, res) {
     return res.status(200).json({ ok: true, resultaten: uit, mails: mails.length });
   } catch (e) { return sendError(res, e); }
 }
+
+/* Automatische mails bij nieuwe punten en/of bij een wijziging van status (aan te zetten in config algemeen: puntenMail.aan, statusMail.aan).
+   Per lid wordt in de afgeschermde tabel punten_mailstand bijgehouden wat het laatst gemeld werd. Pas als er 30 minuten niets meer aan het lid veranderde,
+   gaat er één mail (zo krijgt wie meerdere dozen na elkaar ingevuld krijgt maar één bericht). De eerste keer worden enkel de standen bewaard. */
+const ONDERDELEN = [["kaarten", "kaarten", "verkoop kaarten fuif"], ["kalUitgevoerd", "kalenders", "kalenders bussen"], ["shifts", "shifts", "hulp bij activiteiten"], ["vergaderingen", "vergaderingen", "vergaderingen"]];
+const STATUS = { brons: "Brons", zilver: "Zilver", goud: "Goud" };
+const statusVan = (pt, dr) => pt >= dr.goud ? "goud" : pt >= dr.zilver ? "zilver" : "brons";
+const stand = j => ({ kaarten: j.kaarten || 0, kalUitgevoerd: j.kalUitgevoerd || 0, shifts: j.shifts || 0, vergaderingen: j.vergaderingen || 0, extraPunten: j.extraPunten || 0 });
+export function puntenHtml(voornaam, Y, { regels, totaal, status, statusNieuw, statusVorig }, A) {
+  const st = `<b>${STATUS[status]}</b>`;
+  return huisstijl(
+    p(`Beste ${esc(voornaam || "lid")},`)
+    + (regels.length ? p("Zonet werden er nieuwe punten voor je toegevoegd:") + kaderBlok("Nieuwe punten", regels.map(r => p(`<b>+${r.pt} pt</b> voor ${esc(r.naam)}${r.n ? ` (${r.n})` : ""}`, "margin:0 0 6px")).join("")) : "")
+    + p(`Jouw totaal voor ${Y} bedraagt nu <b>${totaal} punten</b>. ${statusNieuw ? `Daarmee ga je van ${STATUS[statusVorig]} naar ${st} voor ${Y + 1}.` : `Daarmee is je status voor ${Y + 1} ${st}.`}`)
+    + p("Bedankt voor je inzet voor de Vriendenkring!")
+    + knop("Reglement puntensysteem", site() + "/reglement"),
+    A.vereniging || "Vriendenkring Brandweer Hoofdpost Aalst");
+}
+export async function puntenCron(sb) {
+  const { data: alg } = await sb.from("config").select("data").eq("id", "algemeen").maybeSingle();
+  const C = (alg && alg.data) || {}, PM = C.puntenMail || {}, SM = C.statusMail || {}, GM = C.goudMail || {};
+  if (PM.aan !== true && SM.aan !== true) return { uit: true };
+  const Y = Number(C.actiefJaar) || huidigJaar(), cfg = await jaarCfg(sb, Y), w = cfg.gewichten, dr = cfg.drempels;
+  const { data: jl } = await sb.from("jaarleden").select("id,data,updated_at").like("id", Y + "\\_%").limit(3000);
+  const { data: ms } = await sb.from("punten_mailstand").select("id,stand").like("id", Y + "\\_%").limit(3000);
+  const MS = new Map((ms || []).map(r => [r.id, r.stand]));
+  const sleutel = `${PM.aan === true ? "p" : ""}${SM.aan === true ? "s" : ""}-${Y}`, eersteKeer = C.puntenStart !== sleutel;
+  const rust = Date.now() - 30 * 60000, verschil = [];
+  for (const r of jl || []) {
+    const j = r.data || {}, nu = stand(j), pt = punten(j, w), st = statusVan(pt, dr), m = MS.get(r.id);
+    if (!m || eersteKeer) { verschil.push({ r, nu, pt, st, init: true }); continue; }
+    const meer = Object.keys(nu).some(k => nu[k] > (m[k] || 0)), ander = st !== m.status;
+    if (!meer && !ander) continue;
+    if (new Date(r.updated_at || 0).getTime() > rust) continue; // nog even wachten tot het invullen klaar is
+    verschil.push({ r, nu, pt, st, m, meer, ander });
+  }
+  if (!verschil.length) { if (eersteKeer) await sb.from("config").update({ data: { ...C, puntenStart: sleutel } }).eq("id", "algemeen"); return { nieuw: 0 }; }
+  const ids = [...new Set(verschil.filter(x => !x.init).map(x => x.r.data.lidId || x.r.id.slice(String(Y).length + 1)))];
+  const { data: leden } = ids.length ? await sb.from("leden").select("id,data").in("id", ids) : { data: [] };
+  const L = new Map((leden || []).map(r => [r.id, r.data])), A = await algemeen(sb).catch(() => ({}));
+  const mails = [], standen = [];
+  for (const x of verschil) {
+    const nieuwStand = { ...x.nu, status: x.st, op: new Date().toISOString() };
+    if (!x.init) {
+      const lidId = x.r.data.lidId || x.r.id.slice(String(Y).length + 1), lid = L.get(lidId) || {}, j = x.r.data;
+      const ok = lid.naam && !lid.geenLid && lid.categorie !== "Erewacht" && !j.vrijstelling && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(String(lid.email || "").trim());
+      const regels = [];
+      for (const [k, wk, naam] of ONDERDELEN) { const d = x.nu[k] - (x.m[k] || 0); if (d > 0) regels.push({ naam, pt: d * (w[wk] || 0), n: k === "kalUitgevoerd" ? `${d} ${d === 1 ? "doos" : "dozen"}` : k === "kaarten" ? `${d} ${d === 1 ? "kaart" : "kaarten"}` : k === "shifts" ? `${d} ${d === 1 ? "shift" : "shiften"}` : `${d}` }); }
+      const de = x.nu.extraPunten - (x.m.extraPunten || 0); if (de > 0) regels.push({ naam: j.extraTekst ? "extra: " + j.extraTekst : "extra punten", pt: de, n: "" });
+      const goudVia = x.ander && x.st === "goud" && GM.aan !== false; // de proficiat-mail voor goud gaat apart
+      const stuurPunten = PM.aan === true && regels.length, stuurStatus = SM.aan === true && x.ander && !goudVia && statusRang(x.st) > statusRang(x.m.status);
+      if (ok && (stuurPunten || stuurStatus)) {
+        const statusNieuw = SM.aan === true && x.ander && statusRang(x.st) > statusRang(x.m.status);
+        mails.push({ batch: "punten-" + Y, data: { aan: String(lid.email).trim(), aanNaam: `${lid.voornaam || ""} ${lid.naam || ""}`.trim(),
+          onderwerp: statusNieuw && !goudVia ? `Je status voor ${Y + 1}: ${STATUS[x.st]}` : `Nieuwe punten: je totaal is nu ${x.pt} pt`,
+          html: puntenHtml(lid.voornaam, Y, { regels: PM.aan === true ? regels : [], totaal: x.pt, status: x.st, statusNieuw: statusNieuw && !goudVia, statusVorig: x.m.status }, A), label: "Punten " + `${lid.voornaam || ""} ${lid.naam || ""}`.trim() } });
+      }
+    }
+    standen.push({ id: x.r.id, stand: nieuwStand, op: nieuwStand.op });
+  }
+  if (mails.length) { const { error } = await sb.from("mail_wachtrij").insert(mails); if (error) throw error; }
+  if (standen.length) { const { error } = await sb.from("punten_mailstand").upsert(standen); if (error) throw error; }
+  if (eersteKeer) await sb.from("config").update({ data: { ...C, puntenStart: sleutel } }).eq("id", "algemeen");
+  return { bekeken: verschil.length, mails: mails.length, eersteKeer };
+}
+const statusRang = s => ({ brons: 1, zilver: 2, goud: 3 })[s] || 0;

@@ -6815,14 +6815,14 @@ function stTussen(lidId){const C=ctx(),r=C.rows.get(lidId);if(!r)return{st:"",zi
 const goudCfg=()=>((S.config.get("algemeen")||{}).goudMail)||{};
 function stMailPaneel(){const g=goudCfg(),aan=g.aan!==false,d=ROL==="admin"?"":" disabled";const tpl=[...S.templates.values()].find(t=>t.id==="tpl-tussenstand");
   return `<div class="panel"><div class="panel-h"><h2>Mails puntensysteem</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:14px">
-   <label class="ws-row"><span class="ws-sw"><input type="checkbox" data-goudaan${aan?" checked":""}${d}><i></i></span><span><b>Automatische proficiat-mail bij goudstatus</b></span></label>
+   <label class="ws-row"><span class="ws-sw"><input type="checkbox" data-goudaan${aan?" checked":""}${d}><i></i></span><span><b>Automatische proficiat-mail bij goudstatus</b></span></label>${stOpt("statusMail","Automatische mail bij wijziging van status",d)}${stOpt("puntenMail","Automatische mail bij nieuw toegekende punten",d)}
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="grow"><b>Tussenstand status ${JAAR+1}</b><br><span class="muted small">Persoonlijke mail met de status (zonder punten) en hoeveel dozen nog nodig zijn voor goud.</span></span>
    ${tpl?`<button class="btn" data-act="stTussen">${ic("mails")}Mail openen</button>`:'<span class="muted small">Sjabloon "Tussenstand status" ontbreekt.</span>'}</div>
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="grow"><b>Proficiat goudstatus (in bulk)</b><br><span class="muted small">Naar alle leden die de goudstatus voor ${JAAR+1} al haalden en nog geen proficiat-mail kregen.</span></span>
    <button class="btn" data-act="stGoud">${ic("mails")}Mail openen</button></div></div></div>`}
 // proficiat-mail aan/uit staat in de instellingen (tandwiel) van het puntensysteem
 {const _pi=puntInst;puntInst=function(){const r=_pi.apply(this,arguments);const g=goudCfg(),aan=g.aan!==false,d=ROL==="admin"?"":" disabled";const secs=$$("#modal .pi-sec"),laatste=secs[secs.length-1];
-  if(laatste)laatste.insertAdjacentHTML("afterend",`<div class="pi-sec"><h4>Mails</h4><label class="ws-row"><span class="ws-sw"><input type="checkbox" data-goudaan${aan?" checked":""}${d}><i></i></span><span><b>Automatische proficiat-mail bij goudstatus</b></span></label></div>`);return r}}
+  if(laatste)laatste.insertAdjacentHTML("afterend",`<div class="pi-sec"><h4>Mails</h4><label class="ws-row"><span class="ws-sw"><input type="checkbox" data-goudaan${aan?" checked":""}${d}><i></i></span><span><b>Automatische proficiat-mail bij goudstatus</b></span></label>${stOpt("statusMail","Automatische mail bij wijziging van status",d)}${stOpt("puntenMail","Automatische mail bij nieuw toegekende punten",d)}</div>`);return r}}
 document.addEventListener("change",async e=>{if(e.target.dataset&&e.target.dataset.goudaan!==undefined){const c=S.config.get("algemeen")||{};try{await write("config","algemeen",{...stripId(c),goudMail:{...(c.goudMail||{}),aan:e.target.checked}});toast(e.target.checked?"Proficiat-mail staat aan.":"Proficiat-mail staat uit.")}catch(x){e.target.checked=!e.target.checked}}});
 document.addEventListener("click",e=>{if(!e.target.closest('[data-act="stTussen"]'))return;MAIL=null;UI.mailTpl="tpl-tussenstand";UI.mailGroep="tussenstand";saveUI();location.hash="#mails"});
 // doelgroep tussenstand: actieve leden zonder erewacht en zonder vrijstelling van het puntensysteem (bv. ziekte) dit jaar
@@ -6857,6 +6857,12 @@ document.addEventListener("click",e=>{const b=e.target.closest('[data-act="ptAan
   setTimeout(()=>{const i=$("#ptAv");if(i){i.focus();i.select()}},40);
   $("#ptAok").onclick=async()=>{const n=Math.max(0,Math.min(99,parseInt($("#ptAv").value,10)||0));closeModal();const {id:_i,...rest}=cur;await write("jaarleden",k,{...rest,jaar:JAAR,lidId:id,[f]:n});renderBody();toast("Aangepast.")}},true);
 {const st=document.createElement("style");st.textContent=".pt-vast{display:inline-block;min-width:40px;text-align:center;font-weight:600;font-variant-numeric:tabular-nums}.pt-vast.adm{border:1px dashed transparent;background:none;border-radius:8px;padding:5px 10px;font:inherit;font-weight:600;cursor:pointer;color:inherit}.pt-vast.adm:hover{border-color:var(--line-strong,#ccc);background:var(--soft,#f4f4f5)}";document.head.appendChild(st)}
+
+/* extra automatische mails: bij een hogere status en bij nieuwe punten (server: puntenCron, standaard uit) */
+function stOpt(k,lbl,d){const aan=((S.config.get("algemeen")||{})[k]||{}).aan===true;return`<label class="ws-row"><span class="ws-sw"><input type="checkbox" data-mailopt="${k}"${aan?" checked":""}${d}><i></i></span><span><b>${lbl}</b></span></label>`}
+document.addEventListener("change",async e=>{const k=e.target.dataset&&e.target.dataset.mailopt;if(!k)return;const c=S.config.get("algemeen")||{};
+  try{await write("config","algemeen",{...stripId(c),[k]:{...(c[k]||{}),aan:e.target.checked}});toast(e.target.checked?"Automatische mail staat aan.":"Automatische mail staat uit.")}catch(x){e.target.checked=!e.target.checked}});
+{const st=document.createElement("style");st.textContent=`.pi-sec .ws-row+.ws-row{margin-top:12px}`;document.head.appendChild(st)}
 
 /* ============ Activiteiten › Shiften: bord met helpers als tegels ============
    Op de activiteit (collectie "activiteiten"):
