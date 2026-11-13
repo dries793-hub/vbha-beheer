@@ -3681,7 +3681,7 @@ async function fcAanmaning(id){const f=S.facturen.get(id);if(!f)return;const j=a
     if(extra>0.004){const a=r.per.get(sid)||{som:0,L:[]};a.som=r2(a.som+extra);a.L.push({id:"factuur-"+f.id,datum:p.laatst||f.datum,bedrag:extra,partij:fcNaam(f),mededeling:"Factuur "+f.nr+(p.online?" (online betaald)":""),richting:"in",_hoe:"factuur"});r.per.set(sid,a)}}
   r.los=r.los.filter(b=>!weg.has(b.id));return r}}
 /* ---------- Klantenlijst: eigen venster (knop naast Nieuwe factuur) ---------- */
-{const _v=VIEWS.facturen;const n=function(){const v=_v.apply(this,arguments);if(fcMag())v.actions=String(v.actions||"").replace('<button class="btn iconbtn" data-fc="instel"',`<button class="btn" data-fkl="lijst">${ic("leden")}Klantenlijst</button><button class="btn iconbtn" data-fc="instel"`);return v};Object.assign(n,_v);VIEWS.facturen=n}
+{const _v=VIEWS.facturen;const n=function(){const v=_v.apply(this,arguments);if(fcMag())v.actions=`<button class="btn" data-fkl="lijst">${ic("leden")}Klantenlijst</button>`+String(v.actions||"");return v};Object.assign(n,_v);VIEWS.facturen=n}
 let FKL_Q="",FKL_F="alle";
 // klanten uit de lijst + alle sponsors (een sponsor die al als klant bewaard is, staat er maar één keer)
 function fcKlAlle(){const V=fcVaste(),sp=new Set(V.map(v=>v.sponsorId).filter(Boolean)),nm=new Set(V.map(v=>norm(v.naam)));
@@ -7864,26 +7864,30 @@ function vrBoek(v){return[...S.boekingen.values()].filter(b=>b.categorie===v.cat
 /* berekening: per partij inkomsten, kosten, netto; aandeel volgens verdeelsleutel; verschil -> betalingen */
 function vrReken(v){const P=v.partners||[],uit=new Set(v.uitgesloten||[]),R={};
   for(const p of P)R[p.id]={p,in:0,uit:0};
-  for(const b of vrBoek(v)){if(uit.has(b.id)||!R[VR_ONS])continue;R[VR_ONS][b.richting==="uit"?"uit":"in"]+=num(b.bedrag)}
+  for(const b of vrBoek(v)){if(uit.has(b.id)||!R[VR_ONS]||b.verrekening)continue;R[VR_ONS][b.richting==="uit"?"uit":"in"]+=num(b.bedrag)}
   for(const x of v.posten||[]){if(!R[x.partner])continue;R[x.partner][x.richting==="uit"?"uit":"in"]+=num(x.bedrag)}
   const tin=Object.values(R).reduce((s,r)=>s+r.in,0),tuit=Object.values(R).reduce((s,r)=>s+r.uit,0),res=r2(tin-tuit),som=P.reduce((s,p)=>s+num(p.pct),0)||1;
   for(const r of Object.values(R)){r.in=r2(r.in);r.uit=r2(r.uit);r.net=r2(r.in-r.uit);r.deel=r2(res*num(r.p.pct)/som);r.saldo=r2(r.net-r.deel)}
+  const afr=vrAfr(v);for(const b of afr){const p=R[b.vrPartner];if(!p||!R[VR_ONS])continue;const x=num(b.bedrag)*(b.richting==="uit"?1:-1);R[VR_ONS].saldo=r2(R[VR_ONS].saldo-x);p.saldo=r2(p.saldo+x)}
   // wie te veel heeft (saldo > 0) betaalt aan wie te weinig heeft
   const geef=Object.values(R).filter(r=>r.saldo>0.004).map(r=>({id:r.p.id,b:r.saldo})),krijg=Object.values(R).filter(r=>r.saldo<-0.004).map(r=>({id:r.p.id,b:-r.saldo})),bet=[];
   geef.sort((a,b)=>b.b-a.b);krijg.sort((a,b)=>b.b-a.b);
   while(geef.length&&krijg.length){const g=geef[0],k=krijg[0],x=r2(Math.min(g.b,k.b));bet.push({van:g.id,aan:k.id,bedrag:x});g.b=r2(g.b-x);k.b=r2(k.b-x);if(g.b<=0.004)geef.shift();if(k.b<=0.004)krijg.shift()}
-  return{R,tin:r2(tin),tuit:r2(tuit),res,bet}}
+  return{R,tin:r2(tin),tuit:r2(tuit),res,bet,afr}}
+function vrAfr(v){return[...S.boekingen.values()].filter(b=>b.verrekening===v.id).sort((a,b)=>String(a.datum).localeCompare(String(b.datum)))}
 const vrNaam=(v,id)=>((v.partners||[]).find(p=>p.id===id)||{}).naam||id;
 const VR={open:{}};
-VIEWS.verrekening=()=>({title:"Transacties",actions:canWrite?`<button class="btn primary" data-vr="nieuw">${ic("plus")}Nieuwe verrekening</button>`:"",body(){
+const vrTand=w=>`<button class="btn iconbtn" ${w} aria-label="Instellingen" title="Instellingen">${ic("instellingen")}</button>`;
+VIEWS.verrekening=()=>({title:"Transacties",actions:(canWrite?`<button class="btn primary" data-vr="nieuw">${ic("plus")}Nieuwe verrekening</button>`:"")+(vrCfg().lijst.length?vrTand('data-vr="kies"'):""),body(){
   const L=vrCfg().lijst;
   return bkTabs("verrekening")+(L.length?L.map(vrKaart).join(""):`<div class="panel"><div class="empty">Nog geen verrekeningen.${canWrite?`<div style="margin-top:12px"><button class="btn primary" data-vr="nieuw">${ic("plus")}Nieuwe verrekening</button></div>`:""}</div></div>`)}});
 function vrKaart(v){const c=vrReken(v),P=v.partners||[],B=vrBoek(v),uit=new Set(v.uitgesloten||[]),open=VR.open[v.id]||{},d=canWrite?"":" disabled";
   const per=v.vanaf||v.tot?` · ${v.vanaf?fmtDate(v.vanaf):"…"} – ${v.tot?fmtDate(v.tot):"…"}`:"";
   return `<div class="panel vr-k"><div class="panel-h"><div style="min-width:0"><h2>${esc(v.naam||v.categorie)}</h2><div class="muted small">Categorie <b>${esc(v.categorie)}</b>${per} · verdeelsleutel ${P.map(p=>esc(p.naam)+" "+num(p.pct)+"%").join(" / ")}</div></div><span class="grow"></span>
-    ${v.afgerond?'<span class="pill ok">Afgerond</span>':'<span class="pill info">Lopend</span>'}${canWrite?`<button type="button" class="btn sm ghost" data-vr="bewerk" data-id="${esc(v.id)}">Instellingen</button>`:""}</div>
+    ${v.afgerond?'<span class="pill ok">Afgerond</span>':'<span class="pill info">Lopend</span>'}</div>
    <div class="panel-b stack">
-    <div class="vr-uit">${c.bet.length?c.bet.map(x=>`<div class="vr-bet">${ic("bank")}<span><b>${esc(vrNaam(v,x.van))}</b> betaalt <b class="vr-bd">${eur(x.bedrag)}</b> aan <b>${esc(vrNaam(v,x.aan))}</b></span></div>`).join(""):`<div class="vr-bet ok">${ic("check")}<span>Alles is in evenwicht: niemand moet nog iets betalen.</span></div>`}
+    <div class="vr-uit">${c.bet.length?c.bet.map(x=>`<div class="vr-bet">${ic("bank")}<span class="grow"><b>${esc(vrNaam(v,x.van))}</b> betaalt <b class="vr-bd">${eur(x.bedrag)}</b> aan <b>${esc(vrNaam(v,x.aan))}</b></span>${canWrite&&(x.van===VR_ONS||x.aan===VR_ONS)?`<button type="button" class="btn sm" data-vr="afr" data-id="${esc(v.id)}" data-van="${esc(x.van)}" data-aan="${esc(x.aan)}" data-b="${x.bedrag}">${ic("check")}Als betaald boeken</button>`:""}</div>`).join(""):`<div class="vr-bet ok">${ic("check")}<span>Alles is in evenwicht: niemand moet nog iets betalen.</span></div>`}
+     ${c.afr.length?`<div class="muted small">Al afgerekend: ${c.afr.map(b=>`${fmtDate(b.datum)} ${eur(b.bedrag)} ${b.richting==="uit"?"aan":"van"} ${esc(vrNaam(v,b.vrPartner))} (${esc(b.rekening||"")})`).join(" · ")}</div>`:""}
      <div class="muted small">Totaal resultaat ${eur(c.res)} (inkomsten ${eur(c.tin)} − kosten ${eur(c.tuit)})</div></div>
     <div class="tablewrap"><table class="vr-t"><thead><tr><th>Partij</th><th class="num">Inkomsten</th><th class="num">Kosten</th><th class="num">Netto</th><th class="num">Aandeel</th><th class="num">Verschil</th></tr></thead><tbody>
      ${P.map(p=>{const r=c.R[p.id];return `<tr><td><b>${esc(p.naam)}</b> <span class="muted small">${num(p.pct)}%</span></td><td class="num">${eur(r.in)}</td><td class="num">${eur(r.uit)}</td><td class="num">${eur(r.net)}</td><td class="num">${eur(r.deel)}</td><td class="num ${r.saldo>0.004?"vr-min":r.saldo<-0.004?"vr-plus":""}">${r.saldo>0.004?"moet "+eur(r.saldo)+" geven":r.saldo<-0.004?"krijgt "+eur(-r.saldo):"—"}</td></tr>`}).join("")}</tbody></table></div>
@@ -7912,6 +7916,15 @@ document.addEventListener("change",async e=>{const x=e.target.closest&&e.target.
   const U=new Set(v.uitgesloten||[]);x.checked?U.delete(x.dataset.vrx):U.add(x.dataset.vrx);v.uitgesloten=[...U];try{await vrBewaar(L)}catch(er){}renderBody()});
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-vr]");if(!t)return;e.preventDefault();const a=t.dataset.vr,L=vrCfg().lijst.map(v=>({...v})),v=L.find(y=>y.id===t.dataset.id);
   if(a==="nieuw"){vrForm(null);return}if(a==="bewerk"&&v){vrForm(v);return}
+  if(a==="kies"){vrInst();return}
+  if(a==="afr"&&v){const wij=t.dataset.van===VR_ONS,p=wij?t.dataset.aan:t.dataset.van,bd=num(t.dataset.b),pn=vrNaam(v,p);
+    modal("Afrekening boeken",`<form class="form" id="fVrA">${fld("vraD","Datum",`<input id="vraD" type="date" value="${todayISO()}">`)}${fld("vraR","Rekening",`<select id="vraR" class="sel"><option>Kas</option><option>Rekening</option></select>`)}
+      ${fld("vraB","Bedrag (€)",inp("vraB",String(bd).replace(".",","),'inputmode="decimal"'),"full")}<div class="muted small full">${wij?"Uitgaande":"Inkomende"} transactie in categorie <b>${esc(v.categorie)}</b> ${wij?"aan":"van"} <b>${esc(pn)}</b>. Telt niet als kost of inkomst van de activiteit.</div><div class="err full" id="vraE"></div></form>`,
+      `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="vraOk">Boeken</button>`);
+    $("#vraOk").onclick=async()=>{const dt=$("#vraD").value,b2=num($("#vraB").value),e2=$("#vraE");if(!/^\d{4}-\d{2}-\d{2}$/.test(dt)){e2.textContent="Kies een datum.";return}
+      if(Number(dt.slice(0,4))!==JAAR){e2.textContent=`De datum valt buiten boekjaar ${JAAR}.`;return}if(!(b2>0)){e2.textContent="Vul een bedrag in.";return}
+      const d={bron:"manueel",jaar:JAAR,nr:nextNr(),datum:dt,categorie:v.categorie,mededeling:"Verrekening "+(v.naam||v.categorie),partij:pn,iban:"",rekening:$("#vraR").value,bedrag:b2,richting:wij?"uit":"in",lidId:null,status:null,verrekening:v.id,vrPartner:p};
+      $("#vraOk").disabled=true;try{await write("boekingen",newId("boekingen"),d);closeModal();toast("Afrekening geboekt.");renderBody()}catch(x){e2.textContent=x.message||"Niet gelukt";$("#vraOk").disabled=false}};return}
   if(a==="partAdd"){$("#vrPs").insertAdjacentHTML("beforeend",vrPartRij({id:"p"+Date.now().toString(36),naam:"",pct:""}));return}
   if(a==="partWeg"){t.closest(".vr-p").remove();return}
   if(a==="weg"&&v){confirmBox(`Verrekening <b>${esc(v.naam||v.categorie)}</b> verwijderen? De ingevulde kosten en inkomsten van de andere partijen gaan verloren. Onze transacties blijven ongewijzigd.`,"Verwijderen",async()=>{await vrBewaar(L.filter(y=>y.id!==v.id));toast("Verrekening verwijderd.");renderBody()});return}
@@ -7936,6 +7949,12 @@ div.vr-r{grid-template-columns:86px minmax(0,1fr) auto auto}.vr-r input{accent-c
 .vr-add{display:grid!important;grid-template-columns:150px minmax(0,1fr) 110px 110px auto;gap:8px;margin-top:8px}.vr-add input,.vr-add select{min-width:0}
 .vr-ps{display:flex;flex-direction:column;gap:8px}.vr-p{display:grid;grid-template-columns:minmax(0,1fr) 80px auto 32px;gap:8px;align-items:center}.vr-x{width:32px}
 @media(max-width:760px){.vr-add{grid-template-columns:1fr 1fr}.vr-add .vr-ao{grid-column:1/-1}.vr-r{grid-template-columns:auto 70px minmax(0,1fr) auto}div.vr-r{grid-template-columns:70px minmax(0,1fr) auto auto}}`;document.head.appendChild(st)}
+
+for(const r of ["boekingen","verwerken"]){const _v=VIEWS[r];const n=function(){const v=_v.apply(this,arguments);v.actions=String(v.actions||"").replace(/<button class="btn" data-act="exportBoek">[\s\S]*?<\/button>/,"")+vrTand('data-act="finInst"');return v};Object.assign(n,_v);VIEWS[r]=n}
+{const _i=finInst;finInst=function(){_i.apply(this,arguments);if(typeof voetExport==="function")voetExport("exportBoek","Exporteren")}}
+/* tandwiel op Verrekeningen: instellingen van de verrekening(en) */
+function vrInst(){const L=vrCfg().lijst;if(L.length===1){vrForm({...L[0]});return}
+  modal("Instellingen verrekeningen",`<div class="stack" style="gap:8px">${L.map(v=>`<button type="button" class="btn" style="justify-content:space-between" data-vr="bewerk" data-id="${esc(v.id)}"><span>${esc(v.naam||v.categorie)}</span><span class="muted small">${v.afgerond?"Afgerond":"Lopend"}</span></button>`).join("")}</div>`,`<button class="btn" data-act="closeModal">Sluiten</button>`)}
 
 /* zoeken op de kaart zelf: vanaf 3 letters een lijstje onder de zoekbalk, de kaart blijft zichtbaar */
 function krSugInit(root,extra){const inp=root.querySelector("#krQ"),ul=root.querySelector("#krSug");if(!inp||!ul)return;let hits=[],act=-1;
