@@ -14,7 +14,7 @@ async function info(sb) {
   const A = await algemeen(sb);
   const c = await configDoc(sb, "banket");
   const ins = inschrijving(c, A.jaar + "-12-01");
-  return { ...A, prijs: Number(c.prijs) || 65, kortingAan: !!c.kortingAan, deadline: ins.totTekst.replace(/ \d{4}$/, ""), online: bcConfigured(), open: ins.open, tot: ins.tot, totTekst: ins.totTekst, gesloten: ins.gesloten };
+  return { ...A, prijs: Number(c.prijs) || 65, kortingAan: !!c.kortingAan, goudMelding: !!c.kortingAan && !!c.goudMelding, deadline: ins.totTekst.replace(/ \d{4}$/, ""), online: bcConfigured(), open: ins.open, tot: ins.tot, totTekst: ins.totTekst, gesloten: ins.gesloten };
 }
 /* korting volgens het puntensysteem: status uit de punten van het vorige jaar (zie status.js) */
 export async function banketPrijs(sb, I, lidId) {

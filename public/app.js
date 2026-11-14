@@ -4635,12 +4635,13 @@ function bkKortingRegel(kost){const k=jaarCfg(JAAR).korting,b=num(kost)||0,f=p=>
   return `<span>${medal("BRONS")} ${k.brons}% · <b>${f(k.brons)}</b></span><span>${medal("ZILVER")} ${k.zilver}% · <b>${f(k.zilver)}</b></span><span>${medal("GOUD")} ${k.goud}% · <b>${f(k.goud)}</b></span>`}
 {const _i=bkInst;bkInst=function(){_i.apply(this,arguments);const p=$("#bkP");if(!p)return;const bc=bkCfg(),d=canWrite?"":" disabled";
   const f=p.closest(".fld");f.insertAdjacentHTML("afterend",`<label class="sp-nat full" for="bkKa"><input type="checkbox" id="bkKa"${bc.kortingAan?" checked":""}${d}><span><b>Korting volgens het puntensysteem</b></span></label>
-   <div class="full bk-kr" id="bkKr"${bc.kortingAan?"":" hidden"}>${bkKortingRegel(bc.prijs)}<a href="#punten" data-act="closeModal" class="small">Kortingen aanpassen in het reglement</a></div>`);
+   <div class="full bk-kr" id="bkKr"${bc.kortingAan?"":" hidden"}>${bkKortingRegel(bc.prijs)}<a href="#punten" data-act="closeModal" class="small">Kortingen aanpassen in het reglement</a></div>
+   <label class="sp-nat full" for="bkGm" id="bkGmL"${bc.kortingAan?"":" hidden"}><input type="checkbox" id="bkGm"${bc.goudMelding?" checked":""}${d}><span><b>Melding startjaar</b> <small>iedereen goud</small></span></label>`);
   const ok=$("#bkIOk");if(!ok||!ok.onclick)return;const _o=ok.onclick,oud={aan:!!bc.kortingAan,prijs:num(bc.prijs)};
-  ok.onclick=async function(ev){const aan=$("#bkKa").checked,prijs=num($("#bkP").value)||65,cur=S.config.get("banket")||{};S.config.set("banket",{...cur,id:"banket",kortingAan:aan});
+  ok.onclick=async function(ev){const aan=$("#bkKa").checked,prijs=num($("#bkP").value)||65,cur=S.config.get("banket")||{};S.config.set("banket",{...cur,id:"banket",kortingAan:aan,goudMelding:!!($("#bkGm")&&$("#bkGm").checked)});
     await _o.call(this,ev);
     if(aan!==oud.aan||prijs!==oud.prijs){const L=bkOpen();if(L.length)confirmBox(`De prijs is gewijzigd. De <b>${L.length}</b> ${L.length===1?"inschrijving die nog niet betaald is":"inschrijvingen die nog niet betaald zijn"} herberekenen volgens de nieuwe instelling?`,"Herberekenen",()=>bkHerbereken(L))}}}}
-document.addEventListener("change",e=>{if(e.target.id==="bkKa"&&$("#bkKr"))$("#bkKr").hidden=!e.target.checked});
+document.addEventListener("change",e=>{if(e.target.id==="bkKa"&&$("#bkKr")){$("#bkKr").hidden=!e.target.checked;if($("#bkGmL"))$("#bkGmL").hidden=!e.target.checked}});
 document.addEventListener("input",e=>{if(e.target.id==="bkP"&&$("#bkKr"))$("#bkKr").innerHTML=bkKortingRegel(e.target.value)+'<a href="#punten" data-act="closeModal" class="small">Kortingen aanpassen in het reglement</a>'});
 const bkOpen=()=>{const C=ctx();return bkLijst().filter(r=>r.betaald!=="OK"&&!bkBetaling(r,C).ok)};
 async function bkPrijsVan(lidId){if(!lidId)return null;try{const j=await api("/api/banket?her=1&lid="+encodeURIComponent(lidId));return j&&j.prijs!=null?j:null}catch(e){return null}}
