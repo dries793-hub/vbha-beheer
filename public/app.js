@@ -577,13 +577,13 @@ VIEWS.boekhouding=()=>({title:"Boekhouding",sub:"Overzicht boekjaar "+JAAR,actio
   </div>${wjPaneel()}`}});
 function maandChart(C){
   const m=Array.from({length:12},()=>({in:0,uit:0}));for(const b of C.boek){const i=+String(b.datum||"").slice(5,7)-1;if(i>=0&&i<12)m[i][b.richting==="uit"?"uit":"in"]+=b.bedrag}
-  const W=900,H=240,P=46,B=26;const top=Math.max(1,...m.map(x=>Math.max(x.in,x.uit)));const stepV=[100,200,250,500,1000,2000,2500,5000,10000,20000,50000].find(s=>top/s<=4)||100000;const hi=Math.ceil(top/stepV)*stepV;
-  const step=(W-P-8)/12,bw=Math.min(24,step*.3),y=v=>10+(hi-v)/hi*(H-B-10);const ticks=[];for(let v=0;v<=hi;v+=stepV)ticks.push(v);
-  return `<div class="tw"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="Inkomsten en uitgaven per maand">
+  const smal=window.innerWidth<640,W=smal?400:900,H=smal?220:240,P=smal?34:46,B=26;const top=Math.max(1,...m.map(x=>Math.max(x.in,x.uit)));const stepV=[100,200,250,500,1000,2000,2500,5000,10000,20000,50000].find(s=>top/s<=4)||100000;const hi=Math.ceil(top/stepV)*stepV;
+  const step=(W-P-8)/12,bw=Math.min(24,step*.32),y=v=>10+(hi-v)/hi*(H-B-10);const ticks=[];for(let v=0;v<=hi;v+=stepV)ticks.push(v);
+  return `<div class="tw"><svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Inkomsten en uitgaven per maand">
   ${ticks.map(v=>`<line x1="${P}" x2="${W-6}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${P-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${kfmt(v)}</text>`).join("")}
   ${m.map((x,i)=>{const x0=P+i*step+(step-2*bw-3)/2;return `<g class="mbar" data-act="filterMaand" data-v="${String(i+1).padStart(2,"0")}" style="cursor:pointer"><title>${MAANDEN_VOL[i]}: in ${eur(x.in)}, uit ${eur(x.uit)}</title><rect x="${P+i*step}" y="6" width="${step}" height="${H-B-6}" fill="transparent"/>
     <rect x="${x0}" y="${y(x.in)}" width="${bw}" height="${Math.max(0,y(0)-y(x.in))}" fill="var(--good)" rx="2"/><rect x="${x0+bw+3}" y="${y(x.uit)}" width="${bw}" height="${Math.max(0,y(0)-y(x.uit))}" fill="var(--bad)" rx="2"/>
-    <text x="${P+i*step+step/2}" y="${H-7}" text-anchor="middle" font-size="11.5" fill="var(--muted)">${MAANDEN[i]}</text></g>`}).join("")}
+    <text x="${P+i*step+step/2}" y="${H-7}" text-anchor="middle" font-size="${smal?10:11.5}" fill="var(--muted)">${smal?MAANDEN[i].slice(0,1).toUpperCase():MAANDEN[i]}</text></g>`}).join("")}
   </svg></div>`;
 }
 
