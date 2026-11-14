@@ -4643,7 +4643,7 @@ function bkKortingRegel(kost){const k=jaarCfg(JAAR).korting,b=num(kost)||0,f=p=>
 document.addEventListener("change",e=>{if(e.target.id==="bkKa"&&$("#bkKr"))$("#bkKr").hidden=!e.target.checked});
 document.addEventListener("input",e=>{if(e.target.id==="bkP"&&$("#bkKr"))$("#bkKr").innerHTML=bkKortingRegel(e.target.value)+'<a href="#punten" data-act="closeModal" class="small">Kortingen aanpassen in het reglement</a>'});
 const bkOpen=()=>{const C=ctx();return bkLijst().filter(r=>r.betaald!=="OK"&&!bkBetaling(r,C).ok)};
-async function bkPrijsVan(lidId){if(!lidId)return null;try{const r=await fetch("/api/banket?lid="+encodeURIComponent(lidId),{cache:"no-store"});return r.ok?await r.json():null}catch(e){return null}}
+async function bkPrijsVan(lidId){if(!lidId)return null;try{const j=await api("/api/banket?her=1&lid="+encodeURIComponent(lidId));return j&&j.prijs!=null?j:null}catch(e){return null}}
 // nieuwe of gewijzigde inschrijving in de app: prijs per persoon bepalen
 async function bkKortingVoor(d){const bc=bkCfg();
   if(!bc.kortingAan){if(d.prijsPP==null)return;return}
