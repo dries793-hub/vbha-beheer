@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { lidStatus } from "./status.js";
-import { admin, sendError, httpErr } from "./sb.js";
+import { admin, sendError, httpErr, requireUser } from "./sb.js";
 import { epcPayload, qrSvg } from "./epc.js";
 import { onlineConfigured as bcConfigured } from "./betaalprovider.js";
 import { startBetaling } from "./betaal.js";
@@ -39,9 +39,11 @@ export default async function handler(req, res) {
         return res.status(200).json({ ...I, vul: { lidId: l.id, lid: l.voornaam && l.an ? `${l.voornaam} ${l.an}` : l.naam } });
       }
       if (!lidId) return res.status(200).json(I);
-      await rateLimit(sb, req, "lidinfo", 60, 600, httpErr);
+      // beheer-app (herberekenen van bestaande inschrijvingen): ingelogde gebruiker, geen "al ingeschreven"-controle
+      const beheer = req.query && req.query.her ? !!(await requireUser(req).catch(() => null)) : false;
+      if (!beheer) await rateLimit(sb, req, "lidinfo", 60, 600, httpErr);
       if (!(await actieveLeden(sb, I.jaar)).some(l => l.id === lidId)) throw httpErr(404, "Lid niet gevonden.");
-      if (await alIngeschreven(sb, "banket", I.jaar, lidId)) return res.status(200).json({ al: true, melding: AL_TEKST("het banket", I.jaar) });
+      if (!beheer && await alIngeschreven(sb, "banket", I.jaar, lidId)) return res.status(200).json({ al: true, melding: AL_TEKST("het banket", I.jaar) });
       const P = await banketPrijs(sb, I, lidId);
       return res.status(200).json({ prijs: P.prijs, basis: P.basis, status: P.status, korting: P.korting, puntenJaar: P.puntenJaar || null });
     }
