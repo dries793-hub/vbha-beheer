@@ -146,6 +146,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 html,body{overflow-x:hidden}
 @media (max-width:760px){*{scrollbar-width:none}*::-webkit-scrollbar{display:none;width:0;height:0}}
 .kid>*{min-width:0}
+.bm{display:grid;grid-template-columns:1fr 1fr;gap:8px}.bm label{display:block;cursor:pointer;position:relative}.bm input{position:absolute;opacity:0;pointer-events:none}.bm span{display:flex;align-items:center;justify-content:center;height:100%;box-sizing:border-box;text-align:center;padding:11px 8px;border:1.5px solid var(--line-strong,#d0d4da);border-radius:12px;font-weight:600;font-size:14.5px;background:var(--card,#fff)}.bm input:checked+span{border-color:var(--accent,#c8102e);background:color-mix(in srgb,var(--accent,#c8102e) 8%,#fff);color:var(--accent,#c8102e)}.bm input:focus-visible+span{outline:2px solid var(--accent,#c8102e);outline-offset:2px}
 </style>
 <style>
 .grid textarea{width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);min-height:80px;resize:vertical}
@@ -199,22 +200,26 @@ async function verklein(file){if(file.type==="application/pdf"){if(file.size>4e6
 function toonOnkost(){$("#h1").textContent="Onkosten terugvragen";$("#lead").textContent="Kosten gemaakt voor de Vriendenkring? Vul dit in met een foto van het kasticket of de factuur. Na goedkeuring storten we het bedrag terug.";
   const vd=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
   $("#box").innerHTML=`<form class="card" id="f" novalidate><div class="grid">
+    <div class="full"><span class="lbl">Betaald met</span><div class="bm" role="radiogroup"><label><input type="radio" name="bm" value="eigen" checked><span>Eigen geld</span></label><label><input type="radio" name="bm" value="kaart"><span>Bankkaart vriendenkring</span></label></div></div>
     <div class="full"><label for="naam">Naam</label><div class="lp"><input type="text" id="naam" maxlength="80" autocomplete="off"><div class="lp-l" id="naamL" hidden role="listbox"></div></div></div>
     <div><label for="bedrag">Bedrag (€)</label><input class="num" type="text" id="bedrag" inputmode="decimal" placeholder="0,00"></div>
     <div><label for="datum">Datum van de aankoop</label><input type="date" id="datum" value="${vd}" max="${vd}"></div>
     <div class="full"><label for="reden">Waarvoor?</label><textarea id="reden" maxlength="300" placeholder="bv. drank voor de bestuursvergadering, affiches jaarmarkt"></textarea></div>
-    <div class="full"><span class="lbl">Kasticket of factuur</span><label class="up" id="upl"><input type="file" id="bon" accept="image/*,application/pdf"><svg viewBox="0 0 24 24"><path d="M12 16V4m-5 5l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><span id="bonT">Foto nemen of bestand kiezen</span></label><label class="geen" id="geenW" hidden><input type="checkbox" id="geenBon"> Ik heb geen kasticket of factuur</label></div>
-    <div class="full"><label for="iban">Rekeningnummer (IBAN) voor de terugbetaling</label><p class="hint" style="margin:-2px 0 6px">Al eens doorgegeven? Dan mag je dit leeg laten.</p><input type="text" id="iban" autocomplete="off" placeholder="BE00 0000 0000 0000" maxlength="42" spellcheck="false"></div>
+    <div class="full"><span class="lbl">Kasticket of factuur</span><label class="up" id="upl"><input type="file" id="bon" accept="image/*,application/pdf"><svg viewBox="0 0 24 24"><path d="M12 16V4m-5 5l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><span id="bonT">Foto nemen of bestand kiezen</span></label><label class="geen" id="geenW" hidden data-eigen><input type="checkbox" id="geenBon"> Ik heb geen kasticket of factuur</label></div>
+    <div class="full" data-eigen><label for="iban">Rekeningnummer (IBAN) voor de terugbetaling</label><p class="hint" style="margin:-2px 0 6px">Al eens doorgegeven? Dan mag je dit leeg laten.</p><input type="text" id="iban" autocomplete="off" placeholder="BE00 0000 0000 0000" maxlength="42" spellcheck="false"></div>
     <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
    </div><p class="err" id="err"></p><button class="btn" type="submit">Indienen</button></form>`;
   lidPicker($("#naam"),$("#naamL"));
+  const kaart=()=>!!$('input[name="bm"][value="kaart"]:checked');
+  $("#f").addEventListener("change",e=>{if(e.target.name!=="bm")return;document.querySelectorAll("#f [data-eigen]").forEach(x=>{if(x.id==="geenW"){if(kaart())x.hidden=true}else x.hidden=kaart()});
+    $("#h1").textContent=kaart()?"Kasticket doorgeven":"Onkosten terugvragen";    $("#lead").textContent=kaart()?"Betaald met de bankkaart van de Vriendenkring? Bezorg ons hier het kasticket.":"Kosten gemaakt voor de Vriendenkring? Vul dit in met een foto van het kasticket of de factuur. Na goedkeuring storten we het bedrag terug."});
   $("#bon").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;$("#bonT").textContent="Bezig…";try{BON=await verklein(f);$("#bonT").textContent="✓ "+(f.name||"bewijsstuk");$("#upl").classList.add("ok")}catch(x){BON=null;$("#bonT").textContent=x.message;$("#upl").classList.remove("ok")}});
   $("#f").addEventListener("submit",async e=>{e.preventDefault();const v=s=>$(s).value.trim(),err=$("#err");
     const bedrag=Number(v("#bedrag").replace(/\s/g,"").replace(",","."));
-    const f=!v("#naam")?"Vul je naam in.":!(bedrag>0)?"Vul het bedrag in.":!v("#reden")?"Schrijf kort waarvoor de kosten waren.":!BON&&!$("#geenBon").checked?($("#geenW").hidden=false,"Voeg een foto van het kasticket of de factuur toe, of vink aan dat je er geen hebt."):v("#iban")&&v("#iban")!==MASK&&!ibanOk(v("#iban"))?"Dit rekeningnummer klopt niet. Kijk het even na.":"";
+    const f=!v("#naam")?"Vul je naam in.":!(bedrag>0)?"Vul het bedrag in.":!v("#reden")?"Schrijf kort waarvoor de kosten waren.":kaart()&&!BON?"Neem een foto van het kasticket of laad het op.":kaart()?"":!BON&&!$("#geenBon").checked?($("#geenW").hidden=false,"Voeg een foto van het kasticket of de factuur toe, of vink aan dat je er geen hebt."):v("#iban")&&v("#iban")!==MASK&&!ibanOk(v("#iban"))?"Dit rekeningnummer klopt niet. Kijk het even na.":"";
     if(f){err.textContent=f;return}const b=$("#f .btn");b.disabled=true;b.textContent="Bezig met versturen…";err.textContent="";
-    try{await api({actie:"onkost",naam:v("#naam"),lidId:$("#naam").dataset.id||"",bedrag,datum:v("#datum"),reden:v("#reden"),iban:v("#iban")===MASK?"":v("#iban"),bon:BON,geenBon:!BON&&$("#geenBon").checked,website:v("#website"),duur:Date.now()-T0});
-      $("#lead").textContent="";$("#box").innerHTML=OK("Bedankt!",`Je onkosten van ${eur(bedrag)} zijn doorgegeven. Na goedkeuring storten we het bedrag terug.`)}
+    try{await api({actie:"onkost",betaald:kaart()?"kaart":"eigen",naam:v("#naam"),lidId:$("#naam").dataset.id||"",bedrag,datum:v("#datum"),reden:v("#reden"),iban:v("#iban")===MASK?"":v("#iban"),bon:BON,geenBon:!BON&&$("#geenBon").checked,website:v("#website"),duur:Date.now()-T0});
+      $("#lead").textContent="";$("#box").innerHTML=kaart()?OK("Bedankt!",`Het kasticket van ${eur(bedrag)} is doorgegeven.`):OK("Bedankt!",`Je onkosten van ${eur(bedrag)} zijn doorgegeven. Na goedkeuring storten we het bedrag terug.`)}
     catch(x){err.textContent=x.message;b.disabled=false;b.textContent="Indienen"}})}
 /* gekend rekeningnummer van het gekozen lid (gedeeltelijk verborgen) */
 let MASK="";

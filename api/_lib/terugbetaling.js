@@ -63,6 +63,16 @@ export default async function terugPubliek(req, res) {
       // gekozen lid: e-mailadres en lidnummer uit de ledenlijst (het formulier vraagt geen e-mailadres meer)
       let lidId = "", lidMail = "";
       if (b.lidId) { const { data: l } = await sb.from("leden").select("id,data").eq("id", String(b.lidId).slice(0, 60)).maybeSingle(); if (l && !l.data.geenLid) { lidId = l.id; lidMail = String(l.data.email || "").trim(); } }
+      if (b.betaald === "kaart") { // betaald met de rekening (bankkaart) van de vriendenkring: enkel het kasticket bewaren en later aan de transactie koppelen
+        if (!b.bon || !b.bon.data) throw httpErr(400, "Neem een foto van het kasticket of laad het op.");
+        const id = "kt-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const bon = await bonBewaar(sb, id, b.bon), docId = "doc-" + id;
+        await sb.from("documenten").insert({ id: docId, data: { naam: `Kasticket ${naam} ${datum.split("-").reverse().join("-")}.${bon.pad.split(".").pop()}`, pad: bon.pad, map: "Kastickets", type: bon.type, grootte: 0, omschrijving: reden, door: naam, op: nu(), kasticket: { id, bedrag, datum } } });
+        const { error } = await sb.from("terugbetalingen").insert({ id, status: "wacht", data: { soort: "kaart", naam, email: email || (mailOk(lidMail) ? lidMail : ""), lidId, bedrag, reden, datum, bon, docId, op: nu() } });
+        if (error) throw error;
+        try { await kasticketKoppel(sb); } catch (e) { console.error("kasticket", e); }
+        return res.status(200).json({ ok: true, kaart: true });
+      }
       const ibanOk2 = iban || await bekendIban(sb, lidId, lidId ? "" : naam);
       // via het openbare formulier mag een gekend rekeningnummer van een lid nooit overschreven worden (iedereen kan een naam kiezen)
       let gekend = ""; if (iban && lidId) { const { data: g } = await sb.from("lid_iban").select("iban").eq("lid_id", lidId).maybeSingle(); gekend = g && ibanOk(g.iban) ? g.iban : ""; }
@@ -226,4 +236,28 @@ async function mailBoekhouding(sb, { id, naam, bedrag, reden, datum, bon, geenBo
       knop("Bekijken en goedkeuren", app), "Nieuwe onkostennota", { groet: false });
     await sb.from("mail_wachtrij").insert({ batch: "onkost-" + id, data: { aan: process.env.ONKOST_MAIL || "boekhouding@vbha.be", aanNaam: "Boekhouding VBHA", onderwerp: `Nieuwe onkostennota: ${naam} · ${bd}`, html, label: "Onkostennota " + naam } });
   } catch (e) { console.error("mail boekhouding", e); }
+}
+
+
+/* Kastickets van betalingen met de bankkaart van de vriendenkring: automatisch koppelen aan de uitgaande transactie
+   (zelfde bedrag, datum tot 3 dagen vóór en 14 dagen na het ticket, nog zonder bijlage). Draait na elke bankophaling. */
+export async function kasticketKoppel(sb) {
+  const { data: W } = await sb.from("terugbetalingen").select("id,data").eq("status", "wacht").eq("data->>soort", "kaart").limit(200);
+  if (!W || !W.length) return { gekoppeld: 0 };
+  const jaren = [...new Set(W.flatMap(w => { const y = Number(String(w.data.datum).slice(0, 4)); return [y, y + 1]; }))];
+  const { data: B } = await sb.from("boekingen").select("id,data").in("jaar", jaren).eq("data->>richting", "uit").limit(5000);
+  const vrij = (B || []).filter(r => !r.data.documentId && r.data.rekening !== "Kas");
+  const dag = d => new Date(String(d).slice(0, 10) + "T12:00:00Z").getTime() / 864e5;
+  let n = 0;
+  for (const w of W.sort((a, b) => String(a.data.datum).localeCompare(String(b.data.datum)))) {
+    const t = dag(w.data.datum), kand = vrij.filter(r => Math.abs(Number(r.data.bedrag) - Number(w.data.bedrag)) < 0.005 && dag(r.data.datum) - t >= -3 && dag(r.data.datum) - t <= 14)
+      .sort((a, b) => Math.abs(dag(a.data.datum) - t) - Math.abs(dag(b.data.datum) - t));
+    const r = kand[0]; if (!r) continue;
+    vrij.splice(vrij.indexOf(r), 1);
+    const { error } = await sb.from("boekingen").update({ data: { ...r.data, documentId: w.data.docId } }).eq("id", r.id);
+    if (error) { console.error("kasticket boeking", error); continue; }
+    await sb.from("terugbetalingen").update({ status: "gekoppeld", data: { ...w.data, boekingId: r.id, gekoppeld: nu() } }).eq("id", w.id);
+    n++;
+  }
+  return { gekoppeld: n };
 }
