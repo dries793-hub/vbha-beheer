@@ -8079,7 +8079,7 @@ function tbRij(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],b=r
 VIEWS.terug=()=>({title:"Terugbetalingen",actions:tbMag()?`<button class="btn primary" data-tb="nieuw">${ic("plus")}Nieuwe terugbetaling</button>${tbVol()?`<button class="btn iconbtn" data-tb="link" aria-label="Instellingen" title="Instellingen">${ic("instellingen")}</button>`:""}`:"",body(){
   if(!tbMag())return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
   if(!TB.lijst){tbLaad();return '<div class="panel"><div class="empty">Laden…</div></div>'}
-  const OPEN=["aangevraagd","ingediend","goedgekeurd"],L=TB.lijst.filter(r=>TB.f==="alle"||(TB.f==="kaart"?r.data.soort==="kaart":TB.f==="open"?OPEN.includes(r.status):r.status===TB.f));
+  const OPEN=["aangevraagd","ingediend","goedgekeurd","wacht"],L=TB.lijst.filter(r=>TB.f==="alle"||(TB.f==="kaart"?r.data.soort==="kaart":TB.f==="open"?OPEN.includes(r.status):r.status===TB.f));
   const som=TB.lijst.filter(r=>r.status==="goedgekeurd").reduce((s,r)=>s+num(r.data.bedrag),0);
   return `<div class="bar fc-bar"><div class="seg">${[["open","Open"],["betaald","Betaald"],["geweigerd","Geweigerd"],...(TB.lijst.some(r=>r.data.soort==="kaart")?[["kaart","Kastickets"]]:[]),["alle","Alle"]].map(([k,l])=>`<button type="button" data-tbf="${k}" class="${TB.f===k?"on":""}">${l}</button>`).join("")}</div><span class="grow"></span>${som?`<span class="muted">Nog te betalen: <b>${eur(som)}</b></span>`:""}</div>
    <div class="panel">${L.length?L.map(tbRij).join(""):`<div class="empty">${TB.f==="open"?"Geen openstaande terugbetalingen.":"Niets gevonden."}</div>`}</div>`}});
@@ -8185,6 +8185,9 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-lidi
   $("#lidIbOk").onclick=async()=>{const v=$("#lidIb").value.replace(/\s+/g,"").toUpperCase();if(v&&!inkIbanOk(v)){toast("Dit IBAN-nummer klopt niet.",true);return}
     try{const j=await tbApi({actie:"lidibanZet",lidId:id,iban:v});dd.innerHTML=`${j.iban?esc(j.iban.replace(/(.{4})/g,"$1 ").trim()):"–"} <button type="button" class="lnkb" data-lidibanw="${esc(id)}">${j.iban?"wijzigen":"toevoegen"}</button>`;toast("Rekeningnummer bewaard.")}catch(x){toast(x.message,true)}}});
 {const st=document.createElement("style");st.textContent=`.tb-ib{display:flex;gap:6px}.tb-ib input{flex:1;min-width:0}`;document.head.appendChild(st)}
+
+/* bij het openen van Terugbetalingen altijd de verse lijst ophalen (nieuwe onkostennota's en kastickets via het formulier) */
+window.addEventListener("hashchange",()=>{if(route()==="terug"&&typeof tbLaad==="function"&&tbMag())tbLaad()});
 
 /* ============ Dashboard (admin): goudstatus behaald ============
    Lid haalt met de punten van dit werkjaar de goudstatus (niet erewacht, niet enkel door vrijstelling) en kreeg nog geen
