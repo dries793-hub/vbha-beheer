@@ -8059,7 +8059,7 @@ const TB_RECHT=recht;{const _r=recht;recht=function(r){const v=_r.apply(this,arg
 const tbMag=()=>true,tbVol=()=>ROL==="admin"||TB_RECHT("terug")==="bewerken";
 const tbKan=r=>tbVol()||(!!r&&r.eigen&&!["betaald","goedgekeurd"].includes(r.status));
 const TB={lijst:null,link:"",f:"open",laden:false};
-const TB_ST={aangevraagd:["neutral","Wacht op rekeningnummer"],ingediend:["warn","Te keuren"],goedgekeurd:["info","Te betalen"],betaald:["ok","Betaald"],geweigerd:["nok","Geweigerd"]};
+const TB_ST={aangevraagd:["neutral","Wacht op rekeningnummer"],ingediend:["warn","Te keuren"],goedgekeurd:["info","Te betalen"],betaald:["ok","Betaald"],geweigerd:["nok","Geweigerd"],wacht:["neutral","Wacht op transactie"],gekoppeld:["ok","Gekoppeld"]};
 async function tbApi(b){return api("/api/mail?f=terug",{method:"POST",body:JSON.stringify(b)})}
 async function tbLaad(){if(TB.laden)return;TB.laden=true;try{const j=await tbApi({actie:"lijst"});TB.lijst=j.lijst;TB.link=j.onkostLink;tbAutoBetaald()}catch(e){TB.lijst=TB.lijst||[]}TB.laden=false;if(["terug","dashboard","facturen","inkomend"].includes(route()))renderBody()}
 /* uitgaande transactie met hetzelfde bedrag naar hetzelfde IBAN (na de aanvraag) = betaald */
@@ -8072,16 +8072,16 @@ function tbRij(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],b=r
     if(r.status==="aangevraagd")acts.push(`<button type="button" class="btn sm" data-tb="kopie" data-id="${esc(r.id)}">${ic("copy")}Link kopiëren</button>`);
     if(r.status==="ingediend"){acts.push(`<button type="button" class="btn sm" data-tb="ok" data-id="${esc(r.id)}">${ic("check")}Goedkeuren en betalen</button>`);acts.push(`<button type="button" class="btn sm ghost" data-tb="nee" data-id="${esc(r.id)}">Weigeren</button>`)}
     if(r.status==="goedgekeurd"){acts.push(`<button type="button" class="btn sm" data-tb="betaal" data-id="${esc(r.id)}">${ic("bank")}Betalen</button>`);acts.push(`<button type="button" class="btn sm ghost" data-tb="betaald" data-id="${esc(r.id)}">Op betaald zetten</button>`)}}
-  return `<div class="tb-r"><div class="tb-m"><div class="tb-t"><button type="button" class="tb-nm" data-tb="detail" data-id="${esc(r.id)}">${esc(d.naam)}</button><span class="pill ${c}">${l}</span>${d.soort==="onkosten"?'<span class="pill neutral">onkostennota</span>':""}${d.geenBon?'<span class="pill warn">zonder bewijsstuk</span>':""}</div>
+  return `<div class="tb-r"><div class="tb-m"><div class="tb-t"><button type="button" class="tb-nm" data-tb="detail" data-id="${esc(r.id)}">${esc(d.naam)}</button><span class="pill ${c}">${l}</span>${d.soort==="onkosten"?'<span class="pill neutral">onkostennota</span>':d.soort==="kaart"?'<span class="pill neutral">kasticket bankkaart</span>':""}${d.geenBon?'<span class="pill warn">zonder bewijsstuk</span>':""}</div>
     <div class="muted small">${esc(d.reden||"")}${d.datum?" · "+fmtDate(d.datum):""}${d.iban?" · "+esc(String(d.iban).replace(/(.{4})/g,"$1 ").trim()):""}${d.ibanAnders?` · <b style="color:var(--bad,#b42318)">ander IBAN dan gekend (…${esc(d.ibanAnders)})</b>`:""}${d.bon?` · <button type="button" class="lnkb" data-tb="bon" data-id="${esc(r.id)}">bewijsstuk</button>`:""}</div>
     ${r.status==="betaald"?`<div class="muted small">Betaald${d.betaaldOp?" op "+fmtDate(String(d.betaaldOp).slice(0,10)):""}${b?" · transactie "+fmtDate(b.datum):""}</div>`:r.status==="geweigerd"&&d.weigerReden?`<div class="muted small">Reden: ${esc(d.weigerReden)}</div>`:""}</div>
    <b class="tb-b">${eur(d.bedrag)}</b><div class="tb-a">${acts.join("")}${tbKan(r)?`<button type="button" class="iconbtn" data-tb="weg" data-id="${esc(r.id)}" title="Verwijderen" aria-label="Verwijderen">${ic("prul")}</button>`:""}</div></div>`}
 VIEWS.terug=()=>({title:"Terugbetalingen",actions:tbMag()?`<button class="btn primary" data-tb="nieuw">${ic("plus")}Nieuwe terugbetaling</button>${tbVol()?`<button class="btn iconbtn" data-tb="link" aria-label="Instellingen" title="Instellingen">${ic("instellingen")}</button>`:""}`:"",body(){
   if(!tbMag())return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
   if(!TB.lijst){tbLaad();return '<div class="panel"><div class="empty">Laden…</div></div>'}
-  const OPEN=["aangevraagd","ingediend","goedgekeurd"],L=TB.lijst.filter(r=>TB.f==="alle"||(TB.f==="open"?OPEN.includes(r.status):r.status===TB.f));
+  const OPEN=["aangevraagd","ingediend","goedgekeurd"],L=TB.lijst.filter(r=>TB.f==="alle"||(TB.f==="kaart"?r.data.soort==="kaart":TB.f==="open"?OPEN.includes(r.status):r.status===TB.f));
   const som=TB.lijst.filter(r=>r.status==="goedgekeurd").reduce((s,r)=>s+num(r.data.bedrag),0);
-  return `<div class="bar fc-bar"><div class="seg">${[["open","Open"],["betaald","Betaald"],["geweigerd","Geweigerd"],["alle","Alle"]].map(([k,l])=>`<button type="button" data-tbf="${k}" class="${TB.f===k?"on":""}">${l}</button>`).join("")}</div><span class="grow"></span>${som?`<span class="muted">Nog te betalen: <b>${eur(som)}</b></span>`:""}</div>
+  return `<div class="bar fc-bar"><div class="seg">${[["open","Open"],["betaald","Betaald"],["geweigerd","Geweigerd"],...(TB.lijst.some(r=>r.data.soort==="kaart")?[["kaart","Kastickets"]]:[]),["alle","Alle"]].map(([k,l])=>`<button type="button" data-tbf="${k}" class="${TB.f===k?"on":""}">${l}</button>`).join("")}</div><span class="grow"></span>${som?`<span class="muted">Nog te betalen: <b>${eur(som)}</b></span>`:""}</div>
    <div class="panel">${L.length?L.map(tbRij).join(""):`<div class="empty">${TB.f==="open"?"Geen openstaande terugbetalingen.":"Niets gevonden."}</div>`}</div>`}});
 function tbMijnLid(){const sim=typeof SIM_U!=="undefined"&&SIM_U&&ROL!==ROL_ECHT?SIM_U:null,em=String(sim?sim.email:ME&&ME.email||"").toLowerCase(),nm=norm(sim?sim.naam||"":ME_NAME||"");const L=[...S.leden.values()].filter(l=>!l.geenLid&&!l.dubbelVan);
   return L.find(l=>em&&String(l.email||"").toLowerCase()===em)||L.find(l=>nm&&(norm(naamVol(l))===nm||norm((l.voornaam||"")+" "+(l.naam||""))===nm))||null}
@@ -8353,3 +8353,21 @@ function tbDashLijst(){const F=typeof inkDocs==="function"?inkDocs().filter(d=>d
   const L=tbDashLijst();if(!L.length)return rest;const tot=L.reduce((s,x)=>s+(x.bedrag||0),0);
   return `<div class="panel tbd"><div class="panel-h"><h2><span class="tbd-ic">${ic("betaal")}</span>Te verwerken betalingen</h2><span class="tbd-t">${L.length} · ${eur(tot)}</span></div><div class="tbd-l">${L.map(x=>`<div class="tbd-r"><a class="tbd-n" href="#${x.soort==="f"?"inkomend":"terug"}"><b>${esc(x.naam)}</b><span>${esc(x.info)}</span></a><span class="tbd-b">${x.bedrag!=null?eur(x.bedrag):""}</span>${x.soort==="f"?`<button type="button" class="btn sm" data-inkbet="${esc(x.id)}">${ic("bank")}Betalen</button>`:x.nieuw?`<button type="button" class="btn sm" data-tb="ok" data-id="${esc(x.id)}">Goedkeuren</button>`:x.iban?`<button type="button" class="btn sm" data-tb="betaal" data-id="${esc(x.id)}">${ic("bank")}Betalen</button>`:`<span class="pill neutral">wacht op rekeningnr.</span>`}</div>`).join("")}</div></div>`+rest};
   return v};Object.assign(n,_d);VIEWS.dashboard=n}
+
+/* ============ Transactie: kasticket (foto of PDF) toevoegen ============
+   In het venster van een transactie: foto nemen of bestand kiezen. Wordt bewaard in Documenten › Kastickets en aan de transactie gekoppeld. */
+async function ktVerklein(f){if(!/^image\//.test(f.type)||/gif|svg/.test(f.type))return f;
+  try{const bm=await createImageBitmap(f),m=1800,k=Math.min(1,m/Math.max(bm.width,bm.height)),c=document.createElement("canvas");c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);
+    c.getContext("2d").drawImage(bm,0,0,c.width,c.height);const bl=await new Promise(r=>c.toBlob(r,"image/jpeg",.82));return bl?new File([bl],(f.name||"kasticket").replace(/\.[^.]+$/,"")+".jpg",{type:"image/jpeg"}):f}catch(e){return f}}
+{const _b=boekingForm;boekingForm=function(b,id,title){_b(b,id,title);if(!id||!b||!(ROL==="admin"||ROL==="boekhouder"))return;const e=$("#fBoek");if(!e)return;const cur=S.boekingen.get(id)||b;
+  const d=cur.documentId&&S.documenten.get(cur.documentId);
+  if(d){if(d.map==="Kastickets"){const sp=e.querySelector(".ink-fb span");if(sp&&sp.firstChild&&sp.firstChild.nodeType===3)sp.firstChild.textContent="Kasticket: "}return}
+  e.insertAdjacentHTML("beforeend",`<div class="full kt-r"><label class="btn sm ghost kt-b">${ic("upload")}<span>Kasticket toevoegen</span><input type="file" id="ktF" accept="image/*,application/pdf" hidden></label></div>`);
+  $("#ktF").onchange=async ev=>{const f0=ev.target.files&&ev.target.files[0];if(!f0)return;const lb=$(".kt-b span");if(lb)lb.textContent="Bezig met opladen…";
+    try{const f=await ktVerklein(f0);if(f.size>15*1048576)throw new Error("Het bestand is te groot (max. 15 MB).");
+      const did=agId("doc"),ext=(f.name.match(/\.[a-z0-9]+$/i)||[".jpg"])[0].toLowerCase(),naam=`Kasticket ${fmtDate(cur.datum)} ${cur.partij||""}`.trim().replace(/[\/\\]/g,"-")+ext,pad=`Kastickets/${did}${ext}`;
+      const {error}=await SB.storage.from(DOC_BUCKET).upload(pad,f,{contentType:f.type||"application/octet-stream",upsert:false});if(error)throw error;
+      await write("documenten",did,{naam,pad,map:"Kastickets",grootte:f.size,type:f.type||"",omschrijving:cur.mededeling||"",door:ME_NAME||"",op:new Date().toISOString(),kasticket:{boekingId:id}});
+      const nu=S.boekingen.get(id)||cur;await write("boekingen",id,{...stripId(nu),documentId:did});
+      closeModal();toast("Kasticket toegevoegd.");setTimeout(()=>boekingForm(S.boekingen.get(id)||{...nu,documentId:did},id),60)}
+    catch(x){if(lb)lb.textContent="Kasticket toevoegen";toast("Opladen lukte niet: "+x.message,true)}}}}
