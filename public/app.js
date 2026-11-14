@@ -334,12 +334,12 @@ const EMBLEM='<img class="emblem emblem-l" alt="" width="47" height="52" src="da
 function nieuweInschr(){return [...S.banket.values(),...S.kinderfeest.values()].filter(r=>r.nieuw&&Number(r.jaar)===JAAR)}
 function inschrMelding(){const L=nieuweInschr();if(!L.length)return"";const b=L.filter(r=>S.banket.has(r.id)).length,k=L.filter(r=>S.kinderfeest.has(r.id)).length;
   const _ids=c=>L.filter(r=>S[c].has(r.id)).map(r=>r.id).sort().join(",");const it=(v,n,t)=>n?`<a class="nm-i" href="#${v}" data-id="${esc(_ids(v))}"><b>${t}</b><span>${n} ${n===1?"nieuwe inschrijving":"nieuwe inschrijvingen"}</span></a>`:"";
-  return `<div class="nmeld" role="status"><span class="nm-ic">${ic("deel")}</span><div class="nm-body"><b>${L.length===1?"Er is een nieuwe inschrijving":L.length+" nieuwe inschrijvingen"} binnengekomen</b>
+  return `<div class="nmeld" role="status"><span class="nm-ic">${ic("inschrijving")}</span><div class="nm-body"><b>${L.length===1?"Er is een nieuwe inschrijving":L.length+" nieuwe inschrijvingen"} binnengekomen</b>
   <div class="nm-l">${it("banket",b,"Banket")}${it("kinderfeest",k,"Kinderfeest")}</div></div>${canWrite?`<button type="button" class="nm-x" data-act="inschrGezien" aria-label="Melding sluiten" title="Melding sluiten">${ic("x")}</button>`:""}</div>`}
 function nieuweLeden(){return [...S.leden.values()].filter(l=>l.nieuw).sort((a,b)=>String(b.aangemeld||"").localeCompare(String(a.aangemeld||"")))}
 function nieuwMelding(){const L=nieuweLeden();if(!L.length)return"";
   const d=x=>{const t=new Date(x);return isNaN(t)?"":t.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})};
-  return `<div class="nmeld" role="status"><span class="nm-ic">${ic("leden")}</span><div class="nm-body"><b>${L.length===1?"Er heeft zich een nieuw lid aangemeld":L.length+" nieuwe leden hebben zich aangemeld"} via het formulier</b>
+  return `<div class="nmeld" role="status"><span class="nm-ic">${ic("lidplus")}</span><div class="nm-body"><b>${L.length===1?"Er heeft zich een nieuw lid aangemeld":L.length+" nieuwe leden hebben zich aangemeld"} via het formulier</b>
   <div class="nm-l">${L.slice(0,8).map(l=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(l.id)}"><b>${esc(l.naam)}</b> ${esc(l.voornaam)}<span>${esc(l.categorie||"")}${l.aangemeld?" · "+d(l.aangemeld):""}</span>${l.dubbelVan?'<span class="pill warn">mogelijk al lid</span>':""}</button>`).join("")}${L.length>8?`<span class="nm-more">+${L.length-8} meer</span>`:""}</div></div>${canWrite?`<button type="button" class="nm-x" data-act="nieuwGezien" aria-label="Melding sluiten" title="Melding sluiten">${ic("x")}</button>`:""}</div>`}
 VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   const C=ctx();const cur=C.leden.map(l=>C.rows.get(l.id));
@@ -4307,7 +4307,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-ink]
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){let x="";if(inkMag()){const L=inkDocs().filter(d=>inkOpen(d)&&d.inkomend&&d.inkomend.nieuw);
     if(L.length)x=`<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("inkomend")}</span><div class="nm-body"><b>${L.length===1?"Een inkomende factuur":L.length+" inkomende facturen"} te koppelen</b><div class="nm-l">${L.slice(0,5).map(d=>`<a class="nm-i" href="#inkomend"><b>${esc(inkVan(d)||d.naam)}</b><span>${fmtDate(inkDatum(d))}</span></a>`).join("")}</div></div></div>`}
     const A=!inkMag()?[]:inkDocs().filter(d=>d.inkomend&&d.inkomend.auto&&d.inkomend.nieuw).map(d=>({d,b:inkBoekVan(d.id)[0]})).filter(x=>x.b);
-    if(A.length)x+=`<div class="nmeld dm-b" role="status"><span class="nm-ic">${ic("inkomend")}</span><div class="nm-body"><b>${A.length===1?"Een inkomende factuur":A.length+" inkomende facturen"} automatisch gekoppeld</b><div class="nm-l">${A.slice(0,5).map(({d,b})=>`<a class="nm-i" href="#inkomend"><b>${esc(inkVan(d)||d.naam)}</b><span>${eur(b.bedrag)} · transactie ${fmtDate(b.datum)}</span></a>`).join("")}</div></div><button type="button" class="nm-x" data-ink="autoGezien" data-id="${esc(A.map(x=>x.d.id).join(","))}" title="Gezien" aria-label="Gezien">${ic("x")}</button></div>`;
+    if(A.length)x+=`<div class="nmeld dm-b" role="status"><span class="nm-ic">${ic("link")}</span><div class="nm-body"><b>${A.length===1?"Een inkomende factuur":A.length+" inkomende facturen"} automatisch gekoppeld</b><div class="nm-l">${A.slice(0,5).map(({d,b})=>`<a class="nm-i" href="#inkomend"><b>${esc(inkVan(d)||d.naam)}</b><span>${eur(b.bedrag)} · transactie ${fmtDate(b.datum)}</span></a>`).join("")}</div></div><button type="button" class="nm-x" data-ink="autoGezien" data-id="${esc(A.map(x=>x.d.id).join(","))}" title="Gezien" aria-label="Gezien">${ic("x")}</button></div>`;
     return x+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 document.addEventListener("input",e=>{if(e.target.id==="ikA"){const h=INK_HOSTS[(e.target.value.split("@")[1]||"").toLowerCase()];if(h&&$("#ikH"))$("#ikH").value=h}});
 
@@ -4410,7 +4410,7 @@ function inkBetWacht(){if(!inkMag())return[];const nu=new Date(todayISO()+"T12:0
     if(idx<1||(P.gedaan!=null&&P.gedaan>=idx))return null;const c=Math.round(P.totaal*100),basis=Math.floor(c/P.n);
     return{d,idx,n:P.n,bedrag:(idx<P.n-1?basis:c-basis*(P.n-1))/100}}).filter(Boolean)}
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){const W=inkBetWacht();
-  const x=W.length?`<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>${W.length===1?"Een betaling van een factuur staat klaar":W.length+" betalingen van facturen staan klaar"}</b><div class="nm-l">${W.map(w=>`<a class="nm-i" href="#inkomend" data-inkbet="${esc(w.d.id)}"><b>${esc(inkVan(w.d)||w.d.naam)}</b><span>betaling ${w.idx+1} van ${w.n} · ${eur(w.bedrag)}</span></a>${canWrite?`<button type="button" class="btn sm ghost" data-inkbg="${esc(w.d.id)}" data-i="${w.idx}" title="Deze betaling is uitgevoerd">Betaald</button>`:""}`).join("")}</div></div></div>`:"";
+  const x=W.length?`<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("betaal")}</span><div class="nm-body"><b>${W.length===1?"Een betaling van een factuur staat klaar":W.length+" betalingen van facturen staan klaar"}</b><div class="nm-l">${W.map(w=>`<a class="nm-i" href="#inkomend" data-inkbet="${esc(w.d.id)}"><b>${esc(inkVan(w.d)||w.d.naam)}</b><span>betaling ${w.idx+1} van ${w.n} · ${eur(w.bedrag)}</span></a>${canWrite?`<button type="button" class="btn sm ghost" data-inkbg="${esc(w.d.id)}" data-i="${w.idx}" title="Deze betaling is uitgevoerd">Betaald</button>`:""}`).join("")}</div></div></div>`:"";
   return x+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-inkbg]");if(!b)return;e.preventDefault();const d=S.documenten.get(b.dataset.inkbg);if(!d||!d.inkomend||!d.inkomend.betaalPlan)return;
   const ink={...d.inkomend,betaalPlan:{...d.inkomend.betaalPlan,gedaan:Number(b.dataset.i)}};S.documenten.set(d.id,{...d,inkomend:ink});renderBody();try{await write("documenten",d.id,{...stripId(d),inkomend:ink})}catch(x){}});
@@ -4823,7 +4823,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-bhvb]");if
 function bhMelding(){if(!(ROL==="admin"||ROL==="boekhouder"))return"";const c=S.config.get("betaalherinnering")||{};const grens=new Date(Date.now()-21*864e5).toISOString(),gz=c.gezienTot||"";
   const L=(c.log||[]).filter(x=>x.op>gz&&x.op>=grens);if(!L.length)return"";
   const bk=L.filter(x=>x.soort==="banket").length,lg=L.length-bk;
-  return `<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("mail")}</span><div class="nm-body"><b>${L.length===1?"Er werd 1 betalingsherinnering":"Er werden "+L.length+" betalingsherinneringen"} verstuurd</b>
+  return `<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("mails")}</span><div class="nm-body"><b>${L.length===1?"Er werd 1 betalingsherinnering":"Er werden "+L.length+" betalingsherinneringen"} verstuurd</b>
    <div class="nm-l">${L.slice(0,6).map(x=>`<a class="nm-i" href="#${x.soort==="banket"?"banket":"leden"}"><b>${esc(x.naam)}</b><span>${x.soort==="banket"?"Banket":"Lidgeld"} ${esc(String(x.jaar||""))} · ${eur(x.bedrag)}${x.n>1?" · "+x.n+"e herinnering":""} · ${esc(fmtDate(String(x.op).slice(0,10)))}</span></a>`).join("")}${L.length>6?`<a class="nm-i" href="#dashboard"><b>+ ${L.length-6} anderen</b><span>${[bk?bk+" banket":"",lg?lg+" lidgeld":""].filter(Boolean).join(" · ")}</span></a>`:""}</div></div>
    <button type="button" class="nm-x" data-bh="gezien" aria-label="Melding sluiten" title="Gezien">${ic("x")}</button></div>`}
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return bhMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
@@ -4932,7 +4932,7 @@ document.addEventListener("change",e=>{if(e.target.matches('[data-ka="laag"]')){
 
 /* ---- dashboard: nieuwe aanvragen ---- */
 function kaMelding(){const L0=kaLijst().filter(a=>a.nieuw);if(!L0.length)return"";
-  return `<div class="nmeld" role="status"><span class="nm-ic">${ic("kaart")}</span><div class="nm-body"><b>${L0.length===1?"Iemand vroeg":L0.length+" mensen vroegen"} een kalender aan huis</b>
+  return `<div class="nmeld" role="status"><span class="nm-ic">${ic("kalenders")}</span><div class="nm-body"><b>${L0.length===1?"Iemand vroeg":L0.length+" mensen vroegen"} een kalender aan huis</b>
    <div class="nm-l">${L0.slice(0,6).map(a=>`<a class="nm-i" href="#ronde"><b>${esc(a.adres)}</b><span>${esc(kaDT(a.aangemeld))}</span></a>`).join("")}${L0.length>6?`<a class="nm-i" href="#ronde"><b>+ ${L0.length-6} anderen</b><span>Bekijk de lijst</span></a>`:""}</div></div></div>`}
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return kaMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 
@@ -5008,10 +5008,10 @@ let BANK_DASH=0;
 function bankMelding(){if(!(ROL==="admin"||ROL==="boekhouder"))return"";
   if(!BANK&&!BANK_DASH){BANK_DASH=1;api("/api/bank/status").then(r=>{BANK=r;if(route()==="dashboard")renderBody()}).catch(()=>{})}
   const K=(BANK&&BANK.koppelingen)||[];const L=K.map(k=>({k,d:bkDagen(k)})).filter(x=>x.d!=null&&x.d<14);
-  const sc=ROL==="admin"?bkSaldoCheck(K):null,sm=sc&&sc.verschil!=null&&Math.abs(sc.verschil)>=0.01?`<div class="nmeld dm-v" role="alert"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>Het saldo van de rekening klopt niet met de boekhouding</b><div class="nm-l"><a class="nm-i" href="#bank"><b>Verschil ${eur(sc.verschil)}</b><span>Bank ${eur(sc.bank)} · app ${eur(sc.app)} op ${fmtDate(sc.datum)} · bekijken</span></a></div></div></div>`:"";
+  const sc=ROL==="admin"?bkSaldoCheck(K):null,sm=sc&&sc.verschil!=null&&Math.abs(sc.verschil)>=0.01?`<div class="nmeld dm-v" role="alert"><span class="nm-ic">${ic("alarm")}</span><div class="nm-body"><b>Het saldo van de rekening klopt niet met de boekhouding</b><div class="nm-l"><a class="nm-i" href="#bank"><b>Verschil ${eur(sc.verschil)}</b><span>Bank ${eur(sc.bank)} · app ${eur(sc.app)} op ${fmtDate(sc.datum)} · bekijken</span></a></div></div></div>`:"";
   if(!L.length)return sm;
   const weg=L.some(x=>x.d<0);
-  return `<div class="nmeld ${weg?"dm-r":"dm-v"}" role="alert"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>${weg?"De koppeling met de bank is verlopen":"De koppeling met de bank verloopt binnenkort"}</b>
+  return `<div class="nmeld ${weg?"dm-r":"dm-v"}" role="alert"><span class="nm-ic">${ic("link")}</span><div class="nm-body"><b>${weg?"De koppeling met de bank is verlopen":"De koppeling met de bank verloopt binnenkort"}</b>
    <div class="nm-l">${L.map(({k,d})=>`<a class="nm-i" href="#bank"><b>${esc(k.aspsp||"Bank")}</b><span>${d<0?"Verlopen op "+fmtDate(k.valid_until.slice(0,10))+" · er worden geen verrichtingen meer opgehaald":"Nog "+d+" "+(d===1?"dag":"dagen")+" geldig (tot "+fmtDate(k.valid_until.slice(0,10))+")"} · opnieuw koppelen</span></a>`).join("")}</div></div></div>`+sm}
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return bankMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 
@@ -5239,11 +5239,11 @@ const nsLijst=(tpl,soort)=>soort==="laat"?nsLaat(tpl):nsNieuwe(tpl,true);
 /* Dashboard: nieuwe leden met lidgeld in orde die de mail nog niet kregen -> melding met knop (niets gaat automatisch) */
 function nsDash(){if(!canWrite)return"";const nu=todayISO();let h="";
   for(const[tpl,R]of Object.entries(nsCfg())){if(!R||!R.html||!(String(R.tot||"")>=nu))continue;
-    const LT=nsLaat(tpl);if(LT.length)h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("mails")}</span><div class="nm-body"><b>Lidgeld ontvangen: ${LT.length===1?"1 lid betaalde":LT.length+" leden betaalden"} pas na het versturen van „${esc(R.naam||"uitnodiging")}”</b>
+    const LT=nsLaat(tpl);if(LT.length)h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("geld")}</span><div class="nm-body"><b>Lidgeld ontvangen: ${LT.length===1?"1 lid betaalde":LT.length+" leden betaalden"} pas na het versturen van „${esc(R.naam||"uitnodiging")}”</b>
     <div class="nm-l">${LT.slice(0,8).map(x=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(x.lidId)}"><b>${esc(x.label)}</b></button>`).join("")}${LT.length>8?`<span class="nm-more">+${LT.length-8} meer</span>`:""}</div>
     <div><button type="button" class="nm-btn" data-nsd-stuur="${esc(tpl)}" data-soort="laat">${ic("mails")}Uitnodiging versturen</button></div></div></div>`;
     const N=nsNieuwe(tpl,true);if(!N.length)continue;
-    h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("mails")}</span><div class="nm-body"><b>${N.length===1?"Er is een nieuw lid (lidgeld in orde) dat":N.length+" nieuwe leden (lidgeld in orde)"} nog geen mail „${esc(R.naam||"uitnodiging")}” ${N.length===1?"kreeg":"kregen"}</b>
+    h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("lidplus")}</span><div class="nm-body"><b>${N.length===1?"Er is een nieuw lid (lidgeld in orde) dat":N.length+" nieuwe leden (lidgeld in orde)"} nog geen mail „${esc(R.naam||"uitnodiging")}” ${N.length===1?"kreeg":"kregen"}</b>
     <div class="nm-l">${N.slice(0,8).map(x=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(x.lidId)}"><b>${esc(x.label)}</b></button>`).join("")}${N.length>8?`<span class="nm-more">+${N.length-8} meer</span>`:""}</div>
     <div><button type="button" class="nm-btn" data-nsd-stuur="${esc(tpl)}">${ic("mails")}Uitnodiging versturen</button></div></div></div>`}
   return h}
@@ -8146,7 +8146,7 @@ document.addEventListener("click",async e=>{const f=e.target.closest("[data-tbf]
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){if(!fcMag())return b.apply(this,arguments);if(!TB.lijst)tbLaad();
   const L=(TB.lijst||[]).filter(r=>r.status==="ingediend"),I=(TB.lijst||[]).filter(r=>r.status==="goedgekeurd"&&r.data.nieuw&&r.data.ibanOp);
   const y=I.length?`<div class="nmeld dm-b" role="status"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>${I.length===1?"Rekeningnummer doorgegeven":I.length+" rekeningnummers doorgegeven"}: klaar om terug te betalen</b><div class="nm-l">${I.slice(0,5).map(r=>`<a class="nm-i" href="#terug"><b>${esc(r.data.naam)}</b><span>${eur(r.data.bedrag)} · ${esc(String(r.data.reden||"").slice(0,40))}</span></a>`).join("")}</div></div></div>`:"";
-  const x=y+(L.length&&!(ROL==="admin"||ROL==="boekhouder")?`<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("bank")}</span><div class="nm-body"><b>${L.length===1?"Een onkostennota":L.length+" onkostennota's"} om goed te keuren</b><div class="nm-l">${L.slice(0,5).map(r=>`<a class="nm-i" href="#terug"><b>${esc(r.data.naam)}</b><span>${eur(r.data.bedrag)} · ${esc(String(r.data.reden||"").slice(0,40))}</span></a>`).join("")}</div></div></div>`:"");
+  const x=y+(L.length&&!(ROL==="admin"||ROL==="boekhouder")?`<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("bon")}</span><div class="nm-body"><b>${L.length===1?"Een onkostennota":L.length+" onkostennota's"} om goed te keuren</b><div class="nm-l">${L.slice(0,5).map(r=>`<a class="nm-i" href="#terug"><b>${esc(r.data.naam)}</b><span>${eur(r.data.bedrag)} · ${esc(String(r.data.reden||"").slice(0,40))}</span></a>`).join("")}</div></div></div>`:"");
   return x+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
 // wie de pagina Terugbetalingen opent, heeft de doorgegeven rekeningnummers gezien
 {const _v=VIEWS.terug;VIEWS.terug=function(){const v=_v.apply(this,arguments);const b=v.body;v.body=function(){const h=b.apply(this,arguments);
@@ -8191,10 +8191,10 @@ function gdKandidaten(alle){if(ROL!=="admin"&&!alle)return[];let C;try{C=ctx()}c
 function gdMeldingAuto(){if(ROL!=="admin")return"";let C;try{C=ctx()}catch(e){return""}const g=C.c&&C.c.drempels&&C.c.drempels.goud;if(!g)return"";const grens=Date.now()-3*864e5;
   const L=[...C.rows.values()].filter(r=>r.huidig&&r.lid.categorie!=="Erewacht"&&!r.jl.vrijstelling&&r.p&&r.p.totaal>=g&&(!r.jl.goudMail||(r.jl.goudMail.via!=="bulk"&&!r.jl.goudMail.reden&&Date.parse(r.jl.goudMail.op||0)>grens))).sort((a,b)=>naamVol(a.lid).localeCompare(naamVol(b.lid),"nl"));
   if(!L.length)return"";
-  return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("check")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
+  return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("medaille")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
    <div class="gd-l">${L.slice(0,12).map(r=>{const m=r.jl.goudMail;return `<div class="gd-r"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten · ${!r.lid.email?"geen e-mailadres":m&&m.verstuurd?"proficiat-mail verstuurd op "+fmtDate(String(m.op).slice(0,10)):"proficiat-mail wordt automatisch verstuurd"}</span></span></div>`}).join("")}</div></div></div>`}
 function gdMelding(){if(gdAutoAan())return gdMeldingAuto();const L=gdKandidaten();if(!L.length)return"";
-  return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("check")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
+  return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("medaille")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
    <div class="gd-l">${L.slice(0,12).map(r=>`<div class="gd-r"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten${r.lid.email?"":" · geen e-mailadres"}</span></span>
     <span class="gd-a"><button type="button" class="btn sm" data-gd="mail" data-id="${esc(r.lid.id)}"${r.lid.email?"":" disabled"}>${ic("mails")}<span class="gd-tl">Proficiat-mail</span></button></span></div>`).join("")}</div>
    ${L.length>1?`<div class="gd-al"><button type="button" class="btn sm primary" data-gd="mailAlle">${ic("mails")}Iedereen een proficiat-mail sturen</button></div>`:""}</div></div>`}
@@ -8330,6 +8330,16 @@ function tlFilter(m){const toon=tlAan()&&ROL_ECHT==="admin";let weg=false;for(co
 document.addEventListener("change",async e=>{if(e.target.id!=="tlAan")return;const aan=e.target.checked;
   try{await write("config","testlid",{aan});if(TL_RAW)S.leden=tlFilter(TL_RAW);dirty=true;schedule();toast(aan?"Testlid staat aan.":"Testlid staat uit.")}catch(x){e.target.checked=!aan;toast(x.message,true)}});
 
+/* extra iconen voor de dashboardmeldingen */
+Object.assign(ICON,{
+  inschrijving:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 13l2 2 4-4"/>',
+  medaille:'<circle cx="12" cy="15" r="5"/><path d="M8.5 11 6 3h4l2 4 2-4h4l-2.5 8"/><path d="M12 13v4"/>',
+  alarm:'<path d="M12 4 2.5 20h19z"/><path d="M12 10v4M12 17h.01"/>',
+  betaal:'<rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M15 9.5a3.2 3.2 0 1 0 0 5"/><path d="M9.5 11h4.5M9.5 13h4.5"/>',
+  geld:'<rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M15 9.5a3.2 3.2 0 1 0 0 5"/><path d="M9.5 11h4.5M9.5 13h4.5"/><path d="M19 3v4M17 5h4"/>',
+  bon:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+  lidplus:'<circle cx="10" cy="8" r="4"/><path d="M3 20c0-3.5 3-6 7-6s7 2.5 7 6"/><path d="M19 8v6M16 11h6"/>'
+});
 /* ============ Dashboard (boekhouding): te verwerken betalingen ============
    Bovenaan het dashboard: inkomende facturen die nog zelf betaald moeten worden (niet via domiciliëring)
    en goedgekeurde onkostennota's die nog terugbetaald moeten worden. Met een knop Betalen (QR-code). */
@@ -8341,5 +8351,5 @@ function tbDashLijst(){const F=typeof inkDocs==="function"?inkDocs().filter(d=>d
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){const rest=b.apply(this,arguments);if(!(ROL==="admin"||ROL==="boekhouder"))return rest;
   if(typeof TB!=="undefined"&&!TB.lijst&&typeof tbLaad==="function")tbLaad();
   const L=tbDashLijst();if(!L.length)return rest;const tot=L.reduce((s,x)=>s+(x.bedrag||0),0);
-  return `<div class="panel tbd"><div class="panel-h"><h2><span class="tbd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M15 9.5a3.2 3.2 0 1 0 0 5"/><path d="M9.5 11h4.5M9.5 13h4.5"/></svg></span>Te verwerken betalingen</h2><span class="tbd-t">${L.length} · ${eur(tot)}</span></div><div class="tbd-l">${L.map(x=>`<div class="tbd-r"><a class="tbd-n" href="#${x.soort==="f"?"inkomend":"terug"}"><b>${esc(x.naam)}</b><span>${esc(x.info)}</span></a><span class="tbd-b">${x.bedrag!=null?eur(x.bedrag):""}</span>${x.soort==="f"?`<button type="button" class="btn sm" data-inkbet="${esc(x.id)}">${ic("bank")}Betalen</button>`:x.nieuw?`<button type="button" class="btn sm" data-tb="ok" data-id="${esc(x.id)}">Goedkeuren</button>`:x.iban?`<button type="button" class="btn sm" data-tb="betaal" data-id="${esc(x.id)}">${ic("bank")}Betalen</button>`:`<span class="pill neutral">wacht op rekeningnr.</span>`}</div>`).join("")}</div></div>`+rest};
+  return `<div class="panel tbd"><div class="panel-h"><h2><span class="tbd-ic">${ic("betaal")}</span>Te verwerken betalingen</h2><span class="tbd-t">${L.length} · ${eur(tot)}</span></div><div class="tbd-l">${L.map(x=>`<div class="tbd-r"><a class="tbd-n" href="#${x.soort==="f"?"inkomend":"terug"}"><b>${esc(x.naam)}</b><span>${esc(x.info)}</span></a><span class="tbd-b">${x.bedrag!=null?eur(x.bedrag):""}</span>${x.soort==="f"?`<button type="button" class="btn sm" data-inkbet="${esc(x.id)}">${ic("bank")}Betalen</button>`:x.nieuw?`<button type="button" class="btn sm" data-tb="ok" data-id="${esc(x.id)}">Goedkeuren</button>`:x.iban?`<button type="button" class="btn sm" data-tb="betaal" data-id="${esc(x.id)}">${ic("bank")}Betalen</button>`:`<span class="pill neutral">wacht op rekeningnr.</span>`}</div>`).join("")}</div></div>`+rest};
   return v};Object.assign(n,_d);VIEWS.dashboard=n}
