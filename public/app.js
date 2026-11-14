@@ -8325,7 +8325,7 @@ function tlFilter(m){const toon=tlAan()&&ROL_ECHT==="admin";let weg=false;for(co
   if(!weg)return m;const out=new Map();for(const [k,v] of m)if(!(v.test&&!toon))out.set(k,v);return out}
 {const _v=VIEWS.instellingen;const n=function(){const v=_v.apply(this,arguments),b=v.body;
   v.body=function(){const h=String(b.apply(this,arguments));if(ROL_ECHT!=="admin")return h;const aan=tlAan();
-    return h+`<div class="panel tl-p"><div class="panel-h"><h2>Testlid</h2></div><div class="panel-b"><label class="ws-row"><span class="ws-sw"><input type="checkbox" id="tlAan"${aan?" checked":""}><i></i></span><span><b>Testlid actief</b> <small style="color:var(--muted)">Test Lid · dries@vbha.be</small></span></label></div></div>`};
-  Object.assign(n,_v);VIEWS.instellingen=n}}
+    return h+`<div class="panel tl-p"><div class="panel-h"><h2>Testlid</h2></div><div class="panel-b"><label class="ws-row"><span class="ws-sw"><input type="checkbox" id="tlAan"${aan?" checked":""}><i></i></span><span><b>Testlid actief</b> <small style="color:var(--muted)">Test Lid · dries@vbha.be</small></span></label></div></div>`};return v};
+  Object.assign(n,_v);VIEWS.instellingen=n}
 document.addEventListener("change",async e=>{if(e.target.id!=="tlAan")return;const aan=e.target.checked;
   try{await write("config","testlid",{aan});if(TL_RAW)S.leden=tlFilter(TL_RAW);dirty=true;schedule();toast(aan?"Testlid staat aan.":"Testlid staat uit.")}catch(x){e.target.checked=!aan;toast(x.message,true)}});
