@@ -5890,7 +5890,11 @@ function nwLabels(){const root=$("#main");if(!root)return;
   root.querySelectorAll('[data-act][data-id],[data-fu="toon"][data-id]').forEach(el=>{if(el.querySelector(".nw-tag")||el.closest(".nmeld"))return;
     const col=el.dataset.fu==="toon"?"tickets":NW_MAP[el.dataset.act];if(!col||!S[col])return;
     if(!nwIsNieuw(S[col].get(el.dataset.id)))return;
-    const b=el.querySelector(".ml-n b,td b,b");if(!b)return;b.insertAdjacentHTML("afterend",'<span class="nw-tag" title="Vandaag ingeschreven">Nieuw</span>')})}
+    const b=el.querySelector(".ml-n b,td b,b");if(!b)return;
+    /* na de volledige naam (ook de achternaam die na het vette deel staat), en het blauwe "nieuw"-label dan weglaten */
+    let n=b;while(n.nextSibling&&n.nextSibling.nodeType===3&&n.nextSibling.textContent.trim())n=n.nextSibling;
+    const t=document.createElement("span");t.className="nw-tag";t.title="Vandaag ingeschreven";t.textContent="Nieuw";n.after(" ",t);
+    el.querySelectorAll(".pill.info").forEach(x=>{if(x.textContent.trim().toLowerCase()==="nieuw")x.remove()})})}
 {let nwT=0;new MutationObserver(()=>{if(nwT)return;nwT=requestAnimationFrame(()=>{nwT=0;nwLabels()})}).observe(document.body,{childList:true,subtree:true})}
 
 /* Transacties: "Te verwerken" als tab op de pagina Transacties (niet meer als apart menu-item) */
