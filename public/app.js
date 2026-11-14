@@ -5210,7 +5210,7 @@ function mlNastuurUI(){const M=MAIL;if(!M||!M.tplId||!canWrite)return "";const R
   const tot=(R&&R.tot)||(()=>{const L=typeof mlAgendaItems==="function"?mlAgendaItems():[];return L.length?L[L.length-1].datum:new Date(Date.now()+90*864e5).toISOString().slice(0,10)})();
   return `<div class="panel"><div class="panel-h"><h2>Nieuwe leden</h2>${aan?'<span class="grow"></span><span class="pill ok">Aan</span>':""}</div><div class="panel-b stack" style="gap:10px">
     <p class="muted small" style="margin:0">${m?`Deze mail werd verstuurd op ${esc(fmtDate(String(m.datum).slice(0,10)))} naar ${esc(m.groep||"")}.`:""} Schrijft er zich daarna een lid in en is zijn lidgeld ontvangen, dan krijg je een melding op het dashboard met een knop om deze mail te sturen.</p>
-    <label class="sp-nat"><input type="checkbox" id="nsAan"${aan?" checked":""}><span><b>Melding op het dashboard voor nieuwe leden</b><small>Tot en met <input type="date" id="nsTot" value="${esc(tot)}" style="font:inherit;padding:2px 6px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink)">. Bij wijzigingen aan het sjabloon: opnieuw aanvinken om de nieuwe versie te gebruiken.</small></span></label>
+    <label class="sp-nat"><input type="checkbox" id="nsAan"${aan?" checked":""}><span><b>Melding op het dashboard voor nieuwe leden</b><small>Tot en met <input type="date" id="nsTot" value="${esc(tot)}" style="font:inherit;padding:2px 6px;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink)">.</small></span></label>
     ${R&&R.sinds?`<div class="muted small">Versie van ${esc(fmtDate(String(R.sinds).slice(0,10)))}${R.door?" door "+esc(R.door):""}.</div>`:""}
     ${N.length?`<div class="note info" style="margin:0"><b>${N.length} ${N.length===1?"nieuw lid kreeg":"nieuwe leden kregen"} deze mail nog niet:</b> ${N.slice(0,8).map(r=>esc(r.label)).join(", ")}${N.length>8?" …":""}<div style="margin-top:8px"><button class="btn sm primary" data-ns="nu">Nu naar ${N.length===1?"hem of haar":"hen"} sturen</button></div></div>`:m&&!W.length?'<div class="muted small">Alle leden die zich na het versturen inschreven, kregen deze mail al.</div>':""}
     ${W.length?`<div class="muted small"><b>Wacht op lidgeld:</b> ${W.slice(0,8).map(r=>esc(r.label)).join(", ")}${W.length>8?" …":""}</div>`:""}
@@ -5257,6 +5257,16 @@ async function nsStuurSnapshot(tpl,soort){const R=nsCfg()[tpl],N=nsLijst(tpl,soo
     toast(res.ok?"Verstuurd naar "+res.ok+(res.ok===1?" lid.":" leden."):"Versturen mislukt.",!res.ok);renderBody()})}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-nsd-stuur]");if(!t)return;e.preventDefault();e.stopPropagation();nsStuurSnapshot(t.dataset.nsdStuur,t.dataset.soort||"")},true);
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return nsDash()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+
+/* De nagestuurde mail altijd up-to-date houden: zodra het sjabloon of de agenda (activiteiten) verandert, de momentopname opnieuw opmaken. */
+let NS_BEZIG=false;const NS_LAATST={};
+async function nsBijwerken(){if(NS_BEZIG||ROL_ECHT!=="admin"||!canWrite||typeof mlVanTpl!=="function")return;const c=(S.config&&S.config.get("nastuur"))||{},R=c.regels||{};
+  const r={voornaam:"@@VOORNAAM@@",naam:"@@NAAM@@",email:"",lidId:"",bedrag:"",mededeling:"",label:""};let anders=false;const regels={...R};
+  for(const [tpl,x] of Object.entries(R)){const t=S.templates.get(tpl);if(!t||!(x.tot>=todayISO()))continue;let M,html,ond;
+    try{M=mlVanTpl(t);html=mailHtml(r,M);ond=vul(M.onderwerp,r)}catch(e){continue}
+    if(html&&(html!==x.html||ond!==x.onderwerp)&&!(NS_LAATST[tpl]>Date.now()-6e5)){NS_LAATST[tpl]=Date.now();regels[tpl]={...x,naam:M.naam||x.naam,onderwerp:ond,html,sinds:new Date().toISOString(),door:"automatisch (agenda bijgewerkt)"};anders=true}}
+  if(!anders)return;NS_BEZIG=true;try{const d={...stripId(c),regels};S.config.set("nastuur",{...d,id:"nastuur"});await write("config","nastuur",d)}catch(e){}finally{NS_BEZIG=false}}
+setInterval(()=>{if(typeof loaded!=="undefined"&&typeof COLS!=="undefined"&&loaded.size<COLS.length)return;nsBijwerken()},20000);
 
 /* ============ Fuif "In Vier en Vlam" (Activiteiten › In Vier en Vlam) ============
    Bestellingen in de collectie "tickets" (zie api/_lib/fuif.js), instellingen in config "fuif".
