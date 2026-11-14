@@ -155,8 +155,8 @@ html,body{overflow-x:hidden}
     <div class="grid">
       <div class="full"><label for="naam">Naam van het lid</label><input type="text" id="naam" name="naam" placeholder="Begin je naam te typen…" maxlength="100"><div class="lp-prijs" id="lpPrijs" hidden></div><p class="lp-hint" id="lpHint" hidden>Je korting volgens je status (brons, zilver of goud) wordt berekend zodra je je naam kiest.</p></div>
       <fieldset class="full" style="border:0;margin:0;padding:0"><legend class="lbl">Aanwezigheid</legend><div class="ch">
-        <label><input type="radio" name="personen" value="1"><b>Ik kom alleen</b><span>1 persoon</span><span class="pr" data-pr="1"></span></label>
-        <label><input type="radio" name="personen" value="2"><b>Ik kom met partner</b><span>2 personen</span><span class="pr" data-pr="2"></span></label></div></fieldset>
+        <label><input type="radio" name="personen" value="1"><b>Ik kom alleen</b><span>1 persoon</span></label>
+        <label><input type="radio" name="personen" value="2"><b>Ik kom met partner</b><span>2 personen</span></label></div></fieldset>
       <fieldset class="full" style="border:0;margin:0;padding:0"><legend class="lbl">Menu voor jezelf</legend><div class="ch">
         <label><input type="radio" name="menu1" value="Normaal"><b>Normaal menu</b></label><label><input type="radio" name="menu1" value="Vegetarisch"><b>Vegetarisch menu</b></label></div></fieldset>
       <fieldset class="full" id="m2" hidden style="border:0;margin:0;padding:0"><legend class="lbl">Menu voor je partner</legend><div class="ch">
@@ -235,10 +235,10 @@ let LP=0;async function lidPrijs(id){const el=$("#lpPrijs"),n=++LP;alMeld($("#na
   try{const r=await fetch("/api/banket?lid="+encodeURIComponent(id));const j=await r.json();if(n!==LP)return;if(!r.ok)throw 0;
     if(j.al){alMeld($("#naam"),j.melding);INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
     if(!INFO.kortingAan){INFO.lp=null;INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}INFO.prijs=j.prijs;INFO.lp=j;
-    if(el){el.hidden=false;el.innerHTML=j.korting?`<span class="lp-st ${esc(String(j.status).toLowerCase())}">${esc(j.status.charAt(0)+j.status.slice(1).toLowerCase())}</span><span>Jouw prijs: <b>${eur(j.prijs)}</b> per persoon <small>(${j.korting}% korting op ${eur(j.basis)})</small></span>`:`<span>Jouw prijs: <b>${eur(j.prijs)}</b> per persoon</span>`}}
+    if(el&&0){el.hidden=false;el.innerHTML=j.korting?`<span class="lp-st ${esc(String(j.status).toLowerCase())}">${esc(j.status.charAt(0)+j.status.slice(1).toLowerCase())}</span><span>Jouw prijs: <b>${eur(j.prijs)}</b> per persoon <small>(${j.korting}% korting op ${eur(j.basis)})</small></span>`:`<span>Jouw prijs: <b>${eur(j.prijs)}</b> per persoon</span>`}}
   catch(x){if(n!==LP)return;INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true}upd()}
 function val(n){const c=document.querySelector('input[name="'+n+'"]:checked');return c?c.value:""}
-function upd(){$$("[data-pr]").forEach(e=>e.textContent=eur(+e.dataset.pr*INFO.prijs));const p=+val("personen");$("#m2").hidden=p!==2;
+function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
   const pay=$("#pay"),L=INFO.lp,n=p||1;
   /* korting volgens het puntensysteem: kostprijs, bijdrage van de vriendenkring en jouw aandeel duidelijk tonen */
   const kader=L&&L.korting>0?`<div class="kv"><div><span>Kostprijs${n>1?` (${n} × ${eur(L.basis)})`:""}</span><b>${eur(n*L.basis)}</b></div><div class="kv-vk"><span>Bijdrage vriendenkring <small>(${esc(L.status.charAt(0)+L.status.slice(1).toLowerCase())}, ${L.korting}%)</small></span><b>− ${eur(n*(L.basis-L.prijs))}</b></div><div class="kv-tot"><span>Jouw aandeel</span><b>${eur(n*L.prijs)}</b></div></div>`:"";
