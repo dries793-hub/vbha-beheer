@@ -237,7 +237,7 @@ async function startApp(session){
   $("#main").innerHTML='<div class="loading" id="boot"><b>Gegevens laden…</b><span>Leden, boekhouding en punten worden opgehaald.</span></div>';
   const q=new URLSearchParams(location.search);if(q.get("bank")){const ok=q.get("bank")==="ok";setTimeout(()=>toast(ok?"De bankrekening is gekoppeld.":"Koppelen met de bank is niet gelukt"+(q.get("reden")?": "+q.get("reden"):"")+".",!ok),400);history.replaceState(null,"",location.pathname+"#bank")}
   const timer=setTimeout(()=>{if(loaded.size<COLS.length){const b=$("#boot");if(b)b.innerHTML="<b>De gegevens zijn nog niet bereikbaar.</b><span>Controleer je internetverbinding. De pagina blijft het proberen.</span>"}},10000);
-  db=makeDb();
+  db=makeDb();setTimeout(()=>{BOOT_LAAT=true;schedule()},4000);
   for(const col of COLS){
     db.collection(col).onSnapshot(snap=>{
       let m=new Map();for(const d of snap.docs){m.set(d.id,{...d.data(),id:d.id})}if(col==="leden"){TL_RAW=m;m=tlFilter(m)}S[col]=m;if(col==="config"&&TL_RAW)S.leden=tlFilter(TL_RAW);
@@ -301,11 +301,11 @@ function closeAcct(){const m=$("#acctMenu");if(m&&!m.hidden){m.hidden=true;const
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAcct()});
 window.addEventListener("hashchange",closeAcct);
 /* ============ rendering ============ */
-let lastRoute="";
+let lastRoute="",BOOT_LAAT=false;
 function route(){const h=location.hash.replace("#","");return ROUTES.some(r=>r[0]===h)?h:"dashboard"}
 function render(force){
   if(!db)return;
-  if(loaded.size<COLS.length&&S.leden.size===0&&S.jaren.size===0)return;
+  if(loaded.size<COLS.length&&!BOOT_LAAT)return; // pas tonen als alles geladen is (geen half dashboard dat daarna verspringt); na 4 s toch tonen
   const ys=jaren();const cj=Number(cfg().actiefJaar)||0;
   if(!ys.length){JAAR=new Date().getFullYear()}
   else JAAR=ys.includes(cj)?cj:ys[ys.length-1];
