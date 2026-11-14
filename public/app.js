@@ -49,7 +49,6 @@ const DEF_JAAR={beginKas:0,beginRekening:0,gewichten:{kaarten:1,kalenders:25,shi
 const JUBILEA=[10,20,25,30,40,50,60];
 
 /* ============ toestand ============ */
-const KERN_COLS=["leden","boekingen","jaarleden","jaren","config"];
 const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","ronde","banket","kinderfeest","activiteiten","vergaderingen","documenten","fotoalbums","mailings"];
 const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),ronde:new Map(),banket:new Map(),kinderfeest:new Map(),activiteiten:new Map(),vergaderingen:new Map(),documenten:new Map(),fotoalbums:new Map(),mailings:new Map()};
 const loaded=new Set();
@@ -306,8 +305,7 @@ let lastRoute="";
 function route(){const h=location.hash.replace("#","");return ROUTES.some(r=>r[0]===h)?h:"dashboard"}
 function render(force){
   if(!db)return;
-  /* pas tekenen als de kerngegevens er zijn, anders flitsen tellers (bv. leden in orde) eerst een verkeerd getal */
-  if(loaded.size<COLS.length&&!KERN_COLS.every(c=>loaded.has(c)))return;
+  if(loaded.size<COLS.length&&S.leden.size===0&&S.jaren.size===0)return;
   const ys=jaren();const cj=Number(cfg().actiefJaar)||0;
   if(!ys.length){JAAR=new Date().getFullYear()}
   else JAAR=ys.includes(cj)?cj:ys[ys.length-1];
@@ -8271,7 +8269,7 @@ function ptExtraBulk(){const C=ctx(),L=C.leden.filter(l=>l.categorie!=="Erewacht
       closeModal();renderBody();toast(`${ex?p+" punten":"+"+p+" "+({shifts:p===1?"shift":"shifts",vergaderingen:p===1?"vergadering":"vergaderingen",kaarten:p===1?"kaart":"kaarten"})[soort]} voor ${sel.size} ${sel.size===1?"lid":"leden"}.`)}
     catch(x){toast("Niet gelukt: "+(x.message||x),true);b.disabled=false;b.textContent="Toekennen"}}}
 document.addEventListener("click",e=>{if(e.target.closest('[data-act="ptExtraBulk"]'))ptExtraBulk()});
-{const st=document.createElement("style");st.textContent=`.pe-seg{display:flex;margin:0 0 16px;flex-wrap:wrap}.pe-seg button{flex:1}#peTw[hidden]{display:none}
+{const st=document.createElement("style");st.textContent=`.pe-seg{display:grid!important;grid-template-columns:repeat(4,1fr);width:100%;margin:0 0 16px;overflow:hidden!important}.pe-seg button{padding:10px 8px;white-space:normal}@media(max-width:560px){.pe-seg{grid-template-columns:1fr 1fr}.pe-seg button:nth-child(2n){border-right:0}.pe-seg button:nth-child(-n+2){border-bottom:1px solid var(--line-strong)}}#peTw[hidden]{display:none}
 .pe-bar{display:flex;align-items:center;gap:6px;margin:14px 0 6px;font-size:13.5px;color:var(--muted)}
 .pe-l{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:10px}.pe-r{display:flex;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid var(--line);cursor:pointer;font-size:14.5px}.pe-r:first-child{border-top:0}.pe-r[hidden]{display:none}.pe-r input{width:18px;height:18px;margin:0}`;document.head.appendChild(st)}
 /* extra inspanningen op de pagina enkel tonen (toevoegen gaat via "Punten toevoegen"); de administrator klikt op de punten om aan te passen */
