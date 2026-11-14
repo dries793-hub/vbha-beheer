@@ -7,6 +7,7 @@ import { startBetaling } from "./betaal.js";
 import { wachtOpBetaling, stuurBevestiging } from "./bevestiging.js";
 import { clean, body, nieuwId, vandaag, algemeen, configDoc, spamCheck, actieveLeden, inschrijving, alIngeschreven, AL_TEKST, rateLimit } from "./publiek.js";
 import { meldPush } from "./push.js";
+import { kloptVul } from "./lidlink.js";
 
 // Openbare banketinschrijving: komt rechtstreeks in Administratie › Banket, met online betaling.
 async function info(sb) {
@@ -30,6 +31,13 @@ export default async function handler(req, res) {
     const sb = admin();
     if (req.method === "GET") {
       const I = await info(sb), lidId = String(req.query?.lid || "");
+      // persoonlijke link uit de mail: naam van het lid vooraf invullen
+      if (req.query && req.query.v) {
+        const v = String(req.query.v);
+        if (!kloptVul("bk", v, I.jaar, String(req.query.t || ""))) return res.status(200).json(I);
+        const l = (await actieveLeden(sb, I.jaar)).find(x => x.id === v); if (!l) return res.status(200).json(I);
+        return res.status(200).json({ ...I, vul: { lidId: l.id, lid: l.voornaam && l.an ? `${l.voornaam} ${l.an}` : l.naam } });
+      }
       if (!lidId) return res.status(200).json(I);
       await rateLimit(sb, req, "lidinfo", 60, 600, httpErr);
       if (!(await actieveLeden(sb, I.jaar)).some(l => l.id === lidId)) throw httpErr(404, "Lid niet gevonden.");
