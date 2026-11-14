@@ -135,13 +135,13 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const eur=n=>"€"+Number(n).toLocaleString("nl-BE",{minimumFractionDigits:0,maximumFractionDigits:2});
 function cats(list){$("#cats").innerHTML=list.map((c,i)=>`<label class="opt"><input type="radio" name="categorie" value="${esc(c)}"${i===0?" required":""}><span>${esc(c)}</span></label>`).join("")}
 cats(["Ploeg 1","Ploeg 2","Ploeg 3","Ploeg 4","Vrijwilligers","Administratie","Erewacht"]);
-fetch("/api/inschrijving").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;
+fetch("/api/inschrijving").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;if(j.online)$("#go").textContent="Inschrijven en betalen";
   const cur=(document.querySelector("input[name=categorie]:checked")||{}).value;cats(j.categorieen);if(cur){const x=[...document.querySelectorAll("input[name=categorie]")].find(i=>i.value===cur);if(x)x.checked=true}
   toonPrijs()}).catch(()=>{});
 function toonPrijs(){if(!INFO)return;const c=(document.querySelector("input[name=categorie]:checked")||{}).value;const p=$("#pay");p.hidden=false;
-  if(c&&INFO.tarieven&&INFO.tarieven[c]!=null)p.innerHTML=`Lidgeld ${INFO.jaar} voor <b>${esc(c)}</b>: <b>${eur(INFO.tarieven[c])}</b>. Na je inschrijving zie je hoe je het overschrijft.`;
-  else if(INFO.gewoon!=null&&INFO.erewacht!=null&&INFO.gewoon!==INFO.erewacht)p.innerHTML=`Het lidgeld voor ${INFO.jaar} bedraagt <b>${eur(INFO.gewoon)}</b>, of <b>${eur(INFO.erewacht)}</b> voor de erewacht. Na je inschrijving zie je hoe je het overschrijft.`;
-  else p.innerHTML=`Het lidgeld voor ${INFO.jaar} bedraagt <b>${eur(INFO.bedrag)}</b>. Na je inschrijving zie je hoe je het overschrijft.`}
+  if(c&&INFO.tarieven&&INFO.tarieven[c]!=null)p.innerHTML=`Lidgeld ${INFO.jaar} voor <b>${esc(c)}</b>: <b>${eur(INFO.tarieven[c])}</b>. ${INFO.online?"Na het inschrijven betaal je meteen online met Bancontact of je bankapp.":"Na je inschrijving zie je hoe je het overschrijft."}`;
+  else if(INFO.gewoon!=null&&INFO.erewacht!=null&&INFO.gewoon!==INFO.erewacht)p.innerHTML=`Het lidgeld voor ${INFO.jaar} bedraagt <b>${eur(INFO.gewoon)}</b>, of <b>${eur(INFO.erewacht)}</b> voor de erewacht. ${INFO.online?"Na het inschrijven betaal je meteen online met Bancontact of je bankapp.":"Na je inschrijving zie je hoe je het overschrijft."}`;
+  else p.innerHTML=`Het lidgeld voor ${INFO.jaar} bedraagt <b>${eur(INFO.bedrag)}</b>. ${INFO.online?"Na het inschrijven betaal je meteen online met Bancontact of je bankapp.":"Na je inschrijving zie je hoe je het overschrijft."}`}
 document.addEventListener("change",e=>{if(e.target.name==="categorie")toonPrijs()});
 const BC_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M10 18.5h4"/></svg>';
 function handmatig(j){return `<dl class="pd"><div><dt>Bedrag</dt><dd><b>${eur(j.bedrag)}</b></dd></div>
@@ -198,7 +198,7 @@ $("#f").addEventListener("submit",async e=>{e.preventDefault();const f=e.target,
     const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Inschrijven lukte niet.");
     toonKlaar({...j,voornaam:d.voornaam});try{sessionStorage.setItem("vbha_insch",JSON.stringify({...j,voornaam:d.voornaam,qr:null}))}catch(x){}
     window.scrollTo({top:0,behavior:"smooth"});
-  }catch(x){er.textContent=x.message;b.disabled=false;b.textContent="Inschrijven"}});
+  }catch(x){er.textContent=x.message;b.disabled=false;b.textContent=INFO&&INFO.online?"Inschrijven en betalen":"Inschrijven"}});
 </script>
 <script src="/adres.js" defer></script>
 </body>
