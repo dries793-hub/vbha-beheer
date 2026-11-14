@@ -8343,7 +8343,12 @@ Object.assign(ICON,{
 /* ============ Dashboard (boekhouding): te verwerken betalingen ============
    Bovenaan het dashboard: inkomende facturen die nog zelf betaald moeten worden (niet via domiciliëring)
    en goedgekeurde onkostennota's die nog terugbetaald moeten worden. Met een knop Betalen (QR-code). */
-function tbDashLijst(){const F=typeof inkDocs==="function"?inkDocs().filter(d=>d.inkomend&&inkOpen(d)&&!inkDomi(d)).map(d=>{const A=(typeof INK!=="undefined"&&INK.txt.get(d.id))||{},t=inkTot(d)||Number(A.totaal)||0,open=t>0?t-inkSom(d.id):0;
+/* wat de app uit de PDF afleidt (domiciliëring, bedrag) ook bewaren, zodat de dagelijkse controle op de server (mail na 5 dagen) hetzelfde ziet */
+const TBD_BEW=new Set();
+function tbdBewaar(d,A){if(TBD_BEW.has(d.id)||!(ROL==="admin"||ROL==="boekhouder"))return;const I=d.inkomend||{},p={};
+  if(I.domi==null&&inkDomi(d))p.domi=true;if(!I.totaal&&!I.bedragPdf&&A&&Number(A.totaal)>0)p.bedragPdf=Number(A.totaal);
+  if(!Object.keys(p).length)return;TBD_BEW.add(d.id);const x=S.documenten.get(d.id)||d;write("documenten",d.id,{...stripId(x),inkomend:{...(x.inkomend||{}),...p}}).catch(()=>{})}
+function tbDashLijst(){if(typeof inkDocs==="function")for(const d of inkDocs())if(d.inkomend&&inkOpen(d))tbdBewaar(d,(typeof INK!=="undefined"&&INK.txt.get(d.id))||null);const F=typeof inkDocs==="function"?inkDocs().filter(d=>d.inkomend&&inkOpen(d)&&!inkDomi(d)).map(d=>{const A=(typeof INK!=="undefined"&&INK.txt.get(d.id))||{},t=inkTot(d)||Number(A.totaal)||0,open=t>0?t-inkSom(d.id):0;
     if(!t&&typeof inkLees==="function"&&!INK.txt.has(d.id)&&!INK.bezig.has(d.id)&&/pdf/i.test(d.type||d.naam))inkLees(d).then(()=>{if(INK.txt.has(d.id)&&route()==="dashboard")renderBody()}).catch(()=>{});
     return{soort:"f",id:d.id,naam:inkVan(d)||d.naam,bedrag:open>0.005?open:null,info:"factuur"+(A.nr?" "+A.nr:"")}}):[];
   const O=((typeof TB!=="undefined"&&TB.lijst)||[]).filter(r=>r.status==="goedgekeurd"||r.status==="ingediend").map(r=>({soort:"o",id:r.id,naam:r.data.naam,bedrag:Number(r.data.bedrag)||null,info:(r.data.soort==="onkosten"?"onkostennota":"terugbetaling")+(r.status==="ingediend"?" · nog goed te keuren":""),iban:!!r.data.iban,nieuw:r.status==="ingediend"}));
