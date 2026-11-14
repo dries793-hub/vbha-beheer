@@ -1610,12 +1610,12 @@ function lidgeldHist(lid){
   for(let y=last;y>=first;y--){const jl=S.jaarleden.get(y+"_"+lid.id);out.push({y,bet:hits.get(y)||[],ov:jl&&jl.lidgeld})}
   return out;
 }
-const LG_VRIJ={2021:"Vrijgesteld (corona)"};
+const LG_VRIJ={2021:"Vrijgesteld (corona)"},LG_REG=2025; // lidgelden van voor 2025: geregulariseerd als betaald (vorig systeem onvolledig)
 function lidgeldHistHtml(l,r){
   const H=lidgeldHist(l);if(!H.length)return"";
   const ere=isEreVoorzitter(l);let ok=0;
-  const rows=H.map(h=>{const vrij=h.y!==JAAR&&LG_VRIJ[h.y]&&!h.bet.length&&h.ov!=="NOK";const paid=h.y===JAAR?r.lg.ok:(h.ov==="OK"||vrij||(h.ov!=="NOK"&&(h.bet.length>0||ere)));if(paid)ok++;
-    const b=h.bet[0];const pill=vrij?`<span class="pill neutral" title="Geen lidgeld gevraagd dit jaar">${esc(LG_VRIJ[h.y])}</span>`:ere&&!h.bet.length?'<span class="pill neutral">vrijgesteld</span>':paid?'<span class="pill ok">✓ Betaald</span>':'<span class="pill nok">Niet gevonden</span>';
+  const rows=H.map(h=>{const vrij=h.y!==JAAR&&LG_VRIJ[h.y]&&!h.bet.length&&h.ov!=="NOK",reg=!vrij&&h.y<LG_REG&&!h.bet.length&&h.ov!=="NOK"&&!ere;const paid=h.y===JAAR?r.lg.ok:(h.ov==="OK"||vrij||reg||(h.ov!=="NOK"&&(h.bet.length>0||ere)));if(paid)ok++;
+    const b=h.bet[0];const pill=vrij?`<span class="pill neutral" title="Geen lidgeld gevraagd dit jaar">${esc(LG_VRIJ[h.y])}</span>`:reg?'<span class="pill ok" title="Lidgelden van voor '+LG_REG+' zijn geregulariseerd als betaald">✓ Geregulariseerd</span>':ere&&!h.bet.length?'<span class="pill neutral">vrijgesteld</span>':paid?'<span class="pill ok">✓ Betaald</span>':'<span class="pill nok">Niet gevonden</span>';
     return `<tr><td><b>${h.y}</b></td><td>${pill}${h.ov&&h.y!==JAAR?' <span class="pill neutral">manueel</span>':""}</td><td style="white-space:nowrap">${b?fmtDate(b.datum):""}</td><td class="num">${b?eur(h.bet.reduce((s,x)=>s+x.bedrag,0)):""}</td><td class="trunc" style="max-width:340px" title="${esc(b?b.mededeling:"")}">${b?esc(b.mededeling)+(b._jaar!==h.y?` <span style="color:var(--muted)">(geboekt in ${b._jaar})</span>`:""):""}${h.bet.length>1?` <span class="pill neutral">${h.bet.length} betalingen</span>`:""}${h.y>JAAR&&b?` <span class="pill neutral">vooruitbetaald</span>`:""}</td></tr>`}).join("");
   const hj=H.find(h=>h.y===JAAR),dub=hj&&hj.bet.length>1?hj.bet.filter(x=>x.id).sort((a,b)=>(a.datum||"").localeCompare(b.datum||"")):[];
   const dubHtml=dub.length>1?`<div class="note info" style="margin:0 0 10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px"><span style="flex:1 1 260px"><b>${dub.length} lidgeldbetalingen in ${JAAR}.</b> Werd er dubbel betaald? Laat één betaling meetellen als lidgeld voor ${JAAR+1}.</span>${dub.slice(1).map(x=>`<button class="btn sm" style="white-space:normal;text-align:left;max-width:100%" data-w data-act="lgNaarVolgend" data-id="${esc(x.id)}">Betaling van ${fmtDate(x.datum)} (${eur(x.bedrag)}) gebruiken voor ${JAAR+1}</button>`).join("")}</div>`:"";
