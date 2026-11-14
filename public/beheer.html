@@ -1579,6 +1579,8 @@ td.xcell,.xcell{min-width:0}
 .ptab th,.ptab td{vertical-align:middle}
 .ptab th:nth-child(n+2):nth-child(-n+7),.ptab td:nth-child(n+2):nth-child(-n+7){text-align:center;width:11%}
 .ptab th:last-child,.ptab td:last-child{width:10%;white-space:nowrap;text-align:center}
+/* iOS: klik op de donkere achtergrond van het menu (zonder cursor:pointer vuurt Safari geen click af op een gewone div) */
+.sheet-bg{cursor:pointer;-webkit-tap-highlight-color:transparent}.sheet-bg .sheet{cursor:auto}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
