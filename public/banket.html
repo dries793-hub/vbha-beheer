@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}.logo-a{display:block;flex:none;line-height:0;border-radius:4px}.logo-a:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .lp-hint{margin:8px 0 0;font-size:13.5px;color:var(--muted)}
+.kv{display:flex;flex-direction:column;gap:6px;margin:0 0 10px;font-size:15px}.kv>div{display:flex;justify-content:space-between;gap:12px}.kv b{font-variant-numeric:tabular-nums;white-space:nowrap}.kv small{color:var(--muted)}.kv-vk{color:#18794A}.kv-tot{border-top:1px solid var(--line-strong);padding-top:8px;font-size:16.5px}
 </style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Banket · VBHA</title>
 <link rel="icon" href="/favicon.png">
@@ -230,15 +231,18 @@ function alMeld(inp,t){let m=document.getElementById("alMeld");const go=$("#go")
     (inp.closest(".lp")||inp.parentElement).append(m)}
   const k=t.indexOf(". ");m.innerHTML=k>0?"<b>"+esc(t.slice(0,k+1))+"</b> "+esc(t.slice(k+2)):esc(t);if(go){go.disabled=true;go.dataset.al="1"}}
 let LP=0;async function lidPrijs(id){const el=$("#lpPrijs"),n=++LP;alMeld($("#naam"),"");{const h=$("#lpHint");if(h)h.hidden=!!id||!INFO.kortingAan}
-  if(!id){INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
+  INFO.lp=null;if(!id){INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
   try{const r=await fetch("/api/banket?lid="+encodeURIComponent(id));const j=await r.json();if(n!==LP)return;if(!r.ok)throw 0;
     if(j.al){alMeld($("#naam"),j.melding);INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
-    if(!INFO.kortingAan){INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}INFO.prijs=j.prijs;
+    if(!INFO.kortingAan){INFO.lp=null;INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}INFO.prijs=j.prijs;INFO.lp=j;
     if(el){el.hidden=false;el.innerHTML=j.korting?`<span class="lp-st ${esc(String(j.status).toLowerCase())}">${esc(j.status.charAt(0)+j.status.slice(1).toLowerCase())}</span><span>Jouw prijs: <b>${eur(j.prijs)}</b> per persoon <small>(${j.korting}% korting op ${eur(j.basis)})</small></span>`:`<span>Jouw prijs: <b>${eur(j.prijs)}</b> per persoon</span>`}}
   catch(x){if(n!==LP)return;INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true}upd()}
 function val(n){const c=document.querySelector('input[name="'+n+'"]:checked');return c?c.value:""}
 function upd(){$$("[data-pr]").forEach(e=>e.textContent=eur(+e.dataset.pr*INFO.prijs));const p=+val("personen");$("#m2").hidden=p!==2;
-  const pay=$("#pay");if(p){pay.hidden=false;pay.innerHTML=`Te betalen: <b>${eur(p*INFO.prijs)}</b>. ${INFO.online?"Na het inschrijven betaal je meteen met Bancontact of met een overschrijving.":"Na het inschrijven zie je hoe je overschrijft."}`}else pay.hidden=true}
+  const pay=$("#pay"),L=INFO.lp,n=p||1;
+  /* korting volgens het puntensysteem: kostprijs, bijdrage van de vriendenkring en jouw aandeel duidelijk tonen */
+  const kader=L&&L.korting>0?`<div class="kv"><div><span>Kostprijs${n>1?` (${n} × ${eur(L.basis)})`:""}</span><b>${eur(n*L.basis)}</b></div><div class="kv-vk"><span>Bijdrage vriendenkring <small>(${esc(L.status.charAt(0)+L.status.slice(1).toLowerCase())}, ${L.korting}%)</small></span><b>− ${eur(n*(L.basis-L.prijs))}</b></div><div class="kv-tot"><span>Jouw aandeel</span><b>${eur(n*L.prijs)}</b></div></div>`:"";
+  if(p||kader){pay.hidden=false;pay.innerHTML=kader+(p?(kader?"":`Te betalen: <b>${eur(p*INFO.prijs)}</b>. `)+(INFO.online?"Na het inschrijven betaal je meteen met Bancontact of met een overschrijving.":"Na het inschrijven zie je hoe je overschrijft."):"")}else pay.hidden=true}
 document.addEventListener("change",e=>{if(e.target.name)upd()});
 $("#f").addEventListener("submit",async e=>{e.preventDefault();const er=$("#err");er.textContent="";
   const d={naam:$("#naam").value.trim(),lidId:$("#naam").dataset.id||"",personen:+val("personen"),menu1:val("menu1"),menu2:val("menu2"),opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0};
