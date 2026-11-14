@@ -165,9 +165,11 @@ export async function pushVanDaag(sb, cfg, vandaag, uurNu) {
 
 /* ---------- meteen een melding bij nieuwe dashboardmeldingen ----------
    groep "iedereen" (alle bestuursleden) of "boek" (admin, bewerker, boekhouder). Fouten breken nooit de eigenlijke actie. */
-const GROEP = { iedereen: null, boek: ["admin", "bewerker", "boekhouder"], admin: ["admin", "bewerker"] };
+const GROEP = { iedereen: null, boek: ["admin", "bewerker", "boekhouder"], admin: ["admin", "bewerker"], beheerder: ["admin"] };
+export const TESTLID = "test-vbha"; // testlid: meldingen enkel naar de administrator(s)
 export async function meldPush(sb, groep, bericht) {
   try {
+    if (bericht && bericht.lidId === TESTLID) groep = "beheerder";
     const { data: c } = await sb.from("config").select("data").eq("id", "herinneringen").maybeSingle();
     if ((((c && c.data) || {}).push || {}).aan === false) return { uit: true };
     let users = null;

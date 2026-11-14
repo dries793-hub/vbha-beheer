@@ -240,7 +240,7 @@ async function startApp(session){
   db=makeDb();
   for(const col of COLS){
     db.collection(col).onSnapshot(snap=>{
-      const m=new Map();for(const d of snap.docs){m.set(d.id,{...d.data(),id:d.id})}S[col]=m;
+      let m=new Map();for(const d of snap.docs){m.set(d.id,{...d.data(),id:d.id})}if(col==="leden"){TL_RAW=m;m=tlFilter(m)}S[col]=m;if(col==="config"&&TL_RAW)S.leden=tlFilter(TL_RAW);
       loaded.add(col);dirty=true;if(loaded.size===COLS.length)clearTimeout(timer);schedule();
     },err=>{loaded.add(col);clearTimeout(timer);if(col!=="facturen")toast("Gegevens ("+col+") konden niet geladen worden: "+(err&&err.message||""),true);schedule()});
   }
@@ -8315,3 +8315,17 @@ function krMeeWaarde(hoofd){const box=$("#krMee");if(!box)return null;const inp=
 {const st=document.createElement("style");st.textContent=`.kmee{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);min-height:44px;cursor:text}
 .kmee input{flex:1;min-width:140px;border:0!important;outline:0;box-shadow:none!important;padding:4px 2px!important;background:none;font:inherit;min-height:0}
 .kmee-c{display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 10px;border-radius:999px;background:var(--sunken);font-size:14px}.kmee-c button{border:0;background:none;cursor:pointer;font-size:16px;line-height:1;color:var(--muted);padding:0 4px}`;document.head.appendChild(st)}
+
+/* ============ Testlid (fictief lid om inschrijvingen, betalingen en mails te testen) ============
+   Lid "test-vbha" met data.test=true. Aan/uit via Instellingen (config "testlid".aan).
+   Uit: overal verborgen (ook op de openbare pagina's). Aan: enkel zichtbaar voor de administrator; pushmeldingen gaan enkel naar de administrator. */
+const TESTLID="test-vbha";let TL_RAW=null;
+const tlAan=()=>!!((S.config.get("testlid")||{}).aan);
+function tlFilter(m){const toon=tlAan()&&ROL_ECHT==="admin";let weg=false;for(const v of m.values())if(v.test&&!toon){weg=true;break}
+  if(!weg)return m;const out=new Map();for(const [k,v] of m)if(!(v.test&&!toon))out.set(k,v);return out}
+{const _v=VIEWS.instellingen;const n=function(){const v=_v.apply(this,arguments),b=v.body;
+  v.body=function(){const h=String(b.apply(this,arguments));if(ROL_ECHT!=="admin")return h;const aan=tlAan();
+    return h+`<div class="panel tl-p"><div class="panel-h"><h2>Testlid</h2></div><div class="panel-b"><label class="ws-row"><span class="ws-sw"><input type="checkbox" id="tlAan"${aan?" checked":""}><i></i></span><span><b>Testlid actief</b> <small style="color:var(--muted)">Test Lid · dries@vbha.be</small></span></label></div></div>`};
+  Object.assign(n,_v);VIEWS.instellingen=n}}
+document.addEventListener("change",async e=>{if(e.target.id!=="tlAan")return;const aan=e.target.checked;
+  try{await write("config","testlid",{aan});if(TL_RAW)S.leden=tlFilter(TL_RAW);dirty=true;schedule();toast(aan?"Testlid staat aan.":"Testlid staat uit.")}catch(x){e.target.checked=!aan;toast(x.message,true)}});

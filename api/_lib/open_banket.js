@@ -75,7 +75,7 @@ export default async function handler(req, res) {
     try { qr = qrSvg(epcPayload({ naam: I.vereniging, iban: I.rekeningnummer, bedrag: teBetalen, mededeling })); } catch (e) { console.error("QR", e); }
     let online = null;
     // melding naar het bestuur loopt gelijktijdig met het klaarzetten van de betaling (sneller antwoord)
-    const push = meldPush(sb, "iedereen", { titel: "Nieuwe inschrijving banket", tekst: `${naam} · ${d.personen === 2 ? "2 personen" : "1 persoon"}`, url: "/#banket", tag: "ins-banket-" + id }).catch(() => null);
+    const push = meldPush(sb, "iedereen", { titel: "Nieuwe inschrijving banket", tekst: `${naam} · ${d.personen === 2 ? "2 personen" : "1 persoon"}`, url: "/#banket", tag: "ins-banket-" + id, lidId: lidRij.id }).catch(() => null);
     if (token) {
       try {
         const bt = await startBetaling(sb, req, "banket", { id, data: d }, { bedrag: teBetalen, jaar: I.jaar });
