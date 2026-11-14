@@ -8329,3 +8329,17 @@ function tlFilter(m){const toon=tlAan()&&ROL_ECHT==="admin";let weg=false;for(co
   Object.assign(n,_v);VIEWS.instellingen=n}
 document.addEventListener("change",async e=>{if(e.target.id!=="tlAan")return;const aan=e.target.checked;
   try{await write("config","testlid",{aan});if(TL_RAW)S.leden=tlFilter(TL_RAW);dirty=true;schedule();toast(aan?"Testlid staat aan.":"Testlid staat uit.")}catch(x){e.target.checked=!aan;toast(x.message,true)}});
+
+/* ============ Dashboard (boekhouding): te verwerken betalingen ============
+   Bovenaan het dashboard: inkomende facturen die nog zelf betaald moeten worden (niet via domiciliëring)
+   en goedgekeurde onkostennota's die nog terugbetaald moeten worden. Met een knop Betalen (QR-code). */
+function tbDashLijst(){const F=typeof inkDocs==="function"?inkDocs().filter(d=>d.inkomend&&inkOpen(d)&&!inkDomi(d)).map(d=>{const A=(typeof INK!=="undefined"&&INK.txt.get(d.id))||{},t=inkTot(d)||Number(A.totaal)||0,open=t>0?t-inkSom(d.id):0;
+    if(!t&&typeof inkLees==="function"&&!INK.txt.has(d.id)&&!INK.bezig.has(d.id)&&/pdf/i.test(d.type||d.naam))inkLees(d).then(()=>{if(INK.txt.has(d.id)&&route()==="dashboard")renderBody()}).catch(()=>{});
+    return{soort:"f",id:d.id,naam:inkVan(d)||d.naam,bedrag:open>0.005?open:null,info:"factuur"+(A.nr?" "+A.nr:"")}}):[];
+  const O=((typeof TB!=="undefined"&&TB.lijst)||[]).filter(r=>r.status==="goedgekeurd").map(r=>({soort:"o",id:r.id,naam:r.data.naam,bedrag:Number(r.data.bedrag)||null,info:r.data.soort==="onkosten"?"onkostennota":"terugbetaling",iban:!!r.data.iban}));
+  return F.concat(O)}
+{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){const rest=b.apply(this,arguments);if(!(ROL==="admin"||ROL==="boekhouder"))return rest;
+  if(typeof TB!=="undefined"&&!TB.lijst&&typeof tbLaad==="function")tbLaad();
+  const L=tbDashLijst();if(!L.length)return rest;const tot=L.reduce((s,x)=>s+(x.bedrag||0),0);
+  return `<div class="panel tbd"><div class="panel-h"><h2>Te verwerken betalingen</h2><span class="tbd-t">${L.length} · ${eur(tot)}</span></div><div class="tbd-l">${L.map(x=>`<div class="tbd-r"><a class="tbd-n" href="#${x.soort==="f"?"inkomend":"terug"}"><b>${esc(x.naam)}</b><span>${esc(x.info)}</span></a><span class="tbd-b">${x.bedrag!=null?eur(x.bedrag):""}</span>${x.soort==="f"?`<button type="button" class="btn sm" data-inkbet="${esc(x.id)}">${ic("bank")}Betalen</button>`:x.iban?`<button type="button" class="btn sm" data-tb="betaal" data-id="${esc(x.id)}">${ic("bank")}Betalen</button>`:`<span class="pill neutral">wacht op rekeningnr.</span>`}</div>`).join("")}</div></div>`+rest};
+  return v};Object.assign(n,_d);VIEWS.dashboard=n}
