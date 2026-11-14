@@ -49,6 +49,7 @@ const DEF_JAAR={beginKas:0,beginRekening:0,gewichten:{kaarten:1,kalenders:25,shi
 const JUBILEA=[10,20,25,30,40,50,60];
 
 /* ============ toestand ============ */
+const KERN_COLS=["leden","boekingen","jaarleden","jaren","config"];
 const COLS=["leden","boekingen","jaarleden","sponsors","jaren","templates","config","archief","regels","imports","ronde","banket","kinderfeest","activiteiten","vergaderingen","documenten","fotoalbums","mailings"];
 const S={leden:new Map(),boekingen:new Map(),jaarleden:new Map(),sponsors:new Map(),jaren:new Map(),templates:new Map(),config:new Map(),archief:new Map(),regels:new Map(),imports:new Map(),ronde:new Map(),banket:new Map(),kinderfeest:new Map(),activiteiten:new Map(),vergaderingen:new Map(),documenten:new Map(),fotoalbums:new Map(),mailings:new Map()};
 const loaded=new Set();
@@ -305,7 +306,8 @@ let lastRoute="";
 function route(){const h=location.hash.replace("#","");return ROUTES.some(r=>r[0]===h)?h:"dashboard"}
 function render(force){
   if(!db)return;
-  if(loaded.size<COLS.length&&S.leden.size===0&&S.jaren.size===0)return;
+  /* pas tekenen als de kerngegevens er zijn, anders flitsen tellers (bv. leden in orde) eerst een verkeerd getal */
+  if(loaded.size<COLS.length&&!KERN_COLS.every(c=>loaded.has(c)))return;
   const ys=jaren();const cj=Number(cfg().actiefJaar)||0;
   if(!ys.length){JAAR=new Date().getFullYear()}
   else JAAR=ys.includes(cj)?cj:ys[ys.length-1];
