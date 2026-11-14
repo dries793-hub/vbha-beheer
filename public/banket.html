@@ -243,7 +243,9 @@ function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
   const pay=$("#pay"),L=INFO.lp,n=p||1;
   /* korting volgens het puntensysteem: kostprijs, bijdrage van de vriendenkring en jouw aandeel duidelijk tonen */
   const kader=L&&L.korting>0?`<div class="kv"><div><span>Kostprijs${n>1?` (${n} × ${eur(L.basis)})`:""}</span><b>${eur(n*L.basis)}</b></div><div class="kv-vk"><span>Bijdrage vriendenkring<small>${esc(L.status.charAt(0)+L.status.slice(1).toLowerCase())} · ${L.korting}% korting</small></span><b>− ${eur(n*(L.basis-L.prijs))}</b></div><div class="kv-tot"><span>Jouw aandeel</span><b>${eur(n*L.prijs)}</b></div></div>`:"";
-  if(p||kader){pay.hidden=false;pay.innerHTML=kader||`Te betalen: <b>${eur(p*INFO.prijs)}</b>`}else pay.hidden=true}
+  /* bedragen pas tonen als een lid gekozen is (en bij korting de persoonlijke prijs gekend is) */
+  const lidOk=!!$("#naam").dataset.id&&!$("#alMeld")&&(!INFO.kortingAan||INFO.lp);
+  if(lidOk&&(p||kader)){pay.hidden=false;pay.innerHTML=kader||`Te betalen: <b>${eur(p*INFO.prijs)}</b>`}else pay.hidden=true}
 document.addEventListener("change",e=>{if(e.target.name)upd()});
 $("#f").addEventListener("submit",async e=>{e.preventDefault();const er=$("#err");er.textContent="";
   const d={naam:$("#naam").value.trim(),lidId:$("#naam").dataset.id||"",personen:+val("personen"),menu1:val("menu1"),menu2:val("menu2"),opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0};
