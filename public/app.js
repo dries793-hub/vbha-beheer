@@ -2253,7 +2253,8 @@ const agWanneer=iso=>{const n=agDagen(iso);return n===0?"vandaag":n===1?"morgen"
 // Komt het item in de activiteitenmail ({agenda})? Activiteiten, banket en kinderfeest standaard wel; vergaderingen enkel de algemene.
 const vgBestuur=v=>/bestuur/i.test((v&&v.soort)||"");
 const vgInMail=v=>vgBestuur(v)?false:typeof v.inMail==="boolean"?v.inMail:/algemene/i.test(v.soort||"");
-const agMailVink=(id,aan)=>`<label class="sp-nat full" for="${id}"><input type="checkbox" id="${id}"${aan?" checked":""}${canWrite?"":" disabled"}><span><b>Opnemen in de activiteitenmail</b></span></label>`;
+const agVoorbij=d=>!!d&&d<new Date().toLocaleDateString("sv-SE");
+const agMailVink=(id,aan,datum)=>{aan=aan&&!agVoorbij(datum);return`<label class="sp-nat full" for="${id}"><input type="checkbox" id="${id}"${aan?" checked":""}${canWrite?"":" disabled"}><span><b>Opnemen in de activiteitenmail</b></span></label>`};
 /* welke kassa hoort bij een activiteit: zelf gekozen, anders afgeleid uit de titel */
 /* kassa van een activiteit: Jaarmarkt / In Vier en Vlam / Kinderfeest herkend op naam (eigen vaste kassa), elke andere activiteit
    met "Kassa gebruiken" krijgt een eigen kassa "a-<id>". Vinkje uit (metKassa:false) = geen kassa. */
@@ -2265,6 +2266,8 @@ function agItems(){const out=[];
   for(const v of S.vergaderingen.values())if(v.datum)out.push({id:v.id,t:"verg",datum:v.datum,uur:v.uur||"",titel:v.titel||v.soort||"Vergadering",locatie:v.locatie||"",inMail:vgInMail(v)});
   try{const k=kfCfg();if(k.datum)out.push({id:"kf",t:"auto",href:"kinderfeest",datum:k.datum,uur:k.tijd||"",titel:"Kinderfeest",locatie:k.locatie||"",info:k.info||"",inMail:k.inMail!==false,...agAutoExtra("kinderfeest")})}catch(e){}
   const b=bkCfg();if(b.datum)out.push({id:"bk",t:"auto",href:"banket",datum:b.datum,uur:b.uur||"",titel:"Banket",locatie:b.locatie||"",info:b.info||"",inMail:b.inMail!==false,...agAutoExtra("banket")});
+  /* voorbije activiteiten komen nooit meer in de activiteitenmail */
+  for(const x of out)if(agVoorbij(x.datum))x.inMail=false;
   return out.sort((x,y)=>(x.datum+x.uur).localeCompare(y.datum+y.uur))}
 const agSoort=x=>x.t==="verg"?["verg","Vergadering"]:["act","Activiteit"];
 const agAttr=x=>`data-act="${x.t==="verg"?"vgToon":x.t==="auto"?"agAuto":"agToon"}" data-id="${esc(x.id)}"`;
@@ -2314,7 +2317,7 @@ function agForm(a,id){const d=canWrite?"":" disabled";a=a||{};
    ${fld("agT","Wat",inp("agT",a.titel,'maxlength="120" placeholder="bv. Jaarmarkt, Paasmaandagwandeling"'+d),"full")}
    ${fld("agD","Datum",`<input id="agD" type="date" value="${esc(a.datum||AG.dag||todayISO())}"${d}>`)}${uurVeld("agU",a.uur,d)}
    ${fld("agL","Waar",inp("agL",a.locatie,'maxlength="160"'+d),"full")}
-   ${fld("agI","Meer info",`<textarea id="agI" class="ag-info" rows="3" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false)}<label class="sp-nat full" for="agS"><input type="checkbox" id="agS"${a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length)?" checked":""}${canWrite?"":" disabled"}><span><b>Gebruiken in shiften</b></span></label><label class="sp-nat full" for="agKa"><input type="checkbox" id="agKa"${agKassa({...a,id:id||"x"})?" checked":""}${canWrite?"":" disabled"}><span><b>Kassa gebruiken</b></span></label><div class="err full" id="agErr"></div></form>`,
+   ${fld("agI","Meer info",`<textarea id="agI" class="ag-info" rows="3" maxlength="2000"${d}>${esc(a.info||"")}</textarea>`,"full")}${agMailVink("agM",a.inMail!==false,a.datum)}<label class="sp-nat full" for="agS"><input type="checkbox" id="agS"${a.metShiften===true||(a.metShiften===undefined&&(a.shiften||[]).length)?" checked":""}${canWrite?"":" disabled"}><span><b>Gebruiken in shiften</b></span></label><label class="sp-nat full" for="agKa"><input type="checkbox" id="agKa"${agKassa({...a,id:id||"x"})?" checked":""}${canWrite?"":" disabled"}><span><b>Kassa gebruiken</b></span></label><div class="err full" id="agErr"></div></form>`,
    `${id&&canWrite?'<button class="btn danger" id="agDel" style="margin-right:auto">Verwijderen</button>':""}${id&&recht("social")!=="geen"?'<button type="button" class="btn" data-sopost="ag">Post maken</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="agOk">Bewaren</button>':""}`);
   if(!canWrite)return;
   $("#agOk").onclick=async()=>{const r={titel:$("#agT").value.trim(),datum:$("#agD").value,uur:$("#agU").value.trim(),locatie:$("#agL").value.trim(),info:$("#agI").value.trim(),inMail:$("#agM").checked,metShiften:$("#agS").checked,metKassa:$("#agKa").checked};
@@ -2328,7 +2331,7 @@ function agAutoForm(id){const bk=id==="bk",c=bk?bkCfg():kfCfg(),d=canWrite?"":" 
    ${fld("aaD","Datum",`<input id="aaD" type="date" value="${esc(c.datum||"")}"${d}>`)}${uurVeld("aaU",bk?c.uur:c.tijd,d)}
    ${fld("aaL","Waar",inp("aaL",c.locatie,'maxlength="160"'+d),"full")}
    ${fld("aaI","Meer info",`<textarea id="aaI" class="ag-info" rows="3" maxlength="2000" placeholder="Komt in de activiteitenmail onder datum, uur en plaats"${d}>${esc(c.info||"")}</textarea>`,"full")}
-   ${agMailVink("aaM",c.inMail!==false)}
+   ${agMailVink("aaM",c.inMail!==false,c.datum)}
    <div class="err full" id="aaErr"></div></form>`,
    `<a class="btn" href="#${bk?"banket":"kinderfeest"}" data-act="closeModal" style="margin-right:auto">Naar ${naam.toLowerCase()} ›</a>${recht("social")!=="geen"?`<button type="button" class="btn" data-sopost="${bk?"bk":"kf"}">Post maken</button>`:""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="aaOk">Bewaren</button>':""}`);
   if(!canWrite)return;
@@ -2354,7 +2357,7 @@ function vgForm(v,id){const d=canWrite?"":" disabled";v=v||{soort:"Bestuursverga
    ${fld("vg_datum","Datum",`<input id="vg_datum" type="date" value="${esc(v.datum||"")}"${d}>`)}${uurVeld("vg_uur",v.uur,d)}
    ${fld("vg_locatie","Waar",inp("vg_locatie",v.locatie,'maxlength="160" placeholder="bv. Kazerne, refter"'+d),"full")}
    ${ta("agenda","Agenda","Eén punt per regel",110)}
-   <div class="full" id="vgMailW"${vgBestuur(v.soort?v:{soort:VG_SOORT[0]})?" hidden":""}>${agMailVink("vg_mail",vgInMail(v))}</div>
+   <div class="full" id="vgMailW"${vgBestuur(v.soort?v:{soort:VG_SOORT[0]})?" hidden":""}>${agMailVink("vg_mail",vgInMail(v),v.datum)}</div>
 <div class="err full" id="vgErr"></div></form>`,
    `${id&&canWrite?'<button class="btn danger" id="vgDel" style="margin-right:auto">Verwijderen</button>':""}<button class="btn" data-act="closeModal">${canWrite?"Annuleren":"Sluiten"}</button>${canWrite?'<button class="btn primary" id="vgOk">Bewaren</button>':""}`,{});
   const pr=$("#vgPrint");if(pr)pr.onclick=()=>vgPrint(S.vergaderingen.get(id)||v);
