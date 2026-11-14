@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}.logo-a{display:block;flex:none;line-height:0;border-radius:4px}.logo-a:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .lp-hint{margin:8px 0 0;font-size:13.5px;color:var(--muted)}
+.lp-prijs{flex-wrap:wrap}.lp-gm{flex-basis:100%;color:var(--muted);font-size:13px;line-height:1.4}
 .kv{display:flex;flex-direction:column;gap:6px;margin:0 0 10px;font-size:15px}.kv>div{display:flex;justify-content:space-between;gap:12px}.kv b{font-variant-numeric:tabular-nums;white-space:nowrap}.kv small{color:var(--muted)}.kv-vk{color:#18794A}.kv-tot{border-top:1px solid var(--line-strong);padding-top:8px;font-size:16.5px}
 </style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Banket · VBHA</title>
@@ -235,7 +236,7 @@ let LP=0;async function lidPrijs(id){const el=$("#lpPrijs"),n=++LP;alMeld($("#na
   try{const r=await fetch("/api/banket?lid="+encodeURIComponent(id));const j=await r.json();if(n!==LP)return;if(!r.ok)throw 0;
     if(j.al){alMeld($("#naam"),j.melding);INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
     if(!INFO.kortingAan){INFO.lp=null;INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}INFO.prijs=j.prijs;INFO.lp=j;
-    if(el){const st=String(j.status||"");el.hidden=!st||st==="GEEN";el.innerHTML=`<span class="lp-st ${esc(st.toLowerCase())}">${esc(st.charAt(0)+st.slice(1).toLowerCase())}</span><span>Status ${esc(st.toLowerCase())}${j.korting?` · ${j.korting}% korting`:""}</span>`}}
+    if(el){const st=String(j.status||"");el.hidden=!st||st==="GEEN";el.innerHTML=`<span class="lp-st ${esc(st.toLowerCase())}">${esc(st.charAt(0)+st.slice(1).toLowerCase())}</span><span>Status ${esc(st.toLowerCase())}${j.korting?` · ${j.korting}% korting`:""}</span>${INFO.goudMelding?`<small class="lp-gm">Omdat het puntensysteem dit jaar van start ging, krijgt iedereen uitzonderlijk de goudstatus.</small>`:""}`}}
   catch(x){if(n!==LP)return;INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true}upd()}
 function val(n){const c=document.querySelector('input[name="'+n+'"]:checked');return c?c.value:""}
 function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
