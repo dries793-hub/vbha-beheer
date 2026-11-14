@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}.logo-a{display:block;flex:none;line-height:0;border-radius:4px}.logo-a:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .lp-hint{margin:8px 0 0;font-size:13.5px;color:var(--muted)}
 .lp-prijs{flex-wrap:wrap}.lp-gm{flex-basis:100%;color:var(--muted);font-size:13px;line-height:1.4}
-.kv small{white-space:nowrap}.kv{display:flex;flex-direction:column;gap:6px;margin:0;font-size:15px}.kv>div{display:flex;justify-content:space-between;gap:12px}.kv b{font-variant-numeric:tabular-nums;white-space:nowrap}.kv small{color:var(--muted)}.kv-vk{color:#18794A}.kv-tot{border-top:1px solid var(--line-strong);padding-top:8px;font-size:16.5px}
+.kv small{display:block;font-size:13px;margin-top:1px}.kv>div{align-items:baseline}.kv{display:flex;flex-direction:column;gap:6px;margin:0;font-size:15px}.kv>div{display:flex;justify-content:space-between;gap:12px}.kv b{font-variant-numeric:tabular-nums;white-space:nowrap}.kv small{color:var(--muted)}.kv-vk{color:#18794A}.kv-tot{border-top:1px solid var(--line-strong);padding-top:8px;font-size:16.5px}
 </style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Banket · VBHA</title>
 <link rel="icon" href="/favicon.png">
@@ -242,7 +242,7 @@ function val(n){const c=document.querySelector('input[name="'+n+'"]:checked');re
 function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
   const pay=$("#pay"),L=INFO.lp,n=p||1;
   /* korting volgens het puntensysteem: kostprijs, bijdrage van de vriendenkring en jouw aandeel duidelijk tonen */
-  const kader=L&&L.korting>0?`<div class="kv"><div><span>Kostprijs${n>1?` (${n} × ${eur(L.basis)})`:""}</span><b>${eur(n*L.basis)}</b></div><div class="kv-vk"><span>Bijdrage vriendenkring <small>(${esc(L.status.charAt(0)+L.status.slice(1).toLowerCase())}, ${L.korting}%)</small></span><b>− ${eur(n*(L.basis-L.prijs))}</b></div><div class="kv-tot"><span>Jouw aandeel</span><b>${eur(n*L.prijs)}</b></div></div>`:"";
+  const kader=L&&L.korting>0?`<div class="kv"><div><span>Kostprijs${n>1?` (${n} × ${eur(L.basis)})`:""}</span><b>${eur(n*L.basis)}</b></div><div class="kv-vk"><span>Bijdrage vriendenkring<small>${esc(L.status.charAt(0)+L.status.slice(1).toLowerCase())} · ${L.korting}% korting</small></span><b>− ${eur(n*(L.basis-L.prijs))}</b></div><div class="kv-tot"><span>Jouw aandeel</span><b>${eur(n*L.prijs)}</b></div></div>`:"";
   if(p||kader){pay.hidden=false;pay.innerHTML=kader||`Te betalen: <b>${eur(p*INFO.prijs)}</b>`}else pay.hidden=true}
 document.addEventListener("change",e=>{if(e.target.name)upd()});
 $("#f").addEventListener("submit",async e=>{e.preventDefault();const er=$("#err");er.textContent="";
