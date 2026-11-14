@@ -1610,7 +1610,7 @@ function lidgeldHist(lid){
   for(let y=last;y>=first;y--){const jl=S.jaarleden.get(y+"_"+lid.id);out.push({y,bet:hits.get(y)||[],ov:jl&&jl.lidgeld})}
   return out;
 }
-const LG_VRIJ={2021:"Vrijgesteld (corona)"},LG_REG=2025; // lidgelden van voor 2025: geregulariseerd als betaald (vorig systeem onvolledig)
+const LG_VRIJ={2021:"Vrijgesteld"},LG_REG=2025; // lidgelden van voor 2025: geregulariseerd als betaald (vorig systeem onvolledig)
 function lidgeldHistHtml(l,r){
   const H=lidgeldHist(l);if(!H.length)return"";
   const ere=isEreVoorzitter(l);let ok=0;
