@@ -115,7 +115,7 @@ html,body{overflow-x:hidden}
     <div class="grid">
       <div><label for="voornaam">Voornaam</label><input type="text" id="voornaam" name="voornaam" autocomplete="given-name" required maxlength="80"></div>
       <div><label for="naam">Naam</label><input type="text" id="naam" name="naam" autocomplete="family-name" required maxlength="80"></div>
-      <div class="full"><label for="adres">Adres *</label><input type="text" id="adres" name="adres" autocomplete="street-address" placeholder="Straat nr, postcode gemeente" required maxlength="200"></div>
+      <div class="full"><label for="adres">Adres</label><input type="text" id="adres" name="adres" autocomplete="street-address" placeholder="Straat nr, postcode gemeente" required maxlength="200"></div>
       <div><label for="email">E-mail</label><input type="email" id="email" name="email" autocomplete="email" inputmode="email" required maxlength="120"></div>
       <div><label for="telefoon">Telefoon/gsm</label><input type="tel" id="telefoon" name="telefoon" autocomplete="tel" inputmode="tel" required maxlength="40"></div>
       <fieldset class="full" style="border:0;margin:0;padding:0"><legend class="lbl">Duid aan wat past</legend><div class="opts" id="cats"></div></fieldset>
@@ -191,6 +191,7 @@ $("#f").addEventListener("submit",async e=>{e.preventDefault();const f=e.target,
   if(miss){er.textContent="Vul "+miss[1]+" in.";f.elements[miss[0]].focus();return}
   if(!adresVolledig(d.adres)){er.textContent="Vul je volledige adres in: straat, huisnummer, postcode en gemeente (bv. Kerkstraat 12, 9300 Aalst).";f.elements.adres.focus();return}
   if(!f.elements.email.checkValidity()){er.textContent="Dit e-mailadres lijkt niet te kloppen.";f.elements.email.focus();return}
+  if(String(d.telefoon).replace(/\D/g,"").length<8){er.textContent="Vul een geldig telefoonnummer in.";f.elements.telefoon.focus();return}
   if(!d.categorie){er.textContent="Duid aan wat bij jou past.";return}
   const b=$("#go");b.disabled=true;b.textContent="Bezig…";
   try{const r=await fetch("/api/inschrijving",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...d,duur:Date.now()-t0})});
