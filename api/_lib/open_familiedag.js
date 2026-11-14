@@ -81,7 +81,7 @@ export default async function handler(req, res) {
           online = { t: "familiedag", id, token, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp, provider: bt.provider || null }; } catch (e) { console.error("Bancontact", e); }
       }
     }
-    await meldPush(sb, "iedereen", { titel: "Nieuwe inschrijving familiedag", tekst: `${naam} · ${B.personen} ${B.personen === 1 ? "persoon" : "personen"}`, url: "/#familiedag", tag: "ins-fd-" + id }).catch(() => {});
+    await meldPush(sb, "iedereen", { titel: "Nieuwe inschrijving familiedag", tekst: `${naam} · ${B.personen} ${B.personen === 1 ? "persoon" : "personen"}`, url: "/#familiedag", tag: "ins-fd-" + id, lidId }).catch(() => {});
     try { if (online) await wachtOpBetaling(sb, "familiedag", id); else await stuurBevestiging(sb, "familiedag", id); } catch (e) { console.error("bevestiging", e); }
     res.status(200).json({ ok: true, jaar: I.jaar, voornaam, bedrag: B.totaal, lijnen: B.lijnen, personen: B.personen, rekeningnummer: B.totaal > 0 ? I.rekeningnummer : null, begunstigde: I.vereniging, mededeling, qr, online, deadline: I.totTekst });
   } catch (e) { sendError(res, e); }

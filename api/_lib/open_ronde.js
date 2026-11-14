@@ -62,7 +62,7 @@ async function melding(req, res) {
   const toon = lid.voornaam && lid.an ? `${lid.voornaam} ${lid.an}` : lid.naam;
   const { error } = await sb.from("rondemeldingen").insert({ id, data: { jaar: A.jaar, straten, soort, lidId: lid.id, naam: lid.naam, toon, op: new Date().toISOString(), stand: "open" } });
   if (error) throw error;
-  try { await meldPush(sb, "admin", { titel: "Kalenderronde: melding te controleren", tekst: `${toon} meldt ${straten.length} ${straten.length === 1 ? "straat" : "straten"} als ${soort === "done" ? "gedaan" : "gereserveerd"}`, url: "/#ronde" }); } catch (e) {}
+  try { await meldPush(sb, "admin", { lidId: lid.id, titel: "Kalenderronde: melding te controleren", tekst: `${toon} meldt ${straten.length} ${straten.length === 1 ? "straat" : "straten"} als ${soort === "done" ? "gedaan" : "gereserveerd"}`, url: "/#ronde" }); } catch (e) {}
   return res.status(200).json({ ok: true });
 }
 
@@ -128,7 +128,7 @@ async function herReserveer(req, res, b, doe) {
   if (nieuw.length) {
     const { error } = await sb.from("ronde").upsert(nieuw.map(s => ({ id: j + "_" + s, data: { jaar: j, straat: s, status: "reserved", by: toon, lidId: l, ...(() => { const r = vorigRijen.find(d => d.straat === s) || {}; const m = [{ lidId: r.lidId || null, by: r.by }, ...(Array.isArray(r.mee) ? r.mee : [])].filter(w => w && w.by && !(w.lidId ? w.lidId === l : namen.includes(nm(w.by)))); return m.length ? { mee: m } : {}; })(), at, ...(s.includes("~") ? { deel: true } : {}), via: "mail vorig jaar" } })));
     if (error) throw error;
-    try { await meldPush(sb, "admin", { titel: "Kalenderronde: straten opnieuw gereserveerd", tekst: `${toon} reserveerde ${nieuw.length} ${nieuw.length === 1 ? "straat" : "straten"} van vorig jaar`, url: "/#ronde" }); } catch (e) {}
+    try { await meldPush(sb, "admin", { lidId: l, titel: "Kalenderronde: straten opnieuw gereserveerd", tekst: `${toon} reserveerde ${nieuw.length} ${nieuw.length === 1 ? "straat" : "straten"} van vorig jaar`, url: "/#ronde" }); } catch (e) {}
   }
   return res.status(200).json({ ok: true, gereserveerd: nieuw });
 }

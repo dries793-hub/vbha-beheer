@@ -112,7 +112,7 @@ export default async function handler(req, res) {
     const { error } = await sb.from("kinderfeest").insert({ id: kid, data: d });
     if (error) throw error;
     try { await onthoud(sb, lidRij.id, kinderen); } catch (e) { console.error("onthoud", e); }
-    await meldPush(sb, "iedereen", { titel: "Nieuwe inschrijving kinderfeest", tekst: `${lid} · ${kinderen.length} ${kinderen.length === 1 ? "kind" : "kinderen"}`, url: "/#kinderfeest", tag: "ins-kf-" + kid });
+    await meldPush(sb, "iedereen", { titel: "Nieuwe inschrijving kinderfeest", tekst: `${lid} · ${kinderen.length} ${kinderen.length === 1 ? "kind" : "kinderen"}`, lidId: lidRij.id, url: "/#kinderfeest", tag: "ins-kf-" + kid });
     try { await stuurBevestiging(sb, "kinderfeest", kid); } catch (e) { console.error("bevestiging", e); }
     // cadeaukiezer aan en nog binnen de termijn: meteen de persoonlijke keuzelink teruggeven
     let cadeau = null;

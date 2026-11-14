@@ -53,7 +53,8 @@ export async function lidgeldBoekingen(sb, jaar) {
 let LEDEN_CACHE = null;
 export async function actieveLeden(sb, jaar) {
   if (LEDEN_CACHE && LEDEN_CACHE.jaar === jaar && Date.now() - LEDEN_CACHE.t < 60000) return LEDEN_CACHE.L;
-  const [leden, jl, boek] = await Promise.all([alleRijen(sb, "leden"), alleRijen(sb, "jaarleden", jaar), lidgeldBoekingen(sb, jaar)]);
+  const [leden, jl, boek, tc] = await Promise.all([alleRijen(sb, "leden"), alleRijen(sb, "jaarleden", jaar), lidgeldBoekingen(sb, jaar), sb.from("config").select("data").eq("id", "testlid").maybeSingle()]);
+  const testAan = !!(tc && tc.data && tc.data.data && tc.data.data.aan);
   const JL = new Map(jl.map(r => [r.id, r.data || {}]));
   const nm = x => norm(x).replace(/\s+/g, " ");
   const lidBoek = boek.map(r => r.data || {}).map(b => ({ lidId: b.lidId, m: nm(b.mededeling) })).filter(b => b.lidId || b.m.includes("lidgeld"));
@@ -65,9 +66,11 @@ export async function actieveLeden(sb, jaar) {
     if (l.lidSinds && Number(l.lidSinds) > jaar) continue;
     if (l.lidTot && Number(l.lidTot) < jaar) continue;
     if (l.geenLid) continue; // manueel aangeduid als geen lid
+    if (l.test && !testAan) continue; // testlid enkel als het in de instellingen aan staat
     const j = JL.get(jaar + "_" + r.id) || {};
     let ok;
-    if (nm(l.info).includes("ere-voorzitter")) ok = true;
+    if (l.test) ok = true; // testlid telt altijd als actief lid (ook zonder lidgeld)
+    else if (nm(l.info).includes("ere-voorzitter")) ok = true;
     else if (j.lidgeld === "OK") ok = true;
     else if (j.lidgeld === "NOK") ok = false;
     else { const n1 = nm(l.naam), n2 = nm(l.voornaam), kp = x => String(x || "").replace(/[^a-z0-9]/g, ""), k1 = kp(n1), k2 = kp(n2); ok = lidBoek.some(b => b.lidId === r.id || (n1 && n2 && b.m.includes("lidgeld") && ((b.m.includes(n1) && b.m.includes(n2)) || (k1 && k2 && kp(b.m).includes(k1) && kp(b.m).includes(k2))))); }
