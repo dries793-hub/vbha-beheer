@@ -8396,3 +8396,18 @@ async function ktVerklein(f){if(!/^image\//.test(f.type)||/gif|svg/.test(f.type)
       const nu=S.boekingen.get(id)||cur;await write("boekingen",id,{...stripId(nu),documentId:did});
       closeModal();toast("Kasticket toegevoegd.");setTimeout(()=>boekingForm(S.boekingen.get(id)||{...nu,documentId:did},id),60)}
     catch(x){if(lb)lb.textContent="Kasticket toevoegen";toast("Opladen lukte niet: "+x.message,true)}}}}
+
+/* ============ Rustig opstarten ============
+   Bij het openen van de app blijft de inhoud verborgen ("Laden…") tot alle gegevens binnen zijn én het scherm een moment niet meer verandert
+   (terugbetalingen, bankstatus, gelezen meldingen, facturen… komen apart binnen). Zo springen er geen cijfers meer. Hoogstens 6 seconden. */
+(function(){const main=document.getElementById("main");if(!main)return;const b=document.body;b.classList.add("boot-rust");
+  const t0=Date.now();let tmr=0,klaar=false;
+  const toon=()=>{if(klaar)return;klaar=true;b.classList.remove("boot-rust");obs.disconnect();clearTimeout(tmr)};
+  const wacht=()=>{if(klaar)return;clearTimeout(tmr);if(Date.now()-t0>6000)return toon();
+    const tbWacht=typeof TB!=="undefined"&&typeof ROL!=="undefined"&&(ROL==="admin"||ROL==="boekhouder")&&!TB.lijst;
+    if(document.getElementById("boot")||!main.children.length||tbWacht){tmr=setTimeout(wacht,300);return} // nog aan het laden
+    tmr=setTimeout(toon,900)};
+  const obs=new MutationObserver(wacht);obs.observe(main,{childList:true,subtree:true,characterData:true});
+  setTimeout(toon,6000);
+  /* afgemeld of loginscherm: niet wachten */
+  setInterval(()=>{if(!klaar&&b.classList.contains("anon")&&Date.now()-t0>1500)toon()},500)})();

@@ -1594,6 +1594,9 @@ td.xcell,.xcell{min-width:0}
 .tb-n{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--line,#e5e7eb);color:var(--ink);font-size:11.5px;font-weight:700;line-height:18px;text-align:center;font-variant-numeric:tabular-nums}.seg .on .tb-n{background:rgba(255,255,255,.25);color:inherit}
 .tiles.kr-t5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
 @media (max-width:760px){.tiles.kr-t5{grid-template-columns:repeat(2,minmax(0,1fr))}.tiles.kr-t5 .kr-pct{grid-column:1/-1}}
+body.boot-rust #main{visibility:hidden}
+body.boot-rust .main{position:relative}
+body.boot-rust .main::after{content:"Laden…";position:absolute;left:0;right:0;top:80px;text-align:center;font-weight:600;color:var(--muted)}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
