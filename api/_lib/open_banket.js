@@ -55,11 +55,11 @@ export default async function handler(req, res) {
     if (!I.open) throw httpErr(403, "De inschrijvingen voor het banket zijn afgesloten.");
     const lidRij = (await actieveLeden(sb, I.jaar)).find(l => l.id === String(b.lidId || ""));
     if (!lidRij) throw httpErr(400, "Kies je naam uit de lijst van leden.");
-    if (await alIngeschreven(sb, "banket", I.jaar, lidRij.id)) throw httpErr(409, AL_TEKST("het banket", I.jaar));
     const naam = lidRij.naam, personen = Number(b.personen) === 2 ? 2 : 1;
     if (!b.menu1) throw httpErr(400, "Kies je menu.");
     if (personen === 2 && !b.menu2) throw httpErr(400, "Kies het menu voor je partner.");
-    const P = await banketPrijs(sb, I, lidRij.id);
+    const [al, P] = await Promise.all([alIngeschreven(sb, "banket", I.jaar, lidRij.id), banketPrijs(sb, I, lidRij.id)]);
+    if (al) throw httpErr(409, AL_TEKST("het banket", I.jaar));
     const teBetalen = Math.round(personen * P.prijs * 100) / 100;
     const token = I.online ? crypto.randomBytes(18).toString("base64url") : null;
     const id = nieuwId("web");
@@ -74,15 +74,17 @@ export default async function handler(req, res) {
     let qr = null;
     try { qr = qrSvg(epcPayload({ naam: I.vereniging, iban: I.rekeningnummer, bedrag: teBetalen, mededeling })); } catch (e) { console.error("QR", e); }
     let online = null;
+    // melding naar het bestuur loopt gelijktijdig met het klaarzetten van de betaling (sneller antwoord)
+    const push = meldPush(sb, "iedereen", { titel: "Nieuwe inschrijving banket", tekst: `${naam} · ${d.personen === 2 ? "2 personen" : "1 persoon"}`, url: "/#banket", tag: "ins-banket-" + id }).catch(() => null);
     if (token) {
       try {
         const bt = await startBetaling(sb, req, "banket", { id, data: d }, { bedrag: teBetalen, jaar: I.jaar });
         online = { t: "banket", id, token, deeplink: bt.deeplink, qrcode: bt.qrcode, checkout: bt.checkout, verlooptOp: bt.verlooptOp, provider: bt.provider || null };
       } catch (e) { console.error("Bancontact", e); }
     }
-    await meldPush(sb, "iedereen", { titel: "Nieuwe inschrijving banket", tekst: `${naam} · ${d.personen === 2 ? "2 personen" : "1 persoon"}`, url: "/#banket", tag: "ins-banket-" + id });
     // bevestigingsmail: bij online betalen wachten op de uitkomst, anders meteen (met de gegevens om over te schrijven)
     try { if (online) await wachtOpBetaling(sb, "banket", id); else await stuurBevestiging(sb, "banket", id); } catch (e) { console.error("bevestiging", e); }
+    await push;
     res.status(200).json({ ok: true, jaar: I.jaar, bedrag: teBetalen, prijsPP: P.prijs, status: P.status, korting: P.korting, basis: P.basis, rekeningnummer: I.rekeningnummer, begunstigde: I.vereniging, mededeling, qr, online, personen, deadline: I.deadline, naam, voornaam: lidRij.voornaam || "" });
   } catch (e) { sendError(res, e); }
 }
