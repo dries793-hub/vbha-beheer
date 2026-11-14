@@ -4401,7 +4401,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-inkdomi]")
 document.addEventListener("click",e=>{const b=e.target.closest("[data-inkbet]");if(!b)return;e.preventDefault();inkBetaal(b.dataset.inkbet)});
 {const st=document.createElement("style");st.textContent=`.ink-pay{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:20px;align-items:start}.ink-qr{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
 #ipQ{display:flex;flex-wrap:wrap;gap:16px;justify-content:center}.ink-qd{display:flex;flex-direction:column;align-items:center;gap:2px}.ink-qc{width:220px;height:220px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;display:grid;place-items:center;margin-top:6px}.ink-qc svg{width:100%;height:100%}
-.ink-domi{border:0;cursor:pointer;background:#e4edfd;color:#2f6fe4;font-weight:600}.ink-qr .lnkb{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline}.ink-qr-leeg{font-size:13px;color:var(--muted);padding:12px}
+.ink-domi{border:0;cursor:pointer;background:var(--sunken,#eef0f3);color:var(--muted,#5f6673);font-weight:600}.ink-qr .lnkb{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline}.ink-qr-leeg{font-size:13px;color:var(--muted);padding:12px}
 @media(max-width:700px){.ink-pay{grid-template-columns:1fr}}`;document.head.appendChild(st)}
 /* dashboard: gesplitste betaling (daglimiet) - de volgende betaling staat klaar */
 function inkBetWacht(){if(!inkMag())return[];const nu=new Date(todayISO()+"T12:00:00");
