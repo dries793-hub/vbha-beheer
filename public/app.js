@@ -6005,25 +6005,36 @@ let SP_STOP_ID=null;
 document.addEventListener("click",e=>{if(!e.target.closest("#spOk"))return;const c=document.getElementById("sStop");if(!c)return;const id=SP_STOP_ID&&S.sponsors.get(SP_STOP_ID);if(!id)return;
   const j=new Set((id.stopJaren||[]).map(Number));c.checked?j.add(JAAR):j.delete(JAAR);id.stopJaren=[...j].sort()},true);
 
-/* ============ Dashboard: aangeklikte meldingen zijn gelezen en verdwijnen ============
-   Per gebruiker, bewaard op dit toestel. Verandert de inhoud van een melding (nieuwe transactie, ander bedrag…),
-   dan is het een nieuwe melding en verschijnt ze opnieuw. */
+/* ============ Dashboard: gelezen of gesloten meldingen verdwijnen ============
+   Per gebruiker, bewaard op dit toestel én in de databank (tabel meldingen_gelezen), zodat ze ook op een ander toestel
+   niet terugkomen. Verandert de inhoud van een melding (nieuw lid, ander bedrag…), dan verschijnt ze opnieuw. */
 (function(){
   const KEY=()=>"vbha_gelezen_"+((typeof ME_NAME!=="undefined"&&ME_NAME)||"x");
   const lees=()=>{try{return JSON.parse(localStorage.getItem(KEY())||"[]")}catch(e){return []}};
-  const bewaar=L=>{try{localStorage.setItem(KEY(),JSON.stringify(L.slice(-400)))}catch(e){}};
+  const bewaar=L=>{try{localStorage.setItem(KEY(),JSON.stringify(L.slice(-400)))}catch(e){}sync()};
   const sig=el=>{const a=el.matches&&el.matches("a")?el:el.querySelector("a");return((a&&a.getAttribute("href"))||"")+"|"+(a&&a.dataset&&a.dataset.id||"")+"|"+el.textContent.replace(/\s+/g," ").trim().slice(0,240)};
   const item=a=>a.closest(".nm-i")||a.closest(".nmeld");
   let toon=false;
   /* meldingen zonder eigen sluitknop: kruisje; gesloten voor vandaag, morgen terug zolang het niet in orde is */
-  const DKEY=()=>"vbha_dicht_"+((typeof ME_NAME!=="undefined"&&ME_NAME)||"x"),vandaag=()=>new Date().toLocaleDateString("sv-SE");
-  const dicht=()=>{try{const o=JSON.parse(localStorage.getItem(DKEY())||"{}");return o.d===vandaag()?o.L||[]:[]}catch(e){return []}};
-  const msig=m=>{const b=m.querySelector(".nm-body");return(b?b.textContent:"").replace(/\d[\d.,]*/g,"#").replace(/\s+/g," ").trim().slice(0,300)};
+  const DKEY=()=>"vbha_dicht2_"+((typeof ME_NAME!=="undefined"&&ME_NAME)||"x");
+  const dicht=()=>{try{const v=JSON.parse(localStorage.getItem(DKEY())||"[]");return Array.isArray(v)?v:[]}catch(e){return []}};
+  const zetDicht=L=>{try{localStorage.setItem(DKEY(),JSON.stringify(L.slice(-400)))}catch(e){}sync()};
+  /* handtekening van een melding: de vetgedrukte delen (titel, namen, bedragen), zonder datums */
+  const msig=m=>{const b=m.querySelector(".nm-body");if(!b)return"";const B=[...b.querySelectorAll("b")].map(x=>x.textContent);return(B.length?B.join("|"):b.textContent).replace(/\d{1,2}\/\d{1,2}\/\d{2,4}/g,"").replace(/\s+/g," ").trim().slice(0,400)};
+  /* synchroniseren met de databank (één rij per gebruiker) */
+  let laden=false,klaar=false,tmr=0;
+  async function haal(){if(laden||klaar||typeof SB==="undefined"||!SB||typeof ME==="undefined"||!ME)return;laden=true;
+    try{const {data}=await SB.from("meldingen_gelezen").select("data").maybeSingle();const d=(data&&data.data)||{};
+      const g=[...new Set([...lees(),...(d.gelezen||[])])],x=[...new Set([...dicht(),...(d.dicht||[])])];
+      try{localStorage.setItem(KEY(),JSON.stringify(g.slice(-400)));localStorage.setItem(DKEY(),JSON.stringify(x.slice(-400)))}catch(e){}
+      klaar=true;if((d.gelezen||[]).length!==g.length||(d.dicht||[]).length!==x.length)sync();zuiver()}catch(e){}finally{laden=false}}
+  function sync(){if(!klaar)return;clearTimeout(tmr);tmr=setTimeout(async()=>{try{await SB.from("meldingen_gelezen").upsert({data:{gelezen:lees().slice(-400),dicht:dicht().slice(-400)},gewijzigd:new Date().toISOString()},{onConflict:"user_id"})}catch(e){}},800)}
+  setInterval(haal,3000);
   function zuiver(){
     if(toon||!document.querySelector(".nmeld"))return;
     const D=new Set(dicht());
     document.querySelectorAll(".nmeld").forEach(m=>{if(m.closest(".modal"))return;if(D.has(msig(m))){m.remove();return}
-      if(!m.querySelector(".nm-x")&&!m.dataset.dx){m.dataset.dx="1";m.insertAdjacentHTML("beforeend",`<button type="button" class="nm-x" data-dicht aria-label="Melding sluiten" title="Sluiten (morgen opnieuw als het dan nog niet in orde is)">${typeof ic==="function"?ic("x"):"×"}</button>`)}});
+      if(!m.querySelector(".nm-x")&&!m.dataset.dx){m.dataset.dx="1";m.insertAdjacentHTML("beforeend",`<button type="button" class="nm-x" data-dicht aria-label="Melding sluiten" title="Sluiten">${typeof ic==="function"?ic("x"):"×"}</button>`)}});
     const G=new Set(lees());
     document.querySelectorAll(".nmeld").forEach(m=>{
       if(m.closest(".modal"))return;
@@ -6033,7 +6044,7 @@ document.addEventListener("click",e=>{if(!e.target.closest("#spOk"))return;const
     });
   }
   window.addEventListener("click",e=>{
-    const dx=e.target.closest("[data-dicht]");if(dx){e.preventDefault();e.stopPropagation();const m=dx.closest(".nmeld");if(!m)return;const L=dicht(),k=msig(m);if(!L.includes(k))L.push(k);try{localStorage.setItem(DKEY(),JSON.stringify({d:vandaag(),L}))}catch(x){}m.remove();return}
+    const dx=e.target.closest("[data-dicht]");if(dx){e.preventDefault();e.stopPropagation();const m=dx.closest(".nmeld");if(!m)return;const L=dicht(),k=msig(m);if(k&&!L.includes(k))L.push(k);zetDicht(L);m.remove();return}
     const g=e.target.closest("[data-gl]");if(g){e.preventDefault();toon=true;if(typeof render==="function")render();setTimeout(()=>{toon=false},800);return}
     const a=e.target.closest(".nmeld a, .nmeld button");if(!a||a.closest(".modal")||a.closest("[data-nsd]"))return;
     const it=item(a);if(!it)return;const L=lees(),s=sig(it);if(!L.includes(s)){L.push(s);bewaar(L)}
