@@ -65,12 +65,7 @@ export default async function terugPubliek(req, res) {
       if (b.lidId) { const { data: l } = await sb.from("leden").select("id,data").eq("id", String(b.lidId).slice(0, 60)).maybeSingle(); if (l && !l.data.geenLid) { lidId = l.id; lidMail = String(l.data.email || "").trim(); } }
       if (b.betaald === "kaart") { // betaald met de rekening (bankkaart) van de vriendenkring: enkel het kasticket bewaren en later aan de transactie koppelen
         if (!b.bon || !b.bon.data) throw httpErr(400, "Neem een foto van het kasticket of laad het op.");
-        const id = "kt-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-        const bon = await bonBewaar(sb, id, b.bon), docId = "doc-" + id;
-        await sb.from("documenten").insert({ id: docId, data: { naam: `Kasticket ${naam} ${datum.split("-").reverse().join("-")}.${bon.pad.split(".").pop()}`, pad: bon.pad, map: "Kastickets", type: bon.type, grootte: 0, omschrijving: reden, door: naam, op: nu(), kasticket: { id, bedrag, datum } } });
-        const { error } = await sb.from("terugbetalingen").insert({ id, status: "wacht", data: { soort: "kaart", naam, email: email || (mailOk(lidMail) ? lidMail : ""), lidId, bedrag, reden, datum, bon, docId, op: nu() } });
-        if (error) throw error;
-        try { await kasticketKoppel(sb); } catch (e) { console.error("kasticket", e); }
+        await kasticketMaak(sb, { naam, email: email || (mailOk(lidMail) ? lidMail : ""), lidId, bedrag, reden, datum, bon: b.bon, door: naam });
         return res.status(200).json({ ok: true, kaart: true });
       }
       const ibanOk2 = iban || await bekendIban(sb, lidId, lidId ? "" : naam);
@@ -163,6 +158,12 @@ export async function terugApp(req, res) {
     if (b.actie === "maak") { // terugbetaling aanmaken: link om het IBAN op te vragen (of meteen met IBAN)
       const naam = clean(b.naam, 80), bedrag = bedragVan(b.bedrag), reden = clean(b.reden, 300), email = clean(b.email, 160), iban = String(b.iban || "").replace(/\s+/g, "").toUpperCase();
       if (!naam) throw httpErr(400, "Vul de naam in."); if (!bedrag) throw httpErr(400, "Vul een geldig bedrag in."); if (!reden) throw httpErr(400, "Vul de reden in.");
+      if (b.betaald === "kaart") { // betaald met de kaart van de vriendenkring: enkel kasticket, wordt aan de transactie gekoppeld
+        if (!b.bon || !b.bon.data) throw httpErr(400, "Neem een foto van het kasticket of laad het op.");
+        const datum = /^\d{4}-\d{2}-\d{2}$/.test(b.datum || "") ? b.datum : vandaagISO();
+        const id = await kasticketMaak(sb, { naam, email, lidId: clean(b.lidId, 60), bedrag, reden, datum, bon: b.bon, door: wie });
+        return res.status(200).json({ ...(await lijst()), id, kaart: true });
+      }
       if (!mailOk(email)) throw httpErr(400, "Dit e-mailadres klopt niet."); if (iban && !ibanOk(iban)) throw httpErr(400, "Dit IBAN-nummer klopt niet.");
       const id = "tb-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), lidId = clean(b.lidId, 60);
       const vorig = iban ? "" : await bekendIban(sb, lidId, naam), ib = iban || vorig;
@@ -260,4 +261,15 @@ export async function kasticketKoppel(sb) {
     n++;
   }
   return { gekoppeld: n };
+}
+
+/* kasticket (betaald met de kaart van de vriendenkring) bewaren als document en meteen proberen te koppelen */
+async function kasticketMaak(sb, { naam, email, lidId, bedrag, reden, datum, bon: bonIn, door }) {
+  const id = "kt-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const bon = await bonBewaar(sb, id, bonIn), docId = "doc-" + id;
+  await sb.from("documenten").insert({ id: docId, data: { naam: `Kasticket ${naam} ${datum.split("-").reverse().join("-")}.${bon.pad.split(".").pop()}`, pad: bon.pad, map: "Kastickets", type: bon.type, grootte: 0, omschrijving: reden, door: door || naam, op: nu(), kasticket: { id, bedrag, datum } } });
+  const { error } = await sb.from("terugbetalingen").insert({ id, status: "wacht", data: { soort: "kaart", naam, email: email || "", lidId: lidId || "", bedrag, reden, datum, bon, docId, door: door || naam, op: nu() } });
+  if (error) throw error;
+  try { await kasticketKoppel(sb); } catch (e) { console.error("kasticket", e); }
+  return id;
 }
