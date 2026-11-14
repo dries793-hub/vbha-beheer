@@ -132,10 +132,10 @@ html,body{overflow-x:hidden}
 .sp-s{color:var(--muted);font-size:14px;margin:0}
 .sp-r{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:14.5px}.sp-r:first-of-type{margin-top:12px}
 .sp-r span:last-child{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--muted)}.sp-r b{color:var(--ink)}
-.sp-m{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:18px 0 0}
-.sp-m .seg{height:10px;border-radius:999px;background:var(--sunken);overflow:hidden}.sp-m .seg i{display:block;height:100%;border-radius:999px}
-.sp-m .BRONS i{background:#a5703f}.sp-m .ZILVER i{background:#8d959e}.sp-m .GOUD i{background:#c19a2e}
-.sp-m .lb{font-size:12.5px;color:var(--muted);line-height:1.3;padding-top:6px}.sp-m .lb b{display:block;font-size:13.5px;color:var(--muted);font-weight:600}.sp-m .lb.on b{color:var(--ink)}
+.sp-m{position:relative;margin:18px 0 0}.sp-m .bar{height:8px;border-radius:999px;background:var(--sunken);overflow:hidden}.sp-m .bar i{display:block;height:100%;border-radius:999px}
+.sp-m .BRONS{background:#a5703f}.sp-m .ZILVER{background:#8d959e}.sp-m .GOUD{background:#c19a2e}.sp-m .GEEN{background:#9aa0a6}
+.sp-m u{position:absolute;top:0;width:2px;height:8px;background:var(--card,#fff)}
+.sp-m .lb{position:relative;height:16px;margin-top:5px;font-size:12px;color:var(--muted)}.sp-m .lb span{position:absolute;transform:translateX(-50%);white-space:nowrap}.sp-m .lb span:last-child{right:0;transform:none}
 .sp-n{margin:12px 0 0;font-size:15px}
 .sp-w{font-size:13px;color:var(--muted);line-height:1.6;margin:4px 2px 0}.sp-w a{color:var(--accent);font-weight:600}
 </style>
@@ -151,10 +151,9 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
     const een=o=>o.aantal!=null?`${o.aantal} ${o.aantal===1?o.eenheid[0]:o.eenheid[1]} · `:"";
     const rijen=L=>L.filter(o=>o.punten).map(o=>`<div class="sp-r"><span>${esc(o.naam)}</span><span>${een(o)}<b>${o.punten} pt</b></span></div>`).join("");
     const waarom=N.ere?"Erewacht: altijd de maximale korting.":N.vrij?`Je was in ${N.puntenJaar} vrijgesteld van het puntensysteem.`:N.start?`Het puntensysteem startte in ${N.puntenJaar+1}: iedereen krijgt goud.`:`Dankzij je <b>${N.totaal} punten</b> uit ${N.puntenJaar}.`;
-    /* meter in drie trappen: brons, zilver, goud; elke trap vult zich met de punten binnen die trap */
-    const tr=[["BRONS",D.brons||0,D.zilver],["ZILVER",D.zilver,D.goud],["GOUD",D.goud,D.goud]];
-    const vul=([,a,b])=>P.totaal>=b?100:P.totaal<a?0:Math.round((P.totaal-a)/(b-a)*100);
-    const meter=`<div class="sp-m" role="img" aria-label="${P.totaal} punten">${tr.map(t=>`<div class="seg ${t[0]}"><i style="width:${vul(t)}%"></i></div>`).join("")}${tr.map(t=>`<div class="lb${P.totaal>=t[1]?" on":""}"><b>${nm(t[0])}${P.totaal>=t[1]?" ✓":""}</b>${t[1]} pt</div>`).join("")}</div>`;
+    /* rustige meter: één balk tot goud, in de kleur van je status, met een streepje bij zilver */
+    const max=D.goud||1,pc=v=>Math.min(100,Math.max(0,v/max*100));
+    const meter=`<div class="sp-m" role="img" aria-label="${P.totaal} van ${D.goud} punten"><div class="bar"><i class="${P.volgend}" style="width:${pc(P.totaal)}%"></i></div><u style="left:${pc(D.zilver)}%"></u><div class="lb"><span style="left:${pc(D.zilver)}%">Zilver</span><span>Goud</span></div></div>`;
     const volg=P.ere?"Als erewacht blijf je goud.":P.vrij?`Je bent vrijgesteld: in ${Y+1} krijg je goud.`:P.naar?`Nog <b>${P.nodig} punten</b> voor ${nm(P.naar).toLowerCase()}.`:`Goud voor ${Y+1} heb je al binnen. Proficiat!`;
     $("#box").innerHTML=`<div class="sp">
      <div class="sp-c"><div class="sp-top"><span class="sp-j">Nu · ${Y}</span><span class="sp-badge ${N.status}">${nm(N.status)}</span></div>
