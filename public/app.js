@@ -8439,7 +8439,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   const pd=Number(jaarCfg(JAAR).perDoos)||100,stuks=dozen*pd;const bed=stuks||(Number(jaarCfg(JAAR).kalenderStock)||0)*pd;
   const PQ=((KF.data&&KF.data.betalingen)||[]).map(x=>({...x,o:false}));
   const ovS=Y=>[...S.boekingen.values()].filter(b=>b.categorie==="Kalenders"&&b.richting!=="uit"&&b.rekening!=="Kas"&&!isBc(b)&&String(b.datum||"")>=Y+"-11-01"&&String(b.datum||"")<=(Y+1)+"-01-31");
-  const PO=ovS(Number(JAAR)).map(b=>({a:Number(b.bedrag)||0,d:String(b.datum||""),o:true}));
+  const PO=ovS(Number(JAAR)).map(b=>({a:Number(b.bedrag)||0,d:String(b.datum||""),o:true,n:b.partij||"",m:b.mededeling||""}));
   // respons vorig jaar: betalingen (Bancontact + overschrijving) in het seizoen / bedeeld (uitgevoerde dozen, anders de oplage)
   const nV=KF.vorig?((KF.vorig.betalingen||[]).length+ovS(Number(JAAR)-1).length):0,bedV=(()=>{const Y=Number(JAAR)-1;let dz=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Y&&j.lidId!=="test-vbha")dz+=Number(j.kalUitgevoerd)||0;const p=Number(jaarCfg(Y).perDoos)||100;return dz*p||(Number(jaarCfg(Y).kalenderStock)||0)*p})();
   const P=PQ.concat(PO),A=P.map(x=>x.a),n=A.length,qrTot=A.reduce((s,a)=>s+a,0),nQ=PQ.length,nO=PO.length;
@@ -8449,6 +8449,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   // verdeling van de bedragen
   const SCH=[[0,5,"5€"],[5,10,"10€"],[10,15,"15€"],[15,20,"20€"],[20,25,"25€"],[25,50,"50€"],[50,75,"75€"],[75,100,"100€"],[100,1e9,"> 100€"]];
   const inS=(x,a,b)=>x>a+1e-9&&x<=b+1e-9||(a===0&&x<=b);
+  KF.P=PQ.concat(PO);KF.SCH=SCH;KF.inS=inS;
   const verd=SCH.map(([a,b,l])=>({l,q:PQ.filter(x=>inS(x.a,a,b)).length,o:PO.filter(x=>inS(x.a,a,b)).length,get n(){return this.q+this.o}}));const vm=Math.max(1,...verd.map(v=>v.n));
   // per dag
   const dag=new Map();for(const x of P){const g=dag.get(x.d)||{q:0,o:0,nq:0,no:0};g[x.o?"o":"q"]+=x.a;g[x.o?"no":"nq"]++;dag.set(x.d,g)}
@@ -8465,8 +8466,8 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   <div class="panel"><div class="panel-h"><h2>Betalingen</h2><span class="kf-lg"><i></i>Bancontact <i class="ov"></i>overschrijving</span></div>
    ${KF.bezig&&!KF.data?'<div class="empty">Laden…</div>':KF.fout?`<div class="empty">${esc(KF.fout)}</div>`:!n?'<div class="empty">Nog geen betalingen.</div>':`
    <div class="panel-b"><div class="tiles kf-t kf-t5">${tile("Aantal betalingen",n.toLocaleString("nl-BE"),"")}${tile("Respons",bed?(n/bed*100).toLocaleString("nl-BE",{maximumFractionDigits:1})+" %":"–","")}${tile("Meest gegeven",vaak?kfEur(vaak[0]):"–","")}${tile("Gemiddelde",kfEur(gem),"")}${tile("Hoogste betaling",kfEur(hoog),"")}</div>
-   <div class="kf-2"><div><h3 class="kf-h">Verdeling van de bedragen</h3>${verd.map(v=>`<div class="kf-r"><span>${v.l}</span>${bar(v.q,v.o,vm,fN)}<b>${v.n}</b></div>`).join("")}</div>
-   <div><h3 class="kf-h">Per dag</h3>${D.map(([d,v,g])=>`<div class="kf-r"><span>${fmtDate(d).slice(0,5)}</span>${bar(g.q,g.o,dm,kfEur,g.nq,g.no)}<b>${kfEur(v)}</b></div>`).join("")}</div></div></div>`}</div>
+   <div class="kf-2"><div><h3 class="kf-h">Verdeling van de bedragen</h3>${verd.map((v,i)=>`<div class="kf-r"><span class="kf-k" data-kfv="${i}">${v.l}</span>${bar(v.q,v.o,vm,fN)}<b>${v.n}</b></div>`).join("")}</div>
+   <div><h3 class="kf-h">Per dag</h3>${D.map(([d,v,g])=>`<div class="kf-r"><span class="kf-k" data-kfd="${d}">${fmtDate(d).slice(0,5)}</span>${bar(g.q,g.o,dm,kfEur,g.nq,g.no)}<b>${kfEur(v)}</b></div>`).join("")}</div></div></div>`}</div>
   ${J0.kin||J0.si?(()=>{const v=(a,b,inv)=>{if(!b)return'<td class="num muted" data-l="Verschil">–</td>';const d=a-b,p=Math.round(d/Math.abs(b)*100),g=inv?d<=0:d>=0;return `<td class="num" data-l="Verschil" style="color:var(--${g?"good":"bad"})">${d>=0?"+":"−"}${kfEur(Math.abs(d))}</td>`};
     const r=(l,a,b,inv)=>`<tr><td>${l}</td><td class="num" data-l="${JAAR}">${kfEur(a)}</td><td class="num" data-l="${Number(JAAR)-1}">${kfEur(b)}</td>${v(a,b,inv)}</tr>`;
     return `<div class="panel"><div class="panel-h"><h2>Vergelijking met vorig jaar</h2></div><div class="tw"><table class="kf-vg"><thead><tr><th></th><th class="num">${JAAR}</th><th class="num">${Number(JAAR)-1}</th><th class="num">Verschil</th></tr></thead><tbody>
@@ -8483,6 +8484,13 @@ document.addEventListener("click",e=>{let t=document.getElementById("kfTip");con
   t.textContent=i.dataset.t;const r=i.getBoundingClientRect();
   t.style.left=Math.max(8,Math.min(innerWidth-t.offsetWidth-8,r.left+r.width/2-t.offsetWidth/2))+"px";t.style.top=(r.top+scrollY-t.offsetHeight-8)+"px"});
 addEventListener("hashchange",()=>{const t=document.getElementById("kfTip");if(t)t.remove()});
+
+// klik op een bedragschijf of een dag: de betalingen tonen
+document.addEventListener("click",e=>{const k=e.target.closest("[data-kfv],[data-kfd]");if(!k||!KF.P)return;let L,t;
+  if(k.dataset.kfv!=null){const [a,b,l]=KF.SCH[Number(k.dataset.kfv)];L=KF.P.filter(x=>KF.inS(x.a,a,b));t="Betalingen "+l}
+  else{L=KF.P.filter(x=>x.d===k.dataset.kfd);t="Betalingen "+fmtDate(k.dataset.kfd)}
+  L=[...L].sort((x,y)=>(x.d+(x.t||"")).localeCompare(y.d+(y.t||"")));const som=L.reduce((s,x)=>s+x.a,0);
+  modal(t,`<div class="muted small" style="margin-bottom:8px">${L.length} ${L.length===1?"betaling":"betalingen"} · ${kfEur(som)}</div><div class="tw"><table class="kf-lt"><tbody>${L.map(x=>`<tr><td class="nw">${fmtDate(x.d).slice(0,5)}${x.t?" "+esc(x.t):""}</td><td><span class="kf-dot${x.o?" ov":""}"></span>${x.o?"Overschrijving":"Bancontact"}${x.n?` <span class="muted">· ${esc(x.n)}</span>`:""}${x.m?`<div class="muted small">${esc(x.m)}</div>`:""}</td><td class="num"><b>${kfEur(x.a)}</b></td></tr>`).join("")}</tbody></table></div>`,`<button class="btn" data-act="closeModal">Sluiten</button>`)});
 
 /* ============ Rechten per tabblad binnen een functie ============
    bestuur.rechten["functie:route"] = "geen"|"lezen"|"bewerken" beperkt één tabblad (nooit meer dan de functie zelf).

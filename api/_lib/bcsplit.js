@@ -211,7 +211,7 @@ export async function kalStat(sb, jaar) {
     const m = String(d.date || "").match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if (!m) continue;
     const iso = `${m[3]}-${m[2]}-${m[1]}`; if (iso < van || iso > tot) continue;
     const S = dagCat.get(iso); if (S && !S.has("Kalenders")) continue;
-    L.push({ a: r2(Number(d.amount) || 0), d: iso, t: String(d.time || "").slice(0, 5) }); }
+    L.push({ a: r2(Number(d.amount) || 0), d: iso, t: String(d.time || "").slice(0, 5), n: String(d.debtorName || ""), m: /^payconiq /i.test(d.description || "") ? "" : String(d.description || "") }); }
   const laatst = rows.reduce((m, r) => { const x = String((r.data && r.data.date) || "").split("/").reverse().join("-"); return x > m ? x : m; }, "");
   return { betalingen: L.sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t)), laatsteExport: laatst || null };
 }
