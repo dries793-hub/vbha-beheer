@@ -8526,6 +8526,12 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-rgf]");if(
   w.querySelectorAll(`[data-rgt="${b.dataset.rgf}"]`).forEach(r=>{const btn=r.querySelector("[data-rgf]"),t=btn.dataset.rgf.split(":")[1],cur=(r.querySelector(".on")||btn).dataset.v;
     const v=t==="kalfin"&&RN[cur]<RN[nv]?cur:nv;r.querySelectorAll("[data-rgf]").forEach(x=>{const on=x.dataset.v===v;x.classList.toggle("on",on);x.setAttribute("aria-checked",on)})})});
 {const st=document.createElement("style");st.textContent=".rg-tabr>span{font-weight:500;color:var(--muted)}";document.head.appendChild(st)}
+// Kalenders opent op Overzicht voor wie het mag zien
+{const _n=navFilter;navFilter=function(){_n.apply(this,arguments);if(!kfFinMag())return;
+  const T=RTAB.kalenders.map(t=>t[0]);let ok=false;
+  for(const n of NAV){const L=Array.isArray(n)?[n]:n.items;for(let i=0;i<L.length;i++)if(T.includes(L[i][0])&&L[i][0]!=="kalfin"){L[i]=["kalfin",L[i][1]];ok=true}}
+  if(ok){for(const x of T)if(x!=="kalfin")NAV_ALIAS[x]="kalfin";delete NAV_ALIAS.kalfin}}}
+if(typeof ICON!=="undefined"&&!ICON.kalfin)ICON.kalfin=ICON.kalenders;
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
