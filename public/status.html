@@ -137,7 +137,7 @@ html,body{overflow-x:hidden}
 .sp-m u{position:absolute;top:0;width:2px;height:8px;background:var(--card,#fff)}
 .sp-m .lb{position:relative;height:16px;margin-top:5px;font-size:12px;color:var(--muted)}.sp-m .lb span{position:absolute;transform:translateX(-50%);white-space:nowrap}.sp-m .lb span:last-child{right:0;transform:none}.sp-m .lb span.b0{left:0;transform:none}
 .sp-n{margin:12px 0 0;font-size:15px}
-.sp-w{font-size:13px;color:var(--muted);line-height:1.6;margin:4px 2px 0}.sp-w a{color:var(--accent);font-weight:600}
+.sp-rang{font-size:15px;margin:2px 2px 0;text-align:center}.sp-rang b{color:var(--accent)}.sp-w{font-size:13px;color:var(--muted);line-height:1.6;margin:4px 2px 0}.sp-w a{color:var(--accent);font-weight:600}
 </style>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -162,6 +162,7 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
       <div class="sp-big">${P.totaal} punten</div><p class="sp-s">${P.totaal?`al verzameld in ${Y}.`:`Je punten van ${Y} tellen voor ${Y+1}. Je hebt er nog geen.`}</p>${rijen(P.onderdelen)}
       ${P.ere||P.vrij?"":meter}
       <p class="sp-n">${volg}</p></div>
+     ${x.rang?`<p class="sp-rang">Met je punten sta je <b>${x.rang.gedeeld?"gedeeld ":""}${x.rang.plaats}${x.rang.plaats===1?"ste":x.rang.plaats===8||x.rang.plaats>=20?"ste":"de"}</b> van de ${x.rang.van} leden in ${Y}.</p>`:""}
      <p class="sp-w"><a href="/reglement">Hoe werkt het puntensysteem?</a></p></div>`})
   .catch(e=>fout(e.message));
 </script>

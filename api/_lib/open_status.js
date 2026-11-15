@@ -59,7 +59,17 @@ export default async function handler(req, res) {
     const totaal = onderdelen.reduce((t, o) => t + o.punten, 0), ere = L.categorie === "Erewacht", vrij = !ere && !!J.vrijstelling;
     const volgend = ere || vrij ? "GOUD" : totaal >= dr.goud ? "GOUD" : totaal >= dr.zilver ? "ZILVER" : totaal >= (dr.brons || 0) ? "BRONS" : "GEEN";
     const tot = volgend === "GOUD" ? 0 : (volgend === "ZILVER" ? dr.goud : volgend === "BRONS" ? dr.zilver : dr.brons) - totaal;
-    return res.status(200).json({ ok: true, voornaam: L.voornaam || "", jaar: Y,
+    // plaats in de rangschikking van dit jaar (gedeelde plaats bij evenveel punten; testlid telt niet mee)
+    let rang = null;
+    if (totaal > 0) {
+      const [{ data: alleJ }, { data: alleL }] = await Promise.all([sb.from("jaarleden").select("id,data").eq("data->>jaar", String(Y)).limit(2000), sb.from("leden").select("id,data").limit(2000)]);
+      const actief = new Set((alleL || []).filter(r => r.data && !r.data.geenLid && !r.data.test && r.id !== "test-vbha" && (!r.data.lidTot || Number(String(r.data.lidTot).slice(0, 4)) >= Y)).map(r => r.id));
+      actief.add(l);
+      const pt = new Map(); for (const r of alleJ || []) { const id = r.data && r.data.lidId; if (actief.has(id)) pt.set(id, delen(r.data, w).reduce((t, o) => t + o.punten, 0)); }
+      pt.set(l, totaal);
+      rang = { plaats: 1 + [...pt.values()].filter(v => v > totaal).length, gedeeld: [...pt.values()].filter(v => v === totaal).length > 1, van: actief.size };
+    }
+    return res.status(200).json({ ok: true, voornaam: L.voornaam || "", jaar: Y, rang,
       nu: { status: S.status, korting: S.korting, ere: S.ere, vrij: S.vrij, start: S.start, puntenJaar: S.puntenJaar, onderdelen: vorigDelen, totaal: vorigDelen.reduce((t, o) => t + o.punten, 0) },
       punten: { totaal, onderdelen, volgend, ere, vrij, nodig: tot > 0 ? tot : 0, naar: volgend === "GEEN" ? "BRONS" : volgend === "BRONS" ? "ZILVER" : volgend === "ZILVER" ? "GOUD" : null, kortingVolgend: Number(c.korting[volgend.toLowerCase()]) || 0 },
       drempels: { brons: 0, ...dr } });
