@@ -6812,10 +6812,9 @@ document.addEventListener("click",e=>{if(!FA.a)return;
 var RECHTEN=null;
 const FUNC=[["leden","Ledenlijst",["leden"],"Leden"],["punten","Puntensysteem",["punten"],"Leden"],
   ["overzicht","Overzicht",["boekhouding"],"Financiën"],["financien","Transacties",["boekingen","verwerken"],"Financiën"],["facturen","Facturen",["facturen","inkomend"],"Financiën"],["begroting","Begroting",["begroting"],"Financiën"],["historiek","Historiek",["historiek"],"Financiën"],
-  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"],"Activiteiten"],["kalverdeling","Dozen meegeven of terugbrengen",[],"Activiteiten"],["fuif","In Vier en Vlam",["fuif"],"Activiteiten"],["banket","Banket",["banket"],"Activiteiten"],["kinderfeest","Kinderfeest",["kinderfeest"],"Activiteiten"],["kassa","Kassa",["kassa"],"Activiteiten"],["shiften","Shiften",["shiften"],"Activiteiten"],
+  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"],"Activiteiten"],["kalverdeling","Dozen meegeven of terugbrengen",[],"Activiteiten"],["fuif","In Vier en Vlam",["fuif"],"Activiteiten"],["banket","Banket",["banket"],"Activiteiten"],["kinderfeest","Kinderfeest",["kinderfeest"],"Activiteiten"],["kassa","Kassa",["kassa"],"Activiteiten"],["shiften","Shiften",["shiften"],"Activiteiten"],["webshop","Webshop",["webshop"],"Activiteiten"],
   ["agenda","Agenda en verslagen",["agenda","verslagen"],"Vereniging"],["sponsors","Sponsors",["sponsors"],"Vereniging"],["documenten","Documenten",["documenten"],"Vereniging"],
-  ["mails","Mail",["mails"],"Communicatie"],["sms","Sms",["sms"],"Communicatie"],["social","Sociale media",["social"],"Communicatie"],["website","Website",["website"],"Communicatie"],["fotos","Fotoalbums",["fotos"],"Communicatie"],
-  ["webshop","Webshop",["webshop"],"Webshop"]];
+  ["mails","Mail",["mails"],"Communicatie"],["sms","Sms",["sms"],"Communicatie"],["social","Sociale media",["social"],"Communicatie"],["website","Website",["website"],"Communicatie"],["fotos","Fotoalbums",["fotos"],"Communicatie"]]
 const FUNC_VAN={};for(const [f,,rs] of FUNC)for(const r of rs)FUNC_VAN[r]=f;
 const RECHT_LBL={geen:"Verborgen",lezen:"Lezen",bewerken:"Bewerken"};
 function rechtenVanProfiel(rol){const o={};for(const [f] of FUNC)o[f]=rol==="admin"?"bewerken":rol==="boekhouder"&&["financien","facturen","terug","overzicht","historiek","begroting"].includes(f)?"bewerken":"lezen";return o}
@@ -8605,7 +8604,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest("#rgAlle");
 /* ============ Sjablonen voor rechten: met één keuze alle functies van een gebruiker invullen ============ */
 const RJ_BASIS=f=>["financien","facturen","begroting","historiek"].includes(f)?"geen":f==="kalverdeling"?"bewerken":"lezen";
 const RJ=[["bestuur","Bestuurslid",{}],["kalender","Kalenderverantwoordelijke",{kalenders:"bewerken",kalverdeling:"bewerken"}],
-  ["activiteit","Kassa en activiteiten",{kassa:"bewerken",fuif:"bewerken",banket:"bewerken",kinderfeest:"bewerken",familiedag:"bewerken",shiften:"bewerken"}],
+  ["activiteit","Kassa en activiteiten",{kassa:"bewerken",fuif:"bewerken",banket:"bewerken",kinderfeest:"bewerken",familiedag:"bewerken",shiften:"bewerken",webshop:"bewerken"}],
   ["communicatie","Communicatie",{mails:"bewerken",social:"bewerken",sms:"bewerken",website:"bewerken",fotos:"bewerken",agenda:"bewerken"}],
   ["financieel","Financieel",{financien:"bewerken",facturen:"bewerken",begroting:"bewerken",historiek:"lezen",overzicht:"bewerken",sponsors:"bewerken",kalverdeling:"lezen"}],
   ["lezen","Alles lezen",{financien:"lezen",facturen:"lezen",begroting:"lezen",historiek:"lezen",kalverdeling:"lezen"}]];
@@ -8970,6 +8969,8 @@ document.addEventListener("change",e=>{if(LIBS_OK||!(e.target&&e.target.type==="
 {const G=id=>NAV.find(n=>!Array.isArray(n)&&n.id===id),weg=id=>{let it=null;for(const g of NAV)if(!Array.isArray(g)){const k=g.items.findIndex(i=>i[0]===id);if(k>=0)it=g.items.splice(k,1)[0]}return it};
   const act=G("administratie"),com=G("communicatie");
   if(act){for(const id of ["kassa","shiften"]){const it=weg(id);if(it)act.items.push(it)}}
+  // Webshop bij Activiteiten, na Kassa
+  if(act){const k=NAV.findIndex(n=>Array.isArray(n)&&n[0]==="webshop");if(k>=0){NAV.splice(k,1);const j=act.items.findIndex(i=>i[0]==="kassa");act.items.splice(j>=0?j+1:act.items.length,0,["webshop","Webshop"])}}
   if(com&&!G("vereniging")){const v={id:"vereniging",label:"Vereniging",items:[]};for(const id of ["agenda","sponsors","documenten"]){const it=weg(id);if(it)v.items.push(it)}
     com.label="Communicatie";{const m=com.items.find(i=>i[0]==="mails");if(m)m[1]="Mail/Sms";if(!com.items.some(i=>i[0]==="social")){const k=com.items.indexOf(m);com.items.splice(k+1,0,["social","Sociale media"])}}NAV.splice(NAV.indexOf(com),0,v)}
   ICON.vereniging=ICON.vereniging||ICON.agenda||ICON.communicatie}
