@@ -8439,6 +8439,7 @@ function kfMed(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=s.leng
 VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   if(!kfFinMag())return kalTabs("kalfin")+'<div class="empty">Enkel voor de administrator en de boekhouder.</div>';
   if(KF.jaar!==JAAR&&!KF.bezig)setTimeout(kfLaad,0);
+  if(KF.jaar!==JAAR&&!KF.fout)return kalTabs("kalfin")+'<div class="kf-laad" role="status" aria-label="Laden"><span class="lader-c"></span><b>Laden</b></div>';
   const C=ctx(),B=C.boek.filter(b=>b.categorie==="Kalenders");
   const inB=B.filter(b=>b.richting!=="uit"),uitB=B.filter(b=>b.richting==="uit");
   const som=L=>L.reduce((s,b)=>s+(Number(b.bedrag)||0),0);
