@@ -2798,7 +2798,7 @@ function mlKies(id){const t=S.templates.get(id);MAIL=mlVanTpl(t||null);UI.mailTp
 function mlWissel(fn){if(MAIL&&MAIL.dirty)confirmBox("Je hebt niet-bewaarde wijzigingen in <b>"+esc(MAIL.naam||"dit bericht")+"</b>. Toch verdergaan?","Verdergaan",fn);else fn()}
 
 /* ---------- pagina ---------- */
-VIEWS.mails=()=>({title:"Mail/SMS",actions:'<button class="btn" data-w data-act="mlNieuw">'+ic("plus")+'Nieuw sjabloon</button>',body(){
+VIEWS.mails=()=>({title:"Mail/Sms",actions:'<button class="btn" data-w data-act="mlNieuw">'+ic("plus")+'Nieuw sjabloon</button>',body(){
   const M=mailState();const G=groepen();const g=G.find(x=>x.id===UI.mailGroep)||G[0];if(g.id!==UI.mailGroep)UI.mailGroep=g.id;
   const tpls=mlTpls();const cats=[...new Set([...ML_CATS,...tpls.map(t=>t.categorie||"Algemeen")])];
   const uit=M.uit,met=g.list.filter(r=>r.email),zonder=g.list.filter(r=>!r.email),actief=met.filter(r=>!uit.has(String(r.email).toLowerCase()));
@@ -7778,7 +7778,7 @@ const smsVul=(t,r)=>String(t||"").replace(/\{voornaam\}/gi,r.voornaam||"");
 function smsDelen(t){const n=t.length;return !n?0:n<=160?1:Math.ceil(n/153)}
 async function smsLaad(){if(!SMS.dienst){SMS.dienst={laden:true};api("/api/mail?f=sms&tegoed=1").then(j=>{SMS.dienst=j;if(route()==="sms")renderBody()}).catch(()=>{SMS.dienst={aan:false}})}
   if(!SMS.log){SMS.log=[];try{const {data}=await SB.from("logboek").select("id,ts,wie,nieuw").eq("tabel","sms").order("id",{ascending:false}).limit(60);SMS.log=data||[];if(route()==="sms")renderBody()}catch(e){}}}
-VIEWS.sms=()=>({title:"Mail/SMS",body(){
+VIEWS.sms=()=>({title:"Mail/Sms",body(){
   if(recht("sms")==="geen")return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
   if(!SMS.dienst||!SMS.log)smsLaad();const D=SMS.dienst||{};const G=smsGroepen(),g=G.find(x=>x.id===SMS.groep)||G[0];const mag=canWrite;
   const sel=g.list.filter(r=>!SMS.uit.has(r.id));const tekst=SMS.tekst,del=smsDelen(smsVul(tekst,{voornaam:"Xxxxxxxx"}));
@@ -8940,7 +8940,7 @@ document.addEventListener("change",e=>{if(LIBS_OK||!(e.target&&e.target.type==="
   const act=G("administratie"),com=G("communicatie");
   if(act){for(const id of ["kassa","shiften"]){const it=weg(id);if(it)act.items.push(it)}}
   if(com&&!G("vereniging")){const v={id:"vereniging",label:"Vereniging",items:[]};for(const id of ["agenda","sponsors","documenten"]){const it=weg(id);if(it)v.items.push(it)}
-    com.label="Communicatie";{const m=com.items.find(i=>i[0]==="mails");if(m)m[1]="Mail/SMS";if(!com.items.some(i=>i[0]==="social")){const k=com.items.indexOf(m);com.items.splice(k+1,0,["social","Sociale media"])}}NAV.splice(NAV.indexOf(com),0,v)}
+    com.label="Communicatie";{const m=com.items.find(i=>i[0]==="mails");if(m)m[1]="Mail/Sms";if(!com.items.some(i=>i[0]==="social")){const k=com.items.indexOf(m);com.items.splice(k+1,0,["social","Sociale media"])}}NAV.splice(NAV.indexOf(com),0,v)}
   ICON.vereniging=ICON.vereniging||ICON.agenda||ICON.communicatie}
 // gsm: Vereniging + Communicatie samen onder "Admin"
 {const _g=navGroups;navGroups=function(){const L=_g.apply(this,arguments);if(innerWidth>760)return L;const v=L.find(g=>g.id==="vereniging"),c=L.find(g=>g.id==="communicatie");
