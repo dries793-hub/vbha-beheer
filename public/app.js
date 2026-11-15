@@ -2796,7 +2796,7 @@ function mlKies(id){const t=S.templates.get(id);MAIL=mlVanTpl(t||null);UI.mailTp
 function mlWissel(fn){if(MAIL&&MAIL.dirty)confirmBox("Je hebt niet-bewaarde wijzigingen in <b>"+esc(MAIL.naam||"dit bericht")+"</b>. Toch verdergaan?","Verdergaan",fn);else fn()}
 
 /* ---------- pagina ---------- */
-VIEWS.mails=()=>({title:"Mails",actions:'<button class="btn" data-w data-act="mlNieuw">'+ic("plus")+'Nieuw sjabloon</button>',body(){
+VIEWS.mails=()=>({title:"Mail/SMS",actions:'<button class="btn" data-w data-act="mlNieuw">'+ic("plus")+'Nieuw sjabloon</button>',body(){
   const M=mailState();const G=groepen();const g=G.find(x=>x.id===UI.mailGroep)||G[0];if(g.id!==UI.mailGroep)UI.mailGroep=g.id;
   const tpls=mlTpls();const cats=[...new Set([...ML_CATS,...tpls.map(t=>t.categorie||"Algemeen")])];
   const uit=M.uit,met=g.list.filter(r=>r.email),zonder=g.list.filter(r=>!r.email),actief=met.filter(r=>!uit.has(String(r.email).toLowerCase()));
@@ -7755,7 +7755,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-vga]
    Het recht "sms" blijft apart (NAV_ALIAS zou het anders aan Mails koppelen): standaard enkel admin. */
 var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.sms="mails";
 {const _r=recht;recht=function(r){if(r==="sms"||r==="social"){if(ROL==="admin")return "bewerken";if(typeof SIM_U!=="undefined"&&SIM_U&&ROL!==ROL_ECHT&&SIM_U.rechten)return SIM_U.rechten[r]||"geen";return (RECHTEN&&ROL===ROL_ECHT&&RECHTEN[r])||"geen"}return _r.apply(this,arguments)}}
-function comTabs(act){const T=[["mails","Mail"],["social","Sociale media"],["sms","Sms"]].filter(([k])=>k==="mails"||recht(k)!=="geen");if(T.length<2)return "";return `<div class="ka-tabs" role="tablist">${T.map(([k,l])=>`<a role="tab" href="#${k}" class="${act===k?"on":""}">${l}</a>`).join("")}</div>`}
+function comTabs(act){const T=[["mails","Mail"],["sms","Sms"]].filter(([k])=>k==="mails"||recht(k)!=="geen");if(T.length<2)return "";return `<div class="ka-tabs" role="tablist">${T.map(([k,l])=>`<a role="tab" href="#${k}" class="${act===k?"on":""}">${l}</a>`).join("")}</div>`}
 const SMS={groep:"bestuur",los:"",tekst:"",uit:new Set(),dienst:null,log:null};
 const smsNr=t=>{let d=String(t||"").replace(/[^\d+]/g,"");if(d.startsWith("+"))d=d.slice(1);else if(d.startsWith("00"))d=d.slice(2);else if(d.startsWith("0")&&d.length>=9)d="32"+d.slice(1);return /^\d{9,15}$/.test(d)?d:""};
 const smsGsm=t=>{const n=smsNr(t);return n&&(!n.startsWith("32")||/^324\d{8}$/.test(n))?n:""}; // Belgische vaste nummers kunnen geen sms ontvangen
@@ -7775,7 +7775,7 @@ const smsVul=(t,r)=>String(t||"").replace(/\{voornaam\}/gi,r.voornaam||"");
 function smsDelen(t){const n=t.length;return !n?0:n<=160?1:Math.ceil(n/153)}
 async function smsLaad(){if(!SMS.dienst){SMS.dienst={laden:true};api("/api/mail?f=sms&tegoed=1").then(j=>{SMS.dienst=j;if(route()==="sms")renderBody()}).catch(()=>{SMS.dienst={aan:false}})}
   if(!SMS.log){SMS.log=[];try{const {data}=await SB.from("logboek").select("id,ts,wie,nieuw").eq("tabel","sms").order("id",{ascending:false}).limit(60);SMS.log=data||[];if(route()==="sms")renderBody()}catch(e){}}}
-VIEWS.sms=()=>({title:"Communicatie",body(){
+VIEWS.sms=()=>({title:"Mail/SMS",body(){
   if(recht("sms")==="geen")return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
   if(!SMS.dienst||!SMS.log)smsLaad();const D=SMS.dienst||{};const G=smsGroepen(),g=G.find(x=>x.id===SMS.groep)||G[0];const mag=canWrite;
   const sel=g.list.filter(r=>!SMS.uit.has(r.id));const tekst=SMS.tekst,del=smsDelen(smsVul(tekst,{voornaam:"Xxxxxxxx"}));
@@ -7828,7 +7828,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-sms]
    Post klaarzetten met tekst, foto's en link; meteen of op een tijdstip publiceren op Facebook, Instagram en de eigen website.
    Alles via de server (/api/mail?f=social, functie "social"): de Meta-sleutels staan enkel in Vercel. Geplande posts publiceert een geplande taak (elke 5 min). */
 if(!ROUTES.some(r=>r[0]==="social"))ROUTES.push(["social","Sociale media"]);
-NAV_ALIAS.social="mails";
+delete NAV_ALIAS.social;
 ICON.facebook='<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M15.5 8h-1.6A2.4 2.4 0 0 0 11.5 10.4V20.5M9 13h5.5"/>';
 ICON.prul='<path d="M4 7h16M9.5 7V4.5h5V7M6 7l1 13h10l1-13M10 11v6M14 11v6"/>';
 ICON.instagram='<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6" fill="currentColor"/>';
@@ -7852,12 +7852,12 @@ function soPost(r){const d=r.data,[cl,lb]=SO_ST[r.status]||["neutral",r.status],
      <span class="so-cs">${K.map(([k,l])=>{const x=R[k];return x&&x.ok&&x.url?`<a class="so-c ok" href="${esc(x.url)}" target="_blank" rel="noopener" title="Bekijken op ${l}">${ic(k)}</a>`:`<span class="so-c${x?x.ok?" ok":" nok":""}" title="${esc(l+(x&&!x.ok?": "+x.fout:""))}">${ic(k)}</span>`}).join("")}</span></div>
     ${K.some(([k])=>R[k]&&!R[k].ok)?`<div class="so-f">${K.filter(([k])=>R[k]&&!R[k].ok).map(([k,l])=>`${l}: ${esc(R[k].fout)}`).join("<br>")}</div>`:""}</div>
    ${canWrite?`<div class="so-a">${["concept","gepland","fout","deels"].includes(r.status)?`<button type="button" class="btn sm ghost" data-soa="bewerk" data-id="${esc(r.id)}">Bewerken</button>`:""}${["fout","deels"].includes(r.status)?`<button type="button" class="btn sm" data-soa="nu" data-id="${esc(r.id)}">Opnieuw</button>`:r.status==="concept"||r.status==="gepland"?`<button type="button" class="btn sm" data-soa="nu" data-id="${esc(r.id)}">Nu publiceren</button>`:""}${r.status!=="bezig"?`<button type="button" class="iconbtn" data-soa="weg" data-id="${esc(r.id)}" title="Verwijderen" aria-label="Verwijderen">${ic("prul")}</button>`:""}</div>`:""}</div>`}
-VIEWS.social=()=>({title:"Communicatie",body(){
+VIEWS.social=()=>({title:"Sociale media",body(){
   if(recht("social")==="geen")return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
-  if(!SOC.posts){soLaad();return comTabs("social")+'<div class="panel"><div class="empty">Laden…</div></div>'}
+  if(!SOC.posts){soLaad();return '<div class="panel"><div class="empty">Laden…</div></div>'}
   const E=SOC.ed||(SOC.ed=soLeeg()),d=canWrite&&!SOC.busy?"":" disabled",ig=E.kanalen.instagram,lang=E.tekst.length;
   const P=SOC.posts,gr=[["Gepland",P.filter(r=>r.status==="gepland"||r.status==="bezig").sort((a,b)=>String(a.plan).localeCompare(String(b.plan)))],["Concepten en fouten",P.filter(r=>["concept","fout","deels"].includes(r.status))],["Gepubliceerd",P.filter(r=>r.status==="gepubliceerd")]];
-  return comTabs("social")+`<div class="grid g2 so-g" style="align-items:start">
+  return `<div class="grid g2 so-g" style="align-items:start">
   <div class="panel"><div class="panel-h"><h2>${E.id?"Post bewerken":"Nieuwe post"}</h2><span class="grow"></span>${E.id?`<button type="button" class="btn sm ghost" data-soa="nieuw">Nieuwe post</button>`:""}</div><div class="panel-b stack">
    <div class="so-ks">${SO_K.map(([k,l])=>soKan(E,k,l)).join("")}</div>
    ${E.kanalen.website?`<div class="fld"><label for="soTi">Titel op de website</label><input id="soTi" maxlength="140" value="${esc(E.titel)}"${d}></div>
@@ -8937,7 +8937,7 @@ document.addEventListener("change",e=>{if(LIBS_OK||!(e.target&&e.target.type==="
   const act=G("administratie"),com=G("communicatie");
   if(act){for(const id of ["kassa","shiften"]){const it=weg(id);if(it)act.items.push(it)}}
   if(com&&!G("vereniging")){const v={id:"vereniging",label:"Vereniging",items:[]};for(const id of ["agenda","sponsors","documenten"]){const it=weg(id);if(it)v.items.push(it)}
-    com.label="Communicatie";{const m=com.items.find(i=>i[0]==="mails");if(m)m[1]="Mails"}NAV.splice(NAV.indexOf(com),0,v)}
+    com.label="Communicatie";{const m=com.items.find(i=>i[0]==="mails");if(m)m[1]="Mail/SMS";if(!com.items.some(i=>i[0]==="social")){const k=com.items.indexOf(m);com.items.splice(k+1,0,["social","Sociale media"])}}NAV.splice(NAV.indexOf(com),0,v)}
   ICON.vereniging=ICON.vereniging||ICON.agenda||ICON.communicatie}
 // gsm: Vereniging + Communicatie samen onder "Admin"
 {const _g=navGroups;navGroups=function(){const L=_g.apply(this,arguments);if(innerWidth>760)return L;const v=L.find(g=>g.id==="vereniging"),c=L.find(g=>g.id==="communicatie");
@@ -8948,6 +8948,7 @@ for(const r of ["regels","bank"]){const k=INST_TABS.findIndex(t=>t[0]===r);if(k>
   return h.replace(/<\/div>$/,`<a role="tab" href="#regels" class="${act==="regels"?"on":""}">Automatische regels</a><a role="tab" href="#bank" class="${act==="bank"?"on":""}">Bankimport</a></div>`)}}
 for(const r of ["regels","bank"]){const _v=VIEWS[r];if(!_v)continue;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.title="Transacties";
   v.body=function(){return String(b.apply(this,arguments)).replace(/^\s*<nav class="tabs" aria-label="Onderdelen instellingen">[\s\S]*?<\/nav>/,bkTabs(r))};return v};Object.assign(n,_v);VIEWS[r]=n}
+if(!ICON.social)ICON.social='<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/>';
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
