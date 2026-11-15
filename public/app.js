@@ -8423,7 +8423,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   const tot=kas+bc+ov,kost=som(uitB);
   const SP=C.boek.filter(b=>b.categorie==="Sponsoring"),spIn=som(SP.filter(b=>b.richting!=="uit")),spUit=som(SP.filter(b=>b.richting==="uit"));
   const res=tot+spIn-kost-spUit;
-  let dozen=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Number(JAAR))dozen+=Number(j.kalUitgevoerd)||0;
+  let dozen=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Number(JAAR)&&j.lidId!=="test-vbha")dozen+=Number(j.kalUitgevoerd)||0;
   const pd=Number(jaarCfg(JAAR).perDoos)||100,stuks=dozen*pd;
   const P=(KF.data&&KF.data.betalingen)||[],A=P.map(x=>x.a),n=A.length,qrTot=A.reduce((s,a)=>s+a,0);
   const hoog=n?Math.max(...A):0,gem=n?qrTot/n:0,med=kfMed(A);
