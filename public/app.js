@@ -8406,9 +8406,9 @@ for(const n of NAV)if(n&&n.items)n.items=n.items.filter(i=>i[0]!=="kalfin");
 const kfFinMag=()=>ROL==="admin"||ROL==="boekhouder";
 if(!KAL_TABS.some(t=>t[0]==="kalfin"))KAL_TABS.push(["kalfin","Financieel"]);
 {const _t=kalTabs;kalTabs=function(act){const h=_t.apply(this,arguments);return kfFinMag()?h:h.replace(/<a href="#kalfin"[^>]*>[^<]*<\/a>/,"")}}
-let KF={jaar:null,data:null,bezig:false,fout:""};
+let KF={jaar:null,data:null,vorig:null,bezig:false,fout:""};
 async function kfLaad(){if(KF.bezig)return;KF.bezig=true;KF.fout="";
-  try{KF.data=await api("/api/mail?f=bcsplit",{method:"POST",body:JSON.stringify({actie:"kalstat",jaar:JAAR})});KF.jaar=JAAR}catch(e){KF.fout=e.message}
+  try{const q=j=>api("/api/mail?f=bcsplit",{method:"POST",body:JSON.stringify({actie:"kalstat",jaar:j})});[KF.data,KF.vorig]=await Promise.all([q(JAAR),q(Number(JAAR)-1).catch(()=>null)]);KF.jaar=JAAR}catch(e){KF.fout=e.message}
   KF.bezig=false;if(route()==="kalfin")renderBody()}
 const kfEur=v=>eur(v);
 function kfMed(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2}
@@ -8436,9 +8436,12 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   // kalenderronde: bedeelde adressen
   let adr=0;try{if(typeof KR_STREETS!=="undefined"&&KR_STREETS.length){const M=krMarks(),D=krDelen();adr=KR_STREETS.reduce((t,x)=>t+krAdrGedaan(x,M,D),0)}}catch(e){}
   let dozen=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Number(JAAR)&&j.lidId!=="test-vbha")dozen+=Number(j.kalUitgevoerd)||0;
-  const pd=Number(jaarCfg(JAAR).perDoos)||100,stuks=dozen*pd;const bed=stuks;
+  const pd=Number(jaarCfg(JAAR).perDoos)||100,stuks=dozen*pd;const bed=stuks||(Number(jaarCfg(JAAR).kalenderStock)||0)*pd;
+  // respons vorig jaar: betalingen (Bancontact + overschrijving) in het seizoen / bedeeld (uitgevoerde dozen, anders de oplage)
+  const nV=KF.vorig?((KF.vorig.betalingen||[]).length+ovS(Number(JAAR)-1).length):0,bedV=(()=>{const Y=Number(JAAR)-1;let dz=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Y&&j.lidId!=="test-vbha")dz+=Number(j.kalUitgevoerd)||0;const p=Number(jaarCfg(Y).perDoos)||100;return dz*p||(Number(jaarCfg(Y).kalenderStock)||0)*p})();
   const PQ=((KF.data&&KF.data.betalingen)||[]).map(x=>({...x,o:false}));
-  const PO=inB.filter(b=>b.rekening!=="Kas"&&!isBc(b)).map(b=>({a:Number(b.bedrag)||0,d:String(b.datum||""),o:true}));
+  const ovS=Y=>[...S.boekingen.values()].filter(b=>b.categorie==="Kalenders"&&b.richting!=="uit"&&b.rekening!=="Kas"&&!isBc(b)&&String(b.datum||"")>=Y+"-11-01"&&String(b.datum||"")<=(Y+1)+"-01-31");
+  const PO=ovS(Number(JAAR)).map(b=>({a:Number(b.bedrag)||0,d:String(b.datum||""),o:true}));
   const P=PQ.concat(PO),A=P.map(x=>x.a),n=A.length,qrTot=A.reduce((s,a)=>s+a,0),nQ=PQ.length,nO=PO.length;
   const hoog=n?Math.max(...A):0,gem=n?qrTot/n:0,med=kfMed(A);
   const freq=new Map();for(const a of A)freq.set(a,(freq.get(a)||0)+1);const vaak=[...freq.entries()].sort((x,y)=>y[1]-x[1]||y[0]-x[0])[0];
@@ -8468,7 +8471,8 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
     const r=(l,a,b,inv)=>`<tr><td>${l}</td><td class="num" data-l="${JAAR}">${kfEur(a)}</td><td class="num" data-l="${Number(JAAR)-1}">${kfEur(b)}</td>${v(a,b,inv)}</tr>`;
     return `<div class="panel"><div class="panel-h"><h2>Vergelijking met vorig jaar</h2></div><div class="tw"><table class="kf-vg"><thead><tr><th></th><th class="num">${JAAR}</th><th class="num">${Number(JAAR)-1}</th><th class="num">Verschil</th></tr></thead><tbody>
       ${r("Totale winst",J1.res,J0.res)}${r("Omzet kalenders",J1.kin,J0.kin)}${r("Sponsors",J1.si,J0.si)}${r("Kosten kalenders",J1.kuit,J0.kuit,true)}
-      ${J1.opl&&J0.opl?`<tr><td>Oplage</td><td class="num" data-l="${JAAR}">${J1.opl.toLocaleString("nl-BE")}</td><td class="num" data-l="${Number(JAAR)-1}">${J0.opl.toLocaleString("nl-BE")}</td><td class="num muted" data-l="Verschil">${J1.opl-J0.opl>=0?"+":"−"}${Math.abs(J1.opl-J0.opl).toLocaleString("nl-BE")}</td></tr>`+r("Kostprijs per kalender",(J1.kuit-J1.si)/J1.opl,(J0.kuit-J0.si)/J0.opl,true)+r("Gemiddelde omzet per kalender",J1.kin/J1.opl,J0.kin/J0.opl)+r("Winst per kalender",J1.res/J1.opl,J0.res/J0.opl):""}</tbody></table></div></div>`})():""}`}});
+      ${J1.opl&&J0.opl?`<tr><td>Oplage</td><td class="num" data-l="${JAAR}">${J1.opl.toLocaleString("nl-BE")}</td><td class="num" data-l="${Number(JAAR)-1}">${J0.opl.toLocaleString("nl-BE")}</td><td class="num muted" data-l="Verschil">${J1.opl-J0.opl>=0?"+":"−"}${Math.abs(J1.opl-J0.opl).toLocaleString("nl-BE")}</td></tr>`+r("Kostprijs per kalender",(J1.kuit-J1.si)/J1.opl,(J0.kuit-J0.si)/J0.opl,true)+r("Gemiddelde omzet per kalender",J1.kin/J1.opl,J0.kin/J0.opl)+r("Winst per kalender",J1.res/J1.opl,J0.res/J0.opl):""}
+      ${bed&&bedV&&nV?(()=>{const a=n/bed*100,b=nV/bedV*100,d=a-b,f=x=>x.toLocaleString("nl-BE",{maximumFractionDigits:1})+" %";return `<tr><td>Respons</td><td class="num" data-l="${JAAR}">${f(a)}</td><td class="num" data-l="${Number(JAAR)-1}">${f(b)}</td><td class="num" data-l="Verschil" style="color:var(--${d>=0?"good":"bad"})">${d>=0?"+":"−"}${Math.abs(d).toLocaleString("nl-BE",{maximumFractionDigits:1})} %-pt</td></tr>`})():""}</tbody></table></div></div>`})():""}`}});
 
 // bedrag per kleur tonen bij aanklikken van een gekleurd blokje
 document.addEventListener("click",e=>{let t=document.getElementById("kfTip");const i=e.target.closest&&e.target.closest(".kf-b i[data-t]");
@@ -8492,7 +8496,7 @@ function bcCsv(t){const L=[];let rij=[],v="",q=false;t=String(t).replace(/^﻿/,
   const body=$("#modal .modal-b");if(!body||$("#bcExp"))return;
   body.insertAdjacentHTML("beforeend",`<div class="pi-sec"><h4>Bancontact-export</h4><label class="btn" style="cursor:pointer;align-self:flex-start">${ic("upload")}<span id="bcExpL">CSV opladen</span><input type="file" id="bcExp" accept=".csv,text/csv" hidden></label></div>`);
   $("#bcExp").onchange=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const lb=$("#bcExpL");lb.textContent="Bezig…";
-    try{const rijen=bcCsv(await f.text()).filter(r=>r.id&&r.payoutId);if(!rijen.length)throw new Error("Geen Bancontact-betalingen gevonden in dit bestand.");
+    try{const rijen=bcCsv(await f.text()).filter(r=>r.id);if(!rijen.length)throw new Error("Geen Bancontact-betalingen gevonden in dit bestand.");
       const j=await api("/api/mail?f=bcsplit",{method:"POST",body:JSON.stringify({actie:"export",rijen})});
       toast(`${j.opgeslagen} betalingen ingelezen · ${j.gesplitst||0} ${j.gesplitst===1?"storting":"stortingen"} opgesplitst`+(j.overgeslagen&&j.overgeslagen.length?` · ${j.overgeslagen.length} niet (bedrag klopt niet)`:""),!!(j.overgeslagen&&j.overgeslagen.length));lb.textContent="CSV opladen"}
     catch(x){lb.textContent="CSV opladen";toast(x.message,true)}e.target.value=""}}}
