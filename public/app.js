@@ -8929,6 +8929,26 @@ document.addEventListener("click",e=>{if(LIBS_OK)return;const t=e.target.closest
   e.preventDefault();e.stopImmediatePropagation();LIBS_KLAAR.then(()=>t.click())},true);
 document.addEventListener("change",e=>{if(LIBS_OK||!(e.target&&e.target.type==="file"))return;e.stopImmediatePropagation();const t=e.target;LIBS_KLAAR.then(()=>t.dispatchEvent(new Event("change",{bubbles:true})))},true);
 
+/* ============ Indeling van het menu ============
+   Kassa en Shiften bij Activiteiten; "Administratie" opgesplitst in Vereniging (Agenda, Sponsors, Documenten) en
+   Communicatie (Mails, Website, Fotoalbums). Op de gsm blijven die twee samen onder één knop (anders te veel knoppen).
+   Automatische regels en Bankimport als tabbladen bij Transacties (Financiën) in plaats van onder Instellingen. */
+{const G=id=>NAV.find(n=>!Array.isArray(n)&&n.id===id),weg=id=>{let it=null;for(const g of NAV)if(!Array.isArray(g)){const k=g.items.findIndex(i=>i[0]===id);if(k>=0)it=g.items.splice(k,1)[0]}return it};
+  const act=G("administratie"),com=G("communicatie");
+  if(act){for(const id of ["kassa","shiften"]){const it=weg(id);if(it)act.items.push(it)}}
+  if(com&&!G("vereniging")){const v={id:"vereniging",label:"Vereniging",items:[]};for(const id of ["agenda","sponsors","documenten"]){const it=weg(id);if(it)v.items.push(it)}
+    com.label="Communicatie";{const m=com.items.find(i=>i[0]==="mails");if(m)m[1]="Mails"}NAV.splice(NAV.indexOf(com),0,v)}
+  ICON.vereniging=ICON.vereniging||ICON.agenda||ICON.communicatie}
+// gsm: Vereniging + Communicatie samen onder "Admin"
+{const _g=navGroups;navGroups=function(){const L=_g.apply(this,arguments);if(innerWidth>760)return L;const v=L.find(g=>g.id==="vereniging"),c=L.find(g=>g.id==="communicatie");
+  if(v&&c)return L.filter(g=>g!==v).map(g=>g===c?{...c,label:"Administratie",items:[...v.items,...c.items]}:g);if(v&&!c)return L.map(g=>g===v?{...v,id:"communicatie",label:"Administratie"}:g);return L}}
+// Regels en Bankimport bij Transacties
+for(const r of ["regels","bank"]){const k=INST_TABS.findIndex(t=>t[0]===r);if(k>=0)INST_TABS.splice(k,1);const j=INST_IDS.indexOf(r);if(j>=0)INST_IDS.splice(j,1);NAV_ALIAS[r]="boekingen"}
+{const _b=bkTabs;bkTabs=function(act){const h=_b.apply(this,arguments);if(ROL!=="admin")return h;
+  return h.replace(/<\/div>$/,`<a role="tab" href="#regels" class="${act==="regels"?"on":""}">Automatische regels</a><a role="tab" href="#bank" class="${act==="bank"?"on":""}">Bankimport</a></div>`)}}
+for(const r of ["regels","bank"]){const _v=VIEWS[r];if(!_v)continue;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.title="Transacties";
+  v.body=function(){return String(b.apply(this,arguments)).replace(/^\s*<nav class="tabs" aria-label="Onderdelen instellingen">[\s\S]*?<\/nav>/,bkTabs(r))};return v};Object.assign(n,_v);VIEWS[r]=n}
+
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
    Bancontact-storting exact op per uitbetaling: betalingen die de app kent apart, de rest (kalenders via QR) bij Kalenders. */
