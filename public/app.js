@@ -8446,7 +8446,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   const verd=SCH.map(([a,b,l])=>({l,q:PQ.filter(x=>inS(x.a,a,b)).length,o:PO.filter(x=>inS(x.a,a,b)).length,get n(){return this.q+this.o}}));const vm=Math.max(1,...verd.map(v=>v.n));
   // per dag
   const dag=new Map();for(const x of P){const g=dag.get(x.d)||{q:0,o:0};g[x.o?"o":"q"]+=x.a;dag.set(x.d,g)}
-  const D=[...dag.entries()].sort().map(([d,g])=>[d,g.q+g.o,g]);const dm=Math.max(1,...D.map(d=>d[1]));
+  const D=[...dag.entries()].filter(([d])=>d>=JAAR+"-11-01").sort().map(([d,g])=>[d,g.q+g.o,g]);const dm=Math.max(1,...D.map(d=>d[1]));
   const top=D.length?D.reduce((m,d)=>d[1]>m[1]?d:m):null;
   const bar=(q,o,m)=>`<span class="kf-b"><i style="width:${q/m*100}%"></i><i class="ov" style="width:${o/m*100}%"></i></span>`;
   return kalTabs("kalfin")+`
