@@ -1594,8 +1594,8 @@ td.xcell,.xcell{min-width:0}
 .tb-n{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--line,#e5e7eb);color:var(--ink);font-size:11.5px;font-weight:700;line-height:18px;text-align:center;font-variant-numeric:tabular-nums}.seg .on .tb-n{background:rgba(255,255,255,.25);color:inherit}
 .tiles.kr-t5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
 @media (max-width:760px){.tiles.kr-t5{grid-template-columns:repeat(2,minmax(0,1fr))}.tiles.kr-t5 .kr-pct{grid-column:1/-1}}
-#lader{position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--bg);color:var(--muted);transition:opacity .2s}
-#lader b{font-weight:600;font-size:15px}#lader.weg{opacity:0;pointer-events:none}
+#lader{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--bg);color:var(--muted);transition:opacity .2s}
+#lader b{font-weight:600;font-size:15px}@media (max-width:760px){body.anon:has(#lader) .tabbar{display:flex!important}}#lader.weg{opacity:0;pointer-events:none}
 .lader-c{width:38px;height:38px;border-radius:50%;border:3px solid var(--line,#e5e7eb);border-top-color:var(--accent,#c8102e);animation:bootdraai .8s linear infinite}
 @keyframes bootdraai{to{transform:rotate(360deg)}}@media (prefers-reduced-motion:reduce){.lader-c{animation-duration:2.4s}}
 @media (hover:none){.mbar:hover rect:first-of-type{fill:transparent}}

@@ -8402,8 +8402,11 @@ async function ktVerklein(f){if(!/^image\//.test(f.type)||/gif|svg/.test(f.type)
    Het verdwijnt pas als alle gegevens binnen zijn én het scherm een moment niet meer verandert (terugbetalingen, bankstatus,
    gelezen meldingen… komen apart binnen). Hoogstens 8 seconden. Bij het loginscherm verdwijnt het meteen. */
 (function(){const main=document.getElementById("main"),L=document.getElementById("lader");if(!main||!L)return;
+  /* menubalk onderaan al tonen zoals de vorige keer (wordt na het laden vervangen door de echte) */
+  const tb=document.getElementById("tabbar");try{const h=localStorage.getItem("vbha.tabbar");if(tb&&!tb.children.length&&h)tb.innerHTML=h}catch(e){}
+  const bewaarTab=()=>{try{if(tb&&tb.children.length&&!document.body.classList.contains("anon"))localStorage.setItem("vbha.tabbar",tb.innerHTML)}catch(e){}};
   const t0=Date.now();let tmr=0,klaar=false;
-  const toon=()=>{if(klaar)return;klaar=true;obs.disconnect();clearTimeout(tmr);L.classList.add("weg");setTimeout(()=>L.remove(),250)};
+  const toon=()=>{if(klaar)return;klaar=true;setTimeout(bewaarTab,50);obs.disconnect();clearTimeout(tmr);L.classList.add("weg");setTimeout(()=>L.remove(),250)};
   const wacht=()=>{if(klaar)return;clearTimeout(tmr);if(Date.now()-t0>8000)return toon();
     const tbWacht=typeof TB!=="undefined"&&typeof ROL!=="undefined"&&(ROL==="admin"||ROL==="boekhouder")&&!TB.lijst;
     if(document.getElementById("boot")||!main.children.length||tbWacht){tmr=setTimeout(wacht,300);return} // nog aan het laden
