@@ -250,7 +250,7 @@ async function startApp(session){
   }
 }
 async function restoreBackup(file){
-  let o;try{o=JSON.parse(await file.text())}catch(e){toast("Dit is geen geldig back-upbestand.",true);return}
+  let o;try{o=JSON.parse(/\.gz$/i.test(file.name)?await new Response(file.stream().pipeThrough(new DecompressionStream("gzip"))).text():await file.text())}catch(e){toast("Dit is geen geldig back-upbestand.",true);return}
   const cols=COLS.filter(c=>Array.isArray(o[c])&&o[c].length);if(!cols.length){toast("Er staan geen gegevens in dit bestand.",true);return}
   const tot=cols.reduce((s,c)=>s+o[c].length,0);
   confirmBox(`<b>${tot}</b> records terugzetten uit <b>${esc(file.name)}</b>?<br><span class="muted small">${cols.map(c=>c+": "+o[c].length).join(" · ")}</span><br><br>Bestaande records met dezelfde sleutel worden overschreven. Andere records blijven staan.`,"Terugzetten",async()=>{
@@ -1545,7 +1545,7 @@ VIEWS.instellingen=()=>({title:"Instellingen",sub:"Boekjaren, puntensysteem, lij
   <div class="panel"><div class="panel-h"><h2>Exporteren en importeren</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:10px">
     <button class="btn" data-act="exportXlsx" style="align-self:flex-start">${ic("download")}Boekjaar ${JAAR} als Excel</button>
     <button class="btn" data-act="exportJson" style="align-self:flex-start">${ic("download")}Volledige back-up (.json)</button>
-    <label class="btn" data-w for="restoreFile" style="align-self:flex-start;cursor:pointer">${ic("upload")}Back-up terugzetten (.json)</label><input type="file" id="restoreFile" accept=".json,application/json" hidden>
+    <label class="btn" data-w for="restoreFile" style="align-self:flex-start;cursor:pointer">${ic("upload")}Back-up terugzetten</label><input type="file" id="restoreFile" accept=".json,.gz,application/gzip,application/json" hidden>
     <span style="font-size:13px;color:var(--muted)">Maak af en toe een back-up en bewaar die op een veilige plaats.</span></div></div>
   </div></div>
   <div class="note info" style="margin:0">Beginsaldi, lidgeld, rekeningnummer en de categorieën van de boekhouding stel je in via het tandwiel op de pagina <a href="#boekhouding">Boekhouding</a>. De categorieën van de leden vind je onder het tandwiel op de <a href="#leden">Ledenlijst</a>.</div>
@@ -8744,6 +8744,47 @@ viewHook("herinneringen",{na(){const V=new Set(dmVerb());
   return `<div class="panel"><div class="panel-h"><h2>Meldingen op het dashboard</h2></div><div class="panel-b"><div class="hr-soorten mp-sl">${DM_SOORTEN.map(([k,l])=>`<label><input type="checkbox" name="dmS" value="${k}"${V.has(k)?"":" checked"}>${esc(l)}</label>`).join("")}</div>
    <div class="bar" style="margin-top:10px"><button class="btn primary" type="button" data-dm="bewaar">Bewaren</button></div></div></div>`}});
 document.addEventListener("click",e=>{const b=e.target.closest('[data-dm="bewaar"]');if(!b)return;dmZetVerb($$('input[name="dmS"]').filter(i=>!i.checked).map(i=>i.value));toast("Bewaard. Dit geldt voor jou op al je toestellen.")});
+
+/* ============ Bewaking: fouten in de app, geplande taken en back-ups ============
+   - Elke fout in de app wordt bewaard (tabel app_fouten; per sessie elke fout één keer, hoogstens 15).
+   - Dashboard (administrator): melding bij fouten van de voorbije 7 dagen, bij een geplande taak die twee keer na elkaar faalde
+     en als de laatste back-up ouder is dan 9 dagen (database-functie bewaking_overzicht).
+   - Instellingen › Algemeen: back-ups bekijken, downloaden en meteen een back-up maken (server: /api/mail?f=backup). */
+const BW={gezien:new Set(),n:0,data:null,op:0,bezig:false,backups:null};
+const BW_NEGEER=/ResizeObserver loop|^Script error\.?$|Load failed|Failed to fetch|NetworkError|AbortError|cancelled|geannuleerd/i;
+function bwMeld(bericht,stack){try{if(typeof SB==="undefined"||!SB||typeof ME==="undefined"||!ME||!ME.id)return;bericht=String(bericht||"").slice(0,500);
+  if(!bericht||BW_NEGEER.test(bericht)||BW.gezien.has(bericht)||BW.n>=15)return;BW.gezien.add(bericht);BW.n++;
+  const v=(document.querySelector('script[src^="/app.js"]')||{}).src||"";
+  SB.from("app_fouten").insert({user_id:ME.id,rol:typeof ROL!=="undefined"?ROL:null,route:(()=>{try{return route()}catch(e){return location.hash}})(),bericht,stack:String(stack||"").slice(0,2000),versie:(v.split("v=")[1]||"").slice(0,20),toestel:navigator.userAgent.slice(0,200)}).then(()=>{},()=>{})}catch(e){}}
+addEventListener("error",e=>bwMeld(e.message||(e.error&&e.error.message),e.error&&e.error.stack));
+addEventListener("unhandledrejection",e=>{const r=e.reason;bwMeld(r&&r.message||String(r||""),r&&r.stack)});
+
+async function bwLaad(){if(BW.bezig||ROL_ECHT!=="admin"||Date.now()-BW.op<5*60000)return;BW.bezig=true;
+  try{const {data,error}=await SB.rpc("bewaking_overzicht");if(!error){BW.data=data;BW.op=Date.now();if(route()==="dashboard")renderBody()}}catch(e){}finally{BW.bezig=false}}
+const BW_TAAK={"bank-sync":"Banksynchronisatie","bevestigingen":"Bevestigingsmails","herinnering":"Herinneringen","mailwachtrij":"Mailwachtrij","social":"Sociale media","opkuis":"Opkuis","backup":"Back-up"};
+function bwMelding(){if(typeof ROL_ECHT==="undefined"||ROL_ECHT!=="admin")return"";setTimeout(bwLaad,0);const D=BW.data;if(!D)return"";
+  const F=D.fouten||[],C=D.cron||[],oud=!D.backup||Date.now()-Date.parse(D.backup)>9*864e5,r=[];
+  for(const c of C)r.push(`<div class="nm-i"><b>${esc(BW_TAAK[c.job]||c.job)} faalde</b> <span class="muted small">${c.laatst?fmtDate(String(c.laatst).slice(0,10))+" · ":""}${esc(String(c.fout||"").slice(0,120))}</span></div>`);
+  if(oud)r.push(`<div class="nm-i"><b>${D.backup?"Geen back-up meer sinds "+fmtDate(String(D.backup).slice(0,10)):"Nog geen automatische back-up"}</b></div>`);
+  for(const f of F.slice(0,6))r.push(`<div class="nm-i"><b>${esc(String(f.bericht).slice(0,140))}</b> <span class="muted small">${esc(f.route||"")} · ${f.aantal}× · ${f.wie} ${f.wie===1?"gebruiker":"gebruikers"} · ${fmtDate(String(f.laatst).slice(0,10))}</span></div>`);
+  if(!r.length)return"";
+  const t=[C.length?C.length+(C.length===1?" geplande taak faalde":" geplande taken faalden"):"",F.length?F.length+(F.length===1?" fout in de app":" fouten in de app"):"",oud?"back-up":""].filter(Boolean).join(" · ");
+  return `<div class="nmeld dm-v bw-m" role="status"><span class="nm-ic">${ic("alarm")}</span><div class="nm-body"><b>Bewaking: ${esc(t)}</b><div class="nm-l bw-l">${r.join("")}</div></div></div>`}
+viewHook("dashboard",{voor:()=>bwMelding()});
+if(typeof DM_SOORTEN!=="undefined")DM_SOORTEN.push(["bewaking","Bewaking: fouten, geplande taken, back-up",/^bewaking:/i]);
+
+/* ---------- back-ups in Instellingen ---------- */
+async function bwBackups(){try{const j=await api("/api/mail?f=backup",{method:"POST",body:JSON.stringify({actie:"lijst"})});BW.backups=j.backups||[]}catch(e){BW.backups={fout:e.message}}const el=$("#bwLijst");if(el)el.innerHTML=bwLijstHtml()}
+const bwKB=n=>n>1048576?(n/1048576).toLocaleString("nl-BE",{maximumFractionDigits:1})+" MB":Math.round((n||0)/1024)+" kB";
+function bwLijstHtml(){const L=BW.backups;if(!L)return'<div class="muted small">Laden…</div>';if(L.fout)return`<div class="muted small">${esc(L.fout)}</div>`;if(!L.length)return'<div class="muted small">Nog geen back-ups.</div>';
+  return L.map(b=>`<div class="bw-r"><span>${fmtDate(String(b.op||"").slice(0,10))} <span class="muted small">${String(b.op||"").slice(11,16)} · ${bwKB(b.grootte)}</span></span><button type="button" class="btn sm" data-bw="dl" data-n="${esc(b.naam)}">${ic("download")}Downloaden</button></div>`).join("")}
+viewHook("instellingen",{na(){if(ROL_ECHT!=="admin")return"";if(!BW.backups)setTimeout(bwBackups,0);
+  return `<div class="panel"><div class="panel-h"><h2>Back-ups</h2><button type="button" class="btn sm" data-bw="maak">Nu back-up maken</button></div><div class="panel-b"><div id="bwLijst" class="bw-l2">${bwLijstHtml()}</div></div></div>`}});
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-bw]");if(!b)return;b.disabled=true;
+  try{if(b.dataset.bw==="maak"){const j=await api("/api/mail?f=backup",{method:"POST",body:JSON.stringify({actie:"maak"})});toast(`Back-up gemaakt: ${j.rijen.toLocaleString("nl-BE")} rijen uit ${j.tabellen} tabellen.`);BW.backups=null;BW.op=0;bwBackups()}
+    else{const j=await api("/api/mail?f=backup",{method:"POST",body:JSON.stringify({actie:"link",naam:b.dataset.n})});const a=document.createElement("a");a.href=j.url;a.download=b.dataset.n;document.body.appendChild(a);a.click();a.remove()}}
+  catch(x){toast(x.message,true)}finally{b.disabled=false}});
+{const st=document.createElement("style");st.textContent=".bw-r{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line)}.bw-r:first-child{border-top:0}.bw-l .nm-i{display:block;padding:3px 0}";document.head.appendChild(st)}
 
 /* ============ Tegels: zeer beknopte uitleg bij aanklikken (alle pagina's) ============
    Tegels die zelf een link of knop zijn, blijven werken zoals voorheen. Sleutel "route|label" gaat voor op "label". */
