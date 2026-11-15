@@ -6809,9 +6809,10 @@ document.addEventListener("click",e=>{if(!FA.a)return;
    Een administrator heeft altijd alle rechten. */
 var RECHTEN=null;
 const FUNC=[["leden","Ledenlijst",["leden"],"Leden"],["punten","Puntensysteem",["punten"],"Leden"],
-  ["overzicht","Overzicht",["boekhouding"],"Financiën"],["financien","Transacties",["boekingen","verwerken"],"Financiën"],["facturen","Facturen",["facturen","inkomend"],"Financiën"],["begroting","Begroting",["begroting"],"Financiën"],["historiek","Historiek",["historiek"],"Financiën"],["kassa","Kassa",["kassa"],"Financiën"],
-  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"],"Activiteiten"],["kalverdeling","Dozen meegeven of terugbrengen",[],"Activiteiten"],["fuif","In Vier en Vlam",["fuif"],"Activiteiten"],["banket","Banket",["banket"],"Activiteiten"],["kinderfeest","Kinderfeest",["kinderfeest"],"Activiteiten"],["familiedag","Familiedag",["familiedag"],"Activiteiten"],
-  ["agenda","Agenda en verslagen",["agenda","verslagen"],"Administratie"],["mails","Communicatie – mail",["mails"],"Administratie"],["social","Communicatie – sociale media",["social"],"Administratie"],["sms","Communicatie – sms",["sms"],"Administratie"],["sponsors","Sponsors",["sponsors"],"Administratie"],["documenten","Documenten",["documenten"],"Administratie"],["website","Website",["website"],"Administratie"],["shiften","Shiften",["shiften"],"Administratie"],["fotos","Fotoalbums",["fotos"],"Administratie"],
+  ["overzicht","Overzicht",["boekhouding"],"Financiën"],["financien","Transacties",["boekingen","verwerken"],"Financiën"],["facturen","Facturen",["facturen","inkomend"],"Financiën"],["begroting","Begroting",["begroting"],"Financiën"],["historiek","Historiek",["historiek"],"Financiën"],
+  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"],"Activiteiten"],["kalverdeling","Dozen meegeven of terugbrengen",[],"Activiteiten"],["fuif","In Vier en Vlam",["fuif"],"Activiteiten"],["banket","Banket",["banket"],"Activiteiten"],["kinderfeest","Kinderfeest",["kinderfeest"],"Activiteiten"],["kassa","Kassa",["kassa"],"Activiteiten"],["shiften","Shiften",["shiften"],"Activiteiten"],
+  ["agenda","Agenda en verslagen",["agenda","verslagen"],"Vereniging"],["sponsors","Sponsors",["sponsors"],"Vereniging"],["documenten","Documenten",["documenten"],"Vereniging"],
+  ["mails","Mail",["mails"],"Communicatie"],["sms","Sms",["sms"],"Communicatie"],["social","Sociale media",["social"],"Communicatie"],["website","Website",["website"],"Communicatie"],["fotos","Fotoalbums",["fotos"],"Communicatie"],
   ["webshop","Webshop",["webshop"],"Webshop"]];
 const FUNC_VAN={};for(const [f,,rs] of FUNC)for(const r of rs)FUNC_VAN[r]=f;
 const RECHT_LBL={geen:"Verborgen",lezen:"Lezen",bewerken:"Bewerken"};
@@ -7301,7 +7302,7 @@ viewHook("dashboard",{voor:()=>shDash()});
 if(!COLS.includes("familiedag"))COLS.push("familiedag");S.familiedag=S.familiedag||new Map();
 {const a=NAV.find(n=>n.id==="administratie");if(a&&!a.items.some(i=>i[0]==="familiedag")){const k=a.items.findIndex(i=>i[0]==="kinderfeest");a.items.splice(k>=0?k+1:a.items.length,0,["familiedag","Familiedag"])}}
 if(!ROUTES.some(r=>r[0]==="familiedag"))ROUTES.push(["familiedag","Familiedag"]);
-if(typeof FUNC!=="undefined"&&!FUNC.some(f=>f[0]==="familiedag")){FUNC.splice(FUNC.findIndex(f=>f[0]==="kinderfeest")+1,0,["familiedag","Familiedag",["familiedag"]]);FUNC_VAN.familiedag="familiedag"}
+if(typeof FUNC!=="undefined"&&!FUNC.some(f=>f[0]==="familiedag")){FUNC.splice(FUNC.findIndex(f=>f[0]==="kinderfeest")+1,0,["familiedag","Familiedag",["familiedag"],"Activiteiten"]);FUNC_VAN.familiedag="familiedag"}
 ICON.familiedag='<circle cx="7" cy="6.5" r="2.3"/><circle cx="17" cy="6.5" r="2.3"/><circle cx="12" cy="11" r="1.8"/><path d="M3.5 20v-4.5a3.5 3.5 0 0 1 7 0V20M13.5 20v-4.5a3.5 3.5 0 0 1 7 0V20M9.5 20v-2.5a2.5 2.5 0 0 1 5 0V20"/>';
 const FD_DEF_PRIJZEN=[{id:"volw",naam:"Volwassene",uitleg:"",prijs:15,lidGratis:false},{id:"kind",naam:"Kind",uitleg:"3 tot 12 jaar",prijs:8,lidGratis:false},{id:"klein",naam:"Kind onder 3 jaar",uitleg:"",prijs:0,lidGratis:false}];
 const fdCfg=()=>{const c=S.config.get("fd_"+JAAR)||{};return{titel:"Familiedag "+JAAR,datum:"",uur:"",locatie:"",info:"",nietLeden:false,...c,prijzen:Array.isArray(c.prijzen)&&c.prijzen.length?c.prijzen:FD_DEF_PRIJZEN}};
