@@ -127,7 +127,8 @@ export async function pushApi(req, res) {
 export const PUSH_SOORTEN = [["leden", "Nieuw lid", ["lid-"]], ["banket", "Inschrijving banket", ["ins-banket-"]], ["kinderfeest", "Inschrijving kinderfeest", ["ins-kf-"]],
   ["fuif", "Fuif: tickets besteld of aangevraagd", ["fuif-", "spk-", "gast-"]], ["webshop", "Webshop: nieuwe bestelling", ["shop-"]], ["kalender", "Kalender aan huis gevraagd", ["kal-"]],
   ["sponsors", "Nieuwe sponsor", ["sponsor-"]], ["facturen", "Facturen: betaald of inkomend", ["fc-", "inkomend"]], ["bank", "Bank: transacties te verwerken, koppeling", ["verwerken", "bank"]],
-  ["herinneringen", "Betalingsherinneringen verstuurd", ["betaalherinnering"]]];
+  ["herinneringen", "Betalingsherinneringen verstuurd", ["betaalherinnering"]], ["onkosten", "Onkostennota's en terugbetalingen", ["tb-"]],
+  ["familiedag", "Inschrijving familiedag", ["ins-fd-"]], ["ronde", "Kalenderronde: te controleren", ["ronde-"]]];
 export const pushSoort = tag => { const t = String(tag || ""); const s = PUSH_SOORTEN.find(([, , P]) => P.some(p => t === p || t.startsWith(p))); return s ? s[0] : "overig"; };
 export const VOORKEUR_DEF = { uur: 9, dagen: [0], vergaderingen: true, activiteiten: true, meldingen: true };
 export const PUSH_DEF = { aan: true };

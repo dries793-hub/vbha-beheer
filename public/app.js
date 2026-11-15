@@ -6054,10 +6054,12 @@ document.addEventListener("click",e=>{if(!e.target.closest("#spOk"))return;const
   let laden=false,klaar=false,tmr=0;
   async function haal(){if(laden||klaar||typeof SB==="undefined"||!SB||typeof ME==="undefined"||!ME)return;laden=true;
     try{const {data}=await SB.from("meldingen_gelezen").select("data").maybeSingle();const d=(data&&data.data)||{};
+      if(Array.isArray(d.verborgen))dmZetVerb(d.verborgen,true);
       const g=[...new Set([...lees(),...(d.gelezen||[])])],x=[...new Set([...dicht(),...(d.dicht||[])])];
       try{localStorage.setItem(KEY(),JSON.stringify(g.slice(-400)));localStorage.setItem(DKEY(),JSON.stringify(x.slice(-400)))}catch(e){}
       klaar=true;if((d.gelezen||[]).length!==g.length||(d.dicht||[]).length!==x.length)sync();zuiver()}catch(e){}finally{laden=false}}
-  function sync(){if(!klaar)return;clearTimeout(tmr);tmr=setTimeout(async()=>{try{await SB.from("meldingen_gelezen").upsert({data:{gelezen:lees().slice(-400),dicht:dicht().slice(-400)},gewijzigd:new Date().toISOString()},{onConflict:"user_id"})}catch(e){}},800)}
+  window.dmSync=()=>sync();
+  function sync(){if(!klaar)return;clearTimeout(tmr);tmr=setTimeout(async()=>{try{await SB.from("meldingen_gelezen").upsert({data:{gelezen:lees().slice(-400),dicht:dicht().slice(-400),verborgen:dmVerb()},gewijzigd:new Date().toISOString()},{onConflict:"user_id"})}catch(e){}},800)}
   appInterval(haal,3000);
   function zuiver(){
     if(toon||!document.querySelector(".nmeld"))return;
@@ -8718,6 +8720,30 @@ document.addEventListener("submit",async e=>{if(e.target.id!=="vwForm")return;e.
     await write("config","algemeen",{kalSeizoen:{van,tot},goudMail:{...(A.goudMail||{}),dagen:goud}},{merge:true});
     await write("config","betaalWacht",{dagen:wacht,mail},{merge:true});
     if(typeof KF!=="undefined")KF.jaar=null;toast("Bewaard.")}catch(x){toast(x.message,true)}});
+
+/* ============ Meldingen per gebruiker: welke dashboardmeldingen wil je zien ============
+   Bewaard per gebruiker (tabel meldingen_gelezen, veld verborgen) en op dit toestel. Pushmeldingen kies je per toestel
+   op dezelfde pagina (Instellingen › Herinneringen en meldingen). */
+const DM_SOORTEN=[["inschrijvingen","Nieuwe inschrijvingen",/nieuwe inschrijving/i],["leden","Nieuwe leden en lidgeld",/nieuw lid|nieuwe leden|lidgeld ontvangen/i],
+  ["verwerken","Transacties te verwerken",/transacties? te verwerken/i],["tebetalen","Te verwerken betalingen",/^te verwerken betalingen/i],
+  ["facturen","Facturen: betaald, inkomend, klaar om te betalen",/factuur werd betaald|facturen werden betaald|inkomende factu|betaling van een factuur|betalingen van facturen/i],
+  ["onkosten","Onkostennota's en terugbetalingen",/onkostennota|rekeningnummer/i],["bank","Bank: koppeling en saldo",/koppeling met de bank|saldo van de rekening/i],
+  ["herinneringen","Betalingsherinneringen verstuurd",/betalingsherinnering/i],["sponsors","Sponsorinschrijvingen",/sponsorinschrijving/i],
+  ["kalender","Kalender aan huis",/kalender aan huis/i],["ronde","Kalenderronde: te controleren",/kalenderronde/i],["kinderfeest","Kinderfeest: cadeaus",/kinderfeest: cadeaus/i],
+  ["shiften","Shiften: helpers",/helpers? sta/i],["goud","Goudstatus behaald",/goudstatus/i]];
+const DM_KEY=()=>"vbha_dmverb_"+((typeof ME_NAME!=="undefined"&&ME_NAME)||"x");
+function dmVerbLokaal(){try{return localStorage.getItem(DM_KEY())}catch(e){return null}}
+function dmVerb(){try{const v=JSON.parse(dmVerbLokaal()||"[]");return Array.isArray(v)?v:[]}catch(e){return[]}}
+function dmZetVerb(L,stil){try{localStorage.setItem(DM_KEY(),JSON.stringify(L))}catch(e){}if(!stil&&window.dmSync)window.dmSync();dmVerberg()}
+const dmSoortVan=t=>{t=String(t||"").replace(/\s+/g," ").trim();const s=DM_SOORTEN.find(x=>x[2].test(t));return s?s[0]:null};
+function dmVerberg(){if(route()!=="dashboard")return;const V=new Set(dmVerb());if(!V.size)return;
+  document.querySelectorAll("#body .nmeld").forEach(m=>{const b=m.querySelector(".nm-body > b");if(V.has(dmSoortVan(b&&b.textContent)))m.remove()});
+  document.querySelectorAll("#body .panel.tbd").forEach(p=>{if(V.has("tebetalen"))p.remove()})}
+{const b=document.getElementById("body");if(b)new MutationObserver(dmVerberg).observe(b,{childList:true})}
+viewHook("herinneringen",{na(){const V=new Set(dmVerb());
+  return `<div class="panel"><div class="panel-h"><h2>Meldingen op het dashboard</h2></div><div class="panel-b"><div class="hr-soorten mp-sl">${DM_SOORTEN.map(([k,l])=>`<label><input type="checkbox" name="dmS" value="${k}"${V.has(k)?"":" checked"}>${esc(l)}</label>`).join("")}</div>
+   <div class="bar" style="margin-top:10px"><button class="btn primary" type="button" data-dm="bewaar">Bewaren</button></div></div></div>`}});
+document.addEventListener("click",e=>{const b=e.target.closest('[data-dm="bewaar"]');if(!b)return;dmZetVerb($$('input[name="dmS"]').filter(i=>!i.checked).map(i=>i.value));toast("Bewaard. Dit geldt voor jou op al je toestellen.")});
 
 /* ============ Tegels: zeer beknopte uitleg bij aanklikken (alle pagina's) ============
    Tegels die zelf een link of knop zijn, blijven werken zoals voorheen. Sleutel "route|label" gaat voor op "label". */
