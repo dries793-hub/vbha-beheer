@@ -7962,7 +7962,7 @@ function vrFact(v){const L=[];const inP=d=>(!v.vanaf||d>=v.vanaf)&&(!v.tot||d<=v
   return L.sort((a,b)=>b.d.localeCompare(a.d))}
 // totaal van een sectie: inkomsten, kosten en netto
 function vrSom(L){let i=0,u=0;for(const x of L){const b=x.b;if(b<0)u-=b;else i+=b}i=r2(i);u=r2(u);
-  return `<span class="vr-st"><b>${eur(r2(i-u))}</b></span>`}
+  return `<span class="muted small">· ${eur(r2(i-u))}</span>`}
 function vrAfr(v){return[...S.boekingen.values()].filter(b=>b.verrekening===v.id).sort((a,b)=>String(a.datum).localeCompare(String(b.datum)))}
 const vrNaam=(v,id)=>((v.partners||[]).find(p=>p.id===id)||{}).naam||id;
 const VR={open:{}};
