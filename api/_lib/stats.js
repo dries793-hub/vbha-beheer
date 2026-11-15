@@ -50,19 +50,28 @@ const probeer = async f => { try { return await f(); } catch (e) { return { fout
 const som = j => (j && j.data && j.data[0] && (j.data[0].values || []).reduce((a, v) => a + (typeof v.value === "number" ? v.value : 0), 0)) ?? null;
 const totaal = j => (j && j.data ? Object.fromEntries(j.data.map(m => [m.name, m.total_value ? m.total_value.value : som({ data: [m] })])) : {});
 
-async function facebook() {
+async function facebook(ids) {
   const id = env("META_PAGE_ID"); if (!id || !env("META_PAGE_TOKEN")) return null;
   const uit = { kanaal: "facebook" };
   const p = await probeer(() => g(id, { fields: "name,followers_count,fan_count,link" }));
   if (p.fout) return { ...uit, fout: p.fout };
-  Object.assign(uit, { naam: p.name, volgers: p.followers_count ?? p.fan_count ?? null, fans: p.fan_count ?? null, link: p.link || "https://www.facebook.com/vbha.aalst" });
+  Object.assign(uit, { naam: p.name, volgers: p.followers_count ?? p.fan_count ?? null, fans: p.fan_count ?? null, link: "https://www.facebook.com/vbha.aalst" });
   const until = Math.floor(Date.now() / 1000), since = until - 28 * 86400;
-  uit.metriek = {};
-  for (const m of ["page_impressions_unique", "page_post_engagements", "page_views_total", "page_daily_follows_unique"]) {
+  uit.metriek = {}; uit.metriekFout = {};
+  // Meta schrapte eind 2025 een deel van de paginacijfers: per cijfer de nieuwe naam eerst, dan de oude
+  const M = { bereik: ["page_total_media_view_unique", "page_impressions_unique"], weergaven: ["page_media_view", "page_impressions"], interacties: ["page_post_engagements"], bezoeken: ["page_views_total"], nieuweVolgers: ["page_daily_follows_unique", "page_follows"] };
+  for (const [k, namen] of Object.entries(M)) for (const m of namen) {
     const j = await probeer(() => g(`${id}/insights`, { metric: m, period: "day", since, until }));
-    if (!j.fout) uit.metriek[m] = som(j);
+    if (j.fout) { uit.metriekFout[k] = m + ": " + j.fout; continue; }
+    if (j.data && j.data.length) { uit.metriek[k] = som(j); delete uit.metriekFout[k]; break; }
+    uit.metriekFout[k] = m + ": geen gegevens";
   }
-  const P = await probeer(() => g(`${id}/posts`, { fields: "message,created_time,permalink_url,full_picture,shares,reactions.summary(true).limit(0),comments.summary(true).limit(0)", limit: 8 }));
+  const F = "message,created_time,permalink_url,full_picture,shares,reactions.summary(true).limit(0),comments.summary(true).limit(0)";
+  let P = await probeer(() => g(`${id}/published_posts`, { fields: F, limit: 8 }));
+  if (P.fout && ids && ids.length) { // zonder leesrecht op de tijdlijn: de posts die de app zelf plaatste, één voor één
+    const L = []; for (const pid of ids.slice(0, 8)) { const x = await probeer(() => g(pid, { fields: F })); if (!x.fout) L.push(x); else if (!L.length && pid === ids[0]) { L.fout = x.fout; } }
+    if (L.length) P = { data: L }; else P = { fout: L.fout || P.fout };
+  }
   uit.posts = P.fout ? [] : (P.data || []).map(x => ({ tekst: String(x.message || "").slice(0, 140), op: x.created_time, url: x.permalink_url, foto: x.full_picture || "",
     reacties: x.reactions && x.reactions.summary ? x.reactions.summary.total_count : null, commentaren: x.comments && x.comments.summary ? x.comments.summary.total_count : null, gedeeld: x.shares ? x.shares.count : 0 }));
   if (P.fout) uit.postsFout = P.fout;
@@ -77,8 +86,8 @@ async function instagram() {
   Object.assign(uit, { naam: p.username, volgers: p.followers_count ?? null, berichten: p.media_count ?? null, link: "https://www.instagram.com/" + (p.username || "vbha.aalst") });
   const until = Math.floor(Date.now() / 1000), since = until - 28 * 86400;
   const j = await probeer(() => g(`${id}/insights`, { metric: "reach,profile_views,accounts_engaged,total_interactions", period: "day", metric_type: "total_value", since, until }));
-  uit.metriek = j.fout ? {} : totaal(j);
-  if (j.fout) { const r = await probeer(() => g(`${id}/insights`, { metric: "reach", period: "day", since, until })); if (!r.fout) uit.metriek.reach = som(r); }
+  uit.metriek = j.fout ? {} : totaal(j); uit.metriekFout = {};
+  if (j.fout) { const r = await probeer(() => g(`${id}/insights`, { metric: "reach", period: "day", since, until })); if (!r.fout) uit.metriek.reach = som(r); else uit.metriekFout.alles = r.fout; }
   const M = await probeer(() => g(`${id}/media`, { fields: "caption,timestamp,permalink,like_count,comments_count,media_type,media_url,thumbnail_url", limit: 8 }));
   uit.posts = M.fout ? [] : (M.data || []).map(x => ({ tekst: String(x.caption || "").slice(0, 140), op: x.timestamp, url: x.permalink, foto: x.media_type === "VIDEO" ? x.thumbnail_url || "" : x.media_url || "",
     reacties: x.like_count ?? null, commentaren: x.comments_count ?? null }));
@@ -101,7 +110,9 @@ export async function statsApi(req, res) {
   const { data: eerste } = await sb.from("site_bezoek").select("dag").order("dag").limit(1);
   let social = [];
   if (b.social !== false) {
-    social = (await Promise.all([facebook(), instagram()])).filter(Boolean);
+    const { data: eigen } = await sb.from("social_posts").select("data,gewijzigd").in("status", ["gepubliceerd", "deels"]).order("gewijzigd", { ascending: false }).limit(12);
+    const fbIds = (eigen || []).map(r => r.data && r.data.resultaten && r.data.resultaten.facebook && r.data.resultaten.facebook.ok && r.data.resultaten.facebook.id).filter(Boolean);
+    social = (await Promise.all([facebook(fbIds), instagram()])).filter(Boolean);
     const dag = new Date().toISOString().slice(0, 10);
     const st = social.filter(s => typeof s.volgers === "number").map(s => ({ dag, kanaal: s.kanaal, volgers: s.volgers }));
     if (st.length) await sb.from("social_stand").upsert(st);
