@@ -26,7 +26,7 @@ async function graph(pad, params, methode = "POST") {
   const j = await r.json().catch(() => ({}));
   if (!r.ok || j.error) {
     const e = j.error || {};
-    const m = e.code === 190 ? "Het Meta-token is verlopen of ongeldig." : e.code === 10 || e.code === 200 ? "Het Meta-token mist de nodige rechten." : (e.error_user_msg || e.message || "Meta gaf een fout (" + r.status + ").");
+    const m = e.code === 190 ? "Het Meta-token is verlopen of ongeldig." : e.code === 10 || e.code === 200 ? "Het Meta-token mist de nodige rechten" + (e.message ? " (Meta: " + e.message + ")" : "") + "." : (e.error_user_msg || e.message || "Meta gaf een fout (" + r.status + ").");
     throw new Error(m.slice(0, 300));
   }
   return j;
