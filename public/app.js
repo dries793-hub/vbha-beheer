@@ -8451,7 +8451,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   const dag=new Map();for(const x of P){const g=dag.get(x.d)||{q:0,o:0};g[x.o?"o":"q"]+=x.a;dag.set(x.d,g)}
   const D=[...dag.entries()].filter(([d])=>d>=JAAR+"-11-01").sort().map(([d,g])=>[d,g.q+g.o,g]);const dm=Math.max(1,...D.map(d=>d[1]));
   const top=D.length?D.reduce((m,d)=>d[1]>m[1]?d:m):null;
-  const bar=(q,o,m,f)=>`<span class="kf-b"><i style="width:${q/m*100}%" title="Bancontact: ${f(q)}"></i><i class="ov" style="width:${o/m*100}%" title="Overschrijving: ${f(o)}"></i></span>`;
+  const bar=(q,o,m,f)=>`<span class="kf-b"><i style="width:${q/m*100}%" data-t="Bancontact: ${f(q)}"></i><i class="ov" style="width:${o/m*100}%" data-t="Overschrijving: ${f(o)}"></i></span>`;
   const fN=x=>x+" "+(x===1?"betaling":"betalingen");
   return kalTabs("kalfin")+`
   <div class="tiles kf-t">${tile("Totale winst",`<span style="color:var(--${resT>=0?"good":"bad"})">${resT>=0?"":"−"}${kfEur(Math.abs(resT))}</span>`,"")}
@@ -8469,6 +8469,14 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
     return `<div class="panel"><div class="panel-h"><h2>Vergelijking met vorig jaar</h2></div><div class="tw"><table class="kf-vg"><thead><tr><th></th><th class="num">${JAAR}</th><th class="num">${Number(JAAR)-1}</th><th class="num">Verschil</th></tr></thead><tbody>
       ${r("Totale winst",J1.res,J0.res)}${r("Omzet kalenders",J1.kin,J0.kin)}${r("Sponsors",J1.si,J0.si)}${r("Kosten kalenders",J1.kuit,J0.kuit,true)}
       ${J1.opl&&J0.opl?`<tr><td>Oplage</td><td class="num" data-l="${JAAR}">${J1.opl.toLocaleString("nl-BE")}</td><td class="num" data-l="${Number(JAAR)-1}">${J0.opl.toLocaleString("nl-BE")}</td><td class="num muted" data-l="Verschil">${J1.opl-J0.opl>=0?"+":"−"}${Math.abs(J1.opl-J0.opl).toLocaleString("nl-BE")}</td></tr>`+r("Kostprijs per kalender",(J1.kuit-J1.si)/J1.opl,(J0.kuit-J0.si)/J0.opl,true)+r("Gemiddelde omzet per kalender",J1.kin/J1.opl,J0.kin/J0.opl)+r("Winst per kalender",J1.res/J1.opl,J0.res/J0.opl):""}</tbody></table></div></div>`})():""}`}});
+
+// bedrag per kleur tonen bij aanklikken van een gekleurd blokje
+document.addEventListener("click",e=>{let t=document.getElementById("kfTip");const i=e.target.closest&&e.target.closest(".kf-b i[data-t]");
+  if(!i){if(t)t.remove();return}
+  if(!t){t=document.createElement("div");t.id="kfTip";t.className="kf-tip";document.body.appendChild(t)}
+  t.textContent=i.dataset.t;const r=i.getBoundingClientRect();
+  t.style.left=Math.max(8,Math.min(innerWidth-t.offsetWidth-8,r.left+r.width/2-t.offsetWidth/2))+"px";t.style.top=(r.top+scrollY-t.offsetHeight-8)+"px"});
+addEventListener("hashchange",()=>{const t=document.getElementById("kfTip");if(t)t.remove()});
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
