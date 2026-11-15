@@ -3796,7 +3796,7 @@ function spiNieuwBlok(){const L=spiNieuwe();if(!L.length)return"";
   return `<div class="nmeld dm-b" role="status"><span class="nm-ic">${ic("sponsors")}</span><div class="nm-body"><b>${L.length===1?"Nieuwe sponsorinschrijving":L.length+" nieuwe sponsorinschrijvingen"}</b>
    <div class="nm-l">${L.slice(0,8).map(({s,i})=>`<a class="nm-i" href="#sponsors" data-spi="toon" data-id="${esc(s.id)}"><b>${esc(spNaam(s))}</b><span>${esc(i.formuleNaam)} · ${eur(i.bedrag)}${i.factuurNr?" · factuur "+esc(i.factuurNr):""}${i.nieuw?"":" · vernieuwd"}</span></a>`).join("")}</div></div>
    ${canWrite?`<button type="button" class="nm-x" data-spi="gezien" aria-label="Melding sluiten" title="Gezien">${ic("x")}</button>`:""}</div>`}
-{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return (ROL==="admin"||ROL==="boekhouder"?spiNieuwBlok():"")+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+viewHook("dashboard",{voor:()=>(ROL==="admin"||ROL==="boekhouder"?spiNieuwBlok():"")});
 // online betaald (Bancontact zonder factuur) telt mee als ontvangen
 {const _k=spKoppel;spKoppel=function(C){const K=_k(C);for(const s of S.sponsors.values()){const b=s.betaling;if(!b||b.status!=="SUCCEEDED")continue;const dag=String(b.betaaldOp||b.gestart||"").slice(0,10);if(!dag||Number(dag.slice(0,4))!==JAAR&&!(dag>=(JAAR+"-06-01")))continue;
     const a=K.per.get(s.id)||{som:0,L:[]};if(a.L.some(x=>Math.abs(x.bedrag-Number(b.bedrag))<0.01))continue;a.som+=Number(b.bedrag)||0;a.L.push({id:"online-"+s.id,bedrag:Number(b.bedrag)||0,datum:dag,partij:"Online betaald (Bancontact)",mededeling:"Sponsoring "+(b.jaar||""),_hoe:"online"});K.per.set(s.id,a)}
@@ -4837,7 +4837,7 @@ function bhMelding(){if(!(ROL==="admin"||ROL==="boekhouder"))return"";const c=S.
   return `<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("mails")}</span><div class="nm-body"><b>${L.length===1?"Er werd 1 betalingsherinnering":"Er werden "+L.length+" betalingsherinneringen"} verstuurd</b>
    <div class="nm-l">${L.slice(0,6).map(x=>`<a class="nm-i" href="#${x.soort==="banket"?"banket":"leden"}"><b>${esc(x.naam)}</b><span>${x.soort==="banket"?"Banket":"Lidgeld"} ${esc(String(x.jaar||""))} · ${eur(x.bedrag)}${x.n>1?" · "+x.n+"e herinnering":""} · ${esc(fmtDate(String(x.op).slice(0,10)))}</span></a>`).join("")}${L.length>6?`<a class="nm-i" href="#dashboard"><b>+ ${L.length-6} anderen</b><span>${[bk?bk+" banket":"",lg?lg+" lidgeld":""].filter(Boolean).join(" · ")}</span></a>`:""}</div></div>
    <button type="button" class="nm-x" data-bh="gezien" aria-label="Melding sluiten" title="Gezien">${ic("x")}</button></div>`}
-{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return bhMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+viewHook("dashboard",{voor:()=>bhMelding()});
 document.addEventListener("click",async e=>{const t=e.target.closest('[data-bh="gezien"]');if(!t)return;t.disabled=true;
   try{const c=stripId(S.config.get("betaalherinnering")||{});await write("config","betaalherinnering",{...c,gezienTot:new Date().toISOString()});renderBody()}catch(x){toast(x.message,true);t.disabled=false}});
 
@@ -4945,7 +4945,7 @@ document.addEventListener("change",e=>{if(e.target.matches('[data-ka="laag"]')){
 function kaMelding(){const L0=kaLijst().filter(a=>a.nieuw);if(!L0.length)return"";
   return `<div class="nmeld" role="status"><span class="nm-ic">${ic("kalenders")}</span><div class="nm-body"><b>${L0.length===1?"Iemand vroeg":L0.length+" mensen vroegen"} een kalender aan huis</b>
    <div class="nm-l">${L0.slice(0,6).map(a=>`<a class="nm-i" href="#ronde"><b>${esc(a.adres)}</b><span>${esc(kaDT(a.aangemeld))}</span></a>`).join("")}${L0.length>6?`<a class="nm-i" href="#ronde"><b>+ ${L0.length-6} anderen</b><span>Bekijk de lijst</span></a>`:""}</div></div></div>`}
-{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return kaMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+viewHook("dashboard",{voor:()=>kaMelding()});
 
 /* ---- tandwiel op de pagina Kalenderronde: link naar de openbare aanvraagpagina ---- */
 {const _v=VIEWS.ronde;const n=function(){const v=_v.apply(this,arguments);if(typeof ADM!=="function"||ADM())v.actions=String(v.actions||"")+`<button class="btn iconbtn" data-act="kaInst" aria-label="Instellingen kalenderronde" title="Instellingen kalenderronde">${ic("instellingen")}</button>`;return v};Object.assign(n,_v);VIEWS.ronde=n}
@@ -5024,7 +5024,7 @@ function bankMelding(){if(!(ROL==="admin"||ROL==="boekhouder"))return"";
   const weg=L.some(x=>x.d<0);
   return `<div class="nmeld ${weg?"dm-r":"dm-v"}" role="alert"><span class="nm-ic">${ic("link")}</span><div class="nm-body"><b>${weg?"De koppeling met de bank is verlopen":"De koppeling met de bank verloopt binnenkort"}</b>
    <div class="nm-l">${L.map(({k,d})=>`<a class="nm-i" href="#bank"><b>${esc(k.aspsp||"Bank")}</b><span>${d<0?"Verlopen op "+fmtDate(k.valid_until.slice(0,10))+" · er worden geen verrichtingen meer opgehaald":"Nog "+d+" "+(d===1?"dag":"dagen")+" geldig (tot "+fmtDate(k.valid_until.slice(0,10))+")"} · opnieuw koppelen</span></a>`).join("")}</div></div></div>`+sm}
-{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return bankMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+viewHook("dashboard",{voor:()=>bankMelding()});
 
 /* saldo "Rekening" in de tegels: het werkelijke saldo bij de bank (Argenta), voor het lopende jaar */
 function rekToon(C){if(!BANK&&!BANK_DASH){BANK_DASH=1;api("/api/bank/status").then(r=>{BANK=r;if(["dashboard","boekhouding"].includes(route()))renderBody()}).catch(()=>{})}
@@ -5268,7 +5268,7 @@ async function nsStuurSnapshot(tpl,soort){const R=nsCfg()[tpl],N=nsLijst(tpl,soo
     try{await write("mailings",mid,{datum:op,onderwerp:B[0].onderwerp,sjabloon:R.naam||"",sjabloonId:tpl,groep:soort==="laat"?"Nagestuurd na ontvangst lidgeld":"Nagestuurd naar nieuwe leden",aantal:N.length,ok:res.ok,fout:res.fout.slice(0,200),...(res.wachtrij?{wachtrij:res.wachtrij,bezig:true}:{}),door:ME?ME.email:""})}catch(x){}
     toast(res.ok?"Verstuurd naar "+res.ok+(res.ok===1?" lid.":" leden."):"Versturen mislukt.",!res.ok);renderBody()})}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-nsd-stuur]");if(!t)return;e.preventDefault();e.stopPropagation();nsStuurSnapshot(t.dataset.nsdStuur,t.dataset.soort||"")},true);
-{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return nsDash()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+viewHook("dashboard",{voor:()=>nsDash()});
 
 /* De nagestuurde mail altijd up-to-date houden: zodra het sjabloon of de agenda (activiteiten) verandert, de momentopname opnieuw opmaken. */
 let NS_BEZIG=false;const NS_LAATST={};
@@ -7292,7 +7292,7 @@ function shDash(){if(!canWrite||(typeof ROL!=="undefined"&&ROL!=="admin"))return
   return L.map(a=>{const n=new Set((a.shiften||[]).flatMap(x=>x.leden||[])).size;return `<div class="nmeld" role="status" data-shd="${esc(a.id)}"><span class="nm-ic">${ic("shiften")}</span><div class="nm-body"><b>${esc(a.titel||"Activiteit")} (${esc(fmtDate(a.datum))}): ${n} ${n===1?"helper staat":"helpers staan"} op de shiftlijst zonder punten</b>
     <div><button type="button" class="nm-btn" data-shd-punten="${esc(a.id)}">${ic("shiften")}Punten toekennen</button></div></div></div>`}).join("")}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-shd-punten]");if(!t)return;e.preventDefault();e.stopPropagation();const a=S.activiteiten.get(t.dataset.shdPunten);if(a)shPunten(a)},true);
-{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return shDash()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+viewHook("dashboard",{voor:()=>shDash()});
 
 /* ============ Activiteiten › Familiedag ============
    Inschrijvingen in de collectie "familiedag": {jaar, naam, lidId, email, lijnen:[{id,naam,aantal,prijs,totaal,gratis}], personen, teBetalen, betaling, opmerking, bron}
@@ -7409,7 +7409,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-rm]"
 function rmMelding(){if(!(ROL==="admin"||(typeof recht==="function"&&recht("ronde")==="bewerken")))return"";const L=rmLijst();if(!L.length)return"";
   return `<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("kaart")}</span><div class="nm-body"><b>${L.length===1?"1 melding":L.length+" meldingen"} van de kalenderronde te controleren</b>
    <div class="nm-l">${L.slice(0,5).map(m=>`<a class="nm-i" href="#ronde"><b>${esc(m.toon||m.naam||"")}</b><span>${(m.straten||[]).length} ${(m.straten||[]).length===1?"straat":"straten"} ${m.soort==="done"?"bedeeld":"gereserveerd"} · ${esc(rmDT(m.op))}</span></a>`).join("")}</div></div></div>`}
-{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return rmMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+viewHook("dashboard",{voor:()=>rmMelding()});
 {const st=document.createElement("style");st.textContent=`.rm-p{border-color:#f59e0b}.rm-n{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:#f59e0b;color:#fff;font-size:12.5px;margin-left:6px;vertical-align:2px}
 .rm-l{display:flex;flex-direction:column;gap:10px}.rm-i{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .rm-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rm-t small{color:var(--muted);margin-left:auto}.rm-s{display:flex;flex-wrap:wrap;gap:6px}.rm-s span{background:var(--soft,#f2f2f3);border-radius:99px;padding:3px 10px;font-size:13px}.rm-s span.al{background:#fff4e5;color:#b45309}
@@ -7445,7 +7445,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-dv-k
   try{const r=await api("/api/mail?f=kassa",{method:"POST",body:JSON.stringify({actie:"vandaag",act:t.dataset.dvKassa})});const u="/kassa?code="+encodeURIComponent(r.code);
     if(w&&!w.closed)w.location=u;else location.href=u;if(r.nieuw)toast("Nieuwe kassacode: "+r.code+" (1 dag geldig)")}
   catch(x){if(w)w.close();toast(x.message||"De kassa kon niet geopend worden.",true)}});
-{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return dashVandaag()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+viewHook("dashboard",{voor:()=>dashVandaag()});
 
 /* ============ Slim zoeken in keuzelijsten (vervangt de lijst van de browser bij <input list="…">) ============
    De browser toont bij één letter alle namen die die letter bevatten. Hier: pas vanaf 3 letters (zoals bij de adressen),
@@ -7659,7 +7659,7 @@ function kfcDash(){try{if(!canWrite||(typeof ROL!=="undefined"&&ROL!=="admin"&&!
   const pr=L.filter(x=>x.st==="gekozen").reduce((s,x)=>s+x.k.cadeau.items.length,0),bn=L.filter(x=>x.st!=="gekozen").length;
   return `<div class="nmeld" role="status" data-kfcd="1"><span class="nm-ic">${ic("kinderfeest")}</span><div class="nm-body"><b>Kinderfeest: cadeaus bestellen voor ${L.length} ${L.length===1?"kind":"kinderen"}</b><div class="small muted">${pr?pr+(pr===1?" product":" producten"):""}${pr&&bn?" · ":""}${bn?bn+(bn===1?" bon":" bonnen")+" bol.com":""}</div>
     <div><button type="button" class="nm-btn" data-kfc="bestel">${ic("download")}Bestellijst</button></div></div></div>`}catch(e){return""}}
-{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return kfcDash()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+viewHook("dashboard",{voor:()=>kfcDash()});
 /* ---------- "Cadeautjes per leeftijd" als taartdiagram, naast "Voorziene kost cadeaus" ---------- */
 function kfLeeftijdTaart(){const st=kfStats(),c=st.c,A=[];for(let a=0;a<=c.leeftijd;a++){const n=st.per.get(a)||0;if(n)A.push([a===0?"< 1 jaar":a+" jaar",n])}if(st.onbekend)A.push(["onbekend",st.onbekend]);
   const tot=A.reduce((t,x)=>t+x[1],0);if(!tot)return"";
@@ -8599,6 +8599,36 @@ document.addEventListener("click",async e=>{const b=e.target.closest("#rgAlle");
   b.disabled=false;delete b.dataset.zeker;b.textContent="Op alle gebruikers toepassen";
   toast(fout?`${fout} niet bewaard.`:`Toegepast op ${U.length} ${U.length===1?"gebruiker":"gebruikers"}.`,!!fout)});
 
+/* ============ Sjablonen voor rechten: met één keuze alle functies van een gebruiker invullen ============ */
+const RJ_BASIS=f=>["financien","facturen","begroting","historiek"].includes(f)?"geen":f==="kalverdeling"?"bewerken":"lezen";
+const RJ=[["bestuur","Bestuurslid",{}],["kalender","Kalenderverantwoordelijke",{kalenders:"bewerken",kalverdeling:"bewerken"}],
+  ["activiteit","Kassa en activiteiten",{kassa:"bewerken",fuif:"bewerken",banket:"bewerken",kinderfeest:"bewerken",familiedag:"bewerken",shiften:"bewerken"}],
+  ["communicatie","Communicatie",{mails:"bewerken",social:"bewerken",sms:"bewerken",website:"bewerken",fotos:"bewerken",agenda:"bewerken"}],
+  ["financieel","Financieel",{financien:"bewerken",facturen:"bewerken",begroting:"bewerken",historiek:"lezen",overzicht:"bewerken",sponsors:"bewerken",kalverdeling:"lezen"}],
+  ["lezen","Alles lezen",{financien:"lezen",facturen:"lezen",begroting:"lezen",historiek:"lezen",kalverdeling:"lezen"}]];
+{const _h=rgHtml;rgHtml=function(u){const h=_h.apply(this,arguments);if(!h.includes('class="rg-snel"'))return h;
+  return h.replace('<div class="rg-snel">',`<div class="rg-snel rg-sj"><span class="muted small">Sjabloon:</span><select class="sel" id="rgSjabloon" style="width:auto"><option value="">Kiezen…</option>${RJ.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join("")}</select></div><div class="rg-snel">`)}}
+document.addEventListener("change",e=>{if(e.target.id!=="rgSjabloon"||!e.target.value)return;const s=RJ.find(x=>x[0]===e.target.value),w=$("#rgWrap");if(!s||!w)return;
+  const fs=[...new Set([...w.querySelectorAll("[data-rgf]")].map(b=>b.dataset.rgf).filter(f=>!f.includes(":")))];
+  for(const f of fs){const v=s[2][f]||RJ_BASIS(f),b=w.querySelector(`[data-rgf="${f}"][data-v="${v}"]`);if(b)b.click()}
+  toast(`Sjabloon "${s[1]}" ingevuld. Pas aan waar nodig en bewaar.`)});
+
+/* ============ Instellingen › Gegevens (back-ups en jaardocumenten) en een overzicht van alle instellingen ============ */
+if(!INST_TABS.some(t=>t[0]==="gegevens")){const i=INST_TABS.findIndex(t=>t[0]==="logboek");INST_TABS.splice(i<0?INST_TABS.length:i,0,["gegevens","Gegevens"]);INST_IDS.push("gegevens")}
+if(!ROUTES.some(r=>r[0]==="gegevens"))ROUTES.push(["gegevens","Gegevens"]);
+VIEWS.gegevens=()=>({title:"Instellingen",sub:"Gegevens",body(){if(ROL!=="admin"&&ROL!=="boekhouder")return instTabs("gegevens")+'<div class="panel"><div class="empty">Enkel voor de administrator en de boekhouder.</div></div>';return instTabs("gegevens")}});
+/* overzicht: naar de pagina gaan en het tandwiel van die pagina openen */
+const INST_OVZ=[["Leden","leden",'[data-act="ledenInst"]'],["Transacties en financieel","boekingen",'[data-act="finInst"]'],["Punten","punten",'[data-act="puntInst"]'],
+  ["Kalenders","kalenders",'[data-act="kalInst"]'],["Kalenderronde","ronde",'[data-act="kaInst"]'],["Banket","banket",'[data-act="bkInst"]'],["Kinderfeest","kinderfeest",'[data-act="kfInst"]'],
+  ["Familiedag","familiedag",'[data-act="fdInst"]'],["Fuif","fuif",'[data-fu="inst"]'],["Kassa","kassa",'[data-ka="inst"]'],["Shiften","shiften",'[data-sh="instellingen"]'],
+  ["Webshop","webshop",'[data-sh="inst"]'],["Sponsors","sponsors",'[data-spi="open"]'],["Facturen","facturen",'[data-fc="instel"]'],["Inkomende facturen","inkomend",'[data-ink="instel"]'],
+  ["Begroting","begroting",'[data-bgact="beheer"]'],["Onkostennota's","terug",'[data-tb="link"]']];
+viewHook("instellingen",{voor(){if(ROL!=="admin")return"";const L=INST_OVZ.filter(([,r])=>VIEWS[r]&&(typeof recht!=="function"||recht(r)!=="geen"));
+  return `<div class="panel io-p"><div class="panel-h"><h2>Instellingen per onderdeel</h2></div><div class="panel-b io-g">${L.map(([l,r,s])=>`<a href="#${r}" class="io-a" data-io="${esc(s)}">${ic("instellingen")}<span>${esc(l)}</span></a>`).join("")}</div></div>`}});
+document.addEventListener("click",e=>{const a=e.target.closest("[data-io]");if(!a)return;e.preventDefault();const sel=a.dataset.io,r=a.getAttribute("href").slice(1);location.hash="#"+r;
+  let n=0;const t=setInterval(()=>{const b=document.querySelector(sel);if(b||++n>25){clearInterval(t);if(b)b.click()}},120)});
+{const st=document.createElement("style");st.textContent=".io-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.io-a{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;color:inherit;text-decoration:none;font-weight:500}.io-a:hover{background:var(--hover,rgba(0,0,0,.04))}.io-a svg{width:16px;height:16px;flex:none;color:var(--muted)}";document.head.appendChild(st)}
+
 /* ============ Instellingen › Jaardocumenten: jaarrekening en jaarverslag (PDF in huisstijl of Excel) ============
    Jaarrekening volgens het model van de vereenvoudigde boekhouding voor kleine vzw's (staat van ontvangsten en uitgaven,
    staat van het vermogen, begroting volgend jaar). Jaarverslag: leden, activiteiten, vergaderingen, financieel, vooruitblik.
@@ -8692,7 +8722,7 @@ function jdXlsx(soort,Y){const doc=soort==="rekening"?jdRekening(Y):jdVerslag(Y)
   for(const k in ws)if(k[0]!=="!"&&typeof ws[k].v==="number")ws[k].z='€ #,##0.00;[Red]-€ #,##0.00';
   XLSX.utils.book_append_sheet(wb,ws,doc.titel.slice(0,31));save(doc.titel.replace(/\s+/g,"_")+".xlsx",XLSX.write(wb,{type:"array",bookType:"xlsx"}))}
 
-viewHook("instellingen",{na(){if(ROL!=="admin"&&ROL!=="boekhouder")return"";
+viewHook("gegevens",{na(){if(ROL!=="admin"&&ROL!=="boekhouder")return"";
     const J=[...S.jaren.keys()].map(Number).filter(Boolean).sort((a,b)=>b-a),def=J.includes(Number(JAAR)-1)?Number(JAAR)-1:Number(JAAR);
     const rij=(s,l)=>`<div class="jd-r"><b>${l}</b><span class="grow"></span><button type="button" class="btn sm" data-jd="pdf" data-s="${s}">${ic("download")}PDF</button><button type="button" class="btn sm" data-jd="xlsx" data-s="${s}">${ic("download")}Excel</button></div>`;
     return `<div class="panel"><div class="panel-h"><h2>Jaardocumenten</h2><select class="sel" id="jdJ" aria-label="Boekjaar" style="width:auto">${J.map(y=>`<option${y===def?" selected":""}>${y}</option>`).join("")}</select></div><div class="panel-b stack">${rij("rekening","Jaarrekening")}${rij("verslag","Jaarverslag")}</div></div>`}});
@@ -8778,7 +8808,7 @@ async function bwBackups(){try{const j=await api("/api/mail?f=backup",{method:"P
 const bwKB=n=>n>1048576?(n/1048576).toLocaleString("nl-BE",{maximumFractionDigits:1})+" MB":Math.round((n||0)/1024)+" kB";
 function bwLijstHtml(){const L=BW.backups;if(!L)return'<div class="muted small">Laden…</div>';if(L.fout)return`<div class="muted small">${esc(L.fout)}</div>`;if(!L.length)return'<div class="muted small">Nog geen back-ups.</div>';
   return L.map(b=>`<div class="bw-r"><span>${fmtDate(String(b.op||"").slice(0,10))} <span class="muted small">${String(b.op||"").slice(11,16)} · ${bwKB(b.grootte)}</span></span><button type="button" class="btn sm" data-bw="dl" data-n="${esc(b.naam)}">${ic("download")}Downloaden</button></div>`).join("")}
-viewHook("instellingen",{na(){if(ROL_ECHT!=="admin")return"";if(!BW.backups)setTimeout(bwBackups,0);
+viewHook("gegevens",{na(){if(ROL_ECHT!=="admin")return"";if(!BW.backups)setTimeout(bwBackups,0);
   return `<div class="panel"><div class="panel-h"><h2>Back-ups</h2><button type="button" class="btn sm" data-bw="maak">Nu back-up maken</button></div><div class="panel-b"><div id="bwLijst" class="bw-l2">${bwLijstHtml()}</div></div></div>`}});
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-bw]");if(!b)return;b.disabled=true;
   try{if(b.dataset.bw==="maak"){const j=await api("/api/mail?f=backup",{method:"POST",body:JSON.stringify({actie:"maak"})});toast(`Back-up gemaakt: ${j.rijen.toLocaleString("nl-BE")} rijen uit ${j.tabellen} tabellen.`);BW.backups=null;BW.op=0;bwBackups()}

@@ -23,10 +23,10 @@ const FX={
   facturen:[{id:"f1",data:{nr:"F2026-001",datum:iso(5,1),vervaldatum:iso(6,1),klant:{naam:"Klant"},lijnen:[{omschrijving:"x",aantal:1,prijs:100}]}}],
 };
 const b=await chromium.launch(),fouten=[];let totaal=0;
-const PROFIELEN=[{rol:"admin",naam:"Test Beheerder",rechten:null},{rol:"boekhouder",naam:"Boekhouder",rechten:{financien:"bewerken",kalenders:"lezen"}},{rol:"lezer",naam:"Lezer",rechten:{kalenders:"bewerken","kalenders:kalenders":"geen",leden:"lezen"}}];
-for(const prof of PROFIELEN){FX.bestuur=prof;const pf=prof.rol;
+const PROFIELEN=[{rol:"admin",naam:"Test Beheerder",rechten:null},{rol:"boekhouder",naam:"Boekhouder",rechten:{financien:"bewerken",kalenders:"lezen"}},{rol:"lezer",naam:"Lezer",rechten:{kalenders:"bewerken","kalenders:kalenders":"geen",leden:"lezen"}},{rol:"admin",naam:"Gsm",rechten:null,gsm:true}];
+for(const prof of PROFIELEN){FX.bestuur=prof;const pf=prof.gsm?"gsm":prof.rol;
 
-const ctx=await b.newContext({viewport:{width:1280,height:900}});
+const ctx=await b.newContext(prof.gsm?{viewport:{width:390,height:844},isMobile:true,hasTouch:true}:{viewport:{width:1280,height:900}});
 const sessie={access_token:"a.b.c",refresh_token:"r",token_type:"bearer",expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,user:{id:"u1",email:"test@vbha.test",aud:"authenticated",role:"authenticated",user_metadata:{}}};
 await ctx.addInitScript(s=>{try{localStorage.setItem("sb-sb-auth-token",s)}catch(e){}},JSON.stringify(sessie));
 await ctx.route('**/*',async r=>{const u=new URL(r.request().url()),m=r.request().method();
@@ -53,16 +53,17 @@ try{await p.waitForFunction(()=>window.XLSX&&window.JSZip,null,{timeout:8000})}c
 if(pf==="admin"){const k=await p.evaluate(()=>({s:KR_STREETS.length,d:KR_DELEN.size,e:KR_DEEL.size,b:KR.byId.size,o:KR_SORTED.length,a:Array.isArray(KR_STREETS),it:[...KR_DELEN.values()].flat().length}));if(!(k.s>100&&k.d===k.s&&k.b===k.s&&k.o===k.s&&k.e===k.it&&k.a))fouten.push("kalenderronde-gegevens fout: "+JSON.stringify(k));else console.log("kalenderronde:",k.s,"straten,",k.e,"delen")}
 const routes=await p.evaluate(()=>typeof ROUTES!=="undefined"?ROUTES.map(r=>r[0]):[]);
 if(!routes.length)fouten.push('App niet gestart (ROUTES leeg)');
-const leeg=[];totaal+=routes.length;
+const leeg=[],breed=[];totaal+=routes.length;
 for(const r of routes){await p.evaluate(h=>{location.hash="#"+h},r);await p.waitForTimeout(350);
-  const ok=await p.evaluate(()=>{const m=document.querySelector("#body")||document.querySelector("#main");return m?m.innerText.trim().length:0});if(!ok)leeg.push(r)}
+  const ok=await p.evaluate(()=>{const m=document.querySelector("#body")||document.querySelector("#main");return m?m.innerText.trim().length:0});if(!ok)leeg.push(r);if(pf==="gsm"&&await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+4))breed.push(r)}
 // instellingen-vensters en enkele knoppen
 
 // vaste onderdelen die zichtbaar moeten zijn
-const MOET={admin:{instellingen:["Jaardocumenten","Testlid","Vaste waarden","Back-ups"],dashboard:["Bewaking"],kalfin:["Totale winst","Vergelijking met vorig jaar"],herinneringen:["Meldingen op het dashboard"]},boekhouder:{instellingen:["Jaardocumenten"]}};
+const MOET={admin:{instellingen:["Testlid","Vaste waarden","Instellingen per onderdeel"],gegevens:["Jaardocumenten","Back-ups"],dashboard:["Bewaking"],kalfin:["Totale winst","Vergelijking met vorig jaar"],herinneringen:["Meldingen op het dashboard"]},boekhouder:{gegevens:["Jaardocumenten"]}};
 for(const [r,T] of Object.entries(MOET[pf]||{})){await p.evaluate(h=>{location.hash="#"+h},r);await p.waitForTimeout(600);const t=await p.evaluate(()=>document.body.innerText);for(const x of T)if(!t.includes(x))fouten.push(`${pf} ${r}: "${x}" ontbreekt`)}
-if(leeg.length)console.log(pf+" leeg: "+leeg.join(", "));await ctx.close()}
+if(leeg.length)console.log(pf+" leeg: "+leeg.join(", "));if(breed.length)console.log("let op, breder dan het gsm-scherm: "+breed.join(", "));await ctx.close()}
 await b.close();
-console.log(`${totaal} pagina's getest (${PROFIELEN.map(p=>p.rol).join(", ")})`);
+console.log(`${totaal} pagina's getest (${PROFIELEN.map(p=>p.gsm?"gsm":p.rol).join(", ")})`);
 if(fouten.length){console.log("FOUTEN:\n"+[...new Set(fouten)].join("\n"));process.exit(1)}
+try{const {jaardocPdf}=await import(new URL("../api/_lib/jaardoc.js",import.meta.url));const pdf=jaardocPdf({titel:"Test",sub:"x",secties:[{kop:"A",tekst:["b"],tabel:{kols:["","2026"],rijen:[{c:["x",1.5]},{c:["T",2],t:"tot"}]}}]},{vereniging:"VBHA"});if(!(pdf.length>1000&&pdf.slice(0,5).toString()==="%PDF-"))throw new Error("geen geldige pdf")}catch(e){console.log("FOUT jaardocument-PDF: "+e.message);process.exit(1)}
 console.log("OK");
