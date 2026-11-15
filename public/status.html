@@ -159,10 +159,9 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
      <div class="sp-c"><div class="sp-top"><span class="sp-j">Nu · ${Y}</span><span class="sp-badge ${N.status}">${nm(N.status)}</span></div>
       <div class="sp-big">${N.korting}% korting</div><p class="sp-s">op betalende activiteiten in ${Y}.<br>${waarom}</p>${rijen(N.onderdelen||[])}</div>
      <div class="sp-c"><div class="sp-top"><span class="sp-j">Volgend jaar · ${Y+1}</span><span class="sp-badge ${P.volgend}">${nm(P.volgend)}</span></div>
-      <div class="sp-big">${P.totaal} punten</div><p class="sp-s">${P.totaal?`al verzameld in ${Y}.`:`Je punten van ${Y} tellen voor ${Y+1}. Je hebt er nog geen.`}</p>${rijen(P.onderdelen)}
+      <div class="sp-big">${P.totaal} punten</div><p class="sp-s">${P.totaal?`al verzameld in ${Y}.${x.rang?`<br>Je staat <b>${x.rang.gedeeld?"gedeeld ":""}${x.rang.plaats}${x.rang.plaats===1||x.rang.plaats===8||x.rang.plaats>=20?"ste":"de"}</b> van de ${x.rang.van} leden.`:""}`:`Je punten van ${Y} tellen voor ${Y+1}. Je hebt er nog geen.`}</p>${rijen(P.onderdelen)}
       ${P.ere||P.vrij?"":meter}
       <p class="sp-n">${volg}</p></div>
-     ${x.rang?`<p class="sp-rang">Met je punten sta je <b>${x.rang.gedeeld?"gedeeld ":""}${x.rang.plaats}${x.rang.plaats===1?"ste":x.rang.plaats===8||x.rang.plaats>=20?"ste":"de"}</b> van de ${x.rang.van} leden in ${Y}.</p>`:""}
      <p class="sp-w"><a href="/reglement">Hoe werkt het puntensysteem?</a></p></div>`})
   .catch(e=>fout(e.message));
 </script>
