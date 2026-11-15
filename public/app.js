@@ -321,7 +321,7 @@ function render(force){
   $("#main").innerHTML='<div class="top">'+EMBLEM+'<div><h1>'+esc(navTitel(r)||v.title)+'</h1></div><div class="grow"></div>'+(v.actions||"")+'</div>'+
     (S.leden.size===0&&S.jaren.size===0?emptyState():"")+'<div id="body" style="display:flex;flex-direction:column;gap:18px">'+v.body()+'</div>';
   VIEWS[r].after&&VIEWS[r].after();
-  if(r===lastRoute&&!force){window.scrollTo(0,sy);[...document.querySelectorAll("#body .tw")].forEach((e,i)=>{if(tws[i])e.scrollTop=tws[i]})}lastRoute=r;
+  if(r!==lastRoute){window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0}if(r===lastRoute&&!force){window.scrollTo(0,sy);[...document.querySelectorAll("#body .tw")].forEach((e,i)=>{if(tws[i])e.scrollTop=tws[i]})}lastRoute=r;
 }
 function renderBody(){const r=route();const v=VIEWS[r]();const sc=[...$("#body").querySelectorAll(".tw")].map(e=>e.scrollTop);$("#body").innerHTML=v.body();[...$("#body").querySelectorAll(".tw")].forEach((e,i)=>{if(sc[i])e.scrollTop=sc[i]});VIEWS[r].after&&VIEWS[r].after()}
 function emptyState(){return '<div class="panel"><div class="empty" style="display:flex;flex-direction:column;gap:12px;align-items:center"><b style="font-size:17px;color:var(--ink)">Nog geen gegevens</b><span>Lees je bestaande Excel-bestanden in (VBHA_2025.xlsm, daarna VBHA_2026.xlsm), of start met een leeg boekjaar in Instellingen.</span><button class="btn primary" data-w data-act="importExcel">'+ic("upload")+'Excel-bestand importeren</button></div></div>'}
