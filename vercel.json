@@ -147,6 +147,10 @@
     {
       "source": "/api/terug",
       "destination": "/api/openbaar?f=terug"
+    },
+    {
+      "source": "/api/tel",
+      "destination": "/api/openbaar?f=tel"
     }
   ],
   "regions": [

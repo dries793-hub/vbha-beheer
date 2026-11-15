@@ -288,4 +288,5 @@ function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");co
   inp.addEventListener("blur",()=>setTimeout(()=>{box.hidden=true;if(!inp.dataset.id&&L.length===1&&inp.value.trim())kies(L[0])},150));}
 lidPicker($("#naam"));
 </script>
+<script>/* bezoekteller zonder cookies of IP-adres */(function(){try{if(navigator.webdriver||window.top!==window)return;var s=sessionStorage,n=!s.getItem("vbt"),b;if(n){var u=new URLSearchParams(location.search);b={r:document.referrer,q:u.get("utm_source")||u.get("bron")||(u.has("fbclid")?"fb":u.has("igshid")?"ig":"")};s.setItem("vbt",JSON.stringify(b))}else b=JSON.parse(s.getItem("vbt")||"{}");var d=JSON.stringify({p:location.pathname,r:b.r||"",q:b.q||"",n:n});if(navigator.sendBeacon)navigator.sendBeacon("/api/tel",d);else fetch("/api/tel",{method:"POST",body:d,keepalive:true})}catch(e){}})()</script>
 </body></html>

@@ -41,6 +41,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ link: `${site()}/status?l=${encodeURIComponent(id)}&j=${j}&t=${tekenStatus(id, j)}` });
     }
     if (req.query && req.query.f === "terug") { const { terugApp } = await import("./_lib/terugbetaling.js"); return await terugApp(req, res); } // terugbetalingen en onkostennota's
+    if (req.query && req.query.f === "stats") { const { statsApi } = await import("./_lib/stats.js"); return await statsApi(req, res); } // statistieken website en sociale media
     if (req.query && req.query.f === "social") { const { default: socialApi } = await import("./_lib/social.js"); return await socialApi(req, res); } // sociale media: posts klaarzetten en publiceren (ook geplande taak)
     if (req.query && req.query.f === "bcsplit") { // Bancontact-bulkstortingen opsplitsen (knop in de app of beheerder met geplande-taaksleutel)
       const { requireUser, isDbCron, admin } = await import("./_lib/sb.js"); const { splitsBulk } = await import("./_lib/bcsplit.js");

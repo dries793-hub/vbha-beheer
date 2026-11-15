@@ -32,7 +32,7 @@ await ctx.addInitScript(s=>{try{localStorage.setItem("sb-sb-auth-token",s)}catch
 await ctx.route('**/*',async r=>{const u=new URL(r.request().url()),m=r.request().method();
   if(u.hostname==='t.test'){
     if(u.pathname==='/api/config')return r.fulfill({json:{supabaseUrl:"https://sb.test",supabaseAnonKey:"anon"}});
-    if(u.pathname.startsWith('/api/')){if(u.pathname==='/api/gebruikers')return r.fulfill({json:{gebruikers:[{id:'u1',email:'test@vbha.test',rol:'admin',naam:'Test'},{id:'u2',email:'l@x.test',rol:'lezer',naam:'Lezer',rechten:{kalenders:'lezen'}}]}});if(u.searchParams.get('f')==='bcsplit')return r.fulfill({json:{betalingen:[{a:10,d:iso(11,3),t:"10:00"},{a:20,d:iso(11,4),t:"11:00"}],onderweg:0}});return r.fulfill({json:{}})}
+    if(u.pathname.startsWith('/api/')){if(u.pathname==='/api/gebruikers')return r.fulfill({json:{gebruikers:[{id:'u1',email:'test@vbha.test',rol:'admin',naam:'Test'},{id:'u2',email:'l@x.test',rol:'lezer',naam:'Lezer',rechten:{kalenders:'lezen'}}]}});if(u.searchParams.get('f')==='bcsplit')return r.fulfill({json:{betalingen:[{a:10,d:iso(11,3),t:"10:00"},{a:20,d:iso(11,4),t:"11:00"}],onderweg:0}});if(u.searchParams.get('f')==='stats')return r.fulfill({json:{rijen:[{dag:new Date().toISOString().slice(0,10),pad:'/',bron:'Facebook',toestel:'gsm',weergaven:5,bezoeken:2}],sinds:'2026-11-01',social:[{kanaal:'facebook',naam:'VBHA',volgers:900,metriek:{},posts:[{tekst:'Test',op:'2026-11-10',url:'#',reacties:3,commentaren:1,gedeeld:0}]},{kanaal:'instagram',fout:'Het Meta-token mist de nodige rechten.'}],stand:[]}});return r.fulfill({json:{}})}
     const f=ROOT+(u.pathname==='/'?'/beheer.html':u.pathname);return fs.existsSync(f)&&fs.statSync(f).isFile()?r.fulfill({body:fs.readFileSync(f),contentType:f.endsWith('.js')?'text/javascript':f.endsWith('.html')?'text/html':'application/octet-stream'}):r.fulfill({status:404,body:''})}
   if(u.hostname==='sb.test'){
     if(u.pathname.startsWith('/auth/v1/user'))return r.fulfill({json:sessie.user});
@@ -59,7 +59,7 @@ for(const r of routes){await p.evaluate(h=>{location.hash="#"+h},r);await p.wait
 // instellingen-vensters en enkele knoppen
 
 // vaste onderdelen die zichtbaar moeten zijn
-const MOET={admin:{instellingen:["Testlid","Vaste waarden","Kliks in mails"],gegevens:["Jaardocumenten","Back-ups"],dashboard:["Bewaking"],kalfin:["Totale winst","Vergelijking met vorig jaar"],herinneringen:["Meldingen op het dashboard"]},boekhouder:{gegevens:["Jaardocumenten"]}};
+const MOET={admin:{instellingen:["Testlid","Vaste waarden","Kliks in mails"],gegevens:["Jaardocumenten","Back-ups"],dashboard:["Bewaking"],kalfin:["Totale winst","Vergelijking met vorig jaar"],herinneringen:["Meldingen op het dashboard"],statistieken:["Paginaweergaven","Startpagina","Facebook"]},boekhouder:{gegevens:["Jaardocumenten"]}};
 for(const [r,T] of Object.entries(MOET[pf]||{})){await p.evaluate(h=>{location.hash="#"+h},r);await p.waitForTimeout(600);const t=await p.evaluate(()=>document.body.innerText);for(const x of T)if(!t.includes(x))fouten.push(`${pf} ${r}: "${x}" ontbreekt`)}
 if(leeg.length)console.log(pf+" leeg: "+leeg.join(", "));if(breed.length)console.log("let op, breder dan het gsm-scherm: "+breed.join(", "));await ctx.close()}
 await b.close();

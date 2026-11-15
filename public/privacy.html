@@ -157,7 +157,7 @@ html,body{overflow-x:hidden}
     </ul>
 
     <h2>Cookies</h2>
-    <p>Onze website gebruikt geen tracking-, analyse- of advertentiecookies. Lettertypes en andere onderdelen van de site worden van onze eigen website geladen, niet van Google of andere externe servers. De beheerapp en de kassa bewaren enkel wat nodig is om aangemeld te blijven op je toestel.</p>
+    <p>Onze website gebruikt geen tracking-, analyse- of advertentiecookies. Lettertypes en andere onderdelen van de site worden van onze eigen website geladen, niet van Google of andere externe servers. We tellen hoe vaak onze pagina's bekeken worden en via welke weg bezoekers binnenkomen (bijvoorbeeld Facebook of Google), per dag en per soort toestel. Daarbij bewaren we geen IP-adres, geen cookie en niets waarmee we je kunnen herkennen. De beheerapp en de kassa bewaren enkel wat nodig is om aangemeld te blijven op je toestel.</p>
 
     <h2>Je rechten</h2>
     <p>Je hebt het recht om je gegevens in te kijken, te laten verbeteren of te laten wissen, de verwerking te laten beperken, bezwaar te maken en je gegevens op te vragen. Mail daarvoor naar <a href="mailto:info@vbha.be">info@vbha.be</a>; we antwoorden binnen een maand. Ben je niet tevreden over hoe we met je gegevens omgaan, dan kan je een klacht indienen bij de <a href="https://www.gegevensbeschermingsautoriteit.be">Gegevensbeschermingsautoriteit</a>, Drukpersstraat 35, 1000 Brussel.</p>
@@ -165,5 +165,6 @@ html,body{overflow-x:hidden}
   </div>
   <p class="foot">Vriendenkring Brandweer Hoofdpost Aalst · <a href="https://vbha.be" style="color:inherit">vbha.be</a></p>
 </main>
+<script>/* bezoekteller zonder cookies of IP-adres */(function(){try{if(navigator.webdriver||window.top!==window)return;var s=sessionStorage,n=!s.getItem("vbt"),b;if(n){var u=new URLSearchParams(location.search);b={r:document.referrer,q:u.get("utm_source")||u.get("bron")||(u.has("fbclid")?"fb":u.has("igshid")?"ig":"")};s.setItem("vbt",JSON.stringify(b))}else b=JSON.parse(s.getItem("vbt")||"{}");var d=JSON.stringify({p:location.pathname,r:b.r||"",q:b.q||"",n:n});if(navigator.sendBeacon)navigator.sendBeacon("/api/tel",d);else fetch("/api/tel",{method:"POST",body:d,keepalive:true})}catch(e){}})()</script>
 </body>
 </html>

@@ -8648,6 +8648,66 @@ VIEWS.kliks=()=>({title:"Instellingen",sub:"Kliks in mails",body(){if(ROL_ECHT!=
 document.addEventListener("input",e=>{if(e.target.id!=="mkQ")return;MK.q=e.target.value;const p=e.target.selectionStart;renderBody();const i=$("#mkQ");if(i){i.focus();try{i.setSelectionRange(p,p)}catch(x){}}});
 addEventListener("hashchange",()=>{if(route()==="kliks"){MK.data=null;MK.fout=null}});
 
+/* ============ Communicatie › Statistieken: bezoek aan de website en cijfers van Facebook en Instagram ============
+   Server: api/_lib/stats.js (eigen bezoekteller zonder cookies of IP-adres in tabel site_bezoek; Meta Graph API voor Facebook en Instagram).
+   Volgers worden per dag bijgehouden (tabel social_stand) zodra de pagina geopend wordt. */
+{const c=NAV.find(n=>!Array.isArray(n)&&n.id==="communicatie");if(c&&!c.items.some(i=>i[0]==="statistieken"))c.items.push(["statistieken","Statistieken"])}
+if(!ROUTES.some(r=>r[0]==="statistieken"))ROUTES.push(["statistieken","Statistieken"]);
+ICON.statistieken='<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>';
+if(typeof FUNC!=="undefined"&&!FUNC.some(f=>f[0]==="statistieken")){FUNC.push(["statistieken","Statistieken",["statistieken"],"Communicatie"]);FUNC_VAN.statistieken="statistieken"}
+const ST={per:30,data:null,social:null,bezig:false,fout:null};
+const ST_PAD={"/":"Startpagina","/shop":"Webshop","/steun":"Steunen","/kalender":"Kalender","/fuif":"In Vier en Vlam","/familiedag":"Familiedag","/kinderfeest":"Kinderfeest","/banket":"Banket","/album":"Fotoalbums","/inschrijven":"Inschrijven","/sponsor":"Sponsors","/privacy":"Privacy","/reglement":"Reglement","/lidgeld":"Lidgeld","andere":"Andere"};
+async function stLaad(){if(ST.bezig)return;ST.bezig=true;
+  try{const j=await api("/api/mail?f=stats",{method:"POST",body:JSON.stringify({dagen:ST.per,social:!ST.social})});ST.data=j;if(!ST.social)ST.social={kanalen:j.social||[]};ST.social.stand=j.stand||[];ST.fout=null;ST.op=Date.now()}
+  catch(e){ST.fout=e.message}finally{ST.bezig=false}if(route()==="statistieken")renderBody()}
+const stN=n=>n==null?"–":Number(n).toLocaleString("nl-BE");
+const stDag=d=>new Date(Date.now()-d*864e5).toLocaleDateString("sv-SE",{timeZone:"Europe/Brussels"});
+function stWebsite(){const D=ST.data,P=ST.per,van=stDag(P-1),vor=stDag(2*P-1),R=D.rijen||[];
+  const nu=R.filter(r=>r.dag>=van),oud=R.filter(r=>r.dag<van&&r.dag>=vor);
+  const s=(L,k)=>L.reduce((a,r)=>a+(r[k]||0),0),bz=s(nu,"bezoeken"),wg=s(nu,"weergaven"),bzO=s(oud,"bezoeken");
+  const soc=s(nu.filter(r=>r.bron==="Facebook"||r.bron==="Instagram"),"bezoeken"),gsm=s(nu.filter(r=>r.toestel==="gsm"),"bezoeken");
+  const groep=k=>{const m=new Map();for(const r of nu)m.set(r[k],(m.get(r[k])||[0,0]).map((v,i)=>v+(i?r.weergaven:r.bezoeken)));return [...m].sort((a,b)=>b[1][0]-a[1][0]||b[1][1]-a[1][1])};
+  // grafiek: per dag (7/30 dagen) of per maand (12 maanden)
+  const maand=P>60,B=new Map();
+  if(maand){for(let i=11;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);B.set(d.toLocaleDateString("sv-SE").slice(0,7),0)}}else for(let i=P-1;i>=0;i--)B.set(stDag(i),0);
+  for(const r of nu){const k=maand?r.dag.slice(0,7):r.dag;if(B.has(k))B.set(k,B.get(k)+r.bezoeken)}
+  const mx=Math.max(1,...B.values()),lbl=k=>maand?new Date(k+"-01").toLocaleDateString("nl-BE",{month:"short"}):new Date(k).toLocaleDateString("nl-BE",P>7?{day:"numeric"}:{weekday:"short"});
+  const bars=[...B].map(([k,v])=>`<div class="st-c" title="${esc((maand?new Date(k+"-01").toLocaleDateString("nl-BE",{month:"long",year:"numeric"}):fmtDate(k))+": "+v+(v===1?" bezoek":" bezoeken"))}"><span class="st-v">${v||""}</span><span class="st-b" style="height:${Math.round(v/mx*100)}%"></span><span class="st-l">${esc(lbl(k))}</span></div>`).join("");
+  const tbl=(t,L,map)=>`<div class="st-t"><h3>${t}</h3><table class="tbl"><thead><tr><th></th><th class="num">Bezoeken</th><th class="num">Weergaven</th></tr></thead><tbody>${L.slice(0,10).map(([k,[b,w]])=>`<tr><td>${esc(map?map[k]||k:k)}</td><td class="num">${stN(b)}</td><td class="num">${stN(w)}</td></tr>`).join("")||'<tr><td colspan="3" class="empty">Nog geen bezoeken.</td></tr>'}</tbody></table></div>`;
+  const tile=(l,v,sub)=>`<div class="tile"><span class="lbl">${l}</span><span class="val">${v}</span>${sub?`<span class="muted small">${sub}</span>`:""}</div>`;
+  return `<div class="panel"><div class="panel-h"><h2>Website</h2><span class="grow"></span>${D.sinds?`<span class="muted small">geteld sinds ${fmtDate(D.sinds)}</span>`:""}</div><div class="panel-b">
+    <div class="tiles st-tiles">${tile("Bezoeken",stN(bz),D.sinds&&D.sinds<=vor?"vorige periode: "+stN(bzO):"")}${tile("Paginaweergaven",stN(wg),bz?(wg/bz).toLocaleString("nl-BE",{maximumFractionDigits:1})+" per bezoek":"")}${tile("Via sociale media",stN(soc),"")}${tile("Op gsm",bz?Math.round(gsm/bz*100)+"%":"–","")}</div>
+    <div class="st-g${P>31?" st-g12":""}${P<=7?" st-g7":""}">${bars}</div>
+    <div class="st-2">${tbl("Pagina's",groep("pad"),ST_PAD)}${tbl("Bronnen",groep("bron"))}</div></div></div>`}
+function stKanaal(k){const fb=k.kanaal==="facebook",M=k.metriek||{},St=(ST.social.stand||[]).filter(s=>s.kanaal===k.kanaal);
+  const per=ST.per,van=stDag(per-1),eerst=St.find(s=>s.dag>=van),groei=eerst&&k.volgers!=null&&eerst.dag<stDag(0)?k.volgers-eerst.volgers:null;
+  const tile=(l,v,sub)=>`<div class="tile"><span class="lbl">${l}</span><span class="val">${v}</span>${sub?`<span class="muted small">${sub}</span>`:""}</div>`;
+  const kop=`<div class="panel-h"><h2>${fb?"Facebook":"Instagram"}</h2><span class="grow"></span>${k.link?`<a class="btn sm" href="${esc(k.link)}" target="_blank" rel="noopener">${ic("link")}${esc(fb?(k.naam||"Pagina"):"@"+(k.naam||""))}</a>`:""}</div>`;
+  if(k.fout)return `<div class="panel">${kop}<div class="panel-b"><div class="muted small">${esc(k.fout)}</div></div></div>`;
+  const t=fb?[tile("Volgers",stN(k.volgers),groei!=null?(groei>=0?"+":"")+groei+" sinds "+fmtDate(eerst.dag):""),tile("Bereik",stN(M.page_impressions_unique),"laatste 28 dagen"),tile("Interacties",stN(M.page_post_engagements),"laatste 28 dagen"),tile("Paginabezoeken",stN(M.page_views_total),"laatste 28 dagen")]
+    :[tile("Volgers",stN(k.volgers),groei!=null?(groei>=0?"+":"")+groei+" sinds "+fmtDate(eerst.dag):""),tile("Bereik",stN(M.reach),"laatste 28 dagen"),tile("Interacties",stN(M.total_interactions??M.accounts_engaged),"laatste 28 dagen"),tile("Profielbezoeken",stN(M.profile_views),"laatste 28 dagen")];
+  const P=k.posts||[];
+  return `<div class="panel">${kop}<div class="panel-b"><div class="tiles st-tiles">${t.join("")}</div>
+    ${P.length?`<div class="tw"><table class="tbl st-p"><thead><tr><th>Bericht</th><th class="num">${fb?"Reacties":"Likes"}</th><th class="num">Comm.</th>${fb?'<th class="num">Gedeeld</th>':""}</tr></thead><tbody>${P.map(p=>`<tr><td><a href="${esc(p.url||"#")}" target="_blank" rel="noopener" class="st-pl">${p.foto?`<img src="${esc(p.foto)}" alt="" loading="lazy">`:""}<span><b>${esc(p.tekst?p.tekst.split("\n")[0].slice(0,80):"(zonder tekst)")}</b><span class="muted small">${p.op?fmtDate(String(p.op).slice(0,10)):""}</span></span></a></td><td class="num">${stN(p.reacties)}</td><td class="num">${stN(p.commentaren)}</td>${fb?`<td class="num">${stN(p.gedeeld)}</td>`:""}</tr>`).join("")}</tbody></table></div>`:k.postsFout?`<div class="muted small">${esc(k.postsFout)}</div>`:""}</div></div>`}
+VIEWS.statistieken=()=>({title:"Statistieken",sub:"Website en sociale media",
+  actions:`<div class="seg" role="group" aria-label="Periode">${[[7,"7 dagen"],[30,"30 dagen"],[365,"12 maanden"]].map(([k,l])=>`<button type="button" data-st="${k}" class="${ST.per===k?"on":""}">${l}</button>`).join("")}</div>`,
+  body(){if(!ST.data&&!ST.fout){setTimeout(stLaad,0);return '<div class="panel"><div class="empty"><span class="lader-c" style="display:inline-block;width:24px;height:24px;border-width:2px;vertical-align:middle"></span></div></div>'}
+    if(ST.fout&&!ST.data)return `<div class="panel"><div class="empty">${esc(ST.fout)}</div></div>`;
+    const K=(ST.social&&ST.social.kanalen)||[];
+    return stWebsite()+(K.length?`<div class="st-k">${K.map(stKanaal).join("")}</div>`:`<div class="panel"><div class="empty">Facebook en Instagram zijn niet gekoppeld.</div></div>`)}});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-st]");if(!b)return;ST.per=+b.dataset.st;stLaad();renderBody()});
+addEventListener("hashchange",()=>{if(route()==="statistieken"&&ST.op&&Date.now()-ST.op>5*60000){ST.data=null;ST.social=null;ST.op=0}});
+{const st=document.createElement("style");st.textContent=`.st-tiles{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:18px}
+.st-g{display:flex;align-items:flex-end;gap:3px;height:160px;padding:18px 0 22px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+.st-c{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative}
+.st-b{width:100%;max-width:34px;background:var(--accent);border-radius:4px 4px 0 0;min-height:1px;opacity:.85}
+.st-v{font-size:10px;color:var(--muted);line-height:1;margin-bottom:3px}.st-l{position:absolute;bottom:-18px;font-size:10px;color:var(--muted);white-space:nowrap}
+.st-g:not(.st-g7):not(.st-g12) .st-v{display:none}.st-g:not(.st-g7):not(.st-g12) .st-c:nth-child(odd) .st-l{visibility:hidden}
+.st-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.st-t h3{font-size:14px;margin:0 0 6px}
+.st-k{display:grid;grid-template-columns:1fr 1fr;gap:16px}.st-k .panel{margin:0}
+.st-pl{display:flex;gap:10px;align-items:center;color:inherit;text-decoration:none}.st-pl img{width:40px;height:40px;object-fit:cover;border-radius:6px;flex:none}.st-pl span{display:flex;flex-direction:column;min-width:0}.st-pl b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px}
+@media (max-width:860px){.st-2,.st-k{grid-template-columns:1fr}.st-pl b{max-width:190px}}`;document.head.appendChild(st)}
+
 /* ============ Instellingen: alles via knoppen bovenaan, instellingen van een onderdeel op dezelfde pagina ============
    De knoppen vervangen de tabbladen van Instellingen. Een onderdeel (Leden, Kassa, …) opent zijn instellingenvenster
    niet als popup maar onder de knoppen (het venster wordt in #instInline getoond in plaats van in de overlay). */
