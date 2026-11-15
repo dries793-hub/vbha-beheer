@@ -8434,16 +8434,21 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   let adr=0;try{if(typeof KR_STREETS!=="undefined"&&KR_STREETS.length){const M=krMarks(),D=krDelen();adr=KR_STREETS.reduce((t,x)=>t+krAdrGedaan(x,M,D),0)}}catch(e){}
   let dozen=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Number(JAAR)&&j.lidId!=="test-vbha")dozen+=Number(j.kalUitgevoerd)||0;
   const pd=Number(jaarCfg(JAAR).perDoos)||100,stuks=dozen*pd;
-  const P=(KF.data&&KF.data.betalingen)||[],A=P.map(x=>x.a),n=A.length,qrTot=A.reduce((s,a)=>s+a,0);
+  const PQ=((KF.data&&KF.data.betalingen)||[]).map(x=>({...x,o:false}));
+  const PO=inB.filter(b=>b.rekening!=="Kas"&&!isBc(b)).map(b=>({a:Number(b.bedrag)||0,d:String(b.datum||""),o:true}));
+  const P=PQ.concat(PO),A=P.map(x=>x.a),n=A.length,qrTot=A.reduce((s,a)=>s+a,0),nQ=PQ.length,nO=PO.length;
   const hoog=n?Math.max(...A):0,gem=n?qrTot/n:0,med=kfMed(A);
   const freq=new Map();for(const a of A)freq.set(a,(freq.get(a)||0)+1);const vaak=[...freq.entries()].sort((x,y)=>y[1]-x[1]||y[0]-x[0])[0];
   const tile=(l,v,s)=>`<div class="tile"><span class="lbl">${l}</span><span class="val">${v}</span>${s?`<span class="muted small">${s}</span>`:""}</div>`;
   // verdeling van de bedragen
   const SCH=[[0,5,"≤ €5"],[5,10,"€6–10"],[10,15,"€11–15"],[15,20,"€16–20"],[20,25,"€21–25"],[25,50,"€26–50"],[50,1e9,"> €50"]];
-  const verd=SCH.map(([a,b,l])=>({l,n:A.filter(x=>x>a+1e-9&&x<=b+1e-9||(a===0&&x<=b)).length}));const vm=Math.max(1,...verd.map(v=>v.n));
+  const inS=(x,a,b)=>x>a+1e-9&&x<=b+1e-9||(a===0&&x<=b);
+  const verd=SCH.map(([a,b,l])=>({l,q:PQ.filter(x=>inS(x.a,a,b)).length,o:PO.filter(x=>inS(x.a,a,b)).length,get n(){return this.q+this.o}}));const vm=Math.max(1,...verd.map(v=>v.n));
   // per dag
-  const dag=new Map();for(const x of P)dag.set(x.d,(dag.get(x.d)||0)+x.a);const D=[...dag.entries()].sort();const dm=Math.max(1,...D.map(d=>d[1]));
+  const dag=new Map();for(const x of P){const g=dag.get(x.d)||{q:0,o:0};g[x.o?"o":"q"]+=x.a;dag.set(x.d,g)}
+  const D=[...dag.entries()].sort().map(([d,g])=>[d,g.q+g.o,g]);const dm=Math.max(1,...D.map(d=>d[1]));
   const top=D.length?D.reduce((m,d)=>d[1]>m[1]?d:m):null;
+  const bar=(q,o,m)=>`<span class="kf-b"><i style="width:${q/m*100}%"></i><i class="ov" style="width:${o/m*100}%"></i></span>`;
   return kalTabs("kalfin")+`
   <div class="tiles kf-t">${tile("Totale opbrengst",`<span style="color:var(--${res>=0?"good":"bad"})">${res>=0?"":"−"}${kfEur(Math.abs(res))}</span>`,"kalenders + sponsors − kosten")}
     ${tile("Kalenders binnengekomen",kfEur(tot),[bc?"Bancontact "+kfEur(bc):"",kas?"kas "+kfEur(kas):"",ov?"overschrijving "+kfEur(ov):""].filter(Boolean).join(" · "))}
@@ -8459,11 +8464,11 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
     return `<div class="panel"><div class="panel-h"><h2>Vergelijking met ${Number(JAAR)-1}</h2></div><div class="tw"><table><thead><tr><th></th><th class="num">${JAAR}</th><th class="num">${Number(JAAR)-1}</th><th class="num">Verschil</th></tr></thead><tbody>
       ${r("Kalenders binnengekomen",J1.kin,J0.kin)}${r("Kalenders tot "+fmtDate(todayISO()).slice(0,5),J1.kinTot,J0.kinTot)}${r("Sponsors",J1.si,J0.si)}${r("Kosten kalenders",J1.kuit,J0.kuit,true)}${r("Totale opbrengst",J1.res,J0.res)}
       ${J0.dz&&J1.dz?r("Per kalender",J1.kin/(J1.dz*pd),J0.kin/(J0.dz*pd)):""}</tbody></table></div></div>`})():""}
-  <div class="panel"><div class="panel-h"><h2>Betalingen via de QR-code</h2>${KF.data&&KF.data.laatsteExport?`<span class="grow"></span><span class="muted small">export t.e.m. ${fmtDate(KF.data.laatsteExport)}</span>`:""}</div>
-   ${KF.bezig&&!KF.data?'<div class="empty">Laden…</div>':KF.fout?`<div class="empty">${esc(KF.fout)}</div>`:!n?'<div class="empty">Nog geen Bancontact-export opgeladen (Transacties › tandwiel).</div>':`
-   <div class="panel-b"><div class="tiles kf-t">${tile("Aantal betalingen",n.toLocaleString("nl-BE"),kfEur(qrTot))}${tile("Hoogste betaling",kfEur(hoog),"")}${tile("Gemiddelde",kfEur(gem),"")}${tile("Mediaan",kfEur(med),vaak?`meest gegeven: ${kfEur(vaak[0])} (${vaak[1]}×)`:"")}</div>
-   <div class="kf-2"><div><h3 class="kf-h">Verdeling van de bedragen</h3>${verd.map(v=>`<div class="kf-r"><span>${v.l}</span><span class="kf-b"><i style="width:${v.n/vm*100}%"></i></span><b>${v.n}</b></div>`).join("")}</div>
-   <div><h3 class="kf-h">Per dag${top?` <span class="muted small">· beste dag ${fmtDate(top[0])}: ${kfEur(top[1])}</span>`:""}</h3>${D.map(([d,v])=>`<div class="kf-r"><span>${fmtDate(d).slice(0,5)}</span><span class="kf-b"><i style="width:${v/dm*100}%"></i></span><b>${kfEur(v)}</b></div>`).join("")}</div></div></div>`}</div>`}});
+  <div class="panel"><div class="panel-h"><h2>Betalingen</h2><span class="kf-lg"><i></i>QR-code <i class="ov"></i>overschrijving</span>${KF.data&&KF.data.laatsteExport?`<span class="grow"></span><span class="muted small">export t.e.m. ${fmtDate(KF.data.laatsteExport)}</span>`:""}</div>
+   ${KF.bezig&&!KF.data?'<div class="empty">Laden…</div>':KF.fout?`<div class="empty">${esc(KF.fout)}</div>`:!n?'<div class="empty">Nog geen betalingen.</div>':`
+   <div class="panel-b"><div class="tiles kf-t">${tile("Aantal betalingen",n.toLocaleString("nl-BE"),`${kfEur(qrTot)} · QR ${nQ} · overschrijving ${nO}`)}${tile("Hoogste betaling",kfEur(hoog),"")}${tile("Gemiddelde",kfEur(gem),"")}${tile("Mediaan",kfEur(med),vaak?`meest gegeven: ${kfEur(vaak[0])} (${vaak[1]}×)`:"")}</div>
+   <div class="kf-2"><div><h3 class="kf-h">Verdeling van de bedragen</h3>${verd.map(v=>`<div class="kf-r"><span>${v.l}</span>${bar(v.q,v.o,vm)}<b>${v.n}</b></div>`).join("")}</div>
+   <div><h3 class="kf-h">Per dag${top?` <span class="muted small">· beste dag ${fmtDate(top[0])}: ${kfEur(top[1])}</span>`:""}</h3>${D.map(([d,v,g])=>`<div class="kf-r"><span>${fmtDate(d).slice(0,5)}</span>${bar(g.q,g.o,dm)}<b>${kfEur(v)}</b></div>`).join("")}</div></div></div>`}</div>`}});
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
