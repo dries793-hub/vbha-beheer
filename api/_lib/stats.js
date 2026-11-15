@@ -1,7 +1,7 @@
 // Statistieken: bezoek aan de openbare website (eigen teller, zonder cookies of IP-adres) en cijfers van Facebook en Instagram.
 // - telApi (openbaar, /api/tel): één paginaweergave tellen per dag, pagina, bron en soort toestel (tabel site_bezoek).
 // - statsApi (/api/mail?f=stats): overzicht voor de app.
-import { admin, requireUser, httpErr, isAdminRol } from "./sb.js";
+import { admin, requireUser, httpErr, isAdminRol, isDbCron } from "./sb.js";
 
 const PADEN = ["/", "/shop", "/steun", "/kalender", "/fuif", "/familiedag", "/kinderfeest", "/banket", "/album", "/inschrijven", "/sponsor", "/privacy", "/reglement", "/lidgeld"];
 const BOT = /bot|crawl|spider|slurp|facebookexternalhit|preview|headless|lighthouse|pingdom|uptime|monitor|curl|wget|python|axios|node-fetch/i;
@@ -89,8 +89,10 @@ async function instagram() {
 export async function statsApi(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
-  const { rol, rechten } = await requireUser(req);
-  if (!isAdminRol(rol) && rechten && rechten.statistieken === "geen") throw httpErr(403, "Geen toegang");
+  if (!(await isDbCron(req))) { // geplande taak (sleutel) mag ook: volgers dagelijks bijhouden
+    const { rol, rechten } = await requireUser(req);
+    if (!isAdminRol(rol) && rechten && rechten.statistieken === "geen") throw httpErr(403, "Geen toegang");
+  }
   let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
   const sb = admin(), dagen = Math.min(400, Math.max(7, Number(b.dagen) || 30));
   const van = new Date(Date.now() - (dagen * 2) * 864e5).toISOString().slice(0, 10); // dubbele periode: vergelijking met de periode ervoor
