@@ -8448,10 +8448,10 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   const inS=(x,a,b)=>x>a+1e-9&&x<=b+1e-9||(a===0&&x<=b);
   const verd=SCH.map(([a,b,l])=>({l,q:PQ.filter(x=>inS(x.a,a,b)).length,o:PO.filter(x=>inS(x.a,a,b)).length,get n(){return this.q+this.o}}));const vm=Math.max(1,...verd.map(v=>v.n));
   // per dag
-  const dag=new Map();for(const x of P){const g=dag.get(x.d)||{q:0,o:0};g[x.o?"o":"q"]+=x.a;dag.set(x.d,g)}
+  const dag=new Map();for(const x of P){const g=dag.get(x.d)||{q:0,o:0,nq:0,no:0};g[x.o?"o":"q"]+=x.a;g[x.o?"no":"nq"]++;dag.set(x.d,g)}
   const D=[...dag.entries()].filter(([d])=>d>=JAAR+"-11-01").sort().map(([d,g])=>[d,g.q+g.o,g]);const dm=Math.max(1,...D.map(d=>d[1]));
   const top=D.length?D.reduce((m,d)=>d[1]>m[1]?d:m):null;
-  const bar=(q,o,m,f)=>`<span class="kf-b"><i style="width:${q/m*100}%" data-t="Bancontact: ${f(q)}"></i><i class="ov" style="width:${o/m*100}%" data-t="Overschrijving: ${f(o)}"></i></span>`;
+  const bar=(q,o,m,f,nq,no)=>`<span class="kf-b"><i style="width:${q/m*100}%" data-t="Bancontact: ${f(q)}${nq!=null?" · "+fN(nq):""}"></i><i class="ov" style="width:${o/m*100}%" data-t="Overschrijving: ${f(o)}${no!=null?" · "+fN(no):""}"></i></span>`;
   const fN=x=>x+" "+(x===1?"betaling":"betalingen");
   return kalTabs("kalfin")+`
   <div class="tiles kf-t">${tile("Totale winst",`<span style="color:var(--${resT>=0?"good":"bad"})">${resT>=0?"":"−"}${kfEur(Math.abs(resT))}</span>`,"")}
@@ -8463,7 +8463,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
    ${KF.bezig&&!KF.data?'<div class="empty">Laden…</div>':KF.fout?`<div class="empty">${esc(KF.fout)}</div>`:!n?'<div class="empty">Nog geen betalingen.</div>':`
    <div class="panel-b"><div class="tiles kf-t kf-t5">${tile("Aantal betalingen",n.toLocaleString("nl-BE"),"")}${tile("Respons",bed?(n/bed*100).toLocaleString("nl-BE",{maximumFractionDigits:1})+" %":"–","")}${tile("Meest gegeven",vaak?kfEur(vaak[0]):"–","")}${tile("Gemiddelde",kfEur(gem),"")}${tile("Hoogste betaling",kfEur(hoog),"")}</div>
    <div class="kf-2"><div><h3 class="kf-h">Verdeling van de bedragen</h3>${verd.map(v=>`<div class="kf-r"><span>${v.l}</span>${bar(v.q,v.o,vm,fN)}<b>${v.n}</b></div>`).join("")}</div>
-   <div><h3 class="kf-h">Per dag</h3>${D.map(([d,v,g])=>`<div class="kf-r"><span>${fmtDate(d).slice(0,5)}</span>${bar(g.q,g.o,dm,kfEur)}<b>${kfEur(v)}</b></div>`).join("")}</div></div></div>`}</div>
+   <div><h3 class="kf-h">Per dag</h3>${D.map(([d,v,g])=>`<div class="kf-r"><span>${fmtDate(d).slice(0,5)}</span>${bar(g.q,g.o,dm,kfEur,g.nq,g.no)}<b>${kfEur(v)}</b></div>`).join("")}</div></div></div>`}</div>
   ${J0.kin||J0.si?(()=>{const v=(a,b,inv)=>{if(!b)return'<td class="num muted" data-l="Verschil">–</td>';const d=a-b,p=Math.round(d/Math.abs(b)*100),g=inv?d<=0:d>=0;return `<td class="num" data-l="Verschil" style="color:var(--${g?"good":"bad"})">${d>=0?"+":"−"}${kfEur(Math.abs(d))} <span class="small">(${d>=0?"+":""}${p}%)</span></td>`};
     const r=(l,a,b,inv)=>`<tr><td>${l}</td><td class="num" data-l="${JAAR}">${kfEur(a)}</td><td class="num" data-l="${Number(JAAR)-1}">${kfEur(b)}</td>${v(a,b,inv)}</tr>`;
     return `<div class="panel"><div class="panel-h"><h2>Vergelijking met vorig jaar</h2></div><div class="tw"><table class="kf-vg"><thead><tr><th></th><th class="num">${JAAR}</th><th class="num">${Number(JAAR)-1}</th><th class="num">Verschil</th></tr></thead><tbody>
