@@ -8442,7 +8442,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   const C=ctx(),B=C.boek.filter(b=>b.categorie==="Kalenders");
   const inB=B.filter(b=>b.richting!=="uit"),uitB=B.filter(b=>b.richting==="uit");
   const som=L=>L.reduce((s,b)=>s+(Number(b.bedrag)||0),0);
-  const isBc=b=>b.regelNaam==="Bancontact uitgesplitst"||/bancontact|payconiq/i.test(b.partij||"");
+  const isBc=b=>b.regelNaam==="Bancontact uitgesplitst"||/bancontact|payconiq|segregated|banksys/i.test(b.partij||"");
   const kas=som(inB.filter(b=>b.rekening==="Kas")),bc=som(inB.filter(b=>b.rekening!=="Kas"&&isBc(b))),ov=som(inB.filter(b=>b.rekening!=="Kas"&&!isBc(b)));
   // Bancontact-betalingen die al binnen zijn maar nog niet op de rekening gestort (komt de dag erna)
   const ow=Number(KF.data&&KF.data.onderweg)||0;
