@@ -823,10 +823,12 @@ function krDecode(s){const pts=[];let i=0,la=0,lo=0;
   return pts}
 /* Grenzen van de verdeelregio (<script id="krGrens">). Straatdelen die voor meer dan de helft buiten deze grenzen liggen,
    worden weggelaten; een straat zonder delen binnen de grenzen verdwijnt helemaal (niet zichtbaar, niet aanklikbaar, niet geteld). */
-const KR_GRENS=(()=>{const el=document.getElementById("krGrens");if(!el)return[];return el.textContent.trim().split("\n").map(l=>l.slice(l.indexOf(" ")+1).trim().split(" ").map(krDecode)).flat()})();
+/* lui berekende lijst of Map: pas bij het eerste gebruik uitgerekend */
+function krLui(f,leeg){let v;const echt=()=>v||(v=f());return new Proxy(leeg,{get(t,p){const r=echt(),x=Reflect.get(r,p,r);return typeof x==="function"?x.bind(r):x},has(t,p){return p in echt()},ownKeys(){return Reflect.ownKeys(echt())},getOwnPropertyDescriptor(t,p){const d=Reflect.getOwnPropertyDescriptor(echt(),p);if(d)d.configurable=true;return d}})}
+const KR_GRENS=krLui(()=>{const el=document.getElementById("krGrens");if(!el)return[];return el.textContent.trim().split("\n").map(l=>l.slice(l.indexOf(" ")+1).trim().split(" ").map(krDecode)).flat()},[]);
 const krInRing=(p,r)=>{let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const yi=r[i][0],xi=r[i][1],yj=r[j][0],xj=r[j][1];if(((yi>p[0])!==(yj>p[0]))&&(p[1]<(xj-xi)*(p[0]-yi)/(yj-yi)+xi))c=!c}return c};
 const krBinnen=p=>!KR_GRENS.length||KR_GRENS.some(r=>krInRing(p,r));
-const KR_STREETS=(()=>{const el=document.getElementById("krData");if(!el)return[];
+const KR_STREETS=krLui(()=>{const el=document.getElementById("krData");if(!el)return[];
   /* regels "naam deelgemeente adressen delen"; "#gen N" = vanaf hier generatie N. Een regel met een naam die al bestaat voegt
      stukken toe aan die straat (en adressen, meestal 0). */
   let gen=0;const uit=[],per=new Map();
@@ -834,8 +836,8 @@ const KR_STREETS=(()=>{const el=document.getElementById("krData");if(!el)return[
     const id=w==="Centrum"?krSlug(n):krSlug(n)+"--"+krSlug(w),g=m[4].trim().split(" ").map(krDecode).filter(part=>part.filter(krBinnen).length*2>=part.length);
     const s=per.get(id);if(s){s.g.push(...g);s.pg.push(...g.map(()=>gen));s.a+=+m[3];continue}
     const x={id,n,w,a:+m[3],gen,g,pg:g.map(()=>gen)};per.set(id,x);uit.push(x)}
-  return uit.filter(s=>s.g.length)})();
-const KR={ss:new Set(),map:null,host:null,sp:null,lines:new Map(),labels:null,labelAt:null,sel:null,busy:false,byId:new Map(KR_STREETS.map(s=>[s.id,s]))};
+  return uit.filter(s=>s.g.length)},[]);
+const KR={ss:new Set(),map:null,host:null,sp:null,lines:new Map(),labels:null,labelAt:null,sel:null,busy:false,byId:krLui(()=>new Map(KR_STREETS.map(s=>[s.id,s])),new Map())};
 const krNaam=()=>ls.get("rondeNaam","");
 const krVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const krAdr=n=>n===1?"1 adres":n+" adressen";
@@ -880,7 +882,7 @@ function krMaakDelen(streets){const key=p=>p[0].toFixed(5)+","+p[1].toFixed(5),c
     const len=alle.map(gr=>gr.g.reduce((x,g)=>x+lengte(g),0)),L=len.reduce((a,b)=>a+b,0)||1;
     out.set(s.id,alle.map((gr,i)=>({id:s.id+"~"+i,sid:s.id,nr:i+1,g:gr.g,k:gr.k,len:len[i],a:KR_ADR.has(s.id+"~"+i)?KR_ADR.get(s.id+"~"+i):Math.max(alle.length>1?1:0,Math.round(s.a*len[i]/L))})))}
   return out}
-const KR_DELEN=krMaakDelen(KR_STREETS),KR_DEEL=new Map([...KR_DELEN.values()].flat().map(d=>[d.id,d]));
+const KR_DELEN=krLui(()=>krMaakDelen(KR_STREETS),new Map()),KR_DEEL=krLui(()=>new Map([...KR_DELEN.values()].flat().map(d=>[d.id,d])),new Map());
 /* krDelen: aanduidingen van straatdelen (document per deel, straat = "<straat>~<nr>", deel: true) */
 function krDelen(){const m={};for(const d of S.ronde.values())if(d.jaar===JAAR&&KR_DEEL.has(d.straat))m[d.straat]=d;return m}
 function krDeelVan(sid){const D=krDelen();return (KR_DELEN.get(sid)||[]).filter(x=>D[x.id]).map(x=>({...x,m:D[x.id]}))}
@@ -1071,7 +1073,7 @@ function krVraagNaam(next){
 
 /* Zoeken: volledig scherm met alle straten, gefilterd tijdens het typen. "hofstade" toont alle straten van Hofstade. */
 const krFold=t=>t.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
-const KR_SORTED=[...KR_STREETS].sort((a,b)=>a.n.localeCompare(b.n,"nl")||a.w.localeCompare(b.w,"nl"));
+const KR_SORTED=krLui(()=>[...KR_STREETS].sort((a,b)=>a.n.localeCompare(b.n,"nl")||a.w.localeCompare(b.w,"nl")),[]);
 function krOpenSearch(){if(!KR.sp){const p=document.createElement("section");p.className="kr-sp";p.hidden=true;p.setAttribute("role","dialog");p.setAttribute("aria-modal","true");p.setAttribute("aria-label","Zoek een straat");
     p.innerHTML=`<div class="kr-sp-bar"><button type="button" id="krSpBack" aria-label="Terug naar de kaart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><input id="krSpIn" type="search" placeholder="Zoek een straat…" autocomplete="off" enterkeyhint="go" aria-label="Zoek een straat"></div><ul id="krSpList"></ul><p class="empty" id="krSpEmpty" hidden>Geen straat gevonden met deze naam.</p>`;
     document.body.appendChild(p);KR.sp=p;
