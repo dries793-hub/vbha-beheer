@@ -8680,6 +8680,90 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-jd]");if(!
   if(b.dataset.jd==="pdf")jdPdf(b.dataset.s,Y,b);else jdXlsx(b.dataset.s,Y)});
 {const st=document.createElement("style");st.textContent=".jd-r{display:flex;align-items:center;gap:8px}";document.head.appendChild(st)}
 
+/* ============ Tegels: zeer beknopte uitleg bij aanklikken (alle pagina's) ============
+   Tegels die zelf een link of knop zijn, blijven werken zoals voorheen. Sleutel "route|label" gaat voor op "label". */
+const TU={
+  "Totaal saldo":"Rekening + kas samen, volgens de geboekte transacties.",
+  "Rekening":"Saldo van de bankrekening: beginsaldo + alle transacties op de rekening.",
+  "Kas":"Saldo van de kas: beginsaldo + alle cashontvangsten en -uitgaven.",
+  "Inkomsten":"Alle ontvangsten van het boekjaar.",
+  "Uitgaven":"Alle uitgaven van het boekjaar.",
+  "Resultaat":"Inkomsten min uitgaven van het boekjaar.",
+  "kalenders|Nog in stock":"Dozen die nog niet aan iemand meegegeven zijn.",
+  "kalenders|In omloop":"Dozen die meegegeven zijn en nog niet afgewerkt.",
+  "kalenders|Uitgevoerd":"Dozen die volledig bedeeld zijn.",
+  "Personen in lijst":"Aantal personen dat dit jaar kalenders meekreeg.",
+  "Bedeeld":"Deel van de adressen op de kaart dat al bedeeld is.",
+  "Straten afgewerkt":"Straten die volledig bedeeld zijn.",
+  "Gereserveerd":"Straten die iemand op zich nam maar nog niet afwerkte.",
+  "Nog te doen":"Straten die nog niemand heeft opgenomen.",
+  "Totaal straten":"Alle straten in de kalenderronde.",
+  "Bedeeld op de kaart":"Adressen die op de kaart als bedeeld zijn aangeduid.",
+  "Dozen in handen":"Dozen die nu bij personen liggen.",
+  "Afgewerkte dozen":"Dozen die als afgewerkt gemeld zijn.",
+  "Na te kijken":"Personen bij wie de dozen en de kaart niet overeenkomen.",
+  "Totale winst":"Omzet kalenders + sponsors − kosten kalenders.",
+  "Omzet kalenders":"Alle kalenderopbrengsten van dit jaar: rekening, Bancontact (ook nog niet gestort) en kas.",
+  "kalfin|Sponsors":"Afgesproken sponsorbedragen van dit jaar.",
+  "Kosten kalenders":"Uitgaven in de categorie Kalenders (drukwerk).",
+  "Respons":"Aantal betalingen gedeeld door het aantal bedeelde kalenders.",
+  "Aantal betalingen":"Betalingen via Bancontact en overschrijving vanaf 1 november.",
+  "Meest gegeven":"Het bedrag dat het vaakst betaald werd.",
+  "Gemiddelde":"Gemiddeld bedrag per betaling.",
+  "Hoogste betaling":"Grootste afzonderlijke betaling.",
+  "banket|Personen":"Ingeschreven personen voor het banket.",
+  "Menu's":"Aantal gekozen menu's per soort.",
+  "banket|Betaald":"Wat al betaald is voor het banket.",
+  "banket|Te ontvangen":"Wat nog betaald moet worden voor het banket.",
+  "Te ontvangen":"Wat nog betaald moet worden.",
+  "Betaald":"Wat al betaald is.",
+  "Ontvangen":"Wat al op de rekening of in kas binnenkwam.",
+  "sponsors|Sponsors":"Actieve sponsors van dit jaar.",
+  "Afgesproken bedragen":"Totaal van de afgesproken sponsorbedragen.",
+  "Actieve regels":"Regels die transacties automatisch een categorie geven.",
+  "Dekking":"Deel van de transacties dat door een regel herkend wordt.",
+  "Juistheid":"Deel van de herkende transacties waar de regel dezelfde categorie geeft als nu geboekt.",
+  "Gefactureerd":"Totaal van de facturen van dit jaar.",
+  "Openstaand":"Facturen die nog (deels) betaald moeten worden.",
+  "Vervallen":"Facturen waarvan de vervaldag voorbij is.",
+  "Concepten":"Facturen die nog niet definitief gemaakt zijn.",
+  "Begrote opbrengsten":"Verwachte opbrengsten volgens de begroting.",
+  "Begrote kosten":"Verwachte kosten volgens de begroting.",
+  "Begroot resultaat":"Begrote opbrengsten min begrote kosten.",
+  "Werkelijk":"Wat er effectief geboekt is in deze categorie.",
+  "Totaal kassa":"Alle verkopen aan de kassa.",
+  "Cash":"Verkopen die cash betaald werden.",
+  "Bancontact":"Verkopen die met Bancontact betaald werden.",
+  "Actieve activiteit":"De activiteit waarvoor de kassa nu verkoopt.",
+  "Kassacode":"Code om de kassa op een ander toestel te openen.",
+  "Tickets verkocht":"Verkochte tickets voor de fuif.",
+  "Drankkaarten":"Verkochte drankkaarten.",
+  "Inkom":"Opbrengst van de tickets.",
+  "Ingeschreven kinderen":"Kinderen ingeschreven voor het kinderfeest.",
+  "Ingeschreven personen":"Personen ingeschreven voor de familiedag.",
+  "Gekozen":"Kinderen voor wie al een cadeau gekozen is.",
+  "Nog niet gekozen":"Kinderen voor wie nog geen cadeau gekozen is.",
+  "Cadeaus doorgegeven":"Cadeaus die al besteld of doorgegeven zijn.",
+  "Bijbetalingen":"Wat ouders bijbetaalden voor een duurder cadeau.",
+  "Bon bol.com":"Kinderen die een bon van bol.com krijgen.",
+  "Voorziene kost cadeaus":"Verwachte kost van alle cadeaus samen.",
+  "Omzet":"Totale verkoop van de webshop.",
+  "Nog te betalen":"Bestellingen die nog niet betaald zijn.",
+  "Te verzenden":"Betaalde bestellingen die nog verzonden moeten worden.",
+  "Af te halen":"Betaalde bestellingen die nog afgehaald moeten worden.",
+};
+function tuTekst(l){const r=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS[route()])||route();l=String(l||"").trim();
+  const k=Object.keys(TU),v=TU[route()+"|"+l]||TU[r+"|"+l]||TU[l];if(v)return v;const p=k.find(x=>!x.includes("|")&&l.startsWith(x+" "));return p?TU[p]:null}
+document.addEventListener("click",e=>{const old=document.getElementById("tuTip");const t=e.target.closest&&e.target.closest(".tile");
+  if(old&&(!t||old.dataset.for!==String(t.dataset.tuid))){old.remove();document.querySelectorAll(".tile.tu-on").forEach(x=>x.classList.remove("tu-on"))}
+  if(!t||t.closest("a,button")||e.target.closest("a,button,input,select,label")||t.matches("a"))return;
+  const l=t.querySelector(".lbl");const tx=l&&tuTekst(l.textContent);if(!tx)return;
+  if(old&&old.dataset.for===String(t.dataset.tuid)){old.remove();t.classList.remove("tu-on");return}
+  t.dataset.tuid=t.dataset.tuid||Math.random().toString(36).slice(2);const d=document.createElement("div");d.id="tuTip";d.className="kf-tip tu-tip";d.dataset.for=t.dataset.tuid;d.textContent=tx;document.body.appendChild(d);t.classList.add("tu-on");
+  const r=t.getBoundingClientRect();d.style.left=Math.max(8,Math.min(innerWidth-d.offsetWidth-8,r.left+r.width/2-d.offsetWidth/2))+"px";d.style.top=(r.bottom+scrollY+6)+"px"});
+addEventListener("hashchange",()=>{const d=document.getElementById("tuTip");if(d)d.remove()});
+{const st=document.createElement("style");st.textContent=".tu-tip{white-space:normal;max-width:260px;font-weight:500;line-height:1.35}div.tile:has(.lbl){cursor:pointer}";document.head.appendChild(st)}
+
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
    Bancontact-storting exact op per uitbetaling: betalingen die de app kent apart, de rest (kalenders via QR) bij Kalenders. */
