@@ -24,9 +24,10 @@ const BRONNEN = [
   ["sponsors", r => ({ cat: "Sponsoring", wie: r.bedrijf || r.naam })],
   ["facturen", r => ({ cat: (r.categorie || "Andere opbrengsten"), wie: r.nr ? "factuur " + r.nr : "factuur" })],
 ];
+export const payoutVan = med => { const m = String(med || "").trim().match(/^\d{8}-([a-z0-9]+)-/i); return m ? m[1] : null; };
 export const isBulk = b => b && b.rekening !== "Kas" && b.richting !== "uit" && /bancontact|payconiq/i.test(b.partij || "") && RE.test(String(b.mededeling || "").trim());
 
-async function onlinePerDag(sb) {
+async function onlinePerDag(sb, perTx) {
   const per = new Map();
   // categorie per tegel uit de kassa-instellingen (voor verkopen van vóór de categorie in de verkoop zelf werd bewaard)
   let TC = null; const tegelCats = async () => { if (TC) return TC; TC = {}; try { const { data } = await sb.from("config").select("data").eq("id", "kassa").maybeSingle(); for (const a of Object.values((data && data.data && data.data.activiteiten) || {})) for (const t of a.tegels || []) if (t.categorie) TC[t.id] = t.categorie; } catch (e) {} return TC; };
@@ -38,10 +39,12 @@ async function onlinePerDag(sb) {
       if (!b || b.status !== "SUCCEEDED" || !b.betaaldOp || !(Number(b.bedrag) > 0)) continue;
       const dag = dagBxl(b.betaaldOp), x = f({ ...d, _id: row.id, _tegelCat: tabel === "kassa" ? await tegelCats() : null });
       const L = per.get(dag) || per.set(dag, []).get(dag);
+      const n0 = L.length;
       if (Array.isArray(x)) { // één betaling verdeeld over meerdere categorieën; afronding op het laatste deel
         let rest = r2(Number(b.bedrag));
         x.forEach((y, i) => { const bd = i === x.length - 1 ? rest : Math.min(rest, r2(y.bedrag)); rest = r2(rest - bd); L.push({ ...y, bedrag: bd, bron: tabel, id: row.id }); });
       } else L.push({ ...x, bedrag: r2(Number(b.bedrag)), bron: tabel, id: row.id });
+      if (perTx && b.id) perTx.set(String(b.id), L.slice(n0));
     }
   }
   return per;
@@ -54,9 +57,13 @@ export async function splitsBulk(sb, { ids = null, proef = false } = {}) {
   const todo = alle.filter(b => isBulk(b) && !b.bulk && !b.bulkVan && (ids ? ids.includes(b.id) : (!b.categorie || b.status === "controle")));
   const uit = { gesplitst: 0, delen: 0, overgeslagen: [], plan: [] };
   if (!todo.length) return uit;
-  const per = await onlinePerDag(sb);
+  const perTx = new Map(), per = await onlinePerDag(sb, perTx);
   let nr = {};
   for (const b of alle) nr[b.jaar] = Math.max(nr[b.jaar] || 0, Number(b.nr) || 0);
+  // 1) stortingen waarvan de uitbetaling in een opgeladen Bancontact-export staat: exact per betaling
+  const exact = await exportSplits(sb, todo, perTx, nr, proef, uit);
+  for (let i = todo.length - 1; i >= 0; i--) if (exact.has(todo[i].id)) todo.splice(i, 1);
+  if (!todo.length) return uit;
   // Bancontact stort de betalingen van één dag soms in meerdere bedragen (meerdere stortingen met dezelfde datum):
   // die worden samen verdeeld. Wat van die dag al eerder werd uitgesplitst, telt niet opnieuw mee.
   const perDag = new Map();
@@ -104,4 +111,79 @@ export async function splitsBulk(sb, { ids = null, proef = false } = {}) {
     }
   }
   return uit;
+}
+
+/* Exacte opsplitsing volgens de opgeladen Bancontact-export (tabel bancontact_tx, per uitbetaling = payoutId in de mededeling).
+   Elke betaling die de app kent (zelfde Bancontact-id) krijgt haar eigen deel; de rest (vaste QR-code: kalenders, steun) één deel Kalenders. */
+async function exportSplits(sb, todo, perTx, nr, proef, uit) {
+  const klaar = new Set(), P = new Map();
+  for (const b of todo) { const p = payoutVan(b.mededeling); if (p) P.set(b.id, p); }
+  if (!P.size) return klaar;
+  const { data: rows } = await sb.from("bancontact_tx").select("id,payout,data").in("payout", [...new Set(P.values())]);
+  const perP = new Map(); for (const r of rows || []) (perP.get(r.payout) || perP.set(r.payout, []).get(r.payout)).push(r.data);
+  for (const b of todo) {
+    const p = P.get(b.id), X = p && perP.get(p); if (!X || !X.length) continue;
+    const som = r2(X.reduce((s, x) => s + (Number(x.amount) || 0), 0)), totaal = r2(Number(b.bedrag) || 0);
+    if (Math.abs(som - totaal) > 0.004) { uit.overgeslagen.push({ id: b.id, reden: `export voor uitbetaling ${p}: ${som} ≠ storting ${totaal}` }); continue; }
+    const dag = String(b.mededeling).trim().replace(/^(\d{4})(\d{2})(\d{2}).*/, "$1-$2-$3"), [, mm, dd] = dag.split("-"), dagTxt = `${dd}/${mm}`;
+    const groep = new Map(); let qr = 0, qrN = 0;
+    for (const x of X) {
+      const L = perTx.get(String(x.id));
+      if (L && L.length) for (const y of L) { const k = y.bron === "kassa" ? "K:" + y.cat : "P:" + y.bron + ":" + y.id + ":" + y.cat; const g = groep.get(k) || { cat: y.cat, lidId: y.cat === "Lidgeld" ? y.lidId || null : null, bedrag: 0, wie: [] }; g.bedrag = r2(g.bedrag + y.bedrag); if (y.wie && !g.wie.includes(y.wie)) g.wie.push(y.wie); groep.set(k, g); }
+      else { qr = r2(qr + (Number(x.amount) || 0)); qrN++; }
+    }
+    const delen = [...groep.values()];
+    // wat de app kent maar met een ander bedrag in de export: verschil naar de QR-rest
+    const gekend = r2(delen.reduce((s, d) => s + d.bedrag, 0)); const rest = r2(totaal - gekend);
+    if (rest < -0.004) { uit.overgeslagen.push({ id: b.id, reden: `app-betalingen (${gekend}) groter dan storting (${totaal})` }); continue; }
+    if (rest > 0.004) delen.push({ cat: "Kalenders", lidId: null, bedrag: rest, wie: [], rest: true, n: qrN });
+    const med = d => d.rest ? `Bancontact ${dagTxt}: kalenders via QR-code (${d.n} ${d.n === 1 ? "betaling" : "betalingen"})` : `Bancontact ${dagTxt}: ${d.cat}${d.wie.length ? " – " + d.wie.slice(0, 6).join(", ") + (d.wie.length > 6 ? " …" : "") : ""}`;
+    klaar.add(b.id);
+    if (proef) { uit.plan.push({ id: b.id, dag, totaal, export: true, delen: delen.map(d => ({ cat: d.cat, bedrag: d.bedrag, mededeling: med(d) })) }); continue; }
+    const basis = { ...b }; delete basis.id;
+    const [eerste, ...andere] = delen;
+    const bulk = { totaal, dag, payout: p, export: true, delen: delen.length, mededeling: b.mededeling, op: new Date().toISOString() };
+    const { error: e1 } = await sb.from("boekingen").update({ data: { ...basis, bedrag: eerste.bedrag, categorie: eerste.cat, lidId: eerste.lidId, status: null, regelNaam: "Bancontact uitgesplitst", mededeling: med(eerste), bulk } }).eq("id", b.id); if (e1) throw e1;
+    let i = 0;
+    for (const d of andere) {
+      i++; nr[b.jaar] = (nr[b.jaar] || 0) + 1;
+      const { bankRef, ...zonderRef } = basis;
+      const { error } = await sb.from("boekingen").upsert({ id: `${b.id}-d${i}`, data: { ...zonderRef, nr: nr[b.jaar], bedrag: d.bedrag, categorie: d.cat, lidId: d.lidId, status: null, regelNaam: "Bancontact uitgesplitst", mededeling: med(d), bulkVan: b.id } }); if (error) throw error;
+      uit.delen++;
+    }
+    uit.gesplitst++;
+  }
+  return klaar;
+}
+
+/* Bancontact-export (CSV uit het Bancontact-portaal) opslaan en de betrokken stortingen opnieuw (exact) opsplitsen.
+   Stortingen die al per dag werden opgesplitst, worden eerst teruggezet. */
+export async function bcExport(sb, rijen) {
+  const R = (Array.isArray(rijen) ? rijen : []).filter(x => x && x.id && x.payoutId && x.status !== "FAILED" && String(x.type || "CREDIT").toUpperCase() === "CREDIT" && String(x.status || "SUCCEEDED").toUpperCase() === "SUCCEEDED")
+    .map(x => ({ id: String(x.id).slice(0, 60), payout: String(x.payoutId).slice(0, 60), data: { id: String(x.id), amount: r2(Number(String(x.amount).replace(",", ".")) || 0), date: String(x.date || ""), time: String(x.time || ""), description: String(x.description || "").slice(0, 200), reference: String(x.reference || "").slice(0, 120), debtorName: String(x.debtorName || "").slice(0, 120), technology: String(x.technology || ""), payoutId: String(x.payoutId) } }));
+  if (!R.length) return { opgeslagen: 0, gesplitst: 0, uitbetalingen: 0 };
+  for (let i = 0; i < R.length; i += 500) { const { error } = await sb.from("bancontact_tx").upsert(R.slice(i, i + 500)); if (error) throw error; }
+  const payouts = new Set(R.map(r => r.payout));
+  // stortingen in de boekhouding met een van die uitbetalingen: terugzetten als ze nog niet exact gesplitst zijn
+  const jaar = new Date().getFullYear(), alle = [];
+  for (const j of [jaar - 1, jaar]) alle.push(...(await selectAll(sb, "boekingen", q => q.eq("jaar", j))).map(r => ({ id: r.id, ...r.data })));
+  const ids = [];
+  for (const b of alle) {
+    if (b.bulkVan) continue;
+    const med = b.bulk ? b.bulk.mededeling : b.mededeling, p = payoutVan(med);
+    if (!p || !payouts.has(p) || (b.bulk && b.bulk.export)) continue;
+    if (b.bulk) { // per dag gesplitst: delen weg, origineel terug
+      const delen = alle.filter(x => x.bulkVan === b.id);
+      for (const d of delen) { const { error } = await sb.from("boekingen").delete().eq("id", d.id); if (error) throw error; }
+      const terug = { ...b }; delete terug.id; delete terug.bulk;
+      Object.assign(terug, { bedrag: b.bulk.totaal, mededeling: b.bulk.mededeling, categorie: null, regelNaam: null, lidId: null, status: null });
+      const { error } = await sb.from("boekingen").update({ data: terug }).eq("id", b.id); if (error) throw error;
+    } else if (b.categorie && b.status !== "controle") { // als geheel geboekt (bv. Kalenders): opnieuw laten verdelen
+      const terug = { ...b }; delete terug.id; Object.assign(terug, { categorie: null, regelNaam: null, status: null });
+      const { error } = await sb.from("boekingen").update({ data: terug }).eq("id", b.id); if (error) throw error;
+    }
+    ids.push(b.id);
+  }
+  const sp = ids.length ? await splitsBulk(sb, { ids }) : { gesplitst: 0, delen: 0, overgeslagen: [] };
+  return { opgeslagen: R.length, uitbetalingen: payouts.size, stortingen: ids.length, ...sp };
 }

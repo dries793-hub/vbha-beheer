@@ -8397,6 +8397,23 @@ async function ktVerklein(f){if(!/^image\//.test(f.type)||/gif|svg/.test(f.type)
       closeModal();toast("Kasticket toegevoegd.");setTimeout(()=>boekingForm(S.boekingen.get(id)||{...nu,documentId:did},id),60)}
     catch(x){if(lb)lb.textContent="Kasticket toevoegen";toast("Opladen lukte niet: "+x.message,true)}}}}
 
+/* ============ Transacties › tandwiel: Bancontact-export opladen ============
+   CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
+   Bancontact-storting exact op per uitbetaling: betalingen die de app kent apart, de rest (kalenders via QR) bij Kalenders. */
+function bcCsv(t){const L=[];let rij=[],v="",q=false;t=String(t).replace(/^﻿/,"");
+  for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c==='"'){if(t[i+1]==='"'){v+='"';i++}else q=false}else v+=c}
+    else if(c==='"')q=true;else if(c===";"||c===","&&!t.includes(";")){rij.push(v);v=""}else if(c==="\n"||c==="\r"){if(c==="\r"&&t[i+1]==="\n")i++;rij.push(v);v="";if(rij.some(x=>x!==""))L.push(rij);rij=[]}else v+=c}
+  rij.push(v);if(rij.some(x=>x!==""))L.push(rij);if(!L.length)return[];const k=L[0].map(x=>x.trim());
+  return L.slice(1).map(r=>Object.fromEntries(k.map((x,i)=>[x,(r[i]||"").trim()])))}
+{const _f=finInst;finInst=function(){_f.apply(this,arguments);if(!["boekingen","verwerken"].includes(route())||!canWrite)return;
+  const body=$("#modal .modal-b");if(!body||$("#bcExp"))return;
+  body.insertAdjacentHTML("beforeend",`<div class="pi-sec"><h4>Bancontact-export</h4><label class="btn" style="cursor:pointer;align-self:flex-start">${ic("upload")}<span id="bcExpL">CSV opladen</span><input type="file" id="bcExp" accept=".csv,text/csv" hidden></label></div>`);
+  $("#bcExp").onchange=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const lb=$("#bcExpL");lb.textContent="Bezig…";
+    try{const rijen=bcCsv(await f.text()).filter(r=>r.id&&r.payoutId);if(!rijen.length)throw new Error("Geen Bancontact-betalingen gevonden in dit bestand.");
+      const j=await api("/api/mail?f=bcsplit",{method:"POST",body:JSON.stringify({actie:"export",rijen})});
+      toast(`${j.opgeslagen} betalingen ingelezen · ${j.gesplitst||0} ${j.gesplitst===1?"storting":"stortingen"} opgesplitst`+(j.overgeslagen&&j.overgeslagen.length?` · ${j.overgeslagen.length} niet (bedrag klopt niet)`:""),!!(j.overgeslagen&&j.overgeslagen.length));lb.textContent="CSV opladen"}
+    catch(x){lb.textContent="CSV opladen";toast(x.message,true)}e.target.value=""}}}
+
 /* ============ Rustig opstarten ============
    Tot alles geladen is, ligt over de hele app één laadscherm (#lader: draaiende cirkel + "Laden").
    Het verdwijnt pas als alle gegevens binnen zijn én het scherm een moment niet meer verandert (terugbetalingen, bankstatus,
