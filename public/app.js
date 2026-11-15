@@ -8436,7 +8436,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   // kalenderronde: bedeelde adressen
   let adr=0;try{if(typeof KR_STREETS!=="undefined"&&KR_STREETS.length){const M=krMarks(),D=krDelen();adr=KR_STREETS.reduce((t,x)=>t+krAdrGedaan(x,M,D),0)}}catch(e){}
   let dozen=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Number(JAAR)&&j.lidId!=="test-vbha")dozen+=Number(j.kalUitgevoerd)||0;
-  const pd=Number(jaarCfg(JAAR).perDoos)||100,stuks=dozen*pd;
+  const pd=Number(jaarCfg(JAAR).perDoos)||100,stuks=dozen*pd;const bed=adr||stuks;
   const PQ=((KF.data&&KF.data.betalingen)||[]).map(x=>({...x,o:false}));
   const PO=inB.filter(b=>b.rekening!=="Kas"&&!isBc(b)).map(b=>({a:Number(b.bedrag)||0,d:String(b.datum||""),o:true}));
   const P=PQ.concat(PO),A=P.map(x=>x.a),n=A.length,qrTot=A.reduce((s,a)=>s+a,0),nQ=PQ.length,nO=PO.length;
@@ -8461,7 +8461,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
 
   <div class="panel"><div class="panel-h"><h2>Betalingen</h2><span class="kf-lg"><i></i>Bancontact <i class="ov"></i>overschrijving</span></div>
    ${KF.bezig&&!KF.data?'<div class="empty">Laden…</div>':KF.fout?`<div class="empty">${esc(KF.fout)}</div>`:!n?'<div class="empty">Nog geen betalingen.</div>':`
-   <div class="panel-b"><div class="tiles kf-t">${tile("Aantal betalingen",n.toLocaleString("nl-BE"),"")}${tile("Meest gegeven",vaak?kfEur(vaak[0]):"–","")}${tile("Gemiddelde",kfEur(gem),"")}${tile("Hoogste betaling",kfEur(hoog),"")}</div>
+   <div class="panel-b"><div class="tiles kf-t kf-t5">${tile("Aantal betalingen",n.toLocaleString("nl-BE"),"")}${tile("Respons",bed?(n/bed*100).toLocaleString("nl-BE",{maximumFractionDigits:1})+" %":"–",bed?`${n.toLocaleString("nl-BE")} op ${bed.toLocaleString("nl-BE")} bedeeld`:"")}${tile("Meest gegeven",vaak?kfEur(vaak[0]):"–","")}${tile("Gemiddelde",kfEur(gem),"")}${tile("Hoogste betaling",kfEur(hoog),"")}</div>
    <div class="kf-2"><div><h3 class="kf-h">Verdeling van de bedragen</h3>${verd.map(v=>`<div class="kf-r"><span>${v.l}</span>${bar(v.q,v.o,vm,fN)}<b>${v.n}</b></div>`).join("")}</div>
    <div><h3 class="kf-h">Per dag</h3>${D.map(([d,v,g])=>`<div class="kf-r"><span>${fmtDate(d).slice(0,5)}</span>${bar(g.q,g.o,dm,kfEur)}<b>${kfEur(v)}</b></div>`).join("")}</div></div></div>`}</div>
   ${J0.kin||J0.si?(()=>{const v=(a,b,inv)=>{if(!b)return'<td class="num muted" data-l="Verschil">–</td>';const d=a-b,p=Math.round(d/Math.abs(b)*100),g=inv?d<=0:d>=0;return `<td class="num" data-l="Verschil" style="color:var(--${g?"good":"bad"})">${d>=0?"+":"−"}${kfEur(Math.abs(d))} <span class="small">(${d>=0?"+":""}${p}%)</span></td>`};
