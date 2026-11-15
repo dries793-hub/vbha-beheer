@@ -8444,7 +8444,9 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   const som=L=>L.reduce((s,b)=>s+(Number(b.bedrag)||0),0);
   const isBc=b=>b.regelNaam==="Bancontact uitgesplitst"||/bancontact|payconiq/i.test(b.partij||"");
   const kas=som(inB.filter(b=>b.rekening==="Kas")),bc=som(inB.filter(b=>b.rekening!=="Kas"&&isBc(b))),ov=som(inB.filter(b=>b.rekening!=="Kas"&&!isBc(b)));
-  const tot=kas+bc+ov,kost=som(uitB);
+  // Bancontact-betalingen die al binnen zijn maar nog niet op de rekening gestort (komt de dag erna)
+  const ow=Number(KF.data&&KF.data.onderweg)||0;
+  const tot=kas+bc+ov+ow,kost=som(uitB);
   const SP=C.boek.filter(b=>b.categorie==="Sponsoring"),spIn=som(SP.filter(b=>b.richting!=="uit")),spUit=som(SP.filter(b=>b.richting==="uit"));
   // nog te ontvangen van sponsors (afgesproken, nog niet betaald, niet in natura): telt mee als voorziene sponsoring
   // sponsoring = de afgesproken bedragen van de sponsors (zoals op de pagina Sponsors)
@@ -8456,7 +8458,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
     let dz=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Y&&j.lidId!=="test-vbha")dz+=Number(j.kalUitgevoerd)||0;
     const kin=som(k.filter(b=>b.richting!=="uit")),kuit=som(k.filter(b=>b.richting==="uit")),si=som(sp.filter(b=>b.richting!=="uit")),su=som(sp.filter(b=>b.richting==="uit"));
     const jc=jaarCfg(Y),opl=(Number(jc.kalenderStock)||0)*(Number(jc.perDoos)||100);return{opl,kin,kinTot:som(k.filter(b=>b.richting!=="uit"&&String(b.datum||"")<=String(Y)+md)),kuit,si,res:kin+si-kuit-su,dz,n:k.filter(b=>b.richting!=="uit").length}};
-  const J1=jr(Number(JAAR)),J0=jr(Number(JAAR)-1);J1.si+=spOpen;J1.res+=spOpen;const resT=J1.res;
+  const J1=jr(Number(JAAR)),J0=jr(Number(JAAR)-1);J1.si+=spOpen;J1.res+=spOpen;J1.kin+=ow;J1.res+=ow;const resT=J1.res;
   // kalenderronde: bedeelde adressen
   let adr=0;try{if(typeof KR_STREETS!=="undefined"&&KR_STREETS.length){const M=krMarks(),D=krDelen();adr=KR_STREETS.reduce((t,x)=>t+krAdrGedaan(x,M,D),0)}}catch(e){}
   let dozen=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Number(JAAR)&&j.lidId!=="test-vbha")dozen+=Number(j.kalUitgevoerd)||0;
