@@ -8532,6 +8532,16 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-rgf]");if(
   for(const n of NAV){const L=Array.isArray(n)?[n]:n.items;for(let i=0;i<L.length;i++)if(T.includes(L[i][0])&&L[i][0]!=="kalfin"){L[i]=["kalfin",L[i][1]];ok=true}}
   if(ok){for(const x of T)if(x!=="kalfin")NAV_ALIAS[x]="kalfin";delete NAV_ALIAS.kalfin}}}
 if(typeof ICON!=="undefined"&&!ICON.kalfin)ICON.kalfin=ICON.kalenders;
+// knop: dezelfde rechten op alle gewone gebruikers toepassen (niet op administrators en boekhouders)
+{const _h=rgHtml;rgHtml=function(u){const h=_h.apply(this,arguments);return h.replace(/<\/div><\/div>$/,`<button type="button" class="btn sm ghost" id="rgAlle">Op alle gebruikers toepassen</button></div></div>`)}}
+document.addEventListener("click",async e=>{const b=e.target.closest("#rgAlle");if(!b||b.disabled)return;
+  const U=((typeof GB!=="undefined"&&GB&&GB.gebruikers)||[]).filter(u=>u.rol!=="admin"&&u.rol!=="boekhouder");
+  if(!U.length){toast("Geen andere gebruikers.",true);return}
+  if(!b.dataset.zeker){b.dataset.zeker="1";b.textContent=`Zeker? ${U.length} ${U.length===1?"gebruiker":"gebruikers"} – klik opnieuw`;setTimeout(()=>{if(b.isConnected){delete b.dataset.zeker;b.textContent="Op alle gebruikers toepassen"}},5000);return}
+  const R=rgLees();b.disabled=true;b.textContent="Bezig…";let fout=0;
+  for(const u of U){try{await api("/api/gebruikers",{method:"POST",body:JSON.stringify({actie:"wijzig",id:u.id,rechten:R})});u.rechten=R}catch(x){fout++}}
+  b.disabled=false;delete b.dataset.zeker;b.textContent="Op alle gebruikers toepassen";
+  toast(fout?`${fout} niet bewaard.`:`Toegepast op ${U.length} ${U.length===1?"gebruiker":"gebruikers"}.`,!!fout)});
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
