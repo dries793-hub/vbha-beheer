@@ -8432,7 +8432,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
     let dz=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Y&&j.lidId!=="test-vbha")dz+=Number(j.kalUitgevoerd)||0;
     const kin=som(k.filter(b=>b.richting!=="uit")),kuit=som(k.filter(b=>b.richting==="uit")),si=som(sp.filter(b=>b.richting!=="uit")),su=som(sp.filter(b=>b.richting==="uit"));
     const jc=jaarCfg(Y),opl=(Number(jc.kalenderStock)||0)*(Number(jc.perDoos)||100);return{opl,kin,kinTot:som(k.filter(b=>b.richting!=="uit"&&String(b.datum||"")<=String(Y)+md)),kuit,si,res:kin+si-kuit-su,dz,n:k.filter(b=>b.richting!=="uit").length}};
-  const J1=jr(Number(JAAR)),J0=jr(Number(JAAR)-1);J1.si+=spOpen;J1.res+=spOpen;
+  const J1=jr(Number(JAAR)),J0=jr(Number(JAAR)-1);J1.si+=spOpen;J1.res+=spOpen;const resT=J1.res;
   // kalenderronde: bedeelde adressen
   let adr=0;try{if(typeof KR_STREETS!=="undefined"&&KR_STREETS.length){const M=krMarks(),D=krDelen();adr=KR_STREETS.reduce((t,x)=>t+krAdrGedaan(x,M,D),0)}}catch(e){}
   let dozen=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Number(JAAR)&&j.lidId!=="test-vbha")dozen+=Number(j.kalUitgevoerd)||0;
@@ -8453,7 +8453,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   const top=D.length?D.reduce((m,d)=>d[1]>m[1]?d:m):null;
   const bar=(q,o,m)=>`<span class="kf-b"><i style="width:${q/m*100}%"></i><i class="ov" style="width:${o/m*100}%"></i></span>`;
   return kalTabs("kalfin")+`
-  <div class="tiles kf-t">${tile("Totale opbrengst",`<span style="color:var(--${res>=0?"good":"bad"})">${res>=0?"":"−"}${kfEur(Math.abs(res))}</span>`,"")}
+  <div class="tiles kf-t">${tile("Totale opbrengst",`<span style="color:var(--${resT>=0?"good":"bad"})">${resT>=0?"":"−"}${kfEur(Math.abs(resT))}</span>`,"")}
     ${tile("Kalenders binnengekomen",kfEur(tot),"")}
     ${tile("Sponsors",kfEur(spTot),"")}
     ${tile("Kosten kalenders",kfEur(kost),"")}</div>
