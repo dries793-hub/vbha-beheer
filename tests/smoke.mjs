@@ -59,7 +59,7 @@ for(const r of routes){await p.evaluate(h=>{location.hash="#"+h},r);await p.wait
 // instellingen-vensters en enkele knoppen
 
 // vaste onderdelen die zichtbaar moeten zijn
-const MOET={admin:{instellingen:["Testlid","Vaste waarden","Instellingen per onderdeel"],gegevens:["Jaardocumenten","Back-ups"],dashboard:["Bewaking"],kalfin:["Totale winst","Vergelijking met vorig jaar"],herinneringen:["Meldingen op het dashboard"]},boekhouder:{gegevens:["Jaardocumenten"]}};
+const MOET={admin:{instellingen:["Testlid","Vaste waarden","Kliks in mails"],gegevens:["Jaardocumenten","Back-ups"],dashboard:["Bewaking"],kalfin:["Totale winst","Vergelijking met vorig jaar"],herinneringen:["Meldingen op het dashboard"]},boekhouder:{gegevens:["Jaardocumenten"]}};
 for(const [r,T] of Object.entries(MOET[pf]||{})){await p.evaluate(h=>{location.hash="#"+h},r);await p.waitForTimeout(600);const t=await p.evaluate(()=>document.body.innerText);for(const x of T)if(!t.includes(x))fouten.push(`${pf} ${r}: "${x}" ontbreekt`)}
 if(leeg.length)console.log(pf+" leeg: "+leeg.join(", "));if(breed.length)console.log("let op, breder dan het gsm-scherm: "+breed.join(", "));await ctx.close()}
 await b.close();

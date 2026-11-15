@@ -8626,10 +8626,8 @@ const INST_OVZ=[["Leden","leden",'[data-act="ledenInst"]'],["Transacties en fina
   ["Familiedag","familiedag",'[data-act="fdInst"]'],["Fuif","fuif",'[data-fu="inst"]'],["Kassa","kassa",'[data-ka="inst"]'],["Shiften","shiften",'[data-sh="instellingen"]'],
   ["Webshop","webshop",'[data-sh="inst"]'],["Sponsors","sponsors",'[data-spi="open"]'],["Facturen","facturen",'[data-fc="instel"]'],["Inkomende facturen","inkomend",'[data-ink="instel"]'],
   ["Begroting","begroting",'[data-bgact="beheer"]'],["Onkostennota's","terug",'[data-tb="link"]']];
-viewHook("instellingen",{voor(){if(ROL!=="admin")return"";const L=INST_OVZ.filter(([,r])=>VIEWS[r]&&(typeof recht!=="function"||recht(r)!=="geen"));
-  return `<div class="panel io-p"><div class="panel-h"><h2>Instellingen per onderdeel</h2></div><div class="panel-b io-g">${L.map(([l,r,s])=>`<a href="#${r}" class="io-a" data-io="${esc(s)}">${ic("instellingen")}<span>${esc(l)}</span></a>`).join("")}</div></div>`}});
-document.addEventListener("click",e=>{const a=e.target.closest("[data-io]");if(!a)return;e.preventDefault();const sel=a.dataset.io,r=a.getAttribute("href").slice(1);location.hash="#"+r;
-  let n=0;const t=setInterval(()=>{const b=document.querySelector(sel);if(b||++n>25){clearInterval(t);if(b)b.click()}},120)});
+
+
 {const st=document.createElement("style");st.textContent=".io-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.io-a{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;color:inherit;text-decoration:none;font-weight:500}.io-a:hover{background:var(--hover,rgba(0,0,0,.04))}.io-a svg{width:16px;height:16px;flex:none;color:var(--muted)}";document.head.appendChild(st)}
 
 /* ============ Instellingen › Kliks: wie op welke knop in een mail klikte (persoonlijke code per knop en ontvanger) ============
@@ -8650,6 +8648,39 @@ VIEWS.kliks=()=>({title:"Instellingen",sub:"Kliks in mails",body(){if(ROL_ECHT!=
    </tbody></table></div></div>`}});
 document.addEventListener("input",e=>{if(e.target.id!=="mkQ")return;MK.q=e.target.value;const p=e.target.selectionStart;renderBody();const i=$("#mkQ");if(i){i.focus();try{i.setSelectionRange(p,p)}catch(x){}}});
 addEventListener("hashchange",()=>{if(route()==="kliks"){MK.data=null;MK.fout=null}});
+
+/* ============ Instellingen: alles via knoppen bovenaan, instellingen van een onderdeel op dezelfde pagina ============
+   De knoppen vervangen de tabbladen van Instellingen. Een onderdeel (Leden, Kassa, …) opent zijn instellingenvenster
+   niet als popup maar onder de knoppen (het venster wordt in #instInline getoond in plaats van in de overlay). */
+const IK={actief:null,echt:null};
+const ikPaginas=()=>INST_TABS.filter(([r])=>VIEWS[r]);
+instTabs=function(act){const P=ikPaginas(),O=ROL==="admin"?INST_OVZ.filter(([,r])=>VIEWS[r]&&(typeof recht!=="function"||recht(r)!=="geen")):[];
+  const b=(k,l,on,attr)=>`<${attr?"button type=\"button\"":"a"} class="ik-b${on?" on":""}" ${attr||`href="#${k}"`}>${esc(l)}</${attr?"button":"a"}>`;
+  return `<div class="panel ik-p"><div class="panel-b"><div class="ik-g">${P.map(([k,l])=>b(k,l,IK.actief==null&&k===act)).join("")}</div>
+   ${O.length?`<div class="ik-l">Per onderdeel</div><div class="ik-g">${O.map(([l],i)=>b("",l,IK.actief===i,`data-ik="${i}"`)).join("")}</div>`:""}</div></div>`};
+function ikUit(){if(IK.echt){const inl=document.getElementById("modal");if(inl&&inl!==IK.echt){inl.innerHTML="";inl.id="instInline"}IK.echt.id="modal";IK.echt=null}
+  IK.actief=null;document.body.classList.remove("ik-sub");document.querySelectorAll(".ik-b[data-ik].on").forEach(x=>x.classList.remove("on"))}
+function ikZone(){let z=document.getElementById("instInline")||(IK.echt&&document.getElementById("modal")!==IK.echt?document.getElementById("modal"):null);
+  if(!z){const m=$("#main");if(!m)return null;z=document.createElement("div");z.id="instInline";z.className="wrap inner";m.after(z)}z.classList.add("inst-inline");return z}
+async function ikOpen(i){const o=INST_OVZ[i];if(!o)return;const [,r,sel]=o;
+  if(route()!=="instellingen"){location.hash="#instellingen";await new Promise(x=>setTimeout(x,250))}
+  ikUit();const z=ikZone();if(!z)return;IK.actief=i;IK.echt=document.getElementById("modal");IK.echt.id="modalOverlay";z.id="modal";z.innerHTML="";
+  document.body.classList.add("ik-sub");document.querySelectorAll(".ik-b:not([data-ik]).on").forEach(x=>x.classList.remove("on"));document.querySelectorAll(".ik-b[data-ik]").forEach(x=>x.classList.toggle("on",Number(x.dataset.ik)===i));
+  // dezelfde knop als op de pagina zelf, onzichtbaar, en die aanklikken
+  const m=sel.match(/^\[([\w-]+)="([^"]*)"\]$/),t=document.createElement("button");t.type="button";t.hidden=true;if(m)t.setAttribute(m[1],m[2]);t.setAttribute("data-w","");
+  document.body.appendChild(t);try{t.click()}finally{t.remove()}
+  await new Promise(x=>setTimeout(x,350));
+  if(!z.innerHTML.trim()){ikUit();location.hash="#"+r;let n=0;const tm=setInterval(()=>{const b=document.querySelector(sel);if(b||++n>25){clearInterval(tm);if(b)b.click()}},120)}
+  else window.scrollTo({top:0,behavior:"smooth"})}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-ik]");if(!b)return;e.preventDefault();ikOpen(Number(b.dataset.ik))});
+{const _c=closeModal;closeModal=function(){const r=_c.apply(this,arguments);if(IK.echt)ikUit();return r}}
+addEventListener("hashchange",()=>{if(IK.echt||IK.actief!=null)ikUit()});
+{const st=document.createElement("style");st.textContent=`.ik-p .panel-b{display:flex;flex-direction:column;gap:10px}.ik-g{display:flex;flex-wrap:wrap;gap:8px}.ik-l{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.ik-b{display:inline-flex;align-items:center;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:inherit;text-decoration:none;font:inherit;font-size:14px;font-weight:500;cursor:pointer}
+.ik-b:hover{border-color:var(--muted)}.ik-b.on{background:var(--ink,#1f2328);border-color:var(--ink,#1f2328);color:#fff}
+body.ik-sub #body>*:not(.ik-p){display:none}
+.inst-inline{margin-top:18px;padding-top:0}.inst-inline:empty{display:none}.inst-inline .modal-bg{position:static;background:none;padding:0;display:block;z-index:auto;overflow:visible}
+.inst-inline .modal,.inst-inline .modal.wide{width:100%;max-width:none;box-shadow:none;margin:0;max-height:none;border-radius:12px;display:block}`;document.head.appendChild(st)}
 
 /* ============ Instellingen › Jaardocumenten: jaarrekening en jaarverslag (PDF in huisstijl of Excel) ============
    Jaarrekening volgens het model van de vereenvoudigde boekhouding voor kleine vzw's (staat van ontvangsten en uitgaven,
