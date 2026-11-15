@@ -7944,6 +7944,7 @@ function vrBoek(v){return[...S.boekingen.values()].filter(b=>b.categorie===v.cat
 function vrReken(v){const P=v.partners||[],uit=new Set(v.uitgesloten||[]),R={};
   for(const p of P)R[p.id]={p,in:0,uit:0};
   for(const b of vrBoek(v)){if(uit.has(b.id)||!R[VR_ONS]||b.verrekening)continue;R[VR_ONS][b.richting==="uit"?"uit":"in"]+=num(b.bedrag)}
+  if(R[VR_ONS])for(const f of vrFact(v))if((v.facturen||[]).includes(f.k))R[VR_ONS][f.uit?"uit":"in"]+=f.b;
   for(const x of v.posten||[]){if(!R[x.partner])continue;R[x.partner][x.richting==="uit"?"uit":"in"]+=num(x.bedrag)}
   const tin=Object.values(R).reduce((s,r)=>s+r.in,0),tuit=Object.values(R).reduce((s,r)=>s+r.uit,0),res=r2(tin-tuit),som=P.reduce((s,p)=>s+num(p.pct),0)||1;
   for(const r of Object.values(R)){r.in=r2(r.in);r.uit=r2(r.uit);r.net=r2(r.in-r.uit);r.deel=r2(res*num(r.p.pct)/som);r.saldo=r2(r.net-r.deel)}
@@ -7953,6 +7954,12 @@ function vrReken(v){const P=v.partners||[],uit=new Set(v.uitgesloten||[]),R={};
   geef.sort((a,b)=>b.b-a.b);krijg.sort((a,b)=>b.b-a.b);
   while(geef.length&&krijg.length){const g=geef[0],k=krijg[0],x=r2(Math.min(g.b,k.b));bet.push({van:g.id,aan:k.id,bedrag:x});g.b=r2(g.b-x);k.b=r2(k.b-x);if(g.b<=0.004)geef.shift();if(k.b<=0.004)krijg.shift()}
   return{R,tin:r2(tin),tuit:r2(tuit),res,bet,afr}}
+/* facturen om aan te vinken (los van hun status): uitgaand (creditnota = negatief) en inkomend */
+function vrFact(v){const L=[];const inP=d=>(!v.vanaf||d>=v.vanaf)&&(!v.tot||d<=v.tot);
+  try{for(const f of S.facturen.values()){if(!f.nr)continue;const d=String(f.datum||"");if(!inP(d))continue;const t=fcTot(f).totaal*(f.type==="credit"?-1:1);
+    L.push({k:"f:"+f.id,d,naam:(f.type==="credit"?"Creditnota ":"Factuur ")+f.nr+(f.klant&&f.klant.naam?" · "+f.klant.naam:""),b:r2(t),uit:false})}}catch(e){}
+  try{if(typeof inkDocs==="function")for(const x of inkDocs()){const d=inkDatum(x);if(!inP(d))continue;L.push({k:"i:"+x.id,d,naam:"Inkomende factuur · "+(inkVan(x)||x.naam||""),b:r2(inkTot(x)),uit:true})}}catch(e){}
+  return L.sort((a,b)=>b.d.localeCompare(a.d))}
 function vrAfr(v){return[...S.boekingen.values()].filter(b=>b.verrekening===v.id).sort((a,b)=>String(a.datum).localeCompare(String(b.datum)))}
 const vrNaam=(v,id)=>((v.partners||[]).find(p=>p.id===id)||{}).naam||id;
 const VR={open:{}};
@@ -7973,6 +7980,9 @@ function vrKaart(v){const c=vrReken(v),P=v.partners||[],B=vrBoek(v),uit=new Set(
     <details${open.ons?" open":""} data-vrd="ons" data-id="${esc(v.id)}"><summary><b>Onze transacties</b> <span class="muted small">${B.length-B.filter(b=>uit.has(b.id)).length} van ${B.length} meegeteld</span></summary>
      <div class="vr-l">${B.map(b=>`<label class="vr-r"><input type="checkbox" data-vrx="${esc(b.id)}" data-id="${esc(v.id)}"${uit.has(b.id)?"":" checked"}${d}><span class="muted small">${fmtDate(b.datum)}</span><span class="trunc">${esc(b.partij||"")} <span class="muted small">${esc(b.mededeling||"")}</span></span><b class="num ${b.richting==="uit"?"vr-min":"vr-plus"}">${b.richting==="uit"?"−":"+"}${eur(b.bedrag)}</b></label>`).join("")||'<div class="muted small" style="padding:10px">Geen transacties in deze categorie.</div>'}</div>
 </details>
+    ${(()=>{const F=vrFact(v),A=new Set(v.facturen||[]);if(!F.length)return"";const L=[...F.filter(f=>A.has(f.k)),...F.filter(f=>!A.has(f.k))];
+      return `<details${open.fact?" open":""} data-vrd="fact" data-id="${esc(v.id)}"><summary><b>Facturen</b> <span class="muted small">${A.size?F.filter(f=>A.has(f.k)).length+" meegeteld":"geen meegeteld"}</span></summary>
+       <div class="vr-l">${L.map(f=>`<label class="vr-r"><input type="checkbox" data-vrf="${esc(f.k)}" data-id="${esc(v.id)}"${A.has(f.k)?" checked":""}${d}><span class="muted small">${f.d?fmtDate(f.d):""}</span><span class="trunc">${esc(f.naam)}</span><b class="num ${f.uit||f.b<0?"vr-min":"vr-plus"}">${f.uit||f.b<0?"−":"+"}${eur(Math.abs(f.b))}</b></label>`).join("")}</div></details>`})()}
     ${[...P].sort((a,b)=>(a.id===VR_ONS?0:1)-(b.id===VR_ONS?0:1)).map(p=>{const X=(v.posten||[]).filter(x=>x.partner===p.id).sort((a,b)=>String(a.datum).localeCompare(String(b.datum)));
       return `<details${open[p.id]!==false?" open":""} data-vrd="${esc(p.id)}" data-id="${esc(v.id)}"><summary><b>${p.id===VR_ONS?"Andere kosten en inkomsten":"Kosten en inkomsten"} van ${esc(p.naam)}</b> <span class="muted small">${X.length} ${X.length===1?"post":"posten"} · niet in ${p.id===VR_ONS?"de":"onze"} transacties</span></summary>
        <div class="vr-l">${X.map(x=>`<div class="vr-r"><span class="muted small">${x.datum?fmtDate(x.datum):""}</span><span class="trunc">${esc(x.omschrijving||"")}</span><b class="num ${x.richting==="uit"?"vr-min":"vr-plus"}">${x.richting==="uit"?"−":"+"}${eur(num(x.bedrag))}</b>${canWrite?`<button type="button" class="iconbtn" data-vr="postWeg" data-id="${esc(v.id)}" data-p="${esc(x.id)}" aria-label="Verwijderen" title="Verwijderen">${ic("prul")}</button>`:""}</div>`).join("")||'<div class="muted small" style="padding:10px">Nog niets ingevuld.</div>'}</div>
@@ -7993,6 +8003,8 @@ function vrForm(v){const nieuw=!v;v=v||{partners:[{id:VR_ONS,naam:"VBHA",pct:50}
    `${nieuw?"":`<button class="btn danger" data-vr="weg" data-id="${esc(v.id)}" style="margin-right:auto">Verwijderen</button>`}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-vr="bewaar" data-id="${esc(v.id||"")}">Bewaren</button>`)}
 const vrPartRij=p=>`<div class="vr-p" data-pid="${esc(p.id)}"><input class="vr-pn" value="${esc(p.naam)}" placeholder="Naam van de vereniging" maxlength="60"${p.id===VR_ONS?" readonly":""}><input class="vr-pp" inputmode="decimal" value="${esc(String(p.pct??""))}" aria-label="Aandeel in procent"><span class="muted">%</span>${p.id===VR_ONS?'<span class="vr-x"></span>':`<button type="button" class="iconbtn" data-vr="partWeg" aria-label="Partij verwijderen">${ic("prul")}</button>`}</div>`;
 document.addEventListener("toggle",e=>{const d=e.target;if(!d.matches||!d.matches("details[data-vrd]"))return;const o=VR.open[d.dataset.id]||(VR.open[d.dataset.id]={});o[d.dataset.vrd]=d.open},true);
+document.addEventListener("change",async e=>{const x=e.target.closest&&e.target.closest("[data-vrf]");if(!x)return;const L=vrCfg().lijst.map(v=>({...v})),v=L.find(y=>y.id===x.dataset.id);if(!v)return;
+  const A=new Set(v.facturen||[]);x.checked?A.add(x.dataset.vrf):A.delete(x.dataset.vrf);v.facturen=[...A];try{await vrBewaar(L)}catch(er){}renderBody()});
 document.addEventListener("change",async e=>{const x=e.target.closest&&e.target.closest("[data-vrx]");if(!x)return;const L=vrCfg().lijst.map(v=>({...v})),v=L.find(y=>y.id===x.dataset.id);if(!v)return;
   const U=new Set(v.uitgesloten||[]);x.checked?U.delete(x.dataset.vrx):U.add(x.dataset.vrx);v.uitgesloten=[...U];try{await vrBewaar(L)}catch(er){}renderBody()});
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-vr]");if(!t)return;e.preventDefault();const a=t.dataset.vr,L=vrCfg().lijst.map(v=>({...v})),v=L.find(y=>y.id===t.dataset.id);
