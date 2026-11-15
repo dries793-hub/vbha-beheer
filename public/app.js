@@ -8404,7 +8404,7 @@ if(!ROUTES.some(r=>r[0]==="kalfin"))ROUTES.push(["kalfin","Kalenders overzicht"]
 var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.kalfin="kalenders";
 for(const n of NAV)if(n&&n.items)n.items=n.items.filter(i=>i[0]!=="kalfin");
 var kfFinMag=()=>ROL==="admin"||ROL==="boekhouder";
-if(!KAL_TABS.some(t=>t[0]==="kalfin"))KAL_TABS.push(["kalfin","Overzicht"]);
+if(!KAL_TABS.some(t=>t[0]==="kalfin"))KAL_TABS.unshift(["kalfin","Overzicht"]);
 {const _t=kalTabs;kalTabs=function(act){const h=_t.apply(this,arguments);return kfFinMag()?h:h.replace(/<a href="#kalfin"[^>]*>[^<]*<\/a>/,"")}}
 let KF={jaar:null,data:null,vorig:null,bezig:false,fout:""};
 async function kfLaad(){if(KF.bezig)return;KF.bezig=true;KF.fout="";
@@ -8437,11 +8437,11 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   let adr=0;try{if(typeof KR_STREETS!=="undefined"&&KR_STREETS.length){const M=krMarks(),D=krDelen();adr=KR_STREETS.reduce((t,x)=>t+krAdrGedaan(x,M,D),0)}}catch(e){}
   let dozen=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Number(JAAR)&&j.lidId!=="test-vbha")dozen+=Number(j.kalUitgevoerd)||0;
   const pd=Number(jaarCfg(JAAR).perDoos)||100,stuks=dozen*pd;const bed=stuks||(Number(jaarCfg(JAAR).kalenderStock)||0)*pd;
-  // respons vorig jaar: betalingen (Bancontact + overschrijving) in het seizoen / bedeeld (uitgevoerde dozen, anders de oplage)
-  const nV=KF.vorig?((KF.vorig.betalingen||[]).length+ovS(Number(JAAR)-1).length):0,bedV=(()=>{const Y=Number(JAAR)-1;let dz=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Y&&j.lidId!=="test-vbha")dz+=Number(j.kalUitgevoerd)||0;const p=Number(jaarCfg(Y).perDoos)||100;return dz*p||(Number(jaarCfg(Y).kalenderStock)||0)*p})();
   const PQ=((KF.data&&KF.data.betalingen)||[]).map(x=>({...x,o:false}));
   const ovS=Y=>[...S.boekingen.values()].filter(b=>b.categorie==="Kalenders"&&b.richting!=="uit"&&b.rekening!=="Kas"&&!isBc(b)&&String(b.datum||"")>=Y+"-11-01"&&String(b.datum||"")<=(Y+1)+"-01-31");
   const PO=ovS(Number(JAAR)).map(b=>({a:Number(b.bedrag)||0,d:String(b.datum||""),o:true}));
+  // respons vorig jaar: betalingen (Bancontact + overschrijving) in het seizoen / bedeeld (uitgevoerde dozen, anders de oplage)
+  const nV=KF.vorig?((KF.vorig.betalingen||[]).length+ovS(Number(JAAR)-1).length):0,bedV=(()=>{const Y=Number(JAAR)-1;let dz=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Y&&j.lidId!=="test-vbha")dz+=Number(j.kalUitgevoerd)||0;const p=Number(jaarCfg(Y).perDoos)||100;return dz*p||(Number(jaarCfg(Y).kalenderStock)||0)*p})();
   const P=PQ.concat(PO),A=P.map(x=>x.a),n=A.length,qrTot=A.reduce((s,a)=>s+a,0),nQ=PQ.length,nO=PO.length;
   const hoog=n?Math.max(...A):0,gem=n?qrTot/n:0,med=kfMed(A);
   const freq=new Map();for(const a of A)freq.set(a,(freq.get(a)||0)+1);const vaak=[...freq.entries()].sort((x,y)=>y[1]-x[1]||y[0]-x[0])[0];
