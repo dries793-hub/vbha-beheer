@@ -8605,7 +8605,7 @@ function jdBegroting(Y){const c=S.config.get("begroting_"+Y);if(!c||!Array.isArr
   return{R,ti:JD_GELD(ti),tu:JD_GELD(tu)}}
 const jdVer=()=>{const a=S.config.get("algemeen")||{};return a.vereniging||"Vriendenkring Brandweer Hoofdpost Aalst"};
 
-function jdRekening(Y){const A=jdCijfers(Y),B=jdCijfers(Y-1),heeftB=jdBoek(Y-1).length>0,O=jdOpen(Y),Ob=heeftB?jdOpen(Y-1):null,K=heeftB?["",String(Y),String(Y-1)]:["",String(Y)];
+function jdRekening(Y){const A=jdCijfers(Y),B=jdCijfers(Y-1),heeftB=false,O=jdOpen(Y),Ob=heeftB?jdOpen(Y-1):null,K=heeftB?["",String(Y),String(Y-1)]:["",String(Y)];
   const rij=(l,a,b,t)=>({c:heeftB?[l,a,b]:[l,a],t});
   const sec=[];
   const UO=["Goederen en diensten","Bezoldigingen","Andere uitgaven"],OO=["Lidgelden","Schenkingen en legaten","Subsidies","Sponsoring","Andere ontvangsten"];
