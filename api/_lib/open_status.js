@@ -7,7 +7,7 @@ import { lidStatus, jaarCfg } from "./status.js";
 
 // extra inspanningen: elke lijn apart (oudere gegevens: één lijn met de samengevoegde tekst)
 const extraRijen = J => { const L = Array.isArray(J.extras) ? J.extras.filter(x => x && ((x.tekst || "").trim() || Number(x.punten))) : (J.extraPunten ? [{ tekst: J.extraTekst || "", punten: J.extraPunten }] : []);
-  return L.map(x => ({ naam: (x.tekst || "").trim() || "Extra inspanning", aantal: null, punten: Number(x.punten) || 0 })); };
+  return L.map(x => ({ naam: (x.tekst || "").trim() ? "Extra inspanning: " + (x.tekst || "").trim() : "Extra inspanning", aantal: null, punten: Number(x.punten) || 0 })); };
 /* /api/reglement (GET): de cijfers van het reglement (openbaar).
    /api/status (POST {l, j, t}): persoonlijke pagina via de ondertekende link uit de mail: status van het huidige werkjaar
    en de punten die dit werkjaar per onderdeel verzameld werden (en wat dat betekent voor volgend jaar). */
