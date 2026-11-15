@@ -8397,6 +8397,59 @@ async function ktVerklein(f){if(!/^image\//.test(f.type)||/gif|svg/.test(f.type)
       closeModal();toast("Kasticket toegevoegd.");setTimeout(()=>boekingForm(S.boekingen.get(id)||{...nu,documentId:did},id),60)}
     catch(x){if(lb)lb.textContent="Kasticket toevoegen";toast("Opladen lukte niet: "+x.message,true)}}}}
 
+/* ============ Kalenders › Financieel ============
+   Opbrengst van de kalenders: wat in de boekhouding onder Kalenders staat (bank, Bancontact, kas) en de losse betalingen
+   via de vaste QR-code (uit de opgeladen Bancontact-export): aantal, hoogste, gemiddelde, mediaan, verdeling en per kalender. */
+if(!ROUTES.some(r=>r[0]==="kalfin"))ROUTES.push(["kalfin","Kalenders financieel"]);
+var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.kalfin="kalenders";
+for(const n of NAV)if(n&&n.items)n.items=n.items.filter(i=>i[0]!=="kalfin");
+const kfFinMag=()=>ROL==="admin"||ROL==="boekhouder";
+if(!KAL_TABS.some(t=>t[0]==="kalfin"))KAL_TABS.push(["kalfin","Financieel"]);
+{const _t=kalTabs;kalTabs=function(act){const h=_t.apply(this,arguments);return kfFinMag()?h:h.replace(/<a href="#kalfin"[^>]*>[^<]*<\/a>/,"")}}
+let KF={jaar:null,data:null,bezig:false,fout:""};
+async function kfLaad(){if(KF.bezig)return;KF.bezig=true;KF.fout="";
+  try{KF.data=await api("/api/mail?f=bcsplit",{method:"POST",body:JSON.stringify({actie:"kalstat",jaar:JAAR})});KF.jaar=JAAR}catch(e){KF.fout=e.message}
+  KF.bezig=false;if(route()==="kalfin")renderBody()}
+const kfEur=v=>eur(v);
+function kfMed(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2}
+VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
+  if(!kfFinMag())return kalTabs("kalfin")+'<div class="empty">Enkel voor de administrator en de boekhouder.</div>';
+  if(KF.jaar!==JAAR&&!KF.bezig)setTimeout(kfLaad,0);
+  const C=ctx(),B=C.boek.filter(b=>b.categorie==="Kalenders");
+  const inB=B.filter(b=>b.richting!=="uit"),uitB=B.filter(b=>b.richting==="uit");
+  const som=L=>L.reduce((s,b)=>s+(Number(b.bedrag)||0),0);
+  const isBc=b=>b.regelNaam==="Bancontact uitgesplitst"||/bancontact|payconiq/i.test(b.partij||"");
+  const kas=som(inB.filter(b=>b.rekening==="Kas")),bc=som(inB.filter(b=>b.rekening!=="Kas"&&isBc(b))),ov=som(inB.filter(b=>b.rekening!=="Kas"&&!isBc(b)));
+  const tot=kas+bc+ov,kost=som(uitB);
+  const SP=C.boek.filter(b=>b.categorie==="Sponsoring"),spIn=som(SP.filter(b=>b.richting!=="uit")),spUit=som(SP.filter(b=>b.richting==="uit"));
+  const res=tot+spIn-kost-spUit;
+  let dozen=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Number(JAAR))dozen+=Number(j.kalUitgevoerd)||0;
+  const pd=Number(jaarCfg(JAAR).perDoos)||100,stuks=dozen*pd;
+  const P=(KF.data&&KF.data.betalingen)||[],A=P.map(x=>x.a),n=A.length,qrTot=A.reduce((s,a)=>s+a,0);
+  const hoog=n?Math.max(...A):0,gem=n?qrTot/n:0,med=kfMed(A);
+  const freq=new Map();for(const a of A)freq.set(a,(freq.get(a)||0)+1);const vaak=[...freq.entries()].sort((x,y)=>y[1]-x[1]||y[0]-x[0])[0];
+  const tile=(l,v,s)=>`<div class="tile"><span class="lbl">${l}</span><span class="val">${v}</span>${s?`<span class="muted small">${s}</span>`:""}</div>`;
+  // verdeling van de bedragen
+  const SCH=[[0,5,"≤ €5"],[5,10,"€6–10"],[10,15,"€11–15"],[15,20,"€16–20"],[20,25,"€21–25"],[25,50,"€26–50"],[50,1e9,"> €50"]];
+  const verd=SCH.map(([a,b,l])=>({l,n:A.filter(x=>x>a+1e-9&&x<=b+1e-9||(a===0&&x<=b)).length}));const vm=Math.max(1,...verd.map(v=>v.n));
+  // per dag
+  const dag=new Map();for(const x of P)dag.set(x.d,(dag.get(x.d)||0)+x.a);const D=[...dag.entries()].sort();const dm=Math.max(1,...D.map(d=>d[1]));
+  const top=D.length?D.reduce((m,d)=>d[1]>m[1]?d:m):null;
+  return kalTabs("kalfin")+`
+  <div class="tiles kf-t">${tile("Totale opbrengst",`<span style="color:var(--${res>=0?"good":"bad"})">${res>=0?"":"−"}${kfEur(Math.abs(res))}</span>`,"kalenders + sponsors − kosten")}
+    ${tile("Kalenders binnengekomen",kfEur(tot),[bc?"Bancontact "+kfEur(bc):"",kas?"kas "+kfEur(kas):"",ov?"overschrijving "+kfEur(ov):""].filter(Boolean).join(" · "))}
+    ${tile("Sponsors",kfEur(spIn),spUit?"kosten sponsoring "+kfEur(spUit):"")}
+    ${tile("Kosten kalenders",kost?"−"+kfEur(kost):kfEur(0),"")}</div>
+  <div class="tiles kf-t">${tile("Per kalender",stuks?kfEur(tot/stuks):"–",stuks?`${dozen} ${dozen===1?"doos":"dozen"} × ${pd} = ${stuks.toLocaleString("nl-BE")} kalenders`:"nog geen afgeronde dozen")}
+    ${tile("Per doos",dozen?kfEur(tot/dozen):"–","")}
+    ${tile("Per kalender met sponsors",stuks?kfEur((tot+spIn)/stuks):"–","")}
+    ${tile("Opbrengst per kalender",stuks?kfEur(res/stuks):"–","na kosten, met sponsors")}</div>
+  <div class="panel"><div class="panel-h"><h2>Betalingen via de QR-code</h2>${KF.data&&KF.data.laatsteExport?`<span class="grow"></span><span class="muted small">export t.e.m. ${fmtDate(KF.data.laatsteExport)}</span>`:""}</div>
+   ${KF.bezig&&!KF.data?'<div class="empty">Laden…</div>':KF.fout?`<div class="empty">${esc(KF.fout)}</div>`:!n?'<div class="empty">Nog geen Bancontact-export opgeladen (Transacties › tandwiel).</div>':`
+   <div class="panel-b"><div class="tiles kf-t">${tile("Aantal betalingen",n.toLocaleString("nl-BE"),kfEur(qrTot))}${tile("Hoogste betaling",kfEur(hoog),"")}${tile("Gemiddelde",kfEur(gem),"")}${tile("Mediaan",kfEur(med),vaak?`meest gegeven: ${kfEur(vaak[0])} (${vaak[1]}×)`:"")}</div>
+   <div class="kf-2"><div><h3 class="kf-h">Verdeling van de bedragen</h3>${verd.map(v=>`<div class="kf-r"><span>${v.l}</span><span class="kf-b"><i style="width:${v.n/vm*100}%"></i></span><b>${v.n}</b></div>`).join("")}</div>
+   <div><h3 class="kf-h">Per dag${top?` <span class="muted small">· beste dag ${fmtDate(top[0])}: ${kfEur(top[1])}</span>`:""}</h3>${D.map(([d,v])=>`<div class="kf-r"><span>${fmtDate(d).slice(0,5)}</span><span class="kf-b"><i style="width:${v/dm*100}%"></i></span><b>${kfEur(v)}</b></div>`).join("")}</div></div></div>`}</div>`}});
+
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
    Bancontact-storting exact op per uitbetaling: betalingen die de app kent apart, de rest (kalenders via QR) bij Kalenders. */

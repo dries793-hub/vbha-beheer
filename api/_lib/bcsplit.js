@@ -187,3 +187,14 @@ export async function bcExport(sb, rijen) {
   const sp = ids.length ? await splitsBulk(sb, { ids }) : { gesplitst: 0, delen: 0, overgeslagen: [] };
   return { opgeslagen: R.length, uitbetalingen: payouts.size, stortingen: ids.length, ...sp };
 }
+
+/* Kalenders › Financieel: losse betalingen via de vaste QR-code (uit de opgeladen export), zonder de betalingen die de app zelf kent */
+export async function kalStat(sb, jaar) {
+  const perTx = new Map(); await onlinePerDag(sb, perTx);
+  const rows = await selectAll(sb, "bancontact_tx");
+  const L = [];
+  for (const r of rows) { const d = r.data || {}; if (perTx.has(String(d.id || r.id))) continue; const m = String(d.date || "").match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if (!m || Number(m[3]) !== Number(jaar)) continue;
+    L.push({ a: r2(Number(d.amount) || 0), d: `${m[3]}-${m[2]}-${m[1]}`, t: String(d.time || "").slice(0, 5) }); }
+  const laatst = rows.reduce((m, r) => { const x = String((r.data && r.data.date) || "").split("/").reverse().join("-"); return x > m ? x : m; }, "");
+  return { betalingen: L.sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t)), laatsteExport: laatst || null };
+}

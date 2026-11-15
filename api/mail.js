@@ -46,6 +46,7 @@ export default async function handler(req, res) {
       const { requireUser, isDbCron, admin } = await import("./_lib/sb.js"); const { splitsBulk } = await import("./_lib/bcsplit.js");
       let sb; if (req.method === "POST" && await isDbCron(req)) sb = admin(); else { if (req.method !== "POST") return res.status(405).json({ error: "Gebruik POST" }); await requireUser(req, { boek: true }); sb = admin(); }
       let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+      if (b.actie === "kalstat") { const { kalStat } = await import("./_lib/bcsplit.js"); return res.status(200).json(await kalStat(sb, Number(b.jaar) || new Date().getFullYear())); }
       if (b.actie === "export") { const { bcExport } = await import("./_lib/bcsplit.js"); return res.status(200).json(await bcExport(sb, b.rijen)); } // Bancontact-export opladen
       return res.status(200).json(await splitsBulk(sb, { ids: Array.isArray(b.ids) ? b.ids.slice(0, 50).map(String) : null, proef: !!b.proef }));
     }
