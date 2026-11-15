@@ -7958,7 +7958,7 @@ function vrReken(v){const P=v.partners||[],uit=new Set(v.uitgesloten||[]),R={};
 function vrFact(v){const L=[];const inP=d=>(!v.vanaf||d>=v.vanaf)&&(!v.tot||d<=v.tot);
   try{for(const f of S.facturen.values()){if(!f.nr)continue;const d=String(f.datum||"");if(!inP(d))continue;const t=fcTot(f).totaal*(f.type==="credit"?-1:1);
     L.push({k:"f:"+f.id,d,naam:(f.type==="credit"?"Creditnota ":"Factuur ")+f.nr+(f.klant&&f.klant.naam?" · "+f.klant.naam:""),b:r2(t),uit:false})}}catch(e){}
-  try{if(typeof inkDocs==="function")for(const x of inkDocs()){const d=inkDatum(x);if(!inP(d))continue;L.push({k:"i:"+x.id,d,naam:"Inkomende factuur · "+(inkVan(x)||x.naam||""),b:r2(inkTot(x)),uit:true})}}catch(e){}
+  try{if(typeof inkDocs==="function")for(const x of inkDocs()){const d=inkDatum(x);if(!inP(d))continue;L.push({k:"i:"+x.id,d,naam:"Inkomende factuur · "+(inkVan(x)||x.naam||""),b:r2(inkTot(x)||Number(x.inkomend&&x.inkomend.bedragPdf)||inkSom(x.id)||0),uit:true})}}catch(e){}
   return L.sort((a,b)=>b.d.localeCompare(a.d))}
 function vrAfr(v){return[...S.boekingen.values()].filter(b=>b.verrekening===v.id).sort((a,b)=>String(a.datum).localeCompare(String(b.datum)))}
 const vrNaam=(v,id)=>((v.partners||[]).find(p=>p.id===id)||{}).naam||id;
