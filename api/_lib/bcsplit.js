@@ -201,9 +201,10 @@ export async function kalStat(sb, jaar) {
   const rows = await selectAll(sb, "bancontact_tx");
   const J = Number(jaar), van = `${J}-11-01`, tot = `${J + 1}-01-31`;
   // dagen waarvan de Bancontact-storting (niet uitgesplitst) bij een andere activiteit staat (jaarmarkt, kinderfeest, …): niet meetellen
-  const dagCat = new Map(), gestort = new Set();
+  const dagCat = new Map(), gestort = new Set(), gestortDag = new Set();
   for (const j of [J, J + 1]) for (const r of await selectAll(sb, "boekingen", q => q.eq("jaar", j))) { const b = r.data || {};
-    { const p = (b.bulk && b.bulk.payout) || payoutVan(b.bulk ? b.bulk.mededeling : b.mededeling); if (p) gestort.add(p); }
+    { const med = String((b.bulk ? b.bulk.mededeling : b.mededeling) || "").trim(), p = (b.bulk && b.bulk.payout) || payoutVan(med); if (p) gestort.add(p);
+      const m = /bancontact|payconiq|segregated/i.test(b.partij || "") && med.match(/^(\d{4})(\d{2})(\d{2})/); if (m) gestortDag.add(`${m[1]}-${m[2]}-${m[3]}`); }
     if (b.bulkVan || b.bulk || b.richting === "uit" || !/bancontact|payconiq|segregated/i.test(b.partij || "")) continue;
     const m = String(b.mededeling || "").trim().match(/^(\d{4})(\d{2})(\d{2})/); if (!m) continue;
     const d = `${m[1]}-${m[2]}-${m[3]}`, S = dagCat.get(d) || dagCat.set(d, new Set()).get(d); S.add(b.categorie || ""); }
@@ -212,7 +213,7 @@ export async function kalStat(sb, jaar) {
     const m = String(d.date || "").match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if (!m) continue;
     const iso = `${m[3]}-${m[2]}-${m[1]}`; if (iso < van || iso > tot) continue;
     const S = dagCat.get(iso); if (S && !S.has("Kalenders")) continue;
-    const po = r.payout || d.payoutId; if (po ? !gestort.has(po) : !dagCat.has(iso)) { onderweg = r2(onderweg + (Number(d.amount) || 0)); nOnderweg++; }
+    const po = r.payout || d.payoutId; if (po ? !gestort.has(po) : !gestortDag.has(iso)) { onderweg = r2(onderweg + (Number(d.amount) || 0)); nOnderweg++; }
     L.push({ a: r2(Number(d.amount) || 0), d: iso, t: String(d.time || "").slice(0, 5), n: String(d.debtorName || ""), m: /^payconiq /i.test(d.description || "") ? "" : String(d.description || "") }); }
   const laatst = rows.reduce((m, r) => { const x = String((r.data && r.data.date) || "").split("/").reverse().join("-"); return x > m ? x : m; }, "");
   return { betalingen: L.sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t)), laatsteExport: laatst || null, onderweg, nOnderweg };
