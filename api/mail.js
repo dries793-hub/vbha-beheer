@@ -50,6 +50,7 @@ export default async function handler(req, res) {
       if (b.actie === "export") { const { bcExport } = await import("./_lib/bcsplit.js"); return res.status(200).json(await bcExport(sb, b.rijen)); } // Bancontact-export opladen
       return res.status(200).json(await splitsBulk(sb, { ids: Array.isArray(b.ids) ? b.ids.slice(0, 50).map(String) : null, proef: !!b.proef }));
     }
+    if (req.query && req.query.f === "jaardoc") { const { jaardocApi } = await import("./_lib/jaardoc.js"); return await jaardocApi(req, res); } // jaarrekening / jaarverslag als PDF
     if (req.query && req.query.f === "r2") return await r2Api(req, res); // fotoalbums: tijdelijke links naar Cloudflare R2
     if (req.query && req.query.f === "shop") return await shopApi(req, res); // webshop: status van een bestelling, mails
     if (req.query && req.query.f === "kfcadeau") { const { kfCadeauApp } = await import("./_lib/kfcadeau.js"); return await kfCadeauApp(req, res); } // kinderfeest: cadeaulink, prijzen en voorraad opnieuw controleren

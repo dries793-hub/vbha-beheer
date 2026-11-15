@@ -8577,6 +8577,109 @@ document.addEventListener("click",async e=>{const b=e.target.closest("#rgAlle");
   b.disabled=false;delete b.dataset.zeker;b.textContent="Op alle gebruikers toepassen";
   toast(fout?`${fout} niet bewaard.`:`Toegepast op ${U.length} ${U.length===1?"gebruiker":"gebruikers"}.`,!!fout)});
 
+/* ============ Instellingen › Jaardocumenten: jaarrekening en jaarverslag (PDF in huisstijl of Excel) ============
+   Jaarrekening volgens het model van de vereenvoudigde boekhouding voor kleine vzw's (staat van ontvangsten en uitgaven,
+   staat van het vermogen, begroting volgend jaar). Jaarverslag: leden, activiteiten, vergaderingen, financieel, vooruitblik.
+   De app stelt de inhoud samen; de server maakt er een PDF van in de VBHA-huisstijl (api/_lib/jaardoc.js). */
+const JD_GELD=n=>Math.round((Number(n)||0)*100)/100;
+const jdBoek=Y=>[...S.boekingen.values()].filter(b=>Number(b.jaar)===Y);
+const jdIn=b=>b.richting!=="uit";
+// indeling volgens het wettelijk model
+const jdOntv=c=>/lidgeld/i.test(c)?"Lidgelden":/subsidie/i.test(c)?"Subsidies":/schenking|gift|legaat/i.test(c)?"Schenkingen en legaten":"Andere ontvangsten";
+const jdUitg=c=>/loon|bezoldig|vergoeding personeel/i.test(c)?"Bezoldigingen":/bankkost|bank-|verzekering|belasting|taks/i.test(c)?"Andere uitgaven":"Goederen en diensten";
+function jdCijfers(Y){const L=jdBoek(Y),cat={},o={},u={};let tin=0,tuit=0,kas=0,rek=0;
+  for(const b of L){const c=b.categorie||"Niet ingedeeld",v=JD_GELD(b.bedrag),i=jdIn(b);const x=cat[c]||(cat[c]={in:0,uit:0});
+    if(i){x.in+=v;tin+=v;o[jdOntv(c)]=(o[jdOntv(c)]||0)+v}else{x.uit+=v;tuit+=v;u[jdUitg(c)]=(u[jdUitg(c)]||0)+v}
+    const s=i?v:-v;if(b.rekening==="Kas")kas+=s;else rek+=s}
+  const j=jaarCfg(Y);return{cat,o,u,tin:JD_GELD(tin),tuit:JD_GELD(tuit),res:JD_GELD(tin-tuit),beginKas:JD_GELD(j.beginKas),beginRek:JD_GELD(j.beginRekening),eindKas:JD_GELD(num(j.beginKas)+kas),eindRek:JD_GELD(num(j.beginRekening)+rek)}}
+// openstaand op 31/12: uitgaande facturen (vorderingen) en inkomende facturen (schulden)
+function jdOpen(Y){const eind=Y+"-12-31";let vord=0,schuld=0;const V=[],Sc=[];
+  try{for(const f of S.facturen.values()){if(!f.nr||f.type==="credit"||String(f.datum||"")>eind)continue;const st=fcStatus(f);if(st==="gecrediteerd")continue;
+    const T=fcTot(f).totaal,ontv=[...S.boekingen.values()].filter(b=>fcHoort(b,f)&&String(b.datum||"")<=eind).reduce((s,b)=>s+num(b.bedrag),0),open=JD_GELD(T-ontv);if(open>0.004){vord+=open;V.push([`Factuur ${f.nr}${f.klant&&f.klant.naam?" · "+f.klant.naam:""}`,open])}}}catch(e){}
+  try{if(typeof inkDocs==="function")for(const d of inkDocs()){if(inkDatum(d)>eind)continue;const T=inkTot(d)||num(d.inkomend&&d.inkomend.bedragPdf);if(!T)continue;
+    const bet=inkBoekVan(d.id).filter(b=>String(b.datum||"")<=eind).reduce((s,b)=>s+num(b.bedrag),0),open=JD_GELD(T-bet);if(open>0.004){schuld+=open;Sc.push([`Factuur ${inkVan(d)||d.naam}`,open])}}}catch(e){}
+  return{vord:JD_GELD(vord),schuld:JD_GELD(schuld),V,Sc}}
+function jdBegroting(Y){const c=S.config.get("begroting_"+Y);if(!c||!Array.isArray(c.tabs))return null;const R=[];let ti=0,tu=0;
+  for(const t of c.tabs){let i=0,u=0;for(const p of t.posten||[]){const v=num(p.aantal||1)*num(p.prijs)*(p.pp?Math.max(1,num(t.personen)):1);if(p.soort==="opbrengst")i+=v;else u+=v}ti+=i;tu+=u;R.push([t.naam||t.categorie||"",JD_GELD(i),JD_GELD(u),JD_GELD(i-u)])}
+  return{R,ti:JD_GELD(ti),tu:JD_GELD(tu)}}
+const jdVer=()=>{const a=S.config.get("algemeen")||{};return a.vereniging||"Vriendenkring Brandweer Hoofdpost Aalst"};
+
+function jdRekening(Y){const A=jdCijfers(Y),B=jdCijfers(Y-1),heeftB=jdBoek(Y-1).length>0,O=jdOpen(Y),Ob=heeftB?jdOpen(Y-1):null,K=heeftB?["",String(Y),String(Y-1)]:["",String(Y)];
+  const rij=(l,a,b,t)=>({c:heeftB?[l,a,b]:[l,a],t});
+  const sec=[];
+  const UO=["Goederen en diensten","Bezoldigingen","Andere uitgaven"],OO=["Lidgelden","Schenkingen en legaten","Subsidies","Andere ontvangsten"];
+  sec.push({kop:"Staat van ontvangsten en uitgaven",tabel:{kols:K,rijen:[
+    rij("Uitgaven",null,null,"kop"),...UO.map(k=>rij(k,JD_GELD(A.u[k]),JD_GELD(B.u[k]),"sub")),rij("Totaal uitgaven",A.tuit,B.tuit,"tot"),
+    rij("Ontvangsten",null,null,"kop"),...OO.map(k=>rij(k,JD_GELD(A.o[k]),JD_GELD(B.o[k]),"sub")),rij("Totaal ontvangsten",A.tin,B.tin,"tot"),
+    rij(A.res>=0?"Overschot van het boekjaar":"Tekort van het boekjaar",A.res,B.res,"tot")]}});
+  const cats=[...new Set([...Object.keys(A.cat),...Object.keys(B.cat)])].sort((a,b)=>a.localeCompare(b,"nl"));
+  sec.push({kop:"Detail per activiteit en rubriek",tabel:{kols:["",`Ontvangsten ${Y}`,`Uitgaven ${Y}`,`Resultaat ${Y}`,...(heeftB?[`Resultaat ${Y-1}`]:[])],breed:heeftB?[175,80,80,80,80]:[255,80,80,80],
+    rijen:[...cats.filter(c=>A.cat[c]).map(c=>{const a=A.cat[c],b=B.cat[c];return{c:[c,JD_GELD(a.in),JD_GELD(a.uit),JD_GELD(a.in-a.uit),...(heeftB?[b?JD_GELD(b.in-b.uit):""]:[])]}}),
+      {c:["Totaal",A.tin,A.tuit,A.res,...(heeftB?[B.res]:[])],t:"tot"}]}});
+  const verm=(C,Op)=>JD_GELD(C.eindKas+C.eindRek+(Op?Op.vord:0)-(Op?Op.schuld:0));
+  sec.push({kop:`Staat van het vermogen op 31/12/${Y}`,tabel:{kols:K,rijen:[
+    rij("Bezittingen",null,null,"kop"),rij("Liquide middelen – rekening",A.eindRek,B.eindRek,"sub"),rij("Liquide middelen – kas",A.eindKas,B.eindKas,"sub"),rij("Vorderingen (openstaande uitgaande facturen)",O.vord,Ob?Ob.vord:0,"sub"),
+    rij("Totaal bezittingen",JD_GELD(A.eindKas+A.eindRek+O.vord),JD_GELD(B.eindKas+B.eindRek+(Ob?Ob.vord:0)),"tot"),
+    rij("Schulden",null,null,"kop"),rij("Leveranciers (openstaande inkomende facturen)",O.schuld,Ob?Ob.schuld:0,"sub"),rij("Totaal schulden",O.schuld,Ob?Ob.schuld:0,"tot"),
+    rij("Eigen vermogen",verm(A,O),verm(B,Ob),"tot")]}});
+  sec.push({kop:"Verloop van de liquide middelen",tabel:{kols:["","Rekening","Kas","Totaal"],rijen:[
+    {c:[`Beginsaldo 1/1/${Y}`,A.beginRek,A.beginKas,JD_GELD(A.beginRek+A.beginKas)]},{c:["Ontvangsten min uitgaven",JD_GELD(A.eindRek-A.beginRek),JD_GELD(A.eindKas-A.beginKas),A.res]},{c:[`Eindsaldo 31/12/${Y}`,A.eindRek,A.eindKas,JD_GELD(A.eindRek+A.eindKas)],t:"tot"}]}});
+  if(O.V.length||O.Sc.length)sec.push({kop:"Openstaande facturen op 31/12/"+Y,tabel:{kols:["","Bedrag"],rijen:[...(O.V.length?[{c:["Vorderingen",null],t:"kop"},...O.V.map(x=>({c:x,t:"sub"}))]:[]),...(O.Sc.length?[{c:["Schulden",null],t:"kop"},...O.Sc.map(x=>({c:x,t:"sub"}))]:[])]}});
+  const bg=jdBegroting(Y+1);
+  if(bg&&bg.R.length)sec.push({kop:`Begroting ${Y+1}`,tabel:{kols:["","Ontvangsten","Uitgaven","Resultaat"],rijen:[...bg.R.map(c=>({c})),{c:["Totaal",bg.ti,bg.tu,JD_GELD(bg.ti-bg.tu)],t:"tot"}]}});
+  sec.push({kop:"Toelichting",tekst:["Vereenvoudigde boekhouding voor kleine verenigingen zonder winstoogmerk (art. 3:47 WVV en KB van 29 april 2019). Ontvangsten en uitgaven worden opgenomen op het ogenblik van de betaling. Liquide middelen, vorderingen en schulden zijn gewaardeerd aan hun nominale waarde. De vereniging is niet onderworpen aan de btw."]});
+  sec.push({kop:"Goedkeuring",tekst:[`De jaarrekening ${Y} werd goedgekeurd door de algemene vergadering van ____ / ____ / ________, die kwijting verleende aan de bestuurders.`],handtekening:["Voorzitter","Penningmeester"]});
+  return{titel:`Jaarrekening ${Y}`,sub:`Boekjaar 1/1/${Y} – 31/12/${Y}`,secties:sec}}
+
+function jdVerslag(Y){const A=jdCijfers(Y),sec=[],yr=String(Y);
+  const leden=[...S.leden.values()].filter(l=>!l.test&&!l.geenLid&&l.id!=="test-vbha"&&(!l.lidSinds||String(l.lidSinds).slice(0,4)<=yr)&&(!l.lidTot||String(l.lidTot).slice(0,4)>=yr));
+  const nieuw=leden.filter(l=>String(l.lidSinds||"").slice(0,4)===yr).length,ere=leden.filter(l=>l.categorie==="Erewacht").length;
+  const JL=[...S.jaarleden.values()].filter(j=>Number(j.jaar)===Y&&j.lidId!=="test-vbha");const betaald=JL.filter(j=>j.lidgeld==="OK"||j.lidgeldOp||j.lidgeldBron).length;
+  sec.push({kop:"Inleiding",tekst:[`Dit jaarverslag geeft een overzicht van de werking van ${jdVer()} in ${Y}: de leden, de activiteiten, de vergaderingen van het bestuur en de financiële toestand, met een vooruitblik op ${Y+1}.`]});
+  sec.push({kop:"Leden",tabel:{kols:["",""],rijen:[{c:["Aantal leden",String(leden.length)]},{c:["waarvan erewacht",String(ere)],t:"sub"},{c:["Nieuwe leden in "+Y,String(nieuw)]},...(JL.length?[{c:["Lidgeld betaald voor "+Y,String(betaald)]}]:[])]}});
+  // activiteiten uit de agenda + cijfers per activiteit
+  const act=[...S.activiteiten.values()].filter(a=>String(a.datum||"").startsWith(yr)).sort((a,b)=>String(a.datum).localeCompare(String(b.datum)));
+  const ban=[...S.banket.values()].filter(b=>Number(b.jaar)===Y),banP=ban.reduce((s,b)=>s+(num(b.personen)||1),0);
+  const kf=[...S.kinderfeest.values()].filter(k=>Number(k.jaar)===Y),kfK=kf.reduce((s,k)=>s+((k.kinderen||[]).length||0),0);
+  const dz=JL.reduce((s,j)=>s+(num(j.kalUitgevoerd)||0),0),jc=jaarCfg(Y);
+  const cijfer=[];if(dz)cijfer.push({c:["Kalenders: dozen bedeeld",`${dz} dozen (${(dz*(num(jc.perDoos)||100)).toLocaleString("nl-BE")} kalenders)`]});
+  if(ban.length)cijfer.push({c:["Banket: inschrijvingen",`${ban.length} (${banP} personen)`]});if(kf.length)cijfer.push({c:["Kinderfeest: gezinnen",`${kf.length} (${kfK} kinderen)`]});
+  try{const sp=[...S.sponsors.values()].filter(x=>typeof spStop==="function"?!spStop(x):true);if(sp.length)cijfer.push({c:["Sponsors",String(sp.length)]})}catch(e){}
+  sec.push({kop:"Activiteiten",tekst:act.length?[]:["In de agenda staan voor dit jaar geen activiteiten."],tabel:act.length?{kols:["Activiteit","Datum"],breed:[375,120],rijen:act.map(a=>({c:[[a.titel,a.locatie].filter(Boolean).join(" – "),fmtDate(a.datum)]}))}:null});
+  if(cijfer.length)sec.push({kop:"Enkele cijfers",tabel:{kols:["",""],breed:[255,240],rijen:cijfer}});
+  const cats=Object.keys(A.cat).sort((a,b)=>a.localeCompare(b,"nl"));
+  sec.push({kop:"Financieel resultaat per activiteit",tabel:{kols:["","Ontvangsten","Uitgaven","Resultaat"],rijen:[...cats.map(c=>({c:[c,JD_GELD(A.cat[c].in),JD_GELD(A.cat[c].uit),JD_GELD(A.cat[c].in-A.cat[c].uit)]})),{c:["Totaal",A.tin,A.tuit,A.res],t:"tot"}]}});
+  // vergaderingen
+  const vg=[...S.vergaderingen.values()].filter(v=>String(v.datum||"").startsWith(yr)).sort((a,b)=>String(a.datum).localeCompare(String(b.datum)));
+  if(vg.length)sec.push({kop:"Vergaderingen",tekst:[`Het bestuur kwam in ${Y} ${vg.length} keer samen.`],tabel:{kols:["Vergadering","Datum"],breed:[375,120],rijen:vg.map(v=>({c:[[v.soort||"Vergadering",v.titel,v.agenda].filter(Boolean).join(" – "),fmtDate(v.datum)]}))}});
+  sec.push({kop:"Financiële toestand",tabel:{kols:["",""],breed:[255,240],rijen:[{c:["Totaal ontvangsten",A.tin]},{c:["Totaal uitgaven",A.tuit]},{c:[A.res>=0?"Overschot":"Tekort",A.res],t:"tot"},{c:[`Liquide middelen op 31/12/${Y}`,JD_GELD(A.eindKas+A.eindRek)]}]}});
+  const plan=[...S.activiteiten.values()].filter(a=>String(a.datum||"")>yr+"-12-31").sort((a,b)=>String(a.datum).localeCompare(String(b.datum)));
+  sec.push({kop:`Vooruitblik op ${Y+1}`,tekst:plan.length?[]:["De planning voor het volgende werkjaar wordt opgemaakt door het bestuur."],tabel:plan.length?{kols:["Gepland","Datum"],breed:[375,120],rijen:plan.map(a=>({c:[[a.titel,a.locatie].filter(Boolean).join(" – "),fmtDate(a.datum)]}))}:null});
+  sec.push({kop:"Goedkeuring",tekst:[`Dit jaarverslag werd voorgesteld aan de algemene vergadering van ____ / ____ / ________.`],handtekening:["Voorzitter","Secretaris"]});
+  return{titel:`Jaarverslag ${Y}`,sub:jdVer(),secties:sec}}
+
+async function jdPdf(soort,Y,btn){const doc=soort==="rekening"?jdRekening(Y):jdVerslag(Y),naam=`VBHA_${soort==="rekening"?"Jaarrekening":"Jaarverslag"}_${Y}.pdf`;
+  if(btn)btn.disabled=true;try{const j=await api("/api/mail?f=jaardoc",{method:"POST",body:JSON.stringify({doc,naam})});
+    const bin=atob(j.pdf),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);save(naam,new Blob([a],{type:"application/pdf"}))}
+  catch(x){toast(x.message,true)}finally{if(btn)btn.disabled=false}}
+function jdXlsx(soort,Y){const doc=soort==="rekening"?jdRekening(Y):jdVerslag(Y),wb=XLSX.utils.book_new(),A=[[jdVer()],[doc.titel],[doc.sub],[]];
+  for(const s of doc.secties){A.push([s.kop]);for(const t of s.tekst||[])A.push([t]);
+    if(s.tabel){A.push(s.tabel.kols);for(const r of s.tabel.rijen){const c=r.c||r;A.push(c.map((v,i)=>i===0&&r.t==="sub"?"   "+v:v==null?"":v))}}
+    if(s.handtekening)A.push([],s.handtekening);A.push([])}
+  const ws=XLSX.utils.aoa_to_sheet(A);ws["!cols"]=[{wch:52},{wch:16},{wch:16},{wch:16},{wch:16}];
+  for(const k in ws)if(k[0]!=="!"&&typeof ws[k].v==="number")ws[k].z='€ #,##0.00;[Red]-€ #,##0.00';
+  XLSX.utils.book_append_sheet(wb,ws,doc.titel.slice(0,31));save(doc.titel.replace(/\s+/g,"_")+".xlsx",XLSX.write(wb,{type:"array",bookType:"xlsx"}))}
+
+{const _v=VIEWS.instellingen;const n=function(){const v=_v.apply(this,arguments),b=v.body;
+  v.body=function(){const h=String(b.apply(this,arguments));if(ROL!=="admin"&&ROL!=="boekhouder")return h;
+    const J=[...S.jaren.keys()].map(Number).filter(Boolean).sort((a,b)=>b-a),def=J.includes(Number(JAAR)-1)?Number(JAAR)-1:Number(JAAR);
+    const rij=(s,l)=>`<div class="jd-r"><b>${l}</b><span class="grow"></span><button type="button" class="btn sm" data-jd="pdf" data-s="${s}">${ic("download")}PDF</button><button type="button" class="btn sm" data-jd="xlsx" data-s="${s}">${ic("download")}Excel</button></div>`;
+    return h+`<div class="panel"><div class="panel-h"><h2>Jaardocumenten</h2><select class="sel" id="jdJ" aria-label="Boekjaar" style="width:auto">${J.map(y=>`<option${y===def?" selected":""}>${y}</option>`).join("")}</select></div><div class="panel-b stack">${rij("rekening","Jaarrekening")}${rij("verslag","Jaarverslag")}</div></div>`};return v};
+  Object.assign(n,_v);VIEWS.instellingen=n}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-jd]");if(!b)return;const Y=Number(($("#jdJ")||{}).value)||Number(JAAR);
+  if(b.dataset.jd==="pdf")jdPdf(b.dataset.s,Y,b);else jdXlsx(b.dataset.s,Y)});
+{const st=document.createElement("style");st.textContent=".jd-r{display:flex;align-items:center;gap:8px}";document.head.appendChild(st)}
+
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
    Bancontact-storting exact op per uitbetaling: betalingen die de app kent apart, de rest (kalenders via QR) bij Kalenders. */
