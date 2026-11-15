@@ -3159,7 +3159,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-gbk]");if(
   const n=$("#gbN"),m=$("#gbE");if(n)n.value=(l.voornaam+" "+l.naam).trim();if(m){m.value=String(l.email||"").trim().toLowerCase();if(!m.value)m.focus()}});
 
 /* sorteren in de verdeling: klik op Persoon, In handen, Afgewerkt of Punten (punten = afgewerkt × gewicht) */
-let KAL_SORT={k:"ui",d:-1};
+let KAL_SORT={k:"n",d:1};
 const kalTh=(k,l,cls="",alias)=>{const on=KAL_SORT.k===k&&!alias;return `<th class="${cls} sortable${on?" sorted":""}" data-kal-sort="${k}" aria-sort="${on?(KAL_SORT.d>0?"ascending":"descending"):"none"}">${l}<span class="arr">${on?(KAL_SORT.d>0?"▲":"▼"):""}</span></th>`};
 document.addEventListener("click",e=>{const t=e.target.closest("[data-kal-sort]");if(!t)return;const k=t.dataset.kalSort;KAL_SORT=KAL_SORT.k===k?{k,d:-KAL_SORT.d}:{k,d:k==="n"?1:-1};renderBody()});
 /* ============ Kalenders: dozen meegeven en afgewerkt melden ============
@@ -3176,7 +3176,8 @@ const kalRestTxt=r=>(KAL_REST.find(x=>x[0]===r)||[0,""])[1].toLowerCase();
 function kalLaatste(j){const L=j.kalLog||[];return L.length?L[L.length-1]:null}
 function kalTable(){
   const C=ctx(),k=kalStats(C),q=norm(UI.kalQ),w=C.c.gewichten.kalenders;
-  let list=k.rows.map(j=>({j,n:kalNaam(j)}));if(q)list=list.filter(x=>norm(x.n).includes(q));
+  const kalAchter=j=>{const l=j.lidId&&S.leden.get(j.lidId);return l?[l.naam,l.voornaam].filter(Boolean).join(" "):kalNaam(j)};
+  let list=k.rows.map(j=>({j,n:kalAchter(j)}));if(q)list=list.filter(x=>norm(x.n).includes(q));
   {const S_=KAL_SORT,v=x=>S_.k==="n"?x.n:S_.k==="op"?(x.j.kalOpgehaald||0):(x.j.kalUitgevoerd||0);
    list.sort((a,b)=>{const A=v(a),B=v(b);const c=typeof A==="string"?A.localeCompare(B,"nl"):A-B;return c*S_.d||(b.j.kalUitgevoerd||0)-(a.j.kalUitgevoerd||0)||(b.j.kalOpgehaald||0)-(a.j.kalOpgehaald||0)||a.n.localeCompare(b.n,"nl")})}
   const knoppen=(j,cls)=>canWrite?`<button class="btn ${cls}" data-act="kalOphalen" data-id="${esc(j.id)}">${ic("plus")}Meegeven</button>${(j.kalOpgehaald||0)>0?`<button class="btn ${cls}" data-kal-terug="${esc(j.id)}" title="Onafgewerkte dozen terugbrengen">${ic("undo")}Terugbrengen</button>`:cls==="sm"?'<span class="kal-leeg"></span>':""}${kalBeperkt()?"":(j.kalOpgehaald||0)>0?`<button class="btn ${cls} kal-bezig" data-act="kalKlaar" data-id="${esc(j.id)}" title="Nog ${j.kalOpgehaald} ${j.kalOpgehaald===1?"doos":"dozen"} in handen: tik om af te werken">${ic("shiften")}Bezig</button>`:(j.kalUitgevoerd||0)>0?`<span class="btn ${cls} kal-klaar" aria-disabled="true">${ic("check")}Afgewerkt</span>`:cls==="sm"?'<span class="kal-leeg"></span>':""}`:"";
@@ -3184,13 +3185,12 @@ function kalTable(){
   const mob=`<div class="mlist" role="list">${list.map((x,i)=>{const id=x.j.id,open=KAL_OPEN.has(id),op=x.j.kalOpgehaald||0,ui=x.j.kalUitgevoerd||0;
     return `<div class="pm${open?" open":""}" role="listitem"><button type="button" class="ml-row" data-act="kalOpen" data-id="${esc(id)}" aria-expanded="${open}"><span class="ml-rank">${i+1}</span>
       <span class="ml-m"><span class="ml-n"><b>${esc(x.n)}</b>${x.j.lidId?"":' <span class="pill neutral">geen lid</span>'}</span><span class="ml-s">${kalFmt(op)} in handen<span class="ml-dot">·</span>${kalFmt(ui)} afgewerkt</span></span>
-      <span class="pm-tot"><b>${kalFmt(ui*w)}</b><small>punten</small></span><span class="ml-chev" aria-hidden="true">›</span></button>
+      <span class="ml-chev" aria-hidden="true">›</span></button>
       ${open?`<div class="pm-d">${canWrite?`<div class="pm-a">${knoppen(x.j,"")}</div>`:""}<button type="button" class="btn ghost sm" data-act="kalLog" data-id="${esc(id)}" style="align-self:flex-start">Geschiedenis en correctie</button></div>`:""}</div>`}).join("")||'<div class="empty">Nog niemand heeft kalenders opgehaald in '+JAAR+'.</div>'}</div>`;
-  return mob+`<div class="tw dsk-only"><table class="rcards kal-t" data-main="1"><colgroup><col style="width:56px"><col><col style="width:130px"><col style="width:130px"><col style="width:130px"><col style="width:380px"></colgroup><thead><tr><th class="c">#</th>${kalTh("n","Persoon")}${kalTh("op","In handen","c")}${kalTh("ui","Afgewerkt","c")}${kalTh("ui","Punten","c",true)}<th></th></tr></thead><tbody>
+  return mob+`<div class="tw dsk-only"><table class="rcards kal-t" data-main="1"><colgroup><col style="width:56px"><col><col style="width:130px"><col style="width:130px"><col style="width:380px"></colgroup><thead><tr><th class="c">#</th>${kalTh("n","Persoon")}${kalTh("op","In handen","c")}${kalTh("ui","Afgewerkt","c")}<th></th></tr></thead><tbody>
   ${list.map((x,i)=>`<tr><td class="c muted">${i+1}</td><td><button type="button" class="kr-link" data-act="kalLog" data-id="${esc(x.j.id)}" title="Geschiedenis en correctie"><b>${esc(x.n)}</b></button>${x.j.lidId?"":' <span class="pill neutral">geen lid</span>'}</td>
   <td class="c"><span class="kal-n${(x.j.kalOpgehaald||0)?" on":""}">${kalFmt(x.j.kalOpgehaald)}</span></td><td class="c"><span class="kal-n">${kalFmt(x.j.kalUitgevoerd)}</span></td>
-  <td class="c"><b>${kalFmt((x.j.kalUitgevoerd||0)*w)}</b></td>
-  <td class="kal-a"><div class="kal-ag">${knoppen(x.j,"sm")}</div></td></tr>`).join("")||'<tr><td colspan="6" class="empty">Nog niemand heeft kalenders opgehaald in '+JAAR+'. Gebruik <b>Persoon toevoegen</b>.</td></tr>'}
+  <td class="kal-a"><div class="kal-ag">${knoppen(x.j,"sm")}</div></td></tr>`).join("")||'<tr><td colspan="5" class="empty">Nog niemand heeft kalenders opgehaald in '+JAAR+'. Gebruik <b>Persoon toevoegen</b>.</td></tr>'}
   </tbody></table></div>`;
 }
 
@@ -8400,11 +8400,11 @@ async function ktVerklein(f){if(!/^image\//.test(f.type)||/gif|svg/.test(f.type)
 /* ============ Kalenders › Financieel ============
    Opbrengst van de kalenders: wat in de boekhouding onder Kalenders staat (bank, Bancontact, kas) en de losse betalingen
    via de vaste QR-code (uit de opgeladen Bancontact-export): aantal, hoogste, gemiddelde, mediaan, verdeling en per kalender. */
-if(!ROUTES.some(r=>r[0]==="kalfin"))ROUTES.push(["kalfin","Kalenders financieel"]);
+if(!ROUTES.some(r=>r[0]==="kalfin"))ROUTES.push(["kalfin","Kalenders overzicht"]);
 var NAV_ALIAS=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS)||{};NAV_ALIAS.kalfin="kalenders";
 for(const n of NAV)if(n&&n.items)n.items=n.items.filter(i=>i[0]!=="kalfin");
-const kfFinMag=()=>ROL==="admin"||ROL==="boekhouder";
-if(!KAL_TABS.some(t=>t[0]==="kalfin"))KAL_TABS.push(["kalfin","Financieel"]);
+var kfFinMag=()=>ROL==="admin"||ROL==="boekhouder";
+if(!KAL_TABS.some(t=>t[0]==="kalfin"))KAL_TABS.push(["kalfin","Overzicht"]);
 {const _t=kalTabs;kalTabs=function(act){const h=_t.apply(this,arguments);return kfFinMag()?h:h.replace(/<a href="#kalfin"[^>]*>[^<]*<\/a>/,"")}}
 let KF={jaar:null,data:null,vorig:null,bezig:false,fout:""};
 async function kfLaad(){if(KF.bezig)return;KF.bezig=true;KF.fout="";
@@ -8483,6 +8483,49 @@ document.addEventListener("click",e=>{let t=document.getElementById("kfTip");con
   t.textContent=i.dataset.t;const r=i.getBoundingClientRect();
   t.style.left=Math.max(8,Math.min(innerWidth-t.offsetWidth-8,r.left+r.width/2-t.offsetWidth/2))+"px";t.style.top=(r.top+scrollY-t.offsetHeight-8)+"px"});
 addEventListener("hashchange",()=>{const t=document.getElementById("kfTip");if(t)t.remove()});
+
+/* ============ Rechten per tabblad binnen een functie ============
+   bestuur.rechten["functie:route"] = "geen"|"lezen"|"bewerken" beperkt één tabblad (nooit meer dan de functie zelf).
+   Niet ingesteld = zoals de functie (Kalenders › Overzicht: enkel voor de boekhouder). */
+const RTAB={kalenders:[["kalenders","Verdeling"],["ronde","Kalenderronde"],["kalcontrole","Controle"],["kalfin","Overzicht"]],
+  financien:[["boekingen","Transacties"],["verwerken","Te verwerken"]],facturen:[["facturen","Uitgaand"],["inkomend","Inkomend"]],agenda:[["agenda","Agenda"],["verslagen","Verslagen"]]};
+const RN={geen:0,lezen:1,bewerken:2};
+const rtFunc=r=>{for(const f in RTAB)if(RTAB[f].some(t=>t[0]===r))return f;return null};
+const rtTabDef=(f,r,v,rol)=>f==="kalenders"&&r==="kalfin"&&rol!=="boekhouder"?"geen":v;
+function rtR(){return (typeof SIM_U!=="undefined"&&SIM_U&&ROL!==ROL_ECHT&&SIM_U.rechten)||(RECHTEN&&ROL===ROL_ECHT?RECHTEN:null)}
+{const _r=recht;recht=function(r){const v=_r.apply(this,arguments);if(ROL==="admin")return v;const R=rtR();if(!R)return v;const f=rtFunc(r);if(!f)return v;
+  const t=R[f+":"+r]||rtTabDef(f,r,v,ROL);return RN[t]<RN[v]?t:v}}
+magSchrijven=function(r){return recht(r||route())==="bewerken"};
+kfFinMag=()=>ROL==="admin"||(rtR()?recht("kalfin")!=="geen":ROL==="boekhouder");
+// menu: als het eerste tabblad verborgen is, naar het eerste zichtbare tabblad
+const RT_ALIAS={...(typeof NAV_ALIAS!=="undefined"?NAV_ALIAS:{})};
+{const _n=navFilter;navFilter=function(){_n.apply(this,arguments);
+  for(const f in RTAB){const T=RTAB[f].map(t=>t[0]),a=T.find(x=>recht(x)!=="geen");
+    for(const x of T){if(RT_ALIAS[x])NAV_ALIAS[x]=RT_ALIAS[x];else delete NAV_ALIAS[x]}
+    if(!a||a===T[0]||recht(T[0])!=="geen")continue;
+    const it=NAV_ORIG.flatMap(n=>Array.isArray(n)?[n]:n.items).find(i=>i[0]===T[0]);if(!it)continue;
+    for(const n of NAV)if(!Array.isArray(n)&&NAV_ORIG.find(o=>o.id===n.id&&o.items.includes(it))&&!n.items.some(i=>i[0]===a)){const k=NAV_ORIG.find(o=>o.id===n.id).items.filter(i=>i===it||n.items.includes(i)).indexOf(it);n.items.splice(Math.max(0,k),0,[a,it[1]])}
+    for(const x of T)if(x!==a)NAV_ALIAS[x]=a;delete NAV_ALIAS[a]}}}
+// rechtstreeks naar een verborgen tabblad: naar het eerste zichtbare van die functie
+{const _r=render;render=function(){if(typeof ROL!=="undefined"&&ROL!=="admin"){const r=route(),f=rtFunc(r);if(f&&recht(r)==="geen"){const a=RTAB[f].find(t=>recht(t[0])!=="geen");if(a){location.hash="#"+a[0];return}}}return _r.apply(this,arguments)}}
+// verborgen tabbladen niet tonen
+function rtVerberg(){if(typeof ROL==="undefined"||ROL==="admin")return;document.querySelectorAll("#body .tabs a[href^='#'],#body .ka-tabs a[href^='#']").forEach(a=>{const r=a.getAttribute("href").slice(1);if(rtFunc(r)&&recht(r)==="geen")a.remove()})}
+{const b=document.getElementById("body");if(b)new MutationObserver(rtVerberg).observe(b,{childList:true})}
+
+/* ---------- beheer: per functie met tabbladen ook per tabblad instellen ---------- */
+{const _h=rgHtml;rgHtml=function(u){let h=_h.apply(this,arguments);const R=u.rechten||rechtenVanProfiel(u.rol==="admin"?"lezer":u.rol);
+  for(const f in RTAB){const fv=R[f]||"geen";
+    const rij=RTAB[f].map(([r,l])=>{const v=R[f+":"+r]||rtTabDef(f,r,fv,u.rol);return `<div class="rg-r rg-sub rg-tabr" data-rgt="${f}"><span>${esc(l)}</span><div class="seg rg-seg" role="radiogroup" aria-label="${esc(l)}">${["geen","lezen","bewerken"].map(x=>`<button type="button" role="radio" data-rgf="${f}:${r}" data-v="${x}" aria-checked="${v===x}" class="${v===x?"on":""}">${RECHT_LBL[x]}</button>`).join("")}</div></div>`}).join("");
+    const m=h.match(new RegExp(`<div class="rg-r[^"]*"><span>[^<]*</span><div class="seg rg-seg"[^>]*>(?:<button[^>]*data-rgf="${f}"[^>]*>[^<]*</button>)+</div></div>`));
+    if(m)h=h.replace(m[0],m[0]+rij)}
+  return h}}
+{const _l=rgLees;rgLees=function(){const o=_l.apply(this,arguments);if(!o)return o;const w=$("#rgWrap");
+  for(const f in RTAB)for(const [r] of RTAB[f]){const b=w.querySelector(`[data-rgf="${f}:${r}"].on`);if(b){const v=RN[b.dataset.v]>RN[o[f]]?o[f]:b.dataset.v;o[f+":"+r]=v}}return o}}
+// functie aanpassen: de tabbladen volgen mee (Overzicht van Kalenders hoogstens zoals voorheen)
+document.addEventListener("click",e=>{const b=e.target.closest("[data-rgf]");if(!b||!RTAB[b.dataset.rgf])return;const w=$("#rgWrap");if(!w)return;const nv=b.dataset.v;
+  w.querySelectorAll(`[data-rgt="${b.dataset.rgf}"]`).forEach(r=>{const btn=r.querySelector("[data-rgf]"),t=btn.dataset.rgf.split(":")[1],cur=(r.querySelector(".on")||btn).dataset.v;
+    const v=t==="kalfin"&&RN[cur]<RN[nv]?cur:nv;r.querySelectorAll("[data-rgf]").forEach(x=>{const on=x.dataset.v===v;x.classList.toggle("on",on);x.setAttribute("aria-checked",on)})})});
+{const st=document.createElement("style");st.textContent=".rg-tabr>span{font-weight:500;color:var(--muted)}";document.head.appendChild(st)}
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke

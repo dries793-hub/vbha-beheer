@@ -43,6 +43,8 @@ ${knop("Aanmelden", url)}
   return { aan: email, aanNaam: naam || "", onderwerp: reset ? "VBHA - Nieuw tijdelijk wachtwoord" : "VBHA - Je toegang tot de beheeromgeving", html };
 }
 
+// rechten per tabblad binnen een functie, bv. "kalenders:ronde"
+const tabRechten = r => Object.fromEntries(Object.entries(r || {}).filter(([k, v]) => /^[a-z]+:[a-z]+$/.test(k) && FUNCTIES.includes(k.split(":")[0]) && ["geen", "lezen", "bewerken"].includes(v)));
 export const FUNCTIES = ["leden", "punten", "overzicht", "financien", "facturen", "terug", "begroting", "historiek", "kassa", "kalenders", "kalverdeling", "fuif", "banket", "kinderfeest", "familiedag", "agenda", "mails", "sponsors", "documenten", "website", "shiften", "fotos", "sms", "social", "webshop"];
 export async function gebruikers(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -85,7 +87,7 @@ export async function gebruikers(req, res) {
       id = data.user.id;
     }
     // geen administrator: altijd rechten per functie (standaard alles verborgen tot de administrator ze instelt)
-    const rechten = isAdminRol(rol) ? null : Object.fromEntries(FUNCTIES.map(f => { const v = b.rechten && b.rechten[f]; return [f, ["geen", "lezen", "bewerken"].includes(v) ? v : "geen"]; }));
+    const rechten = isAdminRol(rol) ? null : { ...Object.fromEntries(FUNCTIES.map(f => { const v = b.rechten && b.rechten[f]; return [f, ["geen", "lezen", "bewerken"].includes(v) ? v : "geen"]; })), ...tabRechten(b.rechten) };
     const { error: e2 } = await sb.from("bestuur").upsert({ user_id: id, email, naam: naam || null, rol, rechten }, { onConflict: "user_id" });
     if (e2) throw e2;
     const gemaild = await mailen(welkomMail({ naam, email, rol, wachtwoord: ww, url }));
@@ -101,7 +103,7 @@ export async function gebruikers(req, res) {
       // null = volgens het profiel; anders per functie "geen", "lezen" of "bewerken"
       if (b.rechten === null) { if (!isAdminRol(rol || rij.rol)) throw httpErr(400, "Kies per functie wat deze gebruiker mag."); upd.rechten = null; }
       else {
-        const R = {}; for (const f of FUNCTIES) { const v = b.rechten && b.rechten[f]; R[f] = ["geen", "lezen", "bewerken"].includes(v) ? v : "geen"; }
+        const R = {}; for (const f of FUNCTIES) { const v = b.rechten && b.rechten[f]; R[f] = ["geen", "lezen", "bewerken"].includes(v) ? v : "geen"; } Object.assign(R, tabRechten(b.rechten));
         upd.rechten = R;
       }
     }
