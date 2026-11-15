@@ -8467,7 +8467,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
    <div><h3 class="kf-h">Per dag${top?` <span class="muted small">· beste dag ${fmtDate(top[0])}: ${kfEur(top[1])}</span>`:""}</h3>${D.map(([d,v,g])=>`<div class="kf-r"><span>${fmtDate(d).slice(0,5)}</span>${bar(g.q,g.o,dm)}<b>${kfEur(v)}</b></div>`).join("")}</div></div></div>`}</div>
   ${J0.kin||J0.si?(()=>{const v=(a,b,inv)=>{if(!b)return'<td class="num muted">–</td>';const d=a-b,p=Math.round(d/Math.abs(b)*100),g=inv?d<=0:d>=0;return `<td class="num" style="color:var(--${g?"good":"bad"})">${d>=0?"+":"−"}${kfEur(Math.abs(d))} <span class="small">(${d>=0?"+":""}${p}%)</span></td>`};
     const r=(l,a,b,inv)=>`<tr><td>${l}</td><td class="num">${kfEur(a)}</td><td class="num">${kfEur(b)}</td>${v(a,b,inv)}</tr>`;
-    return `<div class="panel"><div class="panel-h"><h2>Vergelijking met ${Number(JAAR)-1}</h2></div><div class="tw"><table><thead><tr><th></th><th class="num">${JAAR}</th><th class="num">${Number(JAAR)-1}</th><th class="num">Verschil</th></tr></thead><tbody>
+    return `<div class="panel"><div class="panel-h"><h2>Vergelijking met vorig jaar</h2></div><div class="tw"><table><thead><tr><th></th><th class="num">${JAAR}</th><th class="num">${Number(JAAR)-1}</th><th class="num">Verschil</th></tr></thead><tbody>
       ${r("Kalenders binnengekomen",J1.kin,J0.kin)}${r("Sponsors",J1.si,J0.si)}${r("Kosten kalenders",J1.kuit,J0.kuit,true)}${r("Totale opbrengst",J1.res,J0.res)}
       ${J0.dz&&J1.dz?r("Per kalender",J1.kin/(J1.dz*pd),J0.kin/(J0.dz*pd)):""}</tbody></table></div></div>`})():""}`}});
 
