@@ -363,9 +363,20 @@ export async function kfCadeauApp(req, res) {
       let nieuw = { ...it, alt: alt ? { winkel: alt.winkel, url: alt.url, naam: alt.naam, prijs: alt.prijs, op: nu } : { geen: true, op: nu } };
       if (p && p.auto) { nieuw = { ...nieuw, naam: p.naam || it.naam, prijs: p.prijs, levertijd: p.levertijd || null, foto: p.foto || it.foto, beschikbaar: p.beschikbaar, auto: true, gecontroleerd: p.gecontroleerd || nu, vorigePrijs: p.prijs !== it.prijs ? it.prijs : it.vorigePrijs }; delete nieuw.controleMislukt; }
       else nieuw = { ...nieuw, gecontroleerd: nu, controleMislukt: true };
+      /* niet op voorraad in de gekozen winkel: de andere winkel nemen als die het wel heeft, anders de ouder vragen een ander artikel te kiezen */
+      let gewisseld = false, gemeld = false;
+      if (p && p.auto && p.beschikbaar === false) {
+        if (alt && alt.prijs != null && alt.beschikbaar !== false) {
+          nieuw = { ...nieuw, url: alt.url, winkel: alt.winkel, naam: alt.naam || nieuw.naam, prijs: alt.prijs, foto: alt.foto || nieuw.foto, artikelnr: alt.artikelnr || nieuw.artikelnr, beschikbaar: alt.beschikbaar ?? null, auto: true, bron: alt.bron, gecontroleerd: nu,
+            alt: { winkel: it.winkel, url: p.url || it.url, naam: p.naam || it.naam, prijs: p.prijs, beschikbaar: false, op: nu }, gewisseld: { van: it.winkel, naar: alt.winkel, op: nu, vorigePrijs: p.prijs ?? it.prijs } };
+          gewisseld = true;
+        } else if (!it.voorraadMail) {
+          try { gemeld = await kfcVoorraadMail(sb, row, Number(b.kind), nieuw); if (gemeld) nieuw = { ...nieuw, voorraadMail: nu }; } catch (e) { console.error("voorraadmail", e); }
+        }
+      }
       const kinderen = d.kinderen.map((x, j) => { if (j !== Number(b.kind)) return x; const items = x.cadeau.items.map((y, n) => n === Number(b.item) ? nieuw : y); return { ...x, cadeau: { ...x.cadeau, items, totaal: r2(items.reduce((t, y) => t + (Number(y.prijs) || 0), 0)) } }; });
       const { error } = await sb.from("kinderfeest").update({ data: { ...d, kinderen } }).eq("id", row.id); if (error) throw error;
-      return res.status(200).json({ ok: true, item: nieuw, alt: nieuw.alt, fout, gewijzigd: !!(p && p.auto && (p.prijs !== it.prijs || p.beschikbaar !== it.beschikbaar)) });
+      return res.status(200).json({ ok: true, item: nieuw, alt: nieuw.alt, fout, gewisseld, gemeld, gewijzigd: gewisseld || !!(p && p.auto && (p.prijs !== it.prijs || p.beschikbaar !== it.beschikbaar)) });
     }
     if (b.actie === "controle") {
       const A = await algemeen(sb), jaar = Number(b.jaar) || A.jaar;
@@ -425,4 +436,25 @@ export async function kfCadeauApp(req, res) {
     }
     throw httpErr(400, "Onbekende actie.");
   } catch (e) { sendError(res, e); }
+}
+
+/* mail naar de ouder: gekozen artikel niet meer op voorraad (en ook niet in de andere winkel) → een ander artikel kiezen via de persoonlijke link */
+async function kfcVoorraadMail(sb, row, kindNr, it) {
+  const d = row.data || {}, k = (d.kinderen || [])[kindNr]; if (!k) return false;
+  const email = String(d.email || "").trim(); if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(email)) return false;
+  const A = await algemeen(sb), jaar = Number(d.jaar) || A.jaar, M = kfcInstellingen(await configDoc(sb, "kf_" + jaar), jaar);
+  if (!(M.keuze === true && vandaagISO() <= M.tot)) return false; // keuzetermijn voorbij: de vriendenkring lost het zelf op
+  const open = true;
+  const { huisstijl, p } = await import("./bevestiging.js");
+  const e = x => String(x ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  let vn = String(d.lid || "").split(" ").slice(-1)[0];
+  if (d.lidId) { const { data: l } = await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle(); if (l && l.data && l.data.voornaam) vn = l.data.voornaam; }
+  const knop = u => `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 18px"><tr><td bgcolor="#C0161F" style="border-radius:8px"><a href="${e(u)}" style="display:inline-block;padding:12px 22px;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px">Een ander artikel kiezen</a></td></tr></table>`;
+  const html = p(`Beste ${e(vn)},`)
+    + p(`Het cadeau dat je koos voor <b>${e(k.naam)}</b>, <b>${e(it.naam || "")}</b> (${e(it.winkel || "")}), is helaas niet meer op voorraad.`)
+    + p(open ? `Kies een ander artikel <b>tot en met ${e(lang(M.tot))}</b> via de knop hieronder. Indien je geen nieuwe keuze doorgeeft, krijgt ${e(k.naam)} een waardebon van bol.com.` : `Kies een ander artikel via de knop hieronder.`)
+    + knop(kfcLink(row.id));
+  const { error } = await sb.from("mail_wachtrij").insert({ batch: "kfvoorraad-" + row.id, data: { aan: email, aanNaam: d.lid || "", onderwerp: `VBHA - Gekozen cadeau voor ${k.naam} niet meer op voorraad`, html: huisstijl(html, A.vereniging), antwoordAan: "info@vbha.be" } });
+  if (error) throw error;
+  return true;
 }

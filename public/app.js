@@ -7501,9 +7501,9 @@ function kfcKids(){const c=kfCfg(),out=[];for(const r of kfLijst())(r.kinderen||
 function kfcStats(L){const s={gekozen:0,bon:0,geenkeuze:0,open:0,vbha:0,bonBedrag:0,winkels:{}};
   for(const x of L){s[x.st]++;if(x.st==="bon"||x.st==="geenkeuze")s.bonBedrag+=x.B.bedrag||0;if(x.st==="gekozen")for(const it of x.k.cadeau.items){const w=s.winkels[it.winkel]||(s.winkels[it.winkel]={n:0,b:0});w.n++;w.b+=Number(it.prijs)||0}}return s}
 const kfcStLbl={gekozen:["ok","Gekozen"],bon:["info","Bon bol.com"],geenkeuze:["warn","Bon bol.com (geen keuze)"],open:["neutral","Nog niet gekozen"],vbha:["neutral","Vriendenkring voorziet cadeau"]};
-function kfcItem(it,x,n){const t=it.auto===false?'<span class="pill warn">niet gecontroleerd</span>':it.beschikbaar===false?'<span class="pill nok">niet op voorraad</span>':it.controleMislukt?'<span class="pill warn">controle mislukt</span>':"";
+function kfcItem(it,x,n){const t=it.auto===false?'<span class="pill warn">niet gecontroleerd</span>':it.beschikbaar===false?'<span class="pill nok">niet op voorraad</span>'+(it.voorraadMail?' <span class="pill neutral">ouder verwittigd</span>':""):it.controleMislukt?'<span class="pill warn">controle mislukt</span>':"";const t2=it.gewisseld?` <span class="pill info" title="Niet op voorraad bij ${esc(it.gewisseld.van)}">overgezet van ${esc(it.gewisseld.van)}</span>`:"";
   const pv=it.vorigePrijs!=null&&it.vorigePrijs!==it.prijs?` <span class="muted small">(was ${eur(it.vorigePrijs)})</span>`:"";
-  return `<div class="kcd-it">${x&&canWrite&&!x.besteld?`<button type="button" class="kcd-ln" data-kfc="weg" data-id="${esc(x.r.id)}" data-i="${x.i}" data-n="${n}" title="Uit de cadeaulijst halen" aria-label="Uit de cadeaulijst halen">×</button> `:""}<a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.naam||it.url)}</a> <span class="muted small">${esc(it.winkel||"")}</span> <b>${eur(it.prijs)}</b>${pv} ${t}${it.levertijd?`<div class="muted small">${esc(it.levertijd)}</div>`:""}${kfcAlt(it)}</div>`}
+  return `<div class="kcd-it">${x&&canWrite&&!x.besteld?`<button type="button" class="kcd-ln" data-kfc="weg" data-id="${esc(x.r.id)}" data-i="${x.i}" data-n="${n}" title="Uit de cadeaulijst halen" aria-label="Uit de cadeaulijst halen">×</button> `:""}<a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.naam||it.url)}</a> <span class="muted small">${esc(it.winkel||"")}</span> <b>${eur(it.prijs)}</b>${pv} ${t}${t2}${it.levertijd?`<div class="muted small">${esc(it.levertijd)}</div>`:""}${kfcAlt(it)}</div>`}
 function kfcAlt(it){const a=it.alt;if(!a||a.geen||!(Number(a.prijs)>0))return"";const ef=(w,p)=>Math.round(Number(p)*(1-kfcPct(kfcWinkel(w))/100)*100)/100;
   const nu=ef(it.winkel,it.prijs),an=ef(a.winkel,a.prijs);if(!(an<nu-0.004))return"";const pp=kfcPct(kfcWinkel(a.winkel));
   return `<div class="small" style="color:var(--good,#18794A)">Goedkoper bij ${esc(a.winkel)}: <a href="${esc(a.url)}" target="_blank" rel="noopener"><b>${eur(a.prijs)}</b></a>${pp>0?` (met Pluspas ${eur(an)})`:""} · − ${eur(nu-an)}</div>`}
@@ -7526,10 +7526,10 @@ function kfcPaneel(){if(!kfMailCfg().cadeau||!kfMailCfg().keuze)return"";const L
   const totGek=L.filter(x=>x.st==="gekozen").reduce((t,x)=>t+(Number(x.k.cadeau.totaal)||0),0);
   const chip=(k,l,n)=>`<button type="button" class="${KFCD.f===k?"on":""}" data-kfc="f" data-v="${k}">${l}${n!=null?` <span class="muted">${n}</span>`:""}</button>`;
   const foto=it=>it.foto?`<img src="${esc(it.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:'<span class="kc-ph"></span>';
-  const prod=(it,x,n)=>{const t=it.auto===false?'<span class="pill warn">niet gecontroleerd</span>':it.beschikbaar===false?'<span class="pill nok">niet op voorraad</span>':it.controleMislukt?'<span class="pill warn">controle mislukt</span>':"";
+  const prod=(it,x,n)=>{const t=it.auto===false?'<span class="pill warn">niet gecontroleerd</span>':it.beschikbaar===false?'<span class="pill nok">niet op voorraad</span>'+(it.voorraadMail?' <span class="pill neutral">ouder verwittigd</span>':""):it.controleMislukt?'<span class="pill warn">controle mislukt</span>':"";const t2=it.gewisseld?` <span class="pill info" title="Niet op voorraad bij ${esc(it.gewisseld.van)}">overgezet van ${esc(it.gewisseld.van)}</span>`:"";
     const pv=it.vorigePrijs!=null&&it.vorigePrijs!==it.prijs?` <span class="muted small">(was ${eur(it.vorigePrijs)})</span>`:"";
     const kort=(()=>{const n=String(it.naam||it.url||"");const d=n.split(/\s+[-–|]\s+/);let k=d.slice(0,3).join(" · ");if(d.length>3)k+="…";return k})();
-    return `<div class="kc-p">${foto(it)}<div class="kc-pm"><div class="kc-pl"><a href="${esc(it.url)}" target="_blank" rel="noopener" title="${esc(it.naam||"")}">${esc(kort)}</a><span class="kc-w">${esc(kfcWinkel(it.winkel))}</span>${t}</div>${kfcAlt(it)}</div><b class="kc-pr">${eur(it.prijs)}${pv}</b></div>`};
+    return `<div class="kc-p">${foto(it)}<div class="kc-pm"><div class="kc-pl"><a href="${esc(it.url)}" target="_blank" rel="noopener" title="${esc(it.naam||"")}">${esc(kort)}</a><span class="kc-w">${esc(kfcWinkel(it.winkel))}</span>${t}${t2}</div>${kfcAlt(it)}</div><b class="kc-pr">${eur(it.prijs)}${pv}</b></div>`};
   const kind=x=>{const [c,l]=kfcStLbl[x.st],B=x.B.bedrag,C=x.k.cadeau||{};let keuze="",bedrag="";
     if(x.st==="gekozen"){const tot=Number(C.totaal)||0,pct=B?Math.min(100,Math.round(tot/B*100)):0;
       keuze=C.items.map((it,n)=>prod(it,x,n)).join("");
@@ -7621,13 +7621,13 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-kfc]
     for(const x of kfcKids())if(x.st==="gekozen"&&!x.besteld)x.k.cadeau.items.forEach((it,n)=>{if(!(vers(it.gecontroleerd)&&(!it.artikelnr||vers(it.alt&&it.alt.op))))L.push({x,n})});
     if(!L.length){toast("Alles is de laatste 6 uur al gecontroleerd.");return}
     confirmBox(`Prijs en voorraad van <b>${L.length}</b> ${L.length===1?"product":"producten"} controleren en vergelijken met de andere winkel?`,"Controleren",async()=>{
-      t.disabled=true;let i=0,goedkoper=0,gew=0,weg=0;const ef=(w,p)=>Number(p)*(1-kfcPct(kfcWinkel(w))/100);
+      t.disabled=true;let i=0,goedkoper=0,gew=0,weg=0,wis=0,mel=0;const ef=(w,p)=>Number(p)*(1-kfcPct(kfcWinkel(w))/100);
       for(const {x,n} of L){i++;t.textContent=`Controleren ${i}/${L.length}…`;
         try{const j=await api("/api/mail?f=kfcadeau",{method:"POST",body:JSON.stringify({actie:"vergelijk",id:x.r.id,kind:x.i,item:n})});
           const r=S.kinderfeest.get(x.r.id);if(r&&j.item){const c=r.kinderen[x.i].cadeau;c.items[n]=j.item;c.totaal=Math.round(c.items.reduce((t,y)=>t+(Number(y.prijs)||0),0)*100)/100;
-            if(j.gewijzigd)gew++;if(j.item.beschikbaar===false)weg++;const al=j.item.alt;if(al&&!al.geen&&ef(al.winkel,al.prijs)<ef(j.item.winkel,j.item.prijs)-0.004)goedkoper++}}catch(err){}}
+            if(j.gewijzigd)gew++;if(j.gewisseld)wis++;if(j.gemeld)mel++;if(j.item.beschikbaar===false)weg++;const al=j.item.alt;if(al&&!al.geen&&ef(al.winkel,al.prijs)<ef(j.item.winkel,j.item.prijs)-0.004)goedkoper++}}catch(err){}}
       t.disabled=false;t.innerHTML='<span class="kcd-lg">Prijzen controleren</span><span class="kcd-sm">Prijzen</span>';
-      toast([`${L.length} ${L.length===1?"product":"producten"} gecontroleerd`,gew?`${gew} gewijzigd`:"",weg?`${weg} niet op voorraad`:"",goedkoper?`${goedkoper} goedkoper in de andere winkel`:""].filter(Boolean).join(" · ")+".",!!weg);renderBody()});return}});
+      toast([`${L.length} ${L.length===1?"product":"producten"} gecontroleerd`,gew?`${gew} gewijzigd`:"",wis?`${wis} overgezet naar de andere winkel (daar wel op voorraad)`:"",weg?`${weg} niet op voorraad`+(mel?` (${mel} ${mel===1?"ouder":"ouders"} gevraagd een ander artikel te kiezen)`:""):"",goedkoper?`${goedkoper} goedkoper in de andere winkel`:""].filter(Boolean).join(" · ")+".",!!weg);renderBody()});return}});
 // in de pagina Kinderfeest, onder de voorziene kost
 {const _v=VIEWS.kinderfeest;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=String(b.apply(this,arguments));
   const i=h.indexOf('<div class="bar"><div class="search">');const p=kfcPaneel();
