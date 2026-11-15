@@ -8629,6 +8629,25 @@ document.addEventListener("click",e=>{const a=e.target.closest("[data-io]");if(!
   let n=0;const t=setInterval(()=>{const b=document.querySelector(sel);if(b||++n>25){clearInterval(t);if(b)b.click()}},120)});
 {const st=document.createElement("style");st.textContent=".io-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}.io-a{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;color:inherit;text-decoration:none;font-weight:500}.io-a:hover{background:var(--hover,rgba(0,0,0,.04))}.io-a svg{width:16px;height:16px;flex:none;color:var(--muted)}";document.head.appendChild(st)}
 
+/* ============ Instellingen › Kliks: wie op welke knop in een mail klikte (persoonlijke code per knop en ontvanger) ============
+   Server: api/_lib/klik.js (tabel mail_knoppen + mail_kliks); overzicht via de database-functie mail_kliks_lijst (enkel administrator). */
+if(!INST_TABS.some(t=>t[0]==="kliks")){INST_TABS.push(["kliks","Kliks in mails"]);INST_IDS.push("kliks")}
+if(!ROUTES.some(r=>r[0]==="kliks"))ROUTES.push(["kliks","Kliks in mails"]);
+const MK={data:null,bezig:false,fout:null,q:""};
+async function mkLaad(){if(MK.bezig)return;MK.bezig=true;try{const {data,error}=await SB.rpc("mail_kliks_lijst",{dagen:180});if(error)throw error;MK.data=data||{kliks:[]};MK.fout=null}catch(e){MK.fout=e.message}finally{MK.bezig=false}if(route()==="kliks")renderBody()}
+const mkWie=e=>{e=String(e||"").toLowerCase();for(const l of S.leden.values())if(String(l.email||"").toLowerCase()===e)return naamVol(l);return e};
+VIEWS.kliks=()=>({title:"Instellingen",sub:"Kliks in mails",body(){if(ROL_ECHT!=="admin")return instTabs("kliks")+'<div class="panel"><div class="empty">Enkel voor de administrator.</div></div>';
+  if(!MK.data&&!MK.fout){setTimeout(mkLaad,0);return instTabs("kliks")+'<div class="panel"><div class="empty">Laden…</div></div>'}
+  if(MK.fout)return instTabs("kliks")+`<div class="panel"><div class="empty">${esc(MK.fout)}</div></div>`;
+  const q=MK.q.toLowerCase(),L=(MK.data.kliks||[]).map(k=>({...k,wie:mkWie(k.email)})).filter(k=>!q||[k.wie,k.email,k.label,k.knop].join(" ").toLowerCase().includes(q));
+  return instTabs("kliks")+`<div class="bar"><div class="search">${ic("search")}<input id="mkQ" data-live placeholder="Zoek op naam, mail of knop" value="${esc(MK.q)}"></div></div>
+   <div class="panel"><div class="panel-h"><h2>${L.length} ${L.length===1?"knop":"knoppen"} aangeklikt</h2><span class="grow"></span><span class="muted small">laatste 6 maanden</span></div>
+   <div class="tw"><table class="tbl"><thead><tr><th>Wie</th><th>Mail</th><th>Knop</th><th class="num">Kliks</th><th>Laatst</th></tr></thead><tbody>
+   ${L.map(k=>`<tr><td><b>${esc(k.wie)}</b></td><td>${esc(k.label||"")}<div class="muted small">verstuurd ${fmtDate(String(k.verstuurd).slice(0,10))}</div></td><td>${esc(k.knop||"")}</td><td class="num">${k.aantal}</td><td class="muted small">${new Date(k.laatst).toLocaleString("nl-BE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}</td></tr>`).join("")||'<tr><td colspan="5" class="empty">Nog geen kliks.</td></tr>'}
+   </tbody></table></div></div>`}});
+document.addEventListener("input",e=>{if(e.target.id!=="mkQ")return;MK.q=e.target.value;const p=e.target.selectionStart;renderBody();const i=$("#mkQ");if(i){i.focus();try{i.setSelectionRange(p,p)}catch(x){}}});
+addEventListener("hashchange",()=>{if(route()==="kliks"){MK.data=null;MK.fout=null}});
+
 /* ============ Instellingen › Jaardocumenten: jaarrekening en jaarverslag (PDF in huisstijl of Excel) ============
    Jaarrekening volgens het model van de vereenvoudigde boekhouding voor kleine vzw's (staat van ontvangsten en uitgaven,
    staat van het vermogen, begroting volgend jaar). Jaarverslag: leden, activiteiten, vergaderingen, financieel, vooruitblik.

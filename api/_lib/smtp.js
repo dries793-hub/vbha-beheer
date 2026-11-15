@@ -103,6 +103,8 @@ export async function verstuur(berichten, { factuur = false, geenLog = false } =
     const van = factuur ? factuurAfzender() : afzender();
     for (const m of berichten) {
       try {
+        // knoppen met een persoonlijke code (wie op welke knop klikte: Instellingen › Kliks)
+        if (m.html && !m.geenVolgen) { try { const { knoppenVolgen } = await import("./klik.js"); m.html = await knoppenVolgen(m.html, m.aan, m.label || m.onderwerp); } catch (e) { console.error("knoppen", e.message); } }
         await cmd(`MAIL FROM:<${van.email}>`, 250);
         await cmd(`RCPT TO:<${m.aan}>`, 25);
         for (const c of (Array.isArray(m.cc) ? m.cc : [])) { try { await cmd(`RCPT TO:<${c}>`, 25); } catch (e) { console.error("cc geweigerd", c, e.message); } }
