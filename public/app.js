@@ -8422,14 +8422,16 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   const kas=som(inB.filter(b=>b.rekening==="Kas")),bc=som(inB.filter(b=>b.rekening!=="Kas"&&isBc(b))),ov=som(inB.filter(b=>b.rekening!=="Kas"&&!isBc(b)));
   const tot=kas+bc+ov,kost=som(uitB);
   const SP=C.boek.filter(b=>b.categorie==="Sponsoring"),spIn=som(SP.filter(b=>b.richting!=="uit")),spUit=som(SP.filter(b=>b.richting==="uit"));
-  const res=tot+spIn-kost-spUit;
+  // nog te ontvangen van sponsors (afgesproken, nog niet betaald, niet in natura): telt mee als voorziene sponsoring
+  let spOpen=0;try{const K=spKoppel(C);spOpen=[...S.sponsors.values()].filter(x=>!K.per.has(x.id)&&!(x.naturaJaren||[]).includes(JAAR)&&!spStop(x)).reduce((a,x)=>a+num(x.bedrag),0)}catch(e){}
+  const spTot=spIn+spOpen,res=tot+spTot-kost-spUit;
   // vergelijking met vorig jaar (zelfde berekening), ook "tot dezelfde dag"
   const jr=Y=>{const L=[...S.boekingen.values()].filter(b=>Number(b.jaar)===Y),k=L.filter(b=>b.categorie==="Kalenders"),sp=L.filter(b=>b.categorie==="Sponsoring");
     const md=todayISO().slice(4),tl=b=>String(b.datum||"").slice(0,4)+md;
     let dz=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Y&&j.lidId!=="test-vbha")dz+=Number(j.kalUitgevoerd)||0;
     const kin=som(k.filter(b=>b.richting!=="uit")),kuit=som(k.filter(b=>b.richting==="uit")),si=som(sp.filter(b=>b.richting!=="uit")),su=som(sp.filter(b=>b.richting==="uit"));
     return{kin,kinTot:som(k.filter(b=>b.richting!=="uit"&&String(b.datum||"")<=String(Y)+md)),kuit,si,res:kin+si-kuit-su,dz,n:k.filter(b=>b.richting!=="uit").length}};
-  const J1=jr(Number(JAAR)),J0=jr(Number(JAAR)-1);
+  const J1=jr(Number(JAAR)),J0=jr(Number(JAAR)-1);J1.si+=spOpen;J1.res+=spOpen;
   // kalenderronde: bedeelde adressen
   let adr=0;try{if(typeof KR_STREETS!=="undefined"&&KR_STREETS.length){const M=krMarks(),D=krDelen();adr=KR_STREETS.reduce((t,x)=>t+krAdrGedaan(x,M,D),0)}}catch(e){}
   let dozen=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Number(JAAR)&&j.lidId!=="test-vbha")dozen+=Number(j.kalUitgevoerd)||0;
@@ -8452,11 +8454,11 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   return kalTabs("kalfin")+`
   <div class="tiles kf-t">${tile("Totale opbrengst",`<span style="color:var(--${res>=0?"good":"bad"})">${res>=0?"":"−"}${kfEur(Math.abs(res))}</span>`,"kalenders + sponsors − kosten")}
     ${tile("Kalenders binnengekomen",kfEur(tot),[bc?"Bancontact "+kfEur(bc):"",kas?"kas "+kfEur(kas):"",ov?"overschrijving "+kfEur(ov):""].filter(Boolean).join(" · "))}
-    ${tile("Sponsors",kfEur(spIn),spUit?"kosten sponsoring "+kfEur(spUit):"")}
+    ${tile("Sponsors",kfEur(spTot),[spOpen?`ontvangen ${kfEur(spIn)} · nog te ontvangen ${kfEur(spOpen)}`:"",spUit?"kosten sponsoring "+kfEur(spUit):""].filter(Boolean).join(" · "))}
     ${tile("Kosten kalenders",kost?"−"+kfEur(kost):kfEur(0),"")}</div>
   <div class="tiles kf-t">${tile("Per kalender",stuks?kfEur(tot/stuks):"–",stuks?`${dozen} ${dozen===1?"doos":"dozen"} × ${pd} = ${stuks.toLocaleString("nl-BE")} kalenders`:"nog geen afgeronde dozen")}
     ${tile("Per doos",dozen?kfEur(tot/dozen):"–","")}
-    ${tile("Per kalender met sponsors",stuks?kfEur((tot+spIn)/stuks):"–","")}
+    ${tile("Per kalender met sponsors",stuks?kfEur((tot+spTot)/stuks):"–","")}
     ${tile("Opbrengst per kalender",stuks?kfEur(res/stuks):"–","na kosten, met sponsors")}</div>
   ${adr?`<div class="tiles kf-t">${tile("Per bedeeld adres",kfEur(tot/adr),adr.toLocaleString("nl-BE")+" adressen bedeeld (kalenderronde)")}</div>`:""}
 
