@@ -8585,7 +8585,7 @@ const JD_GELD=n=>Math.round((Number(n)||0)*100)/100;
 const jdBoek=Y=>[...S.boekingen.values()].filter(b=>Number(b.jaar)===Y);
 const jdIn=b=>b.richting!=="uit";
 // indeling volgens het wettelijk model
-const jdOntv=c=>/lidgeld/i.test(c)?"Lidgelden":/subsidie/i.test(c)?"Subsidies":/schenking|gift|legaat/i.test(c)?"Schenkingen en legaten":"Andere ontvangsten";
+const jdOntv=c=>/lidgeld/i.test(c)?"Lidgelden":/subsidie/i.test(c)?"Subsidies":/schenking|gift|legaat/i.test(c)?"Schenkingen en legaten":/sponsor/i.test(c)?"Sponsoring":"Andere ontvangsten";
 const jdUitg=c=>/loon|bezoldig|vergoeding personeel/i.test(c)?"Bezoldigingen":/bankkost|bank-|verzekering|belasting|taks/i.test(c)?"Andere uitgaven":"Goederen en diensten";
 function jdCijfers(Y){const L=jdBoek(Y),cat={},o={},u={};let tin=0,tuit=0,kas=0,rek=0;
   for(const b of L){const c=b.categorie||"Niet ingedeeld",v=JD_GELD(b.bedrag),i=jdIn(b);const x=cat[c]||(cat[c]={in:0,uit:0});
@@ -8607,7 +8607,7 @@ const jdVer=()=>{const a=S.config.get("algemeen")||{};return a.vereniging||"Vrie
 function jdRekening(Y){const A=jdCijfers(Y),B=jdCijfers(Y-1),heeftB=jdBoek(Y-1).length>0,O=jdOpen(Y),Ob=heeftB?jdOpen(Y-1):null,K=heeftB?["",String(Y),String(Y-1)]:["",String(Y)];
   const rij=(l,a,b,t)=>({c:heeftB?[l,a,b]:[l,a],t});
   const sec=[];
-  const UO=["Goederen en diensten","Bezoldigingen","Andere uitgaven"],OO=["Lidgelden","Schenkingen en legaten","Subsidies","Andere ontvangsten"];
+  const UO=["Goederen en diensten","Bezoldigingen","Andere uitgaven"],OO=["Lidgelden","Schenkingen en legaten","Subsidies","Sponsoring","Andere ontvangsten"];
   sec.push({kop:"Staat van ontvangsten en uitgaven",tabel:{kols:K,rijen:[
     rij("Uitgaven",null,null,"kop"),...UO.map(k=>rij(k,JD_GELD(A.u[k]),JD_GELD(B.u[k]),"sub")),rij("Totaal uitgaven",A.tuit,B.tuit,"tot"),
     rij("Ontvangsten",null,null,"kop"),...OO.map(k=>rij(k,JD_GELD(A.o[k]),JD_GELD(B.o[k]),"sub")),rij("Totaal ontvangsten",A.tin,B.tin,"tot"),
