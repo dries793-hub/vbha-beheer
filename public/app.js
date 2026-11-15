@@ -8472,7 +8472,9 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
 
 // bedrag per kleur tonen bij aanklikken van een gekleurd blokje
 document.addEventListener("click",e=>{let t=document.getElementById("kfTip");const i=e.target.closest&&e.target.closest(".kf-b i[data-t]");
+  document.querySelectorAll(".kf-b i.on").forEach(x=>x.classList.remove("on"));
   if(!i){if(t)t.remove();return}
+  i.classList.add("on");
   if(!t){t=document.createElement("div");t.id="kfTip";t.className="kf-tip";document.body.appendChild(t)}
   t.textContent=i.dataset.t;const r=i.getBoundingClientRect();
   t.style.left=Math.max(8,Math.min(innerWidth-t.offsetWidth-8,r.left+r.width/2-t.offsetWidth/2))+"px";t.style.top=(r.top+scrollY-t.offsetHeight-8)+"px"});
