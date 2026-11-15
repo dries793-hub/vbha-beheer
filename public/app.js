@@ -8398,16 +8398,18 @@ async function ktVerklein(f){if(!/^image\//.test(f.type)||/gif|svg/.test(f.type)
     catch(x){if(lb)lb.textContent="Kasticket toevoegen";toast("Opladen lukte niet: "+x.message,true)}}}}
 
 /* ============ Rustig opstarten ============
-   Bij het openen van de app blijft de inhoud verborgen ("Laden…") tot alle gegevens binnen zijn én het scherm een moment niet meer verandert
-   (terugbetalingen, bankstatus, gelezen meldingen, facturen… komen apart binnen). Zo springen er geen cijfers meer. Hoogstens 6 seconden. */
-(function(){const main=document.getElementById("main");if(!main)return;const b=document.body;b.classList.add("boot-rust");
+   Tot alles geladen is, ligt over de hele app één laadscherm (#lader: draaiende cirkel + "Laden").
+   Het verdwijnt pas als alle gegevens binnen zijn én het scherm een moment niet meer verandert (terugbetalingen, bankstatus,
+   gelezen meldingen… komen apart binnen). Hoogstens 8 seconden. Bij het loginscherm verdwijnt het meteen. */
+(function(){const main=document.getElementById("main"),L=document.getElementById("lader");if(!main||!L)return;
   const t0=Date.now();let tmr=0,klaar=false;
-  const toon=()=>{if(klaar)return;klaar=true;b.classList.remove("boot-rust");obs.disconnect();clearTimeout(tmr)};
-  const wacht=()=>{if(klaar)return;clearTimeout(tmr);if(Date.now()-t0>6000)return toon();
+  const toon=()=>{if(klaar)return;klaar=true;obs.disconnect();clearTimeout(tmr);L.classList.add("weg");setTimeout(()=>L.remove(),250)};
+  const wacht=()=>{if(klaar)return;clearTimeout(tmr);if(Date.now()-t0>8000)return toon();
     const tbWacht=typeof TB!=="undefined"&&typeof ROL!=="undefined"&&(ROL==="admin"||ROL==="boekhouder")&&!TB.lijst;
     if(document.getElementById("boot")||!main.children.length||tbWacht){tmr=setTimeout(wacht,300);return} // nog aan het laden
     tmr=setTimeout(toon,900)};
   const obs=new MutationObserver(wacht);obs.observe(main,{childList:true,subtree:true,characterData:true});
-  setTimeout(toon,6000);
-  /* afgemeld of loginscherm: niet wachten */
-  setInterval(()=>{if(!klaar&&b.classList.contains("anon")&&Date.now()-t0>1500)toon()},500)})();
+  setTimeout(toon,8000);
+  /* loginscherm (of wachtwoord instellen): meteen tonen */
+  const _a=authCard;authCard=function(){const r=_a.apply(this,arguments);toon();return r};
+  wacht()})();
