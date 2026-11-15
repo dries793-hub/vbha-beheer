@@ -8232,11 +8232,20 @@ window.addEventListener("hashchange",()=>{if(route()==="terug"&&typeof tbLaad===
 const gdAutoAan=()=>((S.config.get("algemeen")||{}).goudMail||{}).aan!==false;
 function gdKandidaten(alle){if(ROL!=="admin"&&!alle)return[];let C;try{C=ctx()}catch(e){return[]}const g=C.c&&C.c.drempels&&C.c.drempels.goud;if(!g)return[];
   return [...C.rows.values()].filter(r=>r.huidig&&r.lid.categorie!=="Erewacht"&&!r.jl.vrijstelling&&!r.jl.goudMail&&r.p&&r.p.totaal>=g).sort((a,b)=>naamVol(a.lid).localeCompare(naamVol(b.lid),"nl"))}
+const GD_WEG="vbha_gd_weg";
+function gdWeg(){try{return new Set(JSON.parse(localStorage.getItem(GD_WEG)||"[]"))}catch(e){return new Set()}}
+// melding sluiten: de getoonde leden onthouden (vóór de algemene sluitknop de melding weghaalt)
+document.addEventListener("click",e=>{const x=e.target.closest&&e.target.closest("[data-dicht]");const m=x&&x.closest(".gd-m");if(!m)return;
+  const W=gdWeg();m.querySelectorAll("[data-gid]").forEach(r=>W.add(r.dataset.gid));try{localStorage.setItem(GD_WEG,JSON.stringify([...W].slice(-500)))}catch(er){}},true);
 function gdMeldingAuto(){if(ROL!=="admin")return"";let C;try{C=ctx()}catch(e){return""}const g=C.c&&C.c.drempels&&C.c.drempels.goud;if(!g)return"";const grens=Date.now()-3*864e5;
-  const L=[...C.rows.values()].filter(r=>r.huidig&&r.lid.categorie!=="Erewacht"&&!r.jl.vrijstelling&&r.p&&r.p.totaal>=g&&(!r.jl.goudMail||(r.jl.goudMail.via!=="bulk"&&!r.jl.goudMail.reden&&Date.parse(r.jl.goudMail.op||0)>grens))).sort((a,b)=>naamVol(a.lid).localeCompare(naamVol(b.lid),"nl"));
+  let L=[...C.rows.values()].filter(r=>r.huidig&&r.lid.categorie!=="Erewacht"&&!r.jl.vrijstelling&&r.p&&r.p.totaal>=g&&(!r.jl.goudMail||(r.jl.goudMail.via!=="bulk"&&!r.jl.goudMail.reden&&Date.parse(r.jl.goudMail.op||0)>grens))).sort((a,b)=>naamVol(a.lid).localeCompare(naamVol(b.lid),"nl"));
+  // wie al gezien werd (melding gesloten), komt niet terug: enkel de nieuwe goudstatussen
+  // eerste keer: wie al langer dan 12 uur goud heeft, geldt als gezien
+  try{if(localStorage.getItem(GD_WEG)==null){const W=L.filter(r=>r.jl.goudMail&&Date.parse(r.jl.goudMail.op||0)<Date.now()-432e5).map(r=>JAAR+"_"+r.lid.id);localStorage.setItem(GD_WEG,JSON.stringify(W))}}catch(e){}
+  const weg=gdWeg();L=L.filter(r=>!weg.has(JAAR+"_"+r.lid.id));
   if(!L.length)return"";
   return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("medaille")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
-   <div class="gd-l">${L.slice(0,12).map(r=>{const m=r.jl.goudMail;return `<div class="gd-r"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten · ${!r.lid.email?"geen e-mailadres":m&&m.verstuurd?"proficiat-mail verstuurd op "+fmtDate(String(m.op).slice(0,10)):"proficiat-mail wordt automatisch verstuurd"}</span></span></div>`}).join("")}</div></div></div>`}
+   <div class="gd-l">${L.slice(0,12).map(r=>{const m=r.jl.goudMail;return `<div class="gd-r" data-gid="${esc(JAAR+"_"+r.lid.id)}"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten · ${!r.lid.email?"geen e-mailadres":m&&m.verstuurd?"proficiat-mail verstuurd op "+fmtDate(String(m.op).slice(0,10)):"proficiat-mail wordt automatisch verstuurd"}</span></span></div>`}).join("")}</div></div></div>`}
 function gdMelding(){if(gdAutoAan())return gdMeldingAuto();const L=gdKandidaten();if(!L.length)return"";
   return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("medaille")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
    <div class="gd-l">${L.slice(0,12).map(r=>`<div class="gd-r"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten${r.lid.email?"":" · geen e-mailadres"}</span></span>
