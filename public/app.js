@@ -561,7 +561,7 @@ VIEWS.boekhouding=()=>({title:"Boekhouding",sub:"Overzicht boekjaar "+JAAR,actio
     <div class="tile"><span class="lbl">Kas</span><span class="val">${eur(C.kas)}</span></div>
     <div class="tile"><span class="lbl">Inkomsten</span><span class="val in">${eur(C.tin)}</span></div>
     <div class="tile"><span class="lbl">Uitgaven</span><span class="val out">${eur(C.tuit)}</span></div>
-    <a class="tile" href="#verwerken"><span class="lbl">Resultaat</span><span class="val ${res>=0?"in":"out"}">${res>=0?"+":"−"}${eur(Math.abs(res))}</span></a>
+    <div class="tile"><span class="lbl">Resultaat</span><span class="val ${res>=0?"in":"out"}">${res>=0?"+":"−"}${eur(Math.abs(res))}</span></div>
   </div>
   <div class="panel"><div class="panel-h"><h2>Inkomsten en uitgaven per maand</h2><span class="grow"></span><span class="legend"><i style="background:var(--good)"></i>In <i style="background:var(--bad)"></i>Uit</span></div><div class="panel-b">${maandChart(C)}</div></div>
   <div class="grid g2" style="align-items:start">
