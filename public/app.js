@@ -8018,7 +8018,7 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-vr]"
       if(Number(dt.slice(0,4))!==JAAR){e2.textContent=`De datum valt buiten boekjaar ${JAAR}.`;return}if(!(b2>0)){e2.textContent="Vul een bedrag in.";return}
       const d={bron:"manueel",jaar:JAAR,nr:nextNr(),datum:dt,categorie:v.categorie,mededeling:"Verrekening "+(v.naam||v.categorie),partij:pn,iban:"",rekening:$("#vraR").value,bedrag:b2,richting:wij?"uit":"in",lidId:null,status:null,verrekening:v.id,vrPartner:p};
       $("#vraOk").disabled=true;try{await write("boekingen",newId("boekingen"),d);closeModal();toast("Afrekening geboekt.");renderBody()}catch(x){e2.textContent=x.message||"Niet gelukt";$("#vraOk").disabled=false}};return}
-  if(a==="partAdd"){$("#vrPs").insertAdjacentHTML("beforeend",vrPartRij({id:"p"+Date.now().toString(36),naam:"",pct:""}));return}
+  if(a==="partAdd"){$("#vrPs").insertAdjacentHTML("beforeend",vrPartRij({id:"p"+Date.now().toString(36),naam:"",pct:""}));vrGelijk();return}
   if(a==="partWeg"){t.closest(".vr-p").remove();return}
   if(a==="weg"&&v){confirmBox(`Verrekening <b>${esc(v.naam||v.categorie)}</b> verwijderen? De ingevulde kosten en inkomsten van de andere partijen gaan verloren. Onze transacties blijven ongewijzigd.`,"Verwijderen",async()=>{await vrBewaar(L.filter(y=>y.id!==v.id));toast("Verrekening verwijderd.");renderBody()});return}
   if(a==="bewaar"){const err=$("#vrErr"),P=[...document.querySelectorAll("#vrPs .vr-p")].map(r=>({id:r.dataset.pid,naam:r.querySelector(".vr-pn").value.trim(),pct:num(r.querySelector(".vr-pp").value)}));
@@ -8048,6 +8048,15 @@ for(const r of ["boekingen","verwerken"]){const _v=VIEWS[r];const n=function(){c
 /* tandwiel op Verrekeningen: instellingen van de verrekening(en) */
 function vrInst(){const L=vrCfg().lijst;if(L.length===1){vrForm({...L[0]});return}
   modal("Instellingen verrekeningen",`<div class="stack" style="gap:8px">${L.map(v=>`<button type="button" class="btn" style="justify-content:space-between" data-vr="bewerk" data-id="${esc(v.id)}"><span>${esc(v.naam||v.categorie)}</span><span class="muted small">${v.afgerond?"Afgerond":"Lopend"}</span></button>`).join("")}</div>`,`<button class="btn" data-act="closeModal">Sluiten</button>`)}
+
+/* verdeelsleutel altijd samen 100%: wie je aanpast, de andere (laatste) partij vult aan */
+const vrPctTxt=x=>String(r2(x)).replace(".",",");
+function vrGelijk(){const I=[...document.querySelectorAll("#vrPs .vr-pp")];if(!I.length)return;const n=I.length,b=Math.floor(10000/n)/100;I.forEach((x,i)=>x.value=vrPctTxt(i===n-1?100-b*(n-1):b))}
+function vrBalans(el){const I=[...document.querySelectorAll("#vrPs .vr-pp")];if(I.length<2)return;const i=I.indexOf(el),bal=I[i===I.length-1?0:I.length-1];
+  let v=Math.min(100,Math.max(0,num(el.value)));const rest=I.filter(x=>x!==el&&x!==bal).reduce((s,x)=>s+num(x.value),0);
+  if(v+rest>100){v=r2(100-rest);el.value=vrPctTxt(v)}else if(num(el.value)!==v)el.value=vrPctTxt(v);bal.value=vrPctTxt(Math.max(0,100-v-rest))}
+document.addEventListener("input",e=>{if(e.target.matches&&e.target.matches("#vrPs .vr-pp")&&e.target.value.trim()!=="")vrBalans(e.target)});
+document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest('[data-vr="partWeg"]'))setTimeout(()=>{const I=document.querySelectorAll("#vrPs .vr-pp");if(I.length)vrBalans(I[0])},0)});
 
 /* zoeken op de kaart zelf: vanaf 3 letters een lijstje onder de zoekbalk, de kaart blijft zichtbaar */
 function krSugInit(root,extra){const inp=root.querySelector("#krQ"),ul=root.querySelector("#krSug");if(!inp||!ul)return;let hits=[],act=-1;
