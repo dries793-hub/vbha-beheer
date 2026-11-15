@@ -8431,7 +8431,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
     const md=todayISO().slice(4),tl=b=>String(b.datum||"").slice(0,4)+md;
     let dz=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Y&&j.lidId!=="test-vbha")dz+=Number(j.kalUitgevoerd)||0;
     const kin=som(k.filter(b=>b.richting!=="uit")),kuit=som(k.filter(b=>b.richting==="uit")),si=som(sp.filter(b=>b.richting!=="uit")),su=som(sp.filter(b=>b.richting==="uit"));
-    return{kin,kinTot:som(k.filter(b=>b.richting!=="uit"&&String(b.datum||"")<=String(Y)+md)),kuit,si,res:kin+si-kuit-su,dz,n:k.filter(b=>b.richting!=="uit").length}};
+    const jc=jaarCfg(Y),opl=(Number(jc.kalenderStock)||0)*(Number(jc.perDoos)||100);return{opl,kin,kinTot:som(k.filter(b=>b.richting!=="uit"&&String(b.datum||"")<=String(Y)+md)),kuit,si,res:kin+si-kuit-su,dz,n:k.filter(b=>b.richting!=="uit").length}};
   const J1=jr(Number(JAAR)),J0=jr(Number(JAAR)-1);J1.si+=spOpen;J1.res+=spOpen;
   // kalenderronde: bedeelde adressen
   let adr=0;try{if(typeof KR_STREETS!=="undefined"&&KR_STREETS.length){const M=krMarks(),D=krDelen();adr=KR_STREETS.reduce((t,x)=>t+krAdrGedaan(x,M,D),0)}}catch(e){}
@@ -8468,7 +8468,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
     const r=(l,a,b,inv)=>`<tr><td>${l}</td><td class="num">${kfEur(a)}</td><td class="num">${kfEur(b)}</td>${v(a,b,inv)}</tr>`;
     return `<div class="panel"><div class="panel-h"><h2>Vergelijking met vorig jaar</h2></div><div class="tw"><table><thead><tr><th></th><th class="num">${JAAR}</th><th class="num">${Number(JAAR)-1}</th><th class="num">Verschil</th></tr></thead><tbody>
       ${r("Kalenders binnengekomen",J1.kin,J0.kin)}${r("Sponsors",J1.si,J0.si)}${r("Kosten kalenders",J1.kuit,J0.kuit,true)}${r("Totale opbrengst",J1.res,J0.res)}
-      ${J0.dz&&J1.dz?r("Per kalender",J1.kin/(J1.dz*pd),J0.kin/(J0.dz*pd)):""}</tbody></table></div></div>`})():""}`}});
+      ${J1.opl&&J0.opl?`<tr><td>Oplage</td><td class="num">${J1.opl.toLocaleString("nl-BE")}</td><td class="num">${J0.opl.toLocaleString("nl-BE")}</td><td class="num muted">${J1.opl-J0.opl>=0?"+":"−"}${Math.abs(J1.opl-J0.opl).toLocaleString("nl-BE")}</td></tr>`+r("Kalenders binnengekomen per kalender",J1.kin/J1.opl,J0.kin/J0.opl)+r("Opbrengst per kalender",J1.res/J1.opl,J0.res/J0.opl):""}</tbody></table></div></div>`})():""}`}});
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
