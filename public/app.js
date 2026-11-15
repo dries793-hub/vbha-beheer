@@ -1,3 +1,7 @@
+/* Herhaalde controles van de app zelf: overslaan zolang de app niet zichtbaar is (spaart batterij en data op de gsm) */
+/* herkenning van een storting door Bancontact; zelfde regel als BC_PARTIJ in api/_lib/bcsplit.js */
+const BC_PARTIJ=/bancontact|payconiq|segregated account|banksys/i;
+function appInterval(f,ms){return setInterval(()=>{if(document.hidden)return;f()},ms)}
 
 "use strict";
 /* ============ hulpfuncties ============ */
@@ -4280,7 +4284,7 @@ async function inkAuto(){if(INK_AUTO_BEZIG||!inkMag()||(typeof ROL_ECHT!=="undef
       catch(e){console.warn("auto koppelen",e)}}}
   finally{INK_AUTO_BEZIG=false}
   if(n){toast(n===1?"Een inkomende factuur werd automatisch aan de transactie gekoppeld.":n+" inkomende facturen werden automatisch gekoppeld.");if(["dashboard","inkomend"].includes(route()))renderBody()}}
-{let sig="";setInterval(()=>{if(!S.boekingen||!S.documenten)return;const t=S.boekingen.size+"|"+S.documenten.size;if(t!==sig){sig=t;inkAutoPlan()}},5000)}
+{let sig="";appInterval(()=>{if(!S.boekingen||!S.documenten)return;const t=S.boekingen.size+"|"+S.documenten.size;if(t!==sig){sig=t;inkAutoPlan()}},5000)}
 async function inkOpladen(files){let n=0;for(const f of files){try{if(f.size>25*1048576){toast(f.name+" is groter dan 25 MB.",true);continue}
     const id=agId("doc"),pad=`${INK_MAP}/${id}-${docVeilig(f.name)}`;const {error}=await SB.storage.from(DOC_BUCKET).upload(pad,f,{contentType:f.type||"application/pdf",upsert:false});if(error)throw error;
     await write("documenten",id,{naam:f.name,pad,map:INK_MAP,grootte:f.size,type:f.type||"application/pdf",omschrijving:"",door:ME_NAME||"",op:new Date().toISOString(),inkomend:{ontvangen:new Date().toISOString(),nieuw:true,opgeladen:true}});n++}
@@ -5274,7 +5278,7 @@ async function nsBijwerken(){if(NS_BEZIG||ROL_ECHT!=="admin"||!canWrite||typeof 
     try{M=mlVanTpl(t);html=mailHtml(r,M);ond=vul(M.onderwerp,r)}catch(e){continue}
     if(html&&(html!==x.html||ond!==x.onderwerp)&&!(NS_LAATST[tpl]>Date.now()-6e5)){NS_LAATST[tpl]=Date.now();regels[tpl]={...x,naam:M.naam||x.naam,onderwerp:ond,html,sinds:new Date().toISOString(),door:"automatisch (agenda bijgewerkt)"};anders=true}}
   if(!anders)return;NS_BEZIG=true;try{const d={...stripId(c),regels};S.config.set("nastuur",{...d,id:"nastuur"});await write("config","nastuur",d)}catch(e){}finally{NS_BEZIG=false}}
-setInterval(()=>{if(typeof loaded!=="undefined"&&typeof COLS!=="undefined"&&loaded.size<COLS.length)return;nsBijwerken()},20000);
+appInterval(()=>{if(typeof loaded!=="undefined"&&typeof COLS!=="undefined"&&loaded.size<COLS.length)return;nsBijwerken()},20000);
 
 /* ============ Fuif "In Vier en Vlam" (Activiteiten › In Vier en Vlam) ============
    Bestellingen in de collectie "tickets" (zie api/_lib/fuif.js), instellingen in config "fuif".
@@ -5914,7 +5918,7 @@ for(const r of ["boekingen","verwerken"]){const _v=VIEWS[r];if(!_v)continue;cons
 {const st=document.createElement("style");st.textContent=`.vw-t{table-layout:fixed;width:100%}.vw-t td.desc{min-width:0}.vw-t .d1,.vw-t .d2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vw-t select{width:100%}.vw-why{font-size:11.5px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vw-t td:last-child .btn{vertical-align:middle}.vw-t .iconbtn svg{width:15px;height:15px}`;document.head.appendChild(st)}
 /* Te verwerken: Bancontact-bulkstortingen opsplitsen volgens de online betalingen van die dag (rest naar Kalenders) */
-const bcIsBulk=b=>b&&b.rekening!=="Kas"&&b.richting!=="uit"&&/bancontact|payconiq/i.test(b.partij||"")&&/^\d{8}-.*bulkrecon/i.test(String(b.mededeling||"").trim());
+const bcIsBulk=b=>b&&b.rekening!=="Kas"&&b.richting!=="uit"&&BC_PARTIJ.test(b.partij||"")&&/^\d{8}-.*bulkrecon/i.test(String(b.mededeling||"").trim());
 {const _a=VIEWS.verwerken.after;VIEWS.verwerken.after=function(){const r=_a&&_a.apply(this,arguments);try{const L=teVerwerken(ctx()).filter(bcIsBulk);const bar=document.querySelector("#main .bar, .bar");
   if(L.length&&canWrite&&bar&&!document.getElementById("bcSplit"))bar.insertAdjacentHTML("beforeend",`<button class="btn" id="bcSplit" data-ids="${esc(L.map(b=>b.id).join(","))}" title="Bancontact stort online betalingen per dag samen. De app splitst ze op volgens de betalingen van die dag; de rest gaat naar Kalenders.">${ic("bank")}Bancontact opsplitsen (${L.length})</button>`)}catch(e){}return r}}
 document.addEventListener("click",async e=>{const b=e.target.closest("#bcSplit");if(!b)return;b.disabled=true;
@@ -6054,7 +6058,7 @@ document.addEventListener("click",e=>{if(!e.target.closest("#spOk"))return;const
       try{localStorage.setItem(KEY(),JSON.stringify(g.slice(-400)));localStorage.setItem(DKEY(),JSON.stringify(x.slice(-400)))}catch(e){}
       klaar=true;if((d.gelezen||[]).length!==g.length||(d.dicht||[]).length!==x.length)sync();zuiver()}catch(e){}finally{laden=false}}
   function sync(){if(!klaar)return;clearTimeout(tmr);tmr=setTimeout(async()=>{try{await SB.from("meldingen_gelezen").upsert({data:{gelezen:lees().slice(-400),dicht:dicht().slice(-400)},gewijzigd:new Date().toISOString()},{onConflict:"user_id"})}catch(e){}},800)}
-  setInterval(haal,3000);
+  appInterval(haal,3000);
   function zuiver(){
     if(toon||!document.querySelector(".nmeld"))return;
     const D=new Set(dicht());
@@ -6138,9 +6142,9 @@ function jbAuto(Y){Y=Number(Y);if(!jbIsAuto(Y))return{};if(JB.cache.has(Y))retur
   const r={beginKas:Math.round(((Number(vorig.beginKas)||0)+n.kas)*100)/100,beginRekening:Math.round(((Number(vorig.beginRekening)||0)+n.rek)*100)/100};JB.cache.set(Y,r);return r}
 {const _r=render;render=function(){JB.cache.clear();JB.net=null;return _r.apply(this,arguments)}}
 // de database bijwerken als het opgeslagen beginsaldo afwijkt (enkel een administrator; zo rekent ook de server met hetzelfde bedrag)
-setInterval(async()=>{try{if(typeof ROL==="undefined"||ROL!=="admin"||!S.jaren.size||!S.boekingen.size)return;JB.cache.clear();JB.net=null;
+{let jbSig="";appInterval(async()=>{try{if(typeof ROL==="undefined"||ROL!=="admin"||!S.jaren.size||!S.boekingen.size)return;let som=0;for(const b of S.boekingen.values())som+=(Number(b.bedrag)||0)*(b.richting==="uit"?-1:1)*(b.rekening==="Kas"?3:1)+(Number(b.jaar)||0);const sg=S.boekingen.size+"|"+som.toFixed(2)+"|"+S.jaren.size+"|"+[...S.jaren.values()].map(j=>j.beginKas+"/"+j.beginRekening).join(",");if(sg===jbSig)return;jbSig=sg;JB.cache.clear();JB.net=null;
   for(const k of [...S.jaren.keys()].sort()){const Y=Number(k);if(!jbIsAuto(Y))continue;const a=jbAuto(Y),j=S.jaren.get(k)||{};
-    if(Math.abs((Number(j.beginKas)||0)-a.beginKas)>0.004||Math.abs((Number(j.beginRekening)||0)-a.beginRekening)>0.004){const {id,...rest}=j;await write("jaren",k,{...rest,beginKas:a.beginKas,beginRekening:a.beginRekening})}}}catch(e){}},20000);
+    if(Math.abs((Number(j.beginKas)||0)-a.beginKas)>0.004||Math.abs((Number(j.beginRekening)||0)-a.beginRekening)>0.004){const {id,...rest}=j;await write("jaren",k,{...rest,beginKas:a.beginKas,beginRekening:a.beginRekening})}}}catch(e){}},20000)}
 {const st=document.createElement("style");st.textContent=".jb-v{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--soft,#f4f4f5);font-weight:600;font-variant-numeric:tabular-nums;text-align:right}";document.head.appendChild(st)}
 {const st=document.createElement("style");st.textContent=".jb-ro{background:var(--soft,#f4f4f5)!important;color:var(--ink)!important;border-color:var(--line)!important;font-weight:600;pointer-events:none;box-shadow:none!important}";document.head.appendChild(st)}
 /* Instellingen (profielicoon, enkel administrator): blok Bank */
@@ -8245,7 +8249,7 @@ function gdWeg(){try{return new Set(JSON.parse(localStorage.getItem(GD_WEG)||"[]
 // melding sluiten: de getoonde leden onthouden (vóór de algemene sluitknop de melding weghaalt)
 document.addEventListener("click",e=>{const x=e.target.closest&&e.target.closest("[data-dicht]");const m=x&&x.closest(".gd-m");if(!m)return;
   const W=gdWeg();m.querySelectorAll("[data-gid]").forEach(r=>W.add(r.dataset.gid));try{localStorage.setItem(GD_WEG,JSON.stringify([...W].slice(-500)))}catch(er){}},true);
-function gdMeldingAuto(){if(ROL!=="admin")return"";let C;try{C=ctx()}catch(e){return""}const g=C.c&&C.c.drempels&&C.c.drempels.goud;if(!g)return"";const grens=Date.now()-3*864e5;
+function gdMeldingAuto(){if(ROL!=="admin")return"";let C;try{C=ctx()}catch(e){return""}const g=C.c&&C.c.drempels&&C.c.drempels.goud;if(!g)return"";const grens=Date.now()-(Number(((S.config.get("algemeen")||{}).goudMail||{}).dagen)||3)*864e5;
   let L=[...C.rows.values()].filter(r=>r.huidig&&r.lid.categorie!=="Erewacht"&&!r.jl.vrijstelling&&r.p&&r.p.totaal>=g&&(!r.jl.goudMail||(r.jl.goudMail.via!=="bulk"&&!r.jl.goudMail.reden&&Date.parse(r.jl.goudMail.op||0)>grens))).sort((a,b)=>naamVol(a.lid).localeCompare(naamVol(b.lid),"nl"));
   // wie al gezien werd (melding gesloten), komt niet terug: enkel de nieuwe goudstatussen
   // eerste keer: wie al langer dan 12 uur goud heeft, geldt als gezien
@@ -8278,7 +8282,7 @@ document.addEventListener("change",e=>{if(e.target&&e.target.id==="mpBestuur"){t
 
 /* Automatische proficiat-mail staat aan: zodra iemand goud haalt, laat de app de server de mail meteen versturen
    (anders pas bij de geplande taak, één keer per uur). */
-{let bezig=false,laatst=0;setInterval(async()=>{if(bezig||!gdAutoAan()||typeof canWrite==="undefined"||!canWrite||Date.now()-laatst<60000)return;const aj=Number((S.config.get("algemeen")||{}).actiefJaar)||0;if(aj&&aj!==JAAR)return;
+{let bezig=false,laatst=0;appInterval(async()=>{if(bezig||!gdAutoAan()||typeof canWrite==="undefined"||!canWrite||Date.now()-laatst<60000)return;const aj=Number((S.config.get("algemeen")||{}).actiefJaar)||0;if(aj&&aj!==JAAR)return;
   let L;try{L=gdKandidaten(true).filter(r=>r.lid.email)}catch(e){return}if(!L.length)return;bezig=true;laatst=Date.now();
   try{const j=await api("/api/mail?f=goud",{method:"POST",body:JSON.stringify({actie:"auto"})});
     if(j&&!j.uit){const nu=new Date().toISOString();for(const r of L){const id=JAAR+"_"+r.lid.id,cur=S.jaarleden.get(id);if(cur&&!cur.goudMail)S.jaarleden.set(id,{...cur,goudMail:{op:nu,verstuurd:true}})}dirty=true}}catch(e){}finally{bezig=false}},15000)}
@@ -8458,7 +8462,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   const C=ctx(),B=C.boek.filter(b=>b.categorie==="Kalenders");
   const inB=B.filter(b=>b.richting!=="uit"),uitB=B.filter(b=>b.richting==="uit");
   const som=L=>L.reduce((s,b)=>s+(Number(b.bedrag)||0),0);
-  const isBc=b=>b.regelNaam==="Bancontact uitgesplitst"||/bancontact|payconiq|segregated|banksys/i.test(b.partij||"");
+  const isBc=b=>b.regelNaam==="Bancontact uitgesplitst"||BC_PARTIJ.test(b.partij||"");
   const kas=som(inB.filter(b=>b.rekening==="Kas")),bc=som(inB.filter(b=>b.rekening!=="Kas"&&isBc(b))),ov=som(inB.filter(b=>b.rekening!=="Kas"&&!isBc(b)));
   // Bancontact-betalingen die al binnen zijn maar nog niet op de rekening gestort (komt de dag erna)
   const ow=Number(KF.data&&KF.data.onderweg)||0;
@@ -8480,7 +8484,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   let dozen=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Number(JAAR)&&j.lidId!=="test-vbha")dozen+=Number(j.kalUitgevoerd)||0;
   const pd=Number(jaarCfg(JAAR).perDoos)||100,stuks=dozen*pd;const bed=stuks||(Number(jaarCfg(JAAR).kalenderStock)||0)*pd;
   const PQ=((KF.data&&KF.data.betalingen)||[]).map(x=>({...x,o:false}));
-  const ovS=Y=>[...S.boekingen.values()].filter(b=>b.categorie==="Kalenders"&&b.richting!=="uit"&&b.rekening!=="Kas"&&!isBc(b)&&String(b.datum||"")>=Y+"-11-01"&&String(b.datum||"")<=(Y+1)+"-01-31");
+  const ovS=Y=>[...S.boekingen.values()].filter(b=>b.categorie==="Kalenders"&&b.richting!=="uit"&&b.rekening!=="Kas"&&!isBc(b)&&String(b.datum||"")>=Y+"-"+kalSz().van&&String(b.datum||"")<=(Y+1)+"-"+kalSz().tot);
   const PO=ovS(Number(JAAR)).map(b=>({a:Number(b.bedrag)||0,d:String(b.datum||""),o:true,n:b.partij||"",m:b.mededeling||""}));
   // respons vorig jaar: betalingen (Bancontact + overschrijving) in het seizoen / bedeeld (uitgevoerde dozen, anders de oplage)
   const nV=KF.vorig?((KF.vorig.betalingen||[]).length+ovS(Number(JAAR)-1).length):0,bedV=(()=>{const Y=Number(JAAR)-1;let dz=0;for(const j of S.jaarleden.values())if(Number(j.jaar)===Y&&j.lidId!=="test-vbha")dz+=Number(j.kalUitgevoerd)||0;const p=Number(jaarCfg(Y).perDoos)||100;return dz*p||(Number(jaarCfg(Y).kalenderStock)||0)*p})();
@@ -8495,7 +8499,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   const verd=SCH.map(([a,b,l])=>({l,q:PQ.filter(x=>inS(x.a,a,b)).length,o:PO.filter(x=>inS(x.a,a,b)).length,get n(){return this.q+this.o}}));const vm=Math.max(1,...verd.map(v=>v.n));
   // per dag
   const dag=new Map();for(const x of P){const g=dag.get(x.d)||{q:0,o:0,nq:0,no:0};g[x.o?"o":"q"]+=x.a;g[x.o?"no":"nq"]++;dag.set(x.d,g)}
-  const D=[...dag.entries()].filter(([d])=>d>=JAAR+"-11-01").sort().map(([d,g])=>[d,g.q+g.o,g]);const dm=Math.max(1,...D.map(d=>d[1]));
+  const D=[...dag.entries()].filter(([d])=>d>=JAAR+"-"+kalSz().van).sort().map(([d,g])=>[d,g.q+g.o,g]);const dm=Math.max(1,...D.map(d=>d[1]));
   const top=D.length?D.reduce((m,d)=>d[1]>m[1]?d:m):null;
   const bar=(q,o,m,f,nq,no)=>`<span class="kf-b"><i style="width:${q/m*100}%" data-t="Bancontact: ${f(q)}${nq!=null?" · "+fN(nq):""}"></i><i class="ov" style="width:${o/m*100}%" data-t="Overschrijving: ${f(o)}${no!=null?" · "+fN(no):""}"></i></span>`;
   const fN=x=>x+" "+(x===1?"betaling":"betalingen");
@@ -8694,6 +8698,27 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-jd]");if(!
   if(b.dataset.jd==="pdf")jdPdf(b.dataset.s,Y,b);else jdXlsx(b.dataset.s,Y)});
 {const st=document.createElement("style");st.textContent=".jd-r{display:flex;align-items:center;gap:8px}";document.head.appendChild(st)}
 
+/* ============ Instellingen › Vaste waarden (admin): waarden die vroeger vast in de code stonden ============
+   config algemeen.kalSeizoen {van,tot} ("MM-DD"; tot valt in het volgende jaar), algemeen.goudMail.dagen,
+   config betaalWacht.dagen en .mail (server: api/_lib/betaalwacht.js, api/_lib/bcsplit.js). */
+const kalSz=()=>{const k=((S.config.get("algemeen")||{}).kalSeizoen)||{},ok=x=>/^\d{2}-\d{2}$/.test(String(x||""));return{van:ok(k.van)?k.van:"11-01",tot:ok(k.tot)?k.tot:"01-31"}};
+const vwDM=md=>{const [m,d]=md.split("-");return d+"/"+m},vwMD=t=>{const x=String(t||"").trim().match(/^(\d{1,2})\/(\d{1,2})$/);if(!x)return null;const d=+x[1],m=+x[2];return d>=1&&d<=31&&m>=1&&m<=12?String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0"):null};
+viewHook("instellingen",{na(){if(ROL_ECHT!=="admin")return"";const A=S.config.get("algemeen")||{},B=S.config.get("betaalWacht")||{},k=kalSz();
+  const f=(id,l,v,ext="")=>`<div class="fld"><label for="${id}">${l}</label><input class="inp" id="${id}" value="${esc(String(v))}"${ext}></div>`;
+  return `<form class="panel" id="vwForm"><div class="panel-h"><h2>Vaste waarden</h2></div><div class="panel-b"><div class="form">
+    ${f("vwVan","Kalenderseizoen vanaf (dd/mm)",vwDM(k.van),' inputmode="numeric"')}${f("vwTot","Kalenderseizoen tot (dd/mm, volgend jaar)",vwDM(k.tot),' inputmode="numeric"')}
+    ${f("vwWacht","Mail als een betaling wacht na (dagen)",Number(B.dagen)||5,' type="number" min="1" max="60"')}${f("vwMail","Die mail sturen naar",B.mail||"boekhouding@vbha.be",' type="email"')}
+    ${f("vwGoud","Goudmelding op het dashboard (dagen)",Number((A.goudMail||{}).dagen)||3,' type="number" min="1" max="30"')}
+   </div><div style="margin-top:12px"><button class="btn primary" type="submit">Bewaren</button></div></div></form>`}});
+document.addEventListener("submit",async e=>{if(e.target.id!=="vwForm")return;e.preventDefault();const v=id=>($("#"+id)||{}).value;
+  const van=vwMD(v("vwVan")),tot=vwMD(v("vwTot")),wacht=Math.round(Number(v("vwWacht"))),goud=Math.round(Number(v("vwGoud"))),mail=String(v("vwMail")||"").trim();
+  if(!van||!tot)return toast("Geef de datums in als dd/mm.",true);if(!(wacht>=1&&wacht<=60))return toast("Aantal dagen: tussen 1 en 60.",true);if(!(goud>=1&&goud<=30))return toast("Goudmelding: tussen 1 en 30 dagen.",true);
+  if(!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(mail))return toast("Geen geldig e-mailadres.",true);
+  try{const A=S.config.get("algemeen")||{};
+    await write("config","algemeen",{kalSeizoen:{van,tot},goudMail:{...(A.goudMail||{}),dagen:goud}},{merge:true});
+    await write("config","betaalWacht",{dagen:wacht,mail},{merge:true});
+    if(typeof KF!=="undefined")KF.jaar=null;toast("Bewaard.")}catch(x){toast(x.message,true)}});
+
 /* ============ Tegels: zeer beknopte uitleg bij aanklikken (alle pagina's) ============
    Tegels die zelf een link of knop zijn, blijven werken zoals voorheen. Sleutel "route|label" gaat voor op "label". */
 const TU={
@@ -8721,7 +8746,7 @@ const TU={
   "kalfin|Sponsors":"Afgesproken sponsorbedragen van dit jaar.",
   "Kosten kalenders":"Uitgaven in de categorie Kalenders (drukwerk).",
   "Respons":"Aantal betalingen gedeeld door het aantal bedeelde kalenders.",
-  "Aantal betalingen":"Betalingen via Bancontact en overschrijving vanaf 1 november.",
+  "Aantal betalingen":"Betalingen via Bancontact en overschrijving tijdens het kalenderseizoen.",
   "Meest gegeven":"Het bedrag dat het vaakst betaald werd.",
   "Gemiddelde":"Gemiddeld bedrag per betaling.",
   "Hoogste betaling":"Grootste afzonderlijke betaling.",

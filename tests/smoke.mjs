@@ -59,7 +59,7 @@ for(const r of routes){await p.evaluate(h=>{location.hash="#"+h},r);await p.wait
 // instellingen-vensters en enkele knoppen
 
 // vaste onderdelen die zichtbaar moeten zijn
-const MOET={admin:{instellingen:["Jaardocumenten","Testlid"],kalfin:["Totale winst","Vergelijking met vorig jaar"]},boekhouder:{instellingen:["Jaardocumenten"]}};
+const MOET={admin:{instellingen:["Jaardocumenten","Testlid","Vaste waarden"],kalfin:["Totale winst","Vergelijking met vorig jaar"]},boekhouder:{instellingen:["Jaardocumenten"]}};
 for(const [r,T] of Object.entries(MOET[pf]||{})){await p.evaluate(h=>{location.hash="#"+h},r);await p.waitForTimeout(600);const t=await p.evaluate(()=>document.body.innerText);for(const x of T)if(!t.includes(x))fouten.push(`${pf} ${r}: "${x}" ontbreekt`)}
 if(leeg.length)console.log(pf+" leeg: "+leeg.join(", "));await ctx.close()}
 await b.close();

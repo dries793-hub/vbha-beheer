@@ -25,7 +25,10 @@ const BRONNEN = [
   ["facturen", r => ({ cat: (r.categorie || "Andere opbrengsten"), wie: r.nr ? "factuur " + r.nr : "factuur" })],
 ];
 export const payoutVan = med => { const m = String(med || "").trim().match(/^\d{8}-([a-z0-9]+)-/i); return m ? m[1] : null; };
-export const isBulk = b => b && b.rekening !== "Kas" && b.richting !== "uit" && /bancontact|payconiq/i.test(b.partij || "") && RE.test(String(b.mededeling || "").trim());
+// herkenning van een storting door Bancontact (op het rekeninguittreksel ook "… PAYCONIQ COMPANY NV SEGREGATED ACCOUNT" of Banksys);
+// dezelfde regel staat in de app als BC_PARTIJ (own/post.py)
+export const BC_PARTIJ = /bancontact|payconiq|segregated account|banksys/i;
+export const isBulk = b => b && b.rekening !== "Kas" && b.richting !== "uit" && BC_PARTIJ.test(b.partij || "") && RE.test(String(b.mededeling || "").trim());
 
 async function onlinePerDag(sb, perTx) {
   const per = new Map();
@@ -199,13 +202,16 @@ export async function bcExport(sb, rijen) {
 export async function kalStat(sb, jaar) {
   const perTx = new Map(); await onlinePerDag(sb, perTx);
   const rows = await selectAll(sb, "bancontact_tx");
-  const J = Number(jaar), van = `${J}-11-01`, tot = `${J + 1}-01-31`;
+  const J = Number(jaar);
+  // kalenderseizoen instelbaar in de app (config algemeen.kalSeizoen = { van: "11-01", tot: "01-31" }; tot valt in het volgende jaar)
+  const { data: alg } = await sb.from("config").select("data").eq("id", "algemeen").maybeSingle(); const KS = (alg && alg.data && alg.data.kalSeizoen) || {};
+  const md = (x, d) => /^\d{2}-\d{2}$/.test(String(x || "")) ? x : d, van = `${J}-${md(KS.van, "11-01")}`, tot = `${J + 1}-${md(KS.tot, "01-31")}`;
   // dagen waarvan de Bancontact-storting (niet uitgesplitst) bij een andere activiteit staat (jaarmarkt, kinderfeest, …): niet meetellen
   const dagCat = new Map(), gestort = new Set(), gestortDag = new Set();
   for (const j of [J, J + 1]) for (const r of await selectAll(sb, "boekingen", q => q.eq("jaar", j))) { const b = r.data || {};
     { const med = String((b.bulk ? b.bulk.mededeling : b.mededeling) || "").trim(), p = (b.bulk && b.bulk.payout) || payoutVan(med); if (p) gestort.add(p);
-      const m = /bancontact|payconiq|segregated/i.test(b.partij || "") && med.match(/^(\d{4})(\d{2})(\d{2})/); if (m) gestortDag.add(`${m[1]}-${m[2]}-${m[3]}`); }
-    if (b.bulkVan || b.bulk || b.richting === "uit" || !/bancontact|payconiq|segregated/i.test(b.partij || "")) continue;
+      const m = BC_PARTIJ.test(b.partij || "") && med.match(/^(\d{4})(\d{2})(\d{2})/); if (m) gestortDag.add(`${m[1]}-${m[2]}-${m[3]}`); }
+    if (b.bulkVan || b.bulk || b.richting === "uit" || !BC_PARTIJ.test(b.partij || "")) continue;
     const m = String(b.mededeling || "").trim().match(/^(\d{4})(\d{2})(\d{2})/); if (!m) continue;
     const d = `${m[1]}-${m[2]}-${m[3]}`, S = dagCat.get(d) || dagCat.set(d, new Set()).get(d); S.add(b.categorie || ""); }
   const L = []; let onderweg = 0, nOnderweg = 0;
