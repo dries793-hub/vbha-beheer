@@ -7782,7 +7782,7 @@ VIEWS.sms=()=>({title:"Communicatie",body(){
   const opt=[...new Set(G.map(x=>x.sect))].map(s=>`<optgroup label="${esc(s)}">${G.filter(x=>x.sect===s).map(x=>`<option value="${esc(x.id)}"${x.id===g.id?" selected":""}>${esc(x.label)} (${x.list.length})</option>`).join("")}</optgroup>`).join("");
   const log=(SMS.log||[]).reduce((m,r)=>{const k=(r.nieuw&&r.nieuw.batch)||r.ts.slice(0,16);(m[k]||(m[k]={ts:r.ts,wie:r.wie,tekst:r.nieuw&&r.nieuw.tekst,n:0,ok:0}));m[k].n++;if(r.nieuw&&r.nieuw.ok)m[k].ok++;return m},{});
   return comTabs("sms")+`<div class="grid g2 sms-g" style="align-items:start">
-   <div class="panel"><div class="panel-h"><h2>Nieuwe sms</h2><span class="grow"></span>${D.laden?'<span class="muted small">laden…</span>':D.aan?`<span class="pill ok">${esc(D.afzender||"VBHA")}${D.tegoed?" · tegoed "+esc(D.tegoed):""}</span>`:'<span class="pill warn">sms-dienst niet ingesteld</span>'}</div><div class="panel-b stack">
+   <div class="panel"><div class="panel-h"><h2>Nieuwe sms</h2><span class="grow"></span>${D.laden?'<span class="muted small">laden…</span>':D.aan?`<span class="pill ok">${D.tegoed?"Tegoed "+esc(D.tegoed):"Actief"}</span>`:'<span class="pill warn">sms-dienst niet ingesteld</span>'}</div><div class="panel-b stack">
     <div class="fld"><label for="smsG">Naar</label><select id="smsG">${opt}</select></div>
     ${g.id==="los"?`<div class="fld"><label for="smsLos">Gsm-nummers</label><textarea id="smsLos" rows="3" placeholder="0476 12 34 56, 0499 …">${esc(SMS.los)}</textarea></div>`:""}
     <div class="fld"><label for="smsT">Tekst</label><textarea id="smsT" rows="5" maxlength="612" placeholder="Beste {voornaam}, …"${mag?"":" disabled"}>${esc(tekst)}</textarea>
