@@ -776,6 +776,7 @@ function puntTable(){
   if(q)list=list.filter(r=>norm(naamVol(r.lid)).includes(q));
   const vn=UI.puntSort==="voornaam";
   if(UI.puntSort==="totaal")list.sort((a,b)=>b.p.totaal-a.p.totaal);
+  else if(String(UI.puntSort).startsWith("k:")){const k=UI.puntSort.slice(2),d=UI.puntDir||-1,ST={GOUD:3,ZILVER:2,BRONS:1},w=r=>k==="totaal"?r.p.totaal:k==="extra"?r.p.extra:k==="status"?(ST[r.status]||0):Number(r.jl[k])||0;list.sort((a,b)=>d*(w(a)-w(b))||(a.lid.naam||"").localeCompare(b.lid.naam||"","nl"))}
   else if(vn)list.sort((a,b)=>(a.lid.voornaam||"").localeCompare(b.lid.voornaam||"","nl")||(a.lid.naam||"").localeCompare(b.lid.naam||"","nl"));
   const dis=canWrite?"":" disabled";
   const inp=(r,f)=>(f==="shifts"||f==="vergaderingen"||f==="kaarten")?ptVast(r,f):stepper("jl",f,r.lid.id,r.jl[f]||0,f+" "+naamVol(r.lid));
@@ -785,7 +786,7 @@ function puntTable(){
       <span class="ml-m"><span class="ml-n">${nm}</span><span class="ml-s">${medal(r.status)}</span></span><span class="pm-tot"><b>${r.p.totaal}</b><small>punten</small></span><span class="ml-chev" aria-hidden="true">›</span></button>
       ${open?`<div class="pm-d"><div class="pm-g"><div class="pm-c"><span>Kalenderdozen</span><b class="pm-v">${r.jl.kalUitgevoerd||0}</b></div>${det.map(([l,f])=>`<div class="pm-c"><span>${l}</span>${inp(r,f)}</div>`).join("")}</div>
         <div class="pm-x"><span>Extra inspanningen</span>${extraHtml(r,dis)}</div></div>`:""}</div>`}).join("")||'<div class="empty">Geen actieve leden gevonden.</div>'}</div>`;
-  return mob+`<div class="tw dsk-only"><table class="rcards ptab"><thead><tr><th><button type="button" class="thsort" data-act="puntNaam" title="Klik om te sorteren op ${vn?"achternaam":"voornaam"}">${vn?"Voornaam":"Naam"} <span>${UI.puntSort==="totaal"?"":"▲"}</span></button></th><th>Kalenderdozen</th><th>Shifts</th><th>Vergaderingen</th><th>Kaarten</th><th>Extra inspanningen</th><th class="num">Totaal</th><th>Status</th></tr></thead><tbody>
+  return mob+`<div class="tw dsk-only"><table class="rcards ptab"><thead><tr><th><button type="button" class="thsort" data-act="puntNaam" title="Klik om te sorteren op ${vn?"achternaam":"voornaam"}">${vn?"Voornaam":"Naam"} <span>${UI.puntSort==="naam"||UI.puntSort==="voornaam"?"▲":""}</span></button></th>${[["kalUitgevoerd","Kalenderdozen"],["shifts","Shifts"],["vergaderingen","Vergaderingen"],["kaarten","Kaarten"],["extra","Extra inspanningen"],["totaal","Totaal","num"],["status","Status"]].map(([k,l,c])=>`<th${c?` class="${c}"`:""}><button type="button" class="thsort" data-act="puntKol" data-k="${k}">${l} <span>${UI.puntSort==="k:"+k?(UI.puntDir>0?"▲":"▼"):""}</span></button></th>`).join("")}</tr></thead><tbody>
   ${list.map(r=>`<tr><td class="nm" style="white-space:nowrap"><button type="button" class="pt-lid" data-act="toonLid" data-id="${esc(r.lid.id)}" title="Gegevens van dit lid">${vn?`<b>${esc(r.lid.voornaam)}</b> ${esc(r.lid.naam)}`:`<b>${esc(r.lid.naam)}</b> ${esc(r.lid.voornaam)}`}</button></td><td class="num"><span class="pt-vast">${r.jl.kalUitgevoerd||0}</span></td><td class="num">${inp(r,"shifts")}</td><td class="num">${inp(r,"vergaderingen")}</td><td class="num">${inp(r,"kaarten")}</td>
   <td class="xcell">${extraHtml(r,dis)}</td><td class="num"><b>${r.p.totaal}</b></td><td>${medal(r.status)}</td></tr>`).join("")||'<tr><td colspan="8" class="empty">Geen actieve leden gevonden.</td></tr>'}
   </tbody></table></div>`;
@@ -1975,6 +1976,7 @@ document.addEventListener("click",async e=>{
     case"logMeer":logMeer();break;
     case"logVernieuw":LOGS.rows=[];LOGS.loaded=false;LOGS.done=false;UI.logN=100;renderBody();break;
     case"puntNaam":UI.puntSort=UI.puntSort==="naam"?"voornaam":"naam";saveUI();renderBody();break;
+    case"puntKol":{const k="k:"+t.dataset.k;if(UI.puntSort===k)UI.puntDir=-(UI.puntDir||-1);else{UI.puntSort=k;UI.puntDir=-1}saveUI();renderBody();break}
     case"puntSort":{let v=t.dataset.v;if(v==="naam"&&UI.puntSort==="naam")v="voornaam";UI.puntSort=v;saveUI();renderBody();break}
     case"nieuwLid":nieuwLid();break;
     case"toonLid":toonLid(id);break;
