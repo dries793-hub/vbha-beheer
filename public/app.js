@@ -8453,15 +8453,11 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   const top=D.length?D.reduce((m,d)=>d[1]>m[1]?d:m):null;
   const bar=(q,o,m)=>`<span class="kf-b"><i style="width:${q/m*100}%"></i><i class="ov" style="width:${o/m*100}%"></i></span>`;
   return kalTabs("kalfin")+`
-  <div class="tiles kf-t">${tile("Totale opbrengst",`<span style="color:var(--${res>=0?"good":"bad"})">${res>=0?"":"−"}${kfEur(Math.abs(res))}</span>`,"kalenders + sponsors − kosten")}
-    ${tile("Kalenders binnengekomen",kfEur(tot),[bc?"Bancontact "+kfEur(bc):"",kas?"kas "+kfEur(kas):"",ov?"overschrijving "+kfEur(ov):""].filter(Boolean).join(" · "))}
-    ${tile("Sponsors",kfEur(spTot),"afgesproken")}
-    ${tile("Kosten kalenders",kost?"−"+kfEur(kost):kfEur(0),"")}</div>
-  <div class="tiles kf-t">${tile("Per kalender",stuks?kfEur(tot/stuks):"–",stuks?`${dozen} ${dozen===1?"doos":"dozen"} × ${pd} = ${stuks.toLocaleString("nl-BE")} kalenders`:"nog geen afgeronde dozen")}
-    ${tile("Per doos",dozen?kfEur(tot/dozen):"–","")}
-    ${tile("Per kalender met sponsors",stuks?kfEur((tot+spTot)/stuks):"–","")}
-    ${tile("Opbrengst per kalender",stuks?kfEur(res/stuks):"–","na kosten, met sponsors")}</div>
-  ${adr?`<div class="tiles kf-t">${tile("Per bedeeld adres",kfEur(tot/adr),adr.toLocaleString("nl-BE")+" adressen bedeeld (kalenderronde)")}</div>`:""}
+  <div class="tiles kf-t kf-t5">${tile("Totale opbrengst",`<span style="color:var(--${res>=0?"good":"bad"})">${res>=0?"":"−"}${kfEur(Math.abs(res))}</span>`,"")}
+    ${tile("Kalenders binnengekomen",kfEur(tot),"")}
+    ${tile("Sponsors",kfEur(spTot),"")}
+    ${tile("Kosten kalenders",kfEur(kost),"")}
+    ${tile("Opbrengst per kalender",stuks?kfEur(res/stuks):"–","")}</div>
 
   <div class="panel"><div class="panel-h"><h2>Betalingen</h2><span class="kf-lg"><i></i>Bancontact <i class="ov"></i>overschrijving</span></div>
    ${KF.bezig&&!KF.data?'<div class="empty">Laden…</div>':KF.fout?`<div class="empty">${esc(KF.fout)}</div>`:!n?'<div class="empty">Nog geen betalingen.</div>':`
