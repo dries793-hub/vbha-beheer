@@ -2081,6 +2081,12 @@ document.addEventListener("submit",async e=>{
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#modal").innerHTML)closeModal()});
 document.addEventListener("focusout",e=>{const t=e.target;if(t.dataset&&(t.dataset.kal||t.dataset.jl)){setTimeout(()=>{const ae=document.activeElement;if(!(ae&&ae.dataset&&(ae.dataset.kal||ae.dataset.jl))&&pending){pending=false;if(PTR)DEFER=true;else renderBody()}},0)}});
 
+/* Eén manier om een pagina aan te vullen (in plaats van telkens VIEWS[x] opnieuw te omwikkelen):
+   viewHook("instellingen",{na:()=>"<div class=panel>…</div>"}) of {voor:()=>…}. Geeft een functie "" terug, dan verschijnt er niets. */
+function viewHook(naam,{voor,na}={}){const _v=VIEWS[naam];if(!_v)return;const n=function(){const v=_v.apply(this,arguments),b=v.body;
+  v.body=function(){const a=voor?String(voor.apply(this,arguments)||""):"",h=String(b.apply(this,arguments)),z=na?String(na.apply(this,arguments)||""):"";return a+h+z};return v};
+  Object.assign(n,_v);VIEWS[naam]=n}
+
 
 "use strict";
 /* ============ Kinderfeest ============
@@ -8259,7 +8265,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-gd]");if(!
   const r=gdKandidaten().find(x=>x.lid.id===b.dataset.id);if(!r)return;
   if(a==="mail"){confirmBox(`<b>${esc(naamVol(r.lid))}</b> (${esc(r.lid.email)}) een proficiat-mail sturen voor de goudstatus ${JAAR+1}?`,"Versturen",()=>gdDoe("mail",[r.lid.id]));return}
   if(a==="overslaan")gdDoe("overslaan",[r.lid.id])});
-{const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){return gdMelding()+b.apply(this,arguments)};return v};Object.assign(n,_d);VIEWS.dashboard=n}
+viewHook("dashboard",{voor:()=>gdMelding()});
 {const st=document.createElement("style");st.textContent=`.gd-l{display:flex;flex-direction:column;gap:6px;margin-top:8px}.gd-r{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .gd-n{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;min-width:0}.gd-a{display:flex;gap:6px;flex:none}.gd-al{margin-top:10px}
 @media(max-width:760px){.gd-l{gap:0;margin-top:6px}.gd-r{flex-wrap:nowrap;padding:8px 0;border-top:1px solid rgba(0,0,0,.08)}.gd-r:first-child{border-top:0}
@@ -8376,10 +8382,8 @@ const TESTLID="test-vbha";let TL_RAW=null;
 const tlAan=()=>!!((S.config.get("testlid")||{}).aan);
 function tlFilter(m){const toon=tlAan()&&ROL_ECHT==="admin";let weg=false;for(const v of m.values())if(v.test&&!toon){weg=true;break}
   if(!weg)return m;const out=new Map();for(const [k,v] of m)if(!(v.test&&!toon))out.set(k,v);return out}
-{const _v=VIEWS.instellingen;const n=function(){const v=_v.apply(this,arguments),b=v.body;
-  v.body=function(){const h=String(b.apply(this,arguments));if(ROL_ECHT!=="admin")return h;const aan=tlAan();
-    return h+`<div class="panel tl-p"><div class="panel-h"><h2>Testlid</h2></div><div class="panel-b"><label class="ws-row"><span class="ws-sw"><input type="checkbox" id="tlAan"${aan?" checked":""}><i></i></span><span><b>Testlid actief</b> <small style="color:var(--muted)">Test Lid · dries@vbha.be</small></span></label></div></div>`};return v};
-  Object.assign(n,_v);VIEWS.instellingen=n}
+viewHook("instellingen",{na(){if(ROL_ECHT!=="admin")return"";const aan=tlAan();
+    return `<div class="panel tl-p"><div class="panel-h"><h2>Testlid</h2></div><div class="panel-b"><label class="ws-row"><span class="ws-sw"><input type="checkbox" id="tlAan"${aan?" checked":""}><i></i></span><span><b>Testlid actief</b> <small style="color:var(--muted)">Test Lid · dries@vbha.be</small></span></label></div></div>`}});
 document.addEventListener("change",async e=>{if(e.target.id!=="tlAan")return;const aan=e.target.checked;
   try{await write("config","testlid",{aan});if(TL_RAW)S.leden=tlFilter(TL_RAW);dirty=true;schedule();toast(aan?"Testlid staat aan.":"Testlid staat uit.")}catch(x){e.target.checked=!aan;toast(x.message,true)}});
 
@@ -8680,12 +8684,10 @@ function jdXlsx(soort,Y){const doc=soort==="rekening"?jdRekening(Y):jdVerslag(Y)
   for(const k in ws)if(k[0]!=="!"&&typeof ws[k].v==="number")ws[k].z='€ #,##0.00;[Red]-€ #,##0.00';
   XLSX.utils.book_append_sheet(wb,ws,doc.titel.slice(0,31));save(doc.titel.replace(/\s+/g,"_")+".xlsx",XLSX.write(wb,{type:"array",bookType:"xlsx"}))}
 
-{const _v=VIEWS.instellingen;const n=function(){const v=_v.apply(this,arguments),b=v.body;
-  v.body=function(){const h=String(b.apply(this,arguments));if(ROL!=="admin"&&ROL!=="boekhouder")return h;
+viewHook("instellingen",{na(){if(ROL!=="admin"&&ROL!=="boekhouder")return"";
     const J=[...S.jaren.keys()].map(Number).filter(Boolean).sort((a,b)=>b-a),def=J.includes(Number(JAAR)-1)?Number(JAAR)-1:Number(JAAR);
     const rij=(s,l)=>`<div class="jd-r"><b>${l}</b><span class="grow"></span><button type="button" class="btn sm" data-jd="pdf" data-s="${s}">${ic("download")}PDF</button><button type="button" class="btn sm" data-jd="xlsx" data-s="${s}">${ic("download")}Excel</button></div>`;
-    return h+`<div class="panel"><div class="panel-h"><h2>Jaardocumenten</h2><select class="sel" id="jdJ" aria-label="Boekjaar" style="width:auto">${J.map(y=>`<option${y===def?" selected":""}>${y}</option>`).join("")}</select></div><div class="panel-b stack">${rij("rekening","Jaarrekening")}${rij("verslag","Jaarverslag")}</div></div>`};return v};
-  Object.assign(n,_v);VIEWS.instellingen=n}
+    return `<div class="panel"><div class="panel-h"><h2>Jaardocumenten</h2><select class="sel" id="jdJ" aria-label="Boekjaar" style="width:auto">${J.map(y=>`<option${y===def?" selected":""}>${y}</option>`).join("")}</select></div><div class="panel-b stack">${rij("rekening","Jaarrekening")}${rij("verslag","Jaarverslag")}</div></div>`}});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-jd]");if(!b)return;const Y=Number(($("#jdJ")||{}).value)||Number(JAAR);
   if(b.dataset.jd==="pdf")jdPdf(b.dataset.s,Y,b);else jdXlsx(b.dataset.s,Y)});
 {const st=document.createElement("style");st.textContent=".jd-r{display:flex;align-items:center;gap:8px}";document.head.appendChild(st)}
@@ -8773,6 +8775,16 @@ document.addEventListener("click",e=>{const old=document.getElementById("tuTip")
   const r=t.getBoundingClientRect();d.style.left=Math.max(8,Math.min(innerWidth-d.offsetWidth-8,r.left+r.width/2-d.offsetWidth/2))+"px";d.style.top=(r.bottom+scrollY+6)+"px"});
 addEventListener("hashchange",()=>{const d=document.getElementById("tuTip");if(d)d.remove()});
 {const st=document.createElement("style");st.textContent=".tu-tip{white-space:normal;max-width:260px;font-weight:500;line-height:1.35}div.tile:has(.lbl){cursor:pointer}";document.head.appendChild(st)}
+
+/* ============ Grote bibliotheken (Excel, zip) pas na het opstarten laden ============
+   Zolang ze nog laden, wacht een klik op een knop (of een gekozen bestand) tot ze er zijn en gaat dan gewoon door. */
+const LIBS_KLAAR=new Promise(res=>{const L=window.LIBS_LAAT||[];if(!L.length)return res();
+  const go=()=>{let n=L.length;for(const u of L){const s=document.createElement("script");s.src=u;s.async=false;s.onload=s.onerror=()=>{if(--n===0)res()};document.head.appendChild(s)}};
+  const start=()=>setTimeout(go,300);if(document.readyState==="complete")start();else addEventListener("load",start)});
+let LIBS_OK=!(window.LIBS_LAAT||[]).length;LIBS_KLAAR.then(()=>{LIBS_OK=true});
+document.addEventListener("click",e=>{if(LIBS_OK)return;const t=e.target.closest&&e.target.closest("button,[data-act],label,a[download]");if(!t||t.closest("#sheet,.tabbar,nav"))return;
+  e.preventDefault();e.stopImmediatePropagation();LIBS_KLAAR.then(()=>t.click())},true);
+document.addEventListener("change",e=>{if(LIBS_OK||!(e.target&&e.target.type==="file"))return;e.stopImmediatePropagation();const t=e.target;LIBS_KLAAR.then(()=>t.dispatchEvent(new Event("change",{bubbles:true})))},true);
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
