@@ -8423,8 +8423,9 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   const tot=kas+bc+ov,kost=som(uitB);
   const SP=C.boek.filter(b=>b.categorie==="Sponsoring"),spIn=som(SP.filter(b=>b.richting!=="uit")),spUit=som(SP.filter(b=>b.richting==="uit"));
   // nog te ontvangen van sponsors (afgesproken, nog niet betaald, niet in natura): telt mee als voorziene sponsoring
-  let spOpen=0;try{const K=spKoppel(C);spOpen=[...S.sponsors.values()].filter(x=>!K.per.has(x.id)&&!(x.naturaJaren||[]).includes(JAAR)&&!spStop(x)).reduce((a,x)=>a+num(x.bedrag),0)}catch(e){}
-  const spTot=spIn+spOpen,res=tot+spTot-kost-spUit;
+  // sponsoring = de afgesproken bedragen van de sponsors (zoals op de pagina Sponsors)
+  let spAfg=spIn;try{spAfg=[...S.sponsors.values()].filter(x=>!spStop(x)).reduce((a,x)=>a+num(x.bedrag),0)}catch(e){}
+  const spTot=spAfg,spOpen=spAfg-spIn,res=tot+spTot-kost-spUit;
   // vergelijking met vorig jaar (zelfde berekening), ook "tot dezelfde dag"
   const jr=Y=>{const L=[...S.boekingen.values()].filter(b=>Number(b.jaar)===Y),k=L.filter(b=>b.categorie==="Kalenders"),sp=L.filter(b=>b.categorie==="Sponsoring");
     const md=todayISO().slice(4),tl=b=>String(b.datum||"").slice(0,4)+md;
@@ -8454,7 +8455,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   return kalTabs("kalfin")+`
   <div class="tiles kf-t">${tile("Totale opbrengst",`<span style="color:var(--${res>=0?"good":"bad"})">${res>=0?"":"−"}${kfEur(Math.abs(res))}</span>`,"kalenders + sponsors − kosten")}
     ${tile("Kalenders binnengekomen",kfEur(tot),[bc?"Bancontact "+kfEur(bc):"",kas?"kas "+kfEur(kas):"",ov?"overschrijving "+kfEur(ov):""].filter(Boolean).join(" · "))}
-    ${tile("Sponsors",kfEur(spTot),[spOpen?`ontvangen ${kfEur(spIn)} · nog te ontvangen ${kfEur(spOpen)}`:"",spUit?"kosten sponsoring "+kfEur(spUit):""].filter(Boolean).join(" · "))}
+    ${tile("Sponsors",kfEur(spTot),"afgesproken")}
     ${tile("Kosten kalenders",kost?"−"+kfEur(kost):kfEur(0),"")}</div>
   <div class="tiles kf-t">${tile("Per kalender",stuks?kfEur(tot/stuks):"–",stuks?`${dozen} ${dozen===1?"doos":"dozen"} × ${pd} = ${stuks.toLocaleString("nl-BE")} kalenders`:"nog geen afgeronde dozen")}
     ${tile("Per doos",dozen?kfEur(tot/dozen):"–","")}
