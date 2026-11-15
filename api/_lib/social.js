@@ -130,7 +130,20 @@ export default async function socialApi(req, res) {
   try {
     if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
     if (await isDbCron(req)) { // geplande taak: posts waarvan het tijdstip voorbij is
-      const sb = admin(); const { data } = await sb.from("social_posts").select("id,data").eq("status", "gepland").lte("plan", nu()).limit(5);
+      const sb = admin();
+      // beheerder (met de sleutel van de geplande taken): een concept klaarzetten met een foto van de eigen website
+      let cb = req.body || {}; if (typeof cb === "string") { try { cb = JSON.parse(cb); } catch { cb = {}; } }
+      if (cb.actie === "concept") {
+        const p = schoon({ ...(cb.post || {}), fotos: [] }); const fu = String(cb.fotoUrl || "");
+        if (fu) { if (!/^https:\/\/vbha\.be\/w\/[\w.-]+\.jpe?g$/i.test(fu)) throw httpErr(400, "Foto enkel van vbha.be/w/");
+          const r = await fetch(fu); if (!r.ok) throw httpErr(400, "Foto niet gevonden"); const buf = Buffer.from(await r.arrayBuffer());
+          const pad = `Social/${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}.jpg`;
+          const { error: ue } = await sb.storage.from(BUCKET).upload(pad, buf, { contentType: "image/jpeg" }); if (ue) throw ue;
+          p.fotos = [{ pad, w: Number(cb.w) || null, h: Number(cb.h) || null }]; }
+        const id = "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const { error } = await sb.from("social_posts").insert({ id, data: { ...p, door: "Claude", gemaakt: nu() }, status: "concept", plan: null, gewijzigd: nu() }); if (error) throw error;
+        return res.status(200).json({ ok: true, id });
+      } const { data } = await sb.from("social_posts").select("id,data").eq("status", "gepland").lte("plan", nu()).limit(5);
       const uit = []; for (const r of data || []) uit.push(await publiceer(sb, r));
       return res.status(200).json({ ok: true, gepubliceerd: uit.filter(Boolean).length });
     }
