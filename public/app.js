@@ -3184,7 +3184,7 @@ ICON.check='<path d="M5 12.5l4.5 4.5L19 7.5"/>';
 const KAL_T={mee:"Meegegeven",klaar:"Afgewerkt",terug:"Teruggebracht",corr:"Correctie"};
 const kalDt=s=>{const d=new Date(s);return isNaN(d)?"":d.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})+" "+d.toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})};
 const kalFmt=n=>Number(n||0).toLocaleString("nl-BE",{maximumFractionDigits:2});
-const kalDoos=n=>n===1?"1 doos":kalFmt(n)+" dozen";
+const kalDoos=n=>n===1?"1 doos":n===0.5?"een halve doos":kalFmt(n)+" dozen";
 const KAL_REST=[[1,"Volle doos"],[0.75,"¾ doos"],[0.5,"½ doos"],[0.25,"¼ doos"]];
 const kalRestTxt=r=>(KAL_REST.find(x=>x[0]===r)||[0,""])[1].toLowerCase();
 function kalLaatste(j){const L=j.kalLog||[];return L.length?L[L.length-1]:null}
@@ -3210,11 +3210,12 @@ function kalTable(){
 
 /* aantal kiezen: grote − en + en snelkeuzes */
 function kalAantal(id,start,max){return `<div class="kal-pick" data-max="${max==null?"":max}"><button type="button" class="kal-pb" data-kp="-1" aria-label="Eén minder">−</button>
-  <input id="${id}" class="kal-pn" type="number" inputmode="numeric" min="1"${max!=null?` max="${max}"`:""} value="${start}" aria-label="Aantal dozen"><button type="button" class="kal-pb" data-kp="1" aria-label="Eén meer">+</button></div>
-  <div class="kal-chips">${[1,2,3,5,10].filter(n=>max==null||n<=max).map(n=>`<button type="button" class="kal-chip" data-kc="${n}">${n}</button>`).join("")}${max!=null&&max>1&&![1,2,3,5,10].includes(max)?`<button type="button" class="kal-chip" data-kc="${max}">alle ${max}</button>`:""}</div>`}
-function kalLees(id,max){let n=parseInt(($("#"+id)||{}).value,10);if(!(n>0))return 0;if(max!=null)n=Math.min(n,max);return n}
+  <input id="${id}" class="kal-pn" type="number" inputmode="decimal" step="0.5" min="0.5"${max!=null?` max="${max}"`:""} value="${start}" aria-label="Aantal dozen"><button type="button" class="kal-pb" data-kp="1" aria-label="Eén meer">+</button></div>
+  <div class="kal-chips"><button type="button" class="kal-chip" data-kc="0.5">½</button>${[1,2,3,5,10].filter(n=>max==null||n<=max).map(n=>`<button type="button" class="kal-chip" data-kc="${n}">${n}</button>`).join("")}${max!=null&&max>1&&![1,2,3,5,10].includes(max)?`<button type="button" class="kal-chip" data-kc="${max}">alle ${max}</button>`:""}</div>`}
+// halve dozen mogen: afronden op 0,5
+function kalLees(id,max){let n=Math.round(parseFloat(String(($("#"+id)||{}).value).replace(",","."))*2)/2;if(!(n>0))return 0;if(max!=null)n=Math.min(n,max);return n}
 document.addEventListener("click",e=>{const p=e.target.closest(".kal-pick [data-kp]");const c=e.target.closest("[data-kc]");
-  if(p){const box=p.closest(".kal-pick"),i=box.querySelector("input"),mx=box.dataset.max===""?Infinity:+box.dataset.max;i.value=Math.max(1,Math.min(mx,(parseInt(i.value,10)||0)+Number(p.dataset.kp)));i.dispatchEvent(new Event("input",{bubbles:true}))}
+  if(p){const box=p.closest(".kal-pick"),i=box.querySelector("input"),mx=box.dataset.max===""?Infinity:+box.dataset.max;i.value=Math.max(0.5,Math.min(mx,(parseFloat(i.value)||0)+Number(p.dataset.kp)));i.dispatchEvent(new Event("input",{bubbles:true}))}
   if(c){const i=document.querySelector(".modal .kal-pn");if(i){i.value=c.dataset.kc;i.dispatchEvent(new Event("input",{bubbles:true}))}}});
 
 function kalBeweeg(id,t,n,extra){const j=S.jaarleden.get(id);if(!j)return;const op=j.kalOpgehaald||0,ui=j.kalUitgevoerd||0,rs=j.kalTerugRest||0;
@@ -3231,7 +3232,7 @@ function kalUndoToast(msg,id){const t=$("#toast");t.className="toast";t.innerHTM
 function kalMee(id){const j=S.jaarleden.get(id);if(!j||!canWrite)return;const C=ctx(),k=kalStats(C),naam=kalNaam(j),op=j.kalOpgehaald||0;
   modal("Dozen meegeven",`<div class="stack kal-dlg"><p style="margin:0">Hoeveel dozen geef je mee aan <b>${esc(naam)}</b>?</p>${kalAantal("kalN",1,null)}
    <div class="kal-voor" id="kalVoor"></div></div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kalOk">Meegeven</button>`);
-  const upd=()=>{const n=kalLees("kalN");$("#kalVoor").innerHTML=n?`<div><span>${esc(naam)} heeft dan</span><b>${kalDoos(op+n)}</b><small>in handen (nu ${op})</small></div><div><span>Stock</span><b>${k.stock-n}</b><small>dozen (nu ${k.stock})</small></div>`:"";$("#kalOk").textContent=n?`${kalDoos(n)} meegeven`:"Meegeven";$("#kalOk").disabled=!n};
+  const upd=()=>{const n=kalLees("kalN");$("#kalVoor").innerHTML=n?`<div><span>${esc(naam)} heeft dan</span><b>${kalDoos(op+n)}</b><small>in handen (nu ${kalFmt(op)})</small></div><div><span>Stock</span><b>${kalFmt(k.stock-n)}</b><small>dozen (nu ${kalFmt(k.stock)})</small></div>`:"";$("#kalOk").textContent=n?`${kalDoos(n)} meegeven`:"Meegeven";$("#kalOk").disabled=!n};
   $("#kalN").addEventListener("input",upd);upd();setTimeout(()=>$("#kalN").select(),40);
   $("#kalOk").onclick=()=>{const n=kalLees("kalN");if(!n)return;closeModal();kalBeweeg(id,"mee",n)}}
 function kalKlaarForm(id){const j=S.jaarleden.get(id);if(!j||!canWrite||kalBeperkt())return;const naam=kalNaam(j),op=j.kalOpgehaald||0,ui=j.kalUitgevoerd||0,w=ctx().c.gewichten.kalenders;if(!op)return;
@@ -3239,20 +3240,20 @@ function kalKlaarForm(id){const j=S.jaarleden.get(id);if(!j||!canWrite||kalBeper
    <div class="seg kal-soort" role="radiogroup"><button type="button" class="on" data-ks="klaar">Volledig afgewerkt</button><button type="button" data-ks="terug">Onaangeroerd terug</button></div>
    ${kalAantal("kalN",op===1?1:1,op)}<div class="kal-voor" id="kalVoor"></div></div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kalOk">Bevestigen</button>`);
   let soort="klaar";const upd=()=>{const n=kalLees("kalN",op);
-    $("#kalVoor").innerHTML=!n?"":soort==="klaar"?`<div><span>Nog in handen</span><b>${op-n}</b><small>dozen</small></div><div><span>Afgewerkt</span><b>${ui+n}</b><small>dozen · +${n*w} punten</small></div>`:`<div><span>Nog in handen</span><b>${op-n}</b><small>dozen</small></div><div><span>Terug in stock</span><b>+${n}</b><small>geen punten</small></div>`;
+    $("#kalVoor").innerHTML=!n?"":soort==="klaar"?`<div><span>Nog in handen</span><b>${kalFmt(op-n)}</b><small>dozen</small></div><div><span>Afgewerkt</span><b>${kalFmt(ui+n)}</b><small>dozen · +${n*w} punten</small></div>`:`<div><span>Nog in handen</span><b>${op-n}</b><small>dozen</small></div><div><span>Terug in stock</span><b>+${n}</b><small>geen punten</small></div>`;
     $("#kalOk").textContent=!n?"Bevestigen":soort==="klaar"?`${kalDoos(n)} afgewerkt`:`${kalDoos(n)} terug in stock`;$("#kalOk").disabled=!n};
   document.querySelectorAll("[data-ks]").forEach(b=>b.onclick=()=>{soort=b.dataset.ks;document.querySelectorAll("[data-ks]").forEach(x=>x.classList.toggle("on",x===b));upd()});
   $("#kalN").addEventListener("input",upd);upd();
   $("#kalOk").onclick=()=>{const n=kalLees("kalN",op);if(!n)return;closeModal();kalBeweeg(id,soort,n)}}
 function kalLogForm(id){const j=S.jaarleden.get(id);if(!j)return;const naam=kalNaam(j),L=[...(j.kalLog||[])].reverse();
-  modal(naam,`<div class="stack" style="gap:14px"><div class="kal-voor"><div><span>In handen</span><b>${j.kalOpgehaald||0}</b><small>dozen</small></div><div><span>Afgewerkt</span><b>${j.kalUitgevoerd||0}</b><small>dozen</small></div></div>
+  modal(naam,`<div class="stack" style="gap:14px"><div class="kal-voor"><div><span>In handen</span><b>${kalFmt(j.kalOpgehaald)}</b><small>dozen</small></div><div><span>Afgewerkt</span><b>${kalFmt(j.kalUitgevoerd)}</b><small>dozen</small></div></div>
    <div><div class="lbl" style="margin-bottom:6px">Geschiedenis</div>${L.length?`<div class="kal-log">${L.map((l,i)=>`<div><span class="kal-lt ${l.t}">${KAL_T[l.t]||l.t}</span><b>${l.t==="corr"&&l.van&&l.naar?`in handen ${kalFmt(l.van.op)}→${kalFmt(l.naar.op)}, afgewerkt ${kalFmt(l.van.ui)}→${kalFmt(l.naar.ui)}`:kalDoos(l.n)+(l.t==="terug"&&l.rest?` (${kalRestTxt(l.rest)} over)`:"")}</b><span class="muted">${esc(kalDt(l.at))}${l.door?" · "+esc(l.door):""}${l.reden?" · "+esc(l.reden):""}</span></div>`).join("")}</div>`:'<div class="muted small">Nog geen bewegingen geregistreerd (aantallen van voor dit systeem).</div>'}</div>
-   ${canWrite&&!kalBeperkt()?`<details class="kal-corr"><summary>Aantallen corrigeren</summary><div class="form" style="margin-top:10px">${fld("kcO","In handen",`<input id="kcO" type="number" min="0" inputmode="numeric" value="${j.kalOpgehaald||0}">`)}${fld("kcU","Afgewerkt",`<input id="kcU" type="number" min="0" inputmode="numeric" value="${j.kalUitgevoerd||0}">`)}${fld("kcR","Reden",'<input id="kcR" maxlength="120" placeholder="bv. telfout bij het meegeven">',"full")}<div class="full"><button type="button" class="btn" id="kcOk">Correctie bewaren</button></div></div></details>`:""}</div>`,
+   ${canWrite&&!kalBeperkt()?`<details class="kal-corr"><summary>Aantallen corrigeren</summary><div class="form" style="margin-top:10px">${fld("kcO","In handen",`<input id="kcO" type="number" min="0" step="0.5" inputmode="numeric" value="${j.kalOpgehaald||0}">`)}${fld("kcU","Afgewerkt",`<input id="kcU" type="number" min="0" step="0.5" inputmode="numeric" value="${j.kalUitgevoerd||0}">`)}${fld("kcR","Reden",'<input id="kcR" maxlength="120" placeholder="bv. telfout bij het meegeven">',"full")}<div class="full"><button type="button" class="btn" id="kcOk">Correctie bewaren</button></div></div></details>`:""}</div>`,
    `${canWrite&&!kalBeperkt()&&L.length&&L[0].van?'<button class="btn" id="kalUndoB" style="margin-right:auto">Laatste ongedaan maken</button>':""}${ROL==="admin"?`<button class="btn ghost danger" id="kalWeg"${(j.kalOpgehaald||0)||(j.kalUitgevoerd||0)?' disabled title="Zet eerst de aantallen op 0 (Aantallen corrigeren)."':""}${L.length&&L[0].van?"":' style="margin-right:auto"'}>Uit de lijst verwijderen</button>`:""}<button class="btn primary" data-act="closeModal">Sluiten</button>`);
   const w=$("#kalWeg");if(w)w.onclick=()=>confirmBox(`<b>${esc(naam)}</b> uit de kalenderlijst van ${JAAR} verwijderen?`,"Verwijderen",async()=>{const cur=S.jaarleden.get(id);if(!cur)return;
     try{if(!cur.lidId){await write("jaarleden",id,null,{del:true});S.jaarleden.delete(id)}else await setJLid(id,{kalToegevoegd:false,kalLog:[]});toast(naam+" staat niet meer in de lijst.")}catch(x){toast("Verwijderen lukte niet: "+(x.message||x),true)}dirty=true;renderBody()});
   const u=$("#kalUndoB");if(u)u.onclick=()=>{closeModal();kalUndo(id)};
-  const c=$("#kcOk");if(c)c.onclick=()=>{const o=Math.max(0,parseInt($("#kcO").value,10)||0),ui=Math.max(0,parseInt($("#kcU").value,10)||0),r=$("#kcR").value.trim();if(o===(j.kalOpgehaald||0)&&ui===(j.kalUitgevoerd||0)){closeModal();return}closeModal();kalBeweeg(id,"corr",0,{op:o,ui,reden:r})}}
+  const c=$("#kcOk");if(c)c.onclick=()=>{const o=Math.max(0,Math.round((parseFloat(String($("#kcO").value).replace(",","."))||0)*2)/2),ui=Math.max(0,Math.round((parseFloat(String($("#kcU").value).replace(",","."))||0)*2)/2),r=$("#kcR").value.trim();if(o===(j.kalOpgehaald||0)&&ui===(j.kalUitgevoerd||0)){closeModal();return}closeModal();kalBeweeg(id,"corr",0,{op:o,ui,reden:r})}}
 
 /* persoon toevoegen: typen en de naam vult aan */
 function kalToevoegen(){
