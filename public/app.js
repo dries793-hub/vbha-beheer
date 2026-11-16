@@ -351,7 +351,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   const st={GOUD:0,ZILVER:0,BRONS:0,GEEN:0,"niet actief":0};cur.forEach(r=>st[r.status]++);
   const actief=st.GOUD+st.ZILVER+st.BRONS+st.GEEN;
   const nieuw=cur.filter(r=>r.lid.lidSinds===JAAR).length;
-  const jub=cur.filter(r=>r.jaren===25||(r.lid.categorie==="Erewacht"&&+r.lid.erewachtSinds===JAAR)).sort((a,b)=>(a.lid.naam||"").localeCompare(b.lid.naam||"","nl"));
+  const jub=cur.filter(r=>r.jaren===25||(r.lid.categorie==="Erewacht"&&+r.lid.erewachtSinds===JAAR)).sort((a,b)=>(b.jaren===25)-(a.jaren===25)||(a.lid.naam||"").localeCompare(b.lid.naam||"","nl"));
   const cats0=Object.entries(C.perCat).map(([k,v])=>({k,net:v.in-v.uit,...v})).sort((a,b)=>Math.abs(b.net)-Math.abs(a.net));
   const andJ=c=>{const m=String(c.k).match(/\b(19|20)\d{2}\b/g);return !!m&&!m.includes(String(JAAR))};
   const cats=cats0.filter(c=>!andJ(c));
@@ -370,7 +370,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
     <div class="stackcol">
       <div class="panel"><div class="panel-h"><h2>Status leden</h2></div><div class="panel-b">${stDonut(st,actief)}</div></div>
       <div class="panel"><div class="panel-h"><h2>Jubilarissen ${JAAR}</h2></div><div class="panel-b"><div class="list">
-        ${jub.length?jub.map(r=>`<div class="li"><span class="grow trunc"><b>${esc(naamVol(r.lid))}</b></span>${r.jaren===25?`<span class="pill warn">25 jaar lid</span>`:""}${r.lid.categorie==="Erewacht"&&+r.lid.erewachtSinds===JAAR?`<span class="pill">Erewacht</span>`:""}<span class="muted">lid sinds ${r.lid.lidSinds}</span></div>`).join(""):'<div class="empty" style="padding:8px 0">Geen jubilarissen dit jaar.</div>'}
+        ${jub.length?jub.map(r=>`<div class="li"><span class="grow trunc"><b>${esc(naamVol(r.lid))}</b></span>${r.jaren===25?`<span class="pill warn">25 jaar lid</span>`:""}${r.lid.categorie==="Erewacht"&&+r.lid.erewachtSinds===JAAR?`<span class="pill info">Erewacht</span>`:""}</div>`).join(""):'<div class="empty" style="padding:8px 0">Geen jubilarissen dit jaar.</div>'}
       </div></div></div>
     </div>
     <div class="panel"><div class="panel-h"><h2>Meeste punten</h2><span class="grow"></span><label class="mp-b small"><input type="checkbox" id="mpBestuur"${mpB?" checked":""}> Bestuursleden</label></div><div class="panel-b ag-top"><div class="list">
