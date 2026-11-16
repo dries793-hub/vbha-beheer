@@ -369,8 +369,8 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   <div class="grid g2 eq">
     <div class="stackcol">
       <div class="panel"><div class="panel-h"><h2>Status leden</h2></div><div class="panel-b">${stDonut(st,actief)}</div></div>
-      <div class="panel"><div class="panel-h"><h2>Jubilarissen ${JAAR}</h2></div><div class="panel-b"><div class="list">
-        ${jub.length?jub.map(r=>`<div class="li"><span class="grow trunc"><b>${esc(naamVol(r.lid))}</b></span>${r.jaren===25?`<span class="pill warn">25 jaar lid</span>`:""}${r.lid.categorie==="Erewacht"&&+r.lid.erewachtSinds===JAAR?`<span class="pill info">Erewacht</span>`:""}</div>`).join(""):'<div class="empty" style="padding:8px 0">Geen jubilarissen dit jaar.</div>'}
+      <div class="panel"><div class="panel-h"><h2>Huldigingen ${JAAR}</h2></div><div class="panel-b"><div class="list">
+        ${jub.length?jub.map(r=>`<div class="li"><span class="grow trunc"><b>${esc(naamVol(r.lid))}</b></span>${r.jaren===25?`<span class="pill warn">25 jaar lid</span>`:""}${r.lid.categorie==="Erewacht"&&+r.lid.erewachtSinds===JAAR?`<span class="pill info">Toetreden erewacht</span>`:""}</div>`).join(""):'<div class="empty" style="padding:8px 0">Geen jubilarissen dit jaar.</div>'}
       </div></div></div>
     </div>
     <div class="panel"><div class="panel-h"><h2>Meeste punten</h2><span class="grow"></span><label class="mp-b small"><input type="checkbox" id="mpBestuur"${mpB?" checked":""}> Bestuursleden</label></div><div class="panel-b ag-top"><div class="list">
