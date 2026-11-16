@@ -4910,7 +4910,7 @@ function kaPopup(a){return `<div class="ka-pop"><b>${esc(a.adres)}</b>
   <div class="ka-meta">${a.tochNiet?"<b style=\"color:var(--accent)\">Toch niet ontvangen</b> (straat stond als bedeeld) · ":""}Gevraagd op ${esc(kaDT(a.aangemeld))}${a.status==="gedaan"?" · ✓ kalender gebust":""}</div>
   ${canWrite?`<button type="button" class="btn sm${a.status==="gedaan"?"":" primary"}" data-ka="status" data-id="${esc(a.id)}">${a.status==="gedaan"?"Terug op open":"✓ Kalender gebust"}</button>`:""}</div>`}
 function kaTeken(){if(!KR.map||!window.L)return;if(!KA.laag)KA.laag=L.layerGroup().addTo(KR.map);KA.laag.clearLayers();if(!KA.toon)return;
-  for(const a of kaLijst()){if(a.lat==null||a.lng==null)continue;const gedaan=a.status==="gedaan";
+  for(const a of kaLijst()){if(a.lat==null||a.lng==null||a.status==="gedaan")continue;const gedaan=a.status==="gedaan";
     const m=L.marker([a.lat,a.lng],{icon:L.divIcon({className:"ka-dot"+(gedaan?" ok":""),iconSize:[18,18],iconAnchor:[9,9]}),title:a.adres,keyboard:true,zIndexOffset:gedaan?0:1000,riseOnHover:true});
     m.bindPopup(()=>kaPopup(S.kalenderaanvragen.get(a.id)||a),{className:"ka-popup",maxWidth:280,offset:[0,-4]});m.on("click",e=>L.DomEvent.stopPropagation(e));m.on("popupopen",e=>{const el=e.popup.getElement(),b=el&&el.querySelector('[data-ka="status"]');if(b)b.onclick=ev=>{ev.preventDefault();ev.stopPropagation();KR.map.closePopup();kaStatus(b.dataset.id)}});m._kaId=a.id;KA.laag.addLayer(m)}}
 function kaToon(id){const a=S.kalenderaanvragen.get(id);if(!a||a.lat==null||!KR.map)return;$("#krSlot")&&$("#krSlot").scrollIntoView({block:"center",behavior:"smooth"});
