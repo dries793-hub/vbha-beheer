@@ -8982,7 +8982,7 @@ if(typeof FUNC!=="undefined"&&!FUNC.some(f=>f[0]==="jaardocumenten")){const k=FU
 {const _r=recht;recht=function(r){if(r==="jaardocumenten"&&ROL!=="admin"){const v=RECHTEN&&ROL===ROL_ECHT?RECHTEN.jaardocumenten:null;return v||(ROL==="boekhouder"?"bewerken":"geen")}return _r.apply(this,arguments)}}
 VIEWS.jaardocumenten=()=>({title:"Jaardocumenten",body(){return recht("jaardocumenten")==="geen"?'<div class="panel"><div class="empty">Enkel voor de administrator en de boekhouder.</div></div>':jdPanel()}});
 function jdPanel(){
-    const J=[...S.jaren.keys()].map(Number).filter(Boolean).sort((a,b)=>b-a),def=J.includes(Number(JAAR)-1)?Number(JAAR)-1:Number(JAAR);
+    const J=[...S.jaren.keys()].map(Number).filter(Boolean).sort((a,b)=>b-a),def=Number(JAAR);
     const rij=(s,l)=>`<div class="jd-r"><b>${l}</b><span class="grow"></span><button type="button" class="btn sm" data-jd="pdf" data-s="${s}">${ic("download")}PDF</button><button type="button" class="btn sm" data-jd="xlsx" data-s="${s}">${ic("download")}Excel</button></div>`;
     return `<div class="panel"><div class="panel-h"><h2>Jaardocumenten</h2><select class="sel" id="jdJ" aria-label="Boekjaar" style="width:auto">${J.map(y=>`<option${y===def?" selected":""}>${y}</option>`).join("")}</select></div><div class="panel-b stack">${rij("rekening","Jaarrekening")}${rij("verslag","Jaarverslag")}</div></div>`}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-jd]");if(!b)return;const Y=Number(($("#jdJ")||{}).value)||Number(JAAR);
