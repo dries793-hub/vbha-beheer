@@ -9174,8 +9174,7 @@ if(!ICON.social)ICON.social='<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="
 .tabbar a,.tabbar button{flex:1 1 0;padding:6px 0 4px;gap:4px;font-size:10px!important;letter-spacing:-.02em}.tabbar svg{width:21px;height:21px}}`;document.head.appendChild(st)}
 
 /* ============ Kalenderronde: delen van een straat gebruiksvriendelijker ============
-   - Bij een straat die uit meerdere stukken bestaat, staan de stukken meteen in de kaart als genummerde knopjes (kleur = status).
-     Een knopje aantikken opent de deelmodus met dat stuk gekozen; geen verborgen link meer nodig.
+   - Standaard de hele straat; via "Straat in stukken verdelen" komt de deelmodus.
    - In de deelmodus: lijst van de stukken ("1 · tussen Kerkstraat en Molenstraat · ± 24 adressen") met Alles/Niets,
      nummers op de kaart bij elk stuk en een breder aanraakvlak op de kaart.
    Bouwt verder op krCard en krSegTeken (app_core); de status zetten blijft via de knoppen Te doen / Reserveren / Gedaan. */
@@ -9195,7 +9194,8 @@ function krdKaart(){const c=KR.host&&KR.host.querySelector("#krCard");if(!c)retu
   const kd=c.querySelector("#krDeel");
   if(c.hidden||KR.ss.size>1){z.hidden=true;return}
   const sid=KR.deel||KR.sel,segs=sid?KR_DELEN.get(sid)||[]:[];if(segs.length<2){z.hidden=true;return}
-  if(kd)kd.hidden=!KR.deel; // "Terug naar de hele straat" blijft in de deelmodus
+  // standaard de hele straat; de stukken pas na "Straat in stukken verdelen"
+  if(!KR.deel){z.hidden=true;if(kd&&!kd.hidden&&/Slechts een deel/.test(kd.textContent))kd.textContent="Straat in stukken verdelen";return}
   z.hidden=false;
   if(!KR.deel){ // gewone weergave: de stukken als knopjes
     z.innerHTML=`<div class="krd-l">Stukken</div><div class="krd-c">${segs.map(x=>`<button type="button" class="krd-n s-${krdStat(x)}" data-krd="${esc(x.id)}" title="${esc(["Stuk "+x.nr,krdTussen(x),"± "+x.a+" adressen"].filter(Boolean).join(" · "))}"${canWrite?"":" disabled"}>${x.nr}</button>`).join("")}</div>`;return}
