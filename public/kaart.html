@@ -2696,7 +2696,8 @@ function krGeo(sid){if(!KRE.geo){const t0=Date.now(),cos=Math.cos(50.94*Math.PI/
    GRB-basiskaart (grijs gefilterd), en anders OpenStreetMap (grijs gefilterd). Straten krijgen een witte rand (casing). ---- */
 function krTegels(map){if(KR.tegels)return;const W="https://geo.api.vlaanderen.be/GRB/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&STYLE=&FORMAT=image/png&TILEMATRIXSET=GoogleMapsVL&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&LAYER=";
   const GRB='Achtergrond: GRB, <a href="https://www.vlaanderen.be/digitaal-vlaanderen" target="_blank" rel="noopener">Digitaal Vlaanderen</a>';
-  const B=[{url:W+"grb_bsk_grijs",attr:GRB,max:20,cls:""},{url:W+"grb_bsk",attr:GRB,max:20,cls:"kr-grijs"},{url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",attr:'Achtergrond © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',max:19,cls:"kr-grijs"}];
+  const B=[{url:"https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",attr:'Achtergrond © Esri, © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-bijdragers',max:16,cls:"kr-esri"},
+    {url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",attr:'Achtergrond © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',max:19,cls:"kr-grijs"},{url:W+"grb_bsk_grijs",attr:GRB,max:20,cls:""}];
   let i=0;const zet=()=>{const b=B[i];if(KR.tegels)map.removeLayer(KR.tegels);let ok=0,fout=0;
     const t=L.tileLayer(b.url,{maxZoom:20,maxNativeZoom:b.max,attribution:b.attr,className:"kr-tegels "+b.cls,errorTileUrl:"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"});
     t.on("tileload",()=>{ok++});t.on("tileerror",()=>{fout++;if(!ok&&fout>=4&&i<B.length-1){i++;zet()}});t.addTo(map);KR.tegels=t};zet()}
@@ -2705,11 +2706,11 @@ function krCasing(){if(!KR.map)return;const w=krDikte(KR.map.getZoom());
     for(const s of KR_STREETS)KR.casing.addLayer(L.polyline(krGeo(s.id),{renderer:r,pane:"krCase",interactive:false,color:"#ffffff",lineCap:"round",lineJoin:"round",opacity:.95}));KR.casing.addTo(KR.map)}
   const cw=w[0]+4;if(KR.casingW!==cw){KR.casingW=cw;KR.casing.eachLayer(l=>l.setStyle({weight:cw}))}}
 {const st=document.createElement("style");st.textContent=`.leaflet-pane,.leaflet-tile,.leaflet-tile-container,.leaflet-layer{position:absolute;left:0;top:0}.leaflet-tile-pane{z-index:200}.leaflet-tile{visibility:hidden;border:0;max-width:none!important;max-height:none!important;user-select:none;-webkit-user-drag:none}.leaflet-tile-loaded{visibility:inherit}.leaflet-zoom-animated{transform-origin:0 0}
-.kr-tegels{filter:saturate(.2) contrast(.95) brightness(1.04)}.kr-tegels.kr-grijs{filter:grayscale(1) contrast(.9) brightness(1.08)}
+.kr-tegels{filter:saturate(.2) contrast(.95) brightness(1.04)}.kr-tegels.kr-esri{filter:none}.kr-tegels.kr-grijs{filter:grayscale(1) contrast(.9) brightness(1.08)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .kr-tegels{filter:grayscale(1) invert(.9) contrast(.85) brightness(.9)}}:root[data-theme="dark"] .kr-tegels{filter:grayscale(1) invert(.9) contrast(.85) brightness(.9)}`;document.head.appendChild(st)}
 
 /* enkel de vier deelgemeenten tonen: alles erbuiten afdekken in de achtergrondkleur, met een stippellijn op de grens */
-function krMaskStijl(){if(!KR.bg||!KR.bg.mask)return;const out=krVar("--kr-out")||"#F5F6F8";KR.bg.mask.setStyle({fillColor:out,fillOpacity:.96,stroke:false});if(KR.bg.grens)KR.bg.grens.setStyle({color:krVar("--muted")||"#888",weight:1.5,dashArray:"6 5",opacity:.9})}const krAdr=n=>n===1?"adres":"adressen";
+function krMaskStijl(){if(!KR.bg||!KR.bg.mask)return;const out=krVar("--kr-out")||"#F5F6F8";KR.bg.mask.setStyle({fillColor:out,fillOpacity:1,stroke:false});if(KR.bg.grens)KR.bg.grens.setStyle({color:krVar("--muted")||"#888",weight:1.5,dashArray:"6 5",opacity:.9})}const krAdr=n=>n===1?"adres":"adressen";
 const krNum=n=>n.toLocaleString("nl-BE");
 const krFold=t=>t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const KR_SORTED=[...KR_STREETS].sort((a,b)=>a.n.localeCompare(b.n,"nl")||a.w.localeCompare(b.w,"nl"));
