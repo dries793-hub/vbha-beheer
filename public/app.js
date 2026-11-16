@@ -8718,7 +8718,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   const freq=new Map();for(const a of A)freq.set(a,(freq.get(a)||0)+1);const vaak=[...freq.entries()].sort((x,y)=>y[1]-x[1]||y[0]-x[0])[0];
   const tile=(l,v,s)=>`<div class="tile"><span class="lbl">${l}</span><span class="val">${v}</span>${s?`<span class="muted small">${s}</span>`:""}</div>`;
   // verdeling van de bedragen
-  const SCH=[[0,5,"5€"],[5,10,"10€"],[10,15,"15€"],[15,20,"20€"],[20,25,"25€"],[25,50,"50€"],[50,75,"75€"],[75,100,"100€"],[100,1e9,"> 100€"]];
+  const SCH=[[0,5,"5€"],[5,10,"10€"],[10,15,"15€"],[15,20,"20€"],[20,25,"25€"],[25,30,"30€"],[30,40,"40€"],[40,50,"50€"],[50,60,"60€"],[60,100,"100€"],[100,1e9,"> 100€"]];
   const inS=(x,a,b)=>x>a+1e-9&&x<=b+1e-9||(a===0&&x<=b);
   KF.P=PQ.concat(PO);KF.SCH=SCH;KF.inS=inS;
   const verd=SCH.map(([a,b,l])=>({l,q:PQ.filter(x=>inS(x.a,a,b)).length,o:PO.filter(x=>inS(x.a,a,b)).length,get n(){return this.q+this.o}}));const vm=Math.max(1,...verd.map(v=>v.n));
