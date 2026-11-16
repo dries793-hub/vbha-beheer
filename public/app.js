@@ -6814,7 +6814,7 @@ const FUNC=[["leden","Ledenlijst",["leden"],"Leden"],["punten","Puntensysteem",[
   ["overzicht","Overzicht",["boekhouding"],"Financiën"],["financien","Transacties",["boekingen","verwerken"],"Financiën"],["facturen","Facturen",["facturen","inkomend"],"Financiën"],["begroting","Begroting",["begroting"],"Financiën"],["historiek","Historiek",["historiek"],"Financiën"],
   ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"],"Activiteiten"],["kalverdeling","Dozen meegeven of terugbrengen",[],"Activiteiten"],["fuif","In Vier en Vlam",["fuif"],"Activiteiten"],["banket","Banket",["banket"],"Activiteiten"],["kinderfeest","Kinderfeest",["kinderfeest"],"Activiteiten"],["kassa","Kassa",["kassa"],"Activiteiten"],["shiften","Shiften",["shiften"],"Activiteiten"],["webshop","Webshop",["webshop"],"Activiteiten"],
   ["agenda","Agenda en verslagen",["agenda","verslagen"],"Vereniging"],["sponsors","Sponsors",["sponsors"],"Vereniging"],["documenten","Documenten",["documenten"],"Vereniging"],
-  ["mails","Mail",["mails"],"Communicatie"],["sms","Sms",["sms"],"Communicatie"],["social","Sociale media",["social"],"Communicatie"],["website","Website",["website"],"Communicatie"],["fotos","Fotoalbums",["fotos"],"Communicatie"]]
+  ["mails","Mail",["mails"],"Media"],["sms","Sms",["sms"],"Media"],["social","Sociale media",["social"],"Media"],["website","Website",["website"],"Media"],["fotos","Fotoalbums",["fotos"],"Media"]]
 const FUNC_VAN={};for(const [f,,rs] of FUNC)for(const r of rs)FUNC_VAN[r]=f;
 const RECHT_LBL={geen:"Verborgen",lezen:"Lezen",bewerken:"Bewerken"};
 function rechtenVanProfiel(rol){const o={};for(const [f] of FUNC)o[f]=rol==="admin"?"bewerken":rol==="boekhouder"&&["financien","facturen","terug","overzicht","historiek","begroting"].includes(f)?"bewerken":"lezen";return o}
@@ -8605,7 +8605,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest("#rgAlle");
 const RJ_BASIS=f=>["financien","facturen","begroting","historiek"].includes(f)?"geen":f==="kalverdeling"?"bewerken":"lezen";
 const RJ=[["bestuur","Bestuurslid",{}],["kalender","Kalenderverantwoordelijke",{kalenders:"bewerken",kalverdeling:"bewerken"}],
   ["activiteit","Kassa en activiteiten",{kassa:"bewerken",fuif:"bewerken",banket:"bewerken",kinderfeest:"bewerken",familiedag:"bewerken",shiften:"bewerken",webshop:"bewerken"}],
-  ["communicatie","Communicatie",{mails:"bewerken",social:"bewerken",sms:"bewerken",website:"bewerken",fotos:"bewerken",agenda:"bewerken"}],
+  ["communicatie","Media",{mails:"bewerken",social:"bewerken",sms:"bewerken",website:"bewerken",fotos:"bewerken",agenda:"bewerken"}],
   ["financieel","Financieel",{financien:"bewerken",facturen:"bewerken",begroting:"bewerken",historiek:"lezen",overzicht:"bewerken",sponsors:"bewerken",kalverdeling:"lezen"}],
   ["lezen","Alles lezen",{financien:"lezen",facturen:"lezen",begroting:"lezen",historiek:"lezen",kalverdeling:"lezen"}]];
 {const _h=rgHtml;rgHtml=function(u){const h=_h.apply(this,arguments);if(!h.includes('class="rg-snel"'))return h;
@@ -8654,8 +8654,10 @@ addEventListener("hashchange",()=>{if(route()==="kliks"){MK.data=null;MK.fout=nu
 {const c=NAV.find(n=>!Array.isArray(n)&&n.id==="communicatie");if(c&&!c.items.some(i=>i[0]==="statistieken"))c.items.push(["statistieken","Statistieken"])}
 if(!ROUTES.some(r=>r[0]==="statistieken"))ROUTES.push(["statistieken","Statistieken"]);
 ICON.statistieken='<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>';
-if(typeof FUNC!=="undefined"&&!FUNC.some(f=>f[0]==="statistieken")){FUNC.push(["statistieken","Statistieken",["statistieken"],"Communicatie"]);FUNC_VAN.statistieken="statistieken"}
+if(typeof FUNC!=="undefined"&&!FUNC.some(f=>f[0]==="statistieken")){FUNC.push(["statistieken","Statistieken",["statistieken"],"Media"]);FUNC_VAN.statistieken="statistieken"}
 const ST={per:30,data:null,social:null,bezig:false,fout:null};
+const tile=(l,v,uit)=>`<div class="tile"${uit?` data-tu="${esc(uit)}"`:""}><span class="lbl">${l}</span><span class="val">${v}</span></div>`;
+const ST_IC={hart:'<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',com:'<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',deel:'<svg viewBox="0 0 24 24"><path d="M14 5l6 6-6 6M20 11H9a5 5 0 0 0-5 5v2"/></svg>'};
 const ST_PAD={"/":"Startpagina","/shop":"Webshop","/steun":"Steunen","/kalender":"Kalender","/fuif":"In Vier en Vlam","/familiedag":"Familiedag","/kinderfeest":"Kinderfeest","/banket":"Banket","/album":"Fotoalbums","/inschrijven":"Inschrijven","/sponsor":"Sponsors","/privacy":"Privacy","/reglement":"Reglement","/lidgeld":"Lidgeld","andere":"Andere"};
 async function stLaad(){if(ST.bezig)return;ST.bezig=true;
   try{const j=await api("/api/mail?f=stats",{method:"POST",body:JSON.stringify({dagen:ST.per,social:!ST.social})});ST.data=j;if(!ST.social)ST.social={kanalen:j.social||[]};ST.social.stand=j.stand||[];ST.fout=null;ST.op=Date.now()}
@@ -8674,23 +8676,25 @@ function stWebsite(){const D=ST.data,P=ST.per,van=stDag(P-1),vor=stDag(2*P-1),R=
   const mx=Math.max(1,...B.values()),lbl=k=>maand?new Date(k+"-01").toLocaleDateString("nl-BE",{month:"short"}):new Date(k).toLocaleDateString("nl-BE",P>7?{day:"numeric"}:{weekday:"short"});
   const bars=[...B].map(([k,v])=>`<div class="st-c" title="${esc((maand?new Date(k+"-01").toLocaleDateString("nl-BE",{month:"long",year:"numeric"}):fmtDate(k))+": "+v+(v===1?" bezoek":" bezoeken"))}"><span class="st-v">${v||""}</span><span class="st-b" style="height:${Math.round(v/mx*100)}%"></span><span class="st-l">${esc(lbl(k))}</span></div>`).join("");
   const tbl=(t,L,map)=>`<div class="st-t"><h3>${t}</h3><table class="tbl"><thead><tr><th></th><th class="num">Bezoeken</th><th class="num">Weergaven</th></tr></thead><tbody>${L.slice(0,10).map(([k,[b,w]])=>`<tr><td>${esc(map?map[k]||k:k)}</td><td class="num">${stN(b)}</td><td class="num">${stN(w)}</td></tr>`).join("")||'<tr><td colspan="3" class="empty">Nog geen bezoeken.</td></tr>'}</tbody></table></div>`;
-  const tile=(l,v,sub)=>`<div class="tile"><span class="lbl">${l}</span><span class="val">${v}</span>${sub?`<span class="muted small">${sub}</span>`:""}</div>`;
-  return `<div class="panel"><div class="panel-h"><h2>Website</h2><span class="grow"></span>${D.sinds?`<span class="muted small">geteld sinds ${fmtDate(D.sinds)}</span>`:""}</div><div class="panel-b">
-    <div class="tiles st-tiles">${tile("Bezoeken",stN(bz),D.sinds&&D.sinds<=vor?"vorige periode: "+stN(bzO):"")}${tile("Paginaweergaven",stN(wg),bz?(wg/bz).toLocaleString("nl-BE",{maximumFractionDigits:1})+" per bezoek":"")}${tile("Via sociale media",stN(soc),"")}${tile("Op gsm",bz?Math.round(gsm/bz*100)+"%":"–","")}</div>
+  
+  return `<div class="panel"><div class="panel-h"><h2>Website</h2></div><div class="panel-b">
+    <div class="tiles st-tiles">${tile("Bezoeken",stN(bz),"Aantal keer dat iemand de website opende in deze periode (een bezoek kan meerdere pagina's tellen)."+(D.sinds&&D.sinds<=vor?" Vorige periode: "+stN(bzO)+".":""))}${tile("Paginaweergaven",stN(wg),"Aantal bekeken pagina's"+(bz?", gemiddeld "+(wg/bz).toLocaleString("nl-BE",{maximumFractionDigits:1})+" per bezoek":"")+".")}${tile("Via sociale media",stN(soc),"Bezoeken die binnenkwamen via Facebook of Instagram.")}${tile("Op gsm",bz?Math.round(gsm/bz*100)+"%":"–","Deel van de bezoeken op een gsm.")}</div>
     <div class="st-g${P>31?" st-g12":""}${P<=7?" st-g7":""}">${bars}</div>
     <div class="st-2">${tbl("Pagina's",groep("pad"),ST_PAD)}${tbl("Bronnen",groep("bron"))}</div></div></div>`}
 function stKanaal(k){const fb=k.kanaal==="facebook",M=k.metriek||{},St=(ST.social.stand||[]).filter(s=>s.kanaal===k.kanaal);
   const per=ST.per,van=stDag(per-1),eerst=St.find(s=>s.dag>=van),groei=eerst&&k.volgers!=null&&eerst.dag<stDag(0)?k.volgers-eerst.volgers:null;
-  const tile=(l,v,sub)=>`<div class="tile"><span class="lbl">${l}</span><span class="val">${v}</span>${sub?`<span class="muted small">${sub}</span>`:""}</div>`;
+  
   const kop=`<div class="panel-h"><h2>${fb?"Facebook":"Instagram"}</h2><span class="grow"></span>${k.link?`<a class="btn sm" href="${esc(k.link)}" target="_blank" rel="noopener">${ic("link")}${esc(fb?(k.naam||"Pagina"):"@"+(k.naam||""))}</a>`:""}</div>`;
   if(k.fout)return `<div class="panel">${kop}<div class="panel-b"><div class="muted small">${esc(k.fout)}</div></div></div>`;
-  const vg=tile("Volgers",stN(k.volgers),groei!=null?(groei>=0?"+":"")+groei+" sinds "+fmtDate(eerst.dag):"");
+  const vg=tile("Volgers",stN(k.volgers),(fb?"Mensen die de Facebookpagina volgen.":"Mensen die het Instagram-account volgen.")+(groei!=null?" "+(groei>=0?"+":"")+groei+" sinds "+fmtDate(eerst.dag)+".":""));
+  const UIT={Bereik:"Aantal verschillende mensen dat iets van ons zag, de laatste 28 dagen.",Weergaven:"Aantal keer dat onze berichten en pagina getoond werden, de laatste 28 dagen.",Interacties:"Likes, reacties, commentaren, delen en klikken op onze berichten, de laatste 28 dagen.",Paginabezoeken:"Aantal keer dat iemand de Facebookpagina zelf opende, de laatste 28 dagen.",Profielbezoeken:"Aantal keer dat iemand het Instagram-profiel opende, de laatste 28 dagen."};
   const C=fb?[["Bereik",M.bereik],["Weergaven",M.weergaven],["Interacties",M.interacties],["Paginabezoeken",M.bezoeken]]:[["Bereik",M.reach],["Interacties",M.total_interactions??M.accounts_engaged],["Profielbezoeken",M.profile_views]];
-  const t=[vg,...C.filter(([,v])=>v!=null).map(([l,v])=>tile(l,stN(v),"laatste 28 dagen"))];
+  const t=[vg,...C.filter(([,v])=>v!=null).map(([l,v])=>tile(l,stN(v),UIT[l]))];
   const mist=!C.some(([,v])=>v!=null)&&k.metriekFout&&Object.keys(k.metriekFout).length;
   const P=k.posts||[];
   return `<div class="panel">${kop}<div class="panel-b"><div class="tiles st-tiles">${t.join("")}</div>${mist?`<div class="muted small st-m">Bereik en interacties: het Meta-token mist het recht ${fb?"read_insights":"instagram_manage_insights"}.</div>`:""}
-    ${P.length?`<div class="tw"><table class="tbl st-p"><thead><tr><th>Bericht</th><th class="num">${fb?"Reacties":"Likes"}</th><th class="num">Comm.</th>${fb?'<th class="num">Gedeeld</th>':""}</tr></thead><tbody>${P.map(p=>`<tr><td><a href="${esc(p.url||"#")}" target="_blank" rel="noopener" class="st-pl">${p.foto?`<img src="${esc(p.foto)}" alt="" loading="lazy">`:""}<span><b>${esc(p.tekst?p.tekst.split("\n")[0].slice(0,80):"(zonder tekst)")}</b><span class="muted small">${p.op?fmtDate(String(p.op).slice(0,10)):""}</span></span></a></td><td class="num">${stN(p.reacties)}</td><td class="num">${stN(p.commentaren)}</td>${fb?`<td class="num">${stN(p.gedeeld)}</td>`:""}</tr>`).join("")}</tbody></table></div>`:k.postsFout?`<div class="muted small st-m">Berichten: het Meta-token mist het recht ${/pages_read_user_content/.test(k.postsFout)?"pages_read_user_content":esc(k.postsFout)}.</div>`:""}</div></div>`}
+    ${P.length?`<div class="st-pp">${P.map(p=>{const tk=p.tekst?p.tekst.split("\n")[0].slice(0,90):(p.soort||"Bericht");const n=(svg,v,l)=>`<span class="st-n" title="${l}">${svg}${stN(v||0)}</span>`;
+      return `<a href="${esc(p.url||"#")}" target="_blank" rel="noopener" class="st-r">${p.foto?`<img src="${esc(p.foto)}" alt="" loading="lazy">`:'<span class="st-ph"></span>'}<span class="st-tx"><b class="${p.tekst?"":"st-ze"}">${esc(tk)}</b><span class="muted small">${p.op?fmtDate(String(p.op).slice(0,10)):""}</span></span><span class="st-ns">${n(ST_IC.hart,p.reacties,fb?"Reacties":"Likes")}${n(ST_IC.com,p.commentaren,"Commentaren")}${fb?n(ST_IC.deel,p.gedeeld,"Gedeeld"):""}</span></a>`}).join("")}</div>`:k.postsFout?`<div class="muted small st-m">Berichten: het Meta-token mist het recht ${/pages_read_user_content/.test(k.postsFout)?"pages_read_user_content":esc(k.postsFout)}.</div>`:""}</div></div>`}
 VIEWS.statistieken=()=>({title:"Statistieken",sub:"Website en sociale media",
   actions:`<div class="seg" role="group" aria-label="Periode">${[[7,"7 dagen"],[30,"30 dagen"],[365,"12 maanden"]].map(([k,l])=>`<button type="button" data-st="${k}" class="${ST.per===k?"on":""}">${l}</button>`).join("")}</div>`,
   body(){if(!ST.data&&!ST.fout){setTimeout(stLaad,0);return '<div class="panel"><div class="empty"><span class="lader-c" style="display:inline-block;width:24px;height:24px;border-width:2px;vertical-align:middle"></span></div></div>'}
@@ -8707,8 +8711,12 @@ addEventListener("hashchange",()=>{if(route()==="statistieken"&&ST.op&&Date.now(
 .st-g:not(.st-g7):not(.st-g12) .st-v{display:none}.st-g:not(.st-g7):not(.st-g12) .st-c:nth-child(odd) .st-l{visibility:hidden}
 .st-m{margin:-6px 0 10px}.st-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.st-t h3{font-size:14px;margin:0 0 6px}
 .st-k{display:grid;grid-template-columns:1fr 1fr;gap:16px}.st-k .panel{margin:0}
-.st-pl{display:flex;gap:10px;align-items:center;color:inherit;text-decoration:none}.st-pl img{width:40px;height:40px;object-fit:cover;border-radius:6px;flex:none}.st-pl span{display:flex;flex-direction:column;min-width:0}.st-pl b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px}
-@media (max-width:860px){.st-2,.st-k{grid-template-columns:1fr}.st-pl b{max-width:190px}}`;document.head.appendChild(st)}
+.st-pp{border-top:1px solid var(--line)}.st-r{display:flex;align-items:center;gap:12px;padding:9px 2px;border-bottom:1px solid var(--line);color:inherit;text-decoration:none}.st-r:hover{background:var(--bg,#f7f7f8)}
+.st-r img,.st-ph{width:42px;height:42px;object-fit:cover;border-radius:7px;flex:none;background:var(--line)}
+.st-tx{flex:1;min-width:0;display:flex;flex-direction:column}.st-tx b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.st-tx b.st-ze{font-style:italic;color:var(--muted)}
+.st-ns{display:flex;gap:12px;flex:none;font-size:13px;font-variant-numeric:tabular-nums}.st-n{display:inline-flex;align-items:center;gap:4px;min-width:34px;justify-content:flex-end}
+.st-n svg{width:15px;height:15px;fill:none;stroke:var(--muted);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:860px){.st-2,.st-k{grid-template-columns:1fr}.st-ns{gap:8px}.st-n{min-width:28px}}`;document.head.appendChild(st)}
 
 /* ============ Instellingen: alles via knoppen bovenaan, instellingen van een onderdeel op dezelfde pagina ============
    De knoppen vervangen de tabbladen van Instellingen. Een onderdeel (Leden, Kassa, …) opent zijn instellingenvenster
@@ -9007,7 +9015,7 @@ function tuTekst(l){const r=(typeof NAV_ALIAS!=="undefined"&&NAV_ALIAS[route()])
 document.addEventListener("click",e=>{const old=document.getElementById("tuTip");const t=e.target.closest&&e.target.closest(".tile");
   if(old&&(!t||old.dataset.for!==String(t.dataset.tuid))){old.remove();document.querySelectorAll(".tile.tu-on").forEach(x=>x.classList.remove("tu-on"))}
   if(!t||t.closest("a,button")||e.target.closest("a,button,input,select,label")||t.matches("a"))return;
-  const l=t.querySelector(".lbl");const tx=l&&tuTekst(l.textContent);if(!tx)return;
+  const l=t.querySelector(".lbl");const tx=t.dataset.tu||(l&&tuTekst(l.textContent));if(!tx)return;
   if(old&&old.dataset.for===String(t.dataset.tuid)){old.remove();t.classList.remove("tu-on");return}
   t.dataset.tuid=t.dataset.tuid||Math.random().toString(36).slice(2);const d=document.createElement("div");d.id="tuTip";d.className="kf-tip tu-tip";d.dataset.for=t.dataset.tuid;d.textContent=tx;document.body.appendChild(d);t.classList.add("tu-on");
   const r=t.getBoundingClientRect();d.style.left=Math.max(8,Math.min(innerWidth-d.offsetWidth-8,r.left+r.width/2-d.offsetWidth/2))+"px";d.style.top=(r.bottom+scrollY+6)+"px"});
@@ -9034,7 +9042,7 @@ document.addEventListener("change",e=>{if(LIBS_OK||!(e.target&&e.target.type==="
   // Webshop bij Activiteiten, na Kassa
   if(act){const k=NAV.findIndex(n=>Array.isArray(n)&&n[0]==="webshop");if(k>=0){NAV.splice(k,1);const j=act.items.findIndex(i=>i[0]==="kassa");act.items.splice(j>=0?j+1:act.items.length,0,["webshop","Webshop"])}}
   if(com&&!G("vereniging")){const v={id:"vereniging",label:"Vereniging",items:[]};for(const id of ["agenda","sponsors","documenten"]){const it=weg(id);if(it)v.items.push(it)}
-    com.label="Communicatie";{const m=com.items.find(i=>i[0]==="mails");if(m)m[1]="Mail/Sms";if(!com.items.some(i=>i[0]==="social")){const k=com.items.indexOf(m);com.items.splice(k+1,0,["social","Sociale media"])}}NAV.splice(NAV.indexOf(com),0,v)}
+    com.label="Media";{const m=com.items.find(i=>i[0]==="mails");if(m)m[1]="Mail/Sms";if(!com.items.some(i=>i[0]==="social")){const k=com.items.indexOf(m);com.items.splice(k+1,0,["social","Sociale media"])}}NAV.splice(NAV.indexOf(com),0,v)}
   ICON.vereniging=ICON.vereniging||ICON.agenda||ICON.communicatie}
 // gsm: dezelfde knoppen als op de computer; "Communicatie" is te lang voor de onderbalk
 KORT.communicatie="Media";

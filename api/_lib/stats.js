@@ -50,6 +50,14 @@ const probeer = async f => { try { return await f(); } catch (e) { return { fout
 const som = j => (j && j.data && j.data[0] && (j.data[0].values || []).reduce((a, v) => a + (typeof v.value === "number" ? v.value : 0), 0)) ?? null;
 const totaal = j => (j && j.data ? Object.fromEntries(j.data.map(m => [m.name, m.total_value ? m.total_value.value : som({ data: [m] })])) : {});
 
+// bericht zonder tekst: wat er gebeurde (profielfoto, omslagfoto, foto's, video)
+const fbSoort = x => { const st = String(x.story || ""), t = String(x.status_type || "");
+  if (/profile picture|profielfoto/i.test(st)) return "Nieuwe profielfoto";
+  if (/cover photo|omslagfoto/i.test(st)) return "Nieuwe omslagfoto";
+  if (/video/i.test(t) || /video/i.test(st)) return "Nieuwe video";
+  if (/photos?/i.test(t) || /photo|foto/i.test(st)) return "Nieuwe foto";
+  if (/shared/i.test(t)) return "Gedeeld bericht";
+  return st.slice(0, 80) || "Bericht"; };
 async function facebook(ids) {
   const id = env("META_PAGE_ID"); if (!id || !env("META_PAGE_TOKEN")) return null;
   const uit = { kanaal: "facebook" };
@@ -66,13 +74,13 @@ async function facebook(ids) {
     if (j.data && j.data.length) { uit.metriek[k] = som(j); delete uit.metriekFout[k]; break; }
     uit.metriekFout[k] = m + ": geen gegevens";
   }
-  const F = "message,created_time,permalink_url,full_picture,shares,reactions.summary(true).limit(0),comments.summary(true).limit(0)";
+  const F = "message,story,status_type,created_time,permalink_url,full_picture,shares,reactions.summary(true).limit(0),comments.summary(true).limit(0)";
   let P = await probeer(() => g(`${id}/published_posts`, { fields: F, limit: 8 }));
   if (P.fout && ids && ids.length) { // zonder leesrecht op de tijdlijn: de posts die de app zelf plaatste, één voor één
     const L = []; for (const pid of ids.slice(0, 8)) { const x = await probeer(() => g(pid, { fields: F })); if (!x.fout) L.push(x); else if (!L.length && pid === ids[0]) { L.fout = x.fout; } }
     if (L.length) P = { data: L }; else P = { fout: L.fout || P.fout };
   }
-  uit.posts = P.fout ? [] : (P.data || []).map(x => ({ tekst: String(x.message || "").slice(0, 140), op: x.created_time, url: x.permalink_url, foto: x.full_picture || "",
+  uit.posts = P.fout ? [] : (P.data || []).map(x => ({ tekst: String(x.message || "").slice(0, 140), soort: fbSoort(x), op: x.created_time, url: x.permalink_url, foto: x.full_picture || "",
     reacties: x.reactions && x.reactions.summary ? x.reactions.summary.total_count : null, commentaren: x.comments && x.comments.summary ? x.comments.summary.total_count : null, gedeeld: x.shares ? x.shares.count : 0 }));
   if (P.fout) uit.postsFout = P.fout;
   return uit;
@@ -89,7 +97,7 @@ async function instagram() {
   uit.metriek = j.fout ? {} : totaal(j); uit.metriekFout = {};
   if (j.fout) { const r = await probeer(() => g(`${id}/insights`, { metric: "reach", period: "day", since, until })); if (!r.fout) uit.metriek.reach = som(r); else uit.metriekFout.alles = r.fout; }
   const M = await probeer(() => g(`${id}/media`, { fields: "caption,timestamp,permalink,like_count,comments_count,media_type,media_url,thumbnail_url", limit: 8 }));
-  uit.posts = M.fout ? [] : (M.data || []).map(x => ({ tekst: String(x.caption || "").slice(0, 140), op: x.timestamp, url: x.permalink, foto: x.media_type === "VIDEO" ? x.thumbnail_url || "" : x.media_url || "",
+  uit.posts = M.fout ? [] : (M.data || []).map(x => ({ tekst: String(x.caption || "").slice(0, 140), soort: x.media_type === "VIDEO" ? "Nieuwe video" : x.media_type === "CAROUSEL_ALBUM" ? "Nieuwe foto's" : "Nieuwe foto", op: x.timestamp, url: x.permalink, foto: x.media_type === "VIDEO" ? x.thumbnail_url || "" : x.media_url || "",
     reacties: x.like_count ?? null, commentaren: x.comments_count ?? null }));
   if (M.fout) uit.postsFout = M.fout;
   return uit;
