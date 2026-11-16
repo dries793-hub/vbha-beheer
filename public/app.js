@@ -8659,9 +8659,9 @@ const ST={per:30,data:null,social:null,bezig:false,fout:null};
 const tile=(l,v,uit)=>`<div class="tile"${uit?` data-tu="${esc(uit)}"`:""}><span class="lbl">${l}</span><span class="val">${v}</span></div>`;
 const ST_IC={hart:'<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',com:'<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',deel:'<svg viewBox="0 0 24 24"><path d="M14 5l6 6-6 6M20 11H9a5 5 0 0 0-5 5v2"/></svg>'};
 const ST_PAD={"/":"Startpagina","/shop":"Webshop","/steun":"Steunen","/kalender":"Kalender","/fuif":"In Vier en Vlam","/familiedag":"Familiedag","/kinderfeest":"Kinderfeest","/banket":"Banket","/album":"Fotoalbums","/inschrijven":"Inschrijven","/sponsor":"Sponsors","/privacy":"Privacy","/reglement":"Reglement","/lidgeld":"Lidgeld","andere":"Andere"};
-async function stLaad(){if(ST.bezig)return;ST.bezig=true;
+async function stLaad(){if(ST.bezig){ST.opnieuw=true;return}ST.bezig=true;ST.opnieuw=false;
   try{const j=await api("/api/mail?f=stats",{method:"POST",body:JSON.stringify({dagen:ST.per,social:!ST.social})});ST.data=j;if(!ST.social)ST.social={kanalen:j.social||[]};ST.social.stand=j.stand||[];ST.fout=null;ST.op=Date.now()}
-  catch(e){ST.fout=e.message}finally{ST.bezig=false}if(route()==="statistieken")renderBody()}
+  catch(e){ST.fout=e.message}finally{ST.bezig=false}if(ST.opnieuw)return stLaad();if(route()==="statistieken")renderBody()}
 const stN=n=>n==null?"–":Number(n).toLocaleString("nl-BE");
 const stDag=d=>new Date(Date.now()-d*864e5).toLocaleDateString("sv-SE",{timeZone:"Europe/Brussels"});
 function stWebsite(){const D=ST.data,P=ST.per,van=stDag(P-1),vor=stDag(2*P-1),R=D.rijen||[];
