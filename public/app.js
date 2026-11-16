@@ -8826,8 +8826,7 @@ addEventListener("hashchange",()=>{if(route()==="statistieken"&&ST.op&&Date.now(
    De knoppen vervangen de tabbladen van Instellingen. Een onderdeel (Leden, Kassa, …) opent zijn instellingenvenster
    niet als popup maar onder de knoppen (het venster wordt in #instInline getoond in plaats van in de overlay). */
 const IK={actief:null,echt:null};
-// Bankkoppeling en Automatische regels staan als tabblad bij Transacties, maar zijn ook vanuit Instellingen bereikbaar
-const ikPaginas=()=>[...INST_TABS.filter(([r])=>VIEWS[r]),...(ROL==="admin"?[["bank","Bankkoppeling"],["regels","Automatische regels"]].filter(([r])=>VIEWS[r]&&!INST_TABS.some(t=>t[0]===r)):[])];
+const ikPaginas=()=>INST_TABS.filter(([r])=>VIEWS[r]);
 instTabs=function(act){const P=ikPaginas(),O=ROL==="admin"?INST_OVZ.filter(([,r])=>VIEWS[r]&&(typeof recht!=="function"||recht(r)!=="geen")):[];
   const b=(k,l,on,attr)=>`<${attr?"button type=\"button\"":"a"} class="ik-b${on?" on":""}" ${attr||`href="#${k}"`}>${esc(l)}</${attr?"button":"a"}>`;
   return `<div class="panel ik-p"><div class="panel-b"><div class="ik-g">${P.map(([k,l])=>b(k,l,IK.actief==null&&k===act)).join("")}</div>
@@ -9139,8 +9138,7 @@ document.addEventListener("change",e=>{if(LIBS_OK||!(e.target&&e.target.type==="
 
 /* ============ Indeling van het menu ============
    Kassa bij Financiën, Shiften bij Vereniging, Webshop bij Media; "Administratie" opgesplitst in Vereniging (Agenda, Sponsors, Documenten) en
-   Communicatie (Mails, Website, Fotoalbums).
-   Automatische regels en Bankimport als tabbladen bij Transacties (Financiën) in plaats van onder Instellingen. */
+   Communicatie (Mails, Website, Fotoalbums). */
 {const G=id=>NAV.find(n=>!Array.isArray(n)&&n.id===id),weg=id=>{let it=null;for(const g of NAV)if(!Array.isArray(g)){const k=g.items.findIndex(i=>i[0]===id);if(k>=0)it=g.items.splice(k,1)[0]}return it};
   const act=G("administratie"),com=G("communicatie");
   if(com&&!G("vereniging")){const v={id:"vereniging",label:"Vereniging",items:[]};for(const id of ["agenda","sponsors","documenten"]){const it=weg(id);if(it)v.items.push(it)}
@@ -9151,12 +9149,6 @@ document.addEventListener("change",e=>{if(LIBS_OK||!(e.target&&e.target.type==="
   ICON.vereniging=ICON.vereniging||ICON.agenda||ICON.communicatie}
 // gsm: dezelfde knoppen als op de computer; "Communicatie" is te lang voor de onderbalk
 KORT.communicatie="Media";
-// Regels en Bankimport bij Transacties
-for(const r of ["regels","bank"]){const k=INST_TABS.findIndex(t=>t[0]===r);if(k>=0)INST_TABS.splice(k,1);const j=INST_IDS.indexOf(r);if(j>=0)INST_IDS.splice(j,1);NAV_ALIAS[r]="boekingen"}
-{const _b=bkTabs;bkTabs=function(act){const h=_b.apply(this,arguments);if(ROL!=="admin")return h;
-  return h.replace(/<\/div>$/,`<a role="tab" href="#regels" class="${act==="regels"?"on":""}">Automatische regels</a><a role="tab" href="#bank" class="${act==="bank"?"on":""}">Bankimport</a></div>`)}}
-for(const r of ["regels","bank"]){const _v=VIEWS[r];if(!_v)continue;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.title="Transacties";
-  v.body=function(){return String(b.apply(this,arguments)).replace(/^\s*<nav class="tabs" aria-label="Onderdelen instellingen">[\s\S]*?<\/nav>/,bkTabs(r))};return v};Object.assign(n,_v);VIEWS[r]=n}
 if(!ICON.social)ICON.social='<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/>';
 // onderbalk gsm: zes knoppen gelijk verdeeld, iets kleinere tekst en minder lege ruimte onder de knoppen
 {const st=document.createElement("style");st.textContent=`@media (max-width:760px){.tabbar{padding:4px 4px max(6px,calc(env(safe-area-inset-bottom,0px) - 14px))!important;gap:2px}
