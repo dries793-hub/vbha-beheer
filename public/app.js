@@ -7405,7 +7405,7 @@ async function rmKeur(m,ok){if(!canWrite||!m)return;const {id,...d}=m;
       const doc={jaar:JAAR,straat:sid,status:m.soort==="done"?"done":"reserved",by,lidId:m.lidId||null,at:m.op||nu,viaMelding:id};
       S.ronde.set(JAAR+"_"+sid,{...doc,id:JAAR+"_"+sid});try{await write("ronde",JAAR+"_"+sid,doc);n++}catch(e){}}
     try{const weg=typeof krSegWeg==="function"?krSegWeg(m.straten||[]):[];if(weg.length)await writeMany(weg,()=>{})}catch(e){}
-    await write("rondemeldingen",id,{...d,stand:"goedgekeurd",gekeurd:nu,door:ME_NAME||""});toast(`${n} ${n===1?"straat":"straten"} aangeduid.`)}
+    await write("rondemeldingen",id,{...d,stand:"goedgekeurd",gekeurd:nu,door:ME_NAME||""});toast(`${n} ${n===1?"straat":"straten"} aangeduid.`);if(m.soort!=="done")rmMail(id,m.straten||[])}
   else{await write("rondemeldingen",id,{...d,stand:"geweigerd",gekeurd:new Date().toISOString(),door:ME_NAME||""});toast("Melding geweigerd.")}
   dirty=true;renderBody()}
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-rm]");if(!b)return;const it=b.closest("[data-rmid]"),m=it&&S.rondemeldingen.get(it.dataset.rmid);
@@ -7459,6 +7459,15 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-dv-k
     if(w&&!w.closed)w.location=u;else location.href=u;if(r.nieuw)toast("Nieuwe kassacode: "+r.code+" (1 dag geldig)")}
   catch(x){if(w)w.close();toast(x.message||"De kassa kon niet geopend worden.",true)}});
 viewHook("dashboard",{voor:()=>dashVandaag()});
+
+/* mail naar het lid bij een goedgekeurde reservatie: straten, adressen en te voorziene dozen (server: api/_lib/rondemail.js) */
+async function rmMail(id,straten){try{const per=new Map();
+  for(const sid of straten){const d=typeof KR_DEEL!=="undefined"&&KR_DEEL.get(sid),s=KR.byId.get(d?d.sid:sid);if(!s)continue;
+    let naam=s.n,a=d?d.a:s.a;if(d&&typeof krGroepen==="function"){const g=krGroepen(d.sid).find(g=>g.ids.includes(sid));const t=g&&typeof krdTussen==="function"?krdTussen(g):"";naam=s.n+" ("+(t||"stuk "+(g?g.n:d.nr))+")"}
+    per.set(naam,(per.get(naam)||0)+a)}
+  const L=[...per].map(([naam,adressen])=>({naam,adressen})),tot=L.reduce((t,x)=>t+x.adressen,0),pd=(jaarCfg(JAAR)||{}).perDoos||100;
+  const j=await api("/api/mail?f=rondemail",{method:"POST",body:JSON.stringify({id,straten:L,dozen:Math.ceil(tot/pd)})});
+  if(j&&j.ok&&!j.al)toast("Bevestigingsmail verstuurd.");else if(j&&j.reden)toast("Geen mail verstuurd: "+j.reden+".",true)}catch(e){toast("Mail niet verstuurd: "+e.message,true)}}
 
 /* ============ Slim zoeken in keuzelijsten (vervangt de lijst van de browser bij <input list="…">) ============
    De browser toont bij één letter alle namen die die letter bevatten. Hier: pas vanaf 3 letters (zoals bij de adressen),
@@ -9324,6 +9333,39 @@ function krGeo(sid){if(!KRE.geo){const t0=Date.now(),cos=Math.cos(50.94*Math.PI/
     for(const pt of [p[0],p[p.length-1]]){const e=m(pt);const raak=zoek(e,s.id,pi,2.5);if(raak)continue;const r=zoek(e,s.id,pi,30);if(r)P.push([pt,terug(r.x)])}}}
   KRE.geo=geo;KRE.ms=Date.now()-t0}
   return KRE.geo.get(sid)||[]}
+
+/* ============ Kalenderdozen overdragen naar een ander lid (enkel administrator) ============
+   In de fiche van een persoon (Kalenders › Verdeling): "Dozen overdragen". Kies aan wie (lid of andere naam) en hoeveel dozen.
+   Staat de ontvanger nog niet in de lijst, dan wordt hij meteen toegevoegd. Beide kanten krijgen een regel in hun geschiedenis. */
+KAL_T.over="Overgedragen";KAL_T.overin="Overgenomen";
+{const _f=kalLogForm;kalLogForm=function(id){const r=_f.apply(this,arguments);try{const j=S.jaarleden.get(id),a=$("#kalWeg")||$("#kalUndoB");
+  if(ROL==="admin"&&j&&(j.kalOpgehaald||0)>0&&a&&!$("#kalOver"))a.insertAdjacentHTML("beforebegin",`<button class="btn" id="kalOver" type="button">${ic("leden")}Dozen overdragen</button>`);
+  const b=$("#kalOver");if(b)b.onclick=()=>kalOverdragen(id)}catch(e){console.error(e)}return r}}
+function kalOverdragen(id){const j=S.jaarleden.get(id);if(!j||ROL!=="admin")return;const van=kalNaam(j),op=j.kalOpgehaald||0;if(!(op>0))return;
+  const C=ctx(),inL=new Map(kalStats(C).rows.map(x=>[x.lidId||x.id,x]));
+  const L=C.leden.filter(l=>JAAR+"_"+l.id!==id).map(l=>({id:l.id,n:naamVol(l).trim(),al:inL.has(l.id),z:norm(l.voornaam+" "+l.naam+" "+l.naam+" "+l.voornaam)})).sort((a,b)=>a.n.localeCompare(b.n,"nl"));
+  modal("Dozen overdragen",`<div class="stack kal-dlg"><p style="margin:0"><b>${esc(van)}</b> heeft ${kalDoos(op)} in handen.</p>
+    <div class="fld kal-ac"><label for="koWie">Naar</label><input id="koWie" autocomplete="off" placeholder="Begin te typen…"><div class="kal-sug" id="koSug" hidden></div><span class="help" id="koHelp"></span></div>
+    <div class="fld"><span class="lbl">Aantal dozen</span>${kalAantal("kalN",Math.min(1,op)||op,op)}</div><div class="err" id="koErr"></div></div>`,
+    `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="koOk">Overdragen</button>`);
+  let gekozen=null,hits=[],act=-1;const inp=$("#koWie"),sug=$("#koSug");
+  const toon=()=>{const q=norm(inp.value);hits=q?L.filter(x=>q.split(/\s+/).every(w=>x.z.includes(w))).slice(0,8):[];act=hits.length?0:-1;
+    sug.innerHTML=hits.map((x,i)=>`<button type="button" data-i="${i}" class="${i===act?"on":""}">${esc(x.n)}${x.al?' <small class="muted">(staat al in de lijst)</small>':""}</button>`).join("")+(q&&!hits.length?`<div class="kal-sug-n">Geen lid gevonden: <b>${esc(inp.value.trim())}</b> wordt toegevoegd als niet-lid.</div>`:"");sug.hidden=!q};
+  const kies=x=>{gekozen=x;inp.value=x.n;sug.hidden=true;$("#koHelp").textContent=x.al?"Staat al in de lijst: de dozen worden bij hem of haar opgeteld.":"Staat nog niet in de lijst en wordt toegevoegd."};
+  inp.addEventListener("input",()=>{gekozen=null;$("#koHelp").textContent="";toon()});
+  inp.addEventListener("keydown",e=>{if(sug.hidden||!hits.length)return;if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();act=(act+(e.key==="ArrowDown"?1:-1)+hits.length)%hits.length;sug.querySelectorAll("[data-i]").forEach((b,i)=>b.classList.toggle("on",i===act))}else if(e.key==="Enter"){e.preventDefault();if(act>=0)kies(hits[act])}});
+  sug.addEventListener("mousedown",e=>{const b=e.target.closest("[data-i]");if(b){e.preventDefault();kies(hits[+b.dataset.i])}});
+  inp.addEventListener("blur",()=>setTimeout(()=>{sug.hidden=true},120));setTimeout(()=>inp.focus(),40);
+  $("#koOk").onclick=async()=>{const naam=inp.value.trim(),n=kalLees("kalN",op);if(!naam){$("#koErr").textContent="Kies aan wie.";inp.focus();return}if(!n){$("#koErr").textContent="Kies een aantal.";return}
+    if(!gekozen){const q=norm(naam).split(/\s+/).sort().join(" ");gekozen=L.find(x=>norm(x.n).split(/\s+/).sort().join(" ")===q)||null}
+    const lid=gekozen?gekozen.id:null,tid=JAAR+"_"+(lid||"x-"+slug(naam)),naar=lid?gekozen.n:naam;if(tid===id){$("#koErr").textContent="Kies een andere persoon.";return}
+    const cur=S.jaarleden.get(tid)||{},at=new Date().toISOString(),door=ME_NAME||"";closeModal();
+    const s0={op:j.kalOpgehaald||0,ui:j.kalUitgevoerd||0,rs:j.kalTerugRest||0},t0={op:cur.kalOpgehaald||0,ui:cur.kalUitgevoerd||0,rs:cur.kalTerugRest||0};
+    try{await writeMany([
+      ["jaarleden",id,{...stripId(j),kalOpgehaald:Math.max(0,s0.op-n),kalLog:[...(j.kalLog||[]),{t:"over",n,at,door,van:s0,reden:"naar "+naar}].slice(-200)}],
+      ["jaarleden",tid,{...stripId(cur),jaar:JAAR,lidId:lid,naam:lid?"":naam,kal:true,kalToegevoegd:true,kalOpgehaald:t0.op+n,kalUitgevoerd:t0.ui,kalLog:[...(cur.kalLog||[]),{t:"overin",n,at,door,van:t0,reden:"van "+van}].slice(-200)}]],()=>{});
+      toast(`${kalDoos(n)} overgedragen van ${van} naar ${naar}.`)}catch(e){handleWriteError(e)}renderBody()}}
+{const st=document.createElement("style");st.textContent=".kal-lt.over,.kal-lt.overin{background:var(--info-soft,#e8efff);color:var(--info,#2f5bd3)}";document.head.appendChild(st)}
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
