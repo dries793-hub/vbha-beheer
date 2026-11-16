@@ -950,7 +950,7 @@ function krInit(){const h=krHost();if(KR.map)return;
   map.on("zoomend",()=>krStyleAll());
   map.attributionControl.setPrefix(false);map.attributionControl.setPosition("bottomleft");
   map.attributionControl.addAttribution('Straten © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>');
-  for(const s of KR_STREETS){const line=L.polyline(s.g,{renderer,weight:4,lineCap:"round",lineJoin:"round"})
+  for(const s of KR_STREETS){const line=L.polyline(krEnkel(s.g),{renderer,weight:4,lineCap:"round",lineJoin:"round"})
     .on("click",e=>{L.DomEvent.stopPropagation(e);krToggle(s.id)}).addTo(map);KR.lines.set(s.id,line)}
   
   // Elke naam staat op het langste rechte stuk van de straat en draait mee, zoals op een wegenkaart.
@@ -1035,7 +1035,7 @@ function krLidVanNaam(n){const q=norm(n);if(!q)return null;for(const l of S.lede
 function krKiesPersoon(id,st){if(Array.isArray(id))return krKiesPersoonMeer(id,st);const s=KR.byId.get(id);if(!s)return;const cur=krAll()[id];const res=st==="reserved";
   const namen=[...new Set([...ctx().leden.map(l=>naamVol(l).trim()),...[...S.ronde.values()].map(d=>d.by).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,"nl"));
   const start=cur&&cur.by?cur.by:ls.get("rondeWie","")||krNaam();
-  modal(s.n+(res?" reserveren":" afgewerkt"),`<div class="fld"><label for="krWieIn">${res?"Gereserveerd door":"Afgewerkt door"}</label><input id="krWieIn" list="krWieLijst" maxlength="60" autocomplete="off" placeholder="Begin te typen…" value="${esc(start)}"><datalist id="krWieLijst">${namen.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist><span class="help">Kies een lid uit de lijst of typ een andere naam.</span></div>${krMeeVeld(cur&&cur.mee)}<p class="err" id="krWieErr" hidden></p>`,
+  modal(s.n+(res?" reserveren":" afgewerkt"),`<div class="fld"><label for="krWieIn">${res?"Gereserveerd door":"Afgewerkt door"}</label><input id="krWieIn" list="krWieLijst" maxlength="60" autocomplete="off" placeholder="Begin te typen…" value="${esc(start)}"><datalist id="krWieLijst">${namen.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist></div>${krMeeVeld(cur&&cur.mee)}<p class="err" id="krWieErr" hidden></p>`,
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="krWieOk">${res?"Reserveren":"Op gedaan zetten"}</button>`);
   const inp=$("#krWieIn"),er=$("#krWieErr");krMeeInit();setTimeout(()=>{inp.focus();inp.select()},40);
   const ok=async()=>{const by=inp.value.trim();if(!by){er.textContent="Geef een naam op.";er.hidden=false;inp.focus();return}
@@ -1059,7 +1059,7 @@ function krKiesPersoonMeer(ids,st,pre){pre=pre||[];const res=st==="reserved",A={
   const tot=ids.reduce((t,id)=>t+krInfo(id).a,0);
   const resv=res?[]:[...new Set(ids.map(id=>A[id]&&A[id].status==="reserved"?A[id].by:"").filter(Boolean))],elk=!res&&resv.length>1,zonder=res||ids.some(id=>!(A[id]&&A[id].status==="reserved"&&A[id].by));
   const startN=resv.length===1?resv[0]:elk?"":(ls.get("rondeWie","")||krNaam());
-  modal((deel?krInfo(ids[0]).s.n+": "+ids.length+(ids.length===1?" stuk ":" stukken "):ids.length+" straten ")+(res?"reserveren":"op gedaan zetten"),`<p style="margin:0;color:var(--muted)">${deel?"± "+krNum(tot)+" adressen":ids.map(id=>esc(krInfo(id).n)).join(", ")+" · "+krNum(tot)+" adressen"}</p><div class="fld"><label for="krWieIn">${res?"Gereserveerd door":"Afgewerkt door"}</label><input id="krWieIn" list="krWieLijst" maxlength="60" autocomplete="off" placeholder="${elk?"Wie de straat reserveerde":"Begin te typen…"}" value="${esc(startN)}"><datalist id="krWieLijst">${namen.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist><span class="help">${elk?`Gereserveerd door ${esc(resv.join(", "))}. Laat leeg: elke straat krijgt de naam van wie ze reserveerde.`:"Kies een lid uit de lijst of typ een andere naam."}</span></div>${krMeeVeld((()=>{const M=ids.map(id=>JSON.stringify((A[id]&&A[id].mee)||[]));return M.every(x=>x===M[0])?JSON.parse(M[0]):[]})())}<p class="err" id="krWieErr" hidden></p>`,
+  modal((deel?krInfo(ids[0]).s.n+": "+ids.length+(ids.length===1?" stuk ":" stukken "):ids.length+" straten ")+(res?"reserveren":"op gedaan zetten"),`<p style="margin:0;color:var(--muted)">${deel?"± "+krNum(tot)+" adressen":ids.map(id=>esc(krInfo(id).n)).join(", ")+" · "+krNum(tot)+" adressen"}</p><div class="fld"><label for="krWieIn">${res?"Gereserveerd door":"Afgewerkt door"}</label><input id="krWieIn" list="krWieLijst" maxlength="60" autocomplete="off" placeholder="${elk?"Wie de straat reserveerde":"Begin te typen…"}" value="${esc(startN)}"><datalist id="krWieLijst">${namen.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist>${elk?`<span class="help">Gereserveerd door ${esc(resv.join(", "))}. Laat leeg: elke straat krijgt de naam van wie ze reserveerde.</span>`:""}</div>${krMeeVeld((()=>{const M=ids.map(id=>JSON.stringify((A[id]&&A[id].mee)||[]));return M.every(x=>x===M[0])?JSON.parse(M[0]):[]})())}<p class="err" id="krWieErr" hidden></p>`,
   `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="krWieOk">${res?"Reserveren":"Op gedaan zetten"}</button>`);
   const inp=$("#krWieIn"),er=$("#krWieErr");krMeeInit();setTimeout(()=>{inp.focus();inp.select()},40);
   const ok=async()=>{const by=inp.value.trim();if(!by&&zonder){er.textContent="Geef een naam op.";er.hidden=false;inp.focus();return}
@@ -9233,6 +9233,14 @@ function krdMidden(g){const pts=g.flat?(Array.isArray(g[0][0])?g.flat():g):g;let
 .krd-t b{font-weight:500;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.krd-t small{color:var(--muted);font-size:12px}.krd-v{color:var(--accent);font-weight:700}@media(max-width:760px){.krd-lst{max-height:24vh}.krd-r{padding:5px 8px}.krd-t small{font-size:11px}}
 .leaflet-tooltip.krd-mk{background:var(--surface);border:2px solid var(--ink);border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.3);padding:0;width:24px;height:24px;line-height:20px;text-align:center;font:700 12px/20px var(--f-body);color:var(--ink)}
 .leaflet-tooltip.krd-mk.on{background:var(--accent);border-color:var(--accent);color:#fff}.leaflet-tooltip.krd-mk::before{display:none}`;document.head.appendChild(st)}
+/* Gescheiden rijbanen als één lijn tekenen: een stuk dat grotendeels (80%) binnen 30 m van een langer stuk van dezelfde straat ligt,
+   wordt niet getekend. Enkel voor de weergave; de stukken (delen) en adressen blijven gelijk. */
+function krEnkel(g){if(!Array.isArray(g)||g.length<2)return g;const m=p=>[p[0]*111320,p[1]*111320*Math.cos(p[0]*Math.PI/180)];
+  const L=g.map(part=>{const q=part.map(m);let l=0;for(let i=1;i<q.length;i++)l+=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);return{part,q,l}}).sort((a,b)=>b.l-a.l);
+  const dSeg=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],t=dx||dy?Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy))):0;return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)};
+  const dicht=(p,k)=>{for(let i=1;i<k.q.length;i++)if(dSeg(p,k.q[i-1],k.q[i])<30)return true;return false};
+  const hou=[];for(const x of L){if(x.q.length>1&&hou.length){let n=0;for(const p of x.q)if(hou.some(k=>dicht(p,k)))n++;if(n/x.q.length>=.8)continue}hou.push(x)}
+  return hou.map(x=>x.part)}
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
