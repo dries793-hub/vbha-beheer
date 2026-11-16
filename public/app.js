@@ -978,11 +978,11 @@ function krStyleAll(){const A=krAll();const todo=krVar("--kr-todo"),dn=krVar("--
   krSegTeken(A,{todo,dn,rs,sel,w})}
 function krSegTeken(A,c){if(!KR.map)return;if(!KR.segLayer)KR.segLayer=L.layerGroup().addTo(KR.map);KR.segLayer.clearLayers();const D=krDelen();
   for(const id in D){const x=KR_DEEL.get(id);if(KR.deel===x.sid||A[x.sid])continue;
-    L.polyline(x.g,{renderer:KR.renderer,interactive:false,weight:c.w[1],color:D[id].status==="reserved"?c.rs:c.dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}
+    L.polyline(krEnkel(x.g),{renderer:KR.renderer,interactive:false,weight:c.w[1],color:D[id].status==="reserved"?c.rs:c.dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}
   if(KR.deel){const base=KR.lines.get(KR.deel);if(base)base.setStyle({opacity:.2});const full=A[KR.deel];
     for(const x of KR_DELEN.get(KR.deel)||[]){const m=full||D[x.id],on=KR.dsel.has(x.id);
-      L.polyline(x.g,{renderer:KR.renderer,weight:16,opacity:0,interactive:true}).on("click",e=>{L.DomEvent.stopPropagation(e);KR.dsel.has(x.id)?KR.dsel.delete(x.id):KR.dsel.add(x.id);krStyleAll();krCard()}).addTo(KR.segLayer);
-      L.polyline(x.g,{renderer:KR.renderer,interactive:false,weight:on?c.w[2]+1:c.w[1]+1,color:on?c.sel:m?(m.status==="reserved"?c.rs:c.dn):krVar("--muted"),lineCap:"butt",opacity:1}).addTo(KR.segLayer)}
+      L.polyline(krEnkel(x.g),{renderer:KR.renderer,weight:16,opacity:0,interactive:true}).on("click",e=>{L.DomEvent.stopPropagation(e);KR.dsel.has(x.id)?KR.dsel.delete(x.id):KR.dsel.add(x.id);krStyleAll();krCard()}).addTo(KR.segLayer);
+      L.polyline(krEnkel(x.g),{renderer:KR.renderer,interactive:false,weight:on?c.w[2]+1:c.w[1]+1,color:on?c.sel:m?(m.status==="reserved"?c.rs:c.dn):krVar("--muted"),lineCap:"butt",opacity:1}).addTo(KR.segLayer)}
     const ends=new Set();for(const x of KR_DELEN.get(KR.deel)||[])for(const p of x.k){const k=p.join(",");if(ends.has(k))continue;ends.add(k);
       L.circleMarker(p,{renderer:KR.renderer,radius:4,weight:2,color:krVar("--ink")||"#222",fillColor:"#fff",fillOpacity:1,interactive:false}).addTo(KR.segLayer)}}}
 function krCard(){const c=KR.host&&KR.host.querySelector("#krCard");if(!c)return;
@@ -9224,8 +9224,8 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-krd]");if(
 
 // kaart: nummers bij elk stuk en een breder aanraakvlak in de deelmodus
 {const _t=krSegTeken;krSegTeken=function(A,c){const r=_t.apply(this,arguments);try{if(KR.deel&&KR.segLayer){for(const x of KR_DELEN.get(KR.deel)||[]){
-    L.polyline(x.g,{renderer:KR.renderer,weight:30,opacity:0,interactive:true}).on("click",e=>{L.DomEvent.stopPropagation(e);KR.dsel.has(x.id)?KR.dsel.delete(x.id):KR.dsel.add(x.id);krStyleAll();krCard()}).addTo(KR.segLayer);
-    const mid=krdMidden(x.g),on=KR.dsel.has(x.id);
+    L.polyline(krEnkel(x.g),{renderer:KR.renderer,weight:30,opacity:0,interactive:true}).on("click",e=>{L.DomEvent.stopPropagation(e);KR.dsel.has(x.id)?KR.dsel.delete(x.id):KR.dsel.add(x.id);krStyleAll();krCard()}).addTo(KR.segLayer);
+    const mid=krdMidden(krEnkel(x.g)),on=KR.dsel.has(x.id);
     KR.segLayer.addLayer(L.tooltip({permanent:true,direction:"center",className:"krd-mk"+(on?" on":""),interactive:false}).setLatLng(mid).setContent(String(x.nr)))}}}catch(e){console.error(e)}return r}}
 function krdMidden(g){const pts=g.flat?(Array.isArray(g[0][0])?g.flat():g):g;let tot=0;const d=[];for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i],l=Math.hypot(a[0]-b[0],(a[1]-b[1])*.63);d.push(l);tot+=l}
   let h=tot/2;for(let i=1;i<pts.length;i++){if(h<=d[i-1]){const a=pts[i-1],b=pts[i],f=d[i-1]?h/d[i-1]:0;return[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f]}h-=d[i-1]}return pts[0]}
@@ -9240,13 +9240,14 @@ function krdMidden(g){const pts=g.flat?(Array.isArray(g[0][0])?g.flat():g):g;let
 .krd-t b{font-weight:500;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.krd-t small{color:var(--muted);font-size:12px}.krd-v{color:var(--accent);font-weight:700}@media(max-width:760px){.krd-lst{max-height:24vh}.krd-r{padding:5px 8px}.krd-t small{font-size:11px}}
 .leaflet-tooltip.krd-mk{background:var(--surface);border:2px solid var(--ink);border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.3);padding:0;width:24px;height:24px;line-height:20px;text-align:center;font:700 12px/20px var(--f-body);color:var(--ink)}
 .leaflet-tooltip.krd-mk.on{background:var(--accent);border-color:var(--accent);color:#fff}.leaflet-tooltip.krd-mk::before{display:none}`;document.head.appendChild(st)}
-/* Gescheiden rijbanen als één lijn tekenen: een stuk dat grotendeels (80%) binnen 30 m van een langer stuk van dezelfde straat ligt,
-   wordt niet getekend. Enkel voor de weergave; de stukken (delen) en adressen blijven gelijk. */
-function krEnkel(g){if(!Array.isArray(g)||g.length<2)return g;const m=p=>[p[0]*111320,p[1]*111320*Math.cos(p[0]*Math.PI/180)];
-  const L=g.map(part=>{const q=part.map(m);let l=0;for(let i=1;i<q.length;i++)l+=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);return{part,q,l}}).sort((a,b)=>b.l-a.l);
+/* Gescheiden rijbanen als één lijn tekenen: een stuk lijn dat volledig (97% van de punten, om de 8 m gemeten) binnen 30 m
+   van een langer stuk van dezelfde straat ligt, wordt niet getekend. Enkel voor de weergave; stukken en adressen blijven gelijk. */
+function krEnkel(g){if(!Array.isArray(g)||g.length<2||!Array.isArray(g[0])||!Array.isArray(g[0][0]))return g;const m=p=>[p[0]*111320,p[1]*111320*Math.cos(p[0]*Math.PI/180)];
+  const dicht8=q=>{const o=[q[0]];for(let i=1;i<q.length;i++){const a=q[i-1],b=q[i],l=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(l/8));for(let k=1;k<=n;k++)o.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}return o};
+  const L=g.map(part=>{const q=part.map(m);let l=0;for(let i=1;i<q.length;i++)l+=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);return{part,q,l,d:dicht8(q)}}).sort((a,b)=>b.l-a.l);
   const dSeg=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],t=dx||dy?Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy))):0;return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)};
   const dicht=(p,k)=>{for(let i=1;i<k.q.length;i++)if(dSeg(p,k.q[i-1],k.q[i])<30)return true;return false};
-  const hou=[];for(const x of L){if(x.q.length>1&&hou.length){let n=0;for(const p of x.q)if(hou.some(k=>dicht(p,k)))n++;if(n/x.q.length>=.8)continue}hou.push(x)}
+  const hou=[];for(const x of L){if(x.q.length>1&&hou.length){let n=0;for(const p of x.d)if(hou.some(k=>dicht(p,k)))n++;if(n/x.d.length>=.97)continue}hou.push(x)}
   return hou.map(x=>x.part)}
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
