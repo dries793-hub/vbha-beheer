@@ -1625,6 +1625,9 @@ tr.kf-top td{font-weight:700;font-size:15px}tr.kf-top td:last-child{font-weight:
 details[data-vrd]>summary{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}details[data-vrd]>summary::before{content:"▶";font-size:10px;margin-right:2px}details[data-vrd][open]>summary::before{content:"▼"}details[data-vrd]>summary::-webkit-details-marker{display:none}details[data-vrd]>summary{list-style:none}.vr-st{margin-left:auto;display:inline-flex;gap:12px;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .kf-r.kf-rn{grid-template-columns:64px minmax(0,1fr) 36px}
 .kf-laad{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:50vh;color:var(--muted)}.kf-laad b{font-weight:600;font-size:15px}
+
+/* geen donkere (zwarte) tegels: .tile.hero ziet eruit als een gewone tegel */
+.tile.hero{background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important}.tile.hero .lbl,.tile.hero .muted,.tile.hero small{color:var(--muted)!important}.tile.hero .val{color:var(--ink)!important}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
