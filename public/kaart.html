@@ -2047,15 +2047,32 @@ const KR_DELEN=krMaakDelen(KR_STREETS),KR_DEEL=new Map([...KR_DELEN.values()].fl
 const krDeelStand=sid=>{const L=KR_DELEN.get(sid)||[];let d=0,r=0;for(const x of L){if(KR_STAND[x.id]==="d")d++;else if(KR_STAND[x.id]==="r")r++}return{n:L.length,d,r}};
 
 const krVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-/* Gescheiden rijbanen als één lijn tekenen: een stuk lijn dat volledig (97% van de punten, om de 8 m gemeten) binnen 30 m
-   van een langer stuk van dezelfde straat ligt, wordt niet getekend. Enkel voor de weergave; stukken en adressen blijven gelijk. */
-function krEnkel(g){if(!Array.isArray(g)||g.length<2||!Array.isArray(g[0])||!Array.isArray(g[0][0]))return g;const m=p=>[p[0]*111320,p[1]*111320*Math.cos(p[0]*Math.PI/180)];
-  const dicht8=q=>{const o=[q[0]];for(let i=1;i<q.length;i++){const a=q[i-1],b=q[i],l=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(l/8));for(let k=1;k<=n;k++)o.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}return o};
-  const L=g.map(part=>{const q=part.map(m);let l=0;for(let i=1;i<q.length;i++)l+=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);return{part,q,l,d:dicht8(q)}}).sort((a,b)=>b.l-a.l);
-  const dSeg=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],t=dx||dy?Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy))):0;return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)};
-  const dicht=(p,k)=>{for(let i=1;i<k.q.length;i++)if(dSeg(p,k.q[i-1],k.q[i])<30)return true;return false};
-  const hou=[];for(const x of L){if(x.q.length>1&&hou.length){let n=0;for(const p of x.d)if(hou.some(k=>dicht(p,k)))n++;if(n/x.d.length>=.97)continue}hou.push(x)}
-  return hou.map(x=>x.part)}
+/* ---- Kaart: gescheiden rijbanen als één lijn ----
+   krEnkel(g): een stuk lijn dat over zijn volledige lengte (97%, om de 8 m gemeten) binnen 30 m van een langer stuk van dezelfde
+   straat ligt, wordt niet getekend; losse uiteinden die zo ontstaan worden met een kort lijntje verbonden (binnen 40 m).
+   krGroepen(sid): de stukken van een straat, waarbij een stuk dat de andere rijbaan van een ander stuk is, samen met dat stuk
+   één keuze vormt (één nummer, één lijn). Enkel voor de weergave: ids, adressen en meldingen blijven per stuk. */
+const KRE={m:p=>[p[0]*111320,p[1]*111320*Math.cos(p[0]*Math.PI/180)],terug:(q,lat)=>[q[0]/111320,q[1]/(111320*Math.cos(lat*Math.PI/180))]};
+KRE.dicht8=q=>{const o=[q[0]];for(let i=1;i<q.length;i++){const a=q[i-1],b=q[i],l=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(l/8));for(let k=1;k<=n;k++)o.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}return o};
+KRE.proj=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],t=dx||dy?Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy))):0;const x=[a[0]+t*dx,a[1]+t*dy];return{x,d:Math.hypot(p[0]-x[0],p[1]-x[1])}};
+KRE.afst=(p,q)=>{let best={d:Infinity,x:null};for(let i=1;i<q.length;i++){const r=KRE.proj(p,q[i-1],q[i]);if(r.d<best.d)best=r}return best};
+KRE.lengte=q=>{let l=0;for(let i=1;i<q.length;i++)l+=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);return l};
+KRE.delen=g=>!Array.isArray(g)||!g.length?[]:Array.isArray(g[0][0])?g:[g];
+function krEnkel(g){const P=KRE.delen(g);if(P.length<2)return g;
+  const L=P.map(part=>{const q=part.map(KRE.m);return{part,q,l:KRE.lengte(q),d:KRE.dicht8(q)}}).sort((a,b)=>b.l-a.l);
+  const hou=[];for(const x of L){if(x.q.length>1&&hou.length){let n=0;for(const p of x.d)if(hou.some(k=>KRE.afst(p,k.q).d<30))n++;if(n/x.d.length>=.97)continue}hou.push(x)}
+  const uit=hou.map(x=>x.part);
+  const con=[];if(hou.length>1)for(const x of hou)for(const e of [x.q[0],x.q[x.q.length-1]]){const lat=x.part[0][0];
+    if(hou.some(k=>k!==x&&KRE.afst(e,k.q).d<3)||con.some(c=>KRE.afst(e,c).d<3))continue;let best=null;for(const k of hou){if(k===x)continue;const r=KRE.afst(e,k.q);if(r.d<40&&(!best||r.d<best.d))best=r}
+    if(best){uit.push([KRE.terug(e,lat),KRE.terug(best.x,lat)]);con.push([e,best.x])}}
+  return uit}
+const KRG=new Map();
+function krGroepen(sid){if(KRG.has(sid))return KRG.get(sid);const S=(KR_DELEN.get(sid)||[]).map(x=>{const qs=KRE.delen(x.g).map(p=>p.map(KRE.m));return{x,qs,l:qs.reduce((t,q)=>t+KRE.lengte(q),0),d:qs.flatMap(KRE.dicht8)}}).sort((a,b)=>b.l-a.l);
+  const G=[];for(const s of S){let best=null,bn=0;if(s.d.length)for(const g of G){let n=0;for(const p of s.d)if(g.qs.some(q=>KRE.afst(p,q).d<30))n++;if(n>bn){bn=n;best=g}}
+    if(best&&bn/s.d.length>=.85){best.ids.push(s.x.id);best.a+=s.x.a;best.xs.push(s.x)}else G.push({lead:s.x,ids:[s.x.id],a:s.x.a,xs:[s.x],qs:s.qs})}
+  G.sort((a,b)=>a.lead.nr-b.lead.nr);G.forEach((g,i)=>{g.n=i+1;g.id=g.lead.id;g.g=krEnkel(g.lead.g);g.k=g.xs.flatMap(x=>x.k||[])});KRG.set(sid,G);return G}
+function krGroepMidden(g){const P=KRE.delen(g);let best=P[0]||[],bl=-1;for(const p of P){const l=KRE.lengte(p.map(KRE.m));if(l>bl){bl=l;best=p}}
+  const q=best.map(KRE.m),tot=KRE.lengte(q);let h=tot/2;for(let i=1;i<q.length;i++){const d=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);if(h<=d){const f=d?h/d:0;return[best[i-1][0]+(best[i][0]-best[i-1][0])*f,best[i-1][1]+(best[i][1]-best[i-1][1])*f]}h-=d}return best[0]}
 const krAdr=n=>n===1?"adres":"adressen";
 const krNum=n=>n.toLocaleString("nl-BE");
 const krFold=t=>t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
@@ -2244,7 +2261,7 @@ krLive();
   const e2=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   function open(soort){const ids=[...KR.ss].filter(id=>KR.byId.has(id)||KR_DEEL.has(id));if(!ids.length)return;let lid=null,L=[],sel=-1,T=null;
     const bg=document.createElement("div");bg.className="km-bg";bg.innerHTML=`<div class="km" role="dialog" aria-modal="true" aria-labelledby="kmT"><h3 id="kmT">Straten melden</h3><p>Het bestuur kijkt je melding na. Daarna verschijnt ze op de kaart.</p>
-      <div class="km-st">${ids.map(id=>`<span>${e2(krNaamId(id))}</span>`).join("")}</div>
+      <div class="km-st">${[...new Set(ids.map(id=>krNaamId(id)))].map(n=>`<span>${e2(n)}</span>`).join("")}</div>
       <div class="km-seg"><button type="button" data-ks="r">Gereserveerd</button><button type="button" data-ks="d">Bedeeld</button></div>
       <label for="kmN">Jouw naam</label><div class="km-w"><input type="text" id="kmN" autocomplete="off"><div class="km-l" id="kmL" hidden></div></div>
       <div class="km-hp" aria-hidden="true"><input type="text" id="kmW" tabindex="-1" autocomplete="off"></div><p class="km-e" id="kmE"></p>
@@ -2282,9 +2299,10 @@ krLive();
   const buur=(p,sid)=>{const G=punten(),c0=Math.round(p[0]*500),c1=Math.round(p[1]*500),cos=Math.cos(p[0]*Math.PI/180);let best=null,bd=35;
     for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const q of G.get((c0+i)+"|"+(c1+j))||[]){if(q[2]===sid)continue;const d=Math.hypot((q[0]-p[0])*111320,(q[1]-p[1])*111320*cos);if(d<bd){bd=d;best=q[2]}}
     return best&&KR.byId.get(best)?KR.byId.get(best).n:null};
-  const tussen=x=>{if(TUS.has(x.id))return TUS.get(x.id);const n=[...new Set((x.k||[]).map(p=>buur(p,x.sid)).filter(Boolean))];const t=n.length>=2?"tussen "+n[0]+" en "+n[1]:n.length===1?"vanaf "+n[0]:"";TUS.set(x.id,t);return t};
-  const stat=x=>KR_STAND[x.sid]||KR_STAND[x.id]||(KR_PEND[x.id]?"p":"");
-  window.krNaamId=id=>{const s=KR.byId.get(String(id).split("~")[0]);if(!s)return id;const x=KR_DEEL.get(id);return x?s.n+" ("+(tussen(x)||"stuk "+x.nr)+")":s.n};
+  const tussen=x=>{if(TUS.has(x.id))return TUS.get(x.id);const n=[...new Set((x.k||[]).map(p=>buur(p,x.sid||String(x.id).split("~")[0])).filter(Boolean))];const t=n.length>=2?"tussen "+n[0]+" en "+n[1]:n.length===1?"vanaf "+n[0]:"";TUS.set(x.id,t);return t};
+  const stat=x=>{const sid=x.sid||String(x.id).split("~")[0];return KR_STAND[sid]||KR_STAND[x.id]||(KR_PEND[x.id]?"p":"")};
+  const aan=g=>g.ids.every(id=>KR.ss.has(id));
+  window.krNaamId=id=>{const sid=String(id).split("~")[0],s=KR.byId.get(sid);if(!s)return id;if(!KR_DEEL.has(id))return s.n;const g=krGroepen(sid).find(g=>g.ids.includes(id));return g?s.n+" ("+(tussen(g)||"stuk "+g.n)+")":s.n};
   const midden=g=>{const pts=Array.isArray(g[0][0])?g.flat():g;let tot=0;const d=[];for(let i=1;i<pts.length;i++){const l=Math.hypot(pts[i][0]-pts[i-1][0],(pts[i][1]-pts[i-1][1])*.63);d.push(l);tot+=l}
     let h=tot/2;for(let i=1;i<pts.length;i++){if(h<=d[i-1]){const a=pts[i-1],b=pts[i],f=d[i-1]?h/d[i-1]:0;return[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f]}h-=d[i-1]}return pts[0]};
   const st=document.createElement("style");st.textContent=`.krd-lk{display:inline-block;margin-top:4px;border:0;background:none;padding:0;color:var(--accent);font:500 13.5px var(--f-body,inherit);cursor:pointer;text-decoration:underline}
@@ -2302,26 +2320,26 @@ krLive();
   {const _a=krStyleAll;krStyleAll=function(){const r=_a.apply(this,arguments);try{teken()}catch(e){console.error(e)}return r}}
   function teken(){if(!KR.map)return;if(!KR.dl)KR.dl=L.layerGroup().addTo(KR.map);KR.dl.clearLayers();if(!KR.deel)return;
     const base=KR.lines.get(KR.deel);if(base)base.setStyle({opacity:.2});const sel=krVar("--accent"),dn=krVar("--good"),rs=krVar("--info"),w=krDikte(KR.map.getZoom());
-    for(const x of KR_DELEN.get(KR.deel)||[]){const on=KR.ss.has(x.id),s=stat(x);
-      L.polyline(krEnkel(x.g),{renderer:KR.renderer,weight:30,opacity:0,interactive:true}).on("click",e=>{L.DomEvent.stopPropagation(e);kies(x.id)}).addTo(KR.dl);
-      L.polyline(krEnkel(x.g),{renderer:KR.renderer,interactive:false,weight:on?w[2]+1:w[1]+1,color:on?sel:s==="d"?dn:s==="r"?rs:krVar("--muted"),lineCap:"butt",opacity:1}).addTo(KR.dl);
-      KR.dl.addLayer(L.tooltip({permanent:true,direction:"center",className:"krd-mk"+(on?" on":""),interactive:false}).setLatLng(midden(krEnkel(x.g))).setContent(String(x.nr)))}}
-  function kies(id){const x=KR_DEEL.get(id);if(!x)return;const s=stat(x);if(!KR.ss.has(id)&&s==="d"){krMelding("Dit stuk is al bedeeld.");return}KR.ss.has(id)?KR.ss.delete(id):KR.ss.add(id);krStyleAll();krCard()}
+    for(const g of krGroepen(KR.deel)){const on=aan(g),s=stat(g.lead);
+      L.polyline(g.g,{renderer:KR.renderer,weight:30,opacity:0,interactive:true}).on("click",e=>{L.DomEvent.stopPropagation(e);kies(g)}).addTo(KR.dl);
+      L.polyline(g.g,{renderer:KR.renderer,interactive:false,weight:on?w[2]+1:w[1]+1,color:on?sel:s==="d"?dn:s==="r"?rs:krVar("--muted"),lineCap:"round",lineJoin:"round",opacity:1}).addTo(KR.dl);
+      KR.dl.addLayer(L.tooltip({permanent:true,direction:"center",className:"krd-mk"+(on?" on":""),interactive:false}).setLatLng(krGroepMidden(g.g)).setContent(String(g.n)))}}
+  function kies(g){if(!g)return;const s=stat(g.lead);if(!aan(g)&&s==="d"){krMelding("Dit stuk is al bedeeld.");return}const on=aan(g);for(const id of g.ids)on?KR.ss.delete(id):KR.ss.add(id);krStyleAll();krCard()}
   {const _c=krCard;krCard=function(){const c=$("#krCard");let z=$("#krDl"),lk=$("#krDlL");
     if(!z){z=document.createElement("div");z.id="krDl";z.className="krd";c.insertBefore(z,$("#krMeld"))}
     if(!lk){lk=document.createElement("button");lk.type="button";lk.id="krDlL";lk.className="krd-lk";$("#krCardM").after(lk)}
     if(!KR.deel){const r=_c.apply(this,arguments);z.hidden=true;z.innerHTML="";const ids=[...KR.ss];const segs=ids.length===1?KR_DELEN.get(ids[0])||[]:[];
       lk.hidden=!(segs.length>1&&KR_STAND[ids[0]]!=="d");lk.textContent="Straat in stukken verdelen";return r}
-    const s=KR.byId.get(KR.deel),segs=KR_DELEN.get(KR.deel)||[],kz=segs.filter(x=>KR.ss.has(x.id));
+    const s=KR.byId.get(KR.deel),G=krGroepen(KR.deel),kz=G.filter(aan);
     c.hidden=false;c.classList.remove("multi");$("#krOne").hidden=true;$("#krMulti").hidden=true;
-    $("#krCardT").textContent=s.n+" · deel aanduiden";$("#krCardM").textContent=kz.length?`${kz.length} van ${segs.length} stukken gekozen · ± ${krNum(kz.reduce((t,x)=>t+x.a,0))} ${krAdr(kz.reduce((t,x)=>t+x.a,0))}`:"Tik een stuk aan in de lijst of op de kaart.";
+    $("#krCardT").textContent=s.n+" · deel aanduiden";$("#krCardM").textContent=kz.length?`${kz.length} van ${G.length} stukken gekozen · ± ${krNum(kz.reduce((t,g)=>t+g.a,0))} ${krAdr(kz.reduce((t,g)=>t+g.a,0))}`:"Tik een stuk aan in de lijst of op de kaart.";
     lk.hidden=false;lk.textContent="Terug naar de hele straat";z.hidden=false;
     z.innerHTML=`<div class="krd-k"><span>Kies de stukken</span><button type="button" data-krp="alle">Alles</button><button type="button" data-krp="geen">Niets</button></div>
-      <div class="krd-lst">${segs.map(x=>{const on=KR.ss.has(x.id),t=stat(x);return `<button type="button" class="krd-r${on?" on":""}" data-krp="${e3(x.id)}" aria-pressed="${on}"${t==="d"?" disabled":""}><span class="krd-n s-${t||"t"}">${x.nr}</span><span class="krd-t"><b>${e3(tussen(x)||"Stuk "+x.nr)}</b><small>± ${x.a} ${krAdr(x.a)}${t==="d"?" · al bedeeld":t==="r"?" · gereserveerd":t==="p"?" · melding in behandeling":""}</small></span><span class="krd-v" aria-hidden="true">${on?"✓":""}</span></button>`}).join("")}</div>`;
+      <div class="krd-lst">${G.map(g=>{const on=aan(g),t=stat(g.lead);return `<button type="button" class="krd-r${on?" on":""}" data-krp="${e3(g.id)}" aria-pressed="${on}"${t==="d"?" disabled":""}><span class="krd-n s-${t||"t"}">${g.n}</span><span class="krd-t"><b>${e3(tussen(g)||"Stuk "+g.n)}</b><small>± ${g.a} ${krAdr(g.a)}${t==="d"?" · al bedeeld":t==="r"?" · gereserveerd":t==="p"?" · melding in behandeling":""}</small></span><span class="krd-v" aria-hidden="true">${on?"✓":""}</span></button>`}).join("")}</div>`;
     const m=$("#krMeld");if(m){m.hidden=!KR.ss.size;const rb=m.querySelector('[data-krmeld="r"]');if(rb)rb.hidden=[...KR.ss].some(id=>KR_STAND[id]==="r")}}}
   document.addEventListener("click",e=>{const l=e.target.closest("#krDlL");if(l){e.stopPropagation();if(KR.deel){const sid=KR.deel;uit();KR.ss=new Set([sid]);KR.sel=sid}else{const sid=[...KR.ss][0];KR.deel=sid;KR.ss=new Set();krZoomTo(sid)}krStyleAll();krCard();return}
-    const b=e.target.closest("[data-krp]");if(!b||!KR.deel)return;e.stopPropagation();const v=b.dataset.krp,segs=KR_DELEN.get(KR.deel)||[];
-    if(v==="alle")KR.ss=new Set(segs.filter(x=>stat(x)!=="d").map(x=>x.id));else if(v==="geen")KR.ss=new Set();else return kies(v);krStyleAll();krCard()},true);
+    const b=e.target.closest("[data-krp]");if(!b||!KR.deel)return;e.stopPropagation();const v=b.dataset.krp,G=krGroepen(KR.deel);
+    if(v==="alle")KR.ss=new Set(G.filter(g=>stat(g.lead)!=="d").flatMap(g=>g.ids));else if(v==="geen")KR.ss=new Set();else return kies(G.find(g=>g.id===v));krStyleAll();krCard()},true);
 })();
 </script>
 <script>

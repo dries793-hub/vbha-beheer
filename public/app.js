@@ -979,12 +979,7 @@ function krStyleAll(){const A=krAll();const todo=krVar("--kr-todo"),dn=krVar("--
 function krSegTeken(A,c){if(!KR.map)return;if(!KR.segLayer)KR.segLayer=L.layerGroup().addTo(KR.map);KR.segLayer.clearLayers();const D=krDelen();
   for(const id in D){const x=KR_DEEL.get(id);if(KR.deel===x.sid||A[x.sid])continue;
     L.polyline(krEnkel(x.g),{renderer:KR.renderer,interactive:false,weight:c.w[1],color:D[id].status==="reserved"?c.rs:c.dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}
-  if(KR.deel){const base=KR.lines.get(KR.deel);if(base)base.setStyle({opacity:.2});const full=A[KR.deel];
-    for(const x of KR_DELEN.get(KR.deel)||[]){const m=full||D[x.id],on=KR.dsel.has(x.id);
-      L.polyline(krEnkel(x.g),{renderer:KR.renderer,weight:16,opacity:0,interactive:true}).on("click",e=>{L.DomEvent.stopPropagation(e);KR.dsel.has(x.id)?KR.dsel.delete(x.id):KR.dsel.add(x.id);krStyleAll();krCard()}).addTo(KR.segLayer);
-      L.polyline(krEnkel(x.g),{renderer:KR.renderer,interactive:false,weight:on?c.w[2]+1:c.w[1]+1,color:on?c.sel:m?(m.status==="reserved"?c.rs:c.dn):krVar("--muted"),lineCap:"butt",opacity:1}).addTo(KR.segLayer)}
-    const ends=new Set();for(const x of KR_DELEN.get(KR.deel)||[])for(const p of x.k){const k=p.join(",");if(ends.has(k))continue;ends.add(k);
-      L.circleMarker(p,{renderer:KR.renderer,radius:4,weight:2,color:krVar("--ink")||"#222",fillColor:"#fff",fillOpacity:1,interactive:false}).addTo(KR.segLayer)}}}
+  if(KR.deel)krdTeken(A,D,c)}
 function krCard(){const c=KR.host&&KR.host.querySelector("#krCard");if(!c)return;
   const mu=c.querySelector("#krMulti");
   if(KR.ss.size>1){const A=krAll(),ids=[...KR.ss].filter(id=>KR.byId.has(id)),L=ids.map(id=>KR.byId.get(id));const tot=L.reduce((t,x)=>t+x.a,0),pd=jaarCfg(JAAR).perDoos||100,doz=Math.ceil(tot/pd);
@@ -9198,7 +9193,7 @@ function krdPunten(){if(KRD.pts)return KRD.pts;const G=new Map();for(const s of 
 function krdBuur(p,sid){const G=krdPunten(),c0=Math.round(p[0]*500),c1=Math.round(p[1]*500),cos=Math.cos(p[0]*Math.PI/180);let best=null,bd=35;
   for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const q of G.get((c0+i)+"|"+(c1+j))||[]){if(q[2]===sid)continue;const dy=(q[0]-p[0])*111320,dx=(q[1]-p[1])*111320*cos,d=Math.hypot(dx,dy);if(d<bd){bd=d;best=q[2]}}
   return best&&KR.byId.get(best)?KR.byId.get(best).n:null}
-function krdTussen(x){if(KRD.tussen.has(x.id))return KRD.tussen.get(x.id);const n=[...new Set((x.k||[]).map(p=>krdBuur(p,x.sid)).filter(Boolean))];
+function krdTussen(x){if(KRD.tussen.has(x.id))return KRD.tussen.get(x.id);const n=[...new Set((x.k||[]).map(p=>krdBuur(p,x.sid||KR.deel)).filter(Boolean))];
   const t=n.length>=2?"tussen "+n[0]+" en "+n[1]:n.length===1?"vanaf "+n[0]:"";KRD.tussen.set(x.id,t);return t}
 function krdStat(x){const full=krAll()[x.sid],m=full||krDelen()[x.id];return m?(m.status==="reserved"?"r":"d"):"t"}
 
@@ -9213,20 +9208,20 @@ function krdKaart(){const c=KR.host&&KR.host.querySelector("#krCard");if(!c)retu
   z.hidden=false;
   if(!KR.deel){ // gewone weergave: de stukken als knopjes
     z.innerHTML=`<div class="krd-l">Stukken</div><div class="krd-c">${segs.map(x=>`<button type="button" class="krd-n s-${krdStat(x)}" data-krd="${esc(x.id)}" title="${esc(["Stuk "+x.nr,krdTussen(x),"± "+x.a+" adressen"].filter(Boolean).join(" · "))}"${canWrite?"":" disabled"}>${x.nr}</button>`).join("")}</div>`;return}
-  const kz=segs.filter(x=>KR.dsel.has(x.id));
+  const G=krGroepen(sid),aan=g=>g.ids.every(id=>KR.dsel.has(id)),kz=G.filter(aan);
   z.innerHTML=`<div class="krd-k"><span class="krd-l">Kies de stukken</span><span class="grow"></span><button type="button" class="kr-link" data-krd="alle">Alles</button><button type="button" class="kr-link" data-krd="geen">Niets</button></div>
-    <div class="krd-lst">${segs.map(x=>{const on=KR.dsel.has(x.id),st=krdStat(x);return `<button type="button" class="krd-r${on?" on":""}" data-krd="${esc(x.id)}" aria-pressed="${on}"><span class="krd-n s-${st}">${x.nr}</span><span class="krd-t"><b>${esc(krdTussen(x)||"Stuk "+x.nr)}</b><small>± ${x.a} ${x.a===1?"adres":"adressen"}${st==="t"?"":st==="r"?" · gereserveerd":" · gedaan"}</small></span><span class="krd-v" aria-hidden="true">${on?"✓":""}</span></button>`}).join("")}</div>`;
-  const m=c.querySelector("#krCardM");if(m)m.textContent=kz.length?`${kz.length} van ${segs.length} stukken gekozen · ± ${krAdr(kz.reduce((t,x)=>t+x.a,0))}`:`Tik een stuk aan in de lijst of op de kaart.`}
-document.addEventListener("click",e=>{const b=e.target.closest("[data-krd]");if(!b||!KR.host||!KR.host.contains(b))return;e.stopPropagation();const v=b.dataset.krd;
-  if(!KR.deel){const x=KR_DEEL.get(v);if(!x)return;KR.deel=x.sid;KR.dsel=new Set([x.id]);krZoomTo(x.sid)}
-  else{const segs=KR_DELEN.get(KR.deel)||[];if(v==="alle")KR.dsel=new Set(segs.map(x=>x.id));else if(v==="geen")KR.dsel=new Set();else KR.dsel.has(v)?KR.dsel.delete(v):KR.dsel.add(v)}
+    <div class="krd-lst">${G.map(g=>{const on=aan(g),st=krdStat(g.lead);return `<button type="button" class="krd-r${on?" on":""}" data-krd="${esc(g.id)}" aria-pressed="${on}"><span class="krd-n s-${st}">${g.n}</span><span class="krd-t"><b>${esc(krdTussen(g)||"Stuk "+g.n)}</b><small>± ${g.a} ${g.a===1?"adres":"adressen"}${st==="t"?"":st==="r"?" · gereserveerd":" · gedaan"}</small></span><span class="krd-v" aria-hidden="true">${on?"✓":""}</span></button>`}).join("")}</div>`;
+  const m=c.querySelector("#krCardM");if(m)m.textContent=kz.length?`${kz.length} van ${G.length} stukken gekozen · ± ${krAdr(kz.reduce((t,g)=>t+g.a,0))}`:`Tik een stuk aan in de lijst of op de kaart.`}
+function krdGroepZet(g){const aan=g.ids.every(id=>KR.dsel.has(id));for(const id of g.ids)aan?KR.dsel.delete(id):KR.dsel.add(id)}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-krd]");if(!b||!KR.host||!KR.host.contains(b)||!KR.deel)return;e.stopPropagation();const v=b.dataset.krd,G=krGroepen(KR.deel);
+  if(v==="alle")KR.dsel=new Set(G.flatMap(g=>g.ids));else if(v==="geen")KR.dsel=new Set();else{const g=G.find(x=>x.id===v);if(g)krdGroepZet(g)}
   if(KR.map)krStyleAll();krCard()},true);
-
-// kaart: nummers bij elk stuk en een breder aanraakvlak in de deelmodus
-{const _t=krSegTeken;krSegTeken=function(A,c){const r=_t.apply(this,arguments);try{if(KR.deel&&KR.segLayer){for(const x of KR_DELEN.get(KR.deel)||[]){
-    L.polyline(krEnkel(x.g),{renderer:KR.renderer,weight:30,opacity:0,interactive:true}).on("click",e=>{L.DomEvent.stopPropagation(e);KR.dsel.has(x.id)?KR.dsel.delete(x.id):KR.dsel.add(x.id);krStyleAll();krCard()}).addTo(KR.segLayer);
-    const mid=krdMidden(krEnkel(x.g)),on=KR.dsel.has(x.id);
-    KR.segLayer.addLayer(L.tooltip({permanent:true,direction:"center",className:"krd-mk"+(on?" on":""),interactive:false}).setLatLng(mid).setContent(String(x.nr)))}}}catch(e){console.error(e)}return r}}
+// kaart in de deelmodus (aangeroepen vanuit krSegTeken): per groep één lijn, een nummer en een breed aanraakvlak
+function krdTeken(A,D,c){const base=KR.lines.get(KR.deel);if(base)base.setStyle({opacity:.2});const full=A[KR.deel];
+  for(const g of krGroepen(KR.deel)){const m=full||D[g.ids[0]],on=g.ids.every(id=>KR.dsel.has(id));
+    L.polyline(g.g,{renderer:KR.renderer,weight:30,opacity:0,interactive:true}).on("click",e=>{L.DomEvent.stopPropagation(e);krdGroepZet(g);krStyleAll();krCard()}).addTo(KR.segLayer);
+    L.polyline(g.g,{renderer:KR.renderer,interactive:false,weight:on?c.w[2]+1:c.w[1]+1,color:on?c.sel:m?(m.status==="reserved"?c.rs:c.dn):krVar("--muted"),lineCap:"round",lineJoin:"round",opacity:1}).addTo(KR.segLayer);
+    KR.segLayer.addLayer(L.tooltip({permanent:true,direction:"center",className:"krd-mk"+(on?" on":""),interactive:false}).setLatLng(krGroepMidden(g.g)).setContent(String(g.n)))}}
 function krdMidden(g){const pts=g.flat?(Array.isArray(g[0][0])?g.flat():g):g;let tot=0;const d=[];for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i],l=Math.hypot(a[0]-b[0],(a[1]-b[1])*.63);d.push(l);tot+=l}
   let h=tot/2;for(let i=1;i<pts.length;i++){if(h<=d[i-1]){const a=pts[i-1],b=pts[i],f=d[i-1]?h/d[i-1]:0;return[a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f]}h-=d[i-1]}return pts[0]}
 
@@ -9240,15 +9235,32 @@ function krdMidden(g){const pts=g.flat?(Array.isArray(g[0][0])?g.flat():g):g;let
 .krd-t b{font-weight:500;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.krd-t small{color:var(--muted);font-size:12px}.krd-v{color:var(--accent);font-weight:700}@media(max-width:760px){.krd-lst{max-height:24vh}.krd-r{padding:5px 8px}.krd-t small{font-size:11px}}
 .leaflet-tooltip.krd-mk{background:var(--surface);border:2px solid var(--ink);border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.3);padding:0;width:24px;height:24px;line-height:20px;text-align:center;font:700 12px/20px var(--f-body);color:var(--ink)}
 .leaflet-tooltip.krd-mk.on{background:var(--accent);border-color:var(--accent);color:#fff}.leaflet-tooltip.krd-mk::before{display:none}`;document.head.appendChild(st)}
-/* Gescheiden rijbanen als één lijn tekenen: een stuk lijn dat volledig (97% van de punten, om de 8 m gemeten) binnen 30 m
-   van een langer stuk van dezelfde straat ligt, wordt niet getekend. Enkel voor de weergave; stukken en adressen blijven gelijk. */
-function krEnkel(g){if(!Array.isArray(g)||g.length<2||!Array.isArray(g[0])||!Array.isArray(g[0][0]))return g;const m=p=>[p[0]*111320,p[1]*111320*Math.cos(p[0]*Math.PI/180)];
-  const dicht8=q=>{const o=[q[0]];for(let i=1;i<q.length;i++){const a=q[i-1],b=q[i],l=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(l/8));for(let k=1;k<=n;k++)o.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}return o};
-  const L=g.map(part=>{const q=part.map(m);let l=0;for(let i=1;i<q.length;i++)l+=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);return{part,q,l,d:dicht8(q)}}).sort((a,b)=>b.l-a.l);
-  const dSeg=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],t=dx||dy?Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy))):0;return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)};
-  const dicht=(p,k)=>{for(let i=1;i<k.q.length;i++)if(dSeg(p,k.q[i-1],k.q[i])<30)return true;return false};
-  const hou=[];for(const x of L){if(x.q.length>1&&hou.length){let n=0;for(const p of x.d)if(hou.some(k=>dicht(p,k)))n++;if(n/x.d.length>=.97)continue}hou.push(x)}
-  return hou.map(x=>x.part)}
+/* ---- Kaart: gescheiden rijbanen als één lijn ----
+   krEnkel(g): een stuk lijn dat over zijn volledige lengte (97%, om de 8 m gemeten) binnen 30 m van een langer stuk van dezelfde
+   straat ligt, wordt niet getekend; losse uiteinden die zo ontstaan worden met een kort lijntje verbonden (binnen 40 m).
+   krGroepen(sid): de stukken van een straat, waarbij een stuk dat de andere rijbaan van een ander stuk is, samen met dat stuk
+   één keuze vormt (één nummer, één lijn). Enkel voor de weergave: ids, adressen en meldingen blijven per stuk. */
+const KRE={m:p=>[p[0]*111320,p[1]*111320*Math.cos(p[0]*Math.PI/180)],terug:(q,lat)=>[q[0]/111320,q[1]/(111320*Math.cos(lat*Math.PI/180))]};
+KRE.dicht8=q=>{const o=[q[0]];for(let i=1;i<q.length;i++){const a=q[i-1],b=q[i],l=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(l/8));for(let k=1;k<=n;k++)o.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}return o};
+KRE.proj=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],t=dx||dy?Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy))):0;const x=[a[0]+t*dx,a[1]+t*dy];return{x,d:Math.hypot(p[0]-x[0],p[1]-x[1])}};
+KRE.afst=(p,q)=>{let best={d:Infinity,x:null};for(let i=1;i<q.length;i++){const r=KRE.proj(p,q[i-1],q[i]);if(r.d<best.d)best=r}return best};
+KRE.lengte=q=>{let l=0;for(let i=1;i<q.length;i++)l+=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);return l};
+KRE.delen=g=>!Array.isArray(g)||!g.length?[]:Array.isArray(g[0][0])?g:[g];
+function krEnkel(g){const P=KRE.delen(g);if(P.length<2)return g;
+  const L=P.map(part=>{const q=part.map(KRE.m);return{part,q,l:KRE.lengte(q),d:KRE.dicht8(q)}}).sort((a,b)=>b.l-a.l);
+  const hou=[];for(const x of L){if(x.q.length>1&&hou.length){let n=0;for(const p of x.d)if(hou.some(k=>KRE.afst(p,k.q).d<30))n++;if(n/x.d.length>=.97)continue}hou.push(x)}
+  const uit=hou.map(x=>x.part);
+  const con=[];if(hou.length>1)for(const x of hou)for(const e of [x.q[0],x.q[x.q.length-1]]){const lat=x.part[0][0];
+    if(hou.some(k=>k!==x&&KRE.afst(e,k.q).d<3)||con.some(c=>KRE.afst(e,c).d<3))continue;let best=null;for(const k of hou){if(k===x)continue;const r=KRE.afst(e,k.q);if(r.d<40&&(!best||r.d<best.d))best=r}
+    if(best){uit.push([KRE.terug(e,lat),KRE.terug(best.x,lat)]);con.push([e,best.x])}}
+  return uit}
+const KRG=new Map();
+function krGroepen(sid){if(KRG.has(sid))return KRG.get(sid);const S=(KR_DELEN.get(sid)||[]).map(x=>{const qs=KRE.delen(x.g).map(p=>p.map(KRE.m));return{x,qs,l:qs.reduce((t,q)=>t+KRE.lengte(q),0),d:qs.flatMap(KRE.dicht8)}}).sort((a,b)=>b.l-a.l);
+  const G=[];for(const s of S){let best=null,bn=0;if(s.d.length)for(const g of G){let n=0;for(const p of s.d)if(g.qs.some(q=>KRE.afst(p,q).d<30))n++;if(n>bn){bn=n;best=g}}
+    if(best&&bn/s.d.length>=.85){best.ids.push(s.x.id);best.a+=s.x.a;best.xs.push(s.x)}else G.push({lead:s.x,ids:[s.x.id],a:s.x.a,xs:[s.x],qs:s.qs})}
+  G.sort((a,b)=>a.lead.nr-b.lead.nr);G.forEach((g,i)=>{g.n=i+1;g.id=g.lead.id;g.g=krEnkel(g.lead.g);g.k=g.xs.flatMap(x=>x.k||[])});KRG.set(sid,G);return G}
+function krGroepMidden(g){const P=KRE.delen(g);let best=P[0]||[],bl=-1;for(const p of P){const l=KRE.lengte(p.map(KRE.m));if(l>bl){bl=l;best=p}}
+  const q=best.map(KRE.m),tot=KRE.lengte(q);let h=tot/2;for(let i=1;i<q.length;i++){const d=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);if(h<=d){const f=d?h/d:0;return[best[i-1][0]+(best[i][0]-best[i-1][0])*f,best[i-1][1]+(best[i][1]-best[i-1][1])*f]}h-=d}return best[0]}
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
