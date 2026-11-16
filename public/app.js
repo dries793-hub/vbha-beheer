@@ -8826,7 +8826,8 @@ addEventListener("hashchange",()=>{if(route()==="statistieken"&&ST.op&&Date.now(
    De knoppen vervangen de tabbladen van Instellingen. Een onderdeel (Leden, Kassa, …) opent zijn instellingenvenster
    niet als popup maar onder de knoppen (het venster wordt in #instInline getoond in plaats van in de overlay). */
 const IK={actief:null,echt:null};
-const ikPaginas=()=>INST_TABS.filter(([r])=>VIEWS[r]);
+// Bankkoppeling en Automatische regels staan als tabblad bij Transacties, maar zijn ook vanuit Instellingen bereikbaar
+const ikPaginas=()=>[...INST_TABS.filter(([r])=>VIEWS[r]),...(ROL==="admin"?[["bank","Bankkoppeling"],["regels","Automatische regels"]].filter(([r])=>VIEWS[r]&&!INST_TABS.some(t=>t[0]===r)):[])];
 instTabs=function(act){const P=ikPaginas(),O=ROL==="admin"?INST_OVZ.filter(([,r])=>VIEWS[r]&&(typeof recht!=="function"||recht(r)!=="geen")):[];
   const b=(k,l,on,attr)=>`<${attr?"button type=\"button\"":"a"} class="ik-b${on?" on":""}" ${attr||`href="#${k}"`}>${esc(l)}</${attr?"button":"a"}>`;
   return `<div class="panel ik-p"><div class="panel-b"><div class="ik-g">${P.map(([k,l])=>b(k,l,IK.actief==null&&k===act)).join("")}</div>
