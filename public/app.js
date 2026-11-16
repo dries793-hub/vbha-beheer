@@ -3038,7 +3038,7 @@ async function mlVolg(batch,mid){ML_VOLG={batch,mid};clearTimeout(mlVolg.t);
   if(mm&&mm.bezig){try{await write("mailings",mm.id,{...stripId(mm),ok,fout:F.map(x=>x.aan+" ("+x.fout+")").slice(0,200),bezig:false})}catch(e){}}
   toast(F.length?`Wachtrij klaar: ${ok} verstuurd, ${F.length} niet gelukt.`:`Wachtrij klaar: ${ok} mails verstuurd.`,!!F.length)}
 // bij het openen van Mails: lopende wachtrij terug opvolgen
-async function mlZoekLopend(){if(ML_VOLG||!canWrite)return;try{const {data}=await SB.from("mail_wachtrij").select("batch").in("status",["wacht","bezig"]).limit(1);if(data&&data[0]&&!ML_VOLG)mlVolg(data[0].batch)}catch(e){}}
+async function mlZoekLopend(){if(ML_VOLG||!canWrite)return;try{const {data}=await SB.from("mail_wachtrij").select("batch").in("status",["wacht","bezig"]).like("batch","b-%").limit(1);if(data&&data[0]&&!ML_VOLG)mlVolg(data[0].batch)}catch(e){}}
 {const _m=VIEWS.mails;const n=function(){const v=_m.apply(this,arguments);setTimeout(mlZoekLopend,300);return v};Object.assign(n,_m);VIEWS.mails=n}
 document.addEventListener("click",async e=>{const t=e.target.closest('[data-act="mlStop"]');if(!t)return;e.stopImmediatePropagation();const b=t.dataset.b;
   confirmBox("De mails die nog in de wachtrij staan <b>niet</b> meer versturen?","Stoppen",async()=>{try{const {error}=await SB.from("mail_wachtrij").update({status:"geannuleerd"}).eq("batch",b).eq("status","wacht");if(error)throw error;toast("Wachtrij gestopt.");mlVolg(b,ML_VOLG&&ML_VOLG.mid)}catch(x){toast(x.message,true)}})},true);
