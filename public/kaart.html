@@ -64,7 +64,7 @@ button{font:inherit;color:inherit}
 /* ============ Kalenderronde: kaart met alle straten (Kalenders › Kalenderronde) ============
    Eigen klassen met prefix kr- zodat ze niet botsen met de rest van VBHA.
    Geen achtergrondkaart: de pagina mag geen kaarttegels van buitenaf laden, dus de straten zelf vormen de kaart. */
-:root{--kr-map:#E8EAED;--kr-todo:#A3A8B0;--kr-halo:#FFFFFF;--krb-road:#FFFFFF;--krb-bld:#D2D4D9;--krb-water:#AECBE6;--krb-green:#CFE3C8;--krb-rail:#C2C4CA;--kr-out:#F5F6F8;--kr-grens:#7F848D}
+:root{--kr-map:#ECEEF1;--kr-todo:#9AA0A9;--kr-halo:#FFFFFF;--krb-road:#FFFFFF;--krb-bld:#DDE0E5;--krb-water:#C6DCEF;--krb-green:#DCEAD5;--krb-rail:#D2D5DA;--kr-out:#FAFAFB;--kr-grens:#7F848D}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--kr-map:#131418;--kr-todo:#5A5E67;--kr-halo:#131418;--krb-road:#25272D;--krb-bld:#2D3037;--krb-water:#1A2E45;--krb-green:#18271B;--krb-rail:#34373E;--kr-out:#0C0D10;--kr-grens:#6C717A}}
 :root[data-theme="dark"]{--kr-map:#131418;--kr-todo:#5A5E67;--kr-halo:#131418;--krb-road:#25272D;--krb-bld:#2D3037;--krb-water:#1A2E45;--krb-green:#18271B;--krb-rail:#34373E;--kr-out:#0C0D10;--kr-grens:#6C717A}
 .kr-prog{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:center}
@@ -2721,8 +2721,7 @@ function krLabels(){if(!KR.labels)return;KR.labels.clearLayers();const map=KR.ma
     KR.labels.addLayer(L.tooltip({permanent:true,direction:"center",className:"kr-lbl",interactive:false}).setLatLng(at).setContent(t))}}
 const KR_BLD_ZOOM=15;
 const KR_BG_ORDER=[["green","--krb-green"],["water","--krb-water"],["road","--krb-road"],["rail","--krb-rail"],["bld","--krb-bld"]];
-function krBg(){if(KR.bg||!KR.map)return;KR.bg={groups:{},src:""};krTegels(KR.map);try{krGrens(KR.map);krMaskStijl()}catch(e){}}
-function krBgOud(){if(KR.bgLoading||KR.bg||!KR.map)return;KR.bgLoading=true;
+function krBg(){if(KR.bgLoading||KR.bg||!KR.map)return;KR.bgLoading=true;
   fetch("/kaart.json").then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>{
     const map=KR.map;map.createPane("krBg").style.zIndex=300;map.createPane("krBld").style.zIndex=310;
     const rBg=L.canvas({pane:"krBg",padding:.3}),rBld=L.canvas({pane:"krBld",padding:.3});
@@ -2732,7 +2731,7 @@ function krBgOud(){if(KR.bgLoading||KR.bg||!KR.map)return;KR.bgLoading=true;
       for(const it of items){const rings=(Array.isArray(it)?it:[it]).map(krDecode);
         g.addLayer(L.polygon(rings,{renderer:bld?rBld:rBg,pane:bld?"krBld":"krBg",interactive:false,stroke:false,fillOpacity:1,_krTok:tok}))}
       KR.bg.groups[k]=g;if(!bld)g.addTo(map)}
-    map.attributionControl.addAttribution("");
+    map.attributionControl.addAttribution("Achtergrond © GRB, Digitaal Vlaanderen");
     krGrens(map);
     map.on("zoomend",krBgZoom);krBgZoom();krBgStyle();
   }).catch(()=>{KR.bgLoading=false})}
@@ -2746,7 +2745,7 @@ function krGrens(map){const el=document.getElementById("krGrens");if(!el)return;
   KR.bg.grens=L.polyline(R.map(x=>x.concat([x[0]])),{renderer:r,pane:"krMask",interactive:false,weight:1.5,dashArray:"6 5",opacity:1}).addTo(map)}
 function krBgZoom(){const g=KR.bg&&KR.bg.groups.bld;if(!g)return;const on=KR.map.getZoom()>=KR_BLD_ZOOM;
   if(on&&!KR.map.hasLayer(g))g.addTo(KR.map);else if(!on&&KR.map.hasLayer(g))g.remove()}
-function krBgStyle(){return;if(!KR.bg)return;const c={};
+function krBgStyle(){if(!KR.bg)return;const c={};
   for(const g of Object.values(KR.bg.groups))g.eachLayer(l=>{const t=l.options._krTok;l.setStyle({fillColor:c[t]||(c[t]=krVar(t))})});
   if(KR.bg.mask)KR.bg.mask.setStyle({fillColor:krVar("--kr-out")});if(KR.bg.grens)KR.bg.grens.setStyle({color:krVar("--kr-grens")})}
 
