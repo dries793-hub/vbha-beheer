@@ -8974,10 +8974,17 @@ function jdXlsx(soort,Y){const doc=soort==="rekening"?jdRekening(Y):jdVerslag(Y)
   for(const k in ws)if(k[0]!=="!"&&typeof ws[k].v==="number")ws[k].z='€ #,##0.00;[Red]-€ #,##0.00';
   XLSX.utils.book_append_sheet(wb,ws,doc.titel.slice(0,31));save(doc.titel.replace(/\s+/g,"_")+".xlsx",XLSX.write(wb,{type:"array",bookType:"xlsx"}))}
 
-viewHook("gegevens",{na(){if(ROL!=="admin"&&ROL!=="boekhouder")return"";
+/* eigen pagina onder Vereniging › Jaardocumenten */
+if(!ROUTES.some(r=>r[0]==="jaardocumenten"))ROUTES.push(["jaardocumenten","Jaardocumenten"]);
+ICON.jaardocumenten=ICON.jaardocumenten||ICON.documenten;
+if(typeof FUNC!=="undefined"&&!FUNC.some(f=>f[0]==="jaardocumenten")){const k=FUNC.findIndex(f=>f[0]==="documenten");FUNC.splice(k+1,0,["jaardocumenten","Jaardocumenten",["jaardocumenten"],"Vereniging"]);FUNC_VAN.jaardocumenten="jaardocumenten"}
+// standaard: administrator en boekhouder; anderen enkel als het per gebruiker aangezet is
+{const _r=recht;recht=function(r){if(r==="jaardocumenten"&&ROL!=="admin"){const v=RECHTEN&&ROL===ROL_ECHT?RECHTEN.jaardocumenten:null;return v||(ROL==="boekhouder"?"bewerken":"geen")}return _r.apply(this,arguments)}}
+VIEWS.jaardocumenten=()=>({title:"Jaardocumenten",body(){return recht("jaardocumenten")==="geen"?'<div class="panel"><div class="empty">Enkel voor de administrator en de boekhouder.</div></div>':jdPanel()}});
+function jdPanel(){
     const J=[...S.jaren.keys()].map(Number).filter(Boolean).sort((a,b)=>b-a),def=J.includes(Number(JAAR)-1)?Number(JAAR)-1:Number(JAAR);
     const rij=(s,l)=>`<div class="jd-r"><b>${l}</b><span class="grow"></span><button type="button" class="btn sm" data-jd="pdf" data-s="${s}">${ic("download")}PDF</button><button type="button" class="btn sm" data-jd="xlsx" data-s="${s}">${ic("download")}Excel</button></div>`;
-    return `<div class="panel"><div class="panel-h"><h2>Jaardocumenten</h2><select class="sel" id="jdJ" aria-label="Boekjaar" style="width:auto">${J.map(y=>`<option${y===def?" selected":""}>${y}</option>`).join("")}</select></div><div class="panel-b stack">${rij("rekening","Jaarrekening")}${rij("verslag","Jaarverslag")}</div></div>`}});
+    return `<div class="panel"><div class="panel-h"><h2>Jaardocumenten</h2><select class="sel" id="jdJ" aria-label="Boekjaar" style="width:auto">${J.map(y=>`<option${y===def?" selected":""}>${y}</option>`).join("")}</select></div><div class="panel-b stack">${rij("rekening","Jaarrekening")}${rij("verslag","Jaarverslag")}</div></div>`}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-jd]");if(!b)return;const Y=Number(($("#jdJ")||{}).value)||Number(JAAR);
   if(b.dataset.jd==="pdf")jdPdf(b.dataset.s,Y,b);else jdXlsx(b.dataset.s,Y)});
 {const st=document.createElement("style");st.textContent=".jd-r{display:flex;align-items:center;gap:8px}";document.head.appendChild(st)}
@@ -9167,7 +9174,7 @@ document.addEventListener("change",e=>{if(LIBS_OK||!(e.target&&e.target.type==="
    Communicatie (Mails, Website, Fotoalbums). */
 {const G=id=>NAV.find(n=>!Array.isArray(n)&&n.id===id),weg=id=>{let it=null;for(const g of NAV)if(!Array.isArray(g)){const k=g.items.findIndex(i=>i[0]===id);if(k>=0)it=g.items.splice(k,1)[0]}return it};
   const act=G("administratie"),com=G("communicatie");
-  if(com&&!G("vereniging")){const v={id:"vereniging",label:"Vereniging",items:[]};for(const id of ["agenda","sponsors","documenten"]){const it=weg(id);if(it)v.items.push(it)}
+  if(com&&!G("vereniging")){const v={id:"vereniging",label:"Vereniging",items:[]};for(const id of ["agenda","sponsors","documenten"]){const it=weg(id);if(it)v.items.push(it)}v.items.push(["jaardocumenten","Jaardocumenten"]);
     com.label="Media";{const m=com.items.find(i=>i[0]==="mails");if(m)m[1]="Mail/Sms";if(!com.items.some(i=>i[0]==="social")){const k=com.items.indexOf(m);com.items.splice(k+1,0,["social","Sociale media"])}}NAV.splice(NAV.indexOf(com),0,v)}
   // Kassa bij Financiën, Shiften bij Vereniging, Webshop bij Media (na Website)
   {const fin=G("boekhouding"),ver=G("vereniging");const ka=weg("kassa");if(ka)(fin||act).items.push(ka);const sh=weg("shiften");if(sh)(ver||act).items.push(sh);
