@@ -685,7 +685,7 @@ function regelVan(b){const p=String(b.partij||"").trim();regelForm(p&&p.length>3
 /* bank */
 VIEWS.bank=()=>({title:"Bankimport",sub:"Rekeninguittreksels van Argenta inlezen",body(){
   const imps=[...S.imports.values()].sort((a,b)=>String(b.tijd||"").localeCompare(String(a.tijd||"")));
-  return instTabs("bank")+`  <div class="panel" id="bankKop"><div class="panel-h"><h2>Rechtstreekse koppeling met de bank</h2></div><div class="panel-b"><div class="muted">Status laden…</div></div></div>
+  return instTabs("bank")+`  <div class="panel" id="bankKop"><div class="panel-h"><h2>Rechtstreekse koppeling met de bank</h2></div><div class="panel-b"><span class="laad k" role="status" aria-label="Laden"><span class="lader-c"></span></span></div></div>
   <div class="panel"><div class="panel-h"><h2>Importgeschiedenis</h2></div><div class="tw"><table class="rcards"><thead><tr><th>Wanneer</th><th class="num">Nieuw</th><th class="num">Overgeslagen</th><th class="num">Te verwerken</th></tr></thead><tbody>
   ${imps.map(i=>`<tr><td class="nowrap">${(()=>{const t=new Date(i.tijd||"");if(isNaN(t))return esc(String(i.tijd||""));const p=new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Brussels",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).format(t);return fmtDate(p.slice(0,10))+" "+esc(p.slice(11,16))})()}</td><td class="num">${i.nieuw||0}</td><td class="num">${i.dubbel||0}</td><td class="num">${i.open||0}</td></tr>`).join("")||'<tr><td colspan="4" class="empty">Nog geen imports.</td></tr>'}
   </tbody></table></div></div>`}});
@@ -1462,7 +1462,7 @@ VIEWS.mails=()=>({title:"Mails aan leden",sub:"Gepersonaliseerde mails voor een 
   <div class="panel"><div class="panel-h"><h2>Voorbeeld</h2><span class="grow"></span><button class="btn sm" data-act="mailPrev" aria-label="Vorige">‹</button><span id="mIdx" style="font-size:13px;color:var(--muted)"></span><button class="btn sm" data-act="mailNext" aria-label="Volgende">›</button></div>
     <div class="panel-b" style="display:flex;flex-direction:column;gap:10px"><div class="mailhead" id="mHead"></div><div class="preview" id="mPrev"></div></div></div>
   <div class="panel"><div class="panel-h"><h2>3 · Versturen</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:12px">
-    ${MAILSMTP===null?(mailSmtpLaad(),'<div class="muted small">Verzendinstellingen laden…</div>'):MAILSMTP.ingesteld?`<button class="btn primary" data-w data-act="mailSend"${met.length?"":" disabled"}>${ic("mails")}${met.length} ${met.length===1?"mail":"mails"} versturen</button>
+    ${MAILSMTP===null?(mailSmtpLaad(),'<span class="laad k" role="status" aria-label="Laden"><span class="lader-c"></span></span>'):MAILSMTP.ingesteld?`<button class="btn primary" data-w data-act="mailSend"${met.length?"":" disabled"}>${ic("mails")}${met.length} ${met.length===1?"mail":"mails"} versturen</button>
     <button class="btn" data-w data-act="mailTest"${met.length?"":" disabled"}>Testmail naar mezelf (${esc(ME?ME.email:"")})</button>
     <div style="font-size:13.5px;color:var(--muted)">Elke ontvanger krijgt een eigen mail met de juiste naam en het juiste bedrag, verstuurd vanaf <b>${esc(MAILSMTP.van.email)}</b>.</div><div id="mailProg"></div>`:`<div class="note">Rechtstreeks versturen is nog niet ingesteld. Vul in Vercel <span class="kbd">SMTP_HOST</span>, <span class="kbd">SMTP_PORT</span>, <span class="kbd">SMTP_USER</span> en <span class="kbd">SMTP_PASS</span> in.</div>`}
     <details><summary style="cursor:pointer;font-weight:600">Andere manieren</summary><div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
@@ -1506,7 +1506,7 @@ function eml(r,M){
 }
 
 VIEWS.logboek=()=>({title:"Logboek",actions:LOG_CLIENT?"":'<button class="btn" data-act="logVernieuw">Vernieuwen</button>',body(){logStart();
-  if(!LOGS.loaded)return instTabs("logboek")+'<div class="panel"><div class="empty">Logboek laden…</div></div>';
+  if(!LOGS.loaded)return instTabs("logboek")+'<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>';
   if(LOGS.err)return instTabs("logboek")+`<div class="note">Het logboek kon niet geladen worden${typeof LOGS.err==="string"?": "+esc(LOGS.err):""}.${LOG_CLIENT?"":" Voer eerst het bestand <b>supabase/logboek.sql</b> uit in de SQL Editor van Supabase."}</div>`;
   const q=norm(UI.logQ||""),T=UI.logT||"",W=UI.logW||"";const wies=[...new Set(LOGS.rows.map(e=>e.wie).filter(Boolean))].sort();
   let L=LOGS.rows;if(T)L=L.filter(e=>e.tabel===T);if(W)L=L.filter(e=>e.wie===W);
@@ -2567,7 +2567,7 @@ async function deelLijst(m){const {data,error}=await SB.from("deellinks").select
   const nu=new Date().toLocaleDateString("sv-SE");return (data||[]).map(r=>({id:r.id,...r.data,verlopen:!!(r.data.tot&&nu>r.data.tot)})).filter(x=>!x.ingetrokken).sort((a,b)=>String(b.op||"").localeCompare(String(a.op||"")))}
 async function docDeel(m){if(!canWrite||!m)return;
   modal("Map delen",`<div class="dd-w"><p class="muted small" style="margin:0 0 12px">Iedereen met de link kan de bestanden in <b>${esc(docLabel(m))}</b> bekijken en downloaden, zonder aan te melden. Andere mappen en de rest van de app blijven afgeschermd. Je kan een link op elk moment intrekken.</p>
-   <div id="ddL"><p class="muted small">Laden…</p></div>
+   <div id="ddL"><div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div></div>
    <form id="fDd" class="form dd-n"><div class="full"><b>Nieuwe link</b></div>
     ${fld("ddV","Voor wie (optioneel)",inp("ddV","",'maxlength="80" placeholder="bv. drukkerij De Peer"'))}
     ${fld("ddT","Geldig tot",`<select id="ddT" class="sel"><option value="7">1 week</option><option value="30" selected>1 maand</option><option value="90">3 maanden</option><option value="365">1 jaar</option><option value="0">Geen einddatum</option></select>`)}
@@ -2829,7 +2829,7 @@ VIEWS.mails=()=>({title:"Mail/Sms",actions:'<button class="btn" data-w data-act=
     ${mlBlokUI(g)}
   </div></div>
   <div class="panel"><div class="panel-h"><h2>Versturen</h2></div><div class="panel-b stack" style="gap:10px">
-    ${MAILSMTP===null?(mailSmtpLaad(),'<div class="muted small">Verzendinstellingen laden…</div>'):MAILSMTP.ingesteld?`
+    ${MAILSMTP===null?(mailSmtpLaad(),'<span class="laad k" role="status" aria-label="Laden"><span class="lader-c"></span></span>'):MAILSMTP.ingesteld?`
     <button class="btn primary" data-act="mlSend"${actief.length&&canWrite?"":" disabled"}>${ic("mails")}${actief.length} ${actief.length===1?"mail":"mails"} versturen</button>
     <div class="ml-test"><input id="mlTestAan" type="email" value="${esc(UI.mlTestAan||(ME?ME.email:""))}" aria-label="Testmail naar"><button class="btn" data-act="mlTest"${actief.length&&canWrite?"":" disabled"}>Testmail</button></div>
 <div id="mailProg">${ML_LAST}</div>`
@@ -3067,7 +3067,7 @@ async function gbLaad(){try{GB=await api("/api/gebruikers")}catch(e){GB={fout:e.
 const gbDt=s=>{if(!s)return"nog nooit";const x=new Date(s);return x.toLocaleDateString("nl-BE",{day:"numeric",month:"short",year:"numeric"})+" "+x.toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})};
 VIEWS.gebruikers=()=>({title:"Gebruikers",actions:ROL==="admin"?'<button class="btn primary" data-act="gbNieuw">'+ic("plus")+'Gebruiker toevoegen</button>':"",body(){
   if(ROL!=="admin")return '<div class="panel"><div class="empty">Enkel een administrator kan gebruikers beheren.</div></div>';
-  if(!GB){gbLaad();return '<div class="panel"><div class="empty">Gebruikers laden…</div></div>'}
+  if(!GB){gbLaad();return '<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>'}
   if(GB.fout)return `<div class="note">${esc(GB.fout)}</div>`;
   const L=GB.gebruikers;
   return `  <div class="panel"><div class="panel-h"><h2>Wie heeft toegang</h2><span class="grow"></span><span class="muted small">${L.length}</span></div><div class="list">
@@ -4225,7 +4225,7 @@ function inkLijst(){const D=inkDocs(),open=D.filter(inkOpen),q=norm(INK.q||"");l
 document.addEventListener("input",e=>{if(e.target.id!=="inkQ")return;INK.q=e.target.value;inkHerteken()});
 function inkHerteken(){const el=$("#inkL");if(!el)return renderBody();const tmp=document.createElement("div");tmp.innerHTML=inkLijst();el.replaceWith(tmp.querySelector("#inkL"))}
 function inkUitleg(){const s=INK.srv;
-  if(!s)return `<div class="panel"><div class="panel-b muted small">Laden…</div></div>`;
+  if(!s)return `<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>`;
   const wanneer=s.laatsteKeer?new Date(s.laatsteKeer).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
   if(s.ingesteld)return s.fout?`<div class="note ink-u"><div>${ic("inkomend")}</div><div><b>Facturen ophalen uit ${esc(s.adres)} lukte niet</b><div class="small out">${esc(s.fout)}</div></div>${inkMag()?`<button type="button" class="btn sm" data-ink="haal">Opnieuw proberen</button>`:""}</div>`:"";
   return `<div class="note ink-u"><div>${ic("inkomend")}</div><div><b>Mailbox voor facturen: ${esc(s.adres||"nog niet gekozen")}</b><div class="small">${s.wachtwoordGezet?"":"Vul het wachtwoord van de mailbox in via het tandwiel rechtsboven. "}Tot dan kan je facturen hier opladen.</div></div>${inkMag()?`<button type="button" class="btn sm" data-ink="instel">Instellen</button>`:""}</div>`}
@@ -4469,7 +4469,7 @@ async function mpLaad(){try{const r=await mpReg();MP.sub=r?await r.pushManager.g
 function mpToestelHtml(){
   if(!mpKan()){return mpIOS()&&!mpThuis()?`<div class="note info">Op een iPhone of iPad werken meldingen enkel als de app op je beginscherm staat: tik in Safari op <b>Deel</b> en dan <b>Zet op beginscherm</b>, open de app van daaruit en kom hier terug.</div>`:`<div class="muted small">Deze browser ondersteunt geen pushmeldingen.</div>`}
   if(Notification.permission==="denied")return `<div class="note">Meldingen zijn geblokkeerd voor deze site. Zet ze terug aan in de instellingen van je browser of toestel (Meldingen › VBHA) en herlaad de app.</div>`;
-  if(!MP.srv)return `<div class="muted small">Laden…</div>`;
+  if(!MP.srv)return `<span class="laad k" role="status" aria-label="Laden"><span class="lader-c"></span></span>`;
   const aan=!!MP.sub&&Notification.permission==="granted",n=MP.srv.toestellen||0;
   return `<div class="mp-st"><span class="mp-dot${aan?" on":""}"></span><div><b>${aan?"Meldingen staan aan op dit toestel":"Meldingen staan uit op dit toestel"}</b><div class="muted small">${esc(mpToestel())}${n?` · ${n} ${n===1?"toestel":"toestellen"} aangemeld op jouw naam`:""}</div></div></div>
    <div class="bar" style="margin:10px 0 0">${aan?`<button class="btn" type="button" data-mp="uit">Uitzetten op dit toestel</button>`:`<button class="btn primary" type="button" data-mp="aan">${ic("bel")}Meldingen aanzetten op dit toestel</button>`}</div>`+(aan?mpVoorkeurHtml():"")}
@@ -5749,7 +5749,7 @@ const kaTelMag=()=>ROL==="admin"||(typeof rechtRuw==="function"&&rechtRuw("kassa
 function kaTelLaad(){if(KA_TEL.bezig||KA_TEL.d)return;KA_TEL.bezig=true;api("/api/mail?f=kassa",{method:"POST",body:JSON.stringify({actie:"tellingen"})}).then(j=>{KA_TEL.d=j.tellingen||{};KA_TEL.bezig=false;if(route()==="kassa"||KA_UI.det)renderBody()}).catch(()=>{KA_TEL.d={};KA_TEL.bezig=false})}
 const kaTelVan=(act,jaar)=>(KA_TEL.d||{})[act+"|"+jaar]||{};
 const kaCoupL=w=>w>=1?"€ "+w:Math.round(w*100)+" cent";
-function kaTelPanel(act){if(!kaTelMag())return"";if(!KA_TEL.d){kaTelLaad();return `<div class="panel" style="min-width:0"><div class="panel-h"><h2>Kassatelling</h2></div><div class="panel-b"><div class="muted small">Laden…</div></div></div>`}
+function kaTelPanel(act){if(!kaTelMag())return"";if(!KA_TEL.d){kaTelLaad();return `<div class="panel" style="min-width:0"><div class="panel-h"><h2>Kassatelling</h2></div><div class="panel-b"><span class="laad k" role="status" aria-label="Laden"><span class="lader-c"></span></span></div></div>`}
   const jaar=kaJaar(act)||JAAR,T=kaTelVan(act,jaar),cash=kaTot(kaTrans(act,jaar)).cash,b=T.begin?T.begin.tot:0,verw=r2(b+cash);
   const wie=t=>t?`<span class="muted small">${esc(new Date(t.op).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))}${t.door?" · "+esc(t.door):""}</span>`:"";
   const v=T.eind?r2(T.eind.tot-verw):null;
@@ -6449,7 +6449,7 @@ async function wsFotoUrl(f){if(!f||!f.pad)return"";if(f.pad.startsWith("/w/"))re
 function wsKantSel(k){const W=wsWerk(),d=canWrite?"":" disabled",vast=k==="kalender"||k==="viv",kk=k==="kalender"?"kal_fotokant":"viv_fotokant",e=vast?null:(W.eigen||[]).find(x=>x.id===k),v=(vast?W[kk]:e&&e.fotoKant)||"links";
   return `<select data-ws-kant aria-label="Plaats van de foto" ${vast?`data-wsk="${kk}"`:'data-wsef="fotoKant"'} style="width:auto"${d}><option value="links"${v==="links"?" selected":""}>Foto links van de tekst</option><option value="rechts"${v==="rechts"?" selected":""}>Foto rechts van de tekst</option></select>`}
 function wsFotoBlok(k,lbl){const W=wsWerk(),f=W.fotos[k],d=canWrite?"":" disabled";
-  return `<div class="fld full"><span class="lbl">${lbl}</span>${(f||k==="kalender")?`<div style="margin:0 0 8px">${wsKantSel(k)}</div>`:""}<div class="ws-foto"><div class="ws-fi" data-wsimg="${k}">${f?'<span class="muted small">laden…</span>':k==="kalender"?'<img src="/w/kalender-2027.jpg" alt="">':'<span class="muted small">Geen foto: de tekst staat dan over de volle breedte.</span>'}</div>
+  return `<div class="fld full"><span class="lbl">${lbl}</span>${(f||k==="kalender")?`<div style="margin:0 0 8px">${wsKantSel(k)}</div>`:""}<div class="ws-foto"><div class="ws-fi" data-wsimg="${k}">${f?'<span class="laad k" role="status" aria-label="Laden"><span class="lader-c"></span></span>':k==="kalender"?'<img src="/w/kalender-2027.jpg" alt="">':'<span class="muted small">Geen foto: de tekst staat dan over de volle breedte.</span>'}</div>
    <div class="ws-fk"><label class="btn sm${canWrite?"":" disabled"}">${ic("upload")}Foto opladen<input type="file" accept="image/*" data-wsup="${k}" hidden${d}></label>${f?`<button type="button" class="btn sm ghost" data-wsact="fotoWeg" data-k="${k}"${d}>Foto verwijderen</button>`:""}<span class="help">JPG of PNG. Wordt automatisch verkleind tot 1600 px.</span></div></div></div>`}
 VIEWS.website=()=>({title:"Website",sub:"Startpagina vbha.be",
   actions:`<a class="btn" href="https://vbha.be" target="_blank" rel="noopener">${ic("link")}Website openen</a>`,
@@ -7812,7 +7812,7 @@ VIEWS.sms=()=>({title:"Mail/Sms",body(){
   const opt=[...new Set(G.map(x=>x.sect))].map(s=>`<optgroup label="${esc(s)}">${G.filter(x=>x.sect===s).map(x=>`<option value="${esc(x.id)}"${x.id===g.id?" selected":""}>${esc(x.label)} (${x.list.length})</option>`).join("")}</optgroup>`).join("");
   const log=(SMS.log||[]).reduce((m,r)=>{const k=(r.nieuw&&r.nieuw.batch)||r.ts.slice(0,16);(m[k]||(m[k]={ts:r.ts,wie:r.wie,tekst:r.nieuw&&r.nieuw.tekst,n:0,ok:0}));m[k].n++;if(r.nieuw&&r.nieuw.ok)m[k].ok++;return m},{});
   return comTabs("sms")+`<div class="grid g2 sms-g" style="align-items:start">
-   <div class="panel"><div class="panel-h"><h2>Nieuwe sms</h2><span class="grow"></span>${D.laden?'<span class="muted small">laden…</span>':D.aan?`<span class="pill ok">${D.tegoed?"Tegoed "+esc(D.tegoed):"Actief"}</span>`:'<span class="pill warn">sms-dienst niet ingesteld</span>'}</div><div class="panel-b stack">
+   <div class="panel"><div class="panel-h"><h2>Nieuwe sms</h2><span class="grow"></span>${D.laden?'<span class="laad k" role="status" aria-label="Laden"><span class="lader-c"></span></span>':D.aan?`<span class="pill ok">${D.tegoed?"Tegoed "+esc(D.tegoed):"Actief"}</span>`:'<span class="pill warn">sms-dienst niet ingesteld</span>'}</div><div class="panel-b stack">
     <div class="fld"><label for="smsG">Naar</label><select id="smsG">${opt}</select></div>
     ${g.id==="los"?`<div class="fld"><label for="smsLos">Gsm-nummers</label><textarea id="smsLos" rows="3" placeholder="0476 12 34 56, 0499 …">${esc(SMS.los)}</textarea></div>`:""}
     <div class="fld"><label for="smsT">Tekst</label><textarea id="smsT" rows="5" maxlength="612" placeholder="Beste {voornaam}, …"${mag?"":" disabled"}>${esc(tekst)}</textarea>
@@ -7886,7 +7886,7 @@ function soPost(r){const d=r.data,[cl,lb]=SO_ST[r.status]||["neutral",r.status],
    ${canWrite?`<div class="so-a">${["concept","gepland","fout","deels"].includes(r.status)?`<button type="button" class="btn sm ghost" data-soa="bewerk" data-id="${esc(r.id)}">Bewerken</button>`:""}${["fout","deels"].includes(r.status)?`<button type="button" class="btn sm" data-soa="nu" data-id="${esc(r.id)}">Opnieuw</button>`:r.status==="concept"||r.status==="gepland"?`<button type="button" class="btn sm" data-soa="nu" data-id="${esc(r.id)}">Nu publiceren</button>`:""}${r.status!=="bezig"?`<button type="button" class="iconbtn" data-soa="weg" data-id="${esc(r.id)}" title="Verwijderen" aria-label="Verwijderen">${ic("prul")}</button>`:""}</div>`:""}</div>`}
 VIEWS.social=()=>({title:"Sociale media",body(){
   if(recht("social")==="geen")return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
-  if(!SOC.posts){soLaad();return '<div class="panel"><div class="empty">Laden…</div></div>'}
+  if(!SOC.posts){soLaad();return '<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>'}
   const E=SOC.ed||(SOC.ed=soLeeg()),d=canWrite&&!SOC.busy?"":" disabled",ig=E.kanalen.instagram,lang=E.tekst.length;
   const P=SOC.posts,gr=[["Gepland",P.filter(r=>r.status==="gepland"||r.status==="bezig").sort((a,b)=>String(a.plan).localeCompare(String(b.plan)))],["Concepten en fouten",P.filter(r=>["concept","fout","deels"].includes(r.status))],["Gepubliceerd",P.filter(r=>r.status==="gepubliceerd")]];
   return `<div class="grid g2 so-g" style="align-items:start">
@@ -8020,7 +8020,7 @@ function moVerzonden(){if(!MV.auto&&!MV.bezig)setTimeout(moAutoLaad,0);
     <span class="muted small trunc">${esc(dt(x.d))} · ${auto?esc(m.aanNaam?m.aanNaam+" <"+(m.aan||"")+">":m.aan||""):esc(m.groep||"")+(m.aantal?" ("+m.aantal+")":"")}</span></div>${auto?'<span class="mo-tag">automatisch</span>':""}${st(x)}</div>`};
   const seg=`<div class="seg" role="group" aria-label="Filter">${[["alle","Alles"],["zelf","Zelf verstuurd"],["auto","Automatisch"]].map(([k,l])=>`<button type="button" class="${MV.f===k?"on":""}" data-mvf="${k}">${l}</button>`).join("")}</div>`;
   return `<div class="panel ml-hist"><div class="panel-h"><h2>Verzonden</h2><span class="grow"></span>${seg}</div>
-    ${MV.bezig&&!MV.auto&&MV.f!=="zelf"?'<div class="empty">Laden…</div>':L.length?`<div class="ml-hl">${L.slice(0,MV.n).map(rij).join("")}</div>`:'<div class="empty">Nog niets verstuurd.</div>'}
+    ${MV.bezig&&!MV.auto&&MV.f!=="zelf"?'<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>':L.length?`<div class="ml-hl">${L.slice(0,MV.n).map(rij).join("")}</div>`:'<div class="empty">Nog niets verstuurd.</div>'}
     ${L.length>MV.n?'<div style="padding:10px 16px;border-top:1px solid var(--line)"><button class="btn sm" data-mvf="meer">Meer tonen</button></div>':""}</div>`}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-mvf]");if(!b)return;if(b.dataset.mvf==="meer")MV.n+=100;else{MV.f=b.dataset.mvf;MV.n=60}renderBody()});
 addEventListener("hashchange",()=>{if(route()!=="mails")MV.auto=null});
@@ -8096,7 +8096,7 @@ function smoLog(){return Object.values((SMS.log||[]).reduce((m,r)=>{const k=(r.n
 function smoOpstel(){const D=SMS.dienst||{},{G,g}=smoGroep(),mag=canWrite,sel=g.list.filter(r=>!SMS.uit.has(r.id)),t=SMS.tekst,del=smsDelen(smsVul(t,{voornaam:"Xxxxxxxx"}));
   const sects=[...new Set(G.map(x=>x.sect))];
   const balk=`<div class="mo-bk"><button class="btn primary mo-send" data-sms="stuur"${mag&&D.aan&&sel.length&&t.trim()?"":" disabled"}>${ic("mails")}Verzenden</button>
-    <span class="grow"></span>${D.laden?'<span class="muted small">laden…</span>':D.aan?`<span class="pill ok">${D.tegoed?"Tegoed "+esc(D.tegoed):"Actief"}</span>`:'<span class="pill warn">sms-dienst niet ingesteld</span>'}</div>`;
+    <span class="grow"></span>${D.laden?'<span class="laad k" role="status" aria-label="Laden"><span class="lader-c"></span></span>':D.aan?`<span class="pill ok">${D.tegoed?"Tegoed "+esc(D.tegoed):"Actief"}</span>`:'<span class="pill warn">sms-dienst niet ingesteld</span>'}</div>`;
   const velden=`<div class="mo-vl"><div class="mo-r"><span class="mo-l">Aan</span><span class="mo-v mo-aan"><select class="sel mo-gr" id="smsG" aria-label="Doelgroep">${sects.map(s=>`<optgroup label="${esc(s)}">${G.filter(x=>x.sect===s).map(x=>`<option value="${esc(x.id)}"${x.id===g.id?" selected":""}>${esc(x.label)}</option>`).join("")}</optgroup>`).join("")}</select>
       <button type="button" class="mo-n" data-smo="ont"><span id="smsCnt">${sel.length}</span> ${sel.length===1?"ontvanger":"ontvangers"}${g.list.length>sel.length?` · ${g.list.length-sel.length} uitgezonderd`:""} ›</button></span></div>
     ${g.id==="los"?`<div class="mo-r"><span class="mo-l">Nummers</span><textarea id="smsLos" class="mo-v ml-los" rows="2" placeholder="0476 12 34 56, 0499 …">${esc(SMS.los)}</textarea></div>`:""}</div>`;
@@ -8352,7 +8352,7 @@ function tbRij(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],b=r
    <b class="tb-b">${eur(d.bedrag)}</b><div class="tb-a">${acts.join("")}${tbKan(r)?`<button type="button" class="iconbtn" data-tb="weg" data-id="${esc(r.id)}" title="Verwijderen" aria-label="Verwijderen">${ic("prul")}</button>`:""}</div></div>`}
 VIEWS.terug=()=>({title:"Terugbetalingen",actions:tbMag()?`<button class="btn primary" data-tb="nieuw">${ic("plus")}Nieuwe terugbetaling</button>${tbVol()?`<button class="btn iconbtn" data-tb="link" aria-label="Instellingen" title="Instellingen">${ic("instellingen")}</button>`:""}`:"",body(){
   if(!tbMag())return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
-  if(!TB.lijst){tbLaad();return '<div class="panel"><div class="empty">Laden…</div></div>'}
+  if(!TB.lijst){tbLaad();return '<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>'}
   const OPEN=["aangevraagd","ingediend","goedgekeurd","wacht"],L=TB.lijst.filter(r=>TB.f==="alle"||(TB.f==="kaart"?r.data.soort==="kaart":TB.f==="open"?OPEN.includes(r.status):r.status===TB.f));
   const som=TB.lijst.filter(r=>r.status==="goedgekeurd").reduce((s,r)=>s+num(r.data.bedrag),0);
   return `<div class="bar fc-bar"><div class="seg">${[["open","Open"],["betaald","Betaald"],["geweigerd","Geweigerd"],...(TB.lijst.some(r=>r.data.soort==="kaart")?[["kaart","Kastickets"]]:[]),["alle","Alle"]].map(([k,l])=>{const n=TB.lijst.filter(r=>k==="alle"||(k==="kaart"?r.data.soort==="kaart":k==="open"?OPEN.includes(r.status):r.status===k)).length;return `<button type="button" data-tbf="${k}" class="${TB.f===k?"on":""}">${l}${n?` <span class="tb-n">${n}</span>`:""}</button>`}).join("")}</div><span class="grow"></span>${som?`<span class="muted">Nog te betalen: <b>${eur(som)}</b></span>`:""}</div>
@@ -8683,7 +8683,7 @@ function kfMed(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=s.leng
 VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   if(!kfFinMag())return kalTabs("kalfin")+'<div class="empty">Enkel voor de administrator en de boekhouder.</div>';
   if(KF.jaar!==JAAR&&!KF.bezig)setTimeout(kfLaad,0);
-  if(KF.jaar!==JAAR&&!KF.fout)return kalTabs("kalfin")+'<div class="kf-laad" role="status" aria-label="Laden"><span class="lader-c"></span><b>Laden</b></div>';
+  if(KF.jaar!==JAAR&&!KF.fout)return kalTabs("kalfin")+'<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>';
   const C=ctx(),B=C.boek.filter(b=>b.categorie==="Kalenders");
   const inB=B.filter(b=>b.richting!=="uit"),uitB=B.filter(b=>b.richting==="uit");
   const som=L=>L.reduce((s,b)=>s+(Number(b.bedrag)||0),0);
@@ -8735,7 +8735,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
     ${tile("Kosten kalenders",kfEur(kost),"")}${tile("Respons",bed&&KF.data?(n/bed*100).toLocaleString("nl-BE",{maximumFractionDigits:1})+" %":"–","")}</div>
 
   <div class="panel"><div class="panel-h"><h2>Betalingen</h2><span class="kf-lg"><i></i>Bancontact <i class="ov"></i>overschrijving</span></div>
-   ${KF.bezig&&!KF.data?'<div class="empty">Laden…</div>':KF.fout?`<div class="empty">${esc(KF.fout)}</div>`:!n?'<div class="empty">Nog geen betalingen.</div>':`
+   ${KF.bezig&&!KF.data?'<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>':KF.fout?`<div class="empty">${esc(KF.fout)}</div>`:!n?'<div class="empty">Nog geen betalingen.</div>':`
    <div class="panel-b"><div class="tiles kf-t">${tile("Aantal betalingen",n.toLocaleString("nl-BE"),"")}${tile("Meest gegeven",vaak?kfEur(vaak[0]):"–","")}${tile("Gemiddelde",kfEur(gem),"")}${tile("Hoogste betaling",kfEur(hoog),"")}</div>
    <div class="kf-2"><div><h3 class="kf-h">Verdeling van de bedragen</h3>${verd.map((v,i)=>`<div class="kf-r kf-rn"><span class="kfx-k" data-kfv="${i}">${v.l}</span>${bar(v.q,v.o,vm,fN)}<b>${v.n}</b></div>`).join("")}</div>
    <div><h3 class="kf-h">Per dag</h3>${D.map(([d,v,g])=>`<div class="kf-r"><span class="kfx-k" data-kfd="${d}">${fmtDate(d).slice(0,5)}</span>${bar(g.q,g.o,dm,kfEur,g.nq,g.no)}<b>${kfEur(v)}</b></div>`).join("")}</div></div></div>`}</div>
@@ -8858,7 +8858,7 @@ const MK={data:null,bezig:false,fout:null,q:""};
 async function mkLaad(){if(MK.bezig)return;MK.bezig=true;try{const {data,error}=await SB.rpc("mail_kliks_lijst",{dagen:180});if(error)throw error;MK.data=data||{kliks:[]};MK.fout=null}catch(e){MK.fout=e.message}finally{MK.bezig=false}if(route()==="kliks")renderBody()}
 const mkWie=e=>{e=String(e||"").toLowerCase();for(const l of S.leden.values())if(String(l.email||"").toLowerCase()===e)return naamVol(l);return e};
 VIEWS.kliks=()=>({title:"Instellingen",sub:"Kliks in mails",body(){if(ROL_ECHT!=="admin")return instTabs("kliks")+'<div class="panel"><div class="empty">Enkel voor de administrator.</div></div>';
-  if(!MK.data&&!MK.fout){setTimeout(mkLaad,0);return instTabs("kliks")+'<div class="panel"><div class="empty">Laden…</div></div>'}
+  if(!MK.data&&!MK.fout){setTimeout(mkLaad,0);return instTabs("kliks")+'<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>'}
   if(MK.fout)return instTabs("kliks")+`<div class="panel"><div class="empty">${esc(MK.fout)}</div></div>`;
   const q=MK.q.toLowerCase(),L=(MK.data.kliks||[]).map(k=>({...k,wie:mkWie(k.email)})).filter(k=>!q||[k.wie,k.email,k.label,k.knop].join(" ").toLowerCase().includes(q));
   return instTabs("kliks")+`<div class="bar"><div class="search">${ic("search")}<input id="mkQ" data-live placeholder="Zoek op naam, mail of knop" value="${esc(MK.q)}"></div></div>
@@ -8918,7 +8918,7 @@ function stKanaal(k){const fb=k.kanaal==="facebook",M=k.metriek||{},St=(ST.socia
       return `<a href="${esc(p.url||"#")}" target="_blank" rel="noopener" class="st-r">${p.foto?`<img src="${esc(p.foto)}" alt="" loading="lazy">`:'<span class="st-ph"></span>'}<span class="st-tx"><b class="${p.tekst?"":"st-ze"}">${esc(tk)}</b><span class="muted small">${p.op?fmtDate(String(p.op).slice(0,10)):""}</span></span><span class="st-ns">${n(ST_IC.hart,p.reacties,fb?"Reacties":"Likes")}${n(ST_IC.com,p.commentaren,"Commentaren")}${fb?n(ST_IC.deel,p.gedeeld,"Gedeeld"):""}</span></a>`}).join("")}</div>`:k.postsFout?`<div class="muted small st-m">Berichten: het Meta-token mist het recht ${/pages_read_user_content/.test(k.postsFout)?"pages_read_user_content":esc(k.postsFout)}.</div>`:""}</div></div>`}
 VIEWS.statistieken=()=>({title:"Statistieken",sub:"Website en sociale media",
   actions:`<div class="seg" role="group" aria-label="Periode">${[[7,"7 dagen"],[30,"30 dagen"],[365,"12 maanden"]].map(([k,l])=>`<button type="button" data-st="${k}" class="${ST.per===k?"on":""}">${l}</button>`).join("")}</div>`,
-  body(){if(!ST.data&&!ST.fout){setTimeout(stLaad,0);return '<div class="panel"><div class="empty"><span class="lader-c" style="display:inline-block;width:24px;height:24px;border-width:2px;vertical-align:middle"></span></div></div>'}
+  body(){if(!ST.data&&!ST.fout){setTimeout(stLaad,0);return '<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>'}
     if(ST.fout&&!ST.data)return `<div class="panel"><div class="empty">${esc(ST.fout)}</div></div>`;
     const K=(ST.social&&ST.social.kanalen)||[];
     return stWebsite()+(K.length?`<div class="st-k">${K.map(stKanaal).join("")}</div>`:`<div class="panel"><div class="empty">Facebook en Instagram zijn niet gekoppeld.</div></div>`)}});
@@ -9176,7 +9176,7 @@ if(typeof DM_SOORTEN!=="undefined")DM_SOORTEN.push(["bewaking","Bewaking: fouten
 /* ---------- back-ups in Instellingen ---------- */
 async function bwBackups(){try{const j=await api("/api/mail?f=backup",{method:"POST",body:JSON.stringify({actie:"lijst"})});BW.backups=j.backups||[]}catch(e){BW.backups={fout:e.message}}const el=$("#bwLijst");if(el)el.innerHTML=bwLijstHtml()}
 const bwKB=n=>n>1048576?(n/1048576).toLocaleString("nl-BE",{maximumFractionDigits:1})+" MB":Math.round((n||0)/1024)+" kB";
-function bwLijstHtml(){const L=BW.backups;if(!L)return'<div class="muted small">Laden…</div>';if(L.fout)return`<div class="muted small">${esc(L.fout)}</div>`;if(!L.length)return'<div class="muted small">Nog geen back-ups.</div>';
+function bwLijstHtml(){const L=BW.backups;if(!L)return'<span class="laad k" role="status" aria-label="Laden"><span class="lader-c"></span></span>';if(L.fout)return`<div class="muted small">${esc(L.fout)}</div>`;if(!L.length)return'<div class="muted small">Nog geen back-ups.</div>';
   return L.map(b=>`<div class="bw-r"><span>${fmtDate(String(b.op||"").slice(0,10))} <span class="muted small">${String(b.op||"").slice(11,16)} · ${bwKB(b.grootte)}</span></span><button type="button" class="btn sm" data-bw="dl" data-n="${esc(b.naam)}">${ic("download")}Downloaden</button></div>`).join("")}
 viewHook("gegevens",{na(){if(ROL_ECHT!=="admin")return"";if(!BW.backups)setTimeout(bwBackups,0);
   return `<div class="panel"><div class="panel-h"><h2>Back-ups</h2><button type="button" class="btn sm" data-bw="maak">Nu back-up maken</button></div><div class="panel-b"><div id="bwLijst" class="bw-l2">${bwLijstHtml()}</div></div></div>`}});
