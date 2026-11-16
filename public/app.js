@@ -8734,7 +8734,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
     ${tile("Sponsors",kfEur(spTot),"")}
     ${tile("Kosten kalenders",kfEur(kost),"")}${tile("Respons",bed&&KF.data?(n/bed*100).toLocaleString("nl-BE",{maximumFractionDigits:1})+" %":"–","")}</div>
 
-  <div class="panel"><div class="panel-h"><h2>Betalingen</h2><span class="kf-lg"><i></i>Bancontact <i class="ov"></i>overschrijving</span></div>
+  <div class="panel"><div class="panel-h"><h2>Betalingen</h2><span class="kf-lg"><i></i>Bancontact${n?" "+Math.round(nQ/n*100)+"%":""} <i class="ov"></i>overschrijving${n?" "+(100-Math.round(nQ/n*100))+"%":""}</span></div>
    ${KF.bezig&&!KF.data?'<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>':KF.fout?`<div class="empty">${esc(KF.fout)}</div>`:!n?'<div class="empty">Nog geen betalingen.</div>':`
    <div class="panel-b"><div class="tiles kf-t">${tile("Aantal betalingen",n.toLocaleString("nl-BE"),"")}${tile("Meest gegeven",vaak?kfEur(vaak[0]):"–","")}${tile("Gemiddelde",kfEur(gem),"")}${tile("Hoogste betaling",kfEur(hoog),"")}</div>
    <div class="kf-2"><div><h3 class="kf-h">Verdeling van de bedragen</h3>${verd.map((v,i)=>`<div class="kf-r kf-rn"><span class="kfx-k" data-kfv="${i}">${v.l}</span>${bar(v.q,v.o,vm,fN)}<b>${v.n}</b></div>`).join("")}</div>
