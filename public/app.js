@@ -9389,7 +9389,10 @@ function krGeo(sid){if(!KRE.geo){const t0=Date.now(),cos=Math.cos(50.94*Math.PI/
   const zoek=(e,sid,pi,max)=>{let best=null;const cx=Math.floor(e[0]/C),cy=Math.floor(e[1]/C);
     for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++)for(const o of seg.get((cx+i)+"|"+(cy+j))||[]){if(o.sid===sid&&o.pi===pi)continue;const r=KRE.proj(e,o.a,o.b);if(r.d<max&&(!best||r.d<best.d))best=r}return best};
   for(const s of KR_STREETS){const P=geo.get(s.id),n=P.length;for(let pi=0;pi<n;pi++){const p=P[pi];if(p.length<2)continue;
-    for(const pt of [p[0],p[p.length-1]]){const e=m(pt);const raak=zoek(e,s.id,pi,2.5);if(raak)continue;const r=zoek(e,s.id,pi,45);if(r)P.push([pt,terug(r.x)])}}}
+    for(const [pt,nb] of [[p[0],p[1]],[p[p.length-1],p[p.length-2]]]){const e=m(pt);const raak=zoek(e,s.id,pi,2.5);if(raak)continue;const r=zoek(e,s.id,pi,15);if(!r)continue;
+      // enkel doortrekken in de richting van de straat zelf (niet zijdelings naar een evenwijdige straat)
+      const q=m(nb),ux=e[0]-q[0],uy=e[1]-q[1],vx=r.x[0]-e[0],vy=r.x[1]-e[1],lu=Math.hypot(ux,uy),lv=Math.hypot(vx,vy);
+      if(lv<6||(lu>0&&(ux*vx+uy*vy)/(lu*lv)>0.85))P.push([pt,terug(r.x)])}}}
   KRE.geo=geo;KRE.ms=Date.now()-t0}
   return KRE.geo.get(sid)||[]}
 
