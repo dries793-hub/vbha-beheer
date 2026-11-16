@@ -8686,7 +8686,7 @@ function stWebsite(){const D=ST.data,P=ST.per,van=stDag(P-1),vor=stDag(2*P-1),R=
 function stKanaal(k){const fb=k.kanaal==="facebook",M=k.metriek||{},St=(ST.social.stand||[]).filter(s=>s.kanaal===k.kanaal);
   const per=ST.per,van=stDag(per-1),eerst=St.find(s=>s.dag>=van),groei=eerst&&k.volgers!=null&&eerst.dag<stDag(0)?k.volgers-eerst.volgers:null;
   
-  const kop=`<div class="panel-h"><h2>${fb?"Facebook":"Instagram"}</h2><span class="grow"></span>${k.link?`<a class="btn sm" href="${esc(k.link)}" target="_blank" rel="noopener">${ic("link")}${esc(fb?(k.naam||"Pagina"):"@"+(k.naam||""))}</a>`:""}</div>`;
+  const kop=`<div class="panel-h"><h2>${fb?"Facebook":"Instagram"}</h2><span class="grow"></span>${k.link?`<a class="btn iconbtn st-so" href="${esc(k.link)}" target="_blank" rel="noopener" aria-label="${fb?"Facebookpagina openen":"Instagram openen"}" title="${esc(fb?(k.naam||"Facebook"):"@"+(k.naam||""))}">${ic(k.kanaal)}</a>`:""}</div>`;
   if(k.fout)return `<div class="panel">${kop}<div class="panel-b"><div class="muted small">${esc(k.fout)}</div></div></div>`;
   const vg=tile("Volgers",stN(k.volgers),(fb?"Mensen die de Facebookpagina volgen.":"Mensen die het Instagram-account volgen.")+(groei!=null?" "+(groei>=0?"+":"")+groei+" sinds "+fmtDate(eerst.dag)+".":""));
   const UIT={Bereik:"Aantal verschillende mensen dat iets van ons zag, de laatste 28 dagen.",Weergaven:"Aantal keer dat onze berichten en pagina getoond werden, de laatste 28 dagen.",Interacties:"Likes, reacties, commentaren, delen en klikken op onze berichten, de laatste 28 dagen.",Paginabezoeken:"Aantal keer dat iemand de Facebookpagina zelf opende, de laatste 28 dagen.",Profielbezoeken:"Aantal keer dat iemand het Instagram-profiel opende, de laatste 28 dagen."};
@@ -8711,7 +8711,7 @@ addEventListener("hashchange",()=>{if(route()==="statistieken"&&ST.op&&Date.now(
 .st-b{width:100%;max-width:34px;background:var(--accent);border-radius:4px 4px 0 0;min-height:1px;opacity:.85}
 .st-v{font-size:10px;color:var(--muted);line-height:1;margin-bottom:3px}.st-l{position:absolute;bottom:-18px;font-size:10px;color:var(--muted);white-space:nowrap}
 .st-g:not(.st-g7):not(.st-g12) .st-v{display:none}.st-g:not(.st-g7):not(.st-g12) .st-c:nth-child(odd) .st-l{visibility:hidden}
-.st-m{margin:-6px 0 10px}.st-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.st-t h3{font-size:14px;margin:0 0 6px}
+.st-so svg{width:18px;height:18px}.st-m{margin:-6px 0 10px}.st-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.st-t h3{font-size:14px;margin:0 0 6px}
 .st-k{display:grid;grid-template-columns:1fr 1fr;gap:16px}.st-k .panel{margin:0}
 .st-pp{border-top:1px solid var(--line)}.st-r{display:flex;align-items:center;gap:12px;padding:9px 2px;border-bottom:1px solid var(--line);color:inherit;text-decoration:none}.st-r:hover{background:var(--bg,#f7f7f8)}
 .st-r img,.st-ph{width:42px;height:42px;object-fit:cover;border-radius:7px;flex:none;background:var(--line)}
