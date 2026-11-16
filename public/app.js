@@ -697,8 +697,7 @@ VIEWS.punten=()=>({title:"Puntensysteem",actions:'<button class="btn primary" da
   const st=(m,van)=>`<div class="pt-c">${medal(m)}<b>${van}</b></div>`;
   return `<div class="ptiles"><div class="ptile"><div class="pt-h">Punten per</div><div class="pt-row">${it(w.kalenders,"kalenderdoos")}${it(w.kaarten,"kaart")}${it(w.shifts,"shift")}${it(w.vergaderingen,"vergadering")}${it("vrij","extra")}</div></div>
   <div class="ptile"><div class="pt-h">Status</div><div class="pt-row">${dr.brons>0?st("GEEN","0–"+(dr.brons-1)):""}${st("BRONS",(dr.brons||0)+"–"+(dr.zilver-1))}${st("ZILVER",dr.zilver+"–"+(dr.goud-1))}${st("GOUD",dr.goud+"+")}</div></div></div>
-  <div class="bar"><div class="search">${ic("search")}<input id="puntQ" data-live data-input="puntQ" placeholder="Zoek lid" value="${esc(UI.puntQ)}"></div>
-  <div class="seg" role="group" aria-label="Sorteren">${[["naam",UI.puntSort==="voornaam"?"Op voornaam":"Op naam"],["totaal","Op punten"]].map(([k,l])=>`<button data-act="puntSort" data-v="${k}" class="${UI.puntSort===k||(k==="naam"&&UI.puntSort==="voornaam")?"on":""}">${l}</button>`).join("")}</div></div>
+  <div class="bar"><div class="search">${ic("search")}<input id="puntQ" data-live data-input="puntQ" placeholder="Zoek lid" value="${esc(UI.puntQ)}"></div></div>
   <div class="panel" id="puntList">${puntTable()}</div>`}});
 function stepper(kind,f,id,v,label){const d=canWrite?"":" disabled";
   return `<span class="step" role="group" aria-label="${esc(label)}"><button type="button" data-act="step" data-k="${kind}" data-f="${f}" data-id="${esc(id)}" data-d="-1" aria-label="Min"${d||(v<=0?" disabled":"")}>−</button><b>${v}</b><button type="button" data-act="step" data-k="${kind}" data-f="${f}" data-id="${esc(id)}" data-d="1" aria-label="Plus"${d}>+</button></span>`}
@@ -4971,6 +4970,8 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-kaqr
 // niet zoomen op gsm (pinch en dubbeltik), behalve op de kaart
 document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
 document.addEventListener("touchmove",e=>{if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false});
+/* Leaflet: stippen absoluut in hun laag plaatsen (ontbrak in de ingebouwde Leaflet-stijl, waardoor de stippen bij in- en uitzoomen verschoven) */
+{const st=document.createElement("style");st.textContent=".leaflet-pane,.leaflet-marker-icon,.leaflet-marker-shadow,.leaflet-zoom-box,.leaflet-image-layer{position:absolute;left:0;top:0}.leaflet-marker-icon{display:block;margin:0;outline:none}.leaflet-marker-icon.ka-dot{box-sizing:border-box}";document.head.appendChild(st)}
 
 /* ============ Bankimport: overzichtelijkere koppeling + dashboardmelding bij (bijna) verlopen toestemming ============ */
 const bkIban=s=>String(s||"").replace(/\s+/g,"").replace(/(.{4})/g,"$1 ").trim();
