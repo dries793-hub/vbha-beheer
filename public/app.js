@@ -7836,6 +7836,8 @@ ICON.prul='<path d="M4 7h16M9.5 7V4.5h5V7M6 7l1 13h10l1-13M10 11v6M14 11v6"/>';
 ICON.instagram='<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6" fill="currentColor"/>';
 ICON.website=ICON.website||'<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/>';
 const SO_K=[["facebook","Facebook"],["instagram","Instagram"],["website","Website"]];
+// titel van een post: de eerste zin (met het emoji erachter), anders de eerste regel
+function soKop(t){t=String(t||"").trim().split("\n")[0].trim();const m=t.match(/^(.{8,}?[.!?…])((?:\s*\p{Extended_Pictographic}\uFE0F?)*)(?=\s|$)/u);return (m?m[1]+m[2]:t).slice(0,120)}
 const SO_ST={concept:["neutral","Concept"],gepland:["info","Gepland"],bezig:["warn","Bezig…"],gepubliceerd:["ok","Gepubliceerd"],deels:["warn","Deels gelukt"],fout:["nok","Mislukt"]};
 const SOC={posts:null,kop:{},laden:false,ed:null,busy:false};
 const SO_TAGS="#vbha #brandweeraalst #brandweer #aalst #vriendenkring";
@@ -7849,7 +7851,7 @@ function soKan(E,k,l){const aan=E.kanalen[k],gek=k==="website"||SOC.kop[k];
 function soPost(r){const d=r.data,[cl,lb]=SO_ST[r.status]||["neutral",r.status],R=d.resultaten||{},K=SO_K.filter(([k])=>d.kanalen&&d.kanalen[k]);
   const f=(d.fotos||[])[0];
   return `<div class="so-p"><div class="so-th">${f&&f.url?`<img src="${esc(f.url)}" alt="" loading="lazy">`:`<span>${ic("mails")}</span>`}${(d.fotos||[]).length>1?`<b>${d.fotos.length}</b>`:""}</div>
-   <div class="so-m"><div class="so-t">${esc(d.titel||d.tekst||"(geen tekst)")}</div>
+   <div class="so-m"><div class="so-t">${esc(d.titel||soKop(d.tekst)||"(geen tekst)")}</div>
     <div class="so-s"><span class="pill ${cl}">${lb}</span>${r.status==="gepland"&&r.plan?`<span>${esc(soDt(r.plan))}</span>`:d.gepubliceerd?`<span>${esc(soDt(d.gepubliceerd))}</span>`:""}
      <span class="so-cs">${K.map(([k,l])=>{const x=R[k];return x&&x.ok&&x.url?`<a class="so-c ok" href="${esc(x.url)}" target="_blank" rel="noopener" title="Bekijken op ${l}">${ic(k)}</a>`:`<span class="so-c${x?x.ok?" ok":" nok":""}" title="${esc(l+(x&&!x.ok?": "+x.fout:""))}">${ic(k)}</span>`}).join("")}</span></div>
     ${K.some(([k])=>R[k]&&!R[k].ok)?`<div class="so-f">${K.filter(([k])=>R[k]&&!R[k].ok).map(([k,l])=>`${l}: ${esc(R[k].fout)}`).join("<br>")}</div>`:""}</div>
@@ -7917,7 +7919,7 @@ function soMeld(p){if(!p)return;const R=p.data.resultaten||{},K=SO_K.filter(([k]
 .so-th{position:relative;width:52px;height:52px;border-radius:9px;overflow:hidden;background:var(--sunken);display:grid;place-items:center;color:var(--muted)}.so-th img{width:100%;height:100%;object-fit:cover}
 .so-th svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7}.so-th b{position:absolute;right:3px;bottom:3px;background:rgba(0,0,0,.65);color:#fff;font-size:10.5px;border-radius:6px;padding:0 5px}
 .so-cs{display:inline-flex;gap:6px;align-items:center;flex:none}.so-s{flex-wrap:wrap!important;row-gap:4px}.so-s>*{flex:none}
-.so-t{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.so-t{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
 .so-s{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;font-size:12.5px;color:var(--muted)}
 .so-c{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--sunken);color:var(--muted)}.so-c svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8}
 .so-c.ok{background:var(--good-soft,#e7f6ee);color:var(--good,#15803d)}.so-c.nok{background:#fde8e8;color:#b91c1c}.so-f{font-size:12px;color:#b91c1c;margin-top:4px}
@@ -8693,7 +8695,7 @@ function stKanaal(k){const fb=k.kanaal==="facebook",M=k.metriek||{},St=(ST.socia
   const mist=!C.some(([,v])=>v!=null)&&k.metriekFout&&Object.keys(k.metriekFout).length;
   const P=k.posts||[];
   return `<div class="panel">${kop}<div class="panel-b"><div class="tiles st-tiles">${t.join("")}</div>${mist?`<div class="muted small st-m">Bereik en interacties: het Meta-token mist het recht ${fb?"read_insights":"instagram_manage_insights"}.</div>`:""}
-    ${P.length?`<div class="st-pp">${P.map(p=>{const tk=p.tekst?p.tekst.split("\n")[0].slice(0,90):(p.soort||"Bericht");const n=(svg,v,l)=>`<span class="st-n" title="${l}">${svg}${stN(v||0)}</span>`;
+    ${P.length?`<div class="st-pp">${P.map(p=>{const tk=p.tekst?soKop(p.tekst):(p.soort||"Bericht");const n=(svg,v,l)=>`<span class="st-n" title="${l}">${svg}${stN(v||0)}</span>`;
       return `<a href="${esc(p.url||"#")}" target="_blank" rel="noopener" class="st-r">${p.foto?`<img src="${esc(p.foto)}" alt="" loading="lazy">`:'<span class="st-ph"></span>'}<span class="st-tx"><b class="${p.tekst?"":"st-ze"}">${esc(tk)}</b><span class="muted small">${p.op?fmtDate(String(p.op).slice(0,10)):""}</span></span><span class="st-ns">${n(ST_IC.hart,p.reacties,fb?"Reacties":"Likes")}${n(ST_IC.com,p.commentaren,"Commentaren")}${fb?n(ST_IC.deel,p.gedeeld,"Gedeeld"):""}</span></a>`}).join("")}</div>`:k.postsFout?`<div class="muted small st-m">Berichten: het Meta-token mist het recht ${/pages_read_user_content/.test(k.postsFout)?"pages_read_user_content":esc(k.postsFout)}.</div>`:""}</div></div>`}
 VIEWS.statistieken=()=>({title:"Statistieken",sub:"Website en sociale media",
   actions:`<div class="seg" role="group" aria-label="Periode">${[[7,"7 dagen"],[30,"30 dagen"],[365,"12 maanden"]].map(([k,l])=>`<button type="button" data-st="${k}" class="${ST.per===k?"on":""}">${l}</button>`).join("")}</div>`,

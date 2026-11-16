@@ -43,7 +43,7 @@ const env = k => String(process.env[k] || "").trim();
 async function g(pad, params = {}) {
   const q = new URLSearchParams({ ...params, access_token: env("META_PAGE_TOKEN") });
   const r = await fetch(`${GRAPH}/${pad}?${q}`); const j = await r.json().catch(() => ({}));
-  if (!r.ok || j.error) throw new Error(((j.error && j.error.message) || "Meta gaf een fout (" + r.status + ")").slice(0, 200));
+  if (!r.ok || j.error) { const e = j.error || {}; throw new Error(e.code === 190 ? "Het Meta-token is verlopen. Zet een nieuw paginatoken in Vercel (META_PAGE_TOKEN)." : ((e.message) || "Meta gaf een fout (" + r.status + ")").slice(0, 200)); }
   return j;
 }
 const probeer = async f => { try { return await f(); } catch (e) { return { fout: e.message }; } };
