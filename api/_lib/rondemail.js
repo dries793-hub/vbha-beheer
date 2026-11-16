@@ -9,12 +9,14 @@ export async function rondeMailApi(req, res) {
   if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
   await requireUser(req, { write: true, functie: "ronde" });
   let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
-  const sb = admin(), id = String(b.id || "");
-  const { data: m } = await sb.from("rondemeldingen").select("id,data").eq("id", id).maybeSingle();
-  if (!m) throw httpErr(404, "Melding niet gevonden");
-  const d = m.data || {};
-  if (d.stand !== "goedgekeurd") throw httpErr(400, "Melding is niet goedgekeurd");
-  if (d.mail && d.mail.op) return res.status(200).json({ ok: true, al: true });
+  const sb = admin(), ids = [...new Set((Array.isArray(b.ids) ? b.ids : [b.id]).map(String).filter(Boolean))].slice(0, 30);
+  if (!ids.length) throw httpErr(400, "Geen melding");
+  const { data: M } = await sb.from("rondemeldingen").select("id,data").in("id", ids);
+  if (!M || M.length !== ids.length) throw httpErr(404, "Melding niet gevonden");
+  if (M.some(r => (r.data || {}).stand !== "goedgekeurd")) throw httpErr(400, "Melding is niet goedgekeurd");
+  if (new Set(M.map(r => r.data.lidId || "")).size !== 1) throw httpErr(400, "Meldingen van verschillende personen");
+  if (M.every(r => r.data.mail && r.data.mail.op)) return res.status(200).json({ ok: true, al: true });
+  const d = M[0].data;
   if (d.soort === "done") return res.status(200).json({ ok: true, overgeslagen: "bedeeld" });
   const { data: l } = d.lidId ? await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle() : { data: null };
   const lid = (l && l.data) || {}, email = String(lid.email || "").trim();
@@ -30,6 +32,6 @@ export async function rondeMailApi(req, res) {
     + knop("Bekijk de kaart", site() + "/kaart"),
     A.vereniging || "Vriendenkring Brandweer Hoofdpost Aalst");
   const [r] = await verstuur([{ aan: email, aanNaam: `${lid.voornaam || ""} ${lid.naam || ""}`.trim(), onderwerp: "Je straten voor de kalenderronde zijn gereserveerd", html, label: "Reservatie kalenderronde" }]);
-  if (r && r.ok) await sb.from("rondemeldingen").update({ data: { ...d, mail: { op: new Date().toISOString(), aan: email } } }).eq("id", id);
+  if (r && r.ok) for (const x of M) await sb.from("rondemeldingen").update({ data: { ...x.data, mail: { op: new Date().toISOString(), aan: email } } }).eq("id", x.id);
   return res.status(200).json({ ok: !!(r && r.ok), fout: r && r.fout });
 }

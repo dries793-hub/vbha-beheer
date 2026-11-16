@@ -7393,26 +7393,36 @@ const rmLijst=()=>[...(S.rondemeldingen||new Map()).values()].filter(m=>Number(m
 const rmNaam=id=>(typeof KR!=="undefined"&&KR.byId&&KR.byId.get(id)&&KR.byId.get(id).n)||(typeof KR_DEEL!=="undefined"&&KR_DEEL.get&&KR_DEEL.get(id)&&KR.byId&&KR.byId.get(KR_DEEL.get(id).sid)?KR.byId.get(KR_DEEL.get(id).sid).n+" (deel)":String(id));
 const rmDT=t=>{const d=new Date(t);return isNaN(d)?"":fmtDate(t.slice(0,10))+" "+d.toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})};
 function rmPending(){const m={};for(const x of rmLijst())for(const id of x.straten||[])m[id]=x.soort;return m}
-function rmPanel(){const L=rmLijst();if(!L.length)return"";
-  return `<div class="panel rm-p"><div class="panel-h"><h2>Meldingen te controleren <span class="rm-n">${L.length}</span></h2><span class="grow"></span>${canWrite&&L.length>1?`<button class="btn sm primary" data-rm="alles">Alles goedkeuren</button>`:""}</div>
-   <div class="panel-b rm-l">${L.map(m=>`<div class="rm-i" data-rmid="${esc(m.id)}"><div class="rm-t"><b>${esc(m.toon||m.naam||"?")}</b><span class="pill ${m.soort==="done"?"ok":"info"}">${m.soort==="done"?"bedeeld":"gereserveerd"}</span><small>${esc(rmDT(m.op))}</small></div>
-     <div class="rm-s">${(m.straten||[]).map(id=>{const a=krAll()[id];return `<span${a?` title="Staat al op de kaart als ${a.status==="done"?"bedeeld":"gereserveerd"}${a.by?" door "+esc(a.by):""}" class="al"`:""}>${esc(rmNaam(id))}${a?" ⚠":""}</span>`}).join("")}</div>
-     <div class="rm-a"><button class="btn sm" data-rm="toon" title="Op de kaart tonen">${ic("kaart")}<span class="rm-kt">Op de kaart</span></button>${canWrite?`<span class="grow"></span><button class="btn sm ghost danger" data-rm="weiger">Weigeren</button><button class="btn sm primary" data-rm="ok">Goedkeuren</button>`:""}</div></div>`).join("")}
+/* meldingen van dezelfde persoon (en dezelfde soort) samen: één kaartje, één keer goedkeuren, één mail */
+function rmGroepen(){const G=new Map();for(const m of rmLijst()){const k=(m.lidId||norm(m.toon||m.naam||""))+"|"+m.soort;let g=G.get(k);if(!g)G.set(k,g={key:k,ms:[],straten:[],soort:m.soort,toon:m.toon||m.naam||"?",op:m.op});
+  g.ms.push(m);for(const id of m.straten||[])if(!g.straten.includes(id))g.straten.push(id);if(String(m.op)>String(g.op))g.op=m.op}return [...G.values()]}
+function rmInfo(straten){const per=new Map();
+  for(const sid of straten){const d=typeof KR_DEEL!=="undefined"&&KR_DEEL.get(sid),s=KR.byId.get(d?d.sid:sid);if(!s)continue;let naam=s.n,a=d?d.a:s.a;
+    if(d&&typeof krGroepen==="function"){const g=krGroepen(d.sid).find(g=>g.ids.includes(sid));const t=g&&typeof krdTussen==="function"?krdTussen(g):"";naam=s.n+" ("+(t||"stuk "+(g?g.n:d.nr))+")"}
+    per.set(naam,(per.get(naam)||0)+a)}
+  const L=[...per].map(([naam,adressen])=>({naam,adressen})),tot=L.reduce((t,x)=>t+x.adressen,0),pd=(jaarCfg(JAAR)||{}).perDoos||100;return{L,tot,dozen:Math.ceil(tot/pd)}}
+function rmPanel(){const G=rmGroepen();if(!G.length)return"";
+  return `<div class="panel rm-p"><div class="panel-h"><h2>Meldingen te controleren <span class="rm-n">${G.length}</span></h2><span class="grow"></span>${canWrite&&G.length>1?`<button class="btn sm primary" data-rm="alles">Alles goedkeuren</button>`:""}</div>
+   <div class="panel-b rm-l">${G.map(g=>{const I=rmInfo(g.straten);return `<div class="rm-i" data-rmg="${esc(g.key)}"><div class="rm-t"><b>${esc(g.toon)}</b><span class="pill ${g.soort==="done"?"ok":"info"}">${g.soort==="done"?"bedeeld":"gereserveerd"}</span><small>${esc(rmDT(g.op))}${g.ms.length>1?` · ${g.ms.length} meldingen`:""}</small></div>
+     <div class="rm-s">${g.straten.map(id=>{const a=krAll()[id];return `<span${a?` title="Staat al op de kaart als ${a.status==="done"?"bedeeld":"gereserveerd"}${a.by?" door "+esc(a.by):""}" class="al"`:""}>${esc(rmNaam(id))}${a?" ⚠":""}</span>`}).join("")}</div>
+     <div class="rm-sum muted small">${g.straten.length} ${g.straten.length===1?"straat":"straten"} · ± ${I.tot} adressen${g.soort==="done"?"":` · ${I.dozen} ${I.dozen===1?"doos":"dozen"}`}</div>
+     <div class="rm-a"><button class="btn sm" data-rm="toon" title="Op de kaart tonen">${ic("kaart")}<span class="rm-kt">Op de kaart</span></button>${canWrite?`<span class="grow"></span><button class="btn sm ghost danger" data-rm="weiger">Weigeren</button><button class="btn sm primary" data-rm="ok">Goedkeuren</button>`:""}</div></div>`}).join("")}
 </div></div>`}
-async function rmKeur(m,ok){if(!canWrite||!m)return;const {id,...d}=m;
+async function rmKeurGroep(g,ok){for(const m of g.ms)await rmKeur(m,ok,true);if(ok&&g.soort!=="done")rmMail(g.ms.map(m=>m.id),g.straten)}
+async function rmKeur(m,ok,stil){if(!canWrite||!m)return;const {id,...d}=m;
   if(ok){const A=krAll(),nu=new Date().toISOString(),l=m.lidId&&S.leden.get(m.lidId),by=l?naamVol(l).trim():(m.naam||"");let n=0;
     for(const sid of m.straten||[]){const cur=A[sid];if(cur&&cur.status==="done"&&m.soort!=="done")continue; // al bedeeld: niet terug op gereserveerd
       const doc={jaar:JAAR,straat:sid,status:m.soort==="done"?"done":"reserved",by,lidId:m.lidId||null,at:m.op||nu,viaMelding:id};
       S.ronde.set(JAAR+"_"+sid,{...doc,id:JAAR+"_"+sid});try{await write("ronde",JAAR+"_"+sid,doc);n++}catch(e){}}
     try{const weg=typeof krSegWeg==="function"?krSegWeg(m.straten||[]):[];if(weg.length)await writeMany(weg,()=>{})}catch(e){}
-    await write("rondemeldingen",id,{...d,stand:"goedgekeurd",gekeurd:nu,door:ME_NAME||""});toast(`${n} ${n===1?"straat":"straten"} aangeduid.`);if(m.soort!=="done")rmMail(id,m.straten||[])}
+    await write("rondemeldingen",id,{...d,stand:"goedgekeurd",gekeurd:nu,door:ME_NAME||""});toast(`${n} ${n===1?"straat":"straten"} aangeduid.`);if(m.soort!=="done"&&!stil)rmMail([id],m.straten||[])}
   else{await write("rondemeldingen",id,{...d,stand:"geweigerd",gekeurd:new Date().toISOString(),door:ME_NAME||""});toast("Melding geweigerd.")}
   dirty=true;renderBody()}
-document.addEventListener("click",async e=>{const b=e.target.closest("[data-rm]");if(!b)return;const it=b.closest("[data-rmid]"),m=it&&S.rondemeldingen.get(it.dataset.rmid);
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-rm]");if(!b)return;const it=b.closest("[data-rmg]"),g=it&&rmGroepen().find(x=>x.key===it.dataset.rmg),m=g&&{straten:g.straten,toon:g.toon};
   if(b.dataset.rm==="toon"&&m){KR.ss=new Set((m.straten||[]).filter(id=>KR.byId&&KR.byId.has(id)));if(KR.map){krStyleAll();krCard();const ls=[...KR.ss].map(id=>KR.lines.get(id)).filter(Boolean);if(ls.length)KR.map.fitBounds(L.featureGroup(ls).getBounds(),{maxZoom:17,padding:[40,40]})}const s=$("#krSlot");if(s)s.scrollIntoView({block:"center",behavior:"smooth"});return}
-  if(b.dataset.rm==="ok"){b.disabled=true;await rmKeur(m,true);return}
-  if(b.dataset.rm==="weiger"){confirmBox(`De melding van <b>${esc(m.toon||m.naam||"")}</b> weigeren? De straten blijven zoals ze zijn.`,"Weigeren",async()=>{closeModal();await rmKeur(m,false)});return}
-  if(b.dataset.rm==="alles"){b.disabled=true;for(const x of rmLijst())await rmKeur(x,true)}});
+  if(b.dataset.rm==="ok"&&g){b.disabled=true;await rmKeurGroep(g,true);return}
+  if(b.dataset.rm==="weiger"){confirmBox(`De melding van <b>${esc(g.toon)}</b> weigeren? De straten blijven zoals ze zijn.`,"Weigeren",async()=>{closeModal();await rmKeurGroep(g,false)});return}
+  if(b.dataset.rm==="alles"){b.disabled=true;for(const x of rmGroepen())await rmKeurGroep(x,true)}});
 /* op de pagina Kalenderronde: paneel boven de kaart */
 {const _v=VIEWS.ronde;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){const h=String(b.apply(this,arguments)),p=rmPanel();const k='<div class="panel"><div class="kr-slot" id="krSlot"></div></div>';return p&&h.includes(k)?h.replace(k,p+k):p+h};return v};Object.assign(n,_v);VIEWS.ronde=n}
 /* kaart in de app: open meldingen al inkleuren met een oranje stippellijn */
@@ -7423,7 +7433,7 @@ function rmMelding(){if(!(ROL==="admin"||(typeof recht==="function"&&recht("rond
   return `<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("kaart")}</span><div class="nm-body"><b>${L.length===1?"1 melding":L.length+" meldingen"} van de kalenderronde te controleren</b>
    <div class="nm-l">${L.slice(0,5).map(m=>`<a class="nm-i" href="#ronde"><b>${esc(m.toon||m.naam||"")}</b><span>${(m.straten||[]).length} ${(m.straten||[]).length===1?"straat":"straten"} ${m.soort==="done"?"bedeeld":"gereserveerd"} · ${esc(rmDT(m.op))}</span></a>`).join("")}</div></div></div>`}
 viewHook("dashboard",{voor:()=>rmMelding()});
-{const st=document.createElement("style");st.textContent=`.rm-p{border-color:#f59e0b}.rm-n{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:#f59e0b;color:#fff;font-size:12.5px;margin-left:6px;vertical-align:2px}
+{const st=document.createElement("style");st.textContent=`.rm-sum{margin:6px 0 2px}.rm-p{border-color:#f59e0b}.rm-n{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:#f59e0b;color:#fff;font-size:12.5px;margin-left:6px;vertical-align:2px}
 .rm-l{display:flex;flex-direction:column;gap:10px}.rm-i{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .rm-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.rm-t small{color:var(--muted);margin-left:auto}.rm-s{display:flex;flex-wrap:wrap;gap:6px}.rm-s span{background:var(--soft,#f2f2f3);border-radius:99px;padding:3px 10px;font-size:13px}.rm-s span.al{background:#fff4e5;color:#b45309}
 .rm-a{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.rm-a svg{width:15px;height:15px}
@@ -7461,12 +7471,8 @@ document.addEventListener("click",async e=>{const t=e.target.closest("[data-dv-k
 viewHook("dashboard",{voor:()=>dashVandaag()});
 
 /* mail naar het lid bij een goedgekeurde reservatie: straten, adressen en te voorziene dozen (server: api/_lib/rondemail.js) */
-async function rmMail(id,straten){try{const per=new Map();
-  for(const sid of straten){const d=typeof KR_DEEL!=="undefined"&&KR_DEEL.get(sid),s=KR.byId.get(d?d.sid:sid);if(!s)continue;
-    let naam=s.n,a=d?d.a:s.a;if(d&&typeof krGroepen==="function"){const g=krGroepen(d.sid).find(g=>g.ids.includes(sid));const t=g&&typeof krdTussen==="function"?krdTussen(g):"";naam=s.n+" ("+(t||"stuk "+(g?g.n:d.nr))+")"}
-    per.set(naam,(per.get(naam)||0)+a)}
-  const L=[...per].map(([naam,adressen])=>({naam,adressen})),tot=L.reduce((t,x)=>t+x.adressen,0),pd=(jaarCfg(JAAR)||{}).perDoos||100;
-  const j=await api("/api/mail?f=rondemail",{method:"POST",body:JSON.stringify({id,straten:L,dozen:Math.ceil(tot/pd)})});
+async function rmMail(ids,straten){try{const I=rmInfo(straten);
+  const j=await api("/api/mail?f=rondemail",{method:"POST",body:JSON.stringify({ids,straten:I.L,dozen:I.dozen})});
   if(j&&j.ok&&!j.al)toast("Bevestigingsmail verstuurd.");else if(j&&j.reden)toast("Geen mail verstuurd: "+j.reden+".",true)}catch(e){toast("Mail niet verstuurd: "+e.message,true)}}
 
 /* ============ Slim zoeken in keuzelijsten (vervangt de lijst van de browser bij <input list="…">) ============
