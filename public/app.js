@@ -9059,7 +9059,7 @@ function jdXlsx(soort,Y){const doc=soort==="rekening"?jdRekening(Y):jdVerslag(Y)
 
 /* eigen pagina onder Vereniging › Jaardocumenten */
 if(!ROUTES.some(r=>r[0]==="jaardocumenten"))ROUTES.push(["jaardocumenten","Jaardocumenten"]);
-ICON.jaardocumenten=ICON.jaardocumenten||ICON.documenten;
+ICON.jaardocumenten='<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 17v-3M13 17v-5M16 17v-2"/>';
 if(typeof FUNC!=="undefined"&&!FUNC.some(f=>f[0]==="jaardocumenten")){const k=FUNC.findIndex(f=>f[0]==="documenten");FUNC.splice(k+1,0,["jaardocumenten","Jaardocumenten",["jaardocumenten"],"Vereniging"]);FUNC_VAN.jaardocumenten="jaardocumenten"}
 // standaard: administrator en boekhouder; anderen enkel als het per gebruiker aangezet is
 {const _r=recht;recht=function(r){if(r==="jaardocumenten"&&ROL!=="admin"){const v=RECHTEN&&ROL===ROL_ECHT?RECHTEN.jaardocumenten:null;return v||(ROL==="boekhouder"?"bewerken":"geen")}return _r.apply(this,arguments)}}
@@ -9257,10 +9257,10 @@ document.addEventListener("change",e=>{if(LIBS_OK||!(e.target&&e.target.type==="
    Communicatie (Mails, Website, Fotoalbums). */
 {const G=id=>NAV.find(n=>!Array.isArray(n)&&n.id===id),weg=id=>{let it=null;for(const g of NAV)if(!Array.isArray(g)){const k=g.items.findIndex(i=>i[0]===id);if(k>=0)it=g.items.splice(k,1)[0]}return it};
   const act=G("administratie"),com=G("communicatie");
-  if(com&&!G("vereniging")){const v={id:"vereniging",label:"Vereniging",items:[]};for(const id of ["agenda","sponsors","documenten"]){const it=weg(id);if(it)v.items.push(it)}v.items.push(["jaardocumenten","Jaardocumenten"]);
+  if(com&&!G("vereniging")){const v={id:"vereniging",label:"Vereniging",items:[]};for(const id of ["agenda","sponsors","documenten"]){const it=weg(id);if(it)v.items.push(it)}
     com.label="Media";{const m=com.items.find(i=>i[0]==="mails");if(m)m[1]="Mail/Sms";if(!com.items.some(i=>i[0]==="social")){const k=com.items.indexOf(m);com.items.splice(k+1,0,["social","Sociale media"])}}NAV.splice(NAV.indexOf(com),0,v)}
   // Kassa bij Financiën, Shiften bij Vereniging, Webshop bij Media (na Website)
-  {const fin=G("boekhouding"),ver=G("vereniging");const ka=weg("kassa");if(ka)(fin||act).items.push(ka);const sh=weg("shiften");if(sh)(ver||act).items.push(sh);
+  {const fin=G("boekhouding"),ver=G("vereniging");const ka=weg("kassa");if(ka)(fin||act).items.push(ka);const sh=weg("shiften");if(sh)(ver||act).items.push(sh);if(ver)ver.items.push(["jaardocumenten","Jaardocumenten"]);
     const k=NAV.findIndex(n=>Array.isArray(n)&&n[0]==="webshop");let ws=k>=0?NAV.splice(k,1)[0]:weg("webshop");if(ws&&com){const j=com.items.findIndex(i=>i[0]==="website");com.items.splice(j>=0?j+1:com.items.length,0,["webshop","Webshop"])}}
   ICON.vereniging=ICON.vereniging||ICON.agenda||ICON.communicatie}
 // gsm: dezelfde knoppen als op de computer; "Communicatie" is te lang voor de onderbalk
@@ -9381,7 +9381,11 @@ function krGeo(sid){if(!KRE.geo){const t0=Date.now(),cos=Math.cos(50.94*Math.PI/
 KAL_T.over="Overgedragen";KAL_T.overin="Overgenomen";
 {const _f=kalLogForm;kalLogForm=function(id){const r=_f.apply(this,arguments);try{const j=S.jaarleden.get(id),a=$("#kalWeg")||$("#kalUndoB");
   if(ROL==="admin"&&j&&(j.kalOpgehaald||0)>0&&a&&!$("#kalOver"))a.insertAdjacentHTML("beforebegin",`<button class="btn" id="kalOver" type="button">${ic("leden")}Dozen overdragen</button>`);
-  const b=$("#kalOver");if(b)b.onclick=()=>kalOverdragen(id)}catch(e){console.error(e)}return r}}
+  const b=$("#kalOver");if(b)b.onclick=()=>kalOverdragen(id);
+  // acties in het venster zelf, onderaan enkel Verwijderen (links) en Sluiten (rechts)
+  const body=document.querySelector("#modal .modal-b > .stack");const ac=[$("#kalOver"),$("#kalUndoB")].filter(Boolean);
+  if(body&&ac.length){const rij=document.createElement("div");rij.className="kal-acts";ac.forEach(x=>{x.style.marginRight="";x.classList.remove("ghost");rij.appendChild(x)});body.appendChild(rij)}
+  const w=$("#kalWeg");if(w){w.style.marginRight="auto";w.classList.add("sm")}}catch(e){console.error(e)}return r}}
 function kalOverdragen(id){const j=S.jaarleden.get(id);if(!j||ROL!=="admin")return;const van=kalNaam(j),op=j.kalOpgehaald||0;if(!(op>0))return;
   const C=ctx(),inL=new Map(kalStats(C).rows.map(x=>[x.lidId||x.id,x]));
   const L=C.leden.filter(l=>JAAR+"_"+l.id!==id).map(l=>({id:l.id,n:naamVol(l).trim(),al:inL.has(l.id),z:norm(l.voornaam+" "+l.naam+" "+l.naam+" "+l.voornaam)})).sort((a,b)=>a.n.localeCompare(b.n,"nl"));
@@ -9406,7 +9410,7 @@ function kalOverdragen(id){const j=S.jaarleden.get(id);if(!j||ROL!=="admin")retu
       ["jaarleden",id,{...stripId(j),kalOpgehaald:Math.max(0,s0.op-n),kalLog:[...(j.kalLog||[]),{t:"over",n,at,door,van:s0,reden:"naar "+naar}].slice(-200)}],
       ["jaarleden",tid,{...stripId(cur),jaar:JAAR,lidId:lid,naam:lid?"":naam,kal:true,kalToegevoegd:true,kalOpgehaald:t0.op+n,kalUitgevoerd:t0.ui,kalLog:[...(cur.kalLog||[]),{t:"overin",n,at,door,van:t0,reden:"van "+van}].slice(-200)}]],()=>{});
       toast(`${kalDoos(n)} overgedragen van ${van} naar ${naar}.`)}catch(e){handleWriteError(e)}renderBody()}}
-{const st=document.createElement("style");st.textContent=".kal-lt.over,.kal-lt.overin{background:var(--info-soft,#e8efff);color:var(--info,#2f5bd3)}";document.head.appendChild(st)}
+{const st=document.createElement("style");st.textContent=".kal-acts{display:flex;flex-wrap:wrap;gap:8px;padding-top:12px;border-top:1px solid var(--line)}.kal-acts .btn{flex:1 1 180px;justify-content:center}.kal-lt.over,.kal-lt.overin{background:var(--info-soft,#e8efff);color:var(--info,#2f5bd3)}";document.head.appendChild(st)}
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
