@@ -8701,7 +8701,7 @@ VIEWS.statistieken=()=>({title:"Statistieken",sub:"Website en sociale media",
     if(ST.fout&&!ST.data)return `<div class="panel"><div class="empty">${esc(ST.fout)}</div></div>`;
     const K=(ST.social&&ST.social.kanalen)||[];
     return stWebsite()+(K.length?`<div class="st-k">${K.map(stKanaal).join("")}</div>`:`<div class="panel"><div class="empty">Facebook en Instagram zijn niet gekoppeld.</div></div>`)}});
-document.addEventListener("click",e=>{const b=e.target.closest("[data-st]");if(!b)return;ST.per=+b.dataset.st;stLaad();renderBody()});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-st]");if(!b)return;ST.per=+b.dataset.st;document.querySelectorAll("[data-st]").forEach(x=>x.classList.toggle("on",+x.dataset.st===ST.per));stLaad()});
 addEventListener("hashchange",()=>{if(route()==="statistieken"&&ST.op&&Date.now()-ST.op>5*60000){ST.data=null;ST.social=null;ST.op=0}});
 {const st=document.createElement("style");st.textContent=`.st-tiles{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:18px}
 .st-g{display:flex;align-items:flex-end;gap:3px;height:160px;padding:18px 0 22px;margin-bottom:14px;border-bottom:1px solid var(--line)}
