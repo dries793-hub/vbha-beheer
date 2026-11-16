@@ -6227,6 +6227,13 @@ function stDonut(st,actief){const K=["GOUD","ZILVER","BRONS",...(st.GEEN?["GEEN"
 {const s=document.createElement("style");s.textContent=`@media (max-width:640px){.st-donut{gap:12px}.st-donut svg{width:96px;height:96px}.st-leg{gap:6px}
  .st-leg .st-r{padding:5px 10px;gap:3px;border-left-width:3px;border-radius:8px}.st-leg .st-rt{font-size:13px}.st-leg .st-rt b{font-size:15px}.st-leg .st-rb i{height:4px}.st-leg .st-rb small{font-size:11px;width:30px}}`;document.head.appendChild(s)}
 {const s=document.createElement("style");s.textContent=`.eq>.stackcol{display:flex;flex-direction:column;gap:16px}.eq>.stackcol>.panel:last-child{flex:1}`;document.head.appendChild(s)}
+/* Status leden: groter diagram, compactere blokken rechts */
+{const s=document.createElement("style");s.textContent=`.st-donut{gap:28px!important;justify-content:center}.st-donut svg{width:210px!important;height:210px!important}
+.st-donut .st-leg{display:flex;flex-direction:column;gap:6px!important;flex:0 1 240px;max-width:240px}
+.st-leg .st-r{padding:6px 10px!important;gap:3px!important;min-height:0!important;border-radius:8px}
+.st-leg .st-rt{display:flex!important;justify-content:space-between!important;align-items:baseline;font-size:13px!important;text-align:left}.st-leg .st-rt b{font-size:16px!important}
+.st-leg .st-rb{display:flex!important;align-items:center;gap:8px}.st-leg .st-rb small{font-size:11px!important}
+@media (max-width:640px){.st-donut svg{width:150px!important;height:150px!important}.st-donut{gap:14px!important}.st-donut .st-leg{flex:1 1 auto}}`;document.head.appendChild(s)}
 
 /* ============ Financiën › Begroting ============
    Per boekjaar één document config/"begroting_<jaar>": {tabs:[{id,naam,categorie,personen,winst,posten:[{id,soort:"kost"|"opbrengst",naam,aantal,prijs,pp}]}]}
