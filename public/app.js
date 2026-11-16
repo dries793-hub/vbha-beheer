@@ -2118,7 +2118,7 @@ VIEWS.kinderfeest=()=>({title:"Kinderfeest",sub:"Inschrijvingen kinderfeest",
     const list=q?st.L.filter(r=>norm([r.lid,r.email,r.opmerking,...(r.kinderen||[]).map(k=>k.naam)].join(" ")).includes(q)):st.L;
     const max=Math.max(1,...st.per.values());const ages=[];for(let a=0;a<=c.leeftijd;a++)if(st.per.get(a))ages.push(a);
     return `
-    <div class="tiles"><div class="tile hero"><span class="lbl">Ingeschreven kinderen</span><span class="val">${st.kids}</span></div>
+    <div class="tiles"><div class="tile"><span class="lbl">Ingeschreven kinderen</span><span class="val">${st.kids}</span></div>
       </div>
     <div class="panel"><div class="panel-h"><h2>Cadeautjes per leeftijd</h2></div><div class="panel-b"><div class="kf-ages">
       ${ages.map(a=>{const n=st.per.get(a)||0;return `<div class="kf-age${n?"":" zero"}"><b>${n}</b><i><em style="width:${Math.round(n/max*100)}%"></em></i><span>${a===0?"&lt; 1":a}<small> jaar</small></span></div>`}).join("")}
