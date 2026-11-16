@@ -7976,13 +7976,14 @@ function moOpstel(M){const d=canWrite?"":" disabled",G=groepen(),g=mlGroep(),uit
     ${tg&&tg.id!==g.id?`<div class="mo-r"><span class="mo-l"></span><span class="mo-v ml-tip">Dit sjabloon is bedoeld voor <b>${esc(tg.label)}</b>. <button class="linkbtn" data-act="mlGroepTpl">Die groep kiezen</button></span></div>`:""}
     <div class="mo-r"><label class="mo-l" for="mOnd">Onderwerp</label><input id="mOnd" class="mo-v mo-ond" data-mlv="onderwerp" value="${esc(M.onderwerp)}"${d}></div></div>`;
   return `<div class="mo-op${moPv()?" met-pv":""}"><div class="panel mo-ed">${balk}${ML_LAST?`<div class="mo-prog" id="mailProg">${ML_LAST}</div>`:'<div id="mailProg"></div>'}${velden}<div class="mo-inh">${inhoud}</div></div>
-    ${moPv()?`<div class="panel mo-pv"><div class="panel-h"><h2>Voorbeeld</h2><span class="grow"></span><div class="seg" role="group" aria-label="Weergave"><button class="${mlGsm()?"":"on"}" data-act="mlDev" data-v="pc">Computer</button><button class="${mlGsm()?"on":""}" data-act="mlDev" data-v="gsm">Gsm</button></div></div><div class="panel-b stack" style="gap:10px"><div class="ml-head" id="mHead"></div><div class="ml-prev${mlGsm()?" gsm":""}"><iframe id="mlFrame" title="Voorbeeld van de mail" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div></div></div>`:""}</div>
+    ${moPv()?`<div class="panel mo-pv"><div class="panel-h"><h2>Voorbeeld</h2></div><div class="panel-b stack" style="gap:10px"><div class="ml-head" id="mHead"></div><div class="ml-prev${mlGsm()?" gsm":""}"><iframe id="mlFrame" title="Voorbeeld van de mail" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div></div></div>`:""}</div>
     ${mlNastuurUI()}`}
 
 function moVerzonden(){const n=UI.mlHistN;UI.mlHistN=Math.max(n||0,30);const h=mlHistoriek();UI.mlHistN=n;return h||'<div class="panel"><div class="empty">Nog geen mails verstuurd.</div></div>'}
 
 {const _v=VIEWS.mails;const n=function(){const v=_v.apply(this,arguments);v.title="Mail/Sms";v.actions="";
   v.body=function(){const tabs=typeof comTabs==="function"?comTabs("mails"):"";
+    if(UI.mlDev)delete UI.mlDev; // keuze computer/gsm is weg: voorbeeld volgt het scherm
     if(MO.vers){MO.vers=false;if(!MAIL||!MAIL.dirty){MAIL=mlVanTpl(null);UI.mailTpl=""}}const M=mailState();
     return tabs+`<div class="mo-w">${moZijbalk(M)}<div class="mo-hf">${MO.view==="verzonden"?moVerzonden():moOpstel(M)}</div></div>`};return v};Object.assign(n,_v);VIEWS.mails=n}
 
