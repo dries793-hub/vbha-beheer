@@ -8067,6 +8067,49 @@ addEventListener("hashchange",()=>{if(route()!=="mails"){MO.view="nieuw";MO.vers
 @media(max-width:860px){.mo-w{grid-template-columns:1fr}.mo-zb{position:static;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px}.mo-nw{width:auto}.mo-mp{flex-direction:row}.mo-mp .mo-si{width:auto}.mo-sl{display:none}.mo-zbm{display:block;flex:1;min-width:150px}
 .mo-r{grid-template-columns:76px minmax(0,1fr);padding:6px 12px}.mo-bk{padding:10px 12px}.mo-inh{padding:10px 12px 12px}.mo-rl label{grid-template-columns:18px minmax(0,1fr)}.mo-rl label span{grid-column:2}}`;document.head.appendChild(st)}
 
+/* ============ Sms in dezelfde Outlook-stijl als Mail ============
+   Links: Nieuwe sms, Opstellen en Verzonden. Rechts: opstelvenster met Verzenden bovenaan, Aan (groep + aantal ontvangers ›),
+   de tekst en een voorbeeld zoals de sms op een gsm toekomt. Hergebruikt SMS, smsGroepen, smsTel en de verzendcode uit sms.js. */
+const SMO={view:"nieuw"};
+function smoGroep(){const G=smsGroepen();return {G,g:G.find(x=>x.id===SMS.groep)||G[0]}}
+function smoZijbalk(){const n=smoLog().length;
+  return `<aside class="mo-zb">${canWrite?`<button type="button" class="btn primary mo-nw" data-smo="nieuw">${ic("plus")}Nieuwe sms</button>`:""}
+    <nav class="mo-mp"><button type="button" class="mo-si${SMO.view==="nieuw"?" on":""}" data-smo="opstel">${ic("mails")}Opstellen</button><button type="button" class="mo-si${SMO.view==="verzonden"?" on":""}" data-smo="verzonden">${ic("upload")}Verzonden<small>${n||""}</small></button></nav></aside>`}
+function smoLog(){return Object.values((SMS.log||[]).reduce((m,r)=>{const k=(r.nieuw&&r.nieuw.batch)||r.ts.slice(0,16);(m[k]||(m[k]={ts:r.ts,wie:r.wie,tekst:r.nieuw&&r.nieuw.tekst,n:0,ok:0}));m[k].n++;if(r.nieuw&&r.nieuw.ok)m[k].ok++;return m},{}))}
+function smoOpstel(){const D=SMS.dienst||{},{G,g}=smoGroep(),mag=canWrite,sel=g.list.filter(r=>!SMS.uit.has(r.id)),t=SMS.tekst,del=smsDelen(smsVul(t,{voornaam:"Xxxxxxxx"}));
+  const sects=[...new Set(G.map(x=>x.sect))];
+  const balk=`<div class="mo-bk"><button class="btn primary mo-send" data-sms="stuur"${mag&&D.aan&&sel.length&&t.trim()?"":" disabled"}>${ic("mails")}Verzenden</button>
+    <span class="grow"></span>${D.laden?'<span class="muted small">laden…</span>':D.aan?`<span class="pill ok">${D.tegoed?"Tegoed "+esc(D.tegoed):"Actief"}</span>`:'<span class="pill warn">sms-dienst niet ingesteld</span>'}</div>`;
+  const velden=`<div class="mo-vl"><div class="mo-r"><span class="mo-l">Aan</span><span class="mo-v mo-aan"><select class="sel mo-gr" id="smsG" aria-label="Doelgroep">${sects.map(s=>`<optgroup label="${esc(s)}">${G.filter(x=>x.sect===s).map(x=>`<option value="${esc(x.id)}"${x.id===g.id?" selected":""}>${esc(x.label)}</option>`).join("")}</optgroup>`).join("")}</select>
+      <button type="button" class="mo-n" data-smo="ont"><span id="smsCnt">${sel.length}</span> ${sel.length===1?"ontvanger":"ontvangers"}${g.list.length>sel.length?` · ${g.list.length-sel.length} uitgezonderd`:""} ›</button></span></div>
+    ${g.id==="los"?`<div class="mo-r"><span class="mo-l">Nummers</span><textarea id="smsLos" class="mo-v ml-los" rows="2" placeholder="0476 12 34 56, 0499 …">${esc(SMS.los)}</textarea></div>`:""}</div>`;
+  const ex=sel[0]||{voornaam:"Voornaam"};
+  return `<div class="panel mo-ed">${balk}${velden}<div class="mo-inh"><textarea id="smsT" class="smo-t" rows="6" maxlength="612" placeholder="Beste {voornaam}, …"${mag?"":" disabled"}>${esc(t)}</textarea>
+      <div class="sms-tel muted small"><span id="smsN">${t.length} tekens${del>1?` · ${del} sms-delen per persoon`:""}</span><button type="button" class="lnkb" data-sms="vn">{voornaam} invoegen</button></div></div></div>
+    <div class="panel mo-pv"><div class="panel-h"><h2>Voorbeeld</h2><span class="grow"></span><span class="muted small">${esc(sel[0]?sel[0].naam+" · "+smsToon(sel[0].nr):"")}</span></div><div class="panel-b"><div class="smo-tel"><div class="smo-bel" id="smoPv">${esc(smsVul(t,ex))||'<span class="muted">Je tekst verschijnt hier.</span>'}</div></div></div></div>`}
+function smoVerzonden(){const L=smoLog();
+  return `<div class="panel ml-hist"><div class="panel-h"><h2>Verzonden</h2></div>${L.length?`<div class="ml-hl">${L.map(x=>`<div class="ml-h"><div class="ml-hm"><b class="trunc">${esc(x.tekst||"")}</b><span class="muted small trunc">${esc(new Date(x.ts).toLocaleString("nl-BE",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}))} · ${esc(x.wie||"")}</span></div><span class="pill ${x.ok===x.n?"ok":"warn"}">${x.ok===x.n?"✓ "+x.n:x.ok+" / "+x.n}</span></div>`).join("")}</div>`:'<div class="empty">Nog geen sms\'en verstuurd.</div>'}</div>`}
+{const _v=VIEWS.sms;VIEWS.sms=function(){const v=_v.apply(this,arguments);v.body=function(){
+  if(recht("sms")==="geen")return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
+  if(!SMS.dienst||!SMS.log)smsLaad();
+  return comTabs("sms")+`<div class="mo-w">${smoZijbalk()}<div class="mo-hf">${SMO.view==="verzonden"?smoVerzonden():`<div class="mo-op">${smoOpstel()}</div>`}</div></div>`};return v};Object.assign(VIEWS.sms,_v)}
+function smoOntvangers(){const {g}=smoGroep();
+  modal(`Ontvangers · ${esc(g.label)}`,`<div class="stack" style="gap:10px"><div class="mo-sam"><span id="smoTel"></span><span class="grow"></span>${g.list.length>1?'<button class="linkbtn" data-smo="alle">Iedereen</button><button class="linkbtn" data-smo="geen">Niemand</button>':""}</div>
+    ${g.list.length?`<div class="mo-rl">${g.list.map(r=>`<label><input type="checkbox" data-smsr="${esc(r.id)}"${SMS.uit.has(r.id)?"":" checked"}><b class="trunc">${esc(r.naam)}</b><span class="muted trunc">${esc(smsToon(r.nr))}</span></label>`).join("")}</div>`:'<div class="muted">Niemand met een gsm-nummer in deze groep.</div>'}
+    ${g.zonder.length?`<div class="muted small">Geen gsm-nummer: ${g.zonder.map(r=>esc(r.naam)).join(", ")}</div>`:""}</div>`,`<button class="btn primary" data-act="closeModal">Klaar</button>`,{wide:true,onClose:()=>{if(route()==="sms")renderBody()}});smoTel()}
+function smoTel(){const {g}=smoGroep(),a=g.list.filter(r=>!SMS.uit.has(r.id)).length,t=$("#smoTel");if(t)t.innerHTML=`<b>${a}</b> van ${g.list.length} geselecteerd`}
+document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.smsr!==undefined)setTimeout(smoTel,0)});
+document.addEventListener("input",e=>{if(e.target.id!=="smsT")return;const p=$("#smoPv");if(!p)return;const {g}=smoGroep(),r=g.list.find(x=>!SMS.uit.has(x.id))||{voornaam:"Voornaam"};p.textContent=smsVul(e.target.value,r)||"";});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-smo]");if(!b||route()!=="sms")return;const a=b.dataset.smo;
+  if(a==="nieuw"){SMS.tekst="";SMS.uit=new Set();SMO.view="nieuw";return renderBody()}
+  if(a==="opstel"){SMO.view="nieuw";return renderBody()}
+  if(a==="verzonden"){SMO.view="verzonden";SMS.log=null;return renderBody()}
+  if(a==="ont")return smoOntvangers();
+  if(a==="alle"||a==="geen"){const {g}=smoGroep();SMS.uit=new Set(a==="geen"?g.list.map(r=>r.id):[]);document.querySelectorAll("[data-smsr]").forEach(x=>x.checked=a==="alle");smoTel();smsTel()}});
+addEventListener("hashchange",()=>{if(route()!=="sms")SMO.view="nieuw"});
+{const st=document.createElement("style");st.textContent=`.smo-t{width:100%;min-height:150px;border:1px solid var(--line);border-radius:8px;padding:12px;font:inherit;font-size:15px;resize:vertical;background:var(--surface);color:var(--ink)}
+.smo-tel{max-width:340px;margin:0 auto;padding:18px 14px;border-radius:22px;background:var(--sunken,#f1f2f3);min-height:120px}.smo-bel{background:var(--surface);border:1px solid var(--line);border-radius:16px 16px 16px 4px;padding:10px 12px;font-size:14.5px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere;max-width:92%}`;document.head.appendChild(st)}
+
 /* ============ Financiën › Transacties › Verrekeningen (splitwise) ============
    Een activiteit die samen met een andere vereniging georganiseerd wordt (bv. 150 jaar met de Vriendenkring Moorsel):
    onze kant = alle transacties in de gekozen categorie (alle jaren, optioneel binnen een periode);
@@ -9204,7 +9247,7 @@ function krdKaart(){const c=KR.host&&KR.host.querySelector("#krCard");if(!c)retu
   if(c.hidden||KR.ss.size>1){z.hidden=true;return}
   const sid=KR.deel||KR.sel,segs=sid?KR_DELEN.get(sid)||[]:[];if(segs.length<2){z.hidden=true;return}
   // standaard de hele straat; de stukken pas na "Straat in stukken verdelen"
-  if(!KR.deel){z.hidden=true;if(kd&&!kd.hidden&&/Slechts een deel/.test(kd.textContent))kd.textContent="Straat in stukken verdelen";return}
+  if(!KR.deel){z.hidden=true;if(kd&&!kd.hidden&&/Slechts een deel/.test(kd.textContent))kd.textContent="Enkel een deel van de straat kiezen";return}
   z.hidden=false;
   if(!KR.deel){ // gewone weergave: de stukken als knopjes
     z.innerHTML=`<div class="krd-l">Stukken</div><div class="krd-c">${segs.map(x=>`<button type="button" class="krd-n s-${krdStat(x)}" data-krd="${esc(x.id)}" title="${esc(["Stuk "+x.nr,krdTussen(x),"± "+x.a+" adressen"].filter(Boolean).join(" · "))}"${canWrite?"":" disabled"}>${x.nr}</button>`).join("")}</div>`;return}
