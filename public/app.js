@@ -6105,6 +6105,11 @@ document.addEventListener("change",async e=>{const t=e.target;
     catch(x){t.checked=!aan;toast("Bewaren lukte niet.",true)}return}
   if(t.dataset&&t.dataset.vrijr){const id=t.dataset.vrijr,jl=S.jaarleden.get(JAAR+"_"+id)||{};if(!jl.vrijstelling)return;
     try{await setJL(id,{vrijstelling:{...jl.vrijstelling,reden:t.value.trim()}});toast("Reden bewaard.")}catch(x){toast("Bewaren lukte niet.",true)}}});
+/* Puntensysteem: grijs kadertje "vrijgesteld" naast de naam van wie een vrijstelling heeft */
+function vrijLabels(){if(route()!=="punten")return;for(const b of document.querySelectorAll('#body [data-act="toonLid"][data-id]')){if(b.querySelector(".vrij-tag"))continue;
+  const jl=S.jaarleden.get(JAAR+"_"+b.dataset.id);if(jl&&jl.vrijstelling)b.insertAdjacentHTML("beforeend",' <span class="vrij-tag" title="'+esc(jl.vrijstelling.reden||"Vrijstelling puntensysteem")+'">vrijgesteld</span>')}}
+{const _a=VIEWS.punten.after;VIEWS.punten.after=function(){const r=_a&&_a.apply(this,arguments);try{vrijLabels()}catch(e){}return r}}
+{const st=document.createElement("style");st.textContent=".vrij-tag{display:inline-block;margin-left:8px;padding:1px 7px;border:1px solid var(--line);border-radius:6px;background:var(--sunken,#f1f1f1);color:var(--muted);font-size:11.5px;font-weight:500;vertical-align:1px;white-space:nowrap}";document.head.appendChild(st)}
 
 /* ---------- werkjaar: overlopende opbrengsten en kosten (kalenders, sponsoring…) ---------- */
 const WJ_MND=["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
