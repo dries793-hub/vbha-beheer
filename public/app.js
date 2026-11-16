@@ -9323,6 +9323,11 @@ function krdMidden(g){const pts=g.flat?(Array.isArray(g[0][0])?g.flat():g):g;let
 .krd-t b{font-weight:500;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.krd-t small{color:var(--muted);font-size:12px}.krd-v{color:var(--accent);font-weight:700}@media(max-width:760px){.krd-lst{max-height:24vh}.krd-r{padding:5px 8px}.krd-t small{font-size:11px}}
 .leaflet-tooltip.krd-mk{background:var(--surface);border:2px solid var(--ink);border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.3);padding:0;width:24px;height:24px;line-height:20px;text-align:center;font:700 12px/20px var(--f-body);color:var(--ink)}
 .leaflet-tooltip.krd-mk.on{background:var(--accent);border-color:var(--accent);color:#fff}.leaflet-tooltip.krd-mk::before{display:none}`;document.head.appendChild(st)}
+/* ---- Middellijnen van de straten (berekend uit de stukken: rijbanen samengevoegd, gaten gedicht, zijtakjes weg) ----
+   <script id="krLijn">: per regel "straat-id lijn1 lijn2 …" in Google-polyline-codering. Enkel voor de weergave. */
+const KR_LIJN=(()=>{let M=null;return{get(id){if(!M){M=new Map();const el=document.getElementById("krLijn");const dec=s=>{const pts=[];let i=0,la=0,lo=0;
+  while(i<s.length){for(let k=0;k<2;k++){let r=0,sh=0,b;do{b=s.charCodeAt(i++)-63;r|=(b&31)<<sh;sh+=5}while(b>=32);const d=(r&1)?~(r>>1):(r>>1);if(k===0)la+=d;else lo+=d}pts.push([la/1e5,lo/1e5])}return pts};
+  if(el)for(const r of el.textContent.split("\n")){const t=r.trim().split(" ");if(t.length>1)M.set(t[0],t.slice(1).map(dec))}}return M.get(id)}}})();
 /* ---- Kaart: gescheiden rijbanen als één lijn ----
    krEnkel(g): een stuk lijn dat over zijn volledige lengte (97%, om de 8 m gemeten) binnen 30 m van een langer stuk van dezelfde
    straat ligt, wordt niet getekend; losse uiteinden die zo ontstaan worden met een kort lijntje verbonden (binnen 40 m).
@@ -9352,6 +9357,13 @@ function krGroepen(sid){if(KRG.has(sid))return KRG.get(sid);const S=(KR_DELEN.ge
   const G=[];for(const s of S){let best=null,bn=0;if(s.d.length)for(const g of G){let n=0;for(const p of s.d)if(g.qs.some(q=>KRE.afst(p,q).d<30))n++;if(n>bn){bn=n;best=g}}
     if(best&&bn/s.d.length>=.85){best.ids.push(s.x.id);best.a+=s.x.a;best.xs.push(s.x)}else G.push({lead:s.x,ids:[s.x.id],a:s.x.a,xs:[s.x],qs:s.qs})}
   G.sort((a,b)=>a.lead.nr-b.lead.nr);G.forEach((g,i)=>{g.n=i+1;g.id=g.lead.id;g.g=krEnkel(g.lead.g).map(p=>p.slice());g.k=g.xs.flatMap(x=>x.k||[])});
+  // met middellijn: elk stuk krijgt het deel van de middellijn dat het dichtst bij zijn eigen stukken ligt (sluit vanzelf aan)
+  const ML=KR_LIJN.get(sid);if(ML&&G.length>1){const alle=S.map(x=>({id:x.x.id,qs:x.qs})),van=new Map();G.forEach(g=>g.ids.forEach(id=>van.set(id,g)));G.forEach(g=>g.g=[]);
+    for(const lijn of ML){const d=KRE.dicht8(lijn.map(KRE.m)),lat=lijn[0][0];let run=[],rg=null;
+      const sluit=()=>{if(rg&&run.length>1)rg.g.push(run.map(q=>KRE.terug(q,lat)));run=[]};
+      for(const p of d){let best=null,bd=Infinity;for(const a of alle)for(const q of a.qs){const r=KRE.afst(p,q).d;if(r<bd){bd=r;best=a.id}}const g=van.get(best);
+        if(g!==rg){const last=run[run.length-1];sluit();rg=g;if(last)run.push(last)}run.push(p)}sluit()}
+    G.forEach(g=>{if(!g.g.length)g.g=krEnkel(g.lead.g).map(p=>p.slice())});KRG.set(sid,G);return G}
   // uiteinden van een stuk doortrekken tot het aansluitende stuk (binnen 30 m), zodat de stukken aaneensluiten
   const Q=G.map(g=>g.g.map(p=>p.map(KRE.m)));
   G.forEach((g,gi)=>{const n=g.g.length;for(let pi=0;pi<n;pi++){const p=g.g[pi];if(p.length<2)continue;for(const pt of [p[0],p[p.length-1]]){const e=KRE.m(pt);let best=null,raak=false;
@@ -9364,7 +9376,7 @@ function krGroepMidden(g){const P=KRE.delen(g);let best=P[0]||[],bl=-1;for(const
    straat (ook een andere straat) binnen 30 m, zodat kruispunten en aansluitingen netjes aaneensluiten. Eén keer berekend voor de hele kaart. */
 function krGeo(sid){if(!KRE.geo){const t0=Date.now(),cos=Math.cos(50.94*Math.PI/180),m=p=>[p[0]*111320,p[1]*111320*cos],terug=q=>[q[0]/111320,q[1]/(111320*cos)];
   const geo=new Map(),seg=new Map(),C=40,cel=(x,y)=>Math.floor(x/C)+"|"+Math.floor(y/C);
-  for(const s of KR_STREETS){const P=krEnkel(s.g).map(p=>p.slice());geo.set(s.id,P);
+  for(const s of KR_STREETS){const P=(KR_LIJN.get(s.id)||krEnkel(s.g)).map(p=>p.slice());geo.set(s.id,P);
     P.forEach((p,pi)=>{const q=p.map(m);for(let i=1;i<q.length;i++){const a=q[i-1],b=q[i],o={a,b,sid:s.id,pi};
       const x0=Math.min(a[0],b[0]),x1=Math.max(a[0],b[0]),y0=Math.min(a[1],b[1]),y1=Math.max(a[1],b[1]);
       for(let x=Math.floor(x0/C);x<=Math.floor(x1/C);x++)for(let y=Math.floor(y0/C);y<=Math.floor(y1/C);y++){const k=x+"|"+y;let l=seg.get(k);if(!l)seg.set(k,l=[]);l.push(o)}}})}
