@@ -7944,100 +7944,99 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-sopost]");
 for(const [r,k] of [["kinderfeest","kf"],["banket","bk"],["fuif","fu"],["familiedag","fd"]]){const _v=VIEWS[r];if(!_v)continue;
   const n=function(){const v=_v.apply(this,arguments);if(false&&recht("social")!=="geen")v.actions=`<button type="button" class="btn" data-sopost="${k}">${ic("delen")}Post maken</button>`+String(v.actions||"");return v};Object.assign(n,_v);VIEWS[r]=n}
 
-/* ============ Mail: nieuwe indeling in stappen ============
-   Je komt standaard op een nieuwe, lege mail (stap 1); een sjabloon kies je bovenaan met een keuzelijst.
-   1 Bericht → 2 Ontvangers → 3 Controleren en versturen. Verzonden mails via de knop "Verzonden".
-   Hergebruikt alles uit mails.js (MAIL, mailPreview, mlEditor, mlSend, mlTest, groepen, ...); enkel de weergave is nieuw.
-   Sjabloonnaam en categorie worden pas gevraagd bij "Opslaan als sjabloon". */
-const MO={stap:1,vers:true};
-const moTerug=()=>{MO.stap=0;render(true)};
-function moStepper(){const S3=[[1,"Bericht"],[2,"Ontvangers"],[3,"Versturen"]];
-  return `<div class="mo-top"><ol class="mo-st">${S3.map(([n,l])=>`<li><button type="button" data-mo="stap" data-n="${n}" class="${MO.stap===n?"on":MO.stap>n?"klaar":""}"><span>${MO.stap>n?"✓":n}</span>${l}</button></li>`).join("")}</ol><span class="grow"></span>${(S.mailings&&S.mailings.size)?`<button type="button" class="btn sm" data-mo="verzonden">${ic("mails")}Verzonden</button>`:""}</div>`}
-function moVoet(links,rechts){return `<div class="mo-voet">${links||"<span></span>"}<span class="grow"></span>${rechts||""}</div>`}
-function moLaatst(id){let d="";for(const m of (S.mailings||new Map()).values())if(m.sjabloonId===id&&String(m.datum||"")>d)d=String(m.datum);return d}
+/* ============ Mail in Outlook-stijl ============
+   Links: Nieuwe mail, Verzonden en de sjablonen. Rechts: het opstelvenster (Van, Aan, Onderwerp, tekst) met Verzenden bovenaan,
+   en optioneel het voorbeeld ernaast. Ontvangers uitzonderen en afgemelde adressen via de knop naast "Aan".
+   Hergebruikt alles uit mails.js (MAIL, mailPreview, mlEditor, mlSend, mlTest, groepen, ...); enkel de weergave is nieuw. */
+const MO={view:"nieuw",vers:true,pv:null};
+const moPv=()=>MO.pv==null?innerWidth>=1200:MO.pv;
+function moSjablonen(M){const tpls=mlTpls(),cats=[...new Set([...ML_CATS,...tpls.map(t=>t.categorie||"Algemeen")])].filter(c=>tpls.some(t=>(t.categorie||"Algemeen")===c));
+  return cats.map(c=>`<div class="mo-sc">${esc(c)}</div>${tpls.filter(t=>(t.categorie||"Algemeen")===c).map(t=>`<button type="button" class="mo-si${MO.view==="nieuw"&&t.id===M.tplId?" on":""}" data-mo="tpl" data-id="${esc(t.id)}" title="${esc(t.onderwerp||"")}">${esc(t.naam||"Zonder naam")}</button>`).join("")}`).join("")}
+function moZijbalk(M){const n=(S.mailings&&S.mailings.size)||0;
+  return `<aside class="mo-zb">${canWrite?`<button type="button" class="btn primary mo-nw" data-mo="nieuw">${ic("plus")}Nieuwe mail</button>`:""}
+    <nav class="mo-mp"><button type="button" class="mo-si${MO.view==="nieuw"&&!M.tplId?" on":""}" data-mo="opstel">${ic("mails")}Opstellen</button><button type="button" class="mo-si${MO.view==="verzonden"?" on":""}" data-mo="verzonden">${ic("upload")}Verzonden<small>${n||""}</small></button></nav>
+    <div class="mo-sl"><div class="mo-sk">Sjablonen</div>${moSjablonen(M)||'<div class="muted small" style="padding:4px 10px">Nog geen sjablonen.</div>'}</div>
+    <select class="sel mo-zbm" data-change="mlTpl" aria-label="Sjabloon"><option value="">${M.tplId?"Geen sjabloon":"Sjabloon kiezen…"}</option>${mlTpls().map(t=>`<option value="${esc(t.id)}"${t.id===M.tplId?" selected":""}>${esc(t.naam||"Zonder naam")}</option>`).join("")}</select></aside>`}
 
-function moTplSel(M){const tpls=mlTpls(),cats=[...new Set([...ML_CATS,...tpls.map(t=>t.categorie||"Algemeen")])].filter(c=>tpls.some(t=>(t.categorie||"Algemeen")===c));
-  return `<select class="sel mo-tpls" id="moTpl" data-change="mlTpl"><option value=""${M.tplId?"":" selected"}>${M.tplId||!M.naam?"Geen (leeg bericht)":esc(M.naam)}</option>${cats.map(c=>`<optgroup label="${esc(c)}">${tpls.filter(t=>(t.categorie||"Algemeen")===c).map(t=>`<option value="${esc(t.id)}"${t.id===M.tplId?" selected":""}>${esc(t.naam||"Zonder naam")}</option>`).join("")}</optgroup>`).join("")}</select>`}
-function moStap1(M){const d=canWrite?"":" disabled";
+function moOpstel(M){const d=canWrite?"":" disabled",G=groepen(),g=mlGroep(),uit=M.uit,met=g.list.filter(r=>r.email),actief=met.filter(r=>!uit.has(String(r.email).toLowerCase()));
+  const sects=[...new Set(G.map(x=>x.sect))],tg=M.groep&&G.find(x=>x.id===M.groep),smtp=MAILSMTP===null?(mailSmtpLaad(),null):MAILSMTP;
   const inhoud=M.opmaak==="huisstijl"?mlEditor(M).replace(/<span class="help">[\s\S]*?<\/span>\s*$/,""):`<textarea id="mlRaw" data-mlv="body" spellcheck="${M.isHtml?"false":"true"}" class="ml-raw"${d}>${esc(M.body)}</textarea>
       <div class="mo-raw muted small">${M.isHtml?"Volledig HTML-bestand.":"Gewone tekst."} <button class="linkbtn" data-act="mlNaarHuisstijl"${d}>Omzetten naar huisstijl</button></div>`;
-  const tplKnoppen=canWrite?(M.tplId?`<button class="btn sm" data-act="mlSave"${M.dirty?"":" disabled"}>Sjabloon bijwerken</button><button class="btn sm ghost" data-mo="alsnieuw">Opslaan als nieuw sjabloon</button><button class="btn sm ghost danger" data-act="mlDel">Verwijderen</button>`
-    :`<button class="btn sm" data-mo="alsnieuw">Opslaan als sjabloon</button>`)+`<span class="grow"></span><label class="btn sm ghost" for="mlFile" style="cursor:pointer">${ic("upload")}HTML laden</label><input type="file" id="mlFile" accept=".html,.htm,text/html" hidden>`:"";
-  return `<div class="mo-2"><div class="panel"><div class="panel-h mo-kies"><label for="moTpl">Sjabloon</label>${moTplSel(M)}<span class="grow"></span><span class="ml-dirty" id="mlDirty">${M.dirty?"Niet bewaard":""}</span></div><div class="panel-b">
-      <div class="fld"><label for="mOnd">Onderwerp</label><input id="mOnd" data-mlv="onderwerp" value="${esc(M.onderwerp)}"${d}></div>
-      <div class="fld mo-inh">${inhoud}</div>
-      <div class="mo-tpl">${tplKnoppen}</div></div></div>
-    <div class="panel mo-pv"><div class="panel-h"><h2>Voorbeeld</h2><span class="grow"></span>${moDev()}</div><div class="panel-b stack" style="gap:10px"><div class="ml-head" id="mHead"></div><div class="ml-prev${mlGsm()?" gsm":""}"><iframe id="mlFrame" title="Voorbeeld van de mail" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div></div></div></div>
-    ${moVoet("",`<button class="btn primary" data-mo="stap" data-n="2">Volgende: ontvangers ›</button>`)}`}
-const moDev=()=>`<div class="seg" role="group" aria-label="Weergave"><button class="${mlGsm()?"":"on"}" data-act="mlDev" data-v="pc">Computer</button><button class="${mlGsm()?"on":""}" data-act="mlDev" data-v="gsm">Gsm</button></div>`;
+  const kan=actief.length&&canWrite&&smtp&&smtp.ingesteld;
+  const balk=`<div class="mo-bk">${smtp&&smtp.ingesteld?`<button class="btn primary mo-send" data-act="mlSend"${kan?"":" disabled"}>${ic("mails")}Verzenden</button><button class="btn" data-mo="test"${kan?"":" disabled"}>Testmail</button>`:smtp?'<span class="muted small">Rechtstreeks versturen is niet ingesteld.</span>':""}
+    <span class="grow"></span><span class="ml-dirty" id="mlDirty">${M.dirty?"Niet bewaard":""}</span>
+    ${canWrite?`<details class="mo-dd"><summary class="btn">Sjabloon ▾</summary><div class="mo-ddm">${M.tplId?`<button type="button" data-act="mlSave"${M.dirty?"":" disabled"}>Sjabloon „${esc(M.naam)}" bijwerken</button><button type="button" data-mo="alsnieuw">Opslaan als nieuw sjabloon</button><button type="button" class="danger" data-act="mlDel">Sjabloon verwijderen</button>`:`<button type="button" data-mo="alsnieuw">Opslaan als sjabloon</button>`}
+      <label for="mlFile">HTML-bestand laden</label><input type="file" id="mlFile" accept=".html,.htm,text/html" hidden><button type="button" data-act="mailZip"${met.length?"":" disabled"}>Concepten downloaden (.zip)</button><button type="button" data-act="mailCopy"${met.length?"":" disabled"}>Adressen kopiëren (BCC)</button></div></details>`:""}
+    <button class="btn${moPv()?" on":""}" data-mo="pv" aria-pressed="${moPv()}">Voorbeeld</button></div>`;
+  const velden=`<div class="mo-vl">${smtp&&smtp.van?`<div class="mo-r"><span class="mo-l">Van</span><span class="mo-v">${esc((smtp.van.naam?smtp.van.naam+" ":"")+"<"+(smtp.van.email||"")+">")}</span></div>`:""}
+    <div class="mo-r"><span class="mo-l">Aan</span><span class="mo-v mo-aan"><select class="sel mo-gr" data-change="mlGroep" aria-label="Doelgroep">${sects.map(s=>`<optgroup label="${esc(s)}">${G.filter(x=>x.sect===s).map(x=>`<option value="${esc(x.id)}"${x.id===g.id?" selected":""}>${esc(x.label)}</option>`).join("")}</optgroup>`).join("")}</select>
+      <button type="button" class="mo-n" data-mo="ont">${actief.length} ${actief.length===1?"ontvanger":"ontvangers"}${met.length>actief.length?` · ${met.length-actief.length} uitgezonderd`:""} ›</button></span></div>
+    ${g.id==="los"?`<div class="mo-r"><span class="mo-l"></span><textarea id="mlLos" class="ml-los mo-v" placeholder="E-mailadressen, gescheiden door een komma of een nieuwe regel">${esc(UI.mailLos||"")}</textarea></div>`:""}
+    ${tg&&tg.id!==g.id?`<div class="mo-r"><span class="mo-l"></span><span class="mo-v ml-tip">Dit sjabloon is bedoeld voor <b>${esc(tg.label)}</b>. <button class="linkbtn" data-act="mlGroepTpl">Die groep kiezen</button></span></div>`:""}
+    <div class="mo-r"><label class="mo-l" for="mOnd">Onderwerp</label><input id="mOnd" class="mo-v mo-ond" data-mlv="onderwerp" value="${esc(M.onderwerp)}"${d}></div></div>`;
+  return `<div class="mo-op${moPv()?" met-pv":""}"><div class="panel mo-ed">${balk}${ML_LAST?`<div class="mo-prog" id="mailProg">${ML_LAST}</div>`:'<div id="mailProg"></div>'}${velden}<div class="mo-inh">${inhoud}</div></div>
+    ${moPv()?`<div class="panel mo-pv"><div class="panel-h"><h2>Voorbeeld</h2><span class="grow"></span><div class="seg" role="group" aria-label="Weergave"><button class="${mlGsm()?"":"on"}" data-act="mlDev" data-v="pc">Computer</button><button class="${mlGsm()?"on":""}" data-act="mlDev" data-v="gsm">Gsm</button></div></div><div class="panel-b stack" style="gap:10px"><div class="ml-head" id="mHead"></div><div class="ml-prev${mlGsm()?" gsm":""}"><iframe id="mlFrame" title="Voorbeeld van de mail" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div></div></div>`:""}</div>
+    ${mlNastuurUI()}`}
 
-function moStap2(M){const G=groepen(),g=mlGroep(),uit=M.uit,met=g.list.filter(r=>r.email),zonder=g.list.filter(r=>!r.email),actief=met.filter(r=>!uit.has(String(r.email).toLowerCase()));
-  const sects=[...new Set(G.map(x=>x.sect))],tg=M.groep&&G.find(x=>x.id===M.groep);
-  return `<div class="panel mo-ont"><div class="panel-h"><h2>Ontvangers</h2><span class="grow"></span>${canWrite?`<button class="btn sm ml-kb" data-act="mlLijstBeheer" type="button">${ic("leden")}Mailinglijsten</button>`:""}</div><div class="panel-b stack" style="gap:12px">
-    <select class="sel mo-gr" data-change="mlGroep" aria-label="Doelgroep">${sects.map(s=>`<optgroup label="${esc(s)}">${G.filter(x=>x.sect===s).map(x=>`<option value="${esc(x.id)}"${x.id===g.id?" selected":""}>${esc(x.label)} (${x.list.filter(r=>r.email).length})</option>`).join("")}</optgroup>`).join("")}</select>
-    ${tg&&tg.id!==g.id?`<div class="ml-tip">Dit sjabloon is bedoeld voor <b>${esc(tg.label)}</b>. <button class="linkbtn" data-act="mlGroepTpl">Die groep kiezen</button></div>`:""}
-    ${g.id==="los"?`<textarea id="mlLos" class="ml-los" placeholder="E-mailadressen, gescheiden door een komma of een nieuwe regel">${esc(UI.mailLos||"")}</textarea>`:""}
-    <div class="mo-sam"><b>${actief.length}</b> ${actief.length===1?"ontvanger":"ontvangers"}<span class="muted">${met.length>actief.length?` · ${met.length-actief.length} uitgezonderd`:""}${zonder.length?` · ${zonder.length} zonder e-mailadres`:""}${g.geblokt.length?` · ${g.geblokt.length} afgemeld`:""}</span>
-      ${met.length>1?`<span class="grow"></span><button class="linkbtn" data-mo="alle">Iedereen</button><button class="linkbtn" data-mo="niemand">Niemand</button>`:""}</div>
-    ${met.length?`<div class="mo-rl">${met.map(r=>{const k=String(r.email).toLowerCase();return `<label><input type="checkbox" data-mluit="${esc(k)}"${uit.has(k)?"":" checked"}><b class="trunc">${esc(r.label)}</b><span class="muted trunc">${esc(r.email)}</span></label>`}).join("")}</div>`:""}
-    ${mlBlokUI(g).replace(/<div class="muted small" style="margin:2px 0 6px">[\s\S]*?<\/div>/,"")}
-  </div></div>
-  <div class="mo-w">${moVoet(`<button class="btn" data-mo="stap" data-n="1">‹ Bericht</button>`,`<button class="btn primary" data-mo="stap" data-n="3"${actief.length?"":" disabled"}>Volgende: controleren ›</button>`)}</div>`}
+function moVerzonden(){const n=UI.mlHistN;UI.mlHistN=Math.max(n||0,30);const h=mlHistoriek();UI.mlHistN=n;return h||'<div class="panel"><div class="empty">Nog geen mails verstuurd.</div></div>'}
 
-function moStap3(M){const list=mailRecips(),g=mlGroep(),n=list.length;
-  const smtp=MAILSMTP===null?(mailSmtpLaad(),null):MAILSMTP;
-  return `<div class="mo-2"><div class="stack" style="gap:16px"><div class="panel"><div class="panel-h"><h2>Controleren</h2></div><div class="panel-b">
-      <dl class="mo-kv"><dt>Onderwerp</dt><dd>${esc(vul(M.onderwerp,list[0]||{}))}</dd><dt>Aan</dt><dd>${esc(g.label)} · <b>${n}</b> ${n===1?"ontvanger":"ontvangers"} <button class="linkbtn" data-mo="stap" data-n="2">wijzigen</button></dd>
-      ${smtp&&smtp.van?`<dt>Van</dt><dd>${esc((smtp.van.naam?smtp.van.naam+" ":"")+"<"+(smtp.van.email||"")+">")}</dd>`:""}${M.tplId?`<dt>Sjabloon</dt><dd>${esc(M.naam)}${M.dirty?' <span class="pill warn">niet bewaard</span>':""}</dd>`:""}</dl></div></div>
-    <div class="panel"><div class="panel-h"><h2>Versturen</h2></div><div class="panel-b stack" style="gap:12px">
-      ${smtp===null?'<div class="muted small">Laden…</div>':smtp.ingesteld?`
-      <div class="ml-test"><input id="mlTestAan" type="email" value="${esc(UI.mlTestAan||(ME?ME.email:""))}" aria-label="Testmail naar"><button class="btn" data-act="mlTest"${n&&canWrite?"":" disabled"}>Testmail sturen</button></div>
-      <button class="btn primary mo-go" data-act="mlSend"${n&&canWrite?"":" disabled"}>${ic("mails")}${n} ${n===1?"mail":"mails"} versturen</button>
-      <div id="mailProg">${ML_LAST}</div>`:`<div class="note">Rechtstreeks versturen is niet ingesteld.</div>`}
-      <div class="mo-and"><button class="linkbtn" data-act="mailZip"${n?"":" disabled"}>Concepten downloaden (.zip)</button><button class="linkbtn" data-act="mailCopy"${n?"":" disabled"}>Adressen kopiëren (BCC)</button></div>
-    </div></div>${mlNastuurUI()}</div>
-    <div class="panel mo-pv"><div class="panel-h"><h2>Voorbeeld</h2><span class="grow"></span>${moDev()}</div><div class="panel-b stack" style="gap:10px"><div class="ml-head" id="mHead"></div><div class="ml-prev${mlGsm()?" gsm":""}"><iframe id="mlFrame" title="Voorbeeld van de mail" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div></div></div></div>
-    ${moVoet(`<button class="btn" data-mo="stap" data-n="2">‹ Ontvangers</button>`,"")}`}
-
-{const _v=VIEWS.mails;const n=function(){const v=_v.apply(this,arguments);v.title="Mail/Sms";
-  v.actions="";
+{const _v=VIEWS.mails;const n=function(){const v=_v.apply(this,arguments);v.title="Mail/Sms";v.actions="";
   v.body=function(){const tabs=typeof comTabs==="function"?comTabs("mails"):"";
-    if(MO.vers){MO.vers=false;if(!MAIL||!MAIL.dirty){MAIL=mlVanTpl(null);UI.mailTpl=""}}if(!MO.stap)MO.stap=1;const M=mailState();
-    return tabs+moStepper()+(MO.stap===1?moStap1(M):MO.stap===2?moStap2(M):moStap3(M))};return v};Object.assign(n,_v);VIEWS.mails=n}
+    if(MO.vers){MO.vers=false;if(!MAIL||!MAIL.dirty){MAIL=mlVanTpl(null);UI.mailTpl=""}}const M=mailState();
+    return tabs+`<div class="mo-w">${moZijbalk(M)}<div class="mo-hf">${MO.view==="verzonden"?moVerzonden():moOpstel(M)}</div></div>`};return v};Object.assign(n,_v);VIEWS.mails=n}
+
+function moOntvangers(){const M=mailState(),g=mlGroep(),uit=M.uit,met=g.list.filter(r=>r.email),zonder=g.list.filter(r=>!r.email);
+  modal(`Ontvangers · ${esc(g.label)}`,`<div class="stack" style="gap:10px"><div class="mo-sam"><span id="moTel"></span><span class="grow"></span>${met.length>1?`<button class="linkbtn" data-mo="alle">Iedereen</button><button class="linkbtn" data-mo="niemand">Niemand</button>`:""}${canWrite?`<button class="btn sm" data-act="mlLijstBeheer" type="button">${ic("leden")}Mailinglijsten</button>`:""}</div>
+    ${met.length?`<div class="mo-rl">${met.map(r=>{const k=String(r.email).toLowerCase();return `<label><input type="checkbox" data-mluit="${esc(k)}"${uit.has(k)?"":" checked"}><b class="trunc">${esc(r.label)}</b><span class="muted trunc">${esc(r.email)}</span></label>`}).join("")}</div>`:'<div class="muted">Geen ontvangers met een e-mailadres.</div>'}
+    ${zonder.length?`<div class="muted small">${zonder.length} zonder e-mailadres: ${esc(zonder.slice(0,12).map(r=>r.label).join(", "))}${zonder.length>12?"…":""}</div>`:""}
+    ${mlBlokUI(g).replace(/<div class="muted small" style="margin:2px 0 6px">[\s\S]*?<\/div>/,"")}</div>`,`<button class="btn primary" data-act="closeModal">Klaar</button>`,{wide:true});moTel()}
+function moTel(){const M=mailState(),met=mlGroep().list.filter(r=>r.email),a=met.filter(r=>!M.uit.has(String(r.email).toLowerCase())).length,t=$("#moTel");if(t)t.innerHTML=`<b>${a}</b> van ${met.length} geselecteerd`}
+document.addEventListener("change",e=>{if(e.target.dataset&&e.target.dataset.mluit!==undefined)setTimeout(moTel,0)});
 
 document.addEventListener("click",e=>{const b=e.target.closest("[data-mo]");if(!b||route()!=="mails")return;const a=b.dataset.mo;
-  if(a==="nieuw")return mlWissel(()=>{MAIL=mlVanTpl(null);UI.mailTpl="";saveUI();MO.stap=1;render(true)});
-  if(a==="tpl")return mlWissel(()=>{MO.stap=1;mlKies(b.dataset.id)});
-  if(a==="verzonden"){const n=UI.mlHistN;UI.mlHistN=40;const h=mlHistoriek();UI.mlHistN=n;modal("Verzonden mails",h.replace(/^<div class="panel ml-hist"><div class="panel-h"><h2>Verzonden<\/h2><\/div>/,'<div class="ml-hist mo-hist">'),`<button class="btn" data-act="closeModal">Sluiten</button>`,{wide:true});return}
-  if(a==="stap"){const ed=$("#mlEd");if(ed&&MAIL)MAIL.body=ed.innerHTML;MO.stap=+b.dataset.n;render(true);scrollTo(0,0);return}
-  if(a==="alle"||a==="niemand"){const M=mailState();M.uit=new Set(a==="niemand"?mlGroep().list.filter(r=>r.email).map(r=>String(r.email).toLowerCase()):[]);M.idx=0;renderBody();return}
-  if(a==="alsnieuw"){const M=mailState(),ed=$("#mlEd");if(ed)M.body=ed.innerHTML;const cats=[...new Set([...ML_CATS,...mlTpls().map(t=>t.categorie||"Algemeen")])];
+  const naarOpstel=()=>{MO.view="nieuw"};
+  if(a==="nieuw")return mlWissel(()=>{MAIL=mlVanTpl(null);UI.mailTpl="";saveUI();naarOpstel();render(true)});
+  if(a==="opstel"){naarOpstel();return renderBody()}
+  if(a==="tpl")return mlWissel(()=>{naarOpstel();mlKies(b.dataset.id)});
+  if(a==="verzonden"){const ed=$("#mlEd");if(ed&&MAIL)MAIL.body=ed.innerHTML;MO.view="verzonden";return renderBody()}
+  if(a==="pv"){const ed=$("#mlEd");if(ed&&MAIL)MAIL.body=ed.innerHTML;MO.pv=!moPv();return renderBody()}
+  if(a==="ont")return moOntvangers();
+  if(a==="test"){modal("Testmail",`<div class="form"><div class="fld full"><label for="mlTestAan">Naar</label><input id="mlTestAan" type="email" value="${esc(UI.mlTestAan||(ME?ME.email:""))}"></div></div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="moTest">Testmail sturen</button>`);
+    $("#moTest").onclick=async()=>{await mlTest();closeModal()};return}
+  if(a==="alle"||a==="niemand"){const M=mailState();M.uit=new Set(a==="niemand"?mlGroep().list.filter(r=>r.email).map(r=>String(r.email).toLowerCase()):[]);M.idx=0;
+    document.querySelectorAll("[data-mluit]").forEach(x=>x.checked=a==="alle");moTel();renderBody();return}
+  if(a==="alsnieuw"){const dd=b.closest("details");if(dd)dd.open=false;const M=mailState(),ed=$("#mlEd");if(ed)M.body=ed.innerHTML;const cats=[...new Set([...ML_CATS,...mlTpls().map(t=>t.categorie||"Algemeen")])];
     modal(M.tplId?"Opslaan als nieuw sjabloon":"Opslaan als sjabloon",`<div class="form"><div class="fld full"><label for="moNaam">Naam</label><input id="moNaam" value="${esc(M.tplId?M.naam+" (kopie)":M.naam)}"></div>
       <div class="fld full"><label for="moCat">Categorie</label><select id="moCat" class="sel">${cats.map(c=>`<option${c===M.categorie?" selected":""}>${esc(c)}</option>`).join("")}</select></div></div>`,
       `<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="moBew">Opslaan</button>`);
     setTimeout(()=>{const i=$("#moNaam");if(i){i.focus();i.select()}},30);
-    $("#moBew").onclick=async()=>{const nm=$("#moNaam").value.trim();if(!nm){toast("Geef een naam.",true);return}const wasTpl=M.tplId;M.naam=nm;M.categorie=$("#moCat").value;
-      if(wasTpl){M.tplId="";} closeModal();await mlBewaar(false)}}});
-addEventListener("hashchange",()=>{if(route()!=="mails"){MO.stap=1;MO.vers=true}});
+    $("#moBew").onclick=async()=>{const nm=$("#moNaam").value.trim();if(!nm){toast("Geef een naam.",true);return}M.naam=nm;M.categorie=$("#moCat").value;M.tplId="";closeModal();await mlBewaar(false)}}});
+// menu "Sjabloon" sluiten bij klik ernaast
+document.addEventListener("click",e=>{const o=document.querySelector(".mo-dd[open]");if(o&&!o.contains(e.target))o.open=false});
+document.addEventListener("change",e=>{if(e.target.id==="mlFile")MO.view="nieuw";if(e.target.classList&&e.target.classList.contains("mo-zbm"))MO.view="nieuw"},true);
+addEventListener("hashchange",()=>{if(route()!=="mails"){MO.view="nieuw";MO.vers=true}});
 
-{const st=document.createElement("style");st.textContent=`.mo-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 16px}.mo-kies{gap:10px}.mo-kies label{font-weight:600;font-size:14px}.mo-tpls{width:auto;max-width:100%;min-width:220px}.mo-hist .ml-h{padding:10px 0}
-.mo-st{display:flex;gap:6px;list-style:none;margin:0;padding:0;flex-wrap:wrap}.mo-st button{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px 6px 6px;font:500 14px/1 var(--f-body);color:var(--muted);cursor:pointer}
-.mo-st button span{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--sunken,#eee);font-size:12px;font-weight:600}
-.mo-st button.on{border-color:var(--ink,#111);color:var(--ink,#111)}.mo-st button.on span{background:var(--ink,#111);color:#fff}.mo-st button.klaar{color:var(--ink,#111)}.mo-st button.klaar span{background:var(--ok-bg,#e6f4ea);color:var(--ok,#1e7b34)}
-.mo-2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;align-items:start}.mo-2>.panel,.mo-2>.stack>.panel{margin:0}.mo-pv{position:sticky;top:12px}
-.mo-inh{margin-top:14px}.mo-inh .ml-ed{min-height:300px}.mo-raw{margin-top:6px}.mo-tpl{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.mo-tpl:empty{display:none}
-.mo-voet{display:flex;align-items:center;gap:10px;margin:16px 0 4px}
-.mo-cat{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:14px 0 8px}.mo-cat:first-child{margin-top:0}
-.mo-tg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
-.mo-t{display:flex;flex-direction:column;gap:3px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:12px 14px;cursor:pointer;font:inherit;color:inherit;min-width:0}
-.mo-t:hover{border-color:var(--ink,#111)}.mo-t b{font-weight:600;font-size:14px}.mo-t span{font-size:13px;color:var(--ink-2,#444)}.mo-t small{font-size:12px;color:var(--muted)}
-.mo-ont,.mo-w{max-width:760px}.mo-and .linkbtn{color:var(--muted);font-size:13px}.mo-gr{font-size:15px;padding:10px 12px}.mo-sam{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.mo-sam .linkbtn{margin-left:10px}
-.mo-rl{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px}.mo-rl label{display:grid;grid-template-columns:18px minmax(0,1fr) minmax(0,1.2fr);gap:10px;align-items:center;padding:8px 12px;border-top:1px solid var(--line);cursor:pointer;font-size:14px}
-.mo-rl label:first-child{border-top:0}.mo-rl input{accent-color:var(--accent);width:16px;height:16px}.mo-rl b{font-weight:500}
-.mo-kv{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:0}.mo-kv dt{color:var(--muted)}.mo-kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
-.mo-go{width:100%;justify-content:center;padding:12px}.mo-and{display:flex;gap:16px;flex-wrap:wrap;font-size:13px}
-@media(max-width:1000px){.mo-2{grid-template-columns:1fr}.mo-pv{position:static}}
-@media(max-width:600px){.mo-rl label{grid-template-columns:18px minmax(0,1fr)}.mo-rl label span{grid-column:2}.mo-st button{padding:5px 10px 5px 5px;font-size:13px}.mo-top{gap:8px}}`;document.head.appendChild(st)}
+{const st=document.createElement("style");st.textContent=`.mo-w{display:grid;grid-template-columns:220px minmax(0,1fr);gap:16px;align-items:start}
+.mo-zb{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px}.mo-nw{justify-content:center;width:100%}
+.mo-mp,.mo-sl{display:flex;flex-direction:column;gap:2px}.mo-si{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:none;padding:7px 10px;border-radius:8px;font:500 14px/1.25 var(--f-body);color:var(--ink,#111);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mo-si:hover{background:var(--sunken,#eee)}.mo-si.on{background:var(--ink,#111);color:#fff}.mo-si svg{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8}.mo-si small{margin-left:auto;color:inherit;opacity:.6;font-size:12px}
+.mo-sk{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:6px 10px 2px;border-top:1px solid var(--line);margin-top:4px;padding-top:12px}
+.mo-sc{font-size:11.5px;color:var(--muted);padding:8px 10px 2px}.mo-sl .mo-si{font-weight:400;padding:5px 10px 5px 16px}.mo-zbm{display:none}
+.mo-op{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}.mo-op.met-pv{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}.mo-op>.panel{margin:0}.mo-pv{position:sticky;top:12px}
+.mo-bk{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line)}.mo-send{padding-inline:18px}.mo-bk .btn.on{background:var(--ink,#111);color:#fff;border-color:var(--ink,#111)}
+.mo-prog:empty{display:none}.mo-prog{padding:10px 16px;border-bottom:1px solid var(--line)}
+.mo-vl{border-bottom:1px solid var(--line)}.mo-r{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:center;gap:8px;padding:6px 16px;border-top:1px solid var(--line)}.mo-r:first-child{border-top:0}
+.mo-l{color:var(--muted);font-size:14px}.mo-v{min-width:0}.mo-aan{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.mo-aan .mo-gr{width:auto!important;flex:0 1 auto;max-width:min(100%,360px);border:0;background:var(--sunken,#f1f1f1);font-weight:500}
+.mo-n{border:0;background:none;color:var(--accent);font:500 14px var(--f-body);cursor:pointer;padding:4px 2px}.mo-ond{border:0;outline:0;font:500 15px var(--f-body);padding:8px 0;background:none;width:100%}
+.mo-inh{padding:12px 16px 16px}.mo-inh .ml-ed{min-height:340px}.mo-raw{margin-top:6px}
+.mo-dd{position:relative}.mo-dd summary{list-style:none;cursor:pointer}.mo-dd summary::-webkit-details-marker{display:none}
+.mo-ddm{position:absolute;right:0;top:calc(100% + 4px);z-index:20;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:6px;min-width:250px;display:flex;flex-direction:column}
+.mo-ddm button,.mo-ddm label{border:0;background:none;text-align:left;padding:8px 10px;border-radius:6px;font:400 14px var(--f-body);color:var(--ink,#111);cursor:pointer}.mo-ddm button:hover,.mo-ddm label:hover{background:var(--sunken,#eee)}.mo-ddm .danger{color:var(--accent)}.mo-ddm button:disabled{opacity:.45;cursor:default}
+.mo-sam{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.mo-rl{max-height:55vh;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.mo-rl label{display:grid;grid-template-columns:18px minmax(0,1fr) minmax(0,1.2fr);gap:10px;align-items:center;padding:8px 12px;border-top:1px solid var(--line);cursor:pointer;font-size:14px}.mo-rl label:first-child{border-top:0}.mo-rl input{accent-color:var(--accent);width:16px;height:16px}.mo-rl b{font-weight:500}
+@media(max-width:1100px){.mo-op.met-pv{grid-template-columns:1fr}.mo-pv{position:static}}
+@media(max-width:860px){.mo-w{grid-template-columns:1fr}.mo-zb{position:static;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px}.mo-nw{width:auto}.mo-mp{flex-direction:row}.mo-mp .mo-si{width:auto}.mo-sl{display:none}.mo-zbm{display:block;flex:1;min-width:150px}
+.mo-r{grid-template-columns:76px minmax(0,1fr);padding:6px 12px}.mo-bk{padding:10px 12px}.mo-inh{padding:10px 12px 12px}.mo-rl label{grid-template-columns:18px minmax(0,1fr)}.mo-rl label span{grid-column:2}}`;document.head.appendChild(st)}
 
 /* ============ Financiën › Transacties › Verrekeningen (splitwise) ============
    Een activiteit die samen met een andere vereniging georganiseerd wordt (bv. 150 jaar met de Vriendenkring Moorsel):
