@@ -50,7 +50,7 @@ p.on('pageerror',e=>fouten.push(`[${pf} ${p.url().split('#')[1]||''}] ${e.messag
 p.on('console',c=>{if(c.type()==='error'&&!/Failed to load resource|WebSocket|websocket|realtime/i.test(c.text()))fouten.push(`[${pf} console ${p.url().split('#')[1]||''}] ${c.text().slice(0,200)}`)});
 await p.goto('http://t.test/#dashboard');await p.waitForTimeout(2500);
 try{await p.waitForFunction(()=>window.XLSX&&window.JSZip,null,{timeout:8000})}catch(e){fouten.push(pf+': Excel/zip-bibliotheek niet geladen')}
-if(pf==="admin"){const k=await p.evaluate(()=>({s:KR_STREETS.length,d:KR_DELEN.size,e:KR_DEEL.size,b:KR.byId.size,o:KR_SORTED.length,a:Array.isArray(KR_STREETS),it:[...KR_DELEN.values()].flat().length}));if(!(k.s>100&&k.d===k.s&&k.b===k.s&&k.o===k.s&&k.e===k.it&&k.a))fouten.push("kalenderronde-gegevens fout: "+JSON.stringify(k));else console.log("kalenderronde:",k.s,"straten,",k.e,"delen")}
+if(pf==="admin"){const k=await p.evaluate(()=>({s:KR_STREETS.length,d:KR_DELEN.size,e:KR_DEEL.size,b:KR.byId.size,o:KR_SORTED.length,a:Array.isArray(KR_STREETS),it:[...KR_DELEN.values()].flat().length}));if(!(k.s>100&&k.d>=k.s&&k.b===k.s&&k.o===k.s&&k.e===k.it&&k.a))fouten.push("kalenderronde-gegevens fout: "+JSON.stringify(k));else console.log("kalenderronde:",k.s,"straten,",k.e,"delen")}
 const routes=await p.evaluate(()=>typeof ROUTES!=="undefined"?ROUTES.map(r=>r[0]):[]);
 if(!routes.length)fouten.push('App niet gestart (ROUTES leeg)');
 const leeg=[],breed=[];totaal+=routes.length;

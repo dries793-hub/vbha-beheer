@@ -832,7 +832,7 @@ function krLui(f,leeg){let v;const echt=()=>v||(v=f());return new Proxy(leeg,{ge
 const KR_GRENS=krLui(()=>{const el=document.getElementById("krGrens");if(!el)return[];return el.textContent.trim().split("\n").map(l=>l.slice(l.indexOf(" ")+1).trim().split(" ").map(krDecode)).flat()},[]);
 const krInRing=(p,r)=>{let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const yi=r[i][0],xi=r[i][1],yj=r[j][0],xj=r[j][1];if(((yi>p[0])!==(yj>p[0]))&&(p[1]<(xj-xi)*(p[0]-yi)/(yj-yi)+xi))c=!c}return c};
 const krBinnen=p=>!KR_GRENS.length||KR_GRENS.some(r=>krInRing(p,r));
-const KR_STREETS=krLui(()=>{const el=document.getElementById("krData");if(!el)return[];
+const KR_ALLE=krLui(()=>{const el=document.getElementById("krData");if(!el)return[];
   /* regels "naam deelgemeente adressen delen"; "#gen N" = vanaf hier generatie N. Een regel met een naam die al bestaat voegt
      stukken toe aan die straat (en adressen, meestal 0). */
   let gen=0;const uit=[],per=new Map();
@@ -841,6 +841,8 @@ const KR_STREETS=krLui(()=>{const el=document.getElementById("krData");if(!el)re
     const s=per.get(id);if(s){s.g.push(...g);s.pg.push(...g.map(()=>gen));s.a+=+m[3];continue}
     const x={id,n,w,a:+m[3],gen,g,pg:g.map(()=>gen)};per.set(id,x);uit.push(x)}
   return uit.filter(s=>s.g.length)},[]);
+const KR_VERBORGEN=["Den Haring","Villalaan","Frans Blanckaertdreef","Utopiaplein","Hoveniersplein","Apostelstraat"];
+const KR_STREETS=krLui(()=>KR_ALLE.filter(s=>!KR_VERBORGEN.includes(s.n)),[]);
 const KR={ss:new Set(),map:null,host:null,sp:null,lines:new Map(),labels:null,labelAt:null,sel:null,busy:false,byId:krLui(()=>new Map(KR_STREETS.map(s=>[s.id,s])),new Map())};
 const krNaam=()=>ls.get("rondeNaam","");
 const krVar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -886,7 +888,7 @@ function krMaakDelen(streets){const key=p=>p[0].toFixed(5)+","+p[1].toFixed(5),c
     const len=alle.map(gr=>gr.g.reduce((x,g)=>x+lengte(g),0)),L=len.reduce((a,b)=>a+b,0)||1;
     out.set(s.id,alle.map((gr,i)=>({id:s.id+"~"+i,sid:s.id,nr:i+1,g:gr.g,k:gr.k,len:len[i],a:KR_ADR.has(s.id+"~"+i)?KR_ADR.get(s.id+"~"+i):Math.max(alle.length>1?1:0,Math.round(s.a*len[i]/L))})))}
   return out}
-const KR_DELEN=krLui(()=>krMaakDelen(KR_STREETS),new Map()),KR_DEEL=krLui(()=>new Map([...KR_DELEN.values()].flat().map(d=>[d.id,d])),new Map());
+const KR_DELEN=krLui(()=>krMaakDelen(KR_ALLE),new Map()),KR_DEEL=krLui(()=>new Map([...KR_DELEN.values()].flat().map(d=>[d.id,d])),new Map());
 /* krDelen: aanduidingen van straatdelen (document per deel, straat = "<straat>~<nr>", deel: true) */
 function krDelen(){const m={};for(const d of S.ronde.values())if(d.jaar===JAAR&&KR_DEEL.has(d.straat))m[d.straat]=d;return m}
 function krDeelVan(sid){const D=krDelen();return (KR_DELEN.get(sid)||[]).filter(x=>D[x.id]).map(x=>({...x,m:D[x.id]}))}
