@@ -6107,8 +6107,8 @@ document.addEventListener("change",async e=>{const t=e.target;
   if(t.dataset&&t.dataset.vrijr){const id=t.dataset.vrijr,jl=S.jaarleden.get(JAAR+"_"+id)||{};if(!jl.vrijstelling)return;
     try{await setJL(id,{vrijstelling:{...jl.vrijstelling,reden:t.value.trim()}});toast("Reden bewaard.")}catch(x){toast("Bewaren lukte niet.",true)}}});
 /* Puntensysteem: grijs kadertje "vrijgesteld" naast de naam van wie een vrijstelling heeft */
-function vrijLabels(){if(route()!=="punten")return;for(const b of document.querySelectorAll('#body [data-act="toonLid"][data-id]')){if(b.querySelector(".vrij-tag"))continue;
-  const jl=S.jaarleden.get(JAAR+"_"+b.dataset.id);if(jl&&jl.vrijstelling)b.insertAdjacentHTML("beforeend",' <span class="vrij-tag" title="'+esc(jl.vrijstelling.reden||"Vrijstelling puntensysteem")+'">vrijgesteld</span>')}}
+function vrijLabels(){if(route()!=="punten")return;for(const r of document.querySelectorAll('#body [data-act="toonLid"][data-id],#body [data-act="ptOpen"][data-id]')){const b=r.dataset.act==="ptOpen"?(r.querySelector("b")||{}).parentElement:r;if(!b||b.querySelector(".vrij-tag"))continue;
+  const jl=S.jaarleden.get(JAAR+"_"+r.dataset.id);if(jl&&jl.vrijstelling)b.insertAdjacentHTML("beforeend",' <span class="vrij-tag" title="'+esc(jl.vrijstelling.reden||"Vrijstelling puntensysteem")+'">vrijgesteld</span>')}}
 {const _a=VIEWS.punten.after;VIEWS.punten.after=function(){const r=_a&&_a.apply(this,arguments);try{vrijLabels()}catch(e){}return r}}
 {const st=document.createElement("style");st.textContent=".vrij-tag{display:inline-block!important;margin:0 0 0 6px!important;padding:0 7px!important;min-height:0!important;height:auto!important;line-height:17px!important;border:0!important;border-radius:999px;background:var(--info-soft,#e8efff);color:var(--info,#2f5bd3);font-size:11px!important;font-weight:600;vertical-align:middle;white-space:nowrap;box-shadow:none!important}";document.head.appendChild(st)}
 
