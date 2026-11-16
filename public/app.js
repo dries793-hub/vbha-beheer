@@ -6811,10 +6811,10 @@ document.addEventListener("click",e=>{if(!FA.a)return;
    Een administrator heeft altijd alle rechten. */
 var RECHTEN=null;
 const FUNC=[["leden","Ledenlijst",["leden"],"Leden"],["punten","Puntensysteem",["punten"],"Leden"],
-  ["overzicht","Overzicht",["boekhouding"],"Financiën"],["financien","Transacties",["boekingen","verwerken"],"Financiën"],["facturen","Facturen",["facturen","inkomend"],"Financiën"],["begroting","Begroting",["begroting"],"Financiën"],["historiek","Historiek",["historiek"],"Financiën"],
-  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"],"Activiteiten"],["kalverdeling","Dozen meegeven of terugbrengen",[],"Activiteiten"],["fuif","In Vier en Vlam",["fuif"],"Activiteiten"],["banket","Banket",["banket"],"Activiteiten"],["kinderfeest","Kinderfeest",["kinderfeest"],"Activiteiten"],["kassa","Kassa",["kassa"],"Activiteiten"],["shiften","Shiften",["shiften"],"Activiteiten"],["webshop","Webshop",["webshop"],"Activiteiten"],
-  ["agenda","Agenda en verslagen",["agenda","verslagen"],"Vereniging"],["sponsors","Sponsors",["sponsors"],"Vereniging"],["documenten","Documenten",["documenten"],"Vereniging"],
-  ["mails","Mail",["mails"],"Media"],["sms","Sms",["sms"],"Media"],["social","Sociale media",["social"],"Media"],["website","Website",["website"],"Media"],["fotos","Fotoalbums",["fotos"],"Media"]]
+  ["overzicht","Overzicht",["boekhouding"],"Financiën"],["financien","Transacties",["boekingen","verwerken"],"Financiën"],["facturen","Facturen",["facturen","inkomend"],"Financiën"],["begroting","Begroting",["begroting"],"Financiën"],["historiek","Historiek",["historiek"],"Financiën"],["kassa","Kassa",["kassa"],"Financiën"],
+  ["kalenders","Kalenders",["kalenders","ronde","kalcontrole"],"Activiteiten"],["kalverdeling","Dozen meegeven of terugbrengen",[],"Activiteiten"],["fuif","In Vier en Vlam",["fuif"],"Activiteiten"],["banket","Banket",["banket"],"Activiteiten"],["kinderfeest","Kinderfeest",["kinderfeest"],"Activiteiten"],
+  ["agenda","Agenda en verslagen",["agenda","verslagen"],"Vereniging"],["sponsors","Sponsors",["sponsors"],"Vereniging"],["documenten","Documenten",["documenten"],"Vereniging"],["shiften","Shiften",["shiften"],"Vereniging"],
+  ["mails","Mail",["mails"],"Media"],["sms","Sms",["sms"],"Media"],["social","Sociale media",["social"],"Media"],["website","Website",["website"],"Media"],["webshop","Webshop",["webshop"],"Media"],["fotos","Fotoalbums",["fotos"],"Media"]]
 const FUNC_VAN={};for(const [f,,rs] of FUNC)for(const r of rs)FUNC_VAN[r]=f;
 const RECHT_LBL={geen:"Verborgen",lezen:"Lezen",bewerken:"Bewerken"};
 function rechtenVanProfiel(rol){const o={};for(const [f] of FUNC)o[f]=rol==="admin"?"bewerken":rol==="boekhouder"&&["financien","facturen","terug","overzicht","historiek","begroting"].includes(f)?"bewerken":"lezen";return o}
@@ -9033,16 +9033,16 @@ document.addEventListener("click",e=>{if(LIBS_OK)return;const t=e.target.closest
 document.addEventListener("change",e=>{if(LIBS_OK||!(e.target&&e.target.type==="file"))return;e.stopImmediatePropagation();const t=e.target;LIBS_KLAAR.then(()=>t.dispatchEvent(new Event("change",{bubbles:true})))},true);
 
 /* ============ Indeling van het menu ============
-   Kassa en Shiften bij Activiteiten; "Administratie" opgesplitst in Vereniging (Agenda, Sponsors, Documenten) en
+   Kassa bij Financiën, Shiften bij Vereniging, Webshop bij Media; "Administratie" opgesplitst in Vereniging (Agenda, Sponsors, Documenten) en
    Communicatie (Mails, Website, Fotoalbums).
    Automatische regels en Bankimport als tabbladen bij Transacties (Financiën) in plaats van onder Instellingen. */
 {const G=id=>NAV.find(n=>!Array.isArray(n)&&n.id===id),weg=id=>{let it=null;for(const g of NAV)if(!Array.isArray(g)){const k=g.items.findIndex(i=>i[0]===id);if(k>=0)it=g.items.splice(k,1)[0]}return it};
   const act=G("administratie"),com=G("communicatie");
-  if(act){for(const id of ["kassa","shiften"]){const it=weg(id);if(it)act.items.push(it)}}
-  // Webshop bij Activiteiten, na Kassa
-  if(act){const k=NAV.findIndex(n=>Array.isArray(n)&&n[0]==="webshop");if(k>=0){NAV.splice(k,1);const j=act.items.findIndex(i=>i[0]==="kassa");act.items.splice(j>=0?j+1:act.items.length,0,["webshop","Webshop"])}}
   if(com&&!G("vereniging")){const v={id:"vereniging",label:"Vereniging",items:[]};for(const id of ["agenda","sponsors","documenten"]){const it=weg(id);if(it)v.items.push(it)}
     com.label="Media";{const m=com.items.find(i=>i[0]==="mails");if(m)m[1]="Mail/Sms";if(!com.items.some(i=>i[0]==="social")){const k=com.items.indexOf(m);com.items.splice(k+1,0,["social","Sociale media"])}}NAV.splice(NAV.indexOf(com),0,v)}
+  // Kassa bij Financiën, Shiften bij Vereniging, Webshop bij Media (na Website)
+  {const fin=G("boekhouding"),ver=G("vereniging");const ka=weg("kassa");if(ka)(fin||act).items.push(ka);const sh=weg("shiften");if(sh)(ver||act).items.push(sh);
+    const k=NAV.findIndex(n=>Array.isArray(n)&&n[0]==="webshop");let ws=k>=0?NAV.splice(k,1)[0]:weg("webshop");if(ws&&com){const j=com.items.findIndex(i=>i[0]==="website");com.items.splice(j>=0?j+1:com.items.length,0,["webshop","Webshop"])}}
   ICON.vereniging=ICON.vereniging||ICON.agenda||ICON.communicatie}
 // gsm: dezelfde knoppen als op de computer; "Communicatie" is te lang voor de onderbalk
 KORT.communicatie="Media";
