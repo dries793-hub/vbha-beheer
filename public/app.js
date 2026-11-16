@@ -9070,13 +9070,33 @@ if(typeof FUNC!=="undefined"&&!FUNC.some(f=>f[0]==="jaardocumenten")){const k=FU
 // standaard: administrator en boekhouder; anderen enkel als het per gebruiker aangezet is
 {const _r=recht;recht=function(r){if(r==="jaardocumenten"&&ROL!=="admin"){const v=RECHTEN&&ROL===ROL_ECHT?RECHTEN.jaardocumenten:null;return v||(ROL==="boekhouder"?"bewerken":"geen")}return _r.apply(this,arguments)}}
 VIEWS.jaardocumenten=()=>({title:"Jaardocumenten",body(){return recht("jaardocumenten")==="geen"?'<div class="panel"><div class="empty">Enkel voor de administrator en de boekhouder.</div></div>':jdPanel()}});
-function jdPanel(){
-    const J=[...S.jaren.keys()].map(Number).filter(Boolean).sort((a,b)=>b-a),def=Number(JAAR);
-    const rij=(s,l)=>`<div class="jd-r"><b>${l}</b><span class="grow"></span><button type="button" class="btn sm" data-jd="pdf" data-s="${s}">${ic("download")}PDF</button><button type="button" class="btn sm" data-jd="xlsx" data-s="${s}">${ic("download")}Excel</button></div>`;
-    return `<div class="panel"><div class="panel-h"><h2>Jaardocumenten</h2><select class="sel" id="jdJ" aria-label="Boekjaar" style="width:auto">${J.map(y=>`<option${y===def?" selected":""}>${y}</option>`).join("")}</select></div><div class="panel-b stack">${rij("rekening","Jaarrekening")}${rij("verslag","Jaarverslag")}</div></div>`}
+const JD={jaar:null};
+function jdPanel(){const J=[...S.jaren.keys()].map(Number).filter(Boolean).sort((a,b)=>b-a),Y=JD.jaar||Number(JAAR);
+  const A=jdCijfers(Y),O=jdOpen(Y),lopend=Y>=Number(new Date().getFullYear()),eur2=n=>eur(n);
+  const T=(l,v,uit,cls)=>`<div class="tile"${uit?` data-tu="${esc(uit)}"`:""}><span class="lbl">${l}</span><span class="val${cls?" "+cls:""}">${v}</span></div>`;
+  const C=Object.entries(A.cat).map(([c,x])=>({c,in:JD_GELD(x.in),uit:JD_GELD(x.uit),s:JD_GELD(x.in-x.uit)})).sort((a,b)=>Math.abs(b.s)-Math.abs(a.s));
+  const nietIn=A.cat["Niet ingedeeld"];
+  const doc=(s,t,o)=>`<div class="jd-d"><div class="jd-dt"><span class="jd-ic">${ic("jaardocumenten")}</span><div><b>${t}</b><small>${o}</small></div></div><div class="jd-db"><button type="button" class="btn sm" data-jd="pdf" data-s="${s}">${ic("download")}PDF</button><button type="button" class="btn sm" data-jd="xlsx" data-s="${s}">${ic("download")}Excel</button></div></div>`;
+  return `<div class="jd-top"><label for="jdJ">Boekjaar</label><select class="sel" id="jdJ" style="width:auto">${J.map(y=>`<option${y===Y?" selected":""}>${y}</option>`).join("")}</select>${lopend?'<span class="pill info">lopend boekjaar</span>':'<span class="pill ok">afgesloten</span>'}${nietIn?`<span class="pill warn">${eur2(nietIn.in+nietIn.uit)} nog niet ingedeeld</span>`:""}</div>
+   <div class="tiles jd-tiles">${T("Inkomsten",eur2(A.tin),"Alle ontvangsten van "+Y+".")}${T("Uitgaven",eur2(A.tuit),"Alle uitgaven van "+Y+".")}${T("Resultaat",eur2(A.res),"Inkomsten min uitgaven van "+Y+".",A.res<0?"neg":"pos")}${T(lopend?"Saldo nu":"Saldo 31/12",eur2(JD_GELD(A.eindRek+A.eindKas)),`Rekening ${eur2(A.eindRek)} + kas ${eur2(A.eindKas)}. Begin van het jaar: ${eur2(JD_GELD(A.beginRek+A.beginKas))}.`)}</div>
+   <div class="panel"><div class="panel-h"><h2>Documenten ${Y}</h2></div><div class="panel-b jd-ds">${doc("rekening","Jaarrekening","Resultatenrekening, balans en openstaande facturen")}${doc("verslag","Jaarverslag","Werking, activiteiten en kerncijfers van het jaar")}</div></div>
+   <div class="jd-2"><div class="panel"><div class="panel-h"><h2>Resultaat per rubriek</h2></div><div class="tw"><table class="tbl"><thead><tr><th>Rubriek</th><th class="num">Inkomsten</th><th class="num">Uitgaven</th><th class="num">Saldo</th></tr></thead><tbody>
+     ${C.map(x=>`<tr><td>${esc(x.c)}</td><td class="num">${x.in?eur2(x.in):""}</td><td class="num">${x.uit?eur2(x.uit):""}</td><td class="num"><b class="${x.s<0?"jd-neg":""}">${eur2(x.s)}</b></td></tr>`).join("")||'<tr><td colspan="4" class="empty">Nog geen transacties.</td></tr>'}
+     </tbody><tfoot><tr><td><b>Totaal</b></td><td class="num"><b>${eur2(A.tin)}</b></td><td class="num"><b>${eur2(A.tuit)}</b></td><td class="num"><b class="${A.res<0?"jd-neg":""}">${eur2(A.res)}</b></td></tr></tfoot></table></div></div>
+    <div class="panel"><div class="panel-h"><h2>Openstaand op 31/12</h2></div><div class="panel-b stack" style="gap:12px">
+     <div><div class="jd-ok"><span>Te ontvangen</span><b>${eur2(O.vord)}</b></div>${O.V.map(([t,v])=>`<div class="jd-li"><span class="trunc">${esc(t)}</span><span>${eur2(v)}</span></div>`).join("")}</div>
+     <div><div class="jd-ok"><span>Te betalen</span><b>${eur2(O.schuld)}</b></div>${O.Sc.map(([t,v])=>`<div class="jd-li"><span class="trunc">${esc(t)}</span><span>${eur2(v)}</span></div>`).join("")}</div></div></div></div>`}
+document.addEventListener("change",e=>{if(e.target.id==="jdJ"&&route()==="jaardocumenten"){JD.jaar=Number(e.target.value);renderBody()}});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-jd]");if(!b)return;const Y=Number(($("#jdJ")||{}).value)||Number(JAAR);
   if(b.dataset.jd==="pdf")jdPdf(b.dataset.s,Y,b);else jdXlsx(b.dataset.s,Y)});
-{const st=document.createElement("style");st.textContent=".jd-r{display:flex;align-items:center;gap:8px}";document.head.appendChild(st)}
+{const st=document.createElement("style");st.textContent=`.jd-r{display:flex;align-items:center;gap:8px}
+.jd-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 16px}.jd-top label{font-weight:600}
+.jd-tiles{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:16px}.jd-tiles .val.neg,.jd-neg{color:var(--accent)}.jd-tiles .val.pos{color:var(--good)}
+.jd-ds{display:grid;grid-template-columns:1fr 1fr;gap:12px}.jd-d{display:flex;flex-direction:column;gap:12px;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:14px}
+.jd-dt{display:flex;gap:12px;align-items:flex-start}.jd-dt b{display:block;font-size:15px}.jd-dt small{color:var(--muted);font-size:13px}.jd-ic{width:38px;height:38px;border-radius:9px;background:var(--sunken,#f1f1f1);display:grid;place-items:center;flex:none}.jd-ic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7}
+.jd-db{display:flex;gap:8px}.jd-2{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start;margin-top:16px}.jd-2>.panel{margin:0}
+.jd-ok{display:flex;justify-content:space-between;font-size:14px;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:4px}.jd-ok span{color:var(--muted)}.jd-li{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:3px 0}
+@media(max-width:860px){.jd-ds,.jd-2{grid-template-columns:1fr}}`;document.head.appendChild(st)}
 
 /* ============ Instellingen › Vaste waarden (admin): waarden die vroeger vast in de code stonden ============
    config algemeen.kalSeizoen {van,tot} ("MM-DD"; tot valt in het volgende jaar), algemeen.goudMail.dagen,
