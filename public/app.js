@@ -7980,7 +7980,25 @@ function moOpstel(M){const d=canWrite?"":" disabled",G=groepen(),g=mlGroep(),uit
     ${moPv()?`<div class="panel mo-pv"><div class="panel-h"><h2>Voorbeeld</h2></div><div class="panel-b stack" style="gap:10px"><div class="ml-head" id="mHead"></div><div class="ml-prev${mlGsm()?" gsm":""}"><iframe id="mlFrame" title="Voorbeeld van de mail" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div></div></div>`:""}</div>
     ${mlNastuurUI()}`}
 
-function moVerzonden(){const n=UI.mlHistN;UI.mlHistN=Math.max(n||0,30);const h=mlHistoriek();UI.mlHistN=n;return h||'<div class="panel"><div class="empty">Nog geen mails verstuurd.</div></div>'}
+/* Verzonden: zelf verstuurde mails (tabel mailings) én de automatische mails van de app (logboek, tabel "mails") in één lijst */
+const MV={auto:null,bezig:false,f:"alle",n:60,fout:null};
+async function moAutoLaad(){if(MV.bezig)return;MV.bezig=true;try{const {data,error}=await SB.from("logboek").select("id,ts,nieuw").eq("tabel","mails").order("id",{ascending:false}).limit(1000);if(error)throw error;MV.auto=data||[];MV.fout=null}
+  catch(e){MV.auto=[];MV.fout=e.message}finally{MV.bezig=false}if(route()==="mails"&&MO.view==="verzonden")renderBody()}
+function moVerzonden(){if(!MV.auto&&!MV.bezig)setTimeout(moAutoLaad,0);
+  const dt=s=>{const x=new Date(s);return isNaN(x)?"":x.toLocaleDateString("nl-BE",{day:"numeric",month:"short",year:"numeric"})+" "+x.toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})};
+  const B=[...(S.mailings||new Map()).values()].map(m=>({soort:"zelf",d:String(m.datum||""),m})),A=(MV.auto||[]).map(r=>({soort:"auto",d:String(r.ts||""),m:r.nieuw||{}}));
+  const L=[...(MV.f!=="auto"?B:[]),...(MV.f!=="zelf"?A:[])].sort((a,b)=>b.d.localeCompare(a.d));
+  const st=x=>{const m=x.m;if(x.soort==="auto")return m.ok===false?`<span class="pill warn" title="${esc(m.fout||"")}">mislukt</span>`:'<span class="pill ok">✓</span>';
+    const f=(m.fout||[]).length,n=Number(m.aantal)||0,ok=Number(m.ok)||0;if(m.bezig)return `<span class="pill info">bezig · ${n}</span>`;
+    return f?`<span class="pill warn" title="${esc(f+" niet gelukt: "+(m.fout||[]).slice(0,20).join(", "))}">${ok} / ${n}</span>`:`<span class="pill ok">✓ ${ok||n}</span>`};
+  const rij=x=>{const m=x.m,auto=x.soort==="auto";return `<div class="ml-h"><div class="ml-hm"><b class="trunc">${esc(m.onderwerp||"(zonder onderwerp)")}</b>
+    <span class="muted small trunc">${esc(dt(x.d))} · ${auto?esc(m.aanNaam?m.aanNaam+" <"+(m.aan||"")+">":m.aan||""):esc(m.groep||"")+(m.aantal?" ("+m.aantal+")":"")}</span></div>${auto?'<span class="mo-tag">automatisch</span>':""}${st(x)}</div>`};
+  const seg=`<div class="seg" role="group" aria-label="Filter">${[["alle","Alles"],["zelf","Zelf verstuurd"],["auto","Automatisch"]].map(([k,l])=>`<button type="button" class="${MV.f===k?"on":""}" data-mvf="${k}">${l}</button>`).join("")}</div>`;
+  return `<div class="panel ml-hist"><div class="panel-h"><h2>Verzonden</h2><span class="grow"></span>${seg}</div>
+    ${MV.bezig&&!MV.auto&&MV.f!=="zelf"?'<div class="empty">Laden…</div>':L.length?`<div class="ml-hl">${L.slice(0,MV.n).map(rij).join("")}</div>`:'<div class="empty">Nog niets verstuurd.</div>'}
+    ${L.length>MV.n?'<div style="padding:10px 16px;border-top:1px solid var(--line)"><button class="btn sm" data-mvf="meer">Meer tonen</button></div>':""}</div>`}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-mvf]");if(!b)return;if(b.dataset.mvf==="meer")MV.n+=100;else{MV.f=b.dataset.mvf;MV.n=60}renderBody()});
+addEventListener("hashchange",()=>{if(route()!=="mails")MV.auto=null});
 
 {const _v=VIEWS.mails;const n=function(){const v=_v.apply(this,arguments);v.title="Mail/Sms";v.actions="";
   v.body=function(){const tabs=typeof comTabs==="function"?comTabs("mails"):"";
@@ -8001,7 +8019,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-mo]");if(!
   if(a==="nieuw")return mlWissel(()=>{MAIL=mlVanTpl(null);UI.mailTpl="";saveUI();naarOpstel();render(true)});
   if(a==="opstel"){naarOpstel();return renderBody()}
   if(a==="tpl")return mlWissel(()=>{naarOpstel();mlKies(b.dataset.id)});
-  if(a==="verzonden"){const ed=$("#mlEd");if(ed&&MAIL)MAIL.body=ed.innerHTML;MO.view="verzonden";return renderBody()}
+  if(a==="verzonden"){const ed=$("#mlEd");if(ed&&MAIL)MAIL.body=ed.innerHTML;MO.view="verzonden";MV.auto=null;return renderBody()}
   if(a==="pv"){const ed=$("#mlEd");if(ed&&MAIL)MAIL.body=ed.innerHTML;MO.pv=!moPv();return renderBody()}
   if(a==="ont")return moOntvangers();
   if(a==="test"){modal("Testmail",`<div class="form"><div class="fld full"><label for="mlTestAan">Naar</label><input id="mlTestAan" type="email" value="${esc(UI.mlTestAan||(ME?ME.email:""))}"></div></div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="moTest">Testmail sturen</button>`);
@@ -8035,7 +8053,7 @@ addEventListener("hashchange",()=>{if(route()!=="mails"){MO.view="nieuw";MO.vers
 .mo-dd{position:relative}.mo-dd summary{list-style:none;cursor:pointer}.mo-dd summary::-webkit-details-marker{display:none}
 .mo-ddm{position:absolute;right:0;top:calc(100% + 4px);z-index:20;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:6px;min-width:250px;display:flex;flex-direction:column}
 .mo-ddm button,.mo-ddm label{border:0;background:none;text-align:left;padding:8px 10px;border-radius:6px;font:400 14px var(--f-body);color:var(--ink,#111);cursor:pointer}.mo-ddm button:hover,.mo-ddm label:hover{background:var(--sunken,#eee)}.mo-ddm .danger{color:var(--accent)}.mo-ddm button:disabled{opacity:.45;cursor:default}
-.mo-sam{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.mo-rl{max-height:55vh;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.mo-tag{font-size:11.5px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 8px;margin-right:6px;white-space:nowrap}.mo-sam{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.mo-rl{max-height:55vh;overflow:auto;border:1px solid var(--line);border-radius:10px}
 .mo-rl label{display:grid;grid-template-columns:18px minmax(0,1fr) minmax(0,1.2fr);gap:10px;align-items:center;padding:8px 12px;border-top:1px solid var(--line);cursor:pointer;font-size:14px}.mo-rl label:first-child{border-top:0}.mo-rl input{accent-color:var(--accent);width:16px;height:16px}.mo-rl b{font-weight:500}
 @media(max-width:1100px){.mo-op.met-pv{grid-template-columns:1fr}.mo-pv{position:static}}
 @media(max-width:860px){.mo-w{grid-template-columns:1fr}.mo-zb{position:static;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px}.mo-nw{width:auto}.mo-mp{flex-direction:row}.mo-mp .mo-si{width:auto}.mo-sl{display:none}.mo-zbm{display:block;flex:1;min-width:150px}
