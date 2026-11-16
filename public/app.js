@@ -950,7 +950,7 @@ function krInit(){const h=krHost();if(KR.map)return;
   map.on("zoomend",()=>krStyleAll());
   map.attributionControl.setPrefix(false);map.attributionControl.setPosition("bottomleft");
   map.attributionControl.addAttribution('Straten © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>');
-  for(const s of KR_STREETS){const line=L.polyline(krEnkel(s.g),{renderer,weight:4,lineCap:"round",lineJoin:"round"})
+  for(const s of KR_STREETS){const line=L.polyline(krGeo(s.id),{renderer,weight:4,lineCap:"round",lineJoin:"round"})
     .on("click",e=>{L.DomEvent.stopPropagation(e);krToggle(s.id)}).addTo(map);KR.lines.set(s.id,line)}
   
   // Elke naam staat op het langste rechte stuk van de straat en draait mee, zoals op een wegenkaart.
@@ -9301,9 +9301,29 @@ const KRG=new Map();
 function krGroepen(sid){if(KRG.has(sid))return KRG.get(sid);const S=(KR_DELEN.get(sid)||[]).map(x=>{const qs=KRE.delen(x.g).map(p=>p.map(KRE.m));return{x,qs,l:qs.reduce((t,q)=>t+KRE.lengte(q),0),d:qs.flatMap(KRE.dicht8)}}).sort((a,b)=>b.l-a.l);
   const G=[];for(const s of S){let best=null,bn=0;if(s.d.length)for(const g of G){let n=0;for(const p of s.d)if(g.qs.some(q=>KRE.afst(p,q).d<30))n++;if(n>bn){bn=n;best=g}}
     if(best&&bn/s.d.length>=.85){best.ids.push(s.x.id);best.a+=s.x.a;best.xs.push(s.x)}else G.push({lead:s.x,ids:[s.x.id],a:s.x.a,xs:[s.x],qs:s.qs})}
-  G.sort((a,b)=>a.lead.nr-b.lead.nr);G.forEach((g,i)=>{g.n=i+1;g.id=g.lead.id;g.g=krEnkel(g.lead.g);g.k=g.xs.flatMap(x=>x.k||[])});KRG.set(sid,G);return G}
+  G.sort((a,b)=>a.lead.nr-b.lead.nr);G.forEach((g,i)=>{g.n=i+1;g.id=g.lead.id;g.g=krEnkel(g.lead.g).map(p=>p.slice());g.k=g.xs.flatMap(x=>x.k||[])});
+  // uiteinden van een stuk doortrekken tot het aansluitende stuk (binnen 30 m), zodat de stukken aaneensluiten
+  const Q=G.map(g=>g.g.map(p=>p.map(KRE.m)));
+  G.forEach((g,gi)=>{const n=g.g.length;for(let pi=0;pi<n;pi++){const p=g.g[pi];if(p.length<2)continue;for(const pt of [p[0],p[p.length-1]]){const e=KRE.m(pt);let best=null,raak=false;
+    Q.forEach((qs,gj)=>{if(gj===gi)return;for(const q of qs){const r=KRE.afst(e,q);if(r.d<2.5)raak=true;if(r.d<30&&(!best||r.d<best.d))best=r}});
+    if(!raak&&best)g.g.push([pt,KRE.terug(best.x,pt[0])])}}});
+  KRG.set(sid,G);return G}
 function krGroepMidden(g){const P=KRE.delen(g);let best=P[0]||[],bl=-1;for(const p of P){const l=KRE.lengte(p.map(KRE.m));if(l>bl){bl=l;best=p}}
   const q=best.map(KRE.m),tot=KRE.lengte(q);let h=tot/2;for(let i=1;i<q.length;i++){const d=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);if(h<=d){const f=d?h/d:0;return[best[i-1][0]+(best[i][0]-best[i-1][0])*f,best[i-1][1]+(best[i][1]-best[i-1][1])*f]}h-=d}return best[0]}
+/* krGeo(sid): de te tekenen lijn van een straat (krEnkel) waarbij losse uiteinden doorgetrokken worden tot de dichtstbijzijnde
+   straat (ook een andere straat) binnen 30 m, zodat kruispunten en aansluitingen netjes aaneensluiten. Eén keer berekend voor de hele kaart. */
+function krGeo(sid){if(!KRE.geo){const t0=Date.now(),cos=Math.cos(50.94*Math.PI/180),m=p=>[p[0]*111320,p[1]*111320*cos],terug=q=>[q[0]/111320,q[1]/(111320*cos)];
+  const geo=new Map(),seg=new Map(),C=40,cel=(x,y)=>Math.floor(x/C)+"|"+Math.floor(y/C);
+  for(const s of KR_STREETS){const P=krEnkel(s.g).map(p=>p.slice());geo.set(s.id,P);
+    P.forEach((p,pi)=>{const q=p.map(m);for(let i=1;i<q.length;i++){const a=q[i-1],b=q[i],o={a,b,sid:s.id,pi};
+      const x0=Math.min(a[0],b[0]),x1=Math.max(a[0],b[0]),y0=Math.min(a[1],b[1]),y1=Math.max(a[1],b[1]);
+      for(let x=Math.floor(x0/C);x<=Math.floor(x1/C);x++)for(let y=Math.floor(y0/C);y<=Math.floor(y1/C);y++){const k=x+"|"+y;let l=seg.get(k);if(!l)seg.set(k,l=[]);l.push(o)}}})}
+  const zoek=(e,sid,pi,max)=>{let best=null;const cx=Math.floor(e[0]/C),cy=Math.floor(e[1]/C);
+    for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const o of seg.get((cx+i)+"|"+(cy+j))||[]){if(o.sid===sid&&o.pi===pi)continue;const r=KRE.proj(e,o.a,o.b);if(r.d<max&&(!best||r.d<best.d))best=r}return best};
+  for(const s of KR_STREETS){const P=geo.get(s.id),n=P.length;for(let pi=0;pi<n;pi++){const p=P[pi];if(p.length<2)continue;
+    for(const pt of [p[0],p[p.length-1]]){const e=m(pt);const raak=zoek(e,s.id,pi,2.5);if(raak)continue;const r=zoek(e,s.id,pi,30);if(r)P.push([pt,terug(r.x)])}}}
+  KRE.geo=geo;KRE.ms=Date.now()-t0}
+  return KRE.geo.get(sid)||[]}
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
