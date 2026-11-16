@@ -8119,6 +8119,42 @@ addEventListener("hashchange",()=>{if(route()!=="sms")SMO.view="nieuw"});
 {const st=document.createElement("style");st.textContent=`.smo-t{width:100%;min-height:150px;border:1px solid var(--line);border-radius:8px;padding:12px;font:inherit;font-size:15px;resize:vertical;background:var(--surface);color:var(--ink)}
 .smo-tel{max-width:340px;margin:0 auto;padding:18px 14px;border-radius:22px;background:var(--sunken,#f1f2f3);min-height:120px}.smo-bel{background:var(--surface);border:1px solid var(--line);border-radius:16px 16px 16px 4px;padding:10px 12px;font-size:14.5px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere;max-width:92%}`;document.head.appendChild(st)}
 
+/* ============ Mail en Sms: zelf leden kiezen door op naam te zoeken ============
+   In de regel onder "Aan" staat een zoekveld. Een gekozen lid komt in de groep "Zelf gekozen leden" (de groep wordt meteen gekozen);
+   met × haal je iemand weer weg. Mail: MO.kies, Sms: SMO.kies (enkel voor deze sessie). */
+MO.kies=MO.kies||[];SMO.kies=SMO.kies||[];
+const lkLid=id=>S.leden.get(id);
+{const _g=groepen;groepen=function(){const G=_g.apply(this,arguments);const B=typeof mlGeblok==="function"?mlGeblok():{},geblokt=[];
+  const list=MO.kies.map(lkLid).filter(Boolean).map(l=>({lidId:l.id,email:l.email,voornaam:l.voornaam||"",naam:naamVol(l),label:naamVol(l),bedrag:0,mededeling:`${l.naam} ${l.voornaam} lidgeld ${JAAR}`})).filter(r=>{const k=String(r.email||"").trim().toLowerCase();if(k&&B[k]){geblokt.push(r);return false}return true});
+  G.push({sect:"Andere",id:"kies",label:"Zelf gekozen leden",list,geblokt});return G}}
+{const _s=smsGroepen;smsGroepen=function(){const G=_s.apply(this,arguments).filter(g=>g.id!=="kies");const seen=new Set(),zonder=[];
+  const list=SMO.kies.map(lkLid).filter(Boolean).map(l=>({id:"l:"+l.id,naam:naamVol(l),voornaam:l.voornaam||"",tel:l.telefoon})).filter(r=>{const n=smsGsm(r.tel);if(!n){zonder.push(r);return false}if(seen.has(n))return false;seen.add(n);r.nr=n;return true});
+  G.push({sect:"Andere",id:"kies",label:"Zelf gekozen leden",list,zonder});return G}}
+function lkRij(soort){const K=soort==="sms"?SMO.kies:MO.kies,actief=soort==="sms"?SMS.groep==="kies":UI.mailGroep==="kies";
+  return `<div class="mo-r"><span class="mo-l"></span><span class="mo-v lk">${actief?K.map(id=>{const l=lkLid(id);return l?`<span class="lk-c">${esc(naamVol(l))}<button type="button" data-lkweg="${esc(id)}" data-lks="${soort}" aria-label="${esc(naamVol(l))} weghalen">×</button></span>`:""}).join(""):""}
+    <span class="lk-w"><input id="lkZoek" data-lks="${soort}" autocomplete="off" placeholder="Zoek een lid op naam…" aria-label="Lid zoeken"><span class="lk-s" id="lkSug" hidden></span></span></span></div>`}
+// zoekveld in het opstelvenster plaatsen (na de regel Aan)
+{const _o=moOpstel;moOpstel=function(){const h=_o.apply(this,arguments);return h.replace(/(<div class="mo-r"><span class="mo-l">Aan<\/span>[\s\S]*?<\/span><\/div>)/,m=>m+lkRij("mail"))}}
+{const _o=smoOpstel;smoOpstel=function(){const h=_o.apply(this,arguments);return h.replace(/(<div class="mo-r"><span class="mo-l">Aan<\/span>[\s\S]*?<\/span><\/div>)/,m=>m+lkRij("sms"))}}
+let LK_HITS=[],LK_ACT=0;
+function lkToon(inp){const q=norm(inp.value.trim()),s=inp.dataset.lks,K=s==="sms"?SMO.kies:MO.kies,box=$("#lkSug");if(!box)return;
+  LK_HITS=q.length<2?[]:[...S.leden.values()].filter(l=>!K.includes(l.id)&&q.split(/\s+/).every(w=>norm(l.voornaam+" "+l.naam+" "+l.naam+" "+l.voornaam).includes(w))).sort((a,b)=>naamVol(a).localeCompare(naamVol(b),"nl")).slice(0,8);LK_ACT=0;
+  box.innerHTML=LK_HITS.map((l,i)=>{const x=s==="sms"?(smsGsm(l.telefoon)?smsToon(smsGsm(l.telefoon)):"geen gsm-nummer"):(l.email||"geen e-mailadres");return `<button type="button" data-lki="${i}" class="${i?"":"on"}"><b>${esc(naamVol(l))}</b><small>${esc(x)}</small></button>`}).join("")||(q.length>=2?'<span class="lk-g">Geen lid gevonden.</span>':"");box.hidden=q.length<2}
+function lkKies(l,s){if(!l)return;if(s==="sms"){if(!SMO.kies.includes(l.id))SMO.kies.push(l.id);if(SMS.groep!=="kies"){SMS.groep="kies";SMS.uit=new Set()}}
+  else{if(!MO.kies.includes(l.id))MO.kies.push(l.id);if(UI.mailGroep!=="kies"){UI.mailGroep="kies";const M=mailState();M.uit=new Set();M.idx=0}}
+  renderBody();setTimeout(()=>{const i=$("#lkZoek");if(i)i.focus()},0)}
+document.addEventListener("input",e=>{if(e.target.id==="lkZoek")lkToon(e.target)});
+document.addEventListener("keydown",e=>{if(e.target.id!=="lkZoek")return;const box=$("#lkSug");if(!box||box.hidden||!LK_HITS.length)return;
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();LK_ACT=(LK_ACT+(e.key==="ArrowDown"?1:-1)+LK_HITS.length)%LK_HITS.length;box.querySelectorAll("[data-lki]").forEach((b,i)=>b.classList.toggle("on",i===LK_ACT))}
+  else if(e.key==="Enter"){e.preventDefault();lkKies(LK_HITS[LK_ACT],e.target.dataset.lks)}else if(e.key==="Escape")box.hidden=true});
+document.addEventListener("mousedown",e=>{const b=e.target.closest("[data-lki]");if(b){e.preventDefault();lkKies(LK_HITS[+b.dataset.lki],($("#lkZoek")||{dataset:{}}).dataset.lks)}});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-lkweg]");if(!b)return;const id=b.dataset.lkweg;if(b.dataset.lks==="sms")SMO.kies=SMO.kies.filter(x=>x!==id);else MO.kies=MO.kies.filter(x=>x!==id);renderBody()});
+document.addEventListener("focusout",e=>{if(e.target.id==="lkZoek")setTimeout(()=>{const b=$("#lkSug");if(b)b.hidden=true},150)});
+{const st=document.createElement("style");st.textContent=`.lk{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:4px 0}.lk-c{display:inline-flex;align-items:center;gap:4px;background:var(--sunken,#f1f1f1);border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 10px;font-size:13.5px}
+.lk-c button{border:0;background:none;cursor:pointer;color:var(--muted);font-size:16px;line-height:1;padding:0 4px}.lk-w{position:relative;flex:1;min-width:200px}.lk-w input{width:100%;border:0;outline:0;background:none;font:inherit;font-size:14.5px;padding:6px 0;color:var(--ink)}
+.lk-s{position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:4px;display:flex;flex-direction:column;max-height:300px;overflow:auto}.lk-s[hidden]{display:none}
+.lk-s button{display:flex;justify-content:space-between;gap:10px;border:0;background:none;text-align:left;padding:8px 10px;border-radius:6px;font:inherit;cursor:pointer;color:inherit}.lk-s button.on,.lk-s button:hover{background:var(--sunken,#eee)}.lk-s small{color:var(--muted);white-space:nowrap}.lk-g{padding:8px 10px;color:var(--muted);font-size:14px}`;document.head.appendChild(st)}
+
 /* ============ Financiën › Transacties › Verrekeningen (splitwise) ============
    Een activiteit die samen met een andere vereniging georganiseerd wordt (bv. 150 jaar met de Vriendenkring Moorsel):
    onze kant = alle transacties in de gekozen categorie (alle jaren, optioneel binnen een periode);
@@ -9299,11 +9335,16 @@ KRE.afst=(p,q)=>{let best={d:Infinity,x:null};for(let i=1;i<q.length;i++){const 
 KRE.lengte=q=>{let l=0;for(let i=1;i<q.length;i++)l+=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);return l};
 KRE.delen=g=>!Array.isArray(g)||!g.length?[]:Array.isArray(g[0][0])?g:[g];
 function krEnkel(g){const P=KRE.delen(g);if(P.length<2)return g;
-  const L=P.map(part=>{const q=part.map(KRE.m);return{part,q,l:KRE.lengte(q),d:KRE.dicht8(q)}}).sort((a,b)=>b.l-a.l);
-  const hou=[];for(const x of L){if(x.q.length>1&&hou.length){let n=0;for(const p of x.d)if(hou.some(k=>KRE.afst(p,k.q).d<30))n++;if(n/x.d.length>=.97)continue}hou.push(x)}
-  const uit=hou.map(x=>x.part);
-  const con=[];if(hou.length>1)for(const x of hou)for(const e of [x.q[0],x.q[x.q.length-1]]){const lat=x.part[0][0];
-    if(hou.some(k=>k!==x&&KRE.afst(e,k.q).d<3)||con.some(c=>KRE.afst(e,c).d<3))continue;let best=null;for(const k of hou){if(k===x)continue;const r=KRE.afst(e,k.q);if(r.d<40&&(!best||r.d<best.d))best=r}
+  // langste stukken eerst; van elk volgend stuk blijft enkel over wat niet al binnen 30 m van een behouden stuk ligt (stukjes korter dan 20 m vallen weg)
+  const L=P.map(part=>{const q=part.map(KRE.m);return{part,q,l:KRE.lengte(q),d:KRE.dicht8(q),lat:part[0][0]}}).sort((a,b)=>b.l-a.l);
+  const hou=[];
+  for(const x of L){if(!hou.length||x.q.length<2){hou.push({part:x.part,q:x.q});continue}
+    const vrij=x.d.map(p=>!hou.some(k=>KRE.afst(p,k.q).d<30));if(vrij.every(Boolean)){hou.push({part:x.part,q:x.q});continue}
+    let run=[];const sluit=()=>{if(run.length>1&&KRE.lengte(run)>=20)hou.push({part:run.map(q=>KRE.terug(q,x.lat)),q:run});run=[]};
+    x.d.forEach((p,i)=>{if(vrij[i]){if(!run.length&&i>0)run.push(x.d[i-1]);run.push(p)}else if(run.length){run.push(p);sluit()}});sluit()}
+  const uit=hou.map(x=>x.part),con=[];
+  if(hou.length>1)for(const x of hou)for(const e of [x.q[0],x.q[x.q.length-1]]){const lat=x.part[0][0];
+    if(hou.some(k=>k!==x&&KRE.afst(e,k.q).d<3)||con.some(c=>KRE.afst(e,c).d<3))continue;let best=null;for(const k of hou){if(k===x)continue;const r=KRE.afst(e,k.q);if(r.d<50&&(!best||r.d<best.d))best=r}
     if(best){uit.push([KRE.terug(e,lat),KRE.terug(best.x,lat)]);con.push([e,best.x])}}
   return uit}
 const KRG=new Map();
@@ -9328,9 +9369,9 @@ function krGeo(sid){if(!KRE.geo){const t0=Date.now(),cos=Math.cos(50.94*Math.PI/
       const x0=Math.min(a[0],b[0]),x1=Math.max(a[0],b[0]),y0=Math.min(a[1],b[1]),y1=Math.max(a[1],b[1]);
       for(let x=Math.floor(x0/C);x<=Math.floor(x1/C);x++)for(let y=Math.floor(y0/C);y<=Math.floor(y1/C);y++){const k=x+"|"+y;let l=seg.get(k);if(!l)seg.set(k,l=[]);l.push(o)}}})}
   const zoek=(e,sid,pi,max)=>{let best=null;const cx=Math.floor(e[0]/C),cy=Math.floor(e[1]/C);
-    for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const o of seg.get((cx+i)+"|"+(cy+j))||[]){if(o.sid===sid&&o.pi===pi)continue;const r=KRE.proj(e,o.a,o.b);if(r.d<max&&(!best||r.d<best.d))best=r}return best};
+    for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++)for(const o of seg.get((cx+i)+"|"+(cy+j))||[]){if(o.sid===sid&&o.pi===pi)continue;const r=KRE.proj(e,o.a,o.b);if(r.d<max&&(!best||r.d<best.d))best=r}return best};
   for(const s of KR_STREETS){const P=geo.get(s.id),n=P.length;for(let pi=0;pi<n;pi++){const p=P[pi];if(p.length<2)continue;
-    for(const pt of [p[0],p[p.length-1]]){const e=m(pt);const raak=zoek(e,s.id,pi,2.5);if(raak)continue;const r=zoek(e,s.id,pi,30);if(r)P.push([pt,terug(r.x)])}}}
+    for(const pt of [p[0],p[p.length-1]]){const e=m(pt);const raak=zoek(e,s.id,pi,2.5);if(raak)continue;const r=zoek(e,s.id,pi,45);if(r)P.push([pt,terug(r.x)])}}}
   KRE.geo=geo;KRE.ms=Date.now()-t0}
   return KRE.geo.get(sid)||[]}
 

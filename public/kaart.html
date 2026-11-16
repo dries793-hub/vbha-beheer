@@ -2059,11 +2059,16 @@ KRE.afst=(p,q)=>{let best={d:Infinity,x:null};for(let i=1;i<q.length;i++){const 
 KRE.lengte=q=>{let l=0;for(let i=1;i<q.length;i++)l+=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);return l};
 KRE.delen=g=>!Array.isArray(g)||!g.length?[]:Array.isArray(g[0][0])?g:[g];
 function krEnkel(g){const P=KRE.delen(g);if(P.length<2)return g;
-  const L=P.map(part=>{const q=part.map(KRE.m);return{part,q,l:KRE.lengte(q),d:KRE.dicht8(q)}}).sort((a,b)=>b.l-a.l);
-  const hou=[];for(const x of L){if(x.q.length>1&&hou.length){let n=0;for(const p of x.d)if(hou.some(k=>KRE.afst(p,k.q).d<30))n++;if(n/x.d.length>=.97)continue}hou.push(x)}
-  const uit=hou.map(x=>x.part);
-  const con=[];if(hou.length>1)for(const x of hou)for(const e of [x.q[0],x.q[x.q.length-1]]){const lat=x.part[0][0];
-    if(hou.some(k=>k!==x&&KRE.afst(e,k.q).d<3)||con.some(c=>KRE.afst(e,c).d<3))continue;let best=null;for(const k of hou){if(k===x)continue;const r=KRE.afst(e,k.q);if(r.d<40&&(!best||r.d<best.d))best=r}
+  // langste stukken eerst; van elk volgend stuk blijft enkel over wat niet al binnen 30 m van een behouden stuk ligt (stukjes korter dan 20 m vallen weg)
+  const L=P.map(part=>{const q=part.map(KRE.m);return{part,q,l:KRE.lengte(q),d:KRE.dicht8(q),lat:part[0][0]}}).sort((a,b)=>b.l-a.l);
+  const hou=[];
+  for(const x of L){if(!hou.length||x.q.length<2){hou.push({part:x.part,q:x.q});continue}
+    const vrij=x.d.map(p=>!hou.some(k=>KRE.afst(p,k.q).d<30));if(vrij.every(Boolean)){hou.push({part:x.part,q:x.q});continue}
+    let run=[];const sluit=()=>{if(run.length>1&&KRE.lengte(run)>=20)hou.push({part:run.map(q=>KRE.terug(q,x.lat)),q:run});run=[]};
+    x.d.forEach((p,i)=>{if(vrij[i]){if(!run.length&&i>0)run.push(x.d[i-1]);run.push(p)}else if(run.length){run.push(p);sluit()}});sluit()}
+  const uit=hou.map(x=>x.part),con=[];
+  if(hou.length>1)for(const x of hou)for(const e of [x.q[0],x.q[x.q.length-1]]){const lat=x.part[0][0];
+    if(hou.some(k=>k!==x&&KRE.afst(e,k.q).d<3)||con.some(c=>KRE.afst(e,c).d<3))continue;let best=null;for(const k of hou){if(k===x)continue;const r=KRE.afst(e,k.q);if(r.d<50&&(!best||r.d<best.d))best=r}
     if(best){uit.push([KRE.terug(e,lat),KRE.terug(best.x,lat)]);con.push([e,best.x])}}
   return uit}
 const KRG=new Map();
@@ -2088,9 +2093,9 @@ function krGeo(sid){if(!KRE.geo){const t0=Date.now(),cos=Math.cos(50.94*Math.PI/
       const x0=Math.min(a[0],b[0]),x1=Math.max(a[0],b[0]),y0=Math.min(a[1],b[1]),y1=Math.max(a[1],b[1]);
       for(let x=Math.floor(x0/C);x<=Math.floor(x1/C);x++)for(let y=Math.floor(y0/C);y<=Math.floor(y1/C);y++){const k=x+"|"+y;let l=seg.get(k);if(!l)seg.set(k,l=[]);l.push(o)}}})}
   const zoek=(e,sid,pi,max)=>{let best=null;const cx=Math.floor(e[0]/C),cy=Math.floor(e[1]/C);
-    for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const o of seg.get((cx+i)+"|"+(cy+j))||[]){if(o.sid===sid&&o.pi===pi)continue;const r=KRE.proj(e,o.a,o.b);if(r.d<max&&(!best||r.d<best.d))best=r}return best};
+    for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++)for(const o of seg.get((cx+i)+"|"+(cy+j))||[]){if(o.sid===sid&&o.pi===pi)continue;const r=KRE.proj(e,o.a,o.b);if(r.d<max&&(!best||r.d<best.d))best=r}return best};
   for(const s of KR_STREETS){const P=geo.get(s.id),n=P.length;for(let pi=0;pi<n;pi++){const p=P[pi];if(p.length<2)continue;
-    for(const pt of [p[0],p[p.length-1]]){const e=m(pt);const raak=zoek(e,s.id,pi,2.5);if(raak)continue;const r=zoek(e,s.id,pi,30);if(r)P.push([pt,terug(r.x)])}}}
+    for(const pt of [p[0],p[p.length-1]]){const e=m(pt);const raak=zoek(e,s.id,pi,2.5);if(raak)continue;const r=zoek(e,s.id,pi,45);if(r)P.push([pt,terug(r.x)])}}}
   KRE.geo=geo;KRE.ms=Date.now()-t0}
   return KRE.geo.get(sid)||[]}
 const krAdr=n=>n===1?"adres":"adressen";
