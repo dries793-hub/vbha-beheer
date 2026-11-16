@@ -56,7 +56,7 @@ function huisstijl(inner, ver, { groet = true, voet = "", extern = false } = {})
 function betaalBlok({ betaald, betaling, bedrag, rekeningnummer, begunstigde, mededeling, tegen, link }) {
   if (betaald) {
     const op = betaling && betaling.betaaldOp ? " op " + kort(new Date(betaling.betaaldOp).toISOString()) : "";
-    return kaderBlok("&#10003; Betaling ontvangen", p(`We ontvingen je betaling van <b>${eur(bedrag)}</b> via Bancontact${op}. Je hoeft niets meer te doen.`, "margin:0"), "#1a7f45", "#f1faf4");
+    return kaderBlok("&#10003; Betaling ontvangen", p(`We ontvingen je betaling van <b>${eur(bedrag)}</b> via Bancontact. Je hoeft niets meer te doen.`, "margin:0"), "#1a7f45", "#f1faf4");
   }
   return kaderBlok("Nog te betalen", tabel([rij("Bedrag", `<b>${eur(bedrag)}</b>`), rij("Rekening", `<b>${esc(rekeningnummer)}</b>`), rij("Begunstigde", esc(begunstigde)), rij("Mededeling", `<b>${esc(mededeling)}</b>`), rij("Te betalen vóór", `<b>${esc(lang(tegen))}</b>`)])
     + p("Gebruik exact deze mededeling, dan wordt je betaling automatisch herkend.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2")
