@@ -8648,7 +8648,7 @@ VIEWS.kliks=()=>({title:"Instellingen",sub:"Kliks in mails",body(){if(ROL_ECHT!=
 document.addEventListener("input",e=>{if(e.target.id!=="mkQ")return;MK.q=e.target.value;const p=e.target.selectionStart;renderBody();const i=$("#mkQ");if(i){i.focus();try{i.setSelectionRange(p,p)}catch(x){}}});
 addEventListener("hashchange",()=>{if(route()==="kliks"){MK.data=null;MK.fout=null}});
 
-/* ============ Communicatie › Statistieken: bezoek aan de website en cijfers van Facebook en Instagram ============
+/* ============ Media › Statistieken (alle gegevens van 2 jaar in één keer geladen: van periode wisselen gaat meteen): bezoek aan de website en cijfers van Facebook en Instagram ============
    Server: api/_lib/stats.js (eigen bezoekteller zonder cookies of IP-adres in tabel site_bezoek; Meta Graph API voor Facebook en Instagram).
    Volgers worden per dag bijgehouden (tabel social_stand) zodra de pagina geopend wordt. */
 {const c=NAV.find(n=>!Array.isArray(n)&&n.id==="communicatie");if(c&&!c.items.some(i=>i[0]==="statistieken"))c.items.push(["statistieken","Statistieken"])}
@@ -8660,7 +8660,7 @@ const tile=(l,v,uit)=>`<div class="tile"${uit?` data-tu="${esc(uit)}"`:""}><span
 const ST_IC={hart:'<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',com:'<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',deel:'<svg viewBox="0 0 24 24"><path d="M14 5l6 6-6 6M20 11H9a5 5 0 0 0-5 5v2"/></svg>'};
 const ST_PAD={"/":"Startpagina","/shop":"Webshop","/steun":"Steunen","/kalender":"Kalender","/fuif":"In Vier en Vlam","/familiedag":"Familiedag","/kinderfeest":"Kinderfeest","/banket":"Banket","/album":"Fotoalbums","/inschrijven":"Inschrijven","/sponsor":"Sponsors","/privacy":"Privacy","/reglement":"Reglement","/lidgeld":"Lidgeld","andere":"Andere"};
 async function stLaad(){if(ST.bezig){ST.opnieuw=true;return}ST.bezig=true;ST.opnieuw=false;
-  try{const j=await api("/api/mail?f=stats",{method:"POST",body:JSON.stringify({dagen:ST.per,social:!ST.social})});ST.data=j;if(!ST.social)ST.social={kanalen:j.social||[]};ST.social.stand=j.stand||[];ST.fout=null;ST.op=Date.now()}
+  try{const j=await api("/api/mail?f=stats",{method:"POST",body:JSON.stringify({dagen:365,social:!ST.social})});ST.data=j;if(!ST.social)ST.social={kanalen:j.social||[]};ST.social.stand=j.stand||[];ST.fout=null;ST.op=Date.now()}
   catch(e){ST.fout=e.message}finally{ST.bezig=false}if(ST.opnieuw)return stLaad();if(route()==="statistieken")renderBody()}
 const stN=n=>n==null?"–":Number(n).toLocaleString("nl-BE");
 const stDag=d=>new Date(Date.now()-d*864e5).toLocaleDateString("sv-SE",{timeZone:"Europe/Brussels"});
@@ -8701,7 +8701,7 @@ VIEWS.statistieken=()=>({title:"Statistieken",sub:"Website en sociale media",
     if(ST.fout&&!ST.data)return `<div class="panel"><div class="empty">${esc(ST.fout)}</div></div>`;
     const K=(ST.social&&ST.social.kanalen)||[];
     return stWebsite()+(K.length?`<div class="st-k">${K.map(stKanaal).join("")}</div>`:`<div class="panel"><div class="empty">Facebook en Instagram zijn niet gekoppeld.</div></div>`)}});
-document.addEventListener("click",e=>{const b=e.target.closest("[data-st]");if(!b)return;ST.per=+b.dataset.st;document.querySelectorAll("[data-st]").forEach(x=>x.classList.toggle("on",+x.dataset.st===ST.per));stLaad()});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-st]");if(!b)return;ST.per=+b.dataset.st;document.querySelectorAll("[data-st]").forEach(x=>x.classList.toggle("on",+x.dataset.st===ST.per));if(ST.data)renderBody();else stLaad()});
 addEventListener("hashchange",()=>{if(route()==="statistieken"&&ST.op&&Date.now()-ST.op>5*60000){ST.data=null;ST.social=null;ST.op=0}});
 {const st=document.createElement("style");st.textContent=`.st-tiles{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:18px}
 .st-g{display:flex;align-items:flex-end;gap:3px;height:160px;padding:18px 0 22px;margin-bottom:14px;border-bottom:1px solid var(--line)}
