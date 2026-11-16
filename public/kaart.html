@@ -2707,7 +2707,9 @@ function krCasing(){if(!KR.map)return;const w=krDikte(KR.map.getZoom());
 {const st=document.createElement("style");st.textContent=`.leaflet-pane,.leaflet-tile,.leaflet-tile-container,.leaflet-layer{position:absolute;left:0;top:0}.leaflet-tile-pane{z-index:200}.leaflet-tile{visibility:hidden;border:0;max-width:none!important;max-height:none!important;user-select:none;-webkit-user-drag:none}.leaflet-tile-loaded{visibility:inherit}.leaflet-zoom-animated{transform-origin:0 0}
 .kr-tegels{filter:saturate(.2) contrast(.95) brightness(1.04)}.kr-tegels.kr-grijs{filter:grayscale(1) contrast(.9) brightness(1.08)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .kr-tegels{filter:grayscale(1) invert(.9) contrast(.85) brightness(.9)}}:root[data-theme="dark"] .kr-tegels{filter:grayscale(1) invert(.9) contrast(.85) brightness(.9)}`;document.head.appendChild(st)}
-const krAdr=n=>n===1?"adres":"adressen";
+
+/* enkel de vier deelgemeenten tonen: alles erbuiten afdekken in de achtergrondkleur, met een stippellijn op de grens */
+function krMaskStijl(){if(!KR.bg||!KR.bg.mask)return;const out=krVar("--kr-out")||"#F5F6F8";KR.bg.mask.setStyle({fillColor:out,fillOpacity:.96,stroke:false});if(KR.bg.grens)KR.bg.grens.setStyle({color:krVar("--muted")||"#888",weight:1.5,dashArray:"6 5",opacity:.9})}const krAdr=n=>n===1?"adres":"adressen";
 const krNum=n=>n.toLocaleString("nl-BE");
 const krFold=t=>t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const KR_SORTED=[...KR_STREETS].sort((a,b)=>a.n.localeCompare(b.n,"nl")||a.w.localeCompare(b.w,"nl"));
@@ -2718,7 +2720,7 @@ function krLabels(){if(!KR.labels)return;KR.labels.clearLayers();const map=KR.ma
     KR.labels.addLayer(L.tooltip({permanent:true,direction:"center",className:"kr-lbl",interactive:false}).setLatLng(at).setContent(t))}}
 const KR_BLD_ZOOM=15;
 const KR_BG_ORDER=[["green","--krb-green"],["water","--krb-water"],["road","--krb-road"],["rail","--krb-rail"],["bld","--krb-bld"]];
-function krBg(){if(KR.bg||!KR.map)return;KR.bg={groups:{},src:""};krTegels(KR.map);try{krGrens(KR.map)}catch(e){}}
+function krBg(){if(KR.bg||!KR.map)return;KR.bg={groups:{},src:""};krTegels(KR.map);try{krGrens(KR.map);krMaskStijl()}catch(e){}}
 function krBgOud(){if(KR.bgLoading||KR.bg||!KR.map)return;KR.bgLoading=true;
   fetch("/kaart.json").then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>{
     const map=KR.map;map.createPane("krBg").style.zIndex=300;map.createPane("krBld").style.zIndex=310;

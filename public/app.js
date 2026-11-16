@@ -9431,8 +9431,10 @@ function krCasing(){if(!KR.map)return;const w=krDikte(KR.map.getZoom());
 .kr-tegels{filter:saturate(.2) contrast(.95) brightness(1.04)}.kr-tegels.kr-grijs{filter:grayscale(1) contrast(.9) brightness(1.08)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .kr-tegels{filter:grayscale(1) invert(.9) contrast(.85) brightness(.9)}}:root[data-theme="dark"] .kr-tegels{filter:grayscale(1) invert(.9) contrast(.85) brightness(.9)}`;document.head.appendChild(st)}
 
+/* enkel de vier deelgemeenten tonen: alles erbuiten afdekken in de achtergrondkleur, met een stippellijn op de grens */
+function krMaskStijl(){if(!KR.bg||!KR.bg.mask)return;const out=krVar("--kr-out")||"#F5F6F8";KR.bg.mask.setStyle({fillColor:out,fillOpacity:.96,stroke:false});if(KR.bg.grens)KR.bg.grens.setStyle({color:krVar("--muted")||"#888",weight:1.5,dashArray:"6 5",opacity:.9})}
 // app: achtergrond als kaarttegels i.p.v. de eigen GRB-vectorlaag; witte rand onder de straten
-krBg=function(){if(KR.bg||!KR.map)return;KR.bg={groups:{},src:""};krTegels(KR.map);try{krGrens(KR.map)}catch(e){}};
+krBg=function(){if(KR.bg||!KR.map)return;KR.bg={groups:{},src:""};krTegels(KR.map);try{krGrens(KR.map);krMaskStijl()}catch(e){}};
 krBgStyle=function(){};krBgZoom=function(){};
 {const _s=krStyleAll;krStyleAll=function(){const r=_s.apply(this,arguments);try{krCasing()}catch(e){}return r}}
 
