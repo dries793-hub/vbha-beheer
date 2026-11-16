@@ -124,7 +124,9 @@ export async function boekTransacties(sb, txs, { regels, leden, facturen = [], s
     const pidx = partijIndex(bestaand);
     const ids = new Set(bestaand.map(b => b.id));
     const refs = new Set(bestaand.map(b => b.bankRef).filter(Boolean));
-    const fuzzy = new Set(bestaand.map(b => `${b.datum}|${r2(b.bedrag)}|${b.richting || "in"}|${norm(b.partij)}`));
+    // vergelijken op datum/bedrag/partij enkel met transacties zonder bankreferentie (oude CSV-imports en manuele boekingen):
+    // twee echte, identieke betalingen op dezelfde dag (bv. twee keer € 7 via de kaartlezer) hebben elk een eigen bankreferentie
+    const fuzzy = new Set(bestaand.filter(b => !b.bankRef).map(b => `${b.datum}|${r2(b.bedrag)}|${b.richting || "in"}|${norm(b.partij)}`));
     let nr = bestaand.reduce((m, b) => Math.max(m, Number(b.nr) || 0), 0);
     const nieuw = items.filter(b => Number(b.datum.slice(0, 4)) === jaar).sort((a, c) => a.datum.localeCompare(c.datum));
     for (const b of nieuw) {
