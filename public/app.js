@@ -1506,7 +1506,7 @@ function eml(r,M){
 }
 
 VIEWS.logboek=()=>({title:"Logboek",actions:LOG_CLIENT?"":'<button class="btn" data-act="logVernieuw">Vernieuwen</button>',body(){logStart();
-  if(!LOGS.loaded)return instTabs("logboek")+'<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>';
+  if(!LOGS.loaded)return instTabs("logboek")+'<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>';
   if(LOGS.err)return instTabs("logboek")+`<div class="note">Het logboek kon niet geladen worden${typeof LOGS.err==="string"?": "+esc(LOGS.err):""}.${LOG_CLIENT?"":" Voer eerst het bestand <b>supabase/logboek.sql</b> uit in de SQL Editor van Supabase."}</div>`;
   const q=norm(UI.logQ||""),T=UI.logT||"",W=UI.logW||"";const wies=[...new Set(LOGS.rows.map(e=>e.wie).filter(Boolean))].sort();
   let L=LOGS.rows;if(T)L=L.filter(e=>e.tabel===T);if(W)L=L.filter(e=>e.wie===W);
@@ -2567,7 +2567,7 @@ async function deelLijst(m){const {data,error}=await SB.from("deellinks").select
   const nu=new Date().toLocaleDateString("sv-SE");return (data||[]).map(r=>({id:r.id,...r.data,verlopen:!!(r.data.tot&&nu>r.data.tot)})).filter(x=>!x.ingetrokken).sort((a,b)=>String(b.op||"").localeCompare(String(a.op||"")))}
 async function docDeel(m){if(!canWrite||!m)return;
   modal("Map delen",`<div class="dd-w"><p class="muted small" style="margin:0 0 12px">Iedereen met de link kan de bestanden in <b>${esc(docLabel(m))}</b> bekijken en downloaden, zonder aan te melden. Andere mappen en de rest van de app blijven afgeschermd. Je kan een link op elk moment intrekken.</p>
-   <div id="ddL"><div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div></div>
+   <div id="ddL"><div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div></div>
    <form id="fDd" class="form dd-n"><div class="full"><b>Nieuwe link</b></div>
     ${fld("ddV","Voor wie (optioneel)",inp("ddV","",'maxlength="80" placeholder="bv. drukkerij De Peer"'))}
     ${fld("ddT","Geldig tot",`<select id="ddT" class="sel"><option value="7">1 week</option><option value="30" selected>1 maand</option><option value="90">3 maanden</option><option value="365">1 jaar</option><option value="0">Geen einddatum</option></select>`)}
@@ -3067,7 +3067,7 @@ async function gbLaad(){try{GB=await api("/api/gebruikers")}catch(e){GB={fout:e.
 const gbDt=s=>{if(!s)return"nog nooit";const x=new Date(s);return x.toLocaleDateString("nl-BE",{day:"numeric",month:"short",year:"numeric"})+" "+x.toLocaleTimeString("nl-BE",{hour:"2-digit",minute:"2-digit"})};
 VIEWS.gebruikers=()=>({title:"Gebruikers",actions:ROL==="admin"?'<button class="btn primary" data-act="gbNieuw">'+ic("plus")+'Gebruiker toevoegen</button>':"",body(){
   if(ROL!=="admin")return '<div class="panel"><div class="empty">Enkel een administrator kan gebruikers beheren.</div></div>';
-  if(!GB){gbLaad();return '<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>'}
+  if(!GB){gbLaad();return '<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>'}
   if(GB.fout)return `<div class="note">${esc(GB.fout)}</div>`;
   const L=GB.gebruikers;
   return `  <div class="panel"><div class="panel-h"><h2>Wie heeft toegang</h2><span class="grow"></span><span class="muted small">${L.length}</span></div><div class="list">
@@ -4225,7 +4225,7 @@ function inkLijst(){const D=inkDocs(),open=D.filter(inkOpen),q=norm(INK.q||"");l
 document.addEventListener("input",e=>{if(e.target.id!=="inkQ")return;INK.q=e.target.value;inkHerteken()});
 function inkHerteken(){const el=$("#inkL");if(!el)return renderBody();const tmp=document.createElement("div");tmp.innerHTML=inkLijst();el.replaceWith(tmp.querySelector("#inkL"))}
 function inkUitleg(){const s=INK.srv;
-  if(!s)return `<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>`;
+  if(!s)return `<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>`;
   const wanneer=s.laatsteKeer?new Date(s.laatsteKeer).toLocaleString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
   if(s.ingesteld)return s.fout?`<div class="note ink-u"><div>${ic("inkomend")}</div><div><b>Facturen ophalen uit ${esc(s.adres)} lukte niet</b><div class="small out">${esc(s.fout)}</div></div>${inkMag()?`<button type="button" class="btn sm" data-ink="haal">Opnieuw proberen</button>`:""}</div>`:"";
   return `<div class="note ink-u"><div>${ic("inkomend")}</div><div><b>Mailbox voor facturen: ${esc(s.adres||"nog niet gekozen")}</b><div class="small">${s.wachtwoordGezet?"":"Vul het wachtwoord van de mailbox in via het tandwiel rechtsboven. "}Tot dan kan je facturen hier opladen.</div></div>${inkMag()?`<button type="button" class="btn sm" data-ink="instel">Instellen</button>`:""}</div>`}
@@ -7886,7 +7886,7 @@ function soPost(r){const d=r.data,[cl,lb]=SO_ST[r.status]||["neutral",r.status],
    ${canWrite?`<div class="so-a">${["concept","gepland","fout","deels"].includes(r.status)?`<button type="button" class="btn sm ghost" data-soa="bewerk" data-id="${esc(r.id)}">Bewerken</button>`:""}${["fout","deels"].includes(r.status)?`<button type="button" class="btn sm" data-soa="nu" data-id="${esc(r.id)}">Opnieuw</button>`:r.status==="concept"||r.status==="gepland"?`<button type="button" class="btn sm" data-soa="nu" data-id="${esc(r.id)}">Nu publiceren</button>`:""}${r.status!=="bezig"?`<button type="button" class="iconbtn" data-soa="weg" data-id="${esc(r.id)}" title="Verwijderen" aria-label="Verwijderen">${ic("prul")}</button>`:""}</div>`:""}</div>`}
 VIEWS.social=()=>({title:"Sociale media",body(){
   if(recht("social")==="geen")return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
-  if(!SOC.posts){soLaad();return '<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>'}
+  if(!SOC.posts){soLaad();return '<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>'}
   const E=SOC.ed||(SOC.ed=soLeeg()),d=canWrite&&!SOC.busy?"":" disabled",ig=E.kanalen.instagram,lang=E.tekst.length;
   const P=SOC.posts,gr=[["Gepland",P.filter(r=>r.status==="gepland"||r.status==="bezig").sort((a,b)=>String(a.plan).localeCompare(String(b.plan)))],["Concepten en fouten",P.filter(r=>["concept","fout","deels"].includes(r.status))],["Gepubliceerd",P.filter(r=>r.status==="gepubliceerd")]];
   return `<div class="grid g2 so-g" style="align-items:start">
@@ -8020,7 +8020,7 @@ function moVerzonden(){if(!MV.auto&&!MV.bezig)setTimeout(moAutoLaad,0);
     <span class="muted small trunc">${esc(dt(x.d))} · ${auto?esc(m.aanNaam?m.aanNaam+" <"+(m.aan||"")+">":m.aan||""):esc(m.groep||"")+(m.aantal?" ("+m.aantal+")":"")}</span></div>${auto?'<span class="mo-tag">automatisch</span>':""}${st(x)}</div>`};
   const seg=`<div class="seg" role="group" aria-label="Filter">${[["alle","Alles"],["zelf","Zelf verstuurd"],["auto","Automatisch"]].map(([k,l])=>`<button type="button" class="${MV.f===k?"on":""}" data-mvf="${k}">${l}</button>`).join("")}</div>`;
   return `<div class="panel ml-hist"><div class="panel-h"><h2>Verzonden</h2><span class="grow"></span>${seg}</div>
-    ${MV.bezig&&!MV.auto&&MV.f!=="zelf"?'<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>':L.length?`<div class="ml-hl">${L.slice(0,MV.n).map(rij).join("")}</div>`:'<div class="empty">Nog niets verstuurd.</div>'}
+    ${MV.bezig&&!MV.auto&&MV.f!=="zelf"?'<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>':L.length?`<div class="ml-hl">${L.slice(0,MV.n).map(rij).join("")}</div>`:'<div class="empty">Nog niets verstuurd.</div>'}
     ${L.length>MV.n?'<div style="padding:10px 16px;border-top:1px solid var(--line)"><button class="btn sm" data-mvf="meer">Meer tonen</button></div>':""}</div>`}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-mvf]");if(!b)return;if(b.dataset.mvf==="meer")MV.n+=100;else{MV.f=b.dataset.mvf;MV.n=60}renderBody()});
 addEventListener("hashchange",()=>{if(route()!=="mails")MV.auto=null});
@@ -8352,7 +8352,7 @@ function tbRij(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],b=r
    <b class="tb-b">${eur(d.bedrag)}</b><div class="tb-a">${acts.join("")}${tbKan(r)?`<button type="button" class="iconbtn" data-tb="weg" data-id="${esc(r.id)}" title="Verwijderen" aria-label="Verwijderen">${ic("prul")}</button>`:""}</div></div>`}
 VIEWS.terug=()=>({title:"Terugbetalingen",actions:tbMag()?`<button class="btn primary" data-tb="nieuw">${ic("plus")}Nieuwe terugbetaling</button>${tbVol()?`<button class="btn iconbtn" data-tb="link" aria-label="Instellingen" title="Instellingen">${ic("instellingen")}</button>`:""}`:"",body(){
   if(!tbMag())return '<div class="panel"><div class="empty">Dit onderdeel is niet beschikbaar.</div></div>';
-  if(!TB.lijst){tbLaad();return '<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>'}
+  if(!TB.lijst){tbLaad();return '<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>'}
   const OPEN=["aangevraagd","ingediend","goedgekeurd","wacht"],L=TB.lijst.filter(r=>TB.f==="alle"||(TB.f==="kaart"?r.data.soort==="kaart":TB.f==="open"?OPEN.includes(r.status):r.status===TB.f));
   const som=TB.lijst.filter(r=>r.status==="goedgekeurd").reduce((s,r)=>s+num(r.data.bedrag),0);
   return `<div class="bar fc-bar"><div class="seg">${[["open","Open"],["betaald","Betaald"],["geweigerd","Geweigerd"],...(TB.lijst.some(r=>r.data.soort==="kaart")?[["kaart","Kastickets"]]:[]),["alle","Alle"]].map(([k,l])=>{const n=TB.lijst.filter(r=>k==="alle"||(k==="kaart"?r.data.soort==="kaart":k==="open"?OPEN.includes(r.status):r.status===k)).length;return `<button type="button" data-tbf="${k}" class="${TB.f===k?"on":""}">${l}${n?` <span class="tb-n">${n}</span>`:""}</button>`}).join("")}</div><span class="grow"></span>${som?`<span class="muted">Nog te betalen: <b>${eur(som)}</b></span>`:""}</div>
@@ -8683,7 +8683,7 @@ function kfMed(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=s.leng
 VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
   if(!kfFinMag())return kalTabs("kalfin")+'<div class="empty">Enkel voor de administrator en de boekhouder.</div>';
   if(KF.jaar!==JAAR&&!KF.bezig)setTimeout(kfLaad,0);
-  if(KF.jaar!==JAAR&&!KF.fout)return kalTabs("kalfin")+'<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>';
+  if(KF.jaar!==JAAR&&!KF.fout)return kalTabs("kalfin")+'<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>';
   const C=ctx(),B=C.boek.filter(b=>b.categorie==="Kalenders");
   const inB=B.filter(b=>b.richting!=="uit"),uitB=B.filter(b=>b.richting==="uit");
   const som=L=>L.reduce((s,b)=>s+(Number(b.bedrag)||0),0);
@@ -8735,7 +8735,7 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
     ${tile("Kosten kalenders",kfEur(kost),"")}${tile("Respons",bed&&KF.data?(n/bed*100).toLocaleString("nl-BE",{maximumFractionDigits:1})+" %":"–","")}</div>
 
   <div class="panel"><div class="panel-h"><h2>Betalingen</h2><span class="kf-lg"><i></i>Bancontact <i class="ov"></i>overschrijving</span></div>
-   ${KF.bezig&&!KF.data?'<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>':KF.fout?`<div class="empty">${esc(KF.fout)}</div>`:!n?'<div class="empty">Nog geen betalingen.</div>':`
+   ${KF.bezig&&!KF.data?'<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>':KF.fout?`<div class="empty">${esc(KF.fout)}</div>`:!n?'<div class="empty">Nog geen betalingen.</div>':`
    <div class="panel-b"><div class="tiles kf-t">${tile("Aantal betalingen",n.toLocaleString("nl-BE"),"")}${tile("Meest gegeven",vaak?kfEur(vaak[0]):"–","")}${tile("Gemiddelde",kfEur(gem),"")}${tile("Hoogste betaling",kfEur(hoog),"")}</div>
    <div class="kf-2"><div><h3 class="kf-h">Verdeling van de bedragen</h3>${verd.map((v,i)=>`<div class="kf-r kf-rn"><span class="kfx-k" data-kfv="${i}">${v.l}</span>${bar(v.q,v.o,vm,fN)}<b>${v.n}</b></div>`).join("")}</div>
    <div><h3 class="kf-h">Per dag</h3>${D.map(([d,v,g])=>`<div class="kf-r"><span class="kfx-k" data-kfd="${d}">${fmtDate(d).slice(0,5)}</span>${bar(g.q,g.o,dm,kfEur,g.nq,g.no)}<b>${kfEur(v)}</b></div>`).join("")}</div></div></div>`}</div>
@@ -8858,7 +8858,7 @@ const MK={data:null,bezig:false,fout:null,q:""};
 async function mkLaad(){if(MK.bezig)return;MK.bezig=true;try{const {data,error}=await SB.rpc("mail_kliks_lijst",{dagen:180});if(error)throw error;MK.data=data||{kliks:[]};MK.fout=null}catch(e){MK.fout=e.message}finally{MK.bezig=false}if(route()==="kliks")renderBody()}
 const mkWie=e=>{e=String(e||"").toLowerCase();for(const l of S.leden.values())if(String(l.email||"").toLowerCase()===e)return naamVol(l);return e};
 VIEWS.kliks=()=>({title:"Instellingen",sub:"Kliks in mails",body(){if(ROL_ECHT!=="admin")return instTabs("kliks")+'<div class="panel"><div class="empty">Enkel voor de administrator.</div></div>';
-  if(!MK.data&&!MK.fout){setTimeout(mkLaad,0);return instTabs("kliks")+'<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>'}
+  if(!MK.data&&!MK.fout){setTimeout(mkLaad,0);return instTabs("kliks")+'<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>'}
   if(MK.fout)return instTabs("kliks")+`<div class="panel"><div class="empty">${esc(MK.fout)}</div></div>`;
   const q=MK.q.toLowerCase(),L=(MK.data.kliks||[]).map(k=>({...k,wie:mkWie(k.email)})).filter(k=>!q||[k.wie,k.email,k.label,k.knop].join(" ").toLowerCase().includes(q));
   return instTabs("kliks")+`<div class="bar"><div class="search">${ic("search")}<input id="mkQ" data-live placeholder="Zoek op naam, mail of knop" value="${esc(MK.q)}"></div></div>
@@ -8918,7 +8918,7 @@ function stKanaal(k){const fb=k.kanaal==="facebook",M=k.metriek||{},St=(ST.socia
       return `<a href="${esc(p.url||"#")}" target="_blank" rel="noopener" class="st-r">${p.foto?`<img src="${esc(p.foto)}" alt="" loading="lazy">`:'<span class="st-ph"></span>'}<span class="st-tx"><b class="${p.tekst?"":"st-ze"}">${esc(tk)}</b><span class="muted small">${p.op?fmtDate(String(p.op).slice(0,10)):""}</span></span><span class="st-ns">${n(ST_IC.hart,p.reacties,fb?"Reacties":"Likes")}${n(ST_IC.com,p.commentaren,"Commentaren")}${fb?n(ST_IC.deel,p.gedeeld,"Gedeeld"):""}</span></a>`}).join("")}</div>`:k.postsFout?`<div class="muted small st-m">Berichten: het Meta-token mist het recht ${/pages_read_user_content/.test(k.postsFout)?"pages_read_user_content":esc(k.postsFout)}.</div>`:""}</div></div>`}
 VIEWS.statistieken=()=>({title:"Statistieken",sub:"Website en sociale media",
   actions:`<div class="seg" role="group" aria-label="Periode">${[[7,"7 dagen"],[30,"30 dagen"],[365,"12 maanden"]].map(([k,l])=>`<button type="button" data-st="${k}" class="${ST.per===k?"on":""}">${l}</button>`).join("")}</div>`,
-  body(){if(!ST.data&&!ST.fout){setTimeout(stLaad,0);return '<div class="laad" role="status" aria-label="Laden"><span class="lader-c"></span></div>'}
+  body(){if(!ST.data&&!ST.fout){setTimeout(stLaad,0);return '<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>'}
     if(ST.fout&&!ST.data)return `<div class="panel"><div class="empty">${esc(ST.fout)}</div></div>`;
     const K=(ST.social&&ST.social.kanalen)||[];
     return stWebsite()+(K.length?`<div class="st-k">${K.map(stKanaal).join("")}</div>`:`<div class="panel"><div class="empty">Facebook en Instagram zijn niet gekoppeld.</div></div>`)}});
