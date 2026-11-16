@@ -9053,6 +9053,9 @@ for(const r of ["regels","bank"]){const k=INST_TABS.findIndex(t=>t[0]===r);if(k>
 for(const r of ["regels","bank"]){const _v=VIEWS[r];if(!_v)continue;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.title="Transacties";
   v.body=function(){return String(b.apply(this,arguments)).replace(/^\s*<nav class="tabs" aria-label="Onderdelen instellingen">[\s\S]*?<\/nav>/,bkTabs(r))};return v};Object.assign(n,_v);VIEWS[r]=n}
 if(!ICON.social)ICON.social='<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/>';
+// onderbalk gsm: zes knoppen gelijk verdeeld, iets kleinere tekst en minder lege ruimte onder de knoppen
+{const st=document.createElement("style");st.textContent=`@media (max-width:760px){.tabbar{padding:4px 4px max(6px,calc(env(safe-area-inset-bottom,0px) - 14px))!important;gap:2px}
+.tabbar a,.tabbar button{flex:1 1 0;padding:6px 0 4px;gap:4px;font-size:10px!important;letter-spacing:-.02em}.tabbar svg{width:21px;height:21px}}`;document.head.appendChild(st)}
 
 /* ============ Transacties › tandwiel: Bancontact-export opladen ============
    CSV uit het Bancontact-portaal (alle betalingen, ook via de vaste QR-code). De server bewaart ze en splitst elke
