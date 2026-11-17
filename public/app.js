@@ -43,7 +43,7 @@ const ICON={
 };
 const ic=n=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+ICON[n]+'</svg>';
 const NAV=[{id:"leden",label:"Leden",items:[["leden","Ledenlijst"],["punten","Puntensysteem"]]},{id:"boekhouding",label:"Financiën",items:[["boekhouding","Overzicht"],["boekingen","Transacties"],["verwerken","Te verwerken"],["historiek","Historiek"]]},{id:"administratie",label:"Activiteiten",items:[["kalenders","Kalenders"],["banket","Banket"]]},{id:"communicatie",label:"Administratie",items:[["sponsors","Sponsors"],["mails","Mails"]]}];
-const ROUTES=[["logboek","Logboek"],["boekingen","Transacties"],["verwerken","Te verwerken"],["regels","Regels"],["bank","Bankimport"],["dashboard","Dashboard"],["leden","Leden"],["boekhouding","Boekhouding"],["punten","Puntensysteem"],["kalenders","Kalenders"],["ronde","Kalenderronde"],["sponsors","Sponsors"],["banket","Banket"],["historiek","Historiek"],["mails","Mails"],["instellingen","Instellingen"]];
+const ROUTES=[["logboek","Logboek"],["boekingen","Transacties"],["verwerken","Te verwerken"],["regels","Regels"],["bank","Bankimport"],["dashboard","Dashboard"],["leden","Leden"],["boekhouding","Boekhouding"],["punten","Puntensysteem"],["kalenders","Kalenders"],["ronde","Kaart"],["sponsors","Sponsors"],["banket","Banket"],["historiek","Historiek"],["mails","Mails"],["instellingen","Instellingen"]];
 
 /* ============ standaardwaarden ============ */
 const DEF_CONFIG={vereniging:"Vriendenkring Brandweer Hoofdpost Aalst",rekeningnummer:"",
@@ -905,7 +905,7 @@ const krInfo=id=>{const d=KR_DEEL.get(id);if(d){const s=KR.byId.get(d.sid);retur
 /* ops om de losse delen van straten weg te halen (bij het aanduiden of wissen van de hele straat) */
 function krSegWeg(sids){const ops=[];for(const sid of sids)for(const x of krDeelVan(sid)){S.ronde.delete(JAAR+"_"+x.id);ops.push(["ronde",JAAR+"_"+x.id,null])}return ops}
 
-const KAL_TABS=[["kalenders","Verdeling"],["ronde","Kalenderronde"]];
+const KAL_TABS=[["kalenders","Verdeling"],["ronde","Kaart"]];
 function kalTabs(act){return `<nav class="tabs" aria-label="Onderdelen kalenders">${KAL_TABS.map(([k,l])=>`<a href="#${k}" class="${k===act?"on":""}">${esc(l)}</a>`).join("")}</nav>`}
 
 VIEWS.ronde=()=>({title:"Kalenderronde",
@@ -8919,7 +8919,7 @@ document.addEventListener("pointermove",e=>{const s=e.target.closest&&e.target.c
 /* ============ Rechten per tabblad binnen een functie ============
    bestuur.rechten["functie:route"] = "geen"|"lezen"|"bewerken" beperkt één tabblad (nooit meer dan de functie zelf).
    Niet ingesteld = zoals de functie (Kalenders › Overzicht: enkel voor de boekhouder). */
-const RTAB={kalenders:[["kalenders","Verdeling"],["ronde","Kalenderronde"],["kalcontrole","Controle"],["kalfin","Overzicht"]],
+const RTAB={kalenders:[["kalenders","Verdeling"],["ronde","Kaart"],["kalcontrole","Controle"],["kalfin","Overzicht"]],
   financien:[["boekingen","Transacties"],["verwerken","Te verwerken"]],facturen:[["facturen","Uitgaand"],["inkomend","Inkomend"]],agenda:[["agenda","Agenda"],["verslagen","Verslagen"]]};
 const RN={geen:0,lezen:1,bewerken:2};
 const rtFunc=r=>{for(const f in RTAB)if(RTAB[f].some(t=>t[0]===r))return f;return null};
