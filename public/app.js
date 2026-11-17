@@ -6997,6 +6997,16 @@ document.addEventListener("change",async e=>{const k=e.target.dataset&&e.target.
   try{await write("config","algemeen",{...stripId(c),[k]:{...(c[k]||{}),aan:e.target.checked}});toast(k==="kalVorig"?(e.target.checked?"Straten van vorig jaar opnieuw reserveren staat aan.":"Straten van vorig jaar opnieuw reserveren staat uit."):e.target.checked?"Automatische mail staat aan.":"Automatische mail staat uit.");if(k==="kalVorig")render(true)}catch(x){e.target.checked=!e.target.checked}});
 {const st=document.createElement("style");st.textContent=`.pi-sec .ws-row+.ws-row{margin-top:12px}`;document.head.appendChild(st)}
 
+/* Mailvelden voor het Lof uit de agenda: {lof_datum} {lof_dag} {lof_uur} {lof_locatie} {lof_info}.
+   Het eerstvolgende Lof in de agenda (anders het laatste), zodat het sjabloon elk jaar herbruikbaar is. */
+function lofItem(){const L=[...S.activiteiten.values()].filter(a=>/^\s*lof\b/i.test(a.titel||"")&&/^\d{4}-\d{2}-\d{2}$/.test(a.datum||"")).sort((a,b)=>a.datum.localeCompare(b.datum));
+  const nu=todayISO();return L.find(a=>a.datum>=nu)||L[L.length-1]||null}
+{const _m=mlMap;mlMap=function(r){const m=_m.apply(this,arguments);const a=lofItem();
+  const d=a?new Date(a.datum+"T12:00:00"):null,f=o=>d?d.toLocaleDateString("nl-BE",o):"";
+  m.lof_datum=f({weekday:"long",day:"numeric",month:"long",year:"numeric"});m.lof_dag=f({weekday:"long",day:"numeric",month:"long"});
+  m.lof_uur=a&&a.uur||"";m.lof_locatie=a&&a.locatie||"";m.lof_info=a&&a.info||"";return m}}
+ML_VELDEN.push(["Lof (agenda)",[["lof_datum","Datum"],["lof_dag","Dag (zonder jaar)"],["lof_uur","Uur"],["lof_locatie","Locatie"],["lof_info","Extra info"]]]);
+
 /* ============ Activiteiten › Shiften: bord met helpers als tegels ============
    Op de activiteit (collectie "activiteiten"):
      shiften:[{id,taak,van,tot,nodig,leden:[helperId]}]   (een kolom per shift / locatie)
