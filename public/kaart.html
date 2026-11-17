@@ -2908,7 +2908,7 @@ krLive();
 .km{background:var(--surface,#fff);color:var(--ink,#111);width:100%;max-width:440px;border-radius:18px 18px 0 0;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,.25);max-height:90vh;overflow:auto}@media(min-width:640px){.km{border-radius:18px}}
 .km h3{margin:0 0 4px;font-size:18px}.km p{margin:0 0 12px;color:var(--muted,#666);font-size:14px}
 .km-st{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}.km-st span{background:var(--soft,#f2f2f3);border-radius:99px;padding:4px 10px;font-size:13px}
-.km-seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 14px}.km-seg button{padding:10px;border:1.5px solid var(--line,#ddd);border-radius:10px;background:none;font:inherit;font-weight:600;cursor:pointer;color:inherit}.km-seg button:disabled{opacity:.4;cursor:not-allowed}.km-seg button.on{border-color:var(--accent);background:var(--accent);color:#fff}
+.km-seg{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0 0 14px;border:1px solid var(--line-strong,#ccc);border-radius:10px;overflow:hidden}.km-seg button{padding:10px;border:0;border-radius:0;background:var(--surface,#fff);font:inherit;font-weight:600;font-size:14px;cursor:pointer;color:inherit;min-height:42px;display:flex;align-items:center;justify-content:center;gap:6px}.km-seg button+button{border-left:1px solid var(--line-strong,#ccc)}.km-seg svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.km-seg button:disabled{opacity:.4;cursor:not-allowed}.km-seg button.on{background:var(--info);color:#fff}.km-seg button[data-ks="d"].on{background:var(--good)}
 .km label{display:block;font-weight:600;font-size:14px;margin:0 0 6px}.km-w{position:relative}.km input[type=text]{width:100%;box-sizing:border-box;padding:12px;border:1px solid var(--line,#ccc);border-radius:10px;font:inherit;font-size:16px;background:var(--surface,#fff);color:inherit}
 .km input.ok{border-color:var(--good,#16a34a)}.km-l{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--surface,#fff);border:1px solid var(--line,#ddd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:2;max-height:220px;overflow:auto}
 .km-l button{display:block;width:100%;text-align:left;padding:10px 12px;border:0;background:none;font:inherit;cursor:pointer;color:inherit}.km-l button:hover,.km-l button.on{background:var(--soft,#f2f2f3)}
@@ -2920,12 +2920,12 @@ krLive();
   function open(soort){const ids=[...KR.ss].filter(id=>KR.byId.has(id)||KR_DEEL.has(id));if(!ids.length)return;let lid=null,L=[],sel=-1,T=null;
     const bg=document.createElement("div");bg.className="km-bg";bg.innerHTML=`<div class="km" role="dialog" aria-modal="true" aria-labelledby="kmT"><h3 id="kmT">Straten melden</h3><p>Het bestuur kijkt je melding na. Daarna verschijnt ze op de kaart.</p>
       <div class="km-st">${[...new Set(ids.map(id=>krNaamId(id)))].map(n=>`<span>${e2(n)}</span>`).join("")}</div>
-      <div class="km-seg"><button type="button" data-ks="r">Gereserveerd</button><button type="button" data-ks="d">Bedeeld</button></div>
+      <div class="km-seg"><button type="button" data-ks="r">Reserveren</button><button type="button" data-ks="d"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Gedaan</button></div>
       <label for="kmN">Jouw naam</label><div class="km-w"><input type="text" id="kmN" autocomplete="off"><div class="km-l" id="kmL" hidden></div></div><div class="km-dz" id="kmDz" hidden></div>
       <div class="km-hp" aria-hidden="true"><input type="text" id="kmW" tabindex="-1" autocomplete="off"></div><p class="km-e" id="kmE"></p>
       <div class="km-a"><button type="button" data-km="x">Annuleren</button><button type="button" class="prim" data-km="ok">Doorsturen</button></div></div>`;
     document.body.appendChild(bg);const inp=bg.querySelector("#kmN"),box=bg.querySelector("#kmL"),err=bg.querySelector("#kmE");
-    const alRes=krAlRes();if(alRes){soort="d";const sg=bg.querySelector('[data-ks="r"]');if(sg){sg.disabled=true;sg.title="Een gekozen straat is al gereserveerd: die kan je enkel nog als bedeeld doorgeven."}}
+    const alRes=krAlRes();if(alRes){soort="d";const sg=bg.querySelector('[data-ks="r"]');if(sg){sg.disabled=true;sg.title="Een gekozen straat is al gereserveerd: die kan je enkel nog als gedaan doorgeven."}}
     if(window.KR_IK&&window.KR_IK.id)setTimeout(()=>{if(!lid)kies(window.KR_IK)},0);
     if(alRes&&!(window.KR_IK&&window.KR_IK.id))fetch("/api/ronde?wie="+encodeURIComponent(ids.join(",")),{cache:"no-store"}).then(r=>r.ok?r.json():[]).then(W=>{if(W&&W[0]&&!lid&&!inp.value.trim())kies(W[0])}).catch(()=>{});
     /* bij "bedeeld": vragen over de dozen (hoeveel heb je nog, of hoeveel zijn er afgewerkt, en heb je er nog nodig) */
