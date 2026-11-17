@@ -6061,7 +6061,7 @@ document.addEventListener("click",e=>{if(!e.target.closest("#spOk"))return;const
   const dicht=()=>{try{const v=JSON.parse(localStorage.getItem(DKEY())||"[]");return Array.isArray(v)?v:[]}catch(e){return []}};
   const zetDicht=L=>{try{localStorage.setItem(DKEY(),JSON.stringify(L.slice(-400)))}catch(e){}sync()};
   /* handtekening van een melding: de vetgedrukte delen (titel, namen, bedragen), zonder datums */
-  const msig=m=>{const b=m.querySelector(".nm-body");if(!b)return"";const B=[...b.querySelectorAll("b")].map(x=>x.textContent);return(B.length?B.join("|"):b.textContent).replace(/\d{1,2}\/\d{1,2}\/\d{2,4}/g,"").replace(/\s+/g," ").trim().slice(0,400)};
+  const msig=m=>{const b=m.querySelector(".nm-body");if(!b)return"";const B=[...b.querySelectorAll("b")].map(x=>x.dataset.t0||x.textContent);return(B.length?B.join("|"):b.textContent).replace(/\d{1,2}\/\d{1,2}\/\d{2,4}/g,"").replace(/\s+/g," ").trim().slice(0,400)};
   /* synchroniseren met de databank (één rij per gebruiker) */
   let laden=false,klaar=false,tmr=0;
   async function haal(){if(laden||klaar||typeof SB==="undefined"||!SB||typeof ME==="undefined"||!ME)return;laden=true;
@@ -6073,6 +6073,12 @@ document.addEventListener("click",e=>{if(!e.target.closest("#spOk"))return;const
   window.dmSync=()=>sync();
   function sync(){if(!klaar)return;clearTimeout(tmr);tmr=setTimeout(async()=>{try{await SB.from("meldingen_gelezen").upsert({data:{gelezen:lees().slice(-400),dicht:dicht().slice(-400),verborgen:dmVerb()},gewijzigd:new Date().toISOString()},{onConflict:"user_id"})}catch(e){}},800)}
   appInterval(haal,3000);
+  /* titel van een melding aanpassen als er al gelezen items uit weggehaald werden (2 nieuwe leden → 1) */
+  function telTitel(m,k){const n0=+m.dataset.n0,b=m.querySelector(".nm-body > b");if(!b||!n0||k>=n0)return;if(!b.dataset.t0)b.dataset.t0=b.textContent;const t0=b.dataset.t0;
+    if(!new RegExp("(^|\\D)"+n0+"(\\D|$)").test(t0))return;
+    let t=t0.replace(new RegExp("(^|\\D)"+n0+"(?=\\D|$)"),"$1"+k);
+    if(k===1)t=t.replace(/^1 nieuwe leden hebben zich aangemeld/,"Er heeft zich een nieuw lid aangemeld").replace(/Er zijn 1 transacties/,"Er is 1 transactie").replace(/\b1 leden\b/,"1 lid");
+    if(b.textContent!==t)b.textContent=t}
   function zuiver(){
     if(toon||!document.querySelector(".nmeld"))return;
     const D=new Set(dicht());
@@ -6082,7 +6088,7 @@ document.addEventListener("click",e=>{if(!e.target.closest("#spOk"))return;const
     document.querySelectorAll(".nmeld").forEach(m=>{
       if(m.closest(".modal"))return;
       const I=[...m.querySelectorAll(".nm-i")];
-      if(I.length){I.forEach(i=>{if(G.has(sig(i)))i.remove()});if(!m.querySelector(".nm-i")){m.remove()}}
+      if(I.length){if(!m.dataset.n0)m.dataset.n0=I.length;I.forEach(i=>{if(G.has(sig(i)))i.remove()});const k=m.querySelectorAll(".nm-i").length;if(!k){m.remove()}else telTitel(m,k)}
       else if(G.has(sig(m)))m.remove()
     });
   }
