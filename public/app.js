@@ -3214,12 +3214,12 @@ function kalTable(){
 
 /* aantal kiezen: grote − en + en snelkeuzes */
 function kalAantal(id,start,max){return `<div class="kal-pick" data-max="${max==null?"":max}"><button type="button" class="kal-pb" data-kp="-1" aria-label="Eén minder">−</button>
-  <input id="${id}" class="kal-pn" type="number" inputmode="decimal" step="0.5" min="0.5"${max!=null?` max="${max}"`:""} value="${start}" aria-label="Aantal dozen"><button type="button" class="kal-pb" data-kp="1" aria-label="Eén meer">+</button></div>
-  <div class="kal-chips"><button type="button" class="kal-chip" data-kc="0.5">½</button>${[1,2,3,5,10].filter(n=>max==null||n<=max).map(n=>`<button type="button" class="kal-chip" data-kc="${n}">${n}</button>`).join("")}${max!=null&&max>1&&![1,2,3,5,10].includes(max)?`<button type="button" class="kal-chip" data-kc="${max}">alle ${kalFmt(max)}</button>`:""}</div>`}
-// halve dozen mogen: afronden op 0,5
-function kalLees(id,max){let n=Math.round(parseFloat(String(($("#"+id)||{}).value).replace(",","."))*2)/2;if(!(n>0))return 0;if(max!=null)n=Math.min(n,max);return n}
+  <input id="${id}" class="kal-pn" type="number" inputmode="decimal" step="0.25" min="0.25"${max!=null?` max="${max}"`:""} value="${start}" aria-label="Aantal dozen"><button type="button" class="kal-pb" data-kp="1" aria-label="Eén meer">+</button></div>
+  <div class="kal-chips">${[[0.25,"¼"],[0.5,"½"],[0.75,"¾"]].filter(([n])=>max==null||n<=max).map(([n,l])=>`<button type="button" class="kal-chip" data-kc="${n}">${l}</button>`).join("")}${[1,2,3,5,10].filter(n=>max==null||n<=max).map(n=>`<button type="button" class="kal-chip" data-kc="${n}">${n}</button>`).join("")}${max!=null&&max>1&&![1,2,3,5,10].includes(max)?`<button type="button" class="kal-chip" data-kc="${max}">alle ${kalFmt(max)}</button>`:""}</div>`}
+// kwart dozen mogen: afronden op 0,25
+function kalLees(id,max){let n=Math.round(parseFloat(String(($("#"+id)||{}).value).replace(",","."))*4)/4;if(!(n>0))return 0;if(max!=null)n=Math.min(n,max);return n}
 document.addEventListener("click",e=>{const p=e.target.closest(".kal-pick [data-kp]");const c=e.target.closest("[data-kc]");
-  if(p){const box=p.closest(".kal-pick"),i=box.querySelector("input"),mx=box.dataset.max===""?Infinity:+box.dataset.max;i.value=Math.max(0.5,Math.min(mx,(parseFloat(i.value)||0)+Number(p.dataset.kp)));i.dispatchEvent(new Event("input",{bubbles:true}))}
+  if(p){const box=p.closest(".kal-pick"),i=box.querySelector("input"),mx=box.dataset.max===""?Infinity:+box.dataset.max;i.value=Math.max(0.25,Math.min(mx,(parseFloat(i.value)||0)+Number(p.dataset.kp)));i.dispatchEvent(new Event("input",{bubbles:true}))}
   if(c){const i=document.querySelector(".modal .kal-pn");if(i){i.value=c.dataset.kc;i.dispatchEvent(new Event("input",{bubbles:true}))}}});
 
 function kalBeweeg(id,t,n,extra){const j=S.jaarleden.get(id);if(!j)return;const op=j.kalOpgehaald||0,ui=j.kalUitgevoerd||0,rs=j.kalTerugRest||0;
