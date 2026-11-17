@@ -9684,6 +9684,18 @@ async function kaAutoGebust(){if(KA_AUTO_BEZIG||!canWrite||typeof KR==="undefine
 {const _w=write;write=function(col,id,data){const r=_w.apply(this,arguments);if(col==="ronde"&&data&&data.status==="done")setTimeout(kaAutoGebust,400);return r}}
 {let t=0;appInterval(()=>{if(t++<2)return;if(typeof loaded!=="undefined"&&loaded.has&&loaded.has("kalenderaanvragen")&&loaded.has("ronde"))kaAutoGebust()},15000)}
 
+/* Kaart (beheer): kaartje bij meerdere straten zoals op de openbare kaart: "X dozen" als titel, "N straten · Y adressen" ernaast, lijst open/dicht met het rode pijltje vooraan */
+(function(){const st=document.createElement("style");st.textContent=`.kr-card.rij .kr-card-h{align-items:center}.kr-card.rij .kr-card-t{flex-direction:row;flex-wrap:wrap;align-items:baseline;column-gap:10px;row-gap:2px}.kr-card.rij .kr-card-t>span{min-height:0}.kr-card .kr-card-t>span b{color:var(--ink);font-weight:600}.kr-card [hidden]{display:none!important}
+.kr-card .kr-lt{color:var(--accent);padding:4px;margin:0 -4px 0 -6px;min-height:0;min-width:0;border:0;background:none;cursor:pointer;display:grid;place-items:center}.kr-card .kr-lt svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;transition:transform .15s}.kr-card .kr-lt[aria-expanded="true"] svg{transform:rotate(180deg)}`;document.head.appendChild(st);
+  const _k=krCard;krCard=function(){const r=_k.apply(this,arguments);const c=KR.host&&KR.host.querySelector("#krCard");if(!c)return r;let lt=c.querySelector("#krCardL");
+    if(KR.ss.size>1&&c.classList.contains("multi")&&!c.hidden){const ids=[...KR.ss].filter(id=>KR.byId.has(id)),tot=ids.reduce((t,id)=>t+(KR.byId.get(id).a||0),0),pd=jaarCfg(JAAR).perDoos||100,doz=Math.ceil(tot/pd);
+      c.querySelector("#krCardT").textContent=`${krNum(doz)} ${doz===1?"doos":"dozen"}`;c.querySelector("#krCardM").innerHTML=`<b>${ids.length}</b> straten · <b>${krNum(tot)}</b> adressen`;c.classList.add("rij");
+      const mu=c.querySelector("#krMulti"),sum=mu&&mu.querySelector(".kr-sum");if(sum)sum.remove();
+      const open=KR.lijstOpen??!matchMedia("(max-width:640px)").matches,ul=mu&&mu.querySelector(".kr-ml");if(ul)ul.hidden=!open;
+      if(!lt){lt=document.createElement("button");lt.type="button";lt.id="krCardL";lt.className="kr-lt";lt.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';lt.onclick=e=>{e.stopPropagation();KR.lijstOpen=!(KR.lijstOpen??!matchMedia("(max-width:640px)").matches);krCard()};c.querySelector(".kr-card-t").before(lt)}
+      lt.hidden=false;lt.setAttribute("aria-expanded",String(open));lt.title=open?"Straten verbergen":"Straten tonen";lt.setAttribute("aria-label",lt.title)}
+    else{c.classList.remove("rij");if(lt)lt.hidden=true}return r}})();
+
 /* ============ Kalenderdozen overdragen naar een ander lid (enkel administrator) ============
    In de fiche van een persoon (Kalenders › Verdeling): "Dozen overdragen". Kies aan wie (lid of andere naam) en hoeveel dozen.
    Staat de ontvanger nog niet in de lijst, dan wordt hij meteen toegevoegd. Beide kanten krijgen een regel in hun geschiedenis. */
