@@ -9204,10 +9204,9 @@ function osKolom(titel,L,kl){const tot=L.reduce((s,x)=>s+x.b,0),gr=[...new Set(L
   return `<div class="os-k"><div class="os-h"><span>${titel}</span><b class="${tot>0.004?kl:""}">${eur(tot)}</b></div>${L.length?gr.map(g=>{const X=L.filter(x=>x.g===g).sort((a,b)=>b.b-a.b),st=X.reduce((s,x)=>s+x.b,0);
     return `<div class="os-g"><a class="os-gh" href="${X[0].h}"><span>${esc(g)} <small>${X.length}</small></span><b>${eur(st)}</b></a>${X.slice(0,4).map(x=>`<a class="os-r" href="${x.h}"><span class="trunc"><b>${esc(x.n)}</b> <small>${esc(x.s)}</small></span><span class="num">${eur(x.b)}</span></a>`).join("")}${X.length>4?`<a class="os-m" href="${X[0].h}">+${X.length-4} meer</a>`:""}</div>`}).join(""):'<div class="os-leeg">Niets openstaand.</div>'}</div>`}
 {const _v=VIEWS.boekhouding;if(_v){const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){const h=String(b.apply(this,arguments));
-  const k='<div class="panel"><div class="panel-h"><h2>Inkomsten en uitgaven per maand';const i=h.indexOf(k);if(i<0)return h;
   const {IN,UIT}=osLijsten();if(!IN.length&&!UIT.length)return h;
   const p=`<div class="panel os"><div class="panel-b os-w">${osKolom("Nog te ontvangen",IN,"in")}${osKolom("Nog te betalen",UIT,"out")}</div></div>`;
-  return h.slice(0,i)+p+h.slice(i)};return v};Object.assign(n,_v);VIEWS.boekhouding=n}}
+  return h+p};return v};Object.assign(n,_v);VIEWS.boekhouding=n}}
 {const st=document.createElement("style");st.textContent=`.os-w{display:grid;grid-template-columns:1fr 1fr;gap:28px}@media(max-width:760px){.os-w{grid-template-columns:1fr;gap:20px}}
 .os-h{display:flex;justify-content:space-between;align-items:baseline;font-weight:600;font-size:15px;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:6px}.os-h b{font-size:18px}.os-h b.in{color:var(--good)}.os-h b.out{color:var(--bad)}
 .os-g{padding:6px 0}.os-gh{display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--ink);text-decoration:none;padding:4px 0}.os-gh small{color:var(--muted);font-weight:500;margin-left:4px}
