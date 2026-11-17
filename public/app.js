@@ -5261,10 +5261,10 @@ const nsLijst=(tpl,soort)=>soort==="laat"?nsLaat(tpl):nsNieuwe(tpl,true);
 /* Dashboard: nieuwe leden met lidgeld in orde die de mail nog niet kregen -> melding met knop (niets gaat automatisch) */
 function nsDash(){if(!canWrite)return"";const nu=todayISO();let h="";
   for(const[tpl,R]of Object.entries(nsCfg())){if(!R||!R.html||!(String(R.tot||"")>=nu))continue;
-    const LT=nsLaat(tpl);if(LT.length)h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("geld")}</span><div class="nm-body"><b>„${esc(R.naam||"Uitnodiging")}” nog niet ontvangen</b><span class="ns-s">${LT.length===1?"1 lid betaalde":LT.length+" leden betaalden"} het lidgeld pas na het versturen</span>
+    const LT=nsLaat(tpl);if(LT.length)h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("geld")}</span><div class="nm-body"><b>${esc(R.naam||"Uitnodiging")} nog niet ontvangen</b>
     <div class="nm-l ns-r">${LT.slice(0,8).map(x=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(x.lidId)}"><b>${esc(x.label)}</b></button>`).join("")}${LT.length>8?`<span class="nm-more">+${LT.length-8} meer</span>`:""}<button type="button" class="nm-btn ns-b" data-nsd-stuur="${esc(tpl)}" data-soort="laat">${ic("mails")}Versturen</button></div></div></div>`;
     const N=nsNieuwe(tpl,true);if(!N.length)continue;
-    h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("lidplus")}</span><div class="nm-body"><b>„${esc(R.naam||"Uitnodiging")}” nog niet ontvangen</b><span class="ns-s">${N.length===1?"1 nieuw lid":N.length+" nieuwe leden"} met lidgeld in orde</span>
+    h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("lidplus")}</span><div class="nm-body"><b>${esc(R.naam||"Uitnodiging")} nog niet ontvangen</b>
     <div class="nm-l ns-r">${N.slice(0,8).map(x=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(x.lidId)}"><b>${esc(x.label)}</b></button>`).join("")}${N.length>8?`<span class="nm-more">+${N.length-8} meer</span>`:""}<button type="button" class="nm-btn ns-b" data-nsd-stuur="${esc(tpl)}">${ic("mails")}Versturen</button></div></div></div>`}
   return h}
 async function nsStuurSnapshot(tpl,soort){const R=nsCfg()[tpl],N=nsLijst(tpl,soort);if(!R||!N.length)return;
