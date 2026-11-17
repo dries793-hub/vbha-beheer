@@ -8509,7 +8509,12 @@ const gdAutoAan=()=>((S.config.get("algemeen")||{}).goudMail||{}).aan!==false;
 function gdKandidaten(alle){if(ROL!=="admin"&&!alle)return[];let C;try{C=ctx()}catch(e){return[]}const g=C.c&&C.c.drempels&&C.c.drempels.goud;if(!g)return[];
   return [...C.rows.values()].filter(r=>r.huidig&&r.lid.categorie!=="Erewacht"&&!r.jl.vrijstelling&&!r.jl.goudMail&&r.p&&r.p.totaal>=g).sort((a,b)=>naamVol(a.lid).localeCompare(naamVol(b.lid),"nl"))}
 const GD_WEG="vbha_gd_weg";
-function gdWeg(){try{return new Set(JSON.parse(localStorage.getItem(GD_WEG)||"[]"))}catch(e){return new Set()}}
+/* gezien: lokaal (GD_WEG) én in de gelezen-lijst van de gebruiker ("gd|<jaar>_<lid>", gesynchroniseerd over toestellen) */
+const gdGlKey=()=>"vbha_gelezen_"+((typeof ME_NAME!=="undefined"&&ME_NAME)||"x");
+function gdWeg(){const W=new Set();try{for(const x of JSON.parse(localStorage.getItem(GD_WEG)||"[]"))W.add(x)}catch(e){}try{for(const x of JSON.parse(localStorage.getItem(gdGlKey())||"[]"))if(String(x).startsWith("gd|"))W.add(String(x).slice(3))}catch(e){}return W}
+/* wie op het dashboard getoond werd, geldt na enkele seconden als gelezen (komt de volgende keer niet terug) */
+let GD_T=0;function gdMarkeer(){clearTimeout(GD_T);GD_T=setTimeout(()=>{if(route()!=="dashboard"||document.hidden)return;const ids=[...document.querySelectorAll(".gd-m [data-gid]")].map(r=>"gd|"+r.dataset.gid);if(!ids.length)return;
+  try{const L=JSON.parse(localStorage.getItem(gdGlKey())||"[]"),n=[...new Set([...L,...ids])];if(n.length!==L.length){localStorage.setItem(gdGlKey(),JSON.stringify(n.slice(-400)));if(window.dmSync)window.dmSync()}}catch(e){}},5000)}
 // melding sluiten: de getoonde leden onthouden (vóór de algemene sluitknop de melding weghaalt)
 document.addEventListener("click",e=>{const x=e.target.closest&&e.target.closest("[data-dicht]");const m=x&&x.closest(".gd-m");if(!m)return;
   const W=gdWeg();m.querySelectorAll("[data-gid]").forEach(r=>W.add(r.dataset.gid));try{localStorage.setItem(GD_WEG,JSON.stringify([...W].slice(-500)))}catch(er){}},true);
@@ -8521,7 +8526,7 @@ function gdMeldingAuto(){if(ROL!=="admin")return"";let C;try{C=ctx()}catch(e){re
   const weg=gdWeg();L=L.filter(r=>!weg.has(JAAR+"_"+r.lid.id));
   if(!L.length)return"";
   return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("medaille")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
-   <div class="nm-l">${L.slice(0,12).map(r=>{const m=r.jl.goudMail;return `<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(r.lid.id)}" data-gid="${esc(JAAR+"_"+r.lid.id)}"><b>${esc(naamVol(r.lid))}</b><span>${r.p.totaal} punten · ${!r.lid.email?"geen e-mailadres":m&&m.verstuurd?"proficiat-mail "+fmtDate(String(m.op).slice(0,10)):"proficiat-mail volgt"}</span></button>`}).join("")}</div></div></div>`}
+   <div class="gd-l">${L.slice(0,12).map(r=>{const m=r.jl.goudMail;return `<div class="gd-r" data-gid="${esc(JAAR+"_"+r.lid.id)}"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten · ${!r.lid.email?"geen e-mailadres":m&&m.verstuurd?"proficiat-mail verstuurd op "+fmtDate(String(m.op).slice(0,10)):"proficiat-mail wordt automatisch verstuurd"}</span></span></div>`}).join("")}</div></div></div>`}
 function gdMelding(){if(gdAutoAan())return gdMeldingAuto();const L=gdKandidaten();if(!L.length)return"";
   return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("medaille")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
    <div class="gd-l">${L.slice(0,12).map(r=>`<div class="gd-r"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten${r.lid.email?"":" · geen e-mailadres"}</span></span>
@@ -8535,7 +8540,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-gd]");if(!
   const r=gdKandidaten().find(x=>x.lid.id===b.dataset.id);if(!r)return;
   if(a==="mail"){confirmBox(`<b>${esc(naamVol(r.lid))}</b> (${esc(r.lid.email)}) een proficiat-mail sturen voor de goudstatus ${JAAR+1}?`,"Versturen",()=>gdDoe("mail",[r.lid.id]));return}
   if(a==="overslaan")gdDoe("overslaan",[r.lid.id])});
-viewHook("dashboard",{voor:()=>gdMelding()});
+viewHook("dashboard",{voor:()=>{const h=gdMelding();if(h)gdMarkeer();return h}});
 {const st=document.createElement("style");st.textContent=`.gd-l{display:flex;flex-direction:column;gap:6px;margin-top:8px}.gd-r{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .gd-n{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;min-width:0}.gd-a{display:flex;gap:6px;flex:none}.gd-al{margin-top:10px}
 @media(max-width:760px){.gd-l{gap:0;margin-top:6px}.gd-r{flex-wrap:nowrap;padding:8px 0;border-top:1px solid rgba(0,0,0,.08)}.gd-r:first-child{border-top:0}
