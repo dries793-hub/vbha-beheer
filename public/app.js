@@ -8757,13 +8757,13 @@ VIEWS.kalfin=()=>({title:"Kalenders "+JAAR,sub:"Financieel overzicht",body(){
    <div><h3 class="kf-h">Per dag</h3>${D.map(([d,v,g])=>`<div class="kf-r"><span class="kfx-k" data-kfd="${d}">${fmtDate(d).slice(0,5)}</span>${bar(g.q,g.o,dm,kfEur,g.nq,g.no)}<b>${kfEur(v)}</b></div>`).join("")}</div></div></div>`}</div>
   ${J0.kin||J0.si?(()=>{const v=(a,b,inv)=>{if(!b)return'<td class="num muted" data-l="Verschil">–</td>';const d=a-b,p=Math.round(d/Math.abs(b)*100),g=inv?d<=0:d>=0;return `<td class="num" data-l="Verschil" style="color:var(--${g?"good":"bad"})">${d>=0?"+":"−"}${kfEur(Math.abs(d))}</td>`};
     const r=(l,a,b,inv)=>`<tr><td>${l}</td><td class="num" data-l="${JAAR}">${kfEur(a)}</td><td class="num" data-l="${Number(JAAR)-1}">${kfEur(b)}</td>${v(a,b,inv)}</tr>`;
-    return `<div class="panel"><div class="panel-h"><h2>Vergelijking met vorig jaar</h2></div><div class="tw"><table class="kf-vg"><thead><tr><th></th><th class="num">${JAAR}</th><th class="num">${Number(JAAR)-1}</th><th class="num">Verschil</th></tr></thead><tbody>
+    return `<div class="panel"><div class="panel-h"><h2>Vergelijking met vorig jaar</h2><span class="kv-lg"><i></i>${JAAR} <i class="v"></i>${Number(JAAR)-1}</span></div>${kvGrafieken(J1,J0,isBc)}<div class="tw"><table class="kf-vg"><thead><tr><th></th><th class="num">${JAAR}</th><th class="num">${Number(JAAR)-1}</th><th class="num">Verschil</th></tr></thead><tbody>
       ${r("Totale winst",J1.res,J0.res).replace(/<td class="num" data-l="(\d{4})">([^<]*)<\/td>/g,(m,y,t)=>`<td class="num" data-l="${y}" style="font-weight:700;color:var(--${(y==JAAR?J1.res:J0.res)>=0?"good":"bad"})">${t}</td>`)}${r("Omzet kalenders",J1.kin,J0.kin)}${r("Sponsors",J1.si,J0.si)}${r("Kosten kalenders",J1.kuit,J0.kuit,true)}
       ${J1.opl&&J0.opl?`<tr><td>Oplage</td><td class="num" data-l="${JAAR}">${J1.opl.toLocaleString("nl-BE")}</td><td class="num" data-l="${Number(JAAR)-1}">${J0.opl.toLocaleString("nl-BE")}</td><td class="num muted" data-l="Verschil">${J1.opl-J0.opl>=0?"+":"−"}${Math.abs(J1.opl-J0.opl).toLocaleString("nl-BE")}</td></tr>`+r("Kostprijs per kalender",(J1.kuit-J1.si)/J1.opl,(J0.kuit-J0.si)/J0.opl,true)+r("Gemiddelde omzet per kalender",J1.kin/J1.opl,J0.kin/J0.opl)+r("Winst per kalender",J1.res/J1.opl,J0.res/J0.opl):""}
       ${bed&&bedV&&nV?(()=>{const a=n/bed*100,b=nV/bedV*100,d=a-b,f=x=>x.toLocaleString("nl-BE",{maximumFractionDigits:1})+" %";return `<tr><td>Respons</td><td class="num" data-l="${JAAR}">${f(a)}</td><td class="num" data-l="${Number(JAAR)-1}">${f(b)}</td><td class="num" data-l="Verschil" style="color:var(--${d>=0?"good":"bad"})">${d>=0?"+":"−"}${Math.abs(d).toLocaleString("nl-BE",{maximumFractionDigits:1})} %</td></tr>`})():""}</tbody></table></div></div>`})():""}`}});
 
 // bedrag per kleur tonen bij aanklikken van een gekleurd blokje
-document.addEventListener("click",e=>{let t=document.getElementById("kfTip");const i=e.target.closest&&e.target.closest(".kf-b i[data-t]");
+document.addEventListener("click",e=>{let t=document.getElementById("kfTip");const i=e.target.closest&&e.target.closest(".kf-b i[data-t], .kv-bar[data-t]");
   document.querySelectorAll(".kf-b i.on").forEach(x=>x.classList.remove("on"));
   if(!i){if(t)t.remove();return}
   i.classList.add("on");
@@ -8778,6 +8778,48 @@ document.addEventListener("click",e=>{const k=e.target.closest("[data-kfv],[data
   else{L=KF.P.filter(x=>x.d===k.dataset.kfd);t="Betalingen "+fmtDate(k.dataset.kfd)}
   L=[...L].sort((x,y)=>(x.d+(x.t||"")).localeCompare(y.d+(y.t||"")));const som=L.reduce((s,x)=>s+x.a,0);
   modal(t,`<div class="muted small" style="margin-bottom:8px">${L.length} ${L.length===1?"betaling":"betalingen"} · ${kfEur(som)}</div><div class="tw"><table class="kf-lt"><tbody>${L.map(x=>`<tr><td class="nw">${fmtDate(x.d).slice(0,5)}${x.t?" "+esc(x.t):""}</td><td><span class="kf-dot${x.o?" ov":""}"></span>${x.o?"Overschrijving":"Bancontact"}${x.n?` <span class="muted">· ${esc(x.n)}</span>`:""}${x.m?`<div class="muted small">${esc(x.m)}</div>`:""}</td><td class="num"><b>${kfEur(x.a)}</b></td></tr>`).join("")}</tbody></table></div>`,`<button class="btn" data-act="closeModal">Sluiten</button>`)});
+
+/* ---- Vergelijking met vorig jaar in grafieken: opbrengst doorheen het seizoen (cumulatief) en de kerncijfers naast elkaar ---- */
+function kvReeks(Y){const sz=kalSz(),van=Y+"-"+sz.van,tot=(sz.tot<sz.van?Y+1:Y)+"-"+sz.tot;
+  const d0=new Date(van+"T12:00:00"),n=Math.round((new Date(tot+"T12:00:00")-d0)/864e5)+1,dag=new Array(n).fill(0);
+  for(const b of S.boekingen.values()){if(b.categorie!=="Kalenders"||b.richting==="uit")continue;const d=String(b.datum||"");if(d<van||d>tot)continue;
+    const i=Math.round((new Date(d+"T12:00:00")-d0)/864e5);if(i>=0&&i<n)dag[i]+=Number(b.bedrag)||0}
+  let c=0;return{d0,n,cum:dag.map(v=>c+=v)}}
+function kvGrafieken(J1,J0){
+  const Y=Number(JAAR),A=kvReeks(Y),B=kvReeks(Y-1),n=Math.max(A.n,B.n);
+  const nu=Math.round((new Date(todayISO()+"T12:00:00")-A.d0)/864e5),tot=nu<0?-1:Math.min(nu,A.n-1);
+  const W=600,H=230,pl=58,pr=14,pt=14,pb=26,iw=W-pl-pr,ih=H-pt-pb;
+  const mx=Math.max(1,...B.cum,...(tot>=0?A.cum.slice(0,tot+1):[0]));const st=[1,2,2.5,5,10].map(f=>f*Math.pow(10,Math.floor(Math.log10(mx/4)))).find(x=>mx/x<=5)||mx/4,top=Math.ceil(mx/st)*st;
+  const X=i=>pl+i/(n-1)*iw,Yp=v=>pt+ih-v/top*ih;
+  const pad=c=>c.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Yp(v).toFixed(1)).join("");
+  const kEur=v=>"€ "+Math.round(v).toLocaleString("nl-BE");
+  let g="";for(let v=0;v<=top+1e-6;v+=st)g+=`<line x1="${pl}" x2="${W-pr}" y1="${Yp(v)}" y2="${Yp(v)}" class="kv-gr"/><text x="${pl-8}" y="${Yp(v)+4}" text-anchor="end" class="kv-ax">${v?Math.round(v/1000*10)/10+"k":"0"}</text>`;
+  let tk="";for(let i=0;i<n;i++){const d=new Date(A.d0.getTime()+i*864e5);if(d.getDate()===1||i===0)tk+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt+ih}" y2="${pt+ih+4}" class="kv-gr"/><text x="${X(i)}" y="${H-6}" text-anchor="${i===0?"start":"middle"}" class="kv-ax">${d.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})}</text>`}
+  const lijnA=tot>=0?pad(A.cum.slice(0,tot+1)):"",eind=tot>=0?`<circle cx="${X(tot)}" cy="${Yp(A.cum[tot])}" r="4.5" class="kv-pa"/>`:"";
+  const lijn=`<div class="kv-c"><h3 class="kf-h">Omzet kalenders doorheen het seizoen</h3><div class="kv-svgw"><svg viewBox="0 0 ${W} ${H}" class="kv-svg" data-n="${n}" role="img" aria-label="Opbrengst kalenders per dag, ${Y} tegenover ${Y-1}">${g}${tk}
+    <path d="${pad(B.cum)}" class="kv-lb"/>${lijnA?`<path d="${lijnA}" class="kv-la"/>`:""}${eind}<line class="kv-x" x1="0" x2="0" y1="${pt}" y2="${pt+ih}" style="display:none"/><rect x="${pl}" y="${pt}" width="${iw}" height="${ih}" fill="transparent" class="kv-hit"/></svg><div class="kv-tip" hidden></div></div></div>`;
+  KV={A,B,tot,n,pl,iw,W,kEur};
+  const R=[["Omzet",J1.kin,J0.kin],["Sponsors",J1.si,J0.si],["Kosten",J1.kuit,J0.kuit],["Winst",J1.res,J0.res]],bm=Math.max(1,...R.flatMap(r=>[Math.abs(r[1]),Math.abs(r[2])]));
+  const bar=(v,c,l)=>`<div class="kv-br"><span class="kv-bar ${c}" style="width:${Math.max(.6,Math.abs(v)/bm*100)}%" data-t="${l}: ${v<0?"−":""}${kEur(Math.abs(v))}"></span><b>${v<0?"−":""}${kEur(Math.abs(v))}</b></div>`;
+  const staaf=`<div class="kv-c"><h3 class="kf-h">Kerncijfers</h3>${R.map(([l,a,b])=>`<div class="kv-rij"><span class="kv-l">${l}</span><div>${bar(a,"a",l+" "+Y)}${bar(b,"b",l+" "+(Y-1))}</div></div>`).join("")}</div>`;
+  return `<div class="panel-b kv">${lijn}${staaf}</div>`}
+let KV=null;
+document.addEventListener("pointermove",e=>{const s=e.target.closest&&e.target.closest(".kv-svg");const T=document.querySelector(".kv-tip");
+  if(!s||!KV){if(T)T.hidden=true;document.querySelectorAll(".kv-x").forEach(x=>x.style.display="none");return}
+  const r=s.getBoundingClientRect(),vx=(e.clientX-r.left)/r.width*KV.W,i=Math.max(0,Math.min(KV.n-1,Math.round((vx-KV.pl)/KV.iw*(KV.n-1))));
+  const x=KV.pl+i/(KV.n-1)*KV.iw,l=s.querySelector(".kv-x");l.setAttribute("x1",x);l.setAttribute("x2",x);l.style.display="";
+  const d=new Date(KV.A.d0.getTime()+i*864e5),Y=Number(JAAR);
+  T.innerHTML=`<b>${d.toLocaleDateString("nl-BE",{day:"numeric",month:"long"})}</b><span><i class="a"></i>${Y}: ${i<=KV.tot?KV.kEur(KV.A.cum[i]):"–"}</span><span><i class="b"></i>${Y-1}: ${KV.kEur(KV.B.cum[Math.min(i,KV.B.n-1)])}</span>`;
+  T.hidden=false;const px=x/KV.W*r.width;T.style.left=Math.max(0,Math.min(r.width-T.offsetWidth,px+12>r.width-T.offsetWidth?px-T.offsetWidth-12:px+12))+"px"});
+{const st=document.createElement("style");st.textContent=`:root{--kv-a:#2F6FE4;--kv-b:#C2709A}:root[data-theme="dark"]{--kv-a:#5A8BE8;--kv-b:#BE6E98}
+.kv{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:28px;border-bottom:1px solid var(--line)}@media(max-width:860px){.kv{grid-template-columns:1fr;gap:18px}}
+.kv-lg{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}.kv-lg i{width:10px;height:10px;border-radius:3px;background:var(--kv-a);display:inline-block}.kv-lg i.v{background:var(--kv-b);margin-left:8px}
+.kv-svgw{position:relative}.kv-svg{width:100%;height:auto;display:block;touch-action:pan-y}.kv-gr{stroke:var(--line);stroke-width:1}.kv-ax{font-size:11px;fill:var(--muted)}
+.kv-la,.kv-lb{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.kv-la{stroke:var(--kv-a)}.kv-lb{stroke:var(--kv-b)}.kv-pa{fill:var(--kv-a);stroke:var(--surface);stroke-width:2}.kv-x{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+.kv-tip{position:absolute;top:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12.5px;box-shadow:0 4px 14px rgba(0,0,0,.08);pointer-events:none;display:flex;flex-direction:column;gap:2px;white-space:nowrap}.kv-tip[hidden]{display:none}
+.kv-tip i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}.kv-tip i.a{background:var(--kv-a)}.kv-tip i.b{background:var(--kv-b)}
+.kv-rij{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}.kv-rij:first-of-type{border-top:0}.kv-l{font-size:13px;color:var(--muted)}
+.kv-br{display:flex;align-items:center;gap:8px;margin:2px 0}.kv-br b{font-size:12.5px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}.kv-bar{height:12px;border-radius:0 4px 4px 0;cursor:pointer;flex:none;max-width:calc(100% - 92px)}.kv-bar.a{background:var(--kv-a)}.kv-bar.b{background:var(--kv-b)}`;document.head.appendChild(st)}
 
 /* ============ Rechten per tabblad binnen een functie ============
    bestuur.rechten["functie:route"] = "geen"|"lezen"|"bewerken" beperkt één tabblad (nooit meer dan de functie zelf).
