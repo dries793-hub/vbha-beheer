@@ -8796,19 +8796,23 @@ function kvGrafieken(J1,J0,stuks){
     if(e1)E.push(["volgens verloop "+(Y-1),e1]);if(e2&&(e1||f>=.3))E.push([`volgens ${Math.round(f*100)}% bedeelde kalenders`,e2]);
     prog=e1&&e2?(1-f)*e1+f*e2:e1||(f>=.3?e2:0)}
   const P=prog?A.cum.map((v,i)=>{if(i<tot)return null;const d=Bend-Bc(tot);return cur+(prog-cur)*(d>0?(Bc(i)-Bc(tot))/d:(i-tot)/(A.n-1-tot))}):null;
-  const kEur=v=>"€ "+Math.round(v).toLocaleString("nl-BE");
+  const kEur=v=>(v<0?"−":"")+"€ "+Math.round(Math.abs(v)).toLocaleString("nl-BE");
+  /* winst doorheen het seizoen: winst van het jaar min wat er van de seizoensomzet nog moest binnenkomen (kosten en sponsors staan vooraf vast) */
+  const offA=(Number(J1.res)||0)-cur,offB=(Number(J0.res)||0)-Bend;
+  const WA=A.cum.map(v=>v+offA),WB=B.cum.map(v=>v+offB),WP=P?P.map(v=>v==null?null:v+offA):null,progW=prog?prog+offA:0;
   const svg=(W,H,cls)=>{const pl=W<400?44:58,pr=10,pt=14,pb=26,iw=W-pl-pr,ih=H-pt-pb;
-  const mx=Math.max(1,prog,...B.cum,...(tot>=0?A.cum.slice(0,tot+1):[0]));const st=[1,2,2.5,5,10].map(f=>f*Math.pow(10,Math.floor(Math.log10(mx/4)))).find(x=>mx/x<=5)||mx/4,top=Math.ceil(mx/st)*st;
-  const X=i=>pl+i/(n-1)*iw,Yp=v=>pt+ih-v/top*ih;
+  const vals=[0,...WB,...(tot>=0?WA.slice(0,tot+1):[]),...(prog?[progW]:[])],mx=Math.max(...vals),mn=Math.min(...vals),sp=Math.max(1,mx-mn);
+  const st=[1,2,2.5,5,10].map(f=>f*Math.pow(10,Math.floor(Math.log10(sp/4)))).find(x=>sp/x<=5)||sp/4,top=Math.ceil(mx/st)*st,bot=Math.floor(mn/st)*st;
+  const X=i=>pl+i/(n-1)*iw,Yp=v=>pt+ih-(v-bot)/(top-bot||1)*ih;
   const pad=c=>c.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Yp(v).toFixed(1)).join("");
-  let g="";for(let v=0;v<=top+1e-6;v+=st)g+=`<line x1="${pl}" x2="${W-pr}" y1="${Yp(v)}" y2="${Yp(v)}" class="kv-gr"/><text x="${pl-8}" y="${Yp(v)+4}" text-anchor="end" class="kv-ax">${v?Math.round(v/1000*10)/10+"k":"0"}</text>`;
+  let g="";for(let v=bot;v<=top+1e-6;v+=st)g+=`<line x1="${pl}" x2="${W-pr}" y1="${Yp(v)}" y2="${Yp(v)}" class="${Math.abs(v)<1e-6?"kv-nul":"kv-gr"}"/><text x="${pl-8}" y="${Yp(v)+4}" text-anchor="end" class="kv-ax">${Math.abs(v)<1e-6?"0":(v<0?"−":"")+Math.round(Math.abs(v)/1000*10)/10+"k"}</text>`;
   let tk="";for(let i=0;i<n;i++){const d=new Date(A.d0.getTime()+i*864e5);if((d.getDate()===1&&(W>=400||d.getMonth()%2===0))||i===0)tk+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt+ih}" y2="${pt+ih+4}" class="kv-gr"/><text x="${X(i)}" y="${H-6}" text-anchor="${i===0?"start":"middle"}" class="kv-ax">${d.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})}</text>`}
-  const padP=P?P.map((v,i)=>v==null?"":(i===tot?"M":"L")+X(i).toFixed(1)+" "+Yp(v).toFixed(1)).join(""):"",eindP=P?`<circle cx="${X(A.n-1)}" cy="${Yp(prog)}" r="4" class="kv-pp"/><text x="${X(A.n-1)-6}" y="${Yp(prog)-10}" text-anchor="end" class="kv-pl">Prognose ${kEur(prog)}</text>`:"";
-  const lijnA=tot>=0?pad(A.cum.slice(0,tot+1)):"",eind=tot>=0?`<circle cx="${X(tot)}" cy="${Yp(A.cum[tot])}" r="4.5" class="kv-pa"/>`:"";
-  return `<svg viewBox="0 0 ${W} ${H}" class="kv-svg ${cls}" data-w="${W}" data-pl="${pl}" data-iw="${iw}" role="img" aria-label="Opbrengst kalenders per dag, ${Y} tegenover ${Y-1}">${g}${tk}
-    <path d="${pad(B.cum)}" class="kv-lb"/>${padP?`<path d="${padP}" class="kv-lp"/>`:""}${eindP}${lijnA?`<path d="${lijnA}" class="kv-la"/>`:""}${eind}<line class="kv-x" x1="0" x2="0" y1="${pt}" y2="${pt+ih}" style="display:none"/><rect x="${pl}" y="${pt}" width="${iw}" height="${ih}" fill="transparent" class="kv-hit"/></svg>`};
-  const lijn=`<div class="kv-c"><h3 class="kf-h">Omzet kalenders doorheen het seizoen</h3><div class="kv-svgw">${svg(600,230,"kv-gr1")}${svg(340,220,"kv-gr2")}<div class="kv-tip" hidden></div></div>${prog?`<div class="kv-prog"><b>Prognose einde seizoen ${kEur(prog)}</b>${E.length>1?`<span>${E.map(x=>x[0]+" "+kEur(x[1])).join(" · ")}</span>`:`<span>${E[0][0]}</span>`}</div>`:""}</div>`;
-  KV={A,B,tot,n,kEur,P};
+  const padP=WP?WP.map((v,i)=>v==null?"":(i===tot?"M":"L")+X(i).toFixed(1)+" "+Yp(v).toFixed(1)).join(""):"",eindP=WP?`<circle cx="${X(A.n-1)}" cy="${Yp(progW)}" r="4" class="kv-pp"/><text x="${X(A.n-1)-6}" y="${Yp(progW)+(progW<0?20:-10)}" text-anchor="end" class="kv-pl">Prognose ${kEur(progW)}</text>`:"";
+  const lijnA=tot>=0?pad(WA.slice(0,tot+1)):"",eind=tot>=0?`<circle cx="${X(tot)}" cy="${Yp(WA[tot])}" r="4.5" class="kv-pa"/>`:"";
+  return `<svg viewBox="0 0 ${W} ${H}" class="kv-svg ${cls}" data-w="${W}" data-pl="${pl}" data-iw="${iw}" role="img" aria-label="Winst kalenders doorheen het seizoen, ${Y} tegenover ${Y-1}">${g}${tk}
+    <path d="${pad(WB)}" class="kv-lb"/>${padP?`<path d="${padP}" class="kv-lp"/>`:""}${eindP}${lijnA?`<path d="${lijnA}" class="kv-la"/>`:""}${eind}<line class="kv-x" x1="0" x2="0" y1="${pt}" y2="${pt+ih}" style="display:none"/><rect x="${pl}" y="${pt}" width="${iw}" height="${ih}" fill="transparent" class="kv-hit"/></svg>`};
+  const lijn=`<div class="kv-c"><h3 class="kf-h">Winst doorheen het seizoen</h3><div class="kv-svgw">${svg(600,230,"kv-gr1")}${svg(340,220,"kv-gr2")}<div class="kv-tip" hidden></div></div>${prog?`<div class="kv-prog"><b>Prognose winst einde seizoen ${kEur(progW)}</b>${E.length>1?`<span>${E.map(x=>x[0]+" "+kEur(x[1]+offA)).join(" · ")}</span>`:`<span>${E[0][0]}</span>`}</div>`:""}</div>`;
+  KV={A,B,tot,n,kEur,WA,WB,WP};
   const R=[["Omzet",J1.kin,J0.kin],["Sponsors",J1.si,J0.si],["Kosten",J1.kuit,J0.kuit],["Winst",J1.res,J0.res]],bm=Math.max(1,...R.flatMap(r=>[Math.abs(r[1]),Math.abs(r[2])]));
   const bar=(v,c,l)=>`<div class="kv-br"><span class="kv-bar ${c}" style="width:${Math.max(.6,Math.abs(v)/bm*100)}%" data-t="${l}: ${v<0?"−":""}${kEur(Math.abs(v))}"></span><b>${v<0?"−":""}${kEur(Math.abs(v))}</b></div>`;
   const staaf=`<div class="kv-c"><h3 class="kf-h">Kerncijfers</h3>${R.map(([l,a,b])=>`<div class="kv-rij"><span class="kv-l">${l}</span><div>${bar(a,"a",l+" "+Y)}${bar(b,"b",l+" "+(Y-1))}</div></div>`).join("")}</div>`;
@@ -8819,12 +8823,12 @@ document.addEventListener("pointermove",e=>{const s=e.target.closest&&e.target.c
   const W=+s.dataset.w,pl=+s.dataset.pl,iw=+s.dataset.iw,r=s.getBoundingClientRect(),vx=(e.clientX-r.left)/r.width*W,i=Math.max(0,Math.min(KV.n-1,Math.round((vx-pl)/iw*(KV.n-1))));
   const x=pl+i/(KV.n-1)*iw,l=s.querySelector(".kv-x");l.setAttribute("x1",x);l.setAttribute("x2",x);l.style.display="";
   const d=new Date(KV.A.d0.getTime()+i*864e5),Y=Number(JAAR);
-  T.innerHTML=`<b>${d.toLocaleDateString("nl-BE",{day:"numeric",month:"long"})}</b><span><i class="a"></i>${Y}: ${i<=KV.tot?KV.kEur(KV.A.cum[i]):KV.P&&KV.P[i]!=null?"prognose "+KV.kEur(KV.P[i]):"–"}</span><span><i class="b"></i>${Y-1}: ${KV.kEur(KV.B.cum[Math.min(i,KV.B.n-1)])}</span>`;
+  T.innerHTML=`<b>${d.toLocaleDateString("nl-BE",{day:"numeric",month:"long"})}</b><span><i class="a"></i>${Y}: ${i<=KV.tot?KV.kEur(KV.WA[i]):KV.WP&&KV.WP[i]!=null?"prognose "+KV.kEur(KV.WP[i]):"–"}</span><span><i class="b"></i>${Y-1}: ${KV.kEur(KV.WB[Math.min(i,KV.B.n-1)])}</span>`;
   T.hidden=false;const px=x/W*r.width;T.style.left=Math.max(0,Math.min(r.width-T.offsetWidth,px+12>r.width-T.offsetWidth?px-T.offsetWidth-12:px+12))+"px"});
 {const st=document.createElement("style");st.textContent=`:root{--kv-a:#2F6FE4;--kv-b:#C2709A}:root[data-theme="dark"]{--kv-a:#5A8BE8;--kv-b:#BE6E98}
 .kv{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:28px;border-bottom:1px solid var(--line)}@media(max-width:860px){.kv{grid-template-columns:1fr;gap:18px}}
 .kv-lg{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}.kv-lg i{width:10px;height:10px;border-radius:3px;background:var(--kv-a);display:inline-block}.kv-lg i.v{background:var(--kv-b);margin-left:8px}
-.kv-svgw{position:relative}.kv-gr2{display:none!important}@media(max-width:560px){.kv-gr1{display:none!important}.kv-gr2{display:block!important}}.kv-svg{width:100%;height:auto;display:block;touch-action:pan-y}.kv-gr{stroke:var(--line);stroke-width:1}.kv-ax{font-size:11px;fill:var(--muted)}
+.kv-svgw{position:relative}.kv-gr2{display:none!important}@media(max-width:560px){.kv-gr1{display:none!important}.kv-gr2{display:block!important}}.kv-svg{width:100%;height:auto;display:block;touch-action:pan-y}.kv-gr{stroke:var(--line);stroke-width:1}.kv-nul{stroke:var(--muted);stroke-width:1;opacity:.6}.kv-ax{font-size:11px;fill:var(--muted)}
 .kv-la,.kv-lb{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.kv-la{stroke:var(--kv-a)}.kv-lb{stroke:var(--kv-b)}.kv-pa{fill:var(--kv-a);stroke:var(--surface);stroke-width:2}.kv-lp{fill:none;stroke:var(--kv-a);stroke-width:2;stroke-dasharray:5 5;opacity:.75}.kv-pp{fill:var(--surface);stroke:var(--kv-a);stroke-width:2}.kv-pl{font-size:11.5px;font-weight:600;fill:var(--ink)}.kv-prog{margin-top:8px;font-size:13px;display:flex;flex-direction:column;gap:2px}.kv-prog span{color:var(--muted);font-size:12.5px}.kv-x{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
 .kv-tip{position:absolute;top:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12.5px;box-shadow:0 4px 14px rgba(0,0,0,.08);pointer-events:none;display:flex;flex-direction:column;gap:2px;white-space:nowrap}.kv-tip[hidden]{display:none}
 .kv-tip i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}.kv-tip i.a{background:var(--kv-a)}.kv-tip i.b{background:var(--kv-b)}
