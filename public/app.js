@@ -7462,8 +7462,10 @@ viewHook("dashboard",{voor:()=>rmMelding()});
 @media(max-width:640px){.rm-l{gap:8px}.rm-i{padding:10px 12px;gap:6px}.rm-t{gap:6px}.rm-t small{flex-basis:100%;margin-left:0;font-size:12px}.rm-a{flex-wrap:nowrap;gap:6px}.rm-a .btn{padding:0 10px}.rm-kt{display:none}
  .kr-wijk{grid-template-columns:minmax(0,1fr)}.kr-wijk span{white-space:normal}.kr-wijk b{font-size:13.5px}}`;document.head.appendChild(st)}
 /* tabbladen: de hoofdtitel van de pagina blijft die van het eerste tabblad (bv. "Kalenders" ook op Kalenderronde en Controle) */
-{const _nt=navTitel,TABHOOFD=()=>{const m={verwerken:"boekingen",inkomend:"facturen"};if(typeof KAL_TABS!=="undefined")for(const [k] of KAL_TABS)if(k!=="kalenders")m[k]="kalenders";return m};
-  navTitel=function(id){const h=TABHOOFD()[id];return (h&&_nt(h))||_nt(id)}}
+{const _nt=navTitel,TABHOOFD=()=>{const m={verwerken:"boekingen",verrekening:"boekingen",inkomend:"facturen",sms:"mails"};
+    if(typeof KAL_TABS!=="undefined"){const hoofd=KAL_TABS.map(t=>t[0]).find(k=>_nt(k))||"kalenders";for(const [k] of KAL_TABS)m[k]=hoofd}return m};
+  navTitel=function(id){const h=TABHOOFD()[id];if(h&&_nt(h))return _nt(h);
+    if(typeof INST_TABS!=="undefined"&&INST_TABS.some(t=>t[0]===id))return "Instellingen";return _nt(id)}}
 /* lidfiche: "Mail sturen" -> Mails, ontvangers = los adres van dit lid, sjabloon "Lege mail" */
 function lidMailMag(){try{if(typeof rolVerbergt==="function"&&rolVerbergt("mails"))return false;if(typeof recht==="function"&&recht("mails")==="geen")return false}catch(e){}return !!VIEWS.mails}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-lidmail]");if(!b)return;const adr=b.dataset.lidmail;
