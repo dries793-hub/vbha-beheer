@@ -8509,6 +8509,10 @@ const gdAutoAan=()=>((S.config.get("algemeen")||{}).goudMail||{}).aan!==false;
 function gdKandidaten(alle){if(ROL!=="admin"&&!alle)return[];let C;try{C=ctx()}catch(e){return[]}const g=C.c&&C.c.drempels&&C.c.drempels.goud;if(!g)return[];
   return [...C.rows.values()].filter(r=>r.huidig&&r.lid.categorie!=="Erewacht"&&!r.jl.vrijstelling&&!r.jl.goudMail&&r.p&&r.p.totaal>=g).sort((a,b)=>naamVol(a.lid).localeCompare(naamVol(b.lid),"nl"))}
 const GD_WEG="vbha_gd_weg";
+/* datum waarop het lid goud haalde: eerste keer dat de app het zag (of de proficiat-mail), bewaard als jaarleden.goudSinds */
+const GD_ZET=new Set();
+function gdSinds(r){const jl=r.jl||{};if(jl.goudSinds)return jl.goudSinds;const d=(jl.goudMail&&String(jl.goudMail.op||"").slice(0,10))||todayISO();
+  const id=JAAR+"_"+r.lid.id;if(canWrite&&!GD_ZET.has(id)&&S.jaarleden.has(id)){GD_ZET.add(id);setTimeout(()=>{try{setJLid(id,{goudSinds:d})}catch(e){}},0)}return d}
 /* gezien: lokaal (GD_WEG) én in de gelezen-lijst van de gebruiker ("gd|<jaar>_<lid>", gesynchroniseerd over toestellen) */
 const gdGlKey=()=>"vbha_gelezen_"+((typeof ME_NAME!=="undefined"&&ME_NAME)||"x");
 function gdWeg(){const W=new Set();try{for(const x of JSON.parse(localStorage.getItem(GD_WEG)||"[]"))W.add(x)}catch(e){}try{for(const x of JSON.parse(localStorage.getItem(gdGlKey())||"[]"))if(String(x).startsWith("gd|"))W.add(String(x).slice(3))}catch(e){}return W}
@@ -8526,7 +8530,7 @@ function gdMeldingAuto(){if(ROL!=="admin")return"";let C;try{C=ctx()}catch(e){re
   const weg=gdWeg();L=L.filter(r=>!weg.has(JAAR+"_"+r.lid.id));
   if(!L.length)return"";
   return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("medaille")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
-   <div class="gd-l">${L.slice(0,12).map(r=>{const m=r.jl.goudMail;return `<div class="gd-r" data-gid="${esc(JAAR+"_"+r.lid.id)}"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten · ${!r.lid.email?"geen e-mailadres":m&&m.verstuurd?"proficiat-mail verstuurd op "+fmtDate(String(m.op).slice(0,10)):"proficiat-mail wordt automatisch verstuurd"}</span></span></div>`}).join("")}</div></div></div>`}
+   <div class="gd-l">${L.slice(0,12).map(r=>{const m=r.jl.goudMail;return `<div class="gd-r" data-gid="${esc(JAAR+"_"+r.lid.id)}"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten · goud sinds ${fmtDate(gdSinds(r))}</span></span></div>`}).join("")}</div></div></div>`}
 function gdMelding(){if(gdAutoAan())return gdMeldingAuto();const L=gdKandidaten();if(!L.length)return"";
   return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("medaille")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
    <div class="gd-l">${L.slice(0,12).map(r=>`<div class="gd-r"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten${r.lid.email?"":" · geen e-mailadres"}</span></span>
