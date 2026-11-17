@@ -4342,7 +4342,7 @@ async function inkHernoem(d,b){if(!d||!inkMag())return;const A=INK.txt.get(d.id)
   /* doorgestuurde factuur: de afzender (bv. een bestuurslid) is niet de leverancier; neem de naam uit de factuur en hernoem opnieuw */
   if(A.lev&&!b&&(!i.leverancier||(i.vanNaam&&norm(i.leverancier)===norm(i.vanNaam)))&&norm(A.lev)!==norm(i.leverancier||"")){i={...i,leverancier:A.lev,hernoemd:undefined};d={...d,inkomend:i}}
   if(i.hernoemd==="boeking"||(i.hernoemd&&!b))return;
-  const naam=`${inkBedrijf(d,b)}_${inkStuk(A.nr)||"zonder-nr"}_${A.datum||inkDatum(d)||"zonder-datum"}.pdf`;
+  const naam=`${inkBedrijf(d,b)}_${inkStuk(A.nr||i.nr||inkNrUit(i.onderwerp||d.omschrijving))||"zonder-nr"}_${A.datum||inkDatum(d)||"zonder-datum"}.pdf`;
   if(naam===d.naam&&i.hernoemd){return}
   let pad=d.pad;const nieuwPad=`${INK_MAP}/${d.id}-${naam}`;
   if(d.pad&&d.pad!==nieuwPad){try{const {error}=await SB.storage.from(DOC_BUCKET).move(d.pad,nieuwPad);if(!error)pad=nieuwPad}catch(e){}}
