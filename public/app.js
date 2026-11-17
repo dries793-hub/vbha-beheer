@@ -5928,7 +5928,7 @@ for(const r of ["boekingen","verwerken"]){const _v=VIEWS[r];if(!_v)continue;cons
 {const st=document.createElement("style");st.textContent=`.vw-t{table-layout:fixed;width:100%}.vw-t td.desc{min-width:0}.vw-t .d1,.vw-t .d2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vw-t select{width:100%}.vw-why{font-size:11.5px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vw-t td:last-child .btn{vertical-align:middle}.vw-t .iconbtn svg{width:15px;height:15px}
 @media(max-width:760px){.vw-bar{display:flex;flex-wrap:wrap;gap:8px}.vw-bar .vw-n,.vw-bar .grow{display:none}.vw-bar .btn{flex:1 1 calc(50% - 4px);justify-content:center;white-space:nowrap;margin:0}.vw-bar #bcSplit{flex-basis:100%}
-.vw-t td:last-child{display:flex!important;gap:8px;align-items:center;text-align:left!important}.vw-t td:last-child .btn.solid{flex:1;justify-content:center}.vw-t td:last-child .iconbtn{flex:0 0 auto}}`;document.head.appendChild(st)}
+.vw-t td:last-child{display:flex!important;flex-direction:row!important;gap:8px;align-items:center;text-align:left!important}.vw-t td:last-child::before{display:none}.vw-t td:last-child .btn.solid{flex:1;justify-content:center}.vw-t td:last-child .iconbtn{flex:0 0 auto}}`;document.head.appendChild(st)}
 /* Te verwerken: Bancontact-bulkstortingen opsplitsen volgens de online betalingen van die dag (rest naar Kalenders) */
 const bcIsBulk=b=>b&&b.rekening!=="Kas"&&b.richting!=="uit"&&BC_PARTIJ.test(b.partij||"")&&/^\d{8}-.*bulkrecon/i.test(String(b.mededeling||"").trim());
 {const _a=VIEWS.verwerken.after;VIEWS.verwerken.after=function(){const r=_a&&_a.apply(this,arguments);try{const L=teVerwerken(ctx()).filter(bcIsBulk);const bar=document.querySelector("#main .bar, .bar");
