@@ -13,6 +13,7 @@ export default async function handler(req, res) {
     if (req.method !== "GET") throw httpErr(405, "Gebruik GET");
     if (req.query && req.query.wie) return await wieReserveerde(req, res);
     if (req.query && req.query.dozen) return await dozenVan(req, res);
+    if (req.query && req.query.ik) return await wieBenIk(req, res);
     const sb = admin();
     const A = await algemeen(sb);
     const out = [];
@@ -166,4 +167,15 @@ function schoonDozen(x) {
     else if (x.nodig === false) o.nodig = false; else return null;
   }
   return o;
+}
+
+/* GET /api/ronde?ik=1&l&j&t: persoonlijke link uit de mail -> wie dit is, zodat de naam bij melden al ingevuld staat */
+async function wieBenIk(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+  const l = String(req.query.l || ""), j = Number(req.query.j);
+  if (!kloptRonde(l, j, String(req.query.t || ""))) return res.status(200).json({});
+  const sb = admin(); await rateLimit(sb, req, "rondeik", 60, 600, httpErr);
+  const A = await algemeen(sb), lid = (await actieveLeden(sb, A.jaar)).find(x => x.id === l);
+  if (!lid) return res.status(200).json({});
+  return res.status(200).json({ id: lid.id, naam: lid.naam, toon: lid.voornaam && lid.an ? `${lid.voornaam} ${lid.an}` : lid.naam });
 }

@@ -34,6 +34,7 @@ export function ondertekenLinks(html) {
   return String(html).replace(/\/lidgeld\?l=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?b=([\d.]+)&(amp;)?t=@@SIG@@/g,
     (m, l, a1, j, a2, b, a3) => m.replace("@@SIG@@", teken(decodeURIComponent(l), j, b)))
     .replace(/\/status\?l=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?t=@@SIG@@/g, (m, l, a1, j) => m.replace("@@SIG@@", tekenStatus(decodeURIComponent(l), j)))
+    .replace(/\/kaart\?k=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?t=@@SIG@@/g, (m, l, a1, j) => m.replace("@@SIG@@", tekenRonde(decodeURIComponent(l), j)))
     .replace(/\/kaart\?l=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?t=@@SIG@@/g, (m, l, a1, j) => m.replace("@@SIG@@", tekenRonde(decodeURIComponent(l), j)))
     .replace(/\/(banket|kinderfeest|familiedag)\?v=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?t=@@SIG@@/g, (m, p, l, a1, j) => m.replace("@@SIG@@", tekenVul(p === "banket" ? "bk" : p === "familiedag" ? "fd" : "kf", decodeURIComponent(l), j)));
 }

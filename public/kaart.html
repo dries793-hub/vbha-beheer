@@ -2907,7 +2907,8 @@ krLive();
       <div class="km-a"><button type="button" data-km="x">Annuleren</button><button type="button" class="prim" data-km="ok">Doorsturen</button></div></div>`;
     document.body.appendChild(bg);const inp=bg.querySelector("#kmN"),box=bg.querySelector("#kmL"),err=bg.querySelector("#kmE");
     const alRes=krAlRes();if(alRes){soort="d";const sg=bg.querySelector('[data-ks="r"]');if(sg){sg.disabled=true;sg.title="Een gekozen straat is al gereserveerd: die kan je enkel nog als bedeeld doorgeven."}}
-    if(alRes)fetch("/api/ronde?wie="+encodeURIComponent(ids.join(",")),{cache:"no-store"}).then(r=>r.ok?r.json():[]).then(W=>{if(W&&W[0]&&!lid&&!inp.value.trim())kies(W[0])}).catch(()=>{});
+    if(window.KR_IK&&window.KR_IK.id)setTimeout(()=>{if(!lid)kies(window.KR_IK)},0);
+    if(alRes&&!(window.KR_IK&&window.KR_IK.id))fetch("/api/ronde?wie="+encodeURIComponent(ids.join(",")),{cache:"no-store"}).then(r=>r.ok?r.json():[]).then(W=>{if(W&&W[0]&&!lid&&!inp.value.trim())kies(W[0])}).catch(()=>{});
     /* bij "bedeeld": vragen over de dozen (hoeveel heb je nog, of hoeveel zijn er afgewerkt, en heb je er nog nodig) */
     const DZ={op:null,voor:null,over:null,heel:null,deel:null,af:null,nodig:null,nodigN:null},dzBox=bg.querySelector("#kmDz");
     const KW=["","¼","½","¾"],fd=n=>{const w=Math.floor(n+1e-9),q=Math.round((n-w)*4);return (w?w:"")+(q?(w?" ":"")+KW[q]:"")+" "+(n>1?"dozen":"doos")};
@@ -3016,6 +3017,9 @@ krLive();
 </script>
 <script>
 /* ============ Persoonlijke link uit de mail: straten van vorig jaar opnieuw reserveren (/kaart?l=&j=&t=) ============ */
+/* persoonlijke link uit de mail: de naam staat bij melden (reserveren of bedelen) al ingevuld */
+(function(){const Q=new URLSearchParams(location.search),l=Q.get("l")||Q.get("k"),j=Q.get("j"),t=Q.get("t");if(!l||!j||!t)return;
+  fetch(`/api/ronde?ik=1&l=${encodeURIComponent(l)}&j=${encodeURIComponent(j)}&t=${encodeURIComponent(t)}`,{cache:"no-store"}).then(r=>r.ok?r.json():{}).then(x=>{if(x&&x.id)window.KR_IK=x}).catch(()=>{})})();
 (function(){const Q=new URLSearchParams(location.search),l=Q.get("l"),j=Q.get("j"),t=Q.get("t");if(!l||!j||!t)return;
   const e2=x=>String(x??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const info=id=>{const s=KR.byId.get(String(id).split("~")[0]);if(!s)return null;if(!String(id).includes("~"))return{n:s.n,a:s.a};const d=KR_DEEL.get(id),n=(KR_DELEN.get(s.id)||[]).length;return{n:s.n+(n>1&&d?" (deel "+d.nr+")":""),a:d?d.a:0}};
