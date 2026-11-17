@@ -3246,7 +3246,7 @@ function kalMee(id){const j=S.jaarleden.get(id);if(!j||!canWrite)return;const C=
   $("#kalOk").onclick=()=>{const n=kalLees("kalN");if(!n)return;closeModal();kalBeweeg(id,"mee",n)}}
 function kalKlaarForm(id){const j=S.jaarleden.get(id);if(!j||!canWrite||kalBeperkt())return;const naam=kalNaam(j),op=j.kalOpgehaald||0,ui=j.kalUitgevoerd||0,w=ctx().c.gewichten.kalenders;if(!op)return;
   modal("Dozen terugmelden",`<div class="stack kal-dlg"><p style="margin:0"><b>${esc(naam)}</b> heeft ${kalDoos(op)} in handen.</p>
-   <div class="seg kal-soort" role="radiogroup"><button type="button" class="on" data-ks="klaar">Volledig afgewerkt</button><button type="button" data-ks="terug">Onaangeroerd terug</button></div>
+   <div class="seg kal-soort" role="radiogroup"><button type="button" class="on" data-ks="klaar">Volledig afgewerkt</button><button type="button" data-ks="terug">Volle dozen terug</button></div>
    ${kalAantal("kalN",op===1?1:1,op)}<div class="kal-voor" id="kalVoor"></div></div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kalOk">Bevestigen</button>`);
   let soort="klaar";const upd=()=>{const n=kalLees("kalN",op);
     $("#kalVoor").innerHTML=!n?"":soort==="klaar"?`<div><span>Nog in handen</span><b>${kalFmt(op-n)}</b><small>dozen</small></div><div><span>Afgewerkt</span><b>${kalFmt(kalUiNa(j,n))}</b><small>dozen · +${(kalUiNa(j,n)-ui)*w} punten</small></div>`:`<div><span>Nog in handen</span><b>${kalFmt(op-n)}</b><small>dozen</small></div><div><span>Terug in stock</span><b>+${kalFmt(n)}</b><small>geen punten</small></div>`;
