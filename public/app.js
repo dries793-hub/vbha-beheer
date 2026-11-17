@@ -9453,9 +9453,15 @@ addEventListener("hashchange",()=>{const d=document.getElementById("tuTip");if(d
    Zolang ze nog laden, wacht een klik op een knop (of een gekozen bestand) tot ze er zijn en gaat dan gewoon door. */
 const LIBS_KLAAR=new Promise(res=>{const L=window.LIBS_LAAT||[];if(!L.length)return res();
   const go=()=>{let n=L.length;for(const u of L){const s=document.createElement("script");s.src=u;s.async=false;s.onload=s.onerror=()=>{if(--n===0)res()};document.head.appendChild(s)}};
-  const start=()=>setTimeout(go,300);if(document.readyState==="complete")start();else addEventListener("load",start)});
+  /* pas laden als de app zichtbaar is (laadscherm weg) en de gsm even rust heeft: zo vertraagt het opstarten niet */
+  const t0=Date.now(),wacht=()=>{if(document.getElementById("lader")&&Date.now()-t0<15000)return setTimeout(wacht,250);(window.requestIdleCallback||(f=>setTimeout(f,1)))(go,{timeout:2500})};
+  if(document.readyState==="complete")wacht();else addEventListener("load",wacht)});
 let LIBS_OK=!(window.LIBS_LAAT||[]).length;LIBS_KLAAR.then(()=>{LIBS_OK=true});
+/* enkel knoppen die Excel/zip/pdf nodig kunnen hebben wachten; gewone navigatie en knoppen werken meteen */
+const LIBS_NODIG=/excel|xlsx|export|import|zip|download|csv|back-?up|jaarrekening|jaarverslag|afdruk|pdf|bestand/i;
 document.addEventListener("click",e=>{if(LIBS_OK)return;const t=e.target.closest&&e.target.closest("button,[data-act],label,a[download]");if(!t||t.closest("#sheet,.tabbar,nav"))return;
+  const kenm=[t.dataset&&t.dataset.act,t.id,t.getAttribute("download")!=null?"download":"",t.getAttribute("title"),t.getAttribute("for"),String(t.textContent||"").slice(0,60),t.querySelector&&t.querySelector('input[type="file"]')?"bestand":""].join(" ");
+  if(!LIBS_NODIG.test(kenm))return;
   e.preventDefault();e.stopImmediatePropagation();LIBS_KLAAR.then(()=>t.click())},true);
 document.addEventListener("change",e=>{if(LIBS_OK||!(e.target&&e.target.type==="file"))return;e.stopImmediatePropagation();const t=e.target;LIBS_KLAAR.then(()=>t.dispatchEvent(new Event("change",{bubbles:true})))},true);
 
@@ -9707,9 +9713,8 @@ function bcCsv(t){const L=[];let rij=[],v="",q=false;t=String(t).replace(/^﻿/,
   const t0=Date.now();let tmr=0,klaar=false;
   const toon=()=>{if(klaar)return;klaar=true;setTimeout(bewaarTab,50);obs.disconnect();clearTimeout(tmr);L.classList.add("weg");setTimeout(()=>L.remove(),250)};
   const wacht=()=>{if(klaar)return;clearTimeout(tmr);if(Date.now()-t0>8000)return toon();
-    const tbWacht=typeof TB!=="undefined"&&typeof ROL!=="undefined"&&(ROL==="admin"||ROL==="boekhouder")&&!TB.lijst;
-    if(document.getElementById("boot")||!main.children.length||tbWacht){tmr=setTimeout(wacht,300);return} // nog aan het laden
-    tmr=setTimeout(toon,300)};
+    if(document.getElementById("boot")||!main.children.length){tmr=setTimeout(wacht,200);return} // nog aan het laden
+    tmr=setTimeout(toon,150)};
   const obs=new MutationObserver(wacht);obs.observe(main,{childList:true,subtree:true,characterData:true});
   setTimeout(toon,8000);
   /* loginscherm (of wachtwoord instellen): meteen tonen */
