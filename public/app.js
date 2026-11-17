@@ -218,7 +218,10 @@ async function doSetPassword(f){const d=formData(f);const e=$("#pwErr");if(d.pw1
   const {data:{session}}=await SB.auth.getSession();toast("Wachtwoord bewaard.");startApp(session)}
 (async function boot(){
   const hp=new URLSearchParams(location.hash.slice(1));const authType=hp.get("type");const authErr=hp.get("error_description");
-  let conf;try{const r=await fetch("/api/config");conf=await r.json();if(!r.ok||!conf.supabaseUrl)throw 0}catch(e){$("#main").innerHTML='<div class="loading"><b>De app is nog niet ingesteld.</b><span>Vul SUPABASE_URL en SUPABASE_ANON_KEY in bij Vercel en publiceer opnieuw. Zie README.md.</span></div>';return}
+  let conf=null;try{const c=JSON.parse(localStorage.getItem("vbha-conf")||"null");if(c&&c.supabaseUrl&&c.supabaseAnonKey)conf=c}catch(e){}
+  const confP=fetch("/api/config").then(async r=>{const j=await r.json();if(!r.ok||!j.supabaseUrl)throw 0;try{localStorage.setItem("vbha-conf",JSON.stringify({supabaseUrl:j.supabaseUrl,supabaseAnonKey:j.supabaseAnonKey}))}catch(e){}return j});
+  if(conf)confP.then(j=>{if(j.supabaseUrl!==conf.supabaseUrl||j.supabaseAnonKey!==conf.supabaseAnonKey)location.reload()}).catch(()=>{});
+  else{try{conf=await confP}catch(e){$("#main").innerHTML='<div class="loading"><b>De app is nog niet ingesteld.</b><span>Vul SUPABASE_URL en SUPABASE_ANON_KEY in bij Vercel en publiceer opnieuw. Zie README.md.</span></div>';return}}
   SB=supabase.createClient(conf.supabaseUrl,conf.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   const {data:{session}}=await SB.auth.getSession();
   if(hp.get("access_token")||authErr)history.replaceState(null,"",location.pathname+"#dashboard");
@@ -227,10 +230,20 @@ async function doSetPassword(f){const d=formData(f);const e=$("#pwErr");if(d.pw1
   if(!session)return showLogin(authErr?"De link is verlopen of al gebruikt. Vraag een nieuwe uitnodiging aan een bestuurslid.":"");
   startApp(session);
 })();
-let STARTED=false,PW_NIEUW=false;
+let STARTED=false,PW_NIEUW=false,PRE_DB=null,BOOT_TIMER=0;
+const NIET_WACHTEN=new Set(["archief","fotoalbums","mailings","templates"]);
+function bootLaad(dbx){
+  for(const col of COLS){
+    dbx.collection(col).onSnapshot(snap=>{
+      let m=new Map();for(const d of snap.docs){m.set(d.id,{...d.data(),id:d.id})}if(col==="leden"){TL_RAW=m;m=tlFilter(m)}S[col]=m;if(col==="config"&&TL_RAW)S.leden=tlFilter(TL_RAW);
+      loaded.add(col);dirty=true;if(loaded.size===COLS.length)clearTimeout(BOOT_TIMER);STARTED&&schedule();
+    },err=>{loaded.add(col);clearTimeout(BOOT_TIMER);if(col!=="facturen")toast("Gegevens ("+col+") konden niet geladen worden: "+(err&&err.message||""),true);STARTED&&schedule()});
+  }
+}
 async function startApp(session){
   if(STARTED||!session)return;
   ME={email:session.user.email,id:session.user.id};
+  if(!PRE_DB){PRE_DB=makeDb();bootLaad(PRE_DB)}
   const {data:rol,error}=await SB.from("bestuur").select("rol,naam,rechten").eq("user_id",ME.id).maybeSingle();
   if(error||!rol){authCard(`<h1>Geen toegang</h1><p style="margin:0">Je bent aangemeld als <b>${esc(ME.email)}</b>, maar dit adres staat niet in de lijst van bestuursleden.</p><button class="btn" data-act="logout">Afmelden</button>`);return}
   ROL=rol.rol==="bewerker"?"admin":rol.rol;RECHTEN=rol.rechten&&typeof rol.rechten==="object"&&ROL!=="admin"?rol.rechten:null;
@@ -241,13 +254,7 @@ async function startApp(session){
   $("#main").innerHTML='<div class="loading" id="boot"><b>Gegevens laden…</b><span>Leden, boekhouding en punten worden opgehaald.</span></div>';
   const q=new URLSearchParams(location.search);if(q.get("bank")){const ok=q.get("bank")==="ok";setTimeout(()=>toast(ok?"De bankrekening is gekoppeld.":"Koppelen met de bank is niet gelukt"+(q.get("reden")?": "+q.get("reden"):"")+".",!ok),400);history.replaceState(null,"",location.pathname+"#bank")}
   const timer=setTimeout(()=>{if(loaded.size<COLS.length){const b=$("#boot");if(b)b.innerHTML="<b>De gegevens zijn nog niet bereikbaar.</b><span>Controleer je internetverbinding. De pagina blijft het proberen.</span>"}},10000);
-  db=makeDb();setTimeout(()=>{BOOT_LAAT=true;schedule()},4000);
-  for(const col of COLS){
-    db.collection(col).onSnapshot(snap=>{
-      let m=new Map();for(const d of snap.docs){m.set(d.id,{...d.data(),id:d.id})}if(col==="leden"){TL_RAW=m;m=tlFilter(m)}S[col]=m;if(col==="config"&&TL_RAW)S.leden=tlFilter(TL_RAW);
-      loaded.add(col);dirty=true;if(loaded.size===COLS.length)clearTimeout(timer);schedule();
-    },err=>{loaded.add(col);clearTimeout(timer);if(col!=="facturen")toast("Gegevens ("+col+") konden niet geladen worden: "+(err&&err.message||""),true);schedule()});
-  }
+  BOOT_TIMER=timer;if(loaded.size>=COLS.length)clearTimeout(timer);db=PRE_DB;setTimeout(()=>{BOOT_LAAT=true;schedule()},4000);dirty=true;schedule();
 }
 async function restoreBackup(file){
   let o;try{o=JSON.parse(/\.gz$/i.test(file.name)?await new Response(file.stream().pipeThrough(new DecompressionStream("gzip"))).text():await file.text())}catch(e){toast("Dit is geen geldig back-upbestand.",true);return}
@@ -309,7 +316,7 @@ let lastRoute="",BOOT_LAAT=false;
 function route(){const h=location.hash.replace("#","");return ROUTES.some(r=>r[0]===h)?h:"dashboard"}
 function render(force){
   if(!db)return;
-  if(loaded.size<COLS.length&&!BOOT_LAAT)return; // pas tonen als alles geladen is (geen half dashboard dat daarna verspringt); na 4 s toch tonen
+  if(!BOOT_LAAT&&COLS.some(c=>!loaded.has(c)&&!NIET_WACHTEN.has(c)))return; // pas tonen als alles geladen is (geen half dashboard dat daarna verspringt); na 4 s toch tonen
   const ys=jaren();const cj=Number(cfg().actiefJaar)||0;
   if(!ys.length){JAAR=new Date().getFullYear()}
   else JAAR=ys.includes(cj)?cj:ys[ys.length-1];
