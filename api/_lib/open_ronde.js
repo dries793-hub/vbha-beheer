@@ -12,6 +12,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.her) return await herReserveer(req, res, req.query, false);
     if (req.method !== "GET") throw httpErr(405, "Gebruik GET");
     if (req.query && req.query.wie) return await wieReserveerde(req, res);
+    if (req.query && req.query.dozen) return await dozenVan(req, res);
     const sb = admin();
     const A = await algemeen(sb);
     const out = [];
@@ -58,11 +59,15 @@ async function melding(req, res) {
     }
     if (straten.some(s => st[s] === "d")) throw httpErr(400, "Een of meer straten zijn al bedeeld. Haal ze uit je selectie.");
     if (soort === "reserved" && straten.some(s => st[s] === "r")) throw httpErr(400, "Een of meer straten zijn al gereserveerd. Die kan je enkel nog als bedeeld doorgeven."); }
+  // bij "bedeeld": hoeveel dozen het lid nog heeft, of hoeveel er afgewerkt zijn, en of er nog dozen nodig zijn
+  const dozen = soort === "done" ? schoonDozen(b.dozen) : null;
+  if (soort === "done" && b.dozen && !dozen) throw httpErr(400, "Beantwoord de vragen over je dozen.");
+  if (dozen) dozen.opBij = await opVan(sb, A.jaar, lid.id);
   const id = "m" + Date.now().toString(36) + crypto.randomBytes(3).toString("hex");
   const toon = lid.voornaam && lid.an ? `${lid.voornaam} ${lid.an}` : lid.naam;
-  const { error } = await sb.from("rondemeldingen").insert({ id, data: { jaar: A.jaar, straten, soort, lidId: lid.id, naam: lid.naam, toon, op: new Date().toISOString(), stand: "open" } });
+  const { error } = await sb.from("rondemeldingen").insert({ id, data: { jaar: A.jaar, straten, soort, lidId: lid.id, naam: lid.naam, toon, op: new Date().toISOString(), stand: "open", ...(dozen ? { dozen } : {}) } });
   if (error) throw error;
-  try { await meldPush(sb, "admin", { lidId: lid.id, titel: "Kalenderronde: melding te controleren", tekst: `${toon} meldt ${straten.length} ${straten.length === 1 ? "straat" : "straten"} als ${soort === "done" ? "gedaan" : "gereserveerd"}`, url: "/#ronde", tag: "ronde-" + lid.id }); } catch (e) {}
+  try { await meldPush(sb, "admin", { lidId: lid.id, titel: "Kalenderronde: melding te controleren", tekst: `${toon} meldt ${straten.length} ${straten.length === 1 ? "straat" : "straten"} als ${soort === "done" ? "gedaan" : "gereserveerd"}` + (dozen && dozen.nodig ? ` · heeft nog ${dozen.nodigN ? dozen.nodigN + " " : ""}dozen nodig` : ""), url: "/#ronde", tag: "ronde-" + lid.id }); } catch (e) {}
   return res.status(200).json({ ok: true });
 }
 
@@ -131,4 +136,34 @@ async function herReserveer(req, res, b, doe) {
     try { await meldPush(sb, "admin", { lidId: l, titel: "Kalenderronde: straten opnieuw gereserveerd", tekst: `${toon} reserveerde ${nieuw.length} ${nieuw.length === 1 ? "straat" : "straten"} van vorig jaar`, url: "/#ronde", tag: "ronde-" + l }); } catch (e) {}
   }
   return res.status(200).json({ ok: true, gereserveerd: nieuw });
+}
+
+/* dozen van een lid in de verdeling van dit jaar (kalOpgehaald = dozen die het lid nu in handen heeft) */
+async function opVan(sb, jaar, lidId) {
+  const { data } = await sb.from("jaarleden").select("data").eq("data->>lidId", lidId).eq("data->>jaar", String(jaar)).limit(1);
+  const d = data && data[0] && data[0].data; return Math.max(0, Math.round((Number(d && d.kalOpgehaald) || 0) * 4) / 4);
+}
+/* GET /api/ronde?dozen=<lidId>: hoeveel dozen dit lid volgens de verdeling nog in handen heeft (voor de vragen bij "bedeeld") */
+async function dozenVan(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+  const sb = admin(); await rateLimit(sb, req, "rondedozen", 60, 600, httpErr);
+  const id = String(req.query.dozen || "").slice(0, 80);
+  const A = await algemeen(sb);
+  if (!(await actieveLeden(sb, A.jaar)).some(l => l.id === id)) return res.status(200).json({ op: 0 });
+  return res.status(200).json({ op: await opVan(sb, A.jaar, id) });
+}
+/* antwoorden nakijken: kwarten van een doos, binnen redelijke grenzen */
+function schoonDozen(x) {
+  if (!x || typeof x !== "object") return null;
+  const kw = v => { const n = Math.round(Number(v) * 4) / 4; return n > 0 && n <= 200 ? n : null; };
+  const o = { opBij: Math.max(0, Math.round((Number(x.opBij) || 0) * 4) / 4) };
+  if (x.over === true) { o.over = true; o.rest = kw(x.rest); if (!o.rest) return null; }
+  else if (x.over === false) { o.over = false; if (x.af === "alle") o.af = "alle"; else { o.af = kw(x.af); if (!o.af) return null; } }
+  else if (!(o.opBij > 0)) { /* geen dozen in de verdeling: enkel de vraag of er dozen nodig zijn */ }
+  else return null;
+  if (o.over !== true && (o.af === "alle" || !(o.opBij > 0))) {
+    if (x.nodig === true) { o.nodig = true; const n = Math.round(Number(x.nodigN)); o.nodigN = n >= 1 && n <= 50 ? n : null; }
+    else if (x.nodig === false) o.nodig = false; else return null;
+  }
+  return o;
 }

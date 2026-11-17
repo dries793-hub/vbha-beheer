@@ -7423,10 +7423,10 @@ function rmPanel(){const G=rmGroepen();if(!G.length)return"";
   return `<div class="panel rm-p"><div class="panel-h"><h2>Meldingen te controleren <span class="rm-n">${G.length}</span></h2><span class="grow"></span>${canWrite&&G.length>1?`<button class="btn sm primary" data-rm="alles">Alles goedkeuren</button>`:""}</div>
    <div class="panel-b rm-l">${G.map(g=>{const I=rmInfo(g.straten);return `<div class="rm-i" data-rmg="${esc(g.key)}"><div class="rm-t"><b>${esc(g.toon)}</b><span class="pill ${g.soort==="done"?"ok":"info"}">${g.soort==="done"?"bedeeld":"gereserveerd"}</span><small>${esc(rmDT(g.op))}${g.ms.length>1?` · ${g.ms.length} meldingen`:""}</small></div>
      <div class="rm-s">${g.straten.map(id=>{const a=krAll()[id];return `<span${a?` title="Staat al op de kaart als ${a.status==="done"?"bedeeld":"gereserveerd"}${a.by?" door "+esc(a.by):""}" class="al"`:""}>${esc(rmNaam(id))}${a?" ⚠":""}</span>`}).join("")}</div>
-     <div class="rm-sum muted small">${g.straten.length} ${g.straten.length===1?"straat":"straten"} · ± ${I.tot} adressen${g.soort==="done"?"":` · ${I.dozen} ${I.dozen===1?"doos":"dozen"}`}</div>
+     <div class="rm-sum muted small">${g.straten.length} ${g.straten.length===1?"straat":"straten"} · ± ${I.tot} adressen${g.soort==="done"?"":` · ${I.dozen} ${I.dozen===1?"doos":"dozen"}`}</div>${g.soort==="done"?rdKaart(g):""}
      <div class="rm-a"><button class="btn sm" data-rm="toon" title="Op de kaart tonen">${ic("kaart")}<span class="rm-kt">Op de kaart</span></button>${canWrite?`<span class="grow"></span><button class="btn sm ghost danger" data-rm="weiger">Weigeren</button><button class="btn sm primary" data-rm="ok">Goedkeuren</button>`:""}</div></div>`}).join("")}
 </div></div>`}
-async function rmKeurGroep(g,ok){for(const m of g.ms)await rmKeur(m,ok,true);if(ok&&g.soort!=="done")rmMail(g.ms.map(m=>m.id),g.straten)}
+async function rmKeurGroep(g,ok){const dz=ok&&g.soort==="done"?rdVoorstel(g):null,bij=dz&&dz.A>0&&rdAanvinkt(g);for(const m of g.ms)await rmKeur(m,ok,true);if(ok&&g.soort!=="done")rmMail(g.ms.map(m=>m.id),g.straten);if(dz)await rdToepassen(dz,bij)}
 async function rmKeur(m,ok,stil){if(!canWrite||!m)return;const {id,...d}=m;
   if(ok){const A=krAll(),nu=new Date().toISOString(),l=m.lidId&&S.leden.get(m.lidId),by=l?naamVol(l).trim():(m.naam||"");let n=0;
     for(const sid of m.straten||[]){const cur=A[sid];if(cur&&cur.status==="done"&&m.soort!=="done")continue; // al bedeeld: niet terug op gereserveerd
@@ -7449,7 +7449,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-rm]"
 /* dashboard */
 function rmMelding(){if(!(ROL==="admin"||(typeof recht==="function"&&recht("ronde")==="bewerken")))return"";const L=rmLijst();if(!L.length)return"";
   return `<div class="nmeld dm-v" role="status"><span class="nm-ic">${ic("kaart")}</span><div class="nm-body"><b>${L.length===1?"1 melding":L.length+" meldingen"} van de kalenderronde te controleren</b>
-   <div class="nm-l">${L.slice(0,5).map(m=>`<a class="nm-i" href="#ronde"><b>${esc(m.toon||m.naam||"")}</b><span>${(m.straten||[]).length} ${(m.straten||[]).length===1?"straat":"straten"} ${m.soort==="done"?"bedeeld":"gereserveerd"} · ${esc(rmDT(m.op))}</span></a>`).join("")}</div></div></div>`}
+   <div class="nm-l">${L.slice(0,5).map(m=>`<a class="nm-i" href="#ronde"><b>${esc(m.toon||m.naam||"")}</b><span>${(m.straten||[]).length} ${(m.straten||[]).length===1?"straat":"straten"} ${m.soort==="done"?"bedeeld":"gereserveerd"} · ${esc(rmDT(m.op))}${m.dozen&&m.dozen.nodig?" · nog dozen nodig":""}</span></a>`).join("")}</div></div></div>`}
 viewHook("dashboard",{voor:()=>rmMelding()});
 {const st=document.createElement("style");st.textContent=`.rm-sum{margin:6px 0 2px}.rm-p{border-color:#f59e0b}.rm-n{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:#f59e0b;color:#fff;font-size:12.5px;margin-left:6px;vertical-align:2px}
 .rm-l{display:flex;flex-direction:column;gap:10px}.rm-i{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
@@ -7492,6 +7492,25 @@ viewHook("dashboard",{voor:()=>dashVandaag()});
 async function rmMail(ids,straten){try{const I=rmInfo(straten);
   const j=await api("/api/mail?f=rondemail",{method:"POST",body:JSON.stringify({ids,straten:I.L,dozen:I.dozen})});
   if(j&&j.ok&&!j.al)toast("Bevestigingsmail verstuurd.");else if(j&&j.reden)toast("Geen mail verstuurd: "+j.reden+".",true)}catch(e){toast("Mail niet verstuurd: "+e.message,true)}}
+
+/* ---- Bedeeld gemeld via de openbare kaart: antwoorden over de dozen ----
+   m.dozen = {opBij, over:true, rest} | {opBij, over:false, af:n|"alle", nodig, nodigN} | {opBij:0, nodig, nodigN}
+   Bij goedkeuren: de afgewerkte dozen boeken in de verdeling (aan te vinken), en bij "nog dozen nodig" meteen het venster om dozen mee te geven. */
+const rdKw=["","¼","½","¾"],rdFd=n=>{n=Math.round((Number(n)||0)*4)/4;const w=Math.floor(n+1e-9),q=Math.round((n-w)*4);return ((w?w:"")+(q?(w?" ":"")+rdKw[q]:"")||"0")+" "+(n>1||n===0?"dozen":"doos")};
+const rdJl=lidId=>[...S.jaarleden.values()].find(j=>Number(j.jaar)===JAAR&&j.lidId===lidId);
+function rdVoorstel(g){const m=[...g.ms].reverse().find(x=>x.dozen);if(!m)return null;const d=m.dozen,jl=m.lidId&&rdJl(m.lidId),op=jl?Number(jl.kalOpgehaald)||0:0;
+  let A=0;if(d.over===true)A=Math.max(0,Math.floor(op-(Number(d.rest)||0)+1e-9));else if(d.over===false)A=d.af==="alle"?op:Math.min(Number(d.af)||0,op);
+  return{d,jl,op,A:Math.round(A*100)/100,naar:Math.round((op-A)*100)/100}}
+function rdAanvinkt(g){const c=document.querySelector(`[data-rmg="${CSS.escape(g.key)}"] .rd-cb`);return !c||c.checked}
+function rdKaart(g){const v=rdVoorstel(g);if(!v)return"";const d=v.d;const T=[];
+  if(d.over===true)T.push(`Nog <b>${rdFd(d.rest)}</b> over`);else if(d.over===false)T.push(d.af==="alle"?`<b>Alle dozen</b> afgewerkt`:`<b>${rdFd(d.af)}</b> afgewerkt, niets meer over`);
+  if(d.nodig===true)T.push(`<b class="rd-nodig">heeft nog ${d.nodigN?rdFd(d.nodigN):"dozen"} nodig</b>`);else if(d.nodig===false)T.push("geen dozen meer nodig");
+  const bij=v.jl&&v.A>0&&canWrite?`<label class="rd-v"><input type="checkbox" class="rd-cb" checked> In de verdeling: ${rdFd(v.A)} afgewerkt · in handen ${rdFd(v.op)} → ${rdFd(v.naar)}</label>`:"";
+  return `<div class="rd"><div class="rd-t">${ic("kalenders")}<span>${T.join(" · ")}</span></div>${bij}${!v.jl&&(d.over!=null)?'<div class="small muted">Niet gevonden in de dozenverdeling.</div>':""}</div>`}
+async function rdToepassen(v,bij){try{if(bij&&v.jl&&v.A>0)kalBeweeg(v.jl.id,"klaar",v.A,{reden:"gemeld via de kaart"})}catch(e){toast("Dozen niet bijgewerkt: "+e.message,true)}
+  if(v.d.nodig===true&&canWrite&&v.jl&&typeof kalMee==="function")setTimeout(()=>{kalMee(v.jl.id);const i=$("#kalN");if(i&&v.d.nodigN){i.value=v.d.nodigN;i.dispatchEvent(new Event("input",{bubbles:true}))}},350);
+  else if(v.d.nodig===true)toast("Opgelet: dit lid heeft nog dozen nodig.")}
+{const st=document.createElement("style");st.textContent=`.rd{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:10px;background:var(--soft,#f2f2f3);font-size:13.5px}.rd-t{display:flex;align-items:center;gap:8px}.rd-t svg{width:16px;height:16px;flex:none;color:var(--muted)}.rd-nodig{color:#b45309}.rd-v{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}.rd-v input{width:16px;height:16px;margin:0}`;document.head.appendChild(st)}
 
 /* ============ Slim zoeken in keuzelijsten (vervangt de lijst van de browser bij <input list="…">) ============
    De browser toont bij één letter alle namen die die letter bevatten. Hier: pas vanaf 3 letters (zoals bij de adressen),

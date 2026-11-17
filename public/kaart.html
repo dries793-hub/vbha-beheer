@@ -2894,7 +2894,7 @@ krLive();
 .km input.ok{border-color:var(--good,#16a34a)}.km-l{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--surface,#fff);border:1px solid var(--line,#ddd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:2;max-height:220px;overflow:auto}
 .km-l button{display:block;width:100%;text-align:left;padding:10px 12px;border:0;background:none;font:inherit;cursor:pointer;color:inherit}.km-l button:hover,.km-l button.on{background:var(--soft,#f2f2f3)}
 .km-a{display:flex;gap:8px;margin-top:16px}.km-a button{flex:1;padding:12px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer;border:1px solid var(--line,#ccc);background:none;color:inherit}.km-a .prim{background:var(--accent);border-color:var(--accent);color:#fff}.km-a .prim:disabled{opacity:.5}
-.km-e{color:var(--bad,#b91c1c);font-size:13.5px;margin:8px 0 0;min-height:1em}.km-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}`;document.head.appendChild(st);
+.km-e{color:var(--bad,#b91c1c);font-size:13.5px;margin:8px 0 0;min-height:1em}.km-dz{margin-top:14px;padding-top:12px;border-top:1px solid var(--line,#e5e5e5);display:flex;flex-direction:column;gap:12px}.km-di,.km-dt,.km-dw{margin:0;font-size:14px}.km-dw{color:#b45309}.km-dq{display:flex;flex-direction:column;gap:6px}.km-dl{font-weight:600;font-size:14px}.km-dc{display:flex;flex-wrap:wrap;gap:6px}.km-dc button{min-width:48px;padding:9px 12px;border:1px solid var(--line,#ccc);border-radius:10px;background:none;font:inherit;font-size:14.5px;cursor:pointer;color:inherit}.km-dc button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}.km{max-height:calc(100dvh - 32px);overflow:auto}.km-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}`;document.head.appendChild(st);
   const krAlRes=()=>[...KR.ss].some(id=>KR_STAND[id]==="r");
   const _c=krCard;krCard=function(){_c.apply(this,arguments);const m=$("#krMeld");if(m){m.hidden=!KR.ss.size;const r=m.querySelector('[data-krmeld="r"]');if(r)r.hidden=krAlRes()}};
   const e2=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -2902,25 +2902,59 @@ krLive();
     const bg=document.createElement("div");bg.className="km-bg";bg.innerHTML=`<div class="km" role="dialog" aria-modal="true" aria-labelledby="kmT"><h3 id="kmT">Straten melden</h3><p>Het bestuur kijkt je melding na. Daarna verschijnt ze op de kaart.</p>
       <div class="km-st">${[...new Set(ids.map(id=>krNaamId(id)))].map(n=>`<span>${e2(n)}</span>`).join("")}</div>
       <div class="km-seg"><button type="button" data-ks="r">Gereserveerd</button><button type="button" data-ks="d">Bedeeld</button></div>
-      <label for="kmN">Jouw naam</label><div class="km-w"><input type="text" id="kmN" autocomplete="off"><div class="km-l" id="kmL" hidden></div></div>
+      <label for="kmN">Jouw naam</label><div class="km-w"><input type="text" id="kmN" autocomplete="off"><div class="km-l" id="kmL" hidden></div></div><div class="km-dz" id="kmDz" hidden></div>
       <div class="km-hp" aria-hidden="true"><input type="text" id="kmW" tabindex="-1" autocomplete="off"></div><p class="km-e" id="kmE"></p>
       <div class="km-a"><button type="button" data-km="x">Annuleren</button><button type="button" class="prim" data-km="ok">Doorsturen</button></div></div>`;
     document.body.appendChild(bg);const inp=bg.querySelector("#kmN"),box=bg.querySelector("#kmL"),err=bg.querySelector("#kmE");
     const alRes=krAlRes();if(alRes){soort="d";const sg=bg.querySelector('[data-ks="r"]');if(sg){sg.disabled=true;sg.title="Een gekozen straat is al gereserveerd: die kan je enkel nog als bedeeld doorgeven."}}
     if(alRes)fetch("/api/ronde?wie="+encodeURIComponent(ids.join(",")),{cache:"no-store"}).then(r=>r.ok?r.json():[]).then(W=>{if(W&&W[0]&&!lid&&!inp.value.trim())kies(W[0])}).catch(()=>{});
-    const zet=s=>{if(alRes&&s==="r")return;soort=s;bg.querySelectorAll("[data-ks]").forEach(b=>b.classList.toggle("on",b.dataset.ks===s))};zet(soort);
+    /* bij "bedeeld": vragen over de dozen (hoeveel heb je nog, of hoeveel zijn er afgewerkt, en heb je er nog nodig) */
+    const DZ={op:null,voor:null,over:null,heel:null,deel:null,af:null,nodig:null,nodigN:null},dzBox=bg.querySelector("#kmDz");
+    const KW=["","¼","½","¾"],fd=n=>{const w=Math.floor(n+1e-9),q=Math.round((n-w)*4);return (w?w:"")+(q?(w?" ":"")+KW[q]:"")+" "+(n>1?"dozen":"doos")};
+    const dzRest=()=>(DZ.heel||0)+(DZ.deel||0);
+    const knop=(k,v,t,on)=>`<button type="button" data-dz="${k}" data-v="${v}" class="${on?"on":""}">${t}</button>`;
+    const vraag=(t,inh)=>`<div class="km-dq"><span class="km-dl">${t}</span><div class="km-dc">${inh}</div></div>`;
+    const nodigV=()=>vraag("Heb je nog dozen nodig?",knop("nodig","1","Ja",DZ.nodig===true)+knop("nodig","0","Nee",DZ.nodig===false))+(DZ.nodig?vraag("Hoeveel dozen?",[1,2,3,4,5].map(n=>knop("nodigN",n,String(n),DZ.nodigN===n)).join("")):"");
+    function tekenDz(){if(soort!=="d"||!lid){dzBox.hidden=true;return}dzBox.hidden=false;
+      if(DZ.op==null||DZ.voor!==lid.id){dzBox.innerHTML='<p class="km-di">Dozen opzoeken…</p>';return}const op=DZ.op;let h="";
+      if(op>0){h+=`<p class="km-di">Volgens onze lijst heb je <b>${fd(op)}</b>.</p>`;
+        h+=vraag("Heb je nog kalenders over?",knop("over","1","Ja",DZ.over===true)+knop("over","0","Nee",DZ.over===false));
+        if(DZ.over===true){const mx=Math.floor(op+1e-9),H=[];for(let i=0;i<=Math.min(mx,12);i++)H.push(i);
+          h+=vraag("Hoeveel hele dozen heb je nog?",H.map(i=>knop("heel",i,String(i),DZ.heel===i)).join(""));
+          h+=vraag("En van een aangebroken doos?",[0,.25,.5,.75].map(q=>knop("deel",q,q?KW[q*4]:"geen",DZ.deel===q)).join(""));
+          if(DZ.heel!=null&&DZ.deel!=null){const r=dzRest();h+=r>op+1e-9?`<p class="km-dw">Dat is meer dan je volgens onze lijst hebt (${fd(op)}).</p>`:r>0?`<p class="km-dt">Je hebt nog <b>${fd(r)}</b> over.</p>`:`<p class="km-dw">Heb je niets meer over? Kies dan hierboven <b>Nee</b>.</p>`}}
+        if(DZ.over===false){const A=[["alle",`Alle ${fd(op)}`]];for(let i=1;i<op-1e-9&&i<=12;i++)A.push([i,fd(i)]);for(const q of [.25,.5,.75])if(q<op-1e-9)A.push([q,KW[q*4]+" doos"]);
+          h+=vraag("Hoeveel dozen heb je afgewerkt?",A.map(([v,t])=>knop("af",v,t,String(DZ.af)===String(v))).join(""));
+          if(DZ.af==="alle")h+=nodigV()}}
+      else h+=nodigV();
+      dzBox.innerHTML=h}
+    function dzKlaar(){if(dzBox.hidden)return true;if(DZ.op==null)return false;
+      if(DZ.op>0){if(DZ.over===true){const r=dzRest();return DZ.heel!=null&&DZ.deel!=null&&r>0&&r<=DZ.op+1e-9}
+        if(DZ.over===false){if(DZ.af==null)return false;if(DZ.af!=="alle")return true}else return false}
+      return DZ.nodig===false||(DZ.nodig===true&&DZ.nodigN!=null)}
+    function dzData(){if(dzBox.hidden||DZ.op==null)return undefined;const o={opBij:DZ.op};
+      if(DZ.op>0){o.over=DZ.over;if(DZ.over)o.rest=dzRest();else o.af=DZ.af}
+      if(!(DZ.op>0)||DZ.af==="alle"){o.nodig=DZ.nodig;if(DZ.nodig)o.nodigN=DZ.nodigN}return o}
+    async function dzLaad(){if(!lid)return;const id=lid.id;DZ.op=null;DZ.voor=null;Object.assign(DZ,{over:null,heel:null,deel:null,af:null,nodig:null,nodigN:null});tekenDz();
+      try{const r=await fetch("/api/ronde?dozen="+encodeURIComponent(id),{cache:"no-store"});const j=r.ok?await r.json():{op:0};if(!lid||lid.id!==id)return;DZ.op=Number(j.op)||0}catch(e){DZ.op=0}DZ.voor=id;tekenDz()}
+    dzBox.addEventListener("click",e=>{const b=e.target.closest("[data-dz]");if(!b)return;const k=b.dataset.dz,v=b.dataset.v;err.textContent="";
+      if(k==="over"){DZ.over=v==="1";DZ.heel=DZ.deel=DZ.af=DZ.nodig=DZ.nodigN=null}
+      else if(k==="heel")DZ.heel=+v;else if(k==="deel")DZ.deel=+v;
+      else if(k==="af"){DZ.af=v==="alle"?"alle":+v;if(DZ.af!=="alle")DZ.nodig=DZ.nodigN=null}
+      else if(k==="nodig"){DZ.nodig=v==="1";if(!DZ.nodig)DZ.nodigN=null}else if(k==="nodigN")DZ.nodigN=+v;tekenDz()});
+    const zet=s=>{if(alRes&&s==="r")return;soort=s;bg.querySelectorAll("[data-ks]").forEach(b=>b.classList.toggle("on",b.dataset.ks===s));tekenDz()};zet(soort);
     const dicht=()=>bg.remove();
     const teken=()=>{if(!L.length){box.hidden=true;return}box.innerHTML=L.map((l,i)=>`<button type="button" data-i="${i}" class="${i===sel?"on":""}">${e2(l.toon||l.naam)}</button>`).join("");box.hidden=false};
-    const kies=l=>{lid=l;inp.value=l.toon||l.naam;inp.classList.add("ok");box.hidden=true;err.textContent=""};
-    inp.addEventListener("input",()=>{lid=null;inp.classList.remove("ok");clearTimeout(T);const q=inp.value.trim();if(q.replace(/\s/g,"").length<3){L=[];teken();return}
+    const kies=l=>{lid=l;inp.value=l.toon||l.naam;inp.classList.add("ok");box.hidden=true;err.textContent="";dzLaad()};
+    inp.addEventListener("input",()=>{if(lid){lid=null;tekenDz()}lid=null;inp.classList.remove("ok");clearTimeout(T);const q=inp.value.trim();if(q.replace(/\s/g,"").length<3){L=[];teken();return}
       T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[]}catch(e){L=[]}sel=-1;teken()},250)});
     inp.addEventListener("keydown",e=>{if(box.hidden)return;if(e.key==="ArrowDown"){sel=Math.min(L.length-1,sel+1);teken();e.preventDefault()}else if(e.key==="ArrowUp"){sel=Math.max(0,sel-1);teken();e.preventDefault()}else if(e.key==="Enter"&&sel>=0){kies(L[sel]);e.preventDefault()}});
     bg.addEventListener("click",async e=>{if(e.target===bg)return dicht();const k=e.target.closest("[data-ks]");if(k)return zet(k.dataset.ks);const o=e.target.closest(".km-l [data-i]");if(o)return kies(L[+o.dataset.i]);
       const a=e.target.closest("[data-km]");if(!a)return;if(a.dataset.km==="x")return dicht();
-      if(!lid){err.textContent="Kies je naam uit de lijst.";inp.focus();return}a.disabled=true;a.textContent="Versturen…";
-      try{const r=await fetch("/api/ronde",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({straten:ids,soort,lidId:lid.id,website:bg.querySelector("#kmW").value})});const j=await r.json().catch(()=>({}));
+      if(!lid){err.textContent="Kies je naam uit de lijst.";inp.focus();return}if(soort==="d"&&!dzKlaar()){err.textContent=DZ.op==null?"Even geduld, we zoeken je dozen op.":"Beantwoord nog de vragen over je dozen.";return}const dz=soort==="d"?dzData():undefined;a.disabled=true;a.textContent="Versturen…";
+      try{const r=await fetch("/api/ronde",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({straten:ids,soort,lidId:lid.id,dozen:dz,website:bg.querySelector("#kmW").value})});const j=await r.json().catch(()=>({}));
         if(!r.ok)throw new Error(j.error||"Versturen lukte niet");
-        bg.querySelector(".km").innerHTML=`<h3>Bedankt, ${e2(String(lid.toon||lid.naam).split(" ")[0])}!</h3><p>Je melding is doorgestuurd. Ze staan op de kaart met een oranje stippellijn tot het bestuur ze nagekeken heeft. Daarna worden ze ${soort==="d"?"groen (bedeeld)":"blauw (gereserveerd)"}.</p><div class="km-a"><button type="button" class="prim" data-km="x">Sluiten</button></div>`;for(const id of ids)KR_PEND[id]=soort==="d"?"d":"r";krSelect(null)}
+        bg.querySelector(".km").innerHTML=`<h3>Bedankt, ${e2(String(lid.toon||lid.naam).split(" ")[0])}!</h3><p>Je melding is doorgestuurd. Ze staan op de kaart met een oranje stippellijn tot het bestuur ze nagekeken heeft. Daarna worden ze ${soort==="d"?"groen (bedeeld)":"blauw (gereserveerd)"}.</p>${dz&&dz.nodig?`<p>Het bestuur weet dat je nog ${dz.nodigN?fd(dz.nodigN):"dozen"} nodig hebt.</p>`:""}<div class="km-a"><button type="button" class="prim" data-km="x">Sluiten</button></div>`;for(const id of ids)KR_PEND[id]=soort==="d"?"d":"r";krSelect(null)}
       catch(x){err.textContent=x.message;a.disabled=false;a.textContent="Doorsturen"}});
     document.addEventListener("keydown",function k(e){if(e.key==="Escape"){dicht();document.removeEventListener("keydown",k)}});setTimeout(()=>inp.focus(),50)}
   document.addEventListener("click",e=>{const b=e.target.closest("[data-krmeld]");if(b)open(b.dataset.krmeld)});
