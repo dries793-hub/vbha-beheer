@@ -8867,7 +8867,14 @@ function kvGrafieken(J1,J0,stuks){
     const e1=cur+som,e2=stuks>0&&opl>0?cur*Math.max(1,opl/stuks):0;
     if(e1>cur)E.push(["volgens het huidige tempo",e1]);if(e2&&f>=.3)E.push([`volgens ${Math.round(f*100)}% bedeelde kalenders`,e2]);
     prog=e1>cur&&e2&&f>=.3?(1-f)*e1+f*e2:e1>cur?e1:(f>=.3?e2:0);
-    if(prog)P=A.cum.map((v,i)=>i<tot?null:i===tot?cur:cur+(prog-cur)*(som>0?inc[i-tot-1]/som:(i-tot)/(A.n-1-tot)))}
+    if(prog)P=A.cum.map((v,i)=>i<tot?null:i===tot?cur:cur+(prog-cur)*(som>0?inc[i-tot-1]/som:(i-tot)/(A.n-1-tot)));
+    /* met de oplage: opbrengst per kalender van vorig jaar × kalenders dit jaar. Het meeste komt binnen tot een week na "in de bus tegen",
+       daarna enkel nog het naloopje (zelfde aandeel en verloop als vorig jaar na die datum) */
+    const opl0=Number(J0.opl)||0,dag=(d,d0)=>Math.round((new Date(d+"T12:00:00")-d0)/864e5),t1=jaarCfg(Y).kalTegen,t0=jaarCfg(Y-1).kalTegen||(Y+"-01-15");
+    const eK=opl>0&&opl0>0&&Bend>0?opl*Bend/opl0:0;
+    if(eK>cur*1.02&&/^\d{4}-\d{2}-\d{2}$/.test(t1||"")){const L0=Math.min(B.n-1,Math.max(0,dag(t0,B.d0))),L1=Math.max(0,dag(t1,A.d0)),eind=Math.min(A.n-1,Math.max(tot+1,L1+7));
+      const staart=Bend>Bc(L0)?(Bend-Bc(L0))/Bend:0,rest=eK-cur,bulk=rest*(1-staart);prog=eK;E.length=0;E.push([`${opl.toLocaleString("nl-BE")} kalenders × opbrengst per kalender ${Y-1}`,eK]);
+      P=A.cum.map((v,i)=>{if(i<tot)return null;if(i<=eind)return cur+bulk*(i-tot)/(eind-tot);const t=Bend>Bc(L0)?(Bc(L0+(i-eind))-Bc(L0))/(Bend-Bc(L0)):(i-eind)/(A.n-1-eind);return cur+bulk+(rest-bulk)*t})}}
   const kEur=v=>(v<0?"−":"")+"€ "+Math.round(Math.abs(v)).toLocaleString("nl-BE");
   /* winst doorheen het seizoen: winst van het jaar min wat er van de seizoensomzet nog moest binnenkomen (kosten en sponsors staan vooraf vast) */
   const offA=(Number(J1.res)||0)-cur,offB=(Number(J0.res)||0)-Bend;
