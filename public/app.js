@@ -147,7 +147,7 @@ async function logStart(more){if(LOGS.busy||(LOGS.loaded&&!more))return;LOGS.bus
 function logMeer(){const N=(UI.logN||100)+200;UI.logN=N;if(!LOGS.done&&LOGS.rows.length<N)logStart(true);else renderBody()}
 /* ============ opslag ============ */
 const queues=new Map();
-function write(col,id,data,{merge=false,del=false,oud}={}){if(col==="leden"&&data&&!del&&data.categorie==="Erewacht"&&!data.erewachtSinds){const _o=S.leden&&S.leden.get(id);if(!_o||_o.categorie!=="Erewacht")data={...data,erewachtSinds:new Date().getFullYear()}}
+function write(col,id,data,{merge=false,del=false,oud}={}){if(col==="leden"&&data&&!del&&data.categorie==="Erewacht"&&!data.erewachtSinds){const _o=S.leden&&S.leden.get(id);if(!_o||_o.categorie!=="Erewacht")data={...data,erewachtSinds:new Date().getFullYear()}}if(col==="leden"&&data&&!del&&typeof data.telefoon==="string"){const _t=telNet(data.telefoon);if(_t!==data.telefoon)data={...data,telefoon:_t}}
   if(!db){toast("Geen verbinding met de gegevens.",true);return Promise.reject()}
   const _oud=oud!==undefined?oud:(S[col]&&S[col].get(id))||null;let _nieuw=del?null:data;
   const key=col+"/"+id;const prev=queues.get(key)||Promise.resolve();
@@ -230,6 +230,7 @@ async function doSetPassword(f){const d=formData(f);const e=$("#pwErr");if(d.pw1
   if(!session)return showLogin(authErr?"De link is verlopen of al gebruikt. Vraag een nieuwe uitnodiging aan een bestuurslid.":"");
   startApp(session);
 })();
+function telNet(v){const d=String(v||"").replace(/[^\d+]/g,"").replace(/^(\+32|0032)/,"0");if(/^04\d{8}$/.test(d))return d.slice(0,4)+" "+d.slice(4,6)+" "+d.slice(6,8)+" "+d.slice(8);if(/^0[1-9]\d{7}$/.test(d))return d.slice(0,3)+" "+d.slice(3,5)+" "+d.slice(5,7)+" "+d.slice(7);return String(v||"").trim()}
 let STARTED=false,PW_NIEUW=false,PRE_DB=null,BOOT_TIMER=0;
 const NIET_WACHTEN=new Set(["archief","fotoalbums","mailings","templates"]);
 function bootLaad(dbx){

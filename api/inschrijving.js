@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     const I = await info(sb);
     const d = {
       naam: clean(b.naam, 80), voornaam: clean(b.voornaam, 80), adres: clean(b.adres, 200),
-      email: clean(b.email, 120).toLowerCase(), telefoon: clean(b.telefoon, 40), categorie: clean(b.categorie, 60),
+      email: clean(b.email, 120).toLowerCase(), telefoon: telFmt(clean(b.telefoon, 40)), categorie: clean(b.categorie, 60),
     };
     if (!d.naam || !d.voornaam) throw httpErr(400, "Vul je naam en voornaam in.");
     if (!adresVolledig(d.adres)) throw httpErr(400, ADRES_FOUT);
@@ -109,3 +109,12 @@ export default async function handler(req, res) {
     res.status(200).json({ ok: true, jaar: I.jaar, bedrag, rekeningnummer: I.rekeningnummer, begunstigde: I.vereniging, mededeling, qr, online });
   } catch (e) { sendError(res, e); }
 }
+
+/* gsm-nummer altijd als 0498 12 34 56 (ook +32 498… of 0498123456); vaste nummers als 053 12 34 56; buitenlandse nummers ongewijzigd */
+function telFmt(t) {
+  let d = String(t || "").replace(/[^\d+]/g, "").replace(/^(\+32|0032)/, "0");
+  if (/^04\d{8}$/.test(d)) return `${d.slice(0, 4)} ${d.slice(4, 6)} ${d.slice(6, 8)} ${d.slice(8)}`;
+  if (/^0[1-9]\d{7}$/.test(d)) return `${d.slice(0, 3)} ${d.slice(3, 5)} ${d.slice(5, 7)} ${d.slice(7)}`;
+  return String(t || "").trim();
+}
+

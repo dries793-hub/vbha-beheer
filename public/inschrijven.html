@@ -202,5 +202,7 @@ $("#f").addEventListener("submit",async e=>{e.preventDefault();const f=e.target,
 </script>
 <script src="/adres.js" defer></script>
 <script>/* bezoekteller zonder cookies of IP-adres */(function(){try{if(navigator.webdriver||window.top!==window)return;var s=sessionStorage,n=!s.getItem("vbt"),b;if(n){var u=new URLSearchParams(location.search);b={r:document.referrer,q:u.get("utm_source")||u.get("bron")||(u.has("fbclid")?"fb":u.has("igshid")?"ig":"")};s.setItem("vbt",JSON.stringify(b))}else b=JSON.parse(s.getItem("vbt")||"{}");var d=JSON.stringify({p:location.pathname,r:b.r||"",q:b.q||"",n:n});if(navigator.sendBeacon)navigator.sendBeacon("/api/tel",d);else fetch("/api/tel",{method:"POST",body:d,keepalive:true})}catch(e){}})()</script>
+<script>(function(){var t=document.getElementById("telefoon");if(!t)return;function f(v){var d=String(v||"").replace(/[^\d+]/g,"").replace(/^(\+32|0032)/,"0");if(/^04\d{8}$/.test(d))return d.slice(0,4)+" "+d.slice(4,6)+" "+d.slice(6,8)+" "+d.slice(8);if(/^0[1-9]\d{7}$/.test(d))return d.slice(0,3)+" "+d.slice(3,5)+" "+d.slice(5,7)+" "+d.slice(7);return v}
+t.addEventListener("blur",function(){t.value=f(t.value)});t.addEventListener("input",function(){var d=t.value.replace(/\D/g,"");if(/^04\d{8}$/.test(d)&&!/\s/.test(t.value))t.value=f(t.value)})})()</script>
 </body>
 </html>
