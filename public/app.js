@@ -4410,7 +4410,7 @@ function inkBetaal(id){const d=S.documenten.get(id);if(!d)return;const B=inkBeta
     q.innerHTML=`<div class="ink-qd">${delen.length>1?`<b>Betaling ${idx+1} van ${delen.length}</b><span class="muted small">${eur(b)}</span>`:""}<div class="ink-qc">${qr.createSvgTag({cellSize:5,margin:3,scalable:true})}</div></div>`;
     t.innerHTML=delen.length>1?(idx<delen.length-1?`Scan vandaag deze QR-code. Betaling ${idx+2} (${eur(delen[idx+1])}) verschijnt hier morgen. <button type="button" class="lnkb" data-ipnu="${idx+1}">Nu al tonen</button>`
         :`Laatste betaling. Samen is dat <b>${eur(bedrag)}</b> aan <b>${esc(naam)}</b>, telkens met dezelfde mededeling.${idx?` <button type="button" class="lnkb" data-ipnu="${idx-1}">Vorige tonen</button>`:""}`)
-      :(n>1?`<span style="color:#b91c1c">Let op: hoger dan de daglimiet van ${eur(lim)}.</span>`:"")};
+      :`Scan met de Argenta-app.${n>1?` <span style="color:#b91c1c">Let op: hoger dan de daglimiet van ${eur(lim)}.</span>`:""}`};
   ["#ipN","#ipI","#ipB","#ipM"].forEach(s=>$(s).addEventListener("input",()=>{toon=null;teken()}));$("#ipS").addEventListener("change",teken);
   $("#ipT").addEventListener("click",e=>{const x=e.target.closest("[data-ipnu]");if(!x)return;toon=Number(x.dataset.ipnu);teken()});teken()}
 /* domiciliëring / SEPA Direct Debit: zo'n factuur wordt automatisch van de rekening gehaald, niet zelf betalen */
