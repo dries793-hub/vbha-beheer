@@ -56,7 +56,10 @@ export async function gebruikers(req, res) {
     const [{ data: rijen, error }, users] = await Promise.all([sb.from("bestuur").select("user_id,email,naam,rol,rechten,created_at"), alleGebruikers(sb)]);
     if (error) throw error;
     const U = new Map(users.map(u => [u.id, u]));
-    const lijst = rijen.map(r => { const u = U.get(r.user_id) || {}; return { id: r.user_id, email: u.email || r.email, naam: r.naam || "", rol: r.rol === "bewerker" ? "admin" : r.rol, rechten: r.rechten || null, laatst: u.last_sign_in_at || null, tijdelijk: !!(u.user_metadata && u.user_metadata.tijdelijk), ik: r.user_id === user.id }; });
+    // laatst gebruikt: de sessie wordt vernieuwd zolang de app open staat (ten hoogste ongeveer een uur verschil); anders de laatste aanmelding
+    const G = new Map(); try { const { data: lg } = await sb.rpc("laatst_gebruikt"); for (const x of lg || []) G.set(x.user_id, x.ts); } catch (e) {}
+    const laatstVan = (id, u) => { const a = G.get(id), b = u.last_sign_in_at; return a && (!b || new Date(a) > new Date(b)) ? a : b || null; };
+    const lijst = rijen.map(r => { const u = U.get(r.user_id) || {}; return { id: r.user_id, email: u.email || r.email, naam: r.naam || "", rol: r.rol === "bewerker" ? "admin" : r.rol, rechten: r.rechten || null, laatst: laatstVan(r.user_id, u), tijdelijk: !!(u.user_metadata && u.user_metadata.tijdelijk), ik: r.user_id === user.id }; });
     lijst.sort((a, b) => ROLLEN.indexOf(a.rol) - ROLLEN.indexOf(b.rol) || (a.naam || a.email).localeCompare(b.naam || b.email, "nl"));
     return res.status(200).json({ gebruikers: lijst, mail: smtpConfigured() });
   }

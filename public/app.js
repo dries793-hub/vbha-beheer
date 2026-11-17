@@ -3081,7 +3081,7 @@ VIEWS.gebruikers=()=>({title:"Gebruikers",actions:ROL==="admin"?'<button class="
   return `  <div class="panel"><div class="panel-h"><h2>Wie heeft toegang</h2><span class="grow"></span><span class="muted small">${L.length}</span></div><div class="list">
   ${L.map(u=>`<div class="li gb-li"><span class="acct-av gb-av">${esc(((u.naam||u.email)[0]||"?").toUpperCase())}</span><div class="grow" style="min-width:0">
     <div class="trunc"><b>${esc(u.naam||u.email)}</b>${u.ik?' <span class="muted small">(jij)</span>':""}</div><div class="gb-rm">${gbPill(u)}</div>
-    <div class="muted small trunc">${u.naam?esc(u.email)+" · ":""}laatst aangemeld: ${esc(gbDt(u.laatst))}${u.tijdelijk?' · <span class="gb-tmp">tijdelijk wachtwoord</span>':""}</div></div>
+    <div class="muted small trunc">${u.naam?esc(u.email)+" · ":""}laatst gebruikt: ${esc(gbDt(u.laatst))}${u.tijdelijk?' · <span class="gb-tmp">tijdelijk wachtwoord</span>':""}</div></div>
     ${gbPill(u,"gb-rp")}
     <button class="btn sm" data-act="gbEdit" data-id="${esc(u.id)}">Wijzigen</button></div>`).join("")||'<div class="empty">Nog niemand.</div>'}</div></div>`}});
 
