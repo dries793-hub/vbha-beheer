@@ -8790,8 +8790,11 @@ function kvGrafieken(J1,J0,stuks){
   const nu=Math.round((new Date(todayISO()+"T12:00:00")-A.d0)/864e5),tot=nu<0?-1:Math.min(nu,A.n-1);
   /* prognose einde seizoen: (1) volgens het verloop van vorig jaar op dezelfde dag, (2) volgens de opbrengst per bedeelde kalender × oplage */
   const Bc=i=>B.cum[Math.min(i,B.n-1)]||0,Bend=B.cum[B.n-1]||0,cur=tot>=0?A.cum[tot]:0,opl=Number(J1.opl)||0;
-  const E=[];if(tot>=0&&tot<A.n-1&&cur>0){if(Bend>0&&Bc(tot)>0)E.push(["volgens verloop "+(Y-1),cur/(Bc(tot)/Bend)]);if(stuks>0&&opl>0)E.push(["volgens bedeelde kalenders",cur*Math.max(1,opl/stuks)])}
-  const prog=E.length?E.reduce((a,x)=>a+x[1],0)/E.length:0;
+  /* hoe meer kalenders bedeeld, hoe zwaarder de schatting per kalender doorweegt */
+  const f=opl>0?Math.min(1,stuks/opl):0,E=[];let prog=0;
+  if(tot>=0&&tot<A.n-1&&cur>0){const e1=Bend>0&&Bc(tot)>0?cur/(Bc(tot)/Bend):0,e2=stuks>0&&opl>0?cur*Math.max(1,opl/stuks):0;
+    if(e1)E.push(["volgens verloop "+(Y-1),e1]);if(e2&&(e1||f>=.3))E.push([`volgens ${Math.round(f*100)}% bedeelde kalenders`,e2]);
+    prog=e1&&e2?(1-f)*e1+f*e2:e1||(f>=.3?e2:0)}
   const P=prog?A.cum.map((v,i)=>{if(i<tot)return null;const d=Bend-Bc(tot);return cur+(prog-cur)*(d>0?(Bc(i)-Bc(tot))/d:(i-tot)/(A.n-1-tot))}):null;
   const kEur=v=>"€ "+Math.round(v).toLocaleString("nl-BE");
   const svg=(W,H,cls)=>{const pl=W<400?44:58,pr=10,pt=14,pb=26,iw=W-pl-pr,ih=H-pt-pb;
@@ -8799,7 +8802,7 @@ function kvGrafieken(J1,J0,stuks){
   const X=i=>pl+i/(n-1)*iw,Yp=v=>pt+ih-v/top*ih;
   const pad=c=>c.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Yp(v).toFixed(1)).join("");
   let g="";for(let v=0;v<=top+1e-6;v+=st)g+=`<line x1="${pl}" x2="${W-pr}" y1="${Yp(v)}" y2="${Yp(v)}" class="kv-gr"/><text x="${pl-8}" y="${Yp(v)+4}" text-anchor="end" class="kv-ax">${v?Math.round(v/1000*10)/10+"k":"0"}</text>`;
-  let tk="";for(let i=0;i<n;i++){const d=new Date(A.d0.getTime()+i*864e5);if((d.getDate()===1&&(W>=400||d.getMonth()%1===0))||i===0)tk+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt+ih}" y2="${pt+ih+4}" class="kv-gr"/><text x="${X(i)}" y="${H-6}" text-anchor="${i===0?"start":"middle"}" class="kv-ax">${d.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})}</text>`}
+  let tk="";for(let i=0;i<n;i++){const d=new Date(A.d0.getTime()+i*864e5);if((d.getDate()===1&&(W>=400||d.getMonth()%2===0))||i===0)tk+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt+ih}" y2="${pt+ih+4}" class="kv-gr"/><text x="${X(i)}" y="${H-6}" text-anchor="${i===0?"start":"middle"}" class="kv-ax">${d.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})}</text>`}
   const padP=P?P.map((v,i)=>v==null?"":(i===tot?"M":"L")+X(i).toFixed(1)+" "+Yp(v).toFixed(1)).join(""):"",eindP=P?`<circle cx="${X(A.n-1)}" cy="${Yp(prog)}" r="4" class="kv-pp"/><text x="${X(A.n-1)-6}" y="${Yp(prog)-10}" text-anchor="end" class="kv-pl">Prognose ${kEur(prog)}</text>`:"";
   const lijnA=tot>=0?pad(A.cum.slice(0,tot+1)):"",eind=tot>=0?`<circle cx="${X(tot)}" cy="${Yp(A.cum[tot])}" r="4.5" class="kv-pa"/>`:"";
   return `<svg viewBox="0 0 ${W} ${H}" class="kv-svg ${cls}" data-w="${W}" data-pl="${pl}" data-iw="${iw}" role="img" aria-label="Opbrengst kalenders per dag, ${Y} tegenover ${Y-1}">${g}${tk}
