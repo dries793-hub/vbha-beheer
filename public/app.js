@@ -8785,6 +8785,14 @@ function kvReeks(Y){const sz=kalSz(),van=Y+"-"+sz.van,tot=(sz.tot<sz.van?Y+1:Y)+
   for(const b of S.boekingen.values()){if(b.categorie!=="Kalenders"||b.richting==="uit")continue;const d=String(b.datum||"");if(d<van||d>tot)continue;
     const i=Math.round((new Date(d+"T12:00:00")-d0)/864e5);if(i>=0&&i<n)dag[i]+=Number(b.bedrag)||0}
   let c=0;return{d0,n,cum:dag.map(v=>c+=v)}}
+/* vloeiende lijn door de punten (monotone kubische curve: schiet niet over de waarden heen) */
+function kvVloeiend(P){const n=P.length;if(!n)return"";if(n<3)return P.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join("");
+  const d=[],m=[];for(let i=0;i<n-1;i++)d.push((P[i+1][1]-P[i][1])/(P[i+1][0]-P[i][0]||1));
+  m[0]=d[0];m[n-1]=d[n-2];for(let i=1;i<n-1;i++)m[i]=d[i-1]*d[i]<=0?0:(d[i-1]+d[i])/2;
+  for(let i=0;i<n-1;i++){if(d[i]===0){m[i]=m[i+1]=0;continue}const a=m[i]/d[i],b=m[i+1]/d[i],h=a*a+b*b;if(h>9){const t=3/Math.sqrt(h);m[i]=t*a*d[i];m[i+1]=t*b*d[i]}}
+  let s="M"+P[0][0].toFixed(1)+" "+P[0][1].toFixed(1);
+  for(let i=0;i<n-1;i++){const dx=(P[i+1][0]-P[i][0])/3;s+=`C${(P[i][0]+dx).toFixed(1)} ${(P[i][1]+m[i]*dx).toFixed(1)} ${(P[i+1][0]-dx).toFixed(1)} ${(P[i+1][1]-m[i+1]*dx).toFixed(1)} ${P[i+1][0].toFixed(1)} ${P[i+1][1].toFixed(1)}`}
+  return s}
 function kvGrafieken(J1,J0,stuks){
   const Y=Number(JAAR),A=kvReeks(Y),B=kvReeks(Y-1),n=Math.max(A.n,B.n);
   const nu=Math.round((new Date(todayISO()+"T12:00:00")-A.d0)/864e5),tot=nu<0?-1:Math.min(nu,A.n-1);
@@ -8799,20 +8807,21 @@ function kvGrafieken(J1,J0,stuks){
   const kEur=v=>(v<0?"−":"")+"€ "+Math.round(Math.abs(v)).toLocaleString("nl-BE");
   /* winst doorheen het seizoen: winst van het jaar min wat er van de seizoensomzet nog moest binnenkomen (kosten en sponsors staan vooraf vast) */
   const offA=(Number(J1.res)||0)-cur,offB=(Number(J0.res)||0)-Bend;
-  const WA=A.cum.map(v=>v+offA),WB=B.cum.map(v=>v+offB),WP=P?P.map(v=>v==null?null:v+offA):null,progW=prog?prog+offA:0;
+  const glad=(c,k=3)=>c.map((v,i)=>{if(i===0||i===c.length-1)return v;const a=Math.max(0,i-k),b=Math.min(c.length-1,i+k);let t=0;for(let j=a;j<=b;j++)t+=c[j];return t/(b-a+1)});
+  const WA=(tot>=0?glad(A.cum.slice(0,tot+1)):[]).concat(A.cum.slice(tot+1)).map(v=>v+offA),WB=glad(B.cum).map(v=>v+offB),WP=P?P.map(v=>v==null?null:v+offA):null,progW=prog?prog+offA:0;
   const svg=(W,H,cls)=>{const pl=W<400?44:58,pr=10,pt=14,pb=26,iw=W-pl-pr,ih=H-pt-pb;
   const vals=[0,...WB,...(tot>=0?WA.slice(0,tot+1):[]),...(prog?[progW]:[])],mx=Math.max(...vals),mn=Math.min(...vals),sp=Math.max(1,mx-mn);
   const st=[1,2,2.5,5,10].map(f=>f*Math.pow(10,Math.floor(Math.log10(sp/4)))).find(x=>sp/x<=5)||sp/4,top=Math.ceil(mx/st)*st,bot=Math.floor(mn/st)*st;
   const X=i=>pl+i/(n-1)*iw,Yp=v=>pt+ih-(v-bot)/(top-bot||1)*ih;
-  const pad=c=>c.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Yp(v).toFixed(1)).join("");
+  const pad=(c,i0=0)=>kvVloeiend(c.map((v,i)=>[X(i+i0),Yp(v)]));
   let g="";for(let v=bot;v<=top+1e-6;v+=st)g+=`<line x1="${pl}" x2="${W-pr}" y1="${Yp(v)}" y2="${Yp(v)}" class="${Math.abs(v)<1e-6?"kv-nul":"kv-gr"}"/><text x="${pl-8}" y="${Yp(v)+4}" text-anchor="end" class="kv-ax">${Math.abs(v)<1e-6?"0":(v<0?"−":"")+Math.round(Math.abs(v)/1000*10)/10+"k"}</text>`;
   let tk="";for(let i=0;i<n;i++){const d=new Date(A.d0.getTime()+i*864e5);if((d.getDate()===1&&(W>=400||d.getMonth()%2===0))||i===0)tk+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt+ih}" y2="${pt+ih+4}" class="kv-gr"/><text x="${X(i)}" y="${H-6}" text-anchor="${i===0?"start":"middle"}" class="kv-ax">${d.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})}</text>`}
-  const padP=WP?WP.map((v,i)=>v==null?"":(i===tot?"M":"L")+X(i).toFixed(1)+" "+Yp(v).toFixed(1)).join(""):"",eindP=WP?`<circle cx="${X(A.n-1)}" cy="${Yp(progW)}" r="4" class="kv-pp"/><text x="${X(A.n-1)-6}" y="${Yp(progW)+(progW<0?20:-10)}" text-anchor="end" class="kv-pl">Prognose ${kEur(progW)}</text>`:"";
+  const padP=WP?pad(WP.slice(tot),tot):"",eindP=WP?`<circle cx="${X(A.n-1)}" cy="${Yp(progW)}" r="4" class="kv-pp"/><text x="${X(A.n-1)-6}" y="${Yp(progW)+(progW<0?20:-10)}" text-anchor="end" class="kv-pl">Prognose ${kEur(progW)}</text>`:"";
   const lijnA=tot>=0?pad(WA.slice(0,tot+1)):"",eind=tot>=0?`<circle cx="${X(tot)}" cy="${Yp(WA[tot])}" r="4.5" class="kv-pa"/>`:"";
   return `<svg viewBox="0 0 ${W} ${H}" class="kv-svg ${cls}" data-w="${W}" data-pl="${pl}" data-iw="${iw}" role="img" aria-label="Winst kalenders doorheen het seizoen, ${Y} tegenover ${Y-1}">${g}${tk}
     <path d="${pad(WB)}" class="kv-lb"/>${padP?`<path d="${padP}" class="kv-lp"/>`:""}${eindP}${lijnA?`<path d="${lijnA}" class="kv-la"/>`:""}${eind}<line class="kv-x" x1="0" x2="0" y1="${pt}" y2="${pt+ih}" style="display:none"/><rect x="${pl}" y="${pt}" width="${iw}" height="${ih}" fill="transparent" class="kv-hit"/></svg>`};
   const lijn=`<div class="kv-c"><h3 class="kf-h">Winst doorheen het seizoen</h3><div class="kv-svgw">${svg(600,230,"kv-gr1")}${svg(340,220,"kv-gr2")}<div class="kv-tip" hidden></div></div></div>`;
-  KV={A,B,tot,n,kEur,WA,WB,WP};
+  KV={A,B,tot,n,kEur,WA:A.cum.map(v=>v+offA),WB:B.cum.map(v=>v+offB),WP};
   const R=[["Omzet",J1.kin,J0.kin],["Sponsors",J1.si,J0.si],["Kosten",J1.kuit,J0.kuit],["Winst",J1.res,J0.res]],bm=Math.max(1,...R.flatMap(r=>[Math.abs(r[1]),Math.abs(r[2])]));
   const bar=(v,c,l)=>`<div class="kv-br"><span class="kv-bar ${c}" style="width:${Math.max(.6,Math.abs(v)/bm*100)}%" data-t="${l}: ${v<0?"−":""}${kEur(Math.abs(v))}"></span><b>${v<0?"−":""}${kEur(Math.abs(v))}</b></div>`;
   const staaf=`<div class="kv-c"><h3 class="kf-h">Kerncijfers</h3>${R.map(([l,a,b])=>`<div class="kv-rij"><span class="kv-l">${l}</span><div>${bar(a,"a",l+" "+Y)}${bar(b,"b",l+" "+(Y-1))}</div></div>`).join("")}</div>`;
@@ -9176,7 +9185,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-jd]");if(!
 /* ============ Instellingen › Vaste waarden (admin): waarden die vroeger vast in de code stonden ============
    config algemeen.kalSeizoen {van,tot} ("MM-DD"; tot valt in het volgende jaar), algemeen.goudMail.dagen,
    config betaalWacht.dagen en .mail (server: api/_lib/betaalwacht.js, api/_lib/bcsplit.js). */
-const kalSz=()=>{const k=((S.config.get("algemeen")||{}).kalSeizoen)||{},ok=x=>/^\d{2}-\d{2}$/.test(String(x||""));return{van:ok(k.van)?k.van:"11-01",tot:ok(k.tot)?k.tot:"04-30"}};
+const kalSz=()=>{const k=((S.config.get("algemeen")||{}).kalSeizoen)||{},ok=x=>/^\d{2}-\d{2}$/.test(String(x||""));return{van:ok(k.van)?k.van:"11-01",tot:ok(k.tot)?k.tot:"05-01"}};
 const vwDM=md=>{const [m,d]=md.split("-");return d+"/"+m},vwMD=t=>{const x=String(t||"").trim().match(/^(\d{1,2})\/(\d{1,2})$/);if(!x)return null;const d=+x[1],m=+x[2];return d>=1&&d<=31&&m>=1&&m<=12?String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0"):null};
 viewHook("instellingen",{na(){if(ROL_ECHT!=="admin")return"";const A=S.config.get("algemeen")||{},B=S.config.get("betaalWacht")||{},k=kalSz();
   const f=(id,l,v,ext="")=>`<div class="fld"><label for="${id}">${l}</label><input class="inp" id="${id}" value="${esc(String(v))}"${ext}></div>`;
