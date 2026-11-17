@@ -4225,7 +4225,7 @@ function inkRij(d){const L=inkBoekVan(d.id),nieuw=d.inkomend&&d.inkomend.nieuw&&
   const A=INK.txt.get(d.id),V=inkVoorstel(d);if(!A)inkLees(d);
   const kand=[...S.boekingen.values()].filter(b=>b.richting==="uit"&&!b.documentId).sort((a,b)=>String(b.datum).localeCompare(String(a.datum))).slice(0,250);
   return `<div class="ink-r">${kop}<div class="ink-b">${L.length?`${linked}<div class="small"><span class="pill warn">deels betaald</span> ${eur(inkSom(d.id))} van ${eur(inkTot(d))} · nog <b>${eur(Math.round((inkTot(d)-inkSom(d.id))*100)/100)}</b> te koppelen ${m?`<button type="button" class="btn sm ghost" data-ink="volledig" data-id="${esc(d.id)}" title="Het bedrag in de factuur werd verkeerd gelezen of de rest wordt niet betaald">Toch volledig</button>`:""}</div>`:""}${!A?'<div class="muted small">Factuur wordt gelezen…</div>':A.fout?'<div class="muted small">De tekst van deze factuur kon niet gelezen worden; kies de transactie zelf.'+(A.reden?' <span style="opacity:.7">('+esc(A.reden)+')</span>':'')+'</div>':
-    `<div class="muted small">${A.totaal?"Bedrag in de factuur: <b>"+eur(A.totaal)+"</b>":"Geen bedrag gevonden"}${A.nr?" · factuurnr. "+esc(A.nr):""}${A.ogm?" · mededeling "+esc(A.ogm):""}</div>`}
+    `<div class="muted small">${A.totaal?"Bedrag in de factuur: <b>"+eur(A.totaal)+"</b>":"Geen bedrag gevonden"}${inkNrVan(d)?" · factuurnr. "+esc(inkNrVan(d)):""}${A.ogm?" · mededeling "+esc(A.ogm):""}</div>`}
    ${V.map(x=>`<div class="ink-t ink-v"><span>${x.bs.map(y=>`${fmtDate(y.datum)} · <b>${esc(y.partij||y.mededeling||"")}</b> · ${eur(y.bedrag)}`).join(" <b>+</b> ")}<span class="muted small"> · ${esc(x.w.join(", "))}</span></span>${m?`<button type="button" class="btn sm primary" data-ink="koppel" data-id="${esc(d.id)}" data-b="${esc(x.bs.map(y=>y.id).join(","))}">${x.bs.length>1?"Samen koppelen":"Koppelen"}</button>`:""}</div>`).join("")}
    ${m?`<div class="ink-kies"><select class="sel" data-ink-sel="${esc(d.id)}" aria-label="Andere transactie"><option value="">Transactie kiezen…</option>${kand.map(b=>`<option value="${esc(b.id)}">${esc((fmtDate(b.datum)+" · "+eur(b.bedrag)+" · "+(b.partij||"")+(b.mededeling?" · "+b.mededeling:"")).slice(0,100))}</option>`).join("")}</select>
      <button type="button" class="btn sm" data-ink="kies" data-id="${esc(d.id)}">Koppelen</button><button type="button" class="btn sm ghost" data-ink="weg" data-id="${esc(d.id)}" title="Verwijderen">${ic("x")}</button></div>`:""}</div></div>`}
@@ -4367,7 +4367,7 @@ const inkIbanOk=i=>{i=String(i||"").replace(/\s+/g,"").toUpperCase();if(!/^[A-Z]
 const inkEigenIban=()=>new Set([String(cfg().rekeningnummer||"").replace(/\s+/g,"").toUpperCase(),"BE43973068100401"]);
 const inkIbanFmt=i=>String(i||"").replace(/\s+/g,"").toUpperCase().replace(/(.{4})/g,"$1 ").trim();
 const inkAscii=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Za-z0-9 .,'+\-\/&()]/g," ").replace(/\s+/g," ").trim();
-{const _a=inkAnalyse;inkAnalyse=function(t){const r=_a(t),E=inkEigenIban(),L=[];
+{const _a=inkAnalyse;inkAnalyse=function(t){const r=_a.apply(this,arguments),E=inkEigenIban(),L=[];
   for(const m of String(t||"").toUpperCase().matchAll(/\b([A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]{4}){2,7}(?:[ ]?[A-Z0-9]{1,4})?)\b/g)){const c=m[1].replace(/\s+/g,"");let i="";for(let n=Math.min(34,c.length);n>=15;n--)if(inkIbanOk(c.slice(0,n))){i=c.slice(0,n);break}if(i&&!E.has(i)&&!L.includes(i))L.push(i)}
   r.ibans=L;return r}}
 function inkBetaalData(d){const A=INK.txt.get(d.id)||{},E=inkEigenIban(),naam=inkVan(d)||"",n=norm(naam);
@@ -4375,7 +4375,9 @@ function inkBetaalData(d){const A=INK.txt.get(d.id)||{},E=inkEigenIban(),naam=in
   if(!iban&&n){const b=[...S.boekingen.values()].filter(b=>b.richting==="uit"&&b.iban&&!E.has(String(b.iban).replace(/\s+/g,"").toUpperCase())&&norm(b.partij||"").includes(n.split(" ")[0])).sort((a,b)=>String(b.datum).localeCompare(String(a.datum)))[0];if(b)iban=String(b.iban).replace(/\s+/g,"").toUpperCase()}
   const rest=Math.round(((inkTot(d)||A.totaal||0)-inkSom(d.id))*100)/100;
   const P=d.inkomend&&d.inkomend.betaalPlan;if(P&&P.totaal&&inkSom(d.id)<P.totaal-0.005)return{naam:P.naam||naam,iban:P.iban||iban,bedrag:P.totaal,med:P.med||"",plan:P};
-  return{naam,iban,bedrag:rest>0?rest:(A.totaal||""),med:A.ogm?`+++${A.ogm.slice(0,3)}/${A.ogm.slice(3,7)}/${A.ogm.slice(7)}+++`:A.nr?"Factuur "+A.nr:""}}
+  return{naam,iban,bedrag:rest>0?rest:(A.totaal||""),med:A.ogm?`+++${A.ogm.slice(0,3)}/${A.ogm.slice(3,7)}/${A.ogm.slice(7)}+++`:inkNrVan(d)||""}}
+/* factuurnummer: uit de PDF, anders bewaard bij het document, anders uit het onderwerp van de mail */
+function inkNrVan(d){const A=INK.txt.get(d.id)||{},I=d.inkomend||{};return A.nr||I.nr||inkNrUit(I.onderwerp||d.omschrijving)||""}
 function inkBetaal(id){const d=S.documenten.get(id);if(!d)return;const B=inkBetaalData(d);let toon=null,bewaarT=null;
   modal("Factuur betalen",`<div class="ink-pay"><div class="form">
     ${fld("ipN","Begunstigde",inp("ipN",B.naam,'maxlength="70"'),"full")}
