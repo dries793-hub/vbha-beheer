@@ -204,7 +204,7 @@ export async function nastuur(sb, id) {
   if (!(await lidgeldOntvangen(sb, id, d))) return 0;
   for (const [tpl, R] of actief) {
     const vn = esc(d.voornaam || ""), nm = esc([d.voornaam, d.naam].filter(Boolean).join(" "));
-    const vulIn = (t, h) => String(t).split("@@VOORNAAM@@").join(h ? vn : d.voornaam || "").split("@@NAAM@@").join(h ? nm : [d.voornaam, d.naam].filter(Boolean).join(" ")).replace(/Beste\s+,/g, "Beste,");
+    const vulIn = (t, h) => String(t).split("%40%40LIDID%40%40").join(encodeURIComponent(id)).split("@@LIDID@@").join(encodeURIComponent(id)).split("@@VOORNAAM@@").join(h ? vn : d.voornaam || "").split("@@NAAM@@").join(h ? nm : [d.voornaam, d.naam].filter(Boolean).join(" ")).replace(/Beste\s+,/g, "Beste,");
     rijen.push({ batch: "nastuur-" + tpl.replace(/[^\w.-]/g, "") + "-" + Date.now().toString(36), data: { aan, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" "), onderwerp: vulIn(R.onderwerp, false), html: ondertekenLinks(vulIn(R.html, true)), label: "Nagestuurd: " + (R.naam || tpl) } });
     al[tpl] = new Date().toISOString();
   }

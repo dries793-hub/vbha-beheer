@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}.logo-a{display:block;flex:none;line-height:0;border-radius:4px}.logo-a:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .age.te{color:#b91c1c;font-weight:600}
-</style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
+.vast-n{padding:11px 12px;border:1px solid var(--line,#e3e4e6);border-radius:8px;background:var(--sunken,#f3f4f5);font-weight:600;font-size:16px}</style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Kinderfeest · VBHA</title>
 <link rel="icon" href="/favicon.png">
 <link rel="stylesheet" href="/fonts/inter.css">
@@ -181,8 +181,9 @@ function gesloten(wat,j){$("#box").innerHTML=`<div class="card bevestig"><div cl
   <h2>De inschrijvingen zijn afgesloten</h2><p class="lead2">${j.gesloten==="verlopen"&&j.totTekst?"Inschrijven voor "+wat+" kon tot en met "+esc(j.totTekst)+".":"Je kan je op dit moment niet inschrijven voor "+wat+"."} Neem voor vragen contact op met iemand van het bestuur.</p></div>`}
 const VQ=new URLSearchParams(location.search);
 fetch("/api/kinderfeest"+(VQ.get("v")?"?v="+encodeURIComponent(VQ.get("v"))+"&t="+encodeURIComponent(VQ.get("t")||""):"")).then(r=>r.ok?r.json():null).then(j=>{if(!j)return;CFG={...CFG,...j};
-  if(j.vul){const i=$("#lid");i.value=j.vul.lid;i.dataset.id=j.vul.lidId;i.classList.add("lp-ok");if(typeof alCheck==="function")alCheck(i,j.vul.lidId);
-    const m=$("#mail");if(m&&j.vul.mail){m.value=j.vul.mail;m.dataset.auto="1";m.type="text";$("#mhint").hidden=false}
+function vastNaam(inp,naam){inp.hidden=true;const b=document.createElement("div");b.className="vast-n";b.textContent=naam;inp.after(b)}
+  if(j.vul){const i=$("#lid");i.value=j.vul.lid;i.dataset.id=j.vul.lidId;i.classList.add("lp-ok");vastNaam(i,j.vul.lid);if(typeof alCheck==="function")alCheck(i,j.vul.lidId);
+    const m=$("#mail");if(m&&j.vul.mail){m.value=j.vul.mail;m.dataset.auto="1";m.type="text";m.closest(".full").hidden=true}
     if(j.vul.kinderen&&j.vul.kinderen.length)KIDS=j.vul.kinderen.map(k=>({naam:k.naam,geb:k.geb}));try{history.replaceState(null,"",location.pathname)}catch(e){}}
   $("#h1").textContent="Kinderfeest "+j.jaar;document.title="Kinderfeest "+j.jaar+" · VBHA";
   const d=new Date(j.datum+"T12:00");if(!isNaN(d))$("#kWan").textContent=d.toLocaleDateString("nl-BE",{weekday:"short",day:"numeric",month:"long",year:"numeric"});

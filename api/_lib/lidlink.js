@@ -26,7 +26,7 @@ export function kloptRonde(l, j, t) {
   return a.length === c.length && crypto.timingSafeEqual(a, c);
 }
 // Vervangt in een mail elke "/lidgeld?l=..&j=..&b=..&t=@@SIG@@" door de echte handtekening.
-// Persoonlijke inschrijflink (naam vooraf ingevuld): /banket?v=<lidId>&j=<jaar>&t=..., /kinderfeest?v=<lidId>&j=<jaar>&t=...
+// Persoonlijke inschrijflink (naam vooraf ingevuld): /banket?v=<lidId>&j=<jaar>&t=..., /kinderfeest?v=..., /familiedag?v=...
 export function tekenVul(soort, l, j) { return crypto.createHmac("sha256", sleutel()).update(`vbha-${soort}vul|${l}|${j}`).digest("base64url").slice(0, 22); }
 export function kloptVul(soort, l, j, t) { if (!sleutel() || !l || typeof t !== "string") return false; const a = Buffer.from(tekenVul(soort, l, j)), c = Buffer.from(t); return a.length === c.length && crypto.timingSafeEqual(a, c); }
 
@@ -35,5 +35,5 @@ export function ondertekenLinks(html) {
     (m, l, a1, j, a2, b, a3) => m.replace("@@SIG@@", teken(decodeURIComponent(l), j, b)))
     .replace(/\/status\?l=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?t=@@SIG@@/g, (m, l, a1, j) => m.replace("@@SIG@@", tekenStatus(decodeURIComponent(l), j)))
     .replace(/\/kaart\?l=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?t=@@SIG@@/g, (m, l, a1, j) => m.replace("@@SIG@@", tekenRonde(decodeURIComponent(l), j)))
-    .replace(/\/(banket|kinderfeest)\?v=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?t=@@SIG@@/g, (m, p, l, a1, j) => m.replace("@@SIG@@", tekenVul(p === "banket" ? "bk" : "kf", decodeURIComponent(l), j)));
+    .replace(/\/(banket|kinderfeest|familiedag)\?v=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?t=@@SIG@@/g, (m, p, l, a1, j) => m.replace("@@SIG@@", tekenVul(p === "banket" ? "bk" : p === "familiedag" ? "fd" : "kf", decodeURIComponent(l), j)));
 }

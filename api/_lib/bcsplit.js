@@ -203,9 +203,9 @@ export async function kalStat(sb, jaar) {
   const perTx = new Map(); await onlinePerDag(sb, perTx);
   const rows = await selectAll(sb, "bancontact_tx");
   const J = Number(jaar);
-  // kalenderseizoen instelbaar in de app (config algemeen.kalSeizoen = { van: "11-01", tot: "01-31" }; tot valt in het volgende jaar)
+  // kalenderseizoen instelbaar in de app (config algemeen.kalSeizoen = { van: "11-01", tot: "04-30" }; tot valt in het volgende jaar)
   const { data: alg } = await sb.from("config").select("data").eq("id", "algemeen").maybeSingle(); const KS = (alg && alg.data && alg.data.kalSeizoen) || {};
-  const md = (x, d) => /^\d{2}-\d{2}$/.test(String(x || "")) ? x : d, van = `${J}-${md(KS.van, "11-01")}`, tot = `${J + 1}-${md(KS.tot, "01-31")}`;
+  const md = (x, d) => /^\d{2}-\d{2}$/.test(String(x || "")) ? x : d, van = `${J}-${md(KS.van, "11-01")}`, tot = `${J + 1}-${md(KS.tot, "04-30")}`;
   // dagen waarvan de Bancontact-storting (niet uitgesplitst) bij een andere activiteit staat (jaarmarkt, kinderfeest, …): niet meetellen
   const dagCat = new Map(), gestort = new Set(), gestortDag = new Set();
   for (const j of [J, J + 1]) for (const r of await selectAll(sb, "boekingen", q => q.eq("jaar", j))) { const b = r.data || {};
