@@ -2781,7 +2781,7 @@ function krCard(){const c=$("#krCard"),SG=krSegSel(),ids=[...KR.ss].filter(id=>K
   const one=ids.length===1;$("#krOne").hidden=!one;$("#krMulti").hidden=one;c.classList.toggle("multi",!one);
   $("#krOne").hidden=true;c.classList.add("multi");
   const L=ids.map(id=>{const s=KR.byId.get(id),ds=SG.get(id);if(!ds)return s;const G=krGroepen(id),k=G.filter(g=>g.ids.every(i=>KR.ss.has(i))).length;return{...s,a:ds.reduce((t,d)=>t+d.a,0),stukken:`${k} van ${G.length} stukken`}}),tot=L.reduce((t,x)=>t+x.a,0),doz=Math.ceil(tot/PER_DOOS);
-$("#krCardM").innerHTML=`<b>${krNum(tot)}</b> adressen · <b>${ids.length}</b> ${ids.length===1?"straat":"straten"}`;
+$("#krCardM").innerHTML=`<b>${ids.length}</b> ${ids.length===1?"straat":"straten"} · <b>${krNum(tot)}</b> adressen`;
   const open=KR.lijstOpen??!matchMedia("(max-width:640px)").matches;
   $("#krCardT").textContent=`${krNum(doz)} ${doz===1?"doos":"dozen"}`;c.classList.add("rij");
   let lt=$("#krCardL");if(!lt){lt=document.createElement("button");lt.type="button";lt.id="krCardL";lt.className="btn ghost sm kr-lt";lt.setAttribute("data-krlijst","");lt.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';$("#krCard .kr-card-t").before(lt)}
@@ -3007,14 +3007,14 @@ krLive();
 .leaflet-tooltip.krd-mk.on{background:var(--accent);border-color:var(--accent);color:#fff}.leaflet-tooltip.krd-mk::before{display:none}`;document.head.appendChild(st);
   const uit=()=>{KR.deel=null};
   {const _s=krSelect;krSelect=function(){uit();return _s.apply(this,arguments)}}
-  {const _t=krToggle;krToggle=function(id){if(KR.deel){if(id===KR.deel)return;klaar(false)}
+  {const _t=krToggle;krToggle=function(id){if(KR.deel){if(id===KR.deel)return;klaar(false)}if(!KR.ss.has(id)&&KR.byId.has(id)&&!KR.byId.get(id).a){krMelding((KR.byId.get(id).n||"Deze straat")+" heeft geen adressen.");return}
     const ds=(KR_DELEN.get(id)||[]).filter(d=>KR.ss.has(d.id));if(ds.length&&!KR.ss.has(id)){for(const d of ds)KR.ss.delete(d.id);if(KR.map)krStyleAll();krCard();return}
     return _t.apply(this,arguments)}}
   /* deel-modus starten: de rest van de selectie blijft staan; was de hele straat gekozen, dan staan alle stukken aan */
-  function krDeelIn(sid){if(KR.deel&&KR.deel!==sid)klaar(false);if(KR.ss.has(sid)){KR.ss.delete(sid);for(const g of krGroepen(sid))if(stat(g.lead)!=="d")g.ids.forEach(i=>KR.ss.add(i))}KR.deel=sid;krZoomTo(sid);krStyleAll();krCard()}
+  function krDeelIn(sid){if(KR.deel&&KR.deel!==sid)klaar(false);if(KR.ss.has(sid)){KR.ss.delete(sid);for(const g of krGroepen(sid))if(stat(g.lead)!=="d"&&g.a)g.ids.forEach(i=>KR.ss.add(i))}KR.deel=sid;krZoomTo(sid);krStyleAll();krCard()}
   window.krDeelIn=krDeelIn;
   /* deel-modus verlaten: alle vrije stukken gekozen = hele straat; niets gekozen = (bij terugknop) hele straat */
-  function klaar(heelBijNiets){const sid=KR.deel;if(!sid)return;uit();const G=krGroepen(sid),vrij=G.filter(g=>stat(g.lead)!=="d"),k=vrij.filter(aan);
+  function klaar(heelBijNiets){const sid=KR.deel;if(!sid)return;uit();const G=krGroepen(sid),vrij=G.filter(g=>stat(g.lead)!=="d"&&g.a),k=vrij.filter(aan);
     if(vrij.length&&k.length===vrij.length&&!G.some(g=>stat(g.lead)==="d")){G.forEach(g=>g.ids.forEach(i=>KR.ss.delete(i)));KR.ss.add(sid)}
     else if(!G.some(g=>g.ids.some(i=>KR.ss.has(i)))&&heelBijNiets)KR.ss.add(sid);KR.sel=sid}
   {const _a=krStyleAll;krStyleAll=function(){const r=_a.apply(this,arguments);try{teken();krCasing()}catch(e){console.error(e)}return r}}
@@ -3024,7 +3024,7 @@ krLive();
       L.polyline(g.g,{renderer:KR.renderer,weight:30,opacity:0,interactive:true}).on("click",e=>{L.DomEvent.stopPropagation(e);kies(g)}).addTo(KR.dl);
       L.polyline(g.g,{renderer:KR.renderer,interactive:false,weight:on?w[2]+1:w[1]+1,color:on?sel:s==="d"?dn:s==="r"?rs:krVar("--muted"),lineCap:"round",lineJoin:"round",opacity:1}).addTo(KR.dl);
       KR.dl.addLayer(L.tooltip({permanent:true,direction:"center",className:"krd-mk"+(on?" on":""),interactive:false}).setLatLng(krGroepMidden(g.g)).setContent(String(g.n)))}}
-  function kies(g){if(!g)return;const s=stat(g.lead);if(!aan(g)&&s==="d"){krMelding("Dit stuk is al bedeeld.");return}const on=aan(g);for(const id of g.ids)on?KR.ss.delete(id):KR.ss.add(id);krStyleAll();krCard()}
+  function kies(g){if(!g)return;if(!aan(g)&&!g.a){krMelding("Dit stuk heeft geen adressen.");return}const s=stat(g.lead);if(!aan(g)&&s==="d"){krMelding("Dit stuk is al bedeeld.");return}const on=aan(g);for(const id of g.ids)on?KR.ss.delete(id):KR.ss.add(id);krStyleAll();krCard()}
   {const _c=krCard;krCard=function(){const c=$("#krCard");let z=$("#krDl"),lk=$("#krDlL");
     if(!z){z=document.createElement("div");z.id="krDl";z.className="krd";c.insertBefore(z,$("#krMeld"))}
     if(!lk){lk=document.createElement("button");lk.type="button";lk.id="krDlL";lk.className="krd-lk";$("#krCardM").after(lk)}
@@ -3036,11 +3036,11 @@ krLive();
     $("#krCardT").textContent=s.n+" · deel aanduiden";$("#krCardM").textContent=kz.length?`${kz.length} van ${G.length} stukken gekozen · ± ${krNum(kz.reduce((t,g)=>t+g.a,0))} ${krAdr(kz.reduce((t,g)=>t+g.a,0))}`:"Tik een stuk aan in de lijst of op de kaart.";
     lk.hidden=false;ik.hidden=true;lk.textContent="Terug naar overzicht";z.hidden=false;
     z.innerHTML=`<div class="krd-k"><span>Kies de stukken</span><button type="button" data-krp="alle">Alles</button><button type="button" data-krp="geen">Niets</button></div>
-      <div class="krd-lst">${G.map(g=>{const on=aan(g),t=stat(g.lead);return `<button type="button" class="krd-r${on?" on":""}" data-krp="${e3(g.id)}" aria-pressed="${on}"${t==="d"?" disabled":""}><span class="krd-n s-${t||"t"}">${g.n}</span><span class="krd-t"><b>${e3(tussen(g)||"Stuk "+g.n)}</b><small>± ${g.a} ${krAdr(g.a)}${t==="d"?" · al bedeeld":t==="r"?" · gereserveerd":t==="p"?" · melding in behandeling":""}</small></span><span class="krd-v" aria-hidden="true">${on?"✓":""}</span></button>`}).join("")}</div>`;
+      <div class="krd-lst">${G.map(g=>{const on=aan(g),t=stat(g.lead);return `<button type="button" class="krd-r${on?" on":""}" data-krp="${e3(g.id)}" aria-pressed="${on}"${t==="d"||!g.a?" disabled":""}><span class="krd-n s-${t||"t"}">${g.n}</span><span class="krd-t"><b>${e3(tussen(g)||"Stuk "+g.n)}</b><small>± ${g.a} ${krAdr(g.a)}${t==="d"?" · al bedeeld":t==="r"?" · gereserveerd":t==="p"?" · melding in behandeling":""}</small></span><span class="krd-v" aria-hidden="true">${on?"✓":""}</span></button>`}).join("")}</div>`;
     const m=$("#krMeld");if(m){m.hidden=!KR.ss.size;const rb=m.querySelector('[data-krmeld="r"]');if(rb)rb.hidden=[...KR.ss].some(id=>KR_STAND[id]==="r")}}}
   document.addEventListener("click",e=>{const l=e.target.closest("#krDlL,#krDlI");if(l){e.stopPropagation();if(KR.deel)klaar(true);else{const sid=[...KR.ss].find(id=>KR.byId.has(id));if(sid)return krDeelIn(sid)}krStyleAll();krCard();return}
     const b=e.target.closest("[data-krp]");if(!b||!KR.deel)return;e.stopPropagation();const v=b.dataset.krp,G=krGroepen(KR.deel);
-    if(v==="alle"||v==="geen"){G.forEach(g=>g.ids.forEach(i=>KR.ss.delete(i)));if(v==="alle")G.filter(g=>stat(g.lead)!=="d").forEach(g=>g.ids.forEach(i=>KR.ss.add(i)))}else return kies(G.find(g=>g.id===v));krStyleAll();krCard()},true);
+    if(v==="alle"||v==="geen"){G.forEach(g=>g.ids.forEach(i=>KR.ss.delete(i)));if(v==="alle")G.filter(g=>stat(g.lead)!=="d"&&g.a).forEach(g=>g.ids.forEach(i=>KR.ss.add(i)))}else return kies(G.find(g=>g.id===v));krStyleAll();krCard()},true);
 })();
 </script>
 <script>
