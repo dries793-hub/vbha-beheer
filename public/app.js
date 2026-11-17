@@ -365,7 +365,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
   const cats=cats0.filter(c=>!andJ(c));
   const maxNet=Math.max(1,...cats.map(c=>Math.abs(c.net)));
   let mpB=true;try{mpB=localStorage.getItem("vbha_mp_bestuur")!=="0"}catch(e){}
-  const top=cur.filter(r=>r.lg.ok&&r.lid.categorie!=="Erewacht"&&r.p.totaal>0&&(mpB||!r.lid.bestuur)).sort((a,b)=>b.p.totaal-a.p.totaal).slice(0,10);
+  const top=cur.filter(r=>r.lg.ok&&r.lid.categorie!=="Erewacht"&&r.p.totaal>0&&(mpB||!r.lid.bestuur)).sort((a,b)=>b.p.totaal-a.p.totaal).slice(0,80);
   const recent=C.boek.slice(-6).reverse();
   const sgn=v=>(v>=0?"+":"−")+eur(Math.abs(v));
   const sec=(icon,titel,link,label)=>`<div class="dsec-h"><span class="dsec-ic">${ic(icon)}</span><h2>${titel}</h2><span class="grow"></span><a class="btn sm ghost" href="#${link}">${label} ›</a></div>`;
@@ -381,7 +381,7 @@ VIEWS.dashboard=()=>({title:"Dashboard",emblem:true,body(){
         ${jub.length?jub.map(r=>`<div class="li"><span class="grow trunc"><b>${esc(naamVol(r.lid))}</b></span>${r.jaren===25?`<span class="pill warn">25 jaar lid</span>`:""}${r.lid.categorie==="Erewacht"&&+r.lid.erewachtSinds===JAAR?`<span class="pill info">Toetreden erewacht</span>`:""}</div>`).join(""):'<div class="empty" style="padding:8px 0">Geen jubilarissen dit jaar.</div>'}
       </div></div></div>
     </div>
-    <div class="panel"><div class="panel-h"><h2>Meeste punten</h2><span class="grow"></span><label class="mp-b small"><input type="checkbox" id="mpBestuur"${mpB?" checked":""}> Bestuursleden</label></div><div class="panel-b ag-top"><div class="list">
+    <div class="panel mp-panel"><div class="panel-h"><h2>Meeste punten</h2><span class="grow"></span><label class="mp-b small"><input type="checkbox" id="mpBestuur"${mpB?" checked":""}> Bestuursleden</label></div><div class="panel-b ag-top"><div class="list">
       ${top.length?top.map((r,i)=>`<div class="li${i>=5?" top-x":""}"><span class="rank">${i+1}</span><span class="grow trunc"><b>${esc(naamVol(r.lid))}</b></span>${medal(r.status)}<b style="width:48px;text-align:right">${r.p.totaal}</b></div>`).join(""):'<div class="empty">Nog geen punten ingevoerd.</div>'}
     </div></div></div>
   </div></section>
@@ -9292,6 +9292,16 @@ Object.assign(LOG_TYPE,{rondemeldingen:"Kalenderronde",kalenderaanvragen:"Kalend
   if(["regels","templates"].includes(e.tabel))return esc(o.naam||o.titel||e.doc_id);
   if(e.tabel==="social_posts")return esc(String(o.tekst||e.doc_id).slice(0,60));
   return _o.apply(this,arguments)}}
+
+/* Dashboard › Meeste punten: op desktop zoveel leden tonen als er in de kader passen (even hoog als de linkerkolom) */
+(function(){const st=document.createElement("style");st.textContent=`.mp-panel .li.mp-weg{display:none!important}`;document.head.appendChild(st);
+  function fit(){const p=document.querySelector(".mp-panel");if(!p)return;const rows=[...p.querySelectorAll(".list>.li")];rows.forEach(r=>r.classList.remove("mp-weg"));
+    if(!matchMedia("(min-width:761px)").matches)return;const col=p.parentElement&&p.parentElement.querySelector(".stackcol");if(!col)return;
+    p.style.display="none";const doel=col.getBoundingClientRect().height;p.style.display="";p.style.alignSelf="start";let n=rows.length;
+    while(n>5&&p.getBoundingClientRect().height>doel+1){rows[--n].classList.add("mp-weg")}p.style.alignSelf=""}
+  let t=0;const plan=()=>{cancelAnimationFrame(t);t=requestAnimationFrame(fit)};
+  const start=()=>{const m=document.getElementById("main");if(!m)return setTimeout(start,300);new MutationObserver(plan).observe(m,{childList:true,subtree:true});plan()};
+  start();addEventListener("resize",plan)})();
 
 /* ============ Instellingen › Vaste waarden (admin): waarden die vroeger vast in de code stonden ============
    config algemeen.kalSeizoen {van,tot} ("MM-DD"; tot valt in het volgende jaar), algemeen.goudMail.dagen,

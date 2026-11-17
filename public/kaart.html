@@ -2781,9 +2781,9 @@ function krCard(){const c=$("#krCard"),SG=krSegSel(),ids=[...KR.ss].filter(id=>K
   const one=ids.length===1;$("#krOne").hidden=!one;$("#krMulti").hidden=one;c.classList.toggle("multi",!one);
   $("#krOne").hidden=true;c.classList.add("multi");
   const L=ids.map(id=>{const s=KR.byId.get(id),ds=SG.get(id);if(!ds)return s;const G=krGroepen(id),k=G.filter(g=>g.ids.every(i=>KR.ss.has(i))).length;return{...s,a:ds.reduce((t,d)=>t+d.a,0),stukken:`${k} van ${G.length} stukken`}}),tot=L.reduce((t,x)=>t+x.a,0),doz=Math.ceil(tot/PER_DOOS);
-$("#krCardM").innerHTML=`<b>${krNum(tot)}</b> adressen · <b>${krNum(doz)}</b> ${doz===1?"doos":"dozen"}`;
+$("#krCardM").innerHTML=`<b>${krNum(tot)}</b> adressen · <b>${ids.length}</b> ${ids.length===1?"straat":"straten"}`;
   const open=KR.lijstOpen??!matchMedia("(max-width:640px)").matches;
-  $("#krCardT").textContent=`${ids.length} ${ids.length===1?"straat":"straten"}`;c.classList.add("rij");
+  $("#krCardT").textContent=`${krNum(doz)} ${doz===1?"doos":"dozen"}`;c.classList.add("rij");
   let lt=$("#krCardL");if(!lt){lt=document.createElement("button");lt.type="button";lt.id="krCardL";lt.className="btn ghost sm kr-lt";lt.setAttribute("data-krlijst","");lt.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';$("#krCardX").before(lt)}
   lt.hidden=false;lt.setAttribute("aria-expanded",open);lt.title=open?"Straten verbergen":"Straten tonen";lt.setAttribute("aria-label",lt.title);
   $("#krMulti").hidden=!open;$("#krMulti").innerHTML=`<ul class="kr-ml"${open?"":" hidden"}>${L.map(x=>`<li><span class="kr-ml-n">${esc(x.n)}${x.stukken?`<small>${esc(x.stukken)}</small>`:krHeeft(x.id)?`<small>${esc(krWie(x.id))}</small>`:""}</span><span class="krd-sc">${(KR_DELEN.get(x.id)||[]).length>1&&KR_STAND[x.id]!=="d"?`<button type="button" class="krd-ic2" data-krdeel="${esc(x.id)}" title="Enkel een deel van ${esc(x.n)} kiezen" aria-label="Enkel een deel van ${esc(x.n)} kiezen"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/></svg></button>`:""}</span><span class="kr-ml-a">${krNum(x.a)}</span></li>`).join("")}</ul>`}
