@@ -5261,13 +5261,11 @@ const nsLijst=(tpl,soort)=>soort==="laat"?nsLaat(tpl):nsNieuwe(tpl,true);
 /* Dashboard: nieuwe leden met lidgeld in orde die de mail nog niet kregen -> melding met knop (niets gaat automatisch) */
 function nsDash(){if(!canWrite)return"";const nu=todayISO();let h="";
   for(const[tpl,R]of Object.entries(nsCfg())){if(!R||!R.html||!(String(R.tot||"")>=nu))continue;
-    const LT=nsLaat(tpl);if(LT.length)h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("geld")}</span><div class="nm-body"><b>Lidgeld ontvangen: ${LT.length===1?"1 lid betaalde":LT.length+" leden betaalden"} pas na het versturen van „${esc(R.naam||"uitnodiging")}”</b>
-    <div class="nm-l">${LT.slice(0,8).map(x=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(x.lidId)}"><b>${esc(x.label)}</b></button>`).join("")}${LT.length>8?`<span class="nm-more">+${LT.length-8} meer</span>`:""}</div>
-    <div><button type="button" class="nm-btn" data-nsd-stuur="${esc(tpl)}" data-soort="laat">${ic("mails")}Uitnodiging versturen</button></div></div></div>`;
+    const LT=nsLaat(tpl);if(LT.length)h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("geld")}</span><div class="nm-body"><b>„${esc(R.naam||"Uitnodiging")}” nog niet ontvangen</b><span class="ns-s">${LT.length===1?"1 lid betaalde":LT.length+" leden betaalden"} het lidgeld pas na het versturen</span>
+    <div class="nm-l ns-r">${LT.slice(0,8).map(x=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(x.lidId)}"><b>${esc(x.label)}</b></button>`).join("")}${LT.length>8?`<span class="nm-more">+${LT.length-8} meer</span>`:""}<button type="button" class="nm-btn ns-b" data-nsd-stuur="${esc(tpl)}" data-soort="laat">${ic("mails")}Versturen</button></div></div></div>`;
     const N=nsNieuwe(tpl,true);if(!N.length)continue;
-    h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("lidplus")}</span><div class="nm-body"><b>${N.length===1?"Er is een nieuw lid (lidgeld in orde) dat":N.length+" nieuwe leden (lidgeld in orde)"} nog geen mail „${esc(R.naam||"uitnodiging")}” ${N.length===1?"kreeg":"kregen"}</b>
-    <div class="nm-l">${N.slice(0,8).map(x=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(x.lidId)}"><b>${esc(x.label)}</b></button>`).join("")}${N.length>8?`<span class="nm-more">+${N.length-8} meer</span>`:""}</div>
-    <div><button type="button" class="nm-btn" data-nsd-stuur="${esc(tpl)}">${ic("mails")}Uitnodiging versturen</button></div></div></div>`}
+    h+=`<div class="nmeld" role="status" data-nsd="${esc(tpl)}"><span class="nm-ic">${ic("lidplus")}</span><div class="nm-body"><b>„${esc(R.naam||"Uitnodiging")}” nog niet ontvangen</b><span class="ns-s">${N.length===1?"1 nieuw lid":N.length+" nieuwe leden"} met lidgeld in orde</span>
+    <div class="nm-l ns-r">${N.slice(0,8).map(x=>`<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(x.lidId)}"><b>${esc(x.label)}</b></button>`).join("")}${N.length>8?`<span class="nm-more">+${N.length-8} meer</span>`:""}<button type="button" class="nm-btn ns-b" data-nsd-stuur="${esc(tpl)}">${ic("mails")}Versturen</button></div></div></div>`}
   return h}
 async function nsStuurSnapshot(tpl,soort){const R=nsCfg()[tpl],N=nsLijst(tpl,soort);if(!R||!N.length)return;
   confirmBox(`<b>${esc(R.naam||"Deze mail")}</b> nu sturen naar ${N.length} ${N.length===1?"lid":"leden"}?<br><small class="muted">${N.map(r=>esc(r.label)).join(", ")}</small>`,"Versturen",async()=>{
@@ -5290,6 +5288,8 @@ async function nsBijwerken(){if(NS_BEZIG||ROL_ECHT!=="admin"||!canWrite||typeof 
     if(html&&(html!==x.html||ond!==x.onderwerp)&&!(NS_LAATST[tpl]>Date.now()-6e5)){NS_LAATST[tpl]=Date.now();regels[tpl]={...x,naam:M.naam||x.naam,onderwerp:ond,html,sinds:new Date().toISOString(),door:"automatisch (agenda bijgewerkt)"};anders=true}}
   if(!anders)return;NS_BEZIG=true;try{const d={...stripId(c),regels};S.config.set("nastuur",{...d,id:"nastuur"});await write("config","nastuur",d)}catch(e){}finally{NS_BEZIG=false}}
 appInterval(()=>{if(typeof loaded!=="undefined"&&typeof COLS!=="undefined"&&loaded.size<COLS.length)return;nsBijwerken()},20000);
+
+{const st=document.createElement("style");st.textContent=`.nmeld .ns-s{display:block;font-size:13px;color:inherit;opacity:.75;margin:1px 0 8px}.nm-l.ns-r{align-items:center}.nm-l.ns-r .ns-b{margin-left:auto}@media(max-width:760px){.nm-l.ns-r .ns-b{margin-left:0;width:100%;justify-content:center}}`;document.head.appendChild(st)}
 
 /* ============ Fuif "In Vier en Vlam" (Activiteiten › In Vier en Vlam) ============
    Bestellingen in de collectie "tickets" (zie api/_lib/fuif.js), instellingen in config "fuif".
