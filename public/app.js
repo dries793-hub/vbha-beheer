@@ -3215,7 +3215,7 @@ function kalTable(){
 /* aantal kiezen: grote − en + en snelkeuzes */
 function kalAantal(id,start,max){return `<div class="kal-pick" data-max="${max==null?"":max}"><button type="button" class="kal-pb" data-kp="-1" aria-label="Eén minder">−</button>
   <input id="${id}" class="kal-pn" type="number" inputmode="decimal" step="0.5" min="0.5"${max!=null?` max="${max}"`:""} value="${start}" aria-label="Aantal dozen"><button type="button" class="kal-pb" data-kp="1" aria-label="Eén meer">+</button></div>
-  <div class="kal-chips"><button type="button" class="kal-chip" data-kc="0.5">½</button>${[1,2,3,5,10].filter(n=>max==null||n<=max).map(n=>`<button type="button" class="kal-chip" data-kc="${n}">${n}</button>`).join("")}${max!=null&&max>1&&![1,2,3,5,10].includes(max)?`<button type="button" class="kal-chip" data-kc="${max}">alle ${max}</button>`:""}</div>`}
+  <div class="kal-chips"><button type="button" class="kal-chip" data-kc="0.5">½</button>${[1,2,3,5,10].filter(n=>max==null||n<=max).map(n=>`<button type="button" class="kal-chip" data-kc="${n}">${n}</button>`).join("")}${max!=null&&max>1&&![1,2,3,5,10].includes(max)?`<button type="button" class="kal-chip" data-kc="${max}">alle ${kalFmt(max)}</button>`:""}</div>`}
 // halve dozen mogen: afronden op 0,5
 function kalLees(id,max){let n=Math.round(parseFloat(String(($("#"+id)||{}).value).replace(",","."))*2)/2;if(!(n>0))return 0;if(max!=null)n=Math.min(n,max);return n}
 document.addEventListener("click",e=>{const p=e.target.closest(".kal-pick [data-kp]");const c=e.target.closest("[data-kc]");
@@ -3299,7 +3299,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(
 /* ---------- Terugbrengen: onafgewerkte dozen (vol, ¾, ½ of ¼) ----------
    Een begonnen doos telt als afgewerkte doos (volle punten); wat er nog in zit gaat terug in stock (jaarleden.kalTerugRest). */
 ICON.undo=ICON.undo||'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>';
-function kalTerug(id){const j=S.jaarleden.get(id);if(!j||!canWrite)return;const naam=kalNaam(j),op=j.kalOpgehaald||0,ui=j.kalUitgevoerd||0,w=ctx().c.gewichten.kalenders,k=kalStats(ctx());if(!(op>0))return;const mx=Math.max(1,Math.ceil(op));
+function kalTerug(id){const j=S.jaarleden.get(id);if(!j||!canWrite)return;const naam=kalNaam(j),op=j.kalOpgehaald||0,ui=j.kalUitgevoerd||0,w=ctx().c.gewichten.kalenders,k=kalStats(ctx());if(!(op>0))return;const mx=op;
   modal("Dozen terugbrengen",`<div class="stack kal-dlg"><p style="margin:0"><b>${esc(naam)}</b> heeft ${kalDoos(op)} in handen. Hoeveel dozen brengt ${esc(naam.split(" ")[0])} terug?</p>
    ${kalAantal("kalN",1,mx)}
    <div><div class="lbl" style="margin:4px 0 6px">Wat zit er nog in ${mx>1?"elke doos":"de doos"}?</div><div class="seg kal-soort" role="radiogroup">${KAL_REST.map(([v,l],i)=>`<button type="button" class="${i?"":"on"}" data-kr="${v}">${l}</button>`).join("")}</div></div>
