@@ -37,6 +37,14 @@ async function zoekPunt(q) {
     return { lat: x.Location.Lat_WGS84, lng: x.Location.Lon_WGS84, adres: x.FormattedAddress || "", huisnummer: !!x.Housenumber, straat: x.Thoroughfarename || "" };
   } catch (e) { console.error("geocode", e.message); return null; } finally { clearTimeout(t); }
 }
+/* opzoeken met terugvalopties: zonder busnummer ("18/14", "18 bus 2", "18b2"), en anders enkel straat + gemeente */
+async function zoekPuntSlim(adres) {
+  const a = String(adres || "");
+  const zonderBus = a.replace(/(\d+)\s*(?:\/\s*\w+|\s(?:bus|bte|boite|box)\s*\w+|-\s*\d+)(?=\s*(?:,|$|\s\d{4}))/i, "$1");
+  const straatGem = a.replace(/\s+\d+[^,]*(?=,)/, "");
+  for (const q of [...new Set([a, zonderBus, straatGem])]) { const P = await zoekPunt(q); if (P && P.lat) return P; }
+  return null;
+}
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
@@ -49,7 +57,7 @@ export default async function handler(req, res) {
     const email = clean(b.email, 120);
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw httpErr(400, "Dit e-mailadres klopt niet.");
     const A = await algemeen(sb), jaar = A.jaar;
-    const P = await zoekPunt(adres);
+    const P = await zoekPuntSlim(adres);
     const vast = P && P.huisnummer ? P.adres : adres;
     // controle tegen de kalenderronde
     let deel = null, toch = !!b.toch;
