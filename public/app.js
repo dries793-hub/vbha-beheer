@@ -8344,7 +8344,7 @@ const tbKan=r=>tbVol()||(!!r&&r.eigen&&!["betaald","goedgekeurd"].includes(r.sta
 const TB={lijst:null,link:"",f:"open",laden:false};
 const TB_ST={aangevraagd:["neutral","Wacht op rekeningnummer"],ingediend:["warn","Te keuren"],goedgekeurd:["info","Te betalen"],betaald:["ok","Betaald"],geweigerd:["nok","Geweigerd"],wacht:["neutral","Wacht op transactie"],gekoppeld:["ok","Gekoppeld"]};
 async function tbApi(b){return api("/api/mail?f=terug",{method:"POST",body:JSON.stringify(b)})}
-async function tbLaad(){if(TB.laden)return;TB.laden=true;try{const j=await tbApi({actie:"lijst"});TB.lijst=j.lijst;TB.link=j.onkostLink;tbAutoBetaald()}catch(e){TB.lijst=TB.lijst||[]}TB.laden=false;if(["terug","dashboard","facturen","inkomend"].includes(route()))renderBody()}
+async function tbLaad(){if(TB.laden)return;TB.laden=true;try{const j=await tbApi({actie:"lijst"});TB.lijst=Array.isArray(j&&j.lijst)?j.lijst:[];TB.link=j&&j.onkostLink;tbAutoBetaald()}catch(e){TB.lijst=TB.lijst||[]}TB.laden=false;if(["terug","dashboard","facturen","inkomend"].includes(route()))renderBody()}
 /* uitgaande transactie met hetzelfde bedrag naar hetzelfde IBAN (na de aanvraag) = betaald */
 function tbBoeking(r){const d=r.data,ib=String(d.iban||"").replace(/\s+/g,"").toUpperCase();if(!ib)return null;const van=String(d.op||r.gemaakt||"").slice(0,10);
   return [...S.boekingen.values()].find(b=>b.richting==="uit"&&String(b.iban||"").replace(/\s+/g,"").toUpperCase()===ib&&Math.abs(num(b.bedrag)-num(d.bedrag))<0.005&&String(b.datum)>=van)||null}
@@ -9517,7 +9517,7 @@ function bcCsv(t){const L=[];let rij=[],v="",q=false;t=String(t).replace(/^﻿/,
   const wacht=()=>{if(klaar)return;clearTimeout(tmr);if(Date.now()-t0>8000)return toon();
     const tbWacht=typeof TB!=="undefined"&&typeof ROL!=="undefined"&&(ROL==="admin"||ROL==="boekhouder")&&!TB.lijst;
     if(document.getElementById("boot")||!main.children.length||tbWacht){tmr=setTimeout(wacht,300);return} // nog aan het laden
-    tmr=setTimeout(toon,900)};
+    tmr=setTimeout(toon,300)};
   const obs=new MutationObserver(wacht);obs.observe(main,{childList:true,subtree:true,characterData:true});
   setTimeout(toon,8000);
   /* loginscherm (of wachtwoord instellen): meteen tonen */
