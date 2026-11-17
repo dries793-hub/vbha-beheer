@@ -8673,11 +8673,12 @@ Object.assign(ICON,{
 /* wat de app uit de PDF afleidt (domiciliëring, bedrag) ook bewaren, zodat de dagelijkse controle op de server (mail na 5 dagen) hetzelfde ziet */
 const TBD_BEW=new Set();
 function tbdBewaar(d,A){if(TBD_BEW.has(d.id)||!(ROL==="admin"||ROL==="boekhouder"))return;const I=d.inkomend||{},p={};
-  if(I.domi==null&&inkDomi(d))p.domi=true;if(!I.totaal&&!I.bedragPdf&&A&&Number(A.totaal)>0)p.bedragPdf=Number(A.totaal);
+  if(I.domi==null&&inkDomi(d))p.domi=true;if(!I.totaal&&!I.bedragPdf&&A&&Number(A.totaal)>0)p.bedragPdf=Number(A.totaal);if(!I.nr&&A&&A.nr)p.nr=A.nr;
   if(!Object.keys(p).length)return;TBD_BEW.add(d.id);const x=S.documenten.get(d.id)||d;write("documenten",d.id,{...stripId(x),inkomend:{...(x.inkomend||{}),...p}}).catch(()=>{})}
 function tbDashLijst(){if(typeof inkDocs==="function")for(const d of inkDocs())if(d.inkomend&&inkOpen(d))tbdBewaar(d,(typeof INK!=="undefined"&&INK.txt.get(d.id))||null);const F=typeof inkDocs==="function"?inkDocs().filter(d=>d.inkomend&&inkOpen(d)&&!inkDomi(d)).map(d=>{const A=(typeof INK!=="undefined"&&INK.txt.get(d.id))||{},t=inkTot(d)||Number(A.totaal)||0,open=t>0?t-inkSom(d.id):0;
     if(!t&&typeof inkLees==="function"&&!INK.txt.has(d.id)&&!INK.bezig.has(d.id)&&/pdf/i.test(d.type||d.naam))inkLees(d).then(()=>{if(INK.txt.has(d.id)&&route()==="dashboard")renderBody()}).catch(()=>{});
-    return{soort:"f",id:d.id,naam:inkVan(d)||d.naam,bedrag:open>0.005?open:null,info:"factuur"+(A.nr?" "+A.nr:"")}}):[];
+    const I=d.inkomend||{},nr=I.nr||A.nr||(typeof inkNrUit==="function"?inkNrUit(I.onderwerp||d.omschrijving):""),ont=String(I.ontvangen||d.op||"").slice(0,10);
+    return{soort:"f",id:d.id,naam:inkVan(d)||d.naam,bedrag:open>0.005?open:null,info:"factuur"+(nr?" "+nr:"")+(ont?" · ontvangen "+fmtDate(ont):"")}}):[];
   const O=((typeof TB!=="undefined"&&TB.lijst)||[]).filter(r=>r.status==="goedgekeurd"||r.status==="ingediend").map(r=>({soort:"o",id:r.id,naam:r.data.naam,bedrag:Number(r.data.bedrag)||null,info:(r.data.soort==="onkosten"?"onkostennota":"terugbetaling")+(r.status==="ingediend"?" · nog goed te keuren":""),iban:!!r.data.iban,nieuw:r.status==="ingediend"}));
   return F.concat(O)}
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){const rest=b.apply(this,arguments);if(!(ROL==="admin"||ROL==="boekhouder"))return rest;
