@@ -8808,14 +8808,14 @@ function kvGrafieken(J1,J0,stuks){
   /* winst doorheen het seizoen: winst van het jaar min wat er van de seizoensomzet nog moest binnenkomen (kosten en sponsors staan vooraf vast) */
   const offA=(Number(J1.res)||0)-cur,offB=(Number(J0.res)||0)-Bend;
   const glad=(c,k=3)=>c.map((v,i)=>{if(i===0||i===c.length-1)return v;const a=Math.max(0,i-k),b=Math.min(c.length-1,i+k);let t=0;for(let j=a;j<=b;j++)t+=c[j];return t/(b-a+1)});
-  const WA=(tot>=0?glad(A.cum.slice(0,tot+1)):[]).concat(A.cum.slice(tot+1)).map(v=>v+offA),WB=glad(B.cum).map(v=>v+offB),WP=P?P.map(v=>v==null?null:v+offA):null,progW=prog?prog+offA:0;
+  const WA=(tot>=0?glad(A.cum.slice(0,tot+1)):[]).concat(A.cum.slice(tot+1)).map(v=>v+offA),WB=glad(B.cum).map(v=>v+offB),WP=P?P.slice(0,tot).map(()=>null).concat(glad(P.slice(tot),7)).map(v=>v==null?null:v+offA):null,progW=prog?prog+offA:0;
   const svg=(W,H,cls)=>{const pl=W<400?44:58,pr=10,pt=14,pb=26,iw=W-pl-pr,ih=H-pt-pb;
   const vals=[0,...WB,...(tot>=0?WA.slice(0,tot+1):[]),...(prog?[progW]:[])],mx=Math.max(...vals),mn=Math.min(...vals),sp=Math.max(1,mx-mn);
   const st=[1,2,2.5,5,10].map(f=>f*Math.pow(10,Math.floor(Math.log10(sp/4)))).find(x=>sp/x<=5)||sp/4,top=Math.ceil(mx/st)*st,bot=Math.floor(mn/st)*st;
   const X=i=>pl+i/(n-1)*iw,Yp=v=>pt+ih-(v-bot)/(top-bot||1)*ih;
   const pad=(c,i0=0)=>kvVloeiend(c.map((v,i)=>[X(i+i0),Yp(v)]));
   let g="";for(let v=bot;v<=top+1e-6;v+=st)g+=`<line x1="${pl}" x2="${W-pr}" y1="${Yp(v)}" y2="${Yp(v)}" class="${Math.abs(v)<1e-6?"kv-nul":"kv-gr"}"/><text x="${pl-8}" y="${Yp(v)+4}" text-anchor="end" class="kv-ax">${Math.abs(v)<1e-6?"0":(v<0?"−":"")+Math.round(Math.abs(v)/1000*10)/10+"k"}</text>`;
-  let tk="";for(let i=0;i<n;i++){const d=new Date(A.d0.getTime()+i*864e5);if((d.getDate()===1&&(W>=400||d.getMonth()%2===0))||i===0)tk+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt+ih}" y2="${pt+ih+4}" class="kv-gr"/><text x="${X(i)}" y="${H-6}" text-anchor="${i===0?"start":"middle"}" class="kv-ax">${d.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})}</text>`}
+  let tk="";for(let i=0;i<n;i++){const d=new Date(A.d0.getTime()+i*864e5);if((d.getDate()===1&&(W>=400||d.getMonth()%2===0))||i===0)tk+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt+ih}" y2="${pt+ih+4}" class="kv-gr"/><text x="${X(i)}" y="${H-6}" text-anchor="${i===0?"start":i>=n-2?"end":"middle"}" class="kv-ax">${d.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})}</text>`}
   const padP=WP?pad(WP.slice(tot),tot):"",eindP=WP?`<circle cx="${X(A.n-1)}" cy="${Yp(progW)}" r="4" class="kv-pp"/><text x="${X(A.n-1)-6}" y="${Yp(progW)+(progW<0?20:-10)}" text-anchor="end" class="kv-pl">Prognose ${kEur(progW)}</text>`:"";
   const lijnA=tot>=0?pad(WA.slice(0,tot+1)):"",eind=tot>=0?`<circle cx="${X(tot)}" cy="${Yp(WA[tot])}" r="4.5" class="kv-pa"/>`:"";
   return `<svg viewBox="0 0 ${W} ${H}" class="kv-svg ${cls}" data-w="${W}" data-pl="${pl}" data-iw="${iw}" role="img" aria-label="Winst kalenders doorheen het seizoen, ${Y} tegenover ${Y-1}">${g}${tk}
