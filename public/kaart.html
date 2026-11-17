@@ -2946,7 +2946,7 @@ krLive();
           h+=`<div class="km-dq"><span class="km-dl">Hoeveel heb je nog over?</span>${inh}</div>`;
           const r=dzRest();if(r>0)h+=r>=op-1e-9?`<p class="km-dw">Dat is alles wat je volgens onze lijst hebt (${fd(op)}). Dan heb je nog niets bedeeld.</p>`:`<p class="km-dt">Je hebt nog <b>${fd(r)}</b> over.</p>`}
         if(DZ.over===false){h+=`<p class="km-dt">Je hebt alle <b>${fd(op)}</b> bedeeld.</p>`+nodigV()}}
-      else h+=`<p class="km-dw">Volgens onze lijst heb je geen dozen meegekregen. Neem contact op met het bestuur.</p>`;
+      else h+=`<p class="km-dw">Volgens onze lijst heb je geen dozen met kalenders. Neem contact op met het bestuur.</p>`;
       dzBox.innerHTML=h}
     function dzKlaar(){if(dzBox.hidden)return true;if(DZ.op==null)return false;
       if(DZ.op>0){if(DZ.over===true){const r=dzRest();return r>0&&r<DZ.op-1e-9}
