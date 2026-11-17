@@ -7505,15 +7505,19 @@ async function rmMail(ids,straten){try{const I=rmInfo(straten);
 const rdKw=["","¼","½","¾"],rdFd=n=>{n=Math.round((Number(n)||0)*4)/4;const w=Math.floor(n+1e-9),q=Math.round((n-w)*4);return ((w?w:"")+(q?(w?" ":"")+rdKw[q]:"")||"0")+" "+(n>1||n===0?"dozen":"doos")};
 const rdJl=lidId=>[...S.jaarleden.values()].find(j=>Number(j.jaar)===JAAR&&j.lidId===lidId);
 function rdVoorstel(g){const m=[...g.ms].reverse().find(x=>x.dozen);if(!m)return null;const d=m.dozen,jl=m.lidId&&rdJl(m.lidId),op=jl?Number(jl.kalOpgehaald)||0:0;
-  let A=0;if(d.over===true)A=Math.max(0,Math.floor(op-(Number(d.rest)||0)+1e-9));else if(d.over===false)A=d.af==="alle"?op:Math.min(Number(d.af)||0,op);
+  let A=0;if(d.over===true)A=Math.max(0,op-(Number(d.rest)||0));else if(d.over===false)A=d.af==="alle"?op:Math.min(Number(d.af)||0,op);
   return{d,jl,op,A:Math.round(A*100)/100,naar:Math.round((op-A)*100)/100}}
 function rdAanvinkt(g){const c=document.querySelector(`[data-rmg="${CSS.escape(g.key)}"] .rd-cb`);return !c||c.checked}
 function rdKaart(g){const v=rdVoorstel(g);if(!v)return"";const d=v.d;const T=[];
   if(d.over===true)T.push(`Nog <b>${rdFd(d.rest)}</b> over`);else if(d.over===false)T.push(d.af==="alle"?`<b>Alle dozen</b> afgewerkt`:`<b>${rdFd(d.af)}</b> afgewerkt, niets meer over`);
   if(d.nodig===true)T.push(`<b class="rd-nodig">heeft nog ${d.nodigN?rdFd(d.nodigN):"dozen"} nodig</b>`);else if(d.nodig===false)T.push("geen dozen meer nodig");
-  const bij=v.jl&&v.A>0&&canWrite?`<label class="rd-v"><input type="checkbox" class="rd-cb" checked> In de verdeling: ${rdFd(v.A)} afgewerkt · in handen ${rdFd(v.op)} → ${rdFd(v.naar)}</label>`:"";
+  const bij=v.jl&&v.A>0&&canWrite?`<label class="rd-v"><input type="checkbox" class="rd-cb" checked> In de verdeling: in handen ${rdFd(v.op)} → ${rdFd(v.naar)}</label>`:"";
   return `<div class="rd"><div class="rd-t"><span>${T.join(" · ")}</span></div>${bij}${!v.jl&&(d.over!=null)?'<div class="small muted">Niet gevonden in de dozenverdeling.</div>':""}</div>`}
-async function rdToepassen(v,bij){try{if(bij&&v.jl&&v.A>0)kalBeweeg(v.jl.id,"klaar",v.A,{reden:"gemeld via de kaart"})}catch(e){toast("Dozen niet bijgewerkt: "+e.message,true)}
+async function rdToepassen(v,bij){try{if(bij&&v.jl&&v.A>0){
+    if(v.d.over===true){/* nog kalenders over: volle dozen als afgewerkt; een begonnen doos gaat enkel uit "in handen" en telt pas mee als ze op is */
+      const vol=Math.floor(v.A+1e-9),deel=Math.round((v.A-vol)*100)/100;if(vol>0)kalBeweeg(v.jl.id,"klaar",vol,{reden:"gemeld via de kaart"});
+      if(deel>0){const j=S.jaarleden.get(v.jl.id)||{};kalBeweeg(v.jl.id,"corr",0,{op:Math.round(((j.kalOpgehaald||0)-deel)*100)/100,ui:j.kalUitgevoerd||0,reden:"deel van een doos bedeeld (gemeld via de kaart)"})}}
+    else kalBeweeg(v.jl.id,"klaar",v.A,{reden:"gemeld via de kaart"})}}catch(e){toast("Dozen niet bijgewerkt: "+e.message,true)}
   if(v.d.nodig===true&&canWrite&&v.jl&&typeof kalMee==="function")setTimeout(()=>{kalMee(v.jl.id);const i=$("#kalN");if(i&&v.d.nodigN){i.value=v.d.nodigN;i.dispatchEvent(new Event("input",{bubbles:true}))}},350);
   else if(v.d.nodig===true)toast("Opgelet: dit lid heeft nog dozen nodig.")}
 {const st=document.createElement("style");st.textContent=`.rd{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:10px;background:var(--soft,#f2f2f3);font-size:13.5px}.rd-t{display:flex;align-items:center;gap:8px}.rd-t svg{width:16px;height:16px;flex:none;color:var(--muted)}.rd-nodig{color:#b45309}.rd-v{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}.rd-v input{width:16px;height:16px;margin:0}`;document.head.appendChild(st)}
@@ -8856,7 +8860,7 @@ function kvGrafieken(J1,J0,stuks){
   const X=i=>pl+kvPos(i)/kvPos(n-1)*iw,Yp=v=>pt+ih-(v-bot)/(top-bot||1)*ih;
   const pad=(c,i0=0)=>kvVloeiend(c.map((v,i)=>[X(i+i0),Yp(v)]));
   let g="";for(let v=bot;v<=top+1e-6;v+=st)g+=`<line x1="${pl}" x2="${W-pr}" y1="${Yp(v)}" y2="${Yp(v)}" class="${Math.abs(v)<1e-6?"kv-nul":"kv-gr"}"/><text x="${pl-8}" y="${Yp(v)+4}" text-anchor="end" class="kv-ax">${Math.abs(v)<1e-6?"0":(v<0?"−":"")+Math.round(Math.abs(v)/1000*10)/10+"k"}</text>`;
-  let tk="";for(let i=0;i<n;i++){const d=new Date(A.d0.getTime()+i*864e5);if(((d.getDate()===1&&(W>=400||(i<=KVK+1&&d.getMonth()!==1)||i===KVK))||i===0||(W<400&&i===n-1))&&(i>=n-2||X(n-1)-X(i)>=52))tk+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt+ih}" y2="${pt+ih+4}" class="kv-gr"/><text x="${X(i)}" y="${H-6}" text-anchor="${i===0?"start":i>=n-2?"end":"middle"}" class="kv-ax">${d.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})}</text>`}
+  let tk="";for(let i=0;i<n;i++){const d=new Date(A.d0.getTime()+i*864e5);if(((d.getDate()===1&&(W>=400||(i<=KVK+1&&d.getMonth()!==1)||i===KVK))||i===0||(W<400&&i===n-1))&&(i>=n-2||X(n-1)-X(i)>=30))tk+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt+ih}" y2="${pt+ih+4}" class="kv-gr"/><text x="${X(i)}" y="${H-6}" text-anchor="${i===0?"start":i>=n-2?"end":"middle"}" class="kv-ax">${d.toLocaleDateString("nl-BE",{month:"short"}).replace(".","")}</text>`}
   const padP=WP?pad(WP.slice(tot),tot):"",eindP=WP?`<circle cx="${X(A.n-1)}" cy="${Yp(progW)}" r="4" class="kv-pp"/><text x="${X(A.n-1)-6}" y="${Yp(progW)+(progW<0?20:-10)}" text-anchor="end" class="kv-pl">Prognose ${kEur(progW)}</text>`:"";
   const lijnA=tot>=0?pad(WA.slice(0,tot+1)):"",eind=tot>=0?`<circle cx="${X(tot)}" cy="${Yp(WA[tot])}" r="4.5" class="kv-pa"/>`:"";
   return `<svg viewBox="0 0 ${W} ${H}" class="kv-svg ${cls}" data-w="${W}" data-pl="${pl}" data-iw="${iw}" role="img" aria-label="Winst kalenders doorheen het seizoen, ${Y} tegenover ${Y-1}">${g}${tk}
@@ -8975,20 +8979,27 @@ const INST_OVZ=[["Leden","leden",'[data-act="ledenInst"]'],["Transacties en fina
 
 /* ============ Instellingen › Kliks: wie op welke knop in een mail klikte (persoonlijke code per knop en ontvanger) ============
    Server: api/_lib/klik.js (tabel mail_knoppen + mail_kliks); overzicht via de database-functie mail_kliks_lijst (enkel administrator). */
-if(!INST_TABS.some(t=>t[0]==="kliks")){INST_TABS.push(["kliks","Kliks in mails"]);INST_IDS.push("kliks")}
+/* Kliks in mails staan nu in het Logboek (Soort: Kliks in mails), niet meer als apart tabblad bij Instellingen */
+if(!INST_IDS.includes("kliks"))INST_IDS.push("kliks");
 if(!ROUTES.some(r=>r[0]==="kliks"))ROUTES.push(["kliks","Kliks in mails"]);
 const MK={data:null,bezig:false,fout:null,q:""};
 async function mkLaad(){if(MK.bezig)return;MK.bezig=true;try{const {data,error}=await SB.rpc("mail_kliks_lijst",{dagen:180});if(error)throw error;MK.data=data||{kliks:[]};MK.fout=null}catch(e){MK.fout=e.message}finally{MK.bezig=false}if(route()==="kliks")renderBody()}
 const mkWie=e=>{e=String(e||"").toLowerCase();for(const l of S.leden.values())if(String(l.email||"").toLowerCase()===e)return naamVol(l);return e};
-VIEWS.kliks=()=>({title:"Instellingen",sub:"Kliks in mails",body(){if(ROL_ECHT!=="admin")return instTabs("kliks")+'<div class="panel"><div class="empty">Enkel voor de administrator.</div></div>';
-  if(!MK.data&&!MK.fout){setTimeout(mkLaad,0);return instTabs("kliks")+'<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>'}
-  if(MK.fout)return instTabs("kliks")+`<div class="panel"><div class="empty">${esc(MK.fout)}</div></div>`;
-  const q=MK.q.toLowerCase(),L=(MK.data.kliks||[]).map(k=>({...k,wie:mkWie(k.email)})).filter(k=>!q||[k.wie,k.email,k.label,k.knop].join(" ").toLowerCase().includes(q));
-  return instTabs("kliks")+`<div class="bar"><div class="search">${ic("search")}<input id="mkQ" data-live placeholder="Zoek op naam, mail of knop" value="${esc(MK.q)}"></div></div>
-   <div class="panel"><div class="panel-h"><h2>${L.length} ${L.length===1?"knop":"knoppen"} aangeklikt</h2><span class="grow"></span><span class="muted small">laatste 6 maanden</span></div>
+function mkPaneel(q){if(ROL_ECHT!=="admin")return '<div class="panel"><div class="empty">Enkel voor de administrator.</div></div>';
+  if(!MK.data&&!MK.fout){setTimeout(mkLaad,0);return '<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>'}
+  if(MK.fout)return `<div class="panel"><div class="empty">${esc(MK.fout)}</div></div>`;
+  q=norm(q||"");const L=(MK.data.kliks||[]).map(k=>({...k,wie:mkWie(k.email)})).filter(k=>!q||norm([k.wie,k.email,k.label,k.knop].join(" ")).includes(q));
+  return `<div class="panel"><div class="panel-h"><h2>${L.length} ${L.length===1?"knop":"knoppen"} aangeklikt</h2><span class="grow"></span><span class="muted small">laatste 6 maanden</span></div>
    <div class="tw"><table class="tbl"><thead><tr><th>Wie</th><th>Mail</th><th>Knop</th><th class="num">Kliks</th><th>Laatst</th></tr></thead><tbody>
    ${L.map(k=>`<tr><td><b>${esc(k.wie)}</b></td><td>${esc(k.label||"")}<div class="muted small">verstuurd ${fmtDate(String(k.verstuurd).slice(0,10))}</div></td><td>${esc(k.knop||"")}</td><td class="num">${k.aantal}</td><td class="muted small">${new Date(k.laatst).toLocaleString("nl-BE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}</td></tr>`).join("")||'<tr><td colspan="5" class="empty">Nog geen kliks.</td></tr>'}
-   </tbody></table></div></div>`}});
+   </tbody></table></div></div>`}
+VIEWS.kliks=()=>({title:"Instellingen",body(){setTimeout(()=>{UI.logT="kliks";try{saveUI()}catch(e){}location.replace("#logboek")},0);return ""}});
+/* Logboek: soort "Kliks in mails" toont het klikoverzicht in plaats van de logregels */
+{const _v=VIEWS.logboek;const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){let h=String(b.apply(this,arguments));
+  if(ROL_ECHT==="admin")h=h.replace('<option value="boekingen"',`<option value="kliks"${UI.logT==="kliks"?" selected":""}>Kliks in mails</option><option value="boekingen"`);
+  if(UI.logT!=="kliks")return h;const k=h.indexOf('<div class="panel"><div class="tw"><table class="rcards logt"');if(k<0)return h;
+  return h.slice(0,k).replace(/<select class="sel" data-change="logW"[\s\S]*?<\/select>/,"")+mkPaneel(UI.logQ)};return v};Object.assign(n,_v);VIEWS.logboek=n}
+addEventListener("hashchange",()=>{if(route()==="logboek"&&UI.logT==="kliks"){MK.data=null;MK.fout=null}});
 document.addEventListener("input",e=>{if(e.target.id!=="mkQ")return;MK.q=e.target.value;const p=e.target.selectionStart;renderBody();const i=$("#mkQ");if(i){i.focus();try{i.setSelectionRange(p,p)}catch(x){}}});
 addEventListener("hashchange",()=>{if(route()==="kliks"){MK.data=null;MK.fout=null}});
 
