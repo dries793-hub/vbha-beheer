@@ -9593,6 +9593,30 @@ function krMaskStijl(){if(!KR.bg||!KR.bg.mask)return;const out=krVar("--kr-out")
 // app: witte rand onder de straten
 {const _s=krStyleAll;krStyleAll=function(){const r=_s.apply(this,arguments);try{krCasing()}catch(e){}return r}}
 
+/* ============ Kalender aan huis: automatisch "gebust" als de straat bedeeld is ============
+   Zodra een straat (of een stuk ervan) op bedeeld komt, krijgen de open aanvragen in die straat de status "gedaan".
+   Een aanvraag hoort bij de straat als de straatnaam in het adres staat én de stip op minder dan 60 m van die straat
+   (of dat stuk) ligt. Aanvragen die pas binnenkwamen nadat de straat al bedeeld was ("toch niet ontvangen"), blijven open. */
+function kaGeomVan(sid){try{const d=typeof KR_DEEL!=="undefined"&&KR_DEEL.get(sid),base=d?d.sid:sid,s=KR.byId.get(base);if(!s)return null;
+  let g=s.g;if(d){const x=(KR_DELEN.get(base)||[]).find(x=>x.id===sid);if(x)g=x.g}
+  return{naam:s.n,qs:KRE.delen(g).map(p=>p.map(KRE.m))}}catch(e){return null}}
+function kaBijStraat(a,G){if(a.lat==null||a.lng==null||!G)return false;if(!norm(a.adres||"").includes(norm(G.naam)))return false;
+  const p=KRE.m([a.lat,a.lng]);return G.qs.some(q=>q.length&&KRE.afst(p,q).d<60)}
+let KA_AUTO_BEZIG=false;
+async function kaAutoGebust(){if(KA_AUTO_BEZIG||!canWrite||typeof KR==="undefined"||!KR.byId||!KR.byId.size||!S.kalenderaanvragen)return;
+  const open=[...S.kalenderaanvragen.values()].filter(a=>Number(a.jaar)===JAAR&&a.status!=="gedaan");if(!open.length)return;
+  const R=[...S.ronde.values()].filter(r=>Number(r.jaar)===JAAR&&r.status==="done"&&r.straat);if(!R.length)return;
+  KA_AUTO_BEZIG=true;let n=0;
+  try{for(const r of R){const G=kaGeomVan(r.straat);if(!G)continue;
+    for(const a of open){if(a.status==="gedaan"||a.tochNiet)continue;if(r.at&&a.aangemeld&&String(a.aangemeld)>String(r.at))continue;if(!kaBijStraat(a,G))continue;
+      const {id,...d}=a,nw={...d,status:"gedaan",nieuw:false,gedaanOp:new Date().toISOString(),gedaanDoor:"automatisch (straat bedeeld)"};
+      a.status="gedaan";S.kalenderaanvragen.set(id,{...nw,id});try{await write("kalenderaanvragen",id,nw);n++}catch(e){}}}}
+  finally{KA_AUTO_BEZIG=false}
+  if(n){toast(`${n} ${n===1?"kalender aan huis":"kalenders aan huis"} als gebust aangeduid (straat bedeeld).`);try{kaTeken()}catch(e){}dirty=true;renderBody()}}
+/* na elke wijziging aan de ronde (en bij het laden van de gegevens) even nakijken */
+{const _w=write;write=function(col,id,data){const r=_w.apply(this,arguments);if(col==="ronde"&&data&&data.status==="done")setTimeout(kaAutoGebust,400);return r}}
+{let t=0;appInterval(()=>{if(t++<2)return;if(typeof loaded!=="undefined"&&loaded.has&&loaded.has("kalenderaanvragen")&&loaded.has("ronde"))kaAutoGebust()},15000)}
+
 /* ============ Kalenderdozen overdragen naar een ander lid (enkel administrator) ============
    In de fiche van een persoon (Kalenders › Verdeling): "Dozen overdragen". Kies aan wie (lid of andere naam) en hoeveel dozen.
    Staat de ontvanger nog niet in de lijst, dan wordt hij meteen toegevoegd. Beide kanten krijgen een regel in hun geschiedenis. */

@@ -2922,10 +2922,10 @@ krLive();
         h+=vraag("Heb je nog kalenders over?",knop("over","1","Ja",DZ.over===true)+knop("over","0","Nee",DZ.over===false));
         if(DZ.over===true){const H=[];for(let i=1;i<op-1e-9&&i<=12;i++)H.push(i);const Q=[.25,.5,.75].filter(q=>q<op-1e-9);
           let inh="";if(H.length)inh+=`<div class="km-dr"><small>Volle dozen</small><div class="km-dc">${H.map(i=>knop("heel",i,String(i),DZ.heel===i)).join("")}</div></div>`;
-          inh+=`<div class="km-dr"><small>Deel van een doos</small><div class="km-dc">${Q.map(q=>knop("deel",q,KW[q*4],DZ.deel===q)).join("")}</div></div>`;
+          inh+=`<div class="km-dr"><small>Begonnen doos</small><div class="km-dc">${Q.map(q=>knop("deel",q,KW[q*4],DZ.deel===q)).join("")}</div></div>`;
           h+=`<div class="km-dq"><span class="km-dl">Hoeveel heb je nog over?</span>${inh}</div>`;
           const r=dzRest();if(r>0)h+=r>=op-1e-9?`<p class="km-dw">Dat is alles wat je volgens onze lijst hebt (${fd(op)}). Dan heb je nog niets bedeeld.</p>`:`<p class="km-dt">Je hebt nog <b>${fd(r)}</b> over.</p>`}
-        if(DZ.over===false){h+=`<p class="km-dt">Dan heb je alle <b>${fd(op)}</b> bedeeld.</p>`+nodigV()}}
+        if(DZ.over===false){h+=`<p class="km-dt">Je hebt alle <b>${fd(op)}</b> bedeeld.</p>`+nodigV()}}
       else h+=`<p class="km-di">Volgens onze lijst heb je geen dozen meegekregen.</p>`+nodigV();
       dzBox.innerHTML=h}
     function dzKlaar(){if(dzBox.hidden)return true;if(DZ.op==null)return false;
