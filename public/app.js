@@ -9294,11 +9294,11 @@ Object.assign(LOG_TYPE,{rondemeldingen:"Kalenderronde",kalenderaanvragen:"Kalend
   return _o.apply(this,arguments)}}
 
 /* Dashboard › Meeste punten: op desktop zoveel leden tonen als er in de kader passen (even hoog als de linkerkolom) */
-(function(){const st=document.createElement("style");st.textContent=`.mp-panel .li.mp-weg{display:none!important}`;document.head.appendChild(st);
-  function fit(){const p=document.querySelector(".mp-panel");if(!p)return;const rows=[...p.querySelectorAll(".list>.li")];rows.forEach(r=>r.classList.remove("mp-weg"));
+(function(){const st=document.createElement("style");st.textContent=`.mp-panel .li.mp-weg{display:none!important}.grid.g2.eq .panel-b:has(>.list){padding-top:4px;padding-bottom:4px}.grid.g2.eq .panel-b>.list>.li.mp-laatst,.grid.g2.eq .panel-b>.list>.li:last-child{border-bottom:0}`;document.head.appendChild(st);
+  function fit(){const p=document.querySelector(".mp-panel");if(!p)return;const rows=[...p.querySelectorAll(".list>.li")];rows.forEach(r=>r.classList.remove("mp-weg","mp-laatst"));
     if(!matchMedia("(min-width:761px)").matches)return;const col=p.parentElement&&p.parentElement.querySelector(".stackcol");if(!col)return;
     p.style.display="none";const doel=col.getBoundingClientRect().height;p.style.display="";p.style.alignSelf="start";let n=rows.length;
-    while(n>5&&p.getBoundingClientRect().height>doel+1){rows[--n].classList.add("mp-weg")}p.style.alignSelf=""}
+    while(n>5&&p.getBoundingClientRect().height>doel+1){rows[--n].classList.add("mp-weg")}rows.forEach((r,i)=>r.classList.toggle("mp-laatst",i===n-1));p.style.alignSelf=""}
   let t=0;const plan=()=>{cancelAnimationFrame(t);t=requestAnimationFrame(fit)};
   const start=()=>{const m=document.getElementById("main");if(!m)return setTimeout(start,300);new MutationObserver(plan).observe(m,{childList:true,subtree:true});plan()};
   start();addEventListener("resize",plan)})();
