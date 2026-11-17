@@ -5289,7 +5289,7 @@ async function nsBijwerken(){if(NS_BEZIG||ROL_ECHT!=="admin"||!canWrite||typeof 
   if(!anders)return;NS_BEZIG=true;try{const d={...stripId(c),regels};S.config.set("nastuur",{...d,id:"nastuur"});await write("config","nastuur",d)}catch(e){}finally{NS_BEZIG=false}}
 appInterval(()=>{if(typeof loaded!=="undefined"&&typeof COLS!=="undefined"&&loaded.size<COLS.length)return;nsBijwerken()},20000);
 
-{const st=document.createElement("style");st.textContent=`.nmeld .ns-s{display:block;font-size:13px;color:inherit;opacity:.75;margin:1px 0 8px}.nm-l.ns-r{align-items:center}.nm-l.ns-r .ns-b{margin-left:auto}@media(max-width:760px){.nm-l.ns-r .ns-b{margin-left:0;width:100%;justify-content:center}}`;document.head.appendChild(st)}
+{const st=document.createElement("style");st.textContent=`.nmeld .ns-s{display:block;font-size:13px;color:inherit;opacity:.75;margin:1px 0 8px}.nm-l.ns-r{display:flex!important;flex-wrap:wrap;align-items:center;width:100%}.nm-l.ns-r .ns-b{margin-left:auto}@media(max-width:760px){.nm-l.ns-r .ns-b{margin-left:0;width:100%;justify-content:center}}`;document.head.appendChild(st)}
 
 /* ============ Fuif "In Vier en Vlam" (Activiteiten › In Vier en Vlam) ============
    Bestellingen in de collectie "tickets" (zie api/_lib/fuif.js), instellingen in config "fuif".
