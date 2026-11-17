@@ -8860,14 +8860,18 @@ function kvGrafieken(J1,J0,stuks){
   const Bc=i=>B.cum[Math.min(i,B.n-1)]||0,Bend=B.cum[B.n-1]||0,cur=tot>=0?A.cum[tot]:0,opl=Number(J1.opl)||0;
   /* hoe meer kalenders bedeeld, hoe zwaarder de schatting per kalender doorweegt */
   const f=opl>0?Math.min(1,stuks/opl):0,E=[];let prog=0;
-  if(tot>=0&&tot<A.n-1&&cur>0){const e1=Bend>0&&Bc(tot)>0?cur/(Bc(tot)/Bend):0,e2=stuks>0&&opl>0?cur*Math.max(1,opl/stuks):0;
-    if(e1)E.push(["volgens verloop "+(Y-1),e1]);if(e2&&(e1||f>=.3))E.push([`volgens ${Math.round(f*100)}% bedeelde kalenders`,e2]);
-    prog=e1&&e2?(1-f)*e1+f*e2:e1||(f>=.3?e2:0)}
-  const P=prog?A.cum.map((v,i)=>{if(i<tot)return null;const d=Bend-Bc(tot);return cur+(prog-cur)*(d>0?(Bc(i)-Bc(tot))/d:(i-tot)/(A.n-1-tot))}):null;
+  /* verder verloop = het huidige tempo (gemiddelde per dag van de laatste 14 dagen), dat afneemt zoals het tempo vorig jaar vanaf dezelfde dag afnam */
+  let P=null;
+  if(tot>=0&&tot<A.n-1&&cur>0){const W=14,rA=tot>=W?(cur-A.cum[tot-W])/W:cur/(tot+1),Bx=i=>i<0?0:Bc(i),rb=i=>{const a=i-10,b=Math.min(i+10,B.n-1);return b<a?0:(Bx(b)-Bx(a-1))/(b-a+1)},ref=rb(tot);
+    const inc=[];let som=0;for(let i=tot+1;i<A.n;i++){const v=ref>0?rA*rb(i)/ref:rA*Math.max(0,1-(i-tot)/(A.n-tot));inc.push(som+=v)}
+    const e1=cur+som,e2=stuks>0&&opl>0?cur*Math.max(1,opl/stuks):0;
+    if(e1>cur)E.push(["volgens het huidige tempo",e1]);if(e2&&f>=.3)E.push([`volgens ${Math.round(f*100)}% bedeelde kalenders`,e2]);
+    prog=e1>cur&&e2&&f>=.3?(1-f)*e1+f*e2:e1>cur?e1:(f>=.3?e2:0);
+    if(prog)P=A.cum.map((v,i)=>i<tot?null:i===tot?cur:cur+(prog-cur)*(som>0?inc[i-tot-1]/som:(i-tot)/(A.n-1-tot)))}
   const kEur=v=>(v<0?"−":"")+"€ "+Math.round(Math.abs(v)).toLocaleString("nl-BE");
   /* winst doorheen het seizoen: winst van het jaar min wat er van de seizoensomzet nog moest binnenkomen (kosten en sponsors staan vooraf vast) */
   const offA=(Number(J1.res)||0)-cur,offB=(Number(J0.res)||0)-Bend;
-  const glad=(c,k=3)=>c.map((v,i)=>{if(i===0||i===c.length-1)return v;const a=Math.max(0,i-k),b=Math.min(c.length-1,i+k);let t=0;for(let j=a;j<=b;j++)t+=c[j];return t/(b-a+1)});
+  const glad=(c,k=3)=>c.map((v,i)=>{const h=Math.min(k,i,c.length-1-i);if(!h)return v;const a=i-h,b=i+h;let t=0;for(let j=a;j<=b;j++)t+=c[j];return t/(b-a+1)});
   const WA=(tot>=0?glad(A.cum.slice(0,tot+1)):[]).concat(A.cum.slice(tot+1)).map(v=>v+offA),WB=glad(B.cum).map(v=>v+offB),WP=P?P.slice(0,tot).map(()=>null).concat(glad(P.slice(tot),7)).map(v=>v==null?null:v+offA):null,progW=prog?prog+offA:0;
   const svg=(W,H,cls)=>{const pl=W<400?44:58,pr=10,pt=14,pb=26,iw=W-pl-pr,ih=H-pt-pb;
   const vals=[0,...WB,...(tot>=0?WA.slice(0,tot+1):[]),...(prog?[progW]:[])],mx=Math.max(...vals),mn=Math.min(...vals),sp=Math.max(1,mx-mn);
