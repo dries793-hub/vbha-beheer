@@ -7515,6 +7515,9 @@ async function rdToepassen(v,bij){try{if(bij&&v.jl&&v.A>0)kalBeweeg(v.jl.id,"kla
   if(v.d.nodig===true&&canWrite&&v.jl&&typeof kalMee==="function")setTimeout(()=>{kalMee(v.jl.id);const i=$("#kalN");if(i&&v.d.nodigN){i.value=v.d.nodigN;i.dispatchEvent(new Event("input",{bubbles:true}))}},350);
   else if(v.d.nodig===true)toast("Opgelet: dit lid heeft nog dozen nodig.")}
 {const st=document.createElement("style");st.textContent=`.rd{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:10px;background:var(--soft,#f2f2f3);font-size:13.5px}.rd-t{display:flex;align-items:center;gap:8px}.rd-t svg{width:16px;height:16px;flex:none;color:var(--muted)}.rd-nodig{color:#b45309}.rd-v{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}.rd-v input{width:16px;height:16px;margin:0}`;document.head.appendChild(st)}
+/* dashboard: het blok "Vandaag" altijd helemaal bovenaan (boven betalingen en meldingen) */
+{const b=document.getElementById("body");if(b){const zet=()=>{const c=[...b.querySelectorAll(":scope > .dv-card")];if(!c.length||b.firstElementChild===c[0]&&c.every((x,i)=>b.children[i]===x))return;
+  for(let i=c.length-1;i>=0;i--)b.insertBefore(c[i],b.firstChild)};new MutationObserver(zet).observe(b,{childList:true})}}
 
 /* ============ Slim zoeken in keuzelijsten (vervangt de lijst van de browser bij <input list="…">) ============
    De browser toont bij één letter alle namen die die letter bevatten. Hier: pas vanaf 3 letters (zoals bij de adressen),
