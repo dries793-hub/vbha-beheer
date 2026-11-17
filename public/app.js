@@ -6082,7 +6082,7 @@ document.addEventListener("click",e=>{if(!e.target.closest("#spOk"))return;const
   function telTitel(m,k){const n0=+m.dataset.n0,b=m.querySelector(".nm-body > b");if(!b||!n0||k>=n0)return;if(!b.dataset.t0)b.dataset.t0=b.textContent;const t0=b.dataset.t0;
     if(!new RegExp("(^|\\D)"+n0+"(\\D|$)").test(t0))return;
     let t=t0.replace(new RegExp("(^|\\D)"+n0+"(?=\\D|$)"),"$1"+k);
-    if(k===1)t=t.replace(/^1 nieuwe leden hebben zich aangemeld/,"Er heeft zich een nieuw lid aangemeld").replace(/Er zijn 1 transacties/,"Er is 1 transactie").replace(/\b1 leden\b/,"1 lid");
+    if(k===1)t=t.replace(/^1 nieuwe leden hebben zich aangemeld/,"Er heeft zich een nieuw lid aangemeld").replace(/^1 leden behaalden/,"Een lid behaalde").replace(/Er zijn 1 transacties/,"Er is 1 transactie").replace(/\b1 leden\b/,"1 lid");
     if(b.textContent!==t)b.textContent=t}
   function zuiver(){
     if(toon||!document.querySelector(".nmeld"))return;
@@ -8521,7 +8521,7 @@ function gdMeldingAuto(){if(ROL!=="admin")return"";let C;try{C=ctx()}catch(e){re
   const weg=gdWeg();L=L.filter(r=>!weg.has(JAAR+"_"+r.lid.id));
   if(!L.length)return"";
   return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("medaille")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
-   <div class="gd-l">${L.slice(0,12).map(r=>{const m=r.jl.goudMail;return `<div class="gd-r" data-gid="${esc(JAAR+"_"+r.lid.id)}"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten · ${!r.lid.email?"geen e-mailadres":m&&m.verstuurd?"proficiat-mail verstuurd op "+fmtDate(String(m.op).slice(0,10)):"proficiat-mail wordt automatisch verstuurd"}</span></span></div>`}).join("")}</div></div></div>`}
+   <div class="nm-l">${L.slice(0,12).map(r=>{const m=r.jl.goudMail;return `<button type="button" class="nm-i" data-act="toonLid" data-id="${esc(r.lid.id)}" data-gid="${esc(JAAR+"_"+r.lid.id)}"><b>${esc(naamVol(r.lid))}</b><span>${r.p.totaal} punten · ${!r.lid.email?"geen e-mailadres":m&&m.verstuurd?"proficiat-mail "+fmtDate(String(m.op).slice(0,10)):"proficiat-mail volgt"}</span></button>`}).join("")}</div></div></div>`}
 function gdMelding(){if(gdAutoAan())return gdMeldingAuto();const L=gdKandidaten();if(!L.length)return"";
   return `<div class="nmeld dm-v gd-m" role="status"><span class="nm-ic">${ic("medaille")}</span><div class="nm-body"><b>${L.length===1?"Een lid behaalde":L.length+" leden behaalden"} de goudstatus voor ${JAAR+1}</b>
    <div class="gd-l">${L.slice(0,12).map(r=>`<div class="gd-r"><span class="gd-n"><b>${esc(naamVol(r.lid))}</b><span class="muted small">${r.p.totaal} punten${r.lid.email?"":" · geen e-mailadres"}</span></span>
