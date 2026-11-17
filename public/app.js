@@ -4177,14 +4177,18 @@ const inkOpen=d=>{if(!inkBoekVan(d.id).length)return true;const t=inkTot(d);retu
 
 /* ---------- tekst uit de PDF en voorstel van transacties ---------- */
 async function inkLees(d){if(INK.txt.has(d.id)||INK.bezig.has(d.id)||!/pdf/i.test(d.type||d.naam))return;INK.bezig.add(d.id);
-  try{const r=await fetch(await docUrl(d,false));const f=new File([await r.blob()],d.naam,{type:"application/pdf"});INK.txt.set(d.id,inkAnalyse(await vaTekst(f)))}
+  try{const r=await fetch(await docUrl(d,false));const f=new File([await r.blob()],d.naam,{type:"application/pdf"});INK.txt.set(d.id,inkAnalyse(await vaTekst(f),[d.omschrijving,d.naam&&/factuur|invoice/i.test(d.naam)?d.naam.replace(/\.pdf$/i,""):""].filter(Boolean).join(" \n ")))}
   catch(e){console.warn("pdf lezen",e);INK.txt.set(d.id,{fout:true,reden:String((e&&(e.name||"")+": "+(e.message||e))||"onbekend").slice(0,160)})}finally{INK.bezig.delete(d.id);if(route()==="inkomend")inkHerteken();inkAutoPlan()}}
-function inkAnalyse(t){const tekst=String(t||""),bedragen=[],tot=[];
+/* factuurnummer: na "factuur(nummer|nr|n°)" of "invoice (no|number)"; nooit een datum, en minstens 3 cijfers */
+function inkNrUit(t){const re=/(?:factuur|invoice|facture|rekening)\s*(?:nummer|nr\.?|n°|no\.?|number|num[ée]ro)?\s*[:#.]?\s*([A-Z]{0,4}[-\/]?\d[\dA-Z\-\/.]{2,})/gi;let m;
+  while((m=re.exec(String(t||"")))){let c=m[1].replace(/[.\-\/]+$/,"");const k=c.match(/^([A-Z]{0,4}[-\/]?\d[\dA-Z\-\/]*?)(?=\d{1,2}[\/.]\d{1,2}[\/.]\d{2,4}|[A-Z][a-z])/);if(k)c=k[1];
+    if(/^\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}/.test(c))continue;if((c.match(/\d/g)||[]).length<3)continue;return c.slice(0,30)}return""}
+function inkAnalyse(t,onderwerp){const tekst=String(t||""),bedragen=[],tot=[];
   const re=/(?:€|EUR)?\s*(-?\d{1,3}(?:[.\s ]\d{3})*,\d{2}|-?\d+,\d{2}|-?\d+\.\d{2})(?!\d)/g;
   for(const lijn of tekst.split(/\n/)){let m;const isTot=/totaal|te betalen|total|bedrag|saldo|amount due|à payer/i.test(lijn);
     while((m=re.exec(lijn))){const s=m[1].replace(/[\s ]/g,"");const v=/,\d{2}$/.test(s)?Number(s.replace(/\./g,"").replace(",",".")):Number(s);if(v>0&&v<1e6){bedragen.push(v);if(isTot)tot.push(v)}}}
   const ogm=(tekst.match(/\+{3}\s*(\d{3})\s*\/\s*(\d{4})\s*\/\s*(\d{5})\s*\+{3}/)||[]).slice(1).join("");
-  const nr=(tekst.match(/factuur\s*(?:nummer|nr\.?|n°|no\.?)?\s*[:#]?\s*([A-Z]{0,4}[-\/]?\d[\dA-Z\-\/]{2,})/i)||[])[1]||"";
+  const nr=inkNrUit(onderwerp)||inkNrUit(tekst);
   const totaal=tot.length?Math.max(...tot):bedragen.length?Math.max(...bedragen):null;
   // factuurdatum: eerst na "factuurdatum"/"datum", anders de eerste datum in de tekst
   const dRe=/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](20\d{2})/;const dm=tekst.match(new RegExp("(?:factuur\\s*datum|datum\\s*factuur|invoice\\s*date|date\\s*de\\s*facture|datum)\\s*[:]?\\s*"+dRe.source,"i"))||tekst.match(dRe);
