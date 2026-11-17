@@ -9019,7 +9019,7 @@ const INST_OVZ=[["Leden","leden",'[data-act="ledenInst"]'],["Transacties en fina
 if(!INST_IDS.includes("kliks"))INST_IDS.push("kliks");
 if(!ROUTES.some(r=>r[0]==="kliks"))ROUTES.push(["kliks","Kliks in mails"]);
 const MK={data:null,bezig:false,fout:null,q:""};
-async function mkLaad(){if(MK.bezig)return;MK.bezig=true;try{const {data,error}=await SB.rpc("mail_kliks_lijst",{dagen:180});if(error)throw error;MK.data=data||{kliks:[]};MK.fout=null}catch(e){MK.fout=e.message}finally{MK.bezig=false}if(route()==="kliks")renderBody()}
+async function mkLaad(){if(MK.bezig)return;MK.bezig=true;try{const {data,error}=await SB.rpc("mail_kliks_lijst",{dagen:180});if(error)throw error;MK.data=data||{kliks:[]};MK.fout=null}catch(e){MK.fout=e.message}finally{MK.bezig=false}if(route()==="kliks"||route()==="logboek")renderBody()}
 const mkWie=e=>{e=String(e||"").toLowerCase();for(const l of S.leden.values())if(String(l.email||"").toLowerCase()===e)return naamVol(l);return e};
 function mkPaneel(q){if(ROL_ECHT!=="admin")return '<div class="panel"><div class="empty">Enkel voor de administrator.</div></div>';
   if(!MK.data&&!MK.fout){setTimeout(mkLaad,0);return '<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>'}
