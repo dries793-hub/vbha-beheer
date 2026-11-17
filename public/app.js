@@ -8820,7 +8820,7 @@ function kvGrafieken(J1,J0,stuks){
   const lijnA=tot>=0?pad(WA.slice(0,tot+1)):"",eind=tot>=0?`<circle cx="${X(tot)}" cy="${Yp(WA[tot])}" r="4.5" class="kv-pa"/>`:"";
   return `<svg viewBox="0 0 ${W} ${H}" class="kv-svg ${cls}" data-w="${W}" data-pl="${pl}" data-iw="${iw}" role="img" aria-label="Winst kalenders doorheen het seizoen, ${Y} tegenover ${Y-1}">${g}${tk}
     <path d="${pad(WB)}" class="kv-lb"/>${padP?`<path d="${padP}" class="kv-lp"/>`:""}${eindP}${lijnA?`<path d="${lijnA}" class="kv-la"/>`:""}${eind}<line class="kv-x" x1="0" x2="0" y1="${pt}" y2="${pt+ih}" style="display:none"/><rect x="${pl}" y="${pt}" width="${iw}" height="${ih}" fill="transparent" class="kv-hit"/></svg>`};
-  const lijn=`<div class="kv-c"><h3 class="kf-h">Winst doorheen het seizoen</h3><div class="kv-svgw">${svg(600,230,"kv-gr1")}${svg(340,220,"kv-gr2")}<div class="kv-tip" hidden></div></div></div>`;
+  const lijn=`<div class="kv-c"><h3 class="kf-h">Winst</h3><div class="kv-svgw">${svg(600,230,"kv-gr1")}${svg(340,220,"kv-gr2")}<div class="kv-tip" hidden></div></div></div>`;
   KV={A,B,tot,n,kEur,WA:A.cum.map(v=>v+offA),WB:B.cum.map(v=>v+offB),WP};
   const R=[["Omzet",J1.kin,J0.kin],["Sponsors",J1.si,J0.si],["Kosten",J1.kuit,J0.kuit],["Winst",J1.res,J0.res]],bm=Math.max(1,...R.flatMap(r=>[Math.abs(r[1]),Math.abs(r[2])]));
   const bar=(v,c,l)=>`<div class="kv-br"><span class="kv-bar ${c}" style="width:${Math.max(.6,Math.abs(v)/bm*100)}%" data-t="${l}: ${v<0?"−":""}${kEur(Math.abs(v))}"></span><b>${v<0?"−":""}${kEur(Math.abs(v))}</b></div>`;
