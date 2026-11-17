@@ -3226,13 +3226,16 @@ function kalBeweeg(id,t,n,extra){const j=S.jaarleden.get(id);if(!j)return;const 
   // een begonnen (halve) doos telt als volle doos voor de punten; het verschil gaat via kalTerugRest terug naar de stock
   const begon=t==="klaar"||(t==="terug"&&extra&&extra.rest!=null&&extra.rest<1),vol=begon?Math.ceil(n-1e-9):0,bij=vol-(begon?n:0);
   const rsN=Math.round((rs+(t==="terug"&&begon?n*extra.rest:0)+bij)*100)/100;
-  const nieuw=t==="mee"?{op:op+n,ui}:t==="klaar"?{op:op-n,ui:ui+vol}:t==="terug"?{op:op-n,ui:ui+vol}:{op:extra.op,ui:extra.ui};
-  const log=[...(j.kalLog||[]),{t,n,at:new Date().toISOString(),door:ME_NAME||"",van:{op,ui,rs},...(t==="corr"?{naar:{op:extra.op,ui:extra.ui}}:{}),...(extra&&extra.reden?{reden:extra.reden}:{}),...(t==="terug"&&extra&&extra.rest!=null&&extra.rest<1?{rest:extra.rest}:{})}].slice(-200);
-  setJLid(id,{kalOpgehaald:Math.max(0,nieuw.op),kalUitgevoerd:Math.max(0,nieuw.ui),kalTerugRest:rsN,kalLog:log});
+  let nieuw=t==="mee"?{op:op+n,ui}:t==="klaar"?{op:op-n,ui:ui+vol}:t==="terug"?{op:op-n,ui:ui+vol}:{op:extra.op,ui:extra.ui};
+  /* afwerken in stukken (bv. 1,5 nu en 0,5 later): de exacte hoeveelheid bijhouden (kalAfExact); punten = elke begonnen doos één keer */
+  let rsK=rsN,eN=t==="mee"?(j.kalAfExact??null):null;
+  if(t==="klaar"){const e0=j.kalAfExact!=null?Number(j.kalAfExact):ui,e=Math.round((e0+n)*100)/100,uiN=Math.max(ui,Math.ceil(e-1e-9));nieuw={op:op-n,ui:uiN};rsK=Math.round((rs+uiN-ui-n)*100)/100;eN=e}
+  const log=[...(j.kalLog||[]),{t,n,at:new Date().toISOString(),door:ME_NAME||"",van:{op,ui,rs,e:j.kalAfExact??null},...(t==="corr"?{naar:{op:extra.op,ui:extra.ui}}:{}),...(extra&&extra.reden?{reden:extra.reden}:{}),...(t==="terug"&&extra&&extra.rest!=null&&extra.rest<1?{rest:extra.rest}:{})}].slice(-200);
+  setJLid(id,{kalOpgehaald:Math.max(0,Math.round(nieuw.op*100)/100),kalUitgevoerd:Math.max(0,nieuw.ui),kalTerugRest:rsK,kalAfExact:eN,kalLog:log});
   const naam=kalNaam(j),tekst=t==="mee"?`${kalDoos(n)} meegegeven aan ${naam}`:t==="klaar"?`${kalDoos(n)} afgewerkt door ${naam}`:t==="terug"?`${kalDoos(n)} van ${naam} teruggebracht${extra&&extra.rest<1?" ("+kalRestTxt(extra.rest)+" per doos over)":""}`:`Aantallen van ${naam} gecorrigeerd`;
   kalUndoToast(tekst,id);renderBody()}
 function kalUndo(id){const j=S.jaarleden.get(id);const L=[...(j&&j.kalLog||[])];const l=L.pop();if(!l||!l.van)return;
-  setJLid(id,{kalOpgehaald:l.van.op,kalUitgevoerd:l.van.ui,kalTerugRest:l.van.rs!=null?l.van.rs:(j.kalTerugRest||0),kalLog:L});toast("Ongedaan gemaakt.");renderBody()}
+  setJLid(id,{kalOpgehaald:l.van.op,kalUitgevoerd:l.van.ui,kalTerugRest:l.van.rs!=null?l.van.rs:(j.kalTerugRest||0),kalAfExact:l.van.e??null,kalLog:L});toast("Ongedaan gemaakt.");renderBody()}
 function kalUndoToast(msg,id){const t=$("#toast");t.className="toast";t.innerHTML=`${esc(msg)} <button type="button" class="kal-undo" data-act="kalUndo" data-id="${esc(id)}">Ongedaan maken</button>`;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true},8000)}
 
 function kalMee(id){const j=S.jaarleden.get(id);if(!j||!canWrite)return;const C=ctx(),k=kalStats(C),naam=kalNaam(j),op=j.kalOpgehaald||0;
@@ -7525,10 +7528,7 @@ function rdKaart(g){const v=rdVoorstel(g);if(!v)return"";const d=v.d;const T=[];
   const bij=v.jl&&v.A>0&&canWrite?`<label class="rd-v"><input type="checkbox" class="rd-cb" checked> In de verdeling: in handen ${rdFd(v.op)} → ${rdFd(v.naar)}</label>`:"";
   return `<div class="rd"><div class="rd-t"><span>${T.join(" · ")}</span></div>${bij}${!v.jl&&(d.over!=null)?'<div class="small muted">Niet gevonden in de dozenverdeling.</div>':""}</div>`}
 async function rdToepassen(v,bij){try{if(bij&&v.jl&&v.A>0){
-    if(v.d.over===true){/* nog kalenders over: volle dozen als afgewerkt; een begonnen doos gaat enkel uit "in handen" en telt pas mee als ze op is */
-      const vol=Math.floor(v.A+1e-9),deel=Math.round((v.A-vol)*100)/100;if(vol>0)kalBeweeg(v.jl.id,"klaar",vol,{reden:"gemeld via de kaart"});
-      if(deel>0){const j=S.jaarleden.get(v.jl.id)||{};kalBeweeg(v.jl.id,"corr",0,{op:Math.round(((j.kalOpgehaald||0)-deel)*100)/100,ui:j.kalUitgevoerd||0,reden:"deel van een doos bedeeld (gemeld via de kaart)"})}}
-    else kalBeweeg(v.jl.id,"klaar",v.A,{reden:"gemeld via de kaart"})}}catch(e){toast("Dozen niet bijgewerkt: "+e.message,true)}
+    kalBeweeg(v.jl.id,"klaar",v.A,{reden:"gemeld via de kaart"})}}catch(e){toast("Dozen niet bijgewerkt: "+e.message,true)}
   if(v.d.nodig===true&&canWrite&&v.jl&&typeof kalMee==="function")setTimeout(()=>{kalMee(v.jl.id);const i=$("#kalN");if(i&&v.d.nodigN){i.value=v.d.nodigN;i.dispatchEvent(new Event("input",{bubbles:true}))}},350);
   else if(v.d.nodig===true)toast("Opgelet: dit lid heeft nog dozen nodig.")}
 {const st=document.createElement("style");st.textContent=`.rd{display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:10px;background:var(--soft,#f2f2f3);font-size:13.5px}.rd-t{display:flex;align-items:center;gap:8px}.rd-t svg{width:16px;height:16px;flex:none;color:var(--muted)}.rd-nodig{color:#b45309}.rd-v{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}.rd-v input{width:16px;height:16px;margin:0}`;document.head.appendChild(st)}
