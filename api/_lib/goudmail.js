@@ -132,12 +132,15 @@ export async function puntenCron(sb) {
   const L = new Map((leden || []).map(r => [r.id, r.data])), A = await algemeen(sb).catch(() => ({}));
   const mails = [], standen = [], goudZet = [], nuIso = new Date().toISOString();
   for (const x of verschil) {
-    const nieuwStand = { ...x.nu, status: x.st, op: new Date().toISOString() };
+    const nieuwStand = { ...x.nu, status: x.st, op: new Date().toISOString(), ...(x.r.data.kalAfExact != null ? { kalAfExact: Number(x.r.data.kalAfExact) } : {}) };
     if (!x.init) {
       const lidId = x.r.data.lidId || x.r.id.slice(String(Y).length + 1), lid = L.get(lidId) || {}, j = x.r.data;
       const ok = lid.naam && !lid.geenLid && lid.categorie !== "Erewacht" && !j.vrijstelling && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(String(lid.email || "").trim());
       const regels = [];
       for (const [k, wk, naam] of ONDERDELEN) { const d = x.nu[k] - (x.m[k] || 0); if (d > 0) regels.push({ naam, pt: d * (w[wk] || 0), n: k === "kalUitgevoerd" ? `${d} ${d === 1 ? "doos" : "dozen"}` : k === "kaarten" ? `${d} ${d === 1 ? "kaart" : "kaarten"}` : k === "shifts" ? `${d} ${d === 1 ? "shift" : "shiften"}` : `${d}` }); }
+      { const kr = regels.find(r => r.naam === "kalenders bussen"), ex = j.kalAfExact != null ? Number(j.kalAfExact) : null;
+        if (kr && ex != null) { const d = x.nu.kalUitgevoerd - (x.m.kalUitgevoerd || 0), exD = Math.round((ex - (x.m.kalAfExact != null ? Number(x.m.kalAfExact) : (x.m.kalUitgevoerd || 0))) * 100) / 100;
+          if (exD > 0 && exD < d) kr.n = `${String(exD).replace(".", ",")} dozen bedeeld; een begonnen doos telt als volle doos`; } }
       const de = x.nu.extraPunten - (x.m.extraPunten || 0); if (de > 0) regels.push({ naam: j.extraTekst ? "extra: " + j.extraTekst : "extra punten", pt: de, n: "" });
       const goudVia = x.ander && x.st === "goud" && GM.aan !== false; // de proficiat-mail voor goud gaat apart
       const stuurPunten = PM.aan === true && regels.length, stuurStatus = SM.aan === true && x.ander && !goudVia && statusRang(x.st) > statusRang(x.m.status);

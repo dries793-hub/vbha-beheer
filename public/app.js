@@ -3249,7 +3249,7 @@ function kalKlaarForm(id){const j=S.jaarleden.get(id);if(!j||!canWrite||kalBeper
    <div class="seg kal-soort" role="radiogroup"><button type="button" class="on" data-ks="klaar">Volledig afgewerkt</button><button type="button" data-ks="terug">Onaangeroerd terug</button></div>
    ${kalAantal("kalN",op===1?1:1,op)}<div class="kal-voor" id="kalVoor"></div></div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="kalOk">Bevestigen</button>`);
   let soort="klaar";const upd=()=>{const n=kalLees("kalN",op);
-    $("#kalVoor").innerHTML=!n?"":soort==="klaar"?`<div><span>Nog in handen</span><b>${kalFmt(op-n)}</b><small>dozen</small></div><div><span>Afgewerkt</span><b>${kalFmt(ui+Math.ceil(n))}</b><small>dozen · +${Math.ceil(n)*w} punten</small></div>`:`<div><span>Nog in handen</span><b>${kalFmt(op-n)}</b><small>dozen</small></div><div><span>Terug in stock</span><b>+${kalFmt(n)}</b><small>geen punten</small></div>`;
+    $("#kalVoor").innerHTML=!n?"":soort==="klaar"?`<div><span>Nog in handen</span><b>${kalFmt(op-n)}</b><small>dozen</small></div><div><span>Afgewerkt</span><b>${kalFmt(kalUiNa(j,n))}</b><small>dozen · +${(kalUiNa(j,n)-ui)*w} punten</small></div>`:`<div><span>Nog in handen</span><b>${kalFmt(op-n)}</b><small>dozen</small></div><div><span>Terug in stock</span><b>+${kalFmt(n)}</b><small>geen punten</small></div>`;
     $("#kalOk").textContent=!n?"Bevestigen":soort==="klaar"?`${kalDoos(n)} afgewerkt`:`${kalDoos(n)} terug in stock`;$("#kalOk").disabled=!n};
   document.querySelectorAll("[data-ks]").forEach(b=>b.onclick=()=>{soort=b.dataset.ks;document.querySelectorAll("[data-ks]").forEach(x=>x.classList.toggle("on",x===b));upd()});
   $("#kalN").addEventListener("input",upd);upd();
@@ -3314,6 +3314,9 @@ function kalTerug(id){const j=S.jaarleden.get(id);if(!j||!canWrite)return;const 
   $("#kalN").addEventListener("input",upd);upd();
   $("#kalOk").onclick=()=>{const n=kalLees("kalN",mx);if(!n)return;closeModal();kalBeweeg(id,"terug",Math.min(n,op),{rest})}}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-kal-terug]");if(!t)return;e.preventDefault();kalTerug(t.dataset.kalTerug)});
+
+/* voorbeeld bij afmelden: zelfde rekenwijze als kalBeweeg (elke begonnen doos telt één keer, ook bij afwerken in stukken) */
+function kalUiNa(j,n){const ui=Number(j.kalUitgevoerd)||0,e0=j.kalAfExact!=null?Number(j.kalAfExact):ui;return Math.max(ui,Math.ceil(Math.round((e0+n)*100)/100-1e-9))}
 
 /* ============ Sponsors: betalingen bekijken en manueel toewijzen ============ */
 function spBetHtml(id){const C=ctx(),K=spKoppel(C),k=K.per.get(id),s=S.sponsors.get(id)||{};const L=k?k.L:[];
