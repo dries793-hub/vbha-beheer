@@ -9186,6 +9186,34 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-jd]");if(!
 @media(max-width:860px){.jd-ds,.jd-2{grid-template-columns:1fr}}
 .jd-sub{display:none}@media(max-width:640px){.jd-x{display:none}.jd-sub{display:block;color:var(--muted);font-size:12.5px;margin-top:2px;font-weight:400}}`;document.head.appendChild(st)}
 
+/* ============ Financiën › Overzicht: nog te ontvangen en nog te betalen ============
+   In: openstaande uitgaande facturen, sponsoring die nog niet binnen is (zonder factuur, niet in natura, niet gestopt), banket nog te betalen.
+   Uit: inkomende facturen die nog niet betaald zijn. */
+function osLijsten(){const C=ctx(),G=n=>Math.round((Number(n)||0)*100)/100,IN=[],UIT=[];
+  const fcSp=new Set();
+  try{for(const f of S.facturen.values()){if(!f.nr||f.type==="credit")continue;const st=fcStatus(f);if(st==="gecrediteerd")continue;
+    const T=fcTot(f).totaal,ontv=[...S.boekingen.values()].filter(b=>fcHoort(b,f)).reduce((s,b)=>s+num(b.bedrag),0),open=G(T-ontv);
+    if(open>0.004){IN.push({g:"Facturen",n:(f.klant&&f.klant.naam)||"Factuur "+f.nr,s:"factuur "+f.nr,b:open,h:"#facturen"});if(f.klant&&f.klant.sponsorId)fcSp.add(f.klant.sponsorId)}}}catch(e){}
+  try{for(const s of S.sponsors.values()){if(spStop(s)||(s.naturaJaren||[]).includes(JAAR)||fcSp.has(s.id))continue;const open=G(num(s.bedrag)-sponsorOntvangen(s,C));
+    if(open>0.004)IN.push({g:"Sponsoring",n:spNaam(s)||"Sponsor",s:"sponsoring "+JAAR,b:open,h:"#sponsors"})}}catch(e){}
+  try{for(const x of bkRows()){if(x.p.ok)continue;const open=G(x.due-Math.min(x.p.bedrag||0,x.due));if(open>0.004)IN.push({g:"Banket",n:x.r.naam||"Inschrijving",s:"banket "+JAAR,b:open,h:"#banket"})}}catch(e){}
+  try{if(typeof inkDocs==="function")for(const d of inkDocs()){const T=inkTot(d)||num(d.inkomend&&d.inkomend.bedragPdf);if(!T)continue;
+    const open=G(T-inkBoekVan(d.id).reduce((s,b)=>s+num(b.bedrag),0));if(open>0.004)UIT.push({g:"Inkomende facturen",n:inkVan(d)||d.naam||"Factuur",s:fmtDate(inkDatum(d)),b:open,h:"#inkomend"})}}catch(e){}
+  return{IN,UIT}}
+function osKolom(titel,L,kl){const tot=L.reduce((s,x)=>s+x.b,0),gr=[...new Set(L.map(x=>x.g))];
+  return `<div class="os-k"><div class="os-h"><span>${titel}</span><b class="${kl}">${eur(tot)}</b></div>${L.length?gr.map(g=>{const X=L.filter(x=>x.g===g).sort((a,b)=>b.b-a.b),st=X.reduce((s,x)=>s+x.b,0);
+    return `<div class="os-g"><a class="os-gh" href="${X[0].h}"><span>${esc(g)} <small>${X.length}</small></span><b>${eur(st)}</b></a>${X.slice(0,4).map(x=>`<a class="os-r" href="${x.h}"><span class="trunc"><b>${esc(x.n)}</b> <small>${esc(x.s)}</small></span><span class="num">${eur(x.b)}</span></a>`).join("")}${X.length>4?`<a class="os-m" href="${X[0].h}">+${X.length-4} meer</a>`:""}</div>`}).join(""):'<div class="os-leeg">Niets openstaand.</div>'}</div>`}
+{const _v=VIEWS.boekhouding;if(_v){const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){const h=String(b.apply(this,arguments));
+  const k='<div class="panel"><div class="panel-h"><h2>Inkomsten en uitgaven per maand';const i=h.indexOf(k);if(i<0)return h;
+  const {IN,UIT}=osLijsten();if(!IN.length&&!UIT.length)return h;
+  const p=`<div class="panel os"><div class="panel-b os-w">${osKolom("Nog te ontvangen",IN,"in")}${osKolom("Nog te betalen",UIT,"out")}</div></div>`;
+  return h.slice(0,i)+p+h.slice(i)};return v};Object.assign(n,_v);VIEWS.boekhouding=n}}
+{const st=document.createElement("style");st.textContent=`.os-w{display:grid;grid-template-columns:1fr 1fr;gap:28px}@media(max-width:760px){.os-w{grid-template-columns:1fr;gap:20px}}
+.os-h{display:flex;justify-content:space-between;align-items:baseline;font-weight:600;font-size:15px;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:6px}.os-h b{font-size:18px}.os-h b.in{color:var(--good)}.os-h b.out{color:var(--bad)}
+.os-g{padding:6px 0}.os-gh{display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--ink);text-decoration:none;padding:4px 0}.os-gh small{color:var(--muted);font-weight:500;margin-left:4px}
+.os-r{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--ink);text-decoration:none;padding:3px 0 3px 10px;min-width:0}.os-r b{font-weight:500}.os-r small{color:var(--muted)}.os-r .num{white-space:nowrap;font-variant-numeric:tabular-nums}.os-r:hover b,.os-gh:hover span{text-decoration:underline}
+.os-m{display:block;font-size:12.5px;color:var(--muted);padding:2px 0 0 10px;text-decoration:none}.os-leeg{font-size:13px;color:var(--muted);padding:6px 0}`;document.head.appendChild(st)}
+
 /* ============ Instellingen › Vaste waarden (admin): waarden die vroeger vast in de code stonden ============
    config algemeen.kalSeizoen {van,tot} ("MM-DD"; tot valt in het volgende jaar), algemeen.goudMail.dagen,
    config betaalWacht.dagen en .mail (server: api/_lib/betaalwacht.js, api/_lib/bcsplit.js). */
