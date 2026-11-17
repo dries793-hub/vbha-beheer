@@ -4428,7 +4428,7 @@ function inkDomi(d,diep){const o=d&&d.inkomend&&d.inkomend.domi;if(o===true||o==
 {const _r=inkRij;inkRij=function(d){const h=_r(d);if(!inkMag()||!inkOpen(d))return h;const i=h.indexOf('</div><div class="ink-b">');if(i<0)return h;
   if(inkBetaald(d))return h.slice(0,i)+`<button type="button" class="pill ink-domi" data-inkonbetaald="${esc(d.id)}" title="Betaald op ${esc(fmtDate(String(d.inkomend.betaald.op||"").slice(0,10)))}${d.inkomend.betaald.door?" door "+esc(d.inkomend.betaald.door):""}. Klik als dit niet klopt.">Betaald</button>`+h.slice(i);
   if(inkDomi(d))return h.slice(0,i)+`<button type="button" class="pill ink-domi" data-inkdomi="${esc(d.id)}" title="Wordt automatisch van de rekening gehaald (domiciliëring). Klik als dit niet klopt.">Domiciliëring</button>`+h.slice(i);
-  return h.slice(0,i)+`<button type="button" class="btn sm" data-inkbet="${esc(d.id)}" title="QR-code om te betalen met de bankapp">${ic("bank")}Betalen</button>`+h.slice(i)}}
+  return h.slice(0,i)+`<button type="button" class="btn sm" data-inkbet="${esc(d.id)}" title="QR-code om te betalen met de bankapp">${ic("qr")}Betalen</button>`+h.slice(i)}}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-inkdomi]");if(!b)return;e.preventDefault();const id=b.dataset.inkdomi;
   confirmBox("Wordt deze factuur toch niet via domiciliëring betaald? Dan verschijnt de knop Betalen opnieuw.","Zelf betalen",()=>{const x=S.documenten.get(id);if(!x)return;const ink={...(x.inkomend||{}),domi:false};S.documenten.set(id,{...x,inkomend:ink});write("documenten",id,{...stripId(x),inkomend:ink}).catch(err=>toast(err.message,true));renderBody()})});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-inkbet]");if(!b)return;e.preventDefault();inkBetaal(b.dataset.inkbet)});
@@ -8407,7 +8407,7 @@ function tbRij(r){const d=r.data,[c,l]=TB_ST[r.status]||["neutral",r.status],b=r
   const acts=[];if(tbVol()){
     if(r.status==="aangevraagd")acts.push(`<button type="button" class="btn sm" data-tb="kopie" data-id="${esc(r.id)}">${ic("copy")}Link kopiëren</button>`);
     if(r.status==="ingediend"){acts.push(`<button type="button" class="btn sm" data-tb="ok" data-id="${esc(r.id)}">${ic("check")}Goedkeuren en betalen</button>`);acts.push(`<button type="button" class="btn sm ghost" data-tb="nee" data-id="${esc(r.id)}">Weigeren</button>`)}
-    if(r.status==="goedgekeurd"){acts.push(`<button type="button" class="btn sm" data-tb="betaal" data-id="${esc(r.id)}">${ic("bank")}Betalen</button>`);acts.push(`<button type="button" class="btn sm ghost" data-tb="betaald" data-id="${esc(r.id)}">Op betaald zetten</button>`)}}
+    if(r.status==="goedgekeurd"){acts.push(`<button type="button" class="btn sm" data-tb="betaal" data-id="${esc(r.id)}">${ic("qr")}Betalen</button>`);acts.push(`<button type="button" class="btn sm ghost" data-tb="betaald" data-id="${esc(r.id)}">Op betaald zetten</button>`)}}
   return `<div class="tb-r"><div class="tb-m"><div class="tb-t"><button type="button" class="tb-nm" data-tb="detail" data-id="${esc(r.id)}">${esc(d.naam)}</button><span class="pill ${c}">${l}</span>${d.soort==="onkosten"?'<span class="pill neutral">onkostennota</span>':d.soort==="kaart"?'<span class="pill neutral">kasticket bankkaart</span>':""}${d.geenBon?'<span class="pill warn">zonder bewijsstuk</span>':""}</div>
     <div class="muted small">${esc(d.reden||"")}${d.datum?" · "+fmtDate(d.datum):""}${d.iban?" · "+esc(String(d.iban).replace(/(.{4})/g,"$1 ").trim()):""}${d.ibanAnders?` · <b style="color:var(--bad,#b42318)">ander IBAN dan gekend (…${esc(d.ibanAnders)})</b>`:""}${d.bon?` · <button type="button" class="lnkb" data-tb="bon" data-id="${esc(r.id)}">bewijsstuk</button>`:""}</div>
     ${r.status==="betaald"?`<div class="muted small">Betaald${d.betaaldOp?" op "+fmtDate(String(d.betaaldOp).slice(0,10)):""}${b?" · transactie "+fmtDate(b.datum):""}</div>`:r.status==="geweigerd"&&d.weigerReden?`<div class="muted small">Reden: ${esc(d.weigerReden)}</div>`:""}</div>
@@ -8697,6 +8697,7 @@ Object.assign(ICON,{
   betaal:'<rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M15 9.5a3.2 3.2 0 1 0 0 5"/><path d="M9.5 11h4.5M9.5 13h4.5"/>',
   geld:'<rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M15 9.5a3.2 3.2 0 1 0 0 5"/><path d="M9.5 11h4.5M9.5 13h4.5"/><path d="M19 3v4M17 5h4"/>',
   bon:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+  qr:'<rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="1"/><rect x="3.5" y="14" width="6.5" height="6.5" rx="1"/><path d="M14 14h2.5v2.5H14zM18 18h2.5v2.5H18zM18 14h2.5M14 18v2.5h2"/>',
   lidplus:'<circle cx="10" cy="8" r="4"/><path d="M3 20c0-3.5 3-6 7-6s7 2.5 7 6"/><path d="M19 8v6M16 11h6"/>'
 });
 /* ============ Dashboard (boekhouding): te verwerken betalingen ============
