@@ -7506,7 +7506,7 @@ function rdKaart(g){const v=rdVoorstel(g);if(!v)return"";const d=v.d;const T=[];
   if(d.over===true)T.push(`Nog <b>${rdFd(d.rest)}</b> over`);else if(d.over===false)T.push(d.af==="alle"?`<b>Alle dozen</b> afgewerkt`:`<b>${rdFd(d.af)}</b> afgewerkt, niets meer over`);
   if(d.nodig===true)T.push(`<b class="rd-nodig">heeft nog ${d.nodigN?rdFd(d.nodigN):"dozen"} nodig</b>`);else if(d.nodig===false)T.push("geen dozen meer nodig");
   const bij=v.jl&&v.A>0&&canWrite?`<label class="rd-v"><input type="checkbox" class="rd-cb" checked> In de verdeling: ${rdFd(v.A)} afgewerkt · in handen ${rdFd(v.op)} → ${rdFd(v.naar)}</label>`:"";
-  return `<div class="rd"><div class="rd-t">${ic("kalenders")}<span>${T.join(" · ")}</span></div>${bij}${!v.jl&&(d.over!=null)?'<div class="small muted">Niet gevonden in de dozenverdeling.</div>':""}</div>`}
+  return `<div class="rd"><div class="rd-t"><span>${T.join(" · ")}</span></div>${bij}${!v.jl&&(d.over!=null)?'<div class="small muted">Niet gevonden in de dozenverdeling.</div>':""}</div>`}
 async function rdToepassen(v,bij){try{if(bij&&v.jl&&v.A>0)kalBeweeg(v.jl.id,"klaar",v.A,{reden:"gemeld via de kaart"})}catch(e){toast("Dozen niet bijgewerkt: "+e.message,true)}
   if(v.d.nodig===true&&canWrite&&v.jl&&typeof kalMee==="function")setTimeout(()=>{kalMee(v.jl.id);const i=$("#kalN");if(i&&v.d.nodigN){i.value=v.d.nodigN;i.dispatchEvent(new Event("input",{bubbles:true}))}},350);
   else if(v.d.nodig===true)toast("Opgelet: dit lid heeft nog dozen nodig.")}
