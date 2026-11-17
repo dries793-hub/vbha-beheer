@@ -2921,7 +2921,7 @@ krLive();
     const bg=document.createElement("div");bg.className="km-bg";bg.innerHTML=`<div class="km" role="dialog" aria-modal="true" aria-labelledby="kmT"><h3 id="kmT">Straten melden</h3><p>Het bestuur kijkt je melding na. Daarna verschijnt ze op de kaart.</p>
       <div class="km-st">${[...new Set(ids.map(id=>krNaamId(id)))].map(n=>`<span>${e2(n)}</span>`).join("")}</div>
       <div class="km-seg"><button type="button" data-ks="r">Reserveren</button><button type="button" data-ks="d"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Gedaan</button></div>
-      <label for="kmN">Jouw naam</label><div class="km-w"><input type="text" id="kmN" autocomplete="off"><div class="km-l" id="kmL" hidden></div></div><div class="km-dz" id="kmDz" hidden></div>
+      <label for="kmN">Naam</label><div class="km-w"><input type="text" id="kmN" autocomplete="off"><div class="km-l" id="kmL" hidden></div></div><div class="km-dz" id="kmDz" hidden></div>
       <div class="km-hp" aria-hidden="true"><input type="text" id="kmW" tabindex="-1" autocomplete="off"></div><p class="km-e" id="kmE"></p>
       <div class="km-a"><button type="button" data-km="x">Annuleren</button><button type="button" class="prim" data-km="ok">Doorsturen</button></div></div>`;
     document.body.appendChild(bg);const inp=bg.querySelector("#kmN"),box=bg.querySelector("#kmL"),err=bg.querySelector("#kmE");
