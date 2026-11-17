@@ -2648,7 +2648,7 @@ const KR_LIJN=(()=>{let M=null;return{get(id){if(!M){M=new Map();const el=docume
    straat ligt, wordt niet getekend; losse uiteinden die zo ontstaan worden met een kort lijntje verbonden (binnen 40 m).
    krGroepen(sid): de stukken van een straat, waarbij een stuk dat de andere rijbaan van een ander stuk is, samen met dat stuk
    één keuze vormt (één nummer, één lijn). Enkel voor de weergave: ids, adressen en meldingen blijven per stuk. */
-const KRE={m:p=>[p[0]*111320,p[1]*111320*Math.cos(p[0]*Math.PI/180)],terug:(q,lat)=>[q[0]/111320,q[1]/(111320*Math.cos(lat*Math.PI/180))]};
+const KRE={m:p=>[p[0]*111320,p[1]*111320*Math.cos(p[0]*Math.PI/180)],terug:q=>{const la=q[0]/111320;return[la,q[1]/(111320*Math.cos(la*Math.PI/180))]}};
 KRE.dicht8=q=>{const o=[q[0]];for(let i=1;i<q.length;i++){const a=q[i-1],b=q[i],l=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(l/8));for(let k=1;k<=n;k++)o.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}return o};
 KRE.proj=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],t=dx||dy?Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/(dx*dx+dy*dy))):0;const x=[a[0]+t*dx,a[1]+t*dy];return{x,d:Math.hypot(p[0]-x[0],p[1]-x[1])}};
 KRE.afst=(p,q)=>{let best={d:Infinity,x:null};for(let i=1;i<q.length;i++){const r=KRE.proj(p,q[i-1],q[i]);if(r.d<best.d)best=r}return best};
