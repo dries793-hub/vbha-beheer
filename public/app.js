@@ -920,14 +920,14 @@ VIEWS.ronde=()=>({title:"Kalenderronde",
   <div class="panel"><div class="panel-h"><h2>Aangeduide straten</h2>${done?`<span class="cnt">${done}</span>`:""}${nRes?`<span class="pill info">${nRes} gereserveerd</span>`:""}<span class="grow"></span></div>${krHistory({...krAll(),...krDelen()})}</div>`}});
 VIEWS.ronde.after=krAfter;
 
-function krHistory(M){const E=Object.values(M).sort((a,b)=>(b.at||"").localeCompare(a.at||""));
+function krHistory(M){const E=krHistSort(Object.values(M));
   if(!E.length)return '<div class="empty">Nog geen straten aangeduid voor '+JAAR+'. Tik een straat aan op de kaart en zet ze op Reserveren of Gedaan.</div>';
   const mob=`<div class="mlist" role="list">${E.map(m=>{const dl=KR_DEEL.get(m.straat),s=KR.byId.get(dl?dl.sid:m.straat);
     return `<div class="ml-row kr-mr" role="listitem"><button type="button" class="kr-mn" data-act="krToon" data-id="${esc(s.id)}"><span class="ml-m"><span class="ml-n"><b>${esc(s.n)}</b>${dl?` <span class="pill neutral">deel ${dl.nr}</span>`:""}</span>
       <span class="ml-s">${esc(s.w)}<span class="ml-dot">·</span>${dl?"± "+dl.a:s.a} adressen</span><span class="ml-s">${esc(krWie(m))}<span class="ml-dot">·</span>${esc(krDT(m.at))}</span></span>
       <span class="ml-r">${m.status==="reserved"?'<span class="pill info">Gereserveerd</span>':'<span class="pill ok">Gedaan</span>'}</span></button>
       ${canWrite?`<button type="button" class="iconbtn2 kr-x" data-act="krWis" data-id="${esc(m.straat)}" aria-label="${esc(s.n)} terug op te doen zetten">${ic("x")}</button>`:""}</div>`}).join("")}</div>`;
-  return mob+`<div class="tw dsk-only" style="max-height:440px"><table class="rcards kr-fix" data-main="0"><colgroup><col style="width:27%"><col style="width:11%"><col style="width:12%"><col style="width:8%"><col style="width:24%"><col style="width:14%"><col style="width:52px"></colgroup><thead><tr><th>Straat</th><th>Status</th><th>Deelgemeente</th><th class="num">Adressen</th><th>Door</th><th>Wanneer</th><th></th></tr></thead><tbody>${E.map(m=>{const dl=KR_DEEL.get(m.straat),s=KR.byId.get(dl?dl.sid:m.straat);
+  return mob+`<div class="tw dsk-only" style="max-height:440px"><table class="rcards kr-fix" data-main="0"><colgroup><col style="width:27%"><col style="width:11%"><col style="width:12%"><col style="width:8%"><col style="width:24%"><col style="width:14%"><col style="width:52px"></colgroup><thead><tr>${krTh("n","Straat")}${krTh("s","Status")}${krTh("w","Deelgemeente")}${krTh("a","Adressen","num")}${krTh("d","Door")}${krTh("t","Wanneer")}<th></th></tr></thead><tbody>${E.map(m=>{const dl=KR_DEEL.get(m.straat),s=KR.byId.get(dl?dl.sid:m.straat);
     return `<tr><td><button type="button" class="kr-link" data-act="krToon" data-id="${esc(s.id)}" title="Toon op de kaart">${esc(s.n)}</button>${dl?` <span class="pill neutral">deel ${dl.nr}</span>`:""}</td><td>${m.status==="reserved"?'<span class="pill info">Gereserveerd</span>':'<span class="pill ok">Gedaan</span>'}</td><td class="muted">${esc(s.w)}</td><td class="num">${dl?"± "+dl.a:s.a}</td><td>${esc(krWie(m))}</td><td class="nowrap muted">${esc(krDT(m.at))}</td><td class="num"><button type="button" class="btn sm ghost danger" data-w data-act="krWis" data-id="${esc(m.straat)}" title="Terug op Te doen zetten" aria-label="${esc(s.n)} wissen">${ic("x")}</button></td></tr>`}).join("")}</tbody></table></div>`}
 
 /* De kaart blijft bestaan als één element dat na elke hertekening terug in #krSlot gehangen wordt. */
@@ -9716,6 +9716,12 @@ async function kaAutoGebust(){if(KA_AUTO_BEZIG||!canWrite||typeof KR==="undefine
       const zicht=!kd.hidden&&!(KR.ss.size>1&&c.classList.contains("multi"));kd.hidden=true;
       sc.hidden=!(zicht&&!KR.deel);bk.hidden=!(zicht&&KR.deel);if(!sc.hidden){sc.title=kd.textContent;sc.setAttribute("aria-label",kd.textContent)}}
     return r}})();
+/* Aangeduide straten: sorteren door op een kolomtitel te klikken (standaard: nieuwste eerst) */
+let KR_SORT={k:"t",d:-1};
+const krTh=(k,l,cls="")=>{const on=KR_SORT.k===k;return `<th class="${cls} sortable${on?" sorted":""}" data-kr-sort="${k}" aria-sort="${on?(KR_SORT.d>0?"ascending":"descending"):"none"}">${l}<span class="arr">${on?(KR_SORT.d>0?"▲":"▼"):""}</span></th>`};
+function krHistSort(E){const inf=m=>{const dl=KR_DEEL.get(m.straat),s=KR.byId.get(dl?dl.sid:m.straat)||{};return{n:(s.n||"")+(dl?" "+String(dl.nr).padStart(3,"0"):""),s:m.status==="reserved"?"Gereserveerd":"Gedaan",w:s.w||"",a:dl?dl.a:(s.a||0),d:krWie(m)||"",t:m.at||""}};
+  const k=KR_SORT.k,d=KR_SORT.d;return E.map(m=>[m,inf(m)]).sort((x,y)=>{const a=x[1][k],b=y[1][k];const r=typeof a==="number"?a-b:String(a).localeCompare(String(b),"nl",{numeric:true});return (r||(y[1].t).localeCompare(x[1].t))*(r?d:1)}).map(x=>x[0])}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-kr-sort]");if(!t)return;const k=t.dataset.krSort;KR_SORT=KR_SORT.k===k?{k,d:-KR_SORT.d}:{k,d:k==="t"||k==="a"?-1:1};renderBody()});
 
 /* ============ Kalenderdozen overdragen naar een ander lid (enkel administrator) ============
    In de fiche van een persoon (Kalenders › Verdeling): "Dozen overdragen". Kies aan wie (lid of andere naam) en hoeveel dozen.
