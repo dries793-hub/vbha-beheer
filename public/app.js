@@ -142,7 +142,7 @@ function logRegels(e){if(e.actie==="bulk")return esc(e.info||"");
   return ks.slice(0,8).map(k=>`<div class="lg-ch"><span>${esc(LOG_FL[k]||k)}</span>${e.actie==="nieuw"?logVal(k,b[k]):e.actie==="verwijderd"?logVal(k,a[k]):logVal(k,a[k])+' <span class="arr">→</span> '+logVal(k,b[k])}</div>`).join("")+(ks.length>8?`<div class="muted" style="font-size:12px">+${ks.length-8} meer</div>`:"")}
 const LOG_CLIENT=false; // op de eigen site logt de database zelf (supabase/logboek.sql)
 async function logStart(more){if(LOGS.busy||(LOGS.loaded&&!more))return;LOGS.busy=true;const from=LOGS.rows.length;
-  const {data,error}=await SB.from("logboek").select("id,ts,wie,tabel,doc_id,actie,oud,nieuw").order("id",{ascending:false}).range(from,from+299);LOGS.busy=false;
+  const {data,error}=await SB.from("logboek").select("id,ts,wie,tabel,doc_id,actie,oud,nieuw").order("ts",{ascending:false}).order("id",{ascending:false}).range(from,from+299);LOGS.busy=false;
   if(error){LOGS.err=error.message;LOGS.loaded=true}else{LOGS.rows.push(...data);LOGS.done=data.length<300;LOGS.loaded=true;LOGS.err=null}if(route()==="logboek")renderBody()}
 function logMeer(){const N=(UI.logN||100)+200;UI.logN=N;if(!LOGS.done&&LOGS.rows.length<N)logStart(true);else renderBody()}
 /* ============ opslag ============ */
@@ -9231,6 +9231,22 @@ function osKolom(titel,L,kl){const tot=L.reduce((s,x)=>s+x.b,0),gr=[...new Set(L
 .os-g{padding:6px 0}.os-gh{display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--ink);text-decoration:none;padding:4px 0}.os-gh small{color:var(--muted);font-weight:500;margin-left:4px}
 .os-r{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--ink);text-decoration:none;padding:3px 0 3px 10px;min-width:0}.os-r b{font-weight:500}.os-r small{color:var(--muted)}.os-r .num{white-space:nowrap;font-variant-numeric:tabular-nums}.os-r:hover b,.os-gh:hover span{text-decoration:underline}
 .os-m{display:block;font-size:12.5px;color:var(--muted);padding:2px 0 0 10px;text-decoration:none}.os-leeg{font-size:13px;color:var(--muted);padding:6px 0}`;document.head.appendChild(st)}
+
+/* ============ Logboek: ook meldingen en inschrijvingen via de openbare formulieren en de kaart ============
+   De database logt nu ook rondemeldingen, kalenderaanvragen, familiedag, sponsors, tickets, webshop, terugbetalingen, regels,
+   sjablonen en sociale media. Wie iets via een formulier indiende, staat er met naam bij ("… (via formulier)"). */
+Object.assign(LOG_TYPE,{rondemeldingen:"Kalenderronde",kalenderaanvragen:"Kalender aan huis",familiedag:"Familiedag",sponsors:"Sponsor",tickets:"Fuif",shop_orders:"Webshop",terugbetalingen:"Terugbetaling",regels:"Regel",templates:"Sjabloon",social_posts:"Sociale media"});
+{const _o=logOnderwerp;logOnderwerp=function(e){const o=e.nieuw||e.oud||{},n=e.nieuw||{},v=e.oud||{};
+  if(e.tabel==="rondemeldingen"){const k=(o.straten||[]).length,naam=(o.straten||[]).slice(0,3).map(id=>{try{return rmNaam(id)}catch(x){return id}}).join(", ");
+    const wat=e.actie==="gewijzigd"&&n.stand!==v.stand?(n.stand==="goedgekeurd"?"goedgekeurd":n.stand==="geweigerd"?"geweigerd":n.stand):"gemeld als "+(o.soort==="done"?"bedeeld":"gereserveerd");
+    const dz=o.dozen,dt=dz?(dz.over===true?` · nog ${kalFmt(dz.rest)} ${dz.rest>1?"dozen":"doos"} over`:dz.over===false?(dz.af==="alle"?" · alle dozen afgewerkt":` · ${kalFmt(dz.af)} afgewerkt`):"")+(dz.nodig?" · nog dozen nodig":""):"";
+    return esc((o.toon||o.naam||"")+": "+k+" "+(k===1?"straat":"straten")+" "+wat)+` <span class="muted">· ${esc(naam)}${k>3?" …":""}${esc(dt)}</span>`}
+  if(e.tabel==="sponsors")return esc((typeof spNaam==="function"?spNaam(o):"")||o.naam||e.doc_id);
+  if(e.tabel==="kalenderaanvragen")return esc([o.naam,o.adres].filter(Boolean).join(" · ")||e.doc_id);
+  if(["familiedag","tickets","shop_orders","terugbetalingen"].includes(e.tabel))return esc(o.naam||[o.voornaam,o.naam].filter(Boolean).join(" ")||o.lid||e.doc_id);
+  if(["regels","templates"].includes(e.tabel))return esc(o.naam||o.titel||e.doc_id);
+  if(e.tabel==="social_posts")return esc(String(o.tekst||e.doc_id).slice(0,60));
+  return _o.apply(this,arguments)}}
 
 /* ============ Instellingen › Vaste waarden (admin): waarden die vroeger vast in de code stonden ============
    config algemeen.kalSeizoen {van,tot} ("MM-DD"; tot valt in het volgende jaar), algemeen.goudMail.dagen,
