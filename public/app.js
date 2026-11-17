@@ -4386,7 +4386,7 @@ function inkBetaal(id){const d=S.documenten.get(id);if(!d)return;const B=inkBeta
     ${fld("ipM","Mededeling",inp("ipM",B.med,'maxlength="140" placeholder="+++123/4567/89012+++ of vrije tekst"'))}
     <label class="sp-nat full" for="ipS" id="ipSw" hidden><input type="checkbox" id="ipS" checked><span><b id="ipSt">Splitsen</b><small id="ipSs"></small></span></label></div>
    <div class="ink-qr"><div id="ipQ"></div><p class="muted small" id="ipT"></p></div></div>`,
-   `<button type="button" class="btn ghost" data-inkdzet="${esc(id)}" style="margin-right:auto">Via domiciliëring</button><button class="btn" data-act="closeModal">Sluiten</button>`,{wide:true});
+   `<button type="button" class="btn ghost" data-inkdzet="${esc(id)}" style="margin-right:auto">Via domiciliëring</button><button class="btn" data-act="closeModal">Sluiten</button><button type="button" class="btn primary" data-inkbetaald="${esc(id)}">Betaald</button>`,{wide:true});
   const teken=()=>{const naam=inkAscii($("#ipN").value).slice(0,70),iban=$("#ipI").value.replace(/\s+/g,"").toUpperCase(),bedrag=Number(String($("#ipB").value).replace(/\s/g,"").replace(",",".")),med=$("#ipM").value.trim(),q=$("#ipQ"),t=$("#ipT");
     const fout=!naam?"Vul de begunstigde in.":!inkIbanOk(iban)?"Dit IBAN-nummer klopt niet.":!(bedrag>0&&bedrag<1e6)?"Vul een geldig bedrag in.":"";
     if(fout||!window.qrcode){q.innerHTML=`<div class="ink-qc"><div class="ink-qr-leeg">${esc(fout||"QR-code niet beschikbaar")}</div></div>`;t.textContent="";$("#ipSw").hidden=true;$(".ink-pay").classList.remove("split");return}
@@ -4410,7 +4410,7 @@ function inkBetaal(id){const d=S.documenten.get(id);if(!d)return;const B=inkBeta
     q.innerHTML=`<div class="ink-qd">${delen.length>1?`<b>Betaling ${idx+1} van ${delen.length}</b><span class="muted small">${eur(b)}</span>`:""}<div class="ink-qc">${qr.createSvgTag({cellSize:5,margin:3,scalable:true})}</div></div>`;
     t.innerHTML=delen.length>1?(idx<delen.length-1?`Scan vandaag deze QR-code. Betaling ${idx+2} (${eur(delen[idx+1])}) verschijnt hier morgen. <button type="button" class="lnkb" data-ipnu="${idx+1}">Nu al tonen</button>`
         :`Laatste betaling. Samen is dat <b>${eur(bedrag)}</b> aan <b>${esc(naam)}</b>, telkens met dezelfde mededeling.${idx?` <button type="button" class="lnkb" data-ipnu="${idx-1}">Vorige tonen</button>`:""}`)
-      :`Scan met de Argenta-app (of een andere bankapp): de overschrijving van <b>${eur(bedrag)}</b> aan <b>${esc(naam)}</b> staat dan klaar om te bevestigen.${isOgm?"":med?" Mededeling als vrije tekst.":""}${n>1?` <span style="color:#b91c1c">Let op: hoger dan de daglimiet van ${eur(lim)}.</span>`:""}`};
+      :(n>1?`<span style="color:#b91c1c">Let op: hoger dan de daglimiet van ${eur(lim)}.</span>`:"")};
   ["#ipN","#ipI","#ipB","#ipM"].forEach(s=>$(s).addEventListener("input",()=>{toon=null;teken()}));$("#ipS").addEventListener("change",teken);
   $("#ipT").addEventListener("click",e=>{const x=e.target.closest("[data-ipnu]");if(!x)return;toon=Number(x.dataset.ipnu);teken()});teken()}
 /* domiciliëring / SEPA Direct Debit: zo'n factuur wordt automatisch van de rekening gehaald, niet zelf betalen */
@@ -4420,6 +4420,7 @@ function inkDomi(d,diep){const o=d&&d.inkomend&&d.inkomend.domi;if(o===true||o==
   const v=norm(inkVan(d)||"");if(!v)return false;if(/bancontact|payconiq/.test(v))return true;if(diep)return false;
   for(const x of S.documenten.values())if(x.id!==d.id&&x.inkomend&&norm(inkVan(x)||"")===v&&inkDomi(x,true))return true;return false}
 {const _r=inkRij;inkRij=function(d){const h=_r(d);if(!inkMag()||!inkOpen(d))return h;const i=h.indexOf('</div><div class="ink-b">');if(i<0)return h;
+  if(inkBetaald(d))return h.slice(0,i)+`<button type="button" class="pill ink-domi" data-inkonbetaald="${esc(d.id)}" title="Betaald op ${esc(fmtDate(String(d.inkomend.betaald.op||"").slice(0,10)))}${d.inkomend.betaald.door?" door "+esc(d.inkomend.betaald.door):""}. Klik als dit niet klopt.">Betaald</button>`+h.slice(i);
   if(inkDomi(d))return h.slice(0,i)+`<button type="button" class="pill ink-domi" data-inkdomi="${esc(d.id)}" title="Wordt automatisch van de rekening gehaald (domiciliëring). Klik als dit niet klopt.">Domiciliëring</button>`+h.slice(i);
   return h.slice(0,i)+`<button type="button" class="btn sm" data-inkbet="${esc(d.id)}" title="QR-code om te betalen met de bankapp">${ic("bank")}Betalen</button>`+h.slice(i)}}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-inkdomi]");if(!b)return;e.preventDefault();const id=b.dataset.inkdomi;
@@ -4431,7 +4432,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-inkbet]");
 @media(max-width:700px){.ink-pay{grid-template-columns:1fr}}`;document.head.appendChild(st)}
 /* dashboard: gesplitste betaling (daglimiet) - de volgende betaling staat klaar */
 function inkBetWacht(){if(!inkMag())return[];const nu=new Date(todayISO()+"T12:00:00");
-  return inkDocs().map(d=>{const P=d.inkomend&&d.inkomend.betaalPlan;if(!P||!P.n||!P.start||inkSom(d.id)>=P.totaal-0.005)return null;
+  return inkDocs().map(d=>{if(inkBetaald(d))return null;const P=d.inkomend&&d.inkomend.betaalPlan;if(!P||!P.n||!P.start||inkSom(d.id)>=P.totaal-0.005)return null;
     const dagen=Math.round((nu-new Date(P.start+"T12:00:00"))/864e5),idx=Math.min(P.n-1,Math.max(0,dagen,inkBoekVan(d.id).length));
     if(idx<1||(P.gedaan!=null&&P.gedaan>=idx))return null;const c=Math.round(P.totaal*100),basis=Math.floor(c/P.n);
     return{d,idx,n:P.n,bedrag:(idx<P.n-1?basis:c-basis*(P.n-1))/100}}).filter(Boolean)}
@@ -4442,6 +4443,14 @@ document.addEventListener("click",async e=>{const b=e.target.closest("[data-inkb
   const ink={...d.inkomend,betaalPlan:{...d.inkomend.betaalPlan,gedaan:Number(b.dataset.i)}};S.documenten.set(d.id,{...d,inkomend:ink});renderBody();try{await write("documenten",d.id,{...stripId(d),inkomend:ink})}catch(x){}});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-inkdzet]");if(!b)return;e.preventDefault();const id=b.dataset.inkdzet,x=S.documenten.get(id);if(!x)return;
   const ink={...(x.inkomend||{}),domi:true};S.documenten.set(id,{...x,inkomend:ink});write("documenten",id,{...stripId(x),inkomend:ink}).catch(err=>toast(err.message,true));closeModal();toast("Gemarkeerd: wordt via domiciliëring betaald.");renderBody()});
+
+/* zelf betaald (overschrijving gedaan): niet meer bij "te betalen" op het dashboard; verdwijnt uit Te koppelen zodra de transactie gekoppeld is */
+function inkBetaald(d){return !!(d&&d.inkomend&&d.inkomend.betaald)}
+function inkZetBetaald(id,aan){const x=S.documenten.get(id);if(!x)return;const ink={...(x.inkomend||{})};if(aan)ink.betaald={op:new Date().toISOString(),door:ME_NAME||""};else delete ink.betaald;
+  S.documenten.set(id,{...x,inkomend:ink});write("documenten",id,{...stripId(x),inkomend:ink}).catch(err=>toast(err.message,true));dirty=true;renderBody()}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-inkbetaald]");if(!b)return;e.preventDefault();closeModal();inkZetBetaald(b.dataset.inkbetaald,true);toast("Aangeduid als betaald.")});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-inkonbetaald]");if(!b)return;e.preventDefault();const id=b.dataset.inkonbetaald;
+  confirmBox("Is deze factuur toch nog niet betaald? Dan verschijnt de knop Betalen opnieuw.","Niet betaald",()=>{closeModal();inkZetBetaald(id,false)})});
 
 /* ============ Dashboard: meldingen voor de boekhouding ============
    - transacties die nog verwerkt moeten worden (na het inladen van de bankgegevens)
@@ -8695,7 +8704,7 @@ const TBD_BEW=new Set();
 function tbdBewaar(d,A){if(TBD_BEW.has(d.id)||!(ROL==="admin"||ROL==="boekhouder"))return;const I=d.inkomend||{},p={};
   if(I.domi==null&&inkDomi(d))p.domi=true;if(!I.totaal&&!I.bedragPdf&&A&&Number(A.totaal)>0)p.bedragPdf=Number(A.totaal);if(!I.nr&&A&&A.nr)p.nr=A.nr;
   if(!Object.keys(p).length)return;TBD_BEW.add(d.id);const x=S.documenten.get(d.id)||d;write("documenten",d.id,{...stripId(x),inkomend:{...(x.inkomend||{}),...p}}).catch(()=>{})}
-function tbDashLijst(){if(typeof inkDocs==="function")for(const d of inkDocs())if(d.inkomend&&inkOpen(d))tbdBewaar(d,(typeof INK!=="undefined"&&INK.txt.get(d.id))||null);const F=typeof inkDocs==="function"?inkDocs().filter(d=>d.inkomend&&inkOpen(d)&&!inkDomi(d)).map(d=>{const A=(typeof INK!=="undefined"&&INK.txt.get(d.id))||{},t=inkTot(d)||Number(A.totaal)||0,open=t>0?t-inkSom(d.id):0;
+function tbDashLijst(){if(typeof inkDocs==="function")for(const d of inkDocs())if(d.inkomend&&inkOpen(d))tbdBewaar(d,(typeof INK!=="undefined"&&INK.txt.get(d.id))||null);const F=typeof inkDocs==="function"?inkDocs().filter(d=>d.inkomend&&inkOpen(d)&&!inkDomi(d)&&!(typeof inkBetaald==="function"&&inkBetaald(d))).map(d=>{const A=(typeof INK!=="undefined"&&INK.txt.get(d.id))||{},t=inkTot(d)||Number(A.totaal)||0,open=t>0?t-inkSom(d.id):0;
     if(!t&&typeof inkLees==="function"&&!INK.txt.has(d.id)&&!INK.bezig.has(d.id)&&/pdf/i.test(d.type||d.naam))inkLees(d).then(()=>{if(INK.txt.has(d.id)&&route()==="dashboard")renderBody()}).catch(()=>{});
     const I=d.inkomend||{},nr=I.nr||A.nr||(typeof inkNrUit==="function"?inkNrUit(I.onderwerp||d.omschrijving):""),ont=String(I.ontvangen||d.op||"").slice(0,10);
     return{soort:"f",id:d.id,naam:inkVan(d)||d.naam,bedrag:open>0.005?open:null,info:"factuur"+(nr?" "+nr:"")+(ont?" · ontvangen "+fmtDate(ont):"")}}):[];
@@ -9248,7 +9257,7 @@ function osLijsten(){const C=ctx(),G=n=>Math.round((Number(n)||0)*100)/100,IN=[]
   try{for(const s of S.sponsors.values()){if(spStop(s)||(s.naturaJaren||[]).includes(JAAR)||fcSp.has(s.id))continue;const open=G(num(s.bedrag)-sponsorOntvangen(s,C));
     if(open>0.004)IN.push({g:"Sponsoring",n:spNaam(s)||"Sponsor",s:"sponsoring "+JAAR,b:open,h:"#sponsors"})}}catch(e){}
   try{for(const x of bkRows()){if(x.p.ok)continue;const open=G(x.due-Math.min(x.p.bedrag||0,x.due));if(open>0.004)IN.push({g:"Banket",n:x.r.naam||"Inschrijving",s:"banket "+JAAR,b:open,h:"#banket"})}}catch(e){}
-  try{if(typeof inkDocs==="function")for(const d of inkDocs()){const T=inkTot(d)||num(d.inkomend&&d.inkomend.bedragPdf);if(!T)continue;
+  try{if(typeof inkDocs==="function")for(const d of inkDocs()){if(typeof inkBetaald==="function"&&inkBetaald(d))continue;const T=inkTot(d)||num(d.inkomend&&d.inkomend.bedragPdf);if(!T)continue;
     const open=G(T-inkBoekVan(d.id).reduce((s,b)=>s+num(b.bedrag),0));if(open>0.004)UIT.push({g:"Inkomende facturen",n:inkVan(d)||d.naam||"Factuur",s:fmtDate(inkDatum(d)),b:open,h:"#inkomend"})}}catch(e){}
   return{IN,UIT}}
 function osKolom(titel,L,kl){const tot=L.reduce((s,x)=>s+x.b,0),gr=[...new Set(L.map(x=>x.g))];
