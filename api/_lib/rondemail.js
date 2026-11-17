@@ -4,6 +4,7 @@ import { admin, requireUser, httpErr } from "./sb.js";
 import { huisstijl, kaderBlok, knop, p, esc, site } from "./bevestiging.js";
 import { algemeen } from "./publiek.js";
 import { verstuur } from "./smtp.js";
+import { tekenRonde } from "./lidlink.js";
 
 export async function rondeMailApi(req, res) {
   if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
@@ -29,7 +30,7 @@ export async function rondeMailApi(req, res) {
     + kaderBlok("Jouw straten", S.map(x => p(`<b>${esc(x.naam)}</b> · ${x.a} ${x.a === 1 ? "adres" : "adressen"}`, "margin:0 0 6px")).join(""))
     + p(`Samen zijn dat <b>± ${tot} adressen</b>. Voorzie <b>${doz} ${doz === 1 ? "doos" : "dozen"}</b> kalenders.`)
     + p("Bedankt om mee te helpen met de kalenderronde!")
-    + knop("Bekijk de kaart", site() + "/kaart"),
+    + knop("Bekijk de kaart", site() + (d.lidId && A.jaar ? `/kaart?k=${encodeURIComponent(d.lidId)}&j=${A.jaar}&t=${tekenRonde(d.lidId, A.jaar)}` : "/kaart")),
     A.vereniging || "Vriendenkring Brandweer Hoofdpost Aalst");
   const [r] = await verstuur([{ aan: email, aanNaam: `${lid.voornaam || ""} ${lid.naam || ""}`.trim(), onderwerp: "Je straten voor de kalenderronde zijn gereserveerd", html, label: "Reservatie kalenderronde" }]);
   if (r && r.ok) for (const x of M) await sb.from("rondemeldingen").update({ data: { ...x.data, mail: { op: new Date().toISOString(), aan: email } } }).eq("id", x.id);
