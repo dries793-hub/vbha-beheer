@@ -9201,7 +9201,7 @@ function osLijsten(){const C=ctx(),G=n=>Math.round((Number(n)||0)*100)/100,IN=[]
     const open=G(T-inkBoekVan(d.id).reduce((s,b)=>s+num(b.bedrag),0));if(open>0.004)UIT.push({g:"Inkomende facturen",n:inkVan(d)||d.naam||"Factuur",s:fmtDate(inkDatum(d)),b:open,h:"#inkomend"})}}catch(e){}
   return{IN,UIT}}
 function osKolom(titel,L,kl){const tot=L.reduce((s,x)=>s+x.b,0),gr=[...new Set(L.map(x=>x.g))];
-  return `<div class="os-k"><div class="os-h"><span>${titel}</span><b class="${kl}">${eur(tot)}</b></div>${L.length?gr.map(g=>{const X=L.filter(x=>x.g===g).sort((a,b)=>b.b-a.b),st=X.reduce((s,x)=>s+x.b,0);
+  return `<div class="os-k"><div class="os-h"><span>${titel}</span><b class="${tot>0.004?kl:""}">${eur(tot)}</b></div>${L.length?gr.map(g=>{const X=L.filter(x=>x.g===g).sort((a,b)=>b.b-a.b),st=X.reduce((s,x)=>s+x.b,0);
     return `<div class="os-g"><a class="os-gh" href="${X[0].h}"><span>${esc(g)} <small>${X.length}</small></span><b>${eur(st)}</b></a>${X.slice(0,4).map(x=>`<a class="os-r" href="${x.h}"><span class="trunc"><b>${esc(x.n)}</b> <small>${esc(x.s)}</small></span><span class="num">${eur(x.b)}</span></a>`).join("")}${X.length>4?`<a class="os-m" href="${X[0].h}">+${X.length-4} meer</a>`:""}</div>`}).join(""):'<div class="os-leeg">Niets openstaand.</div>'}</div>`}
 {const _v=VIEWS.boekhouding;if(_v){const n=function(){const v=_v.apply(this,arguments),b=v.body;v.body=function(){const h=String(b.apply(this,arguments));
   const k='<div class="panel"><div class="panel-h"><h2>Inkomsten en uitgaven per maand';const i=h.indexOf(k);if(i<0)return h;
