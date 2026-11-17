@@ -8788,17 +8788,18 @@ function kvReeks(Y){const sz=kalSz(),van=Y+"-"+sz.van,tot=(sz.tot<sz.van?Y+1:Y)+
 function kvGrafieken(J1,J0){
   const Y=Number(JAAR),A=kvReeks(Y),B=kvReeks(Y-1),n=Math.max(A.n,B.n);
   const nu=Math.round((new Date(todayISO()+"T12:00:00")-A.d0)/864e5),tot=nu<0?-1:Math.min(nu,A.n-1);
-  const W=600,H=230,pl=58,pr=14,pt=14,pb=26,iw=W-pl-pr,ih=H-pt-pb;
+  const kEur=v=>"€ "+Math.round(v).toLocaleString("nl-BE");
+  const svg=(W,H,cls)=>{const pl=W<400?44:58,pr=10,pt=14,pb=26,iw=W-pl-pr,ih=H-pt-pb;
   const mx=Math.max(1,...B.cum,...(tot>=0?A.cum.slice(0,tot+1):[0]));const st=[1,2,2.5,5,10].map(f=>f*Math.pow(10,Math.floor(Math.log10(mx/4)))).find(x=>mx/x<=5)||mx/4,top=Math.ceil(mx/st)*st;
   const X=i=>pl+i/(n-1)*iw,Yp=v=>pt+ih-v/top*ih;
   const pad=c=>c.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Yp(v).toFixed(1)).join("");
-  const kEur=v=>"€ "+Math.round(v).toLocaleString("nl-BE");
   let g="";for(let v=0;v<=top+1e-6;v+=st)g+=`<line x1="${pl}" x2="${W-pr}" y1="${Yp(v)}" y2="${Yp(v)}" class="kv-gr"/><text x="${pl-8}" y="${Yp(v)+4}" text-anchor="end" class="kv-ax">${v?Math.round(v/1000*10)/10+"k":"0"}</text>`;
-  let tk="";for(let i=0;i<n;i++){const d=new Date(A.d0.getTime()+i*864e5);if(d.getDate()===1||i===0)tk+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt+ih}" y2="${pt+ih+4}" class="kv-gr"/><text x="${X(i)}" y="${H-6}" text-anchor="${i===0?"start":"middle"}" class="kv-ax">${d.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})}</text>`}
+  let tk="";for(let i=0;i<n;i++){const d=new Date(A.d0.getTime()+i*864e5);if((d.getDate()===1&&(W>=400||d.getMonth()%1===0))||i===0)tk+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt+ih}" y2="${pt+ih+4}" class="kv-gr"/><text x="${X(i)}" y="${H-6}" text-anchor="${i===0?"start":"middle"}" class="kv-ax">${d.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})}</text>`}
   const lijnA=tot>=0?pad(A.cum.slice(0,tot+1)):"",eind=tot>=0?`<circle cx="${X(tot)}" cy="${Yp(A.cum[tot])}" r="4.5" class="kv-pa"/>`:"";
-  const lijn=`<div class="kv-c"><h3 class="kf-h">Omzet kalenders doorheen het seizoen</h3><div class="kv-svgw"><svg viewBox="0 0 ${W} ${H}" class="kv-svg" data-n="${n}" role="img" aria-label="Opbrengst kalenders per dag, ${Y} tegenover ${Y-1}">${g}${tk}
-    <path d="${pad(B.cum)}" class="kv-lb"/>${lijnA?`<path d="${lijnA}" class="kv-la"/>`:""}${eind}<line class="kv-x" x1="0" x2="0" y1="${pt}" y2="${pt+ih}" style="display:none"/><rect x="${pl}" y="${pt}" width="${iw}" height="${ih}" fill="transparent" class="kv-hit"/></svg><div class="kv-tip" hidden></div></div></div>`;
-  KV={A,B,tot,n,pl,iw,W,kEur};
+  return `<svg viewBox="0 0 ${W} ${H}" class="kv-svg ${cls}" data-w="${W}" data-pl="${pl}" data-iw="${iw}" role="img" aria-label="Opbrengst kalenders per dag, ${Y} tegenover ${Y-1}">${g}${tk}
+    <path d="${pad(B.cum)}" class="kv-lb"/>${lijnA?`<path d="${lijnA}" class="kv-la"/>`:""}${eind}<line class="kv-x" x1="0" x2="0" y1="${pt}" y2="${pt+ih}" style="display:none"/><rect x="${pl}" y="${pt}" width="${iw}" height="${ih}" fill="transparent" class="kv-hit"/></svg>`};
+  const lijn=`<div class="kv-c"><h3 class="kf-h">Omzet kalenders doorheen het seizoen</h3><div class="kv-svgw">${svg(600,230,"kv-gr1")}${svg(340,220,"kv-gr2")}<div class="kv-tip" hidden></div></div></div>`;
+  KV={A,B,tot,n,kEur};
   const R=[["Omzet",J1.kin,J0.kin],["Sponsors",J1.si,J0.si],["Kosten",J1.kuit,J0.kuit],["Winst",J1.res,J0.res]],bm=Math.max(1,...R.flatMap(r=>[Math.abs(r[1]),Math.abs(r[2])]));
   const bar=(v,c,l)=>`<div class="kv-br"><span class="kv-bar ${c}" style="width:${Math.max(.6,Math.abs(v)/bm*100)}%" data-t="${l}: ${v<0?"−":""}${kEur(Math.abs(v))}"></span><b>${v<0?"−":""}${kEur(Math.abs(v))}</b></div>`;
   const staaf=`<div class="kv-c"><h3 class="kf-h">Kerncijfers</h3>${R.map(([l,a,b])=>`<div class="kv-rij"><span class="kv-l">${l}</span><div>${bar(a,"a",l+" "+Y)}${bar(b,"b",l+" "+(Y-1))}</div></div>`).join("")}</div>`;
@@ -8806,15 +8807,15 @@ function kvGrafieken(J1,J0){
 let KV=null;
 document.addEventListener("pointermove",e=>{const s=e.target.closest&&e.target.closest(".kv-svg");const T=document.querySelector(".kv-tip");
   if(!s||!KV){if(T)T.hidden=true;document.querySelectorAll(".kv-x").forEach(x=>x.style.display="none");return}
-  const r=s.getBoundingClientRect(),vx=(e.clientX-r.left)/r.width*KV.W,i=Math.max(0,Math.min(KV.n-1,Math.round((vx-KV.pl)/KV.iw*(KV.n-1))));
-  const x=KV.pl+i/(KV.n-1)*KV.iw,l=s.querySelector(".kv-x");l.setAttribute("x1",x);l.setAttribute("x2",x);l.style.display="";
+  const W=+s.dataset.w,pl=+s.dataset.pl,iw=+s.dataset.iw,r=s.getBoundingClientRect(),vx=(e.clientX-r.left)/r.width*W,i=Math.max(0,Math.min(KV.n-1,Math.round((vx-pl)/iw*(KV.n-1))));
+  const x=pl+i/(KV.n-1)*iw,l=s.querySelector(".kv-x");l.setAttribute("x1",x);l.setAttribute("x2",x);l.style.display="";
   const d=new Date(KV.A.d0.getTime()+i*864e5),Y=Number(JAAR);
   T.innerHTML=`<b>${d.toLocaleDateString("nl-BE",{day:"numeric",month:"long"})}</b><span><i class="a"></i>${Y}: ${i<=KV.tot?KV.kEur(KV.A.cum[i]):"–"}</span><span><i class="b"></i>${Y-1}: ${KV.kEur(KV.B.cum[Math.min(i,KV.B.n-1)])}</span>`;
-  T.hidden=false;const px=x/KV.W*r.width;T.style.left=Math.max(0,Math.min(r.width-T.offsetWidth,px+12>r.width-T.offsetWidth?px-T.offsetWidth-12:px+12))+"px"});
+  T.hidden=false;const px=x/W*r.width;T.style.left=Math.max(0,Math.min(r.width-T.offsetWidth,px+12>r.width-T.offsetWidth?px-T.offsetWidth-12:px+12))+"px"});
 {const st=document.createElement("style");st.textContent=`:root{--kv-a:#2F6FE4;--kv-b:#C2709A}:root[data-theme="dark"]{--kv-a:#5A8BE8;--kv-b:#BE6E98}
 .kv{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:28px;border-bottom:1px solid var(--line)}@media(max-width:860px){.kv{grid-template-columns:1fr;gap:18px}}
 .kv-lg{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}.kv-lg i{width:10px;height:10px;border-radius:3px;background:var(--kv-a);display:inline-block}.kv-lg i.v{background:var(--kv-b);margin-left:8px}
-.kv-svgw{position:relative}.kv-svg{width:100%;height:auto;display:block;touch-action:pan-y}.kv-gr{stroke:var(--line);stroke-width:1}.kv-ax{font-size:11px;fill:var(--muted)}
+.kv-svgw{position:relative}.kv-gr2{display:none!important}@media(max-width:560px){.kv-gr1{display:none!important}.kv-gr2{display:block!important}}.kv-svg{width:100%;height:auto;display:block;touch-action:pan-y}.kv-gr{stroke:var(--line);stroke-width:1}.kv-ax{font-size:11px;fill:var(--muted)}
 .kv-la,.kv-lb{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.kv-la{stroke:var(--kv-a)}.kv-lb{stroke:var(--kv-b)}.kv-pa{fill:var(--kv-a);stroke:var(--surface);stroke-width:2}.kv-x{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
 .kv-tip{position:absolute;top:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12.5px;box-shadow:0 4px 14px rgba(0,0,0,.08);pointer-events:none;display:flex;flex-direction:column;gap:2px;white-space:nowrap}.kv-tip[hidden]{display:none}
 .kv-tip i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}.kv-tip i.a{background:var(--kv-a)}.kv-tip i.b{background:var(--kv-b)}
