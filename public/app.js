@@ -8832,10 +8832,10 @@ function kvVloeiend(P){const n=P.length;if(!n)return"";if(n<3)return P.map((p,i)
   for(let i=0;i<n-1;i++){const dx=(P[i+1][0]-P[i][0])/3;s+=`C${(P[i][0]+dx).toFixed(1)} ${(P[i][1]+m[i]*dx).toFixed(1)} ${(P[i+1][0]-dx).toFixed(1)} ${(P[i+1][1]-m[i+1]*dx).toFixed(1)} ${P[i+1][0].toFixed(1)} ${P[i+1][1].toFixed(1)}`}
   return s}
 /* tijdas: vanaf 1 februari komt er weinig meer binnen, die maanden krijgen minder plaats */
-let KVK=1e9;const KV_W=.3,kvPos=i=>i<=KVK?i:KVK+(i-KVK)*KV_W,kvTerug=u=>u<=KVK?u:KVK+(u-KVK)/KV_W;
+let KVK=1e9,KV_W=1;const kvPos=i=>i<=KVK?i:KVK+(i-KVK)*KV_W,kvTerug=u=>u<=KVK?u:KVK+(u-KVK)/KV_W;
 function kvGrafieken(J1,J0,stuks){
   const Y=Number(JAAR),A=kvReeks(Y),B=kvReeks(Y-1),n=Math.max(A.n,B.n);
-  KVK=Math.round((new Date((Y+1)+"-02-01T12:00:00")-A.d0)/864e5);if(!(KVK>0&&KVK<n))KVK=1e9;
+  KVK=Math.round((new Date((Y+1)+"-01-01T12:00:00")-A.d0)/864e5);if(!(KVK>0&&KVK<n-1)){KVK=1e9;KV_W=1}else KV_W=KVK/(2*(n-1-KVK)); // 1 nov–1 jan: 2/3 van de breedte, 1 jan–einde: 1/3
   const nu=Math.round((new Date(todayISO()+"T12:00:00")-A.d0)/864e5),tot=nu<0?-1:Math.min(nu,A.n-1);
   /* prognose einde seizoen: (1) volgens het verloop van vorig jaar op dezelfde dag, (2) volgens de opbrengst per bedeelde kalender × oplage */
   const Bc=i=>B.cum[Math.min(i,B.n-1)]||0,Bend=B.cum[B.n-1]||0,cur=tot>=0?A.cum[tot]:0,opl=Number(J1.opl)||0;
@@ -8856,7 +8856,7 @@ function kvGrafieken(J1,J0,stuks){
   const X=i=>pl+kvPos(i)/kvPos(n-1)*iw,Yp=v=>pt+ih-(v-bot)/(top-bot||1)*ih;
   const pad=(c,i0=0)=>kvVloeiend(c.map((v,i)=>[X(i+i0),Yp(v)]));
   let g="";for(let v=bot;v<=top+1e-6;v+=st)g+=`<line x1="${pl}" x2="${W-pr}" y1="${Yp(v)}" y2="${Yp(v)}" class="${Math.abs(v)<1e-6?"kv-nul":"kv-gr"}"/><text x="${pl-8}" y="${Yp(v)+4}" text-anchor="end" class="kv-ax">${Math.abs(v)<1e-6?"0":(v<0?"−":"")+Math.round(Math.abs(v)/1000*10)/10+"k"}</text>`;
-  let tk="";for(let i=0;i<n;i++){const d=new Date(A.d0.getTime()+i*864e5);if(((d.getDate()===1&&(W>=400||(i<=KVK+1&&d.getMonth()!==1)||i===KVK))||i===0||(W<400&&i===n-1))&&(i>=n-2||X(n-1)-X(i)>=50))tk+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt+ih}" y2="${pt+ih+4}" class="kv-gr"/><text x="${X(i)}" y="${H-6}" text-anchor="${i===0?"start":i>=n-2?"end":"middle"}" class="kv-ax">${d.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})}</text>`}
+  let tk="";for(let i=0;i<n;i++){const d=new Date(A.d0.getTime()+i*864e5);if(((d.getDate()===1&&(W>=400||(i<=KVK+1&&d.getMonth()!==1)||i===KVK))||i===0||(W<400&&i===n-1))&&(i>=n-2||X(n-1)-X(i)>=34))tk+=`<line x1="${X(i)}" x2="${X(i)}" y1="${pt+ih}" y2="${pt+ih+4}" class="kv-gr"/><text x="${X(i)}" y="${H-6}" text-anchor="${i===0?"start":i>=n-2?"end":"middle"}" class="kv-ax">${d.toLocaleDateString("nl-BE",{day:"numeric",month:"short"})}</text>`}
   const padP=WP?pad(WP.slice(tot),tot):"",eindP=WP?`<circle cx="${X(A.n-1)}" cy="${Yp(progW)}" r="4" class="kv-pp"/><text x="${X(A.n-1)-6}" y="${Yp(progW)+(progW<0?20:-10)}" text-anchor="end" class="kv-pl">Prognose ${kEur(progW)}</text>`:"";
   const lijnA=tot>=0?pad(WA.slice(0,tot+1)):"",eind=tot>=0?`<circle cx="${X(tot)}" cy="${Yp(WA[tot])}" r="4.5" class="kv-pa"/>`:"";
   return `<svg viewBox="0 0 ${W} ${H}" class="kv-svg ${cls}" data-w="${W}" data-pl="${pl}" data-iw="${iw}" role="img" aria-label="Winst kalenders doorheen het seizoen, ${Y} tegenover ${Y-1}">${g}${tk}
