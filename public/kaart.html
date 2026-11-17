@@ -2923,9 +2923,7 @@ krLive();
           h+=vraag("Hoeveel hele dozen heb je nog?",H.map(i=>knop("heel",i,String(i),DZ.heel===i)).join(""));
           h+=vraag("En van een aangebroken doos?",[0,.25,.5,.75].map(q=>knop("deel",q,q?KW[q*4]:"geen",DZ.deel===q)).join(""));
           if(DZ.heel!=null&&DZ.deel!=null){const r=dzRest();h+=r>op+1e-9?`<p class="km-dw">Dat is meer dan je volgens onze lijst hebt (${fd(op)}).</p>`:r>0?`<p class="km-dt">Je hebt nog <b>${fd(r)}</b> over.</p>`:`<p class="km-dw">Heb je niets meer over? Kies dan hierboven <b>Nee</b>.</p>`}}
-        if(DZ.over===false){const A=[["alle",`Alle ${fd(op)}`]];for(let i=1;i<op-1e-9&&i<=12;i++)A.push([i,fd(i)]);for(const q of [.25,.5,.75])if(q<op-1e-9)A.push([q,KW[q*4]+" doos"]);
-          h+=vraag("Hoeveel dozen heb je afgewerkt?",A.map(([v,t])=>knop("af",v,t,String(DZ.af)===String(v))).join(""));
-          if(DZ.af==="alle")h+=nodigV()}}
+        if(DZ.over===false){h+=`<p class="km-dt">Dan heb je alle <b>${fd(op)}</b> bedeeld.</p>`+nodigV()}}
       else h+=nodigV();
       dzBox.innerHTML=h}
     function dzKlaar(){if(dzBox.hidden)return true;if(DZ.op==null)return false;
@@ -2938,7 +2936,7 @@ krLive();
     async function dzLaad(){if(!lid)return;const id=lid.id;DZ.op=null;DZ.voor=null;Object.assign(DZ,{over:null,heel:null,deel:null,af:null,nodig:null,nodigN:null});tekenDz();
       try{const r=await fetch("/api/ronde?dozen="+encodeURIComponent(id),{cache:"no-store"});const j=r.ok?await r.json():{op:0};if(!lid||lid.id!==id)return;DZ.op=Number(j.op)||0}catch(e){DZ.op=0}DZ.voor=id;tekenDz()}
     dzBox.addEventListener("click",e=>{const b=e.target.closest("[data-dz]");if(!b)return;const k=b.dataset.dz,v=b.dataset.v;err.textContent="";
-      if(k==="over"){DZ.over=v==="1";DZ.heel=DZ.deel=DZ.af=DZ.nodig=DZ.nodigN=null}
+      if(k==="over"){DZ.over=v==="1";DZ.heel=DZ.deel=DZ.nodig=DZ.nodigN=null;DZ.af=DZ.over?null:"alle"}
       else if(k==="heel")DZ.heel=+v;else if(k==="deel")DZ.deel=+v;
       else if(k==="af"){DZ.af=v==="alle"?"alle":+v;if(DZ.af!=="alle")DZ.nodig=DZ.nodigN=null}
       else if(k==="nodig"){DZ.nodig=v==="1";if(!DZ.nodig)DZ.nodigN=null}else if(k==="nodigN")DZ.nodigN=+v;tekenDz()});
