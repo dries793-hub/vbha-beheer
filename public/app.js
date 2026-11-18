@@ -9925,8 +9925,12 @@ function tfInst(){const c=tfCfg();const rij=(t,i)=>`<div class="tf-ir"><input cl
 function tfPdf(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);const bc=bkCfg();
   const per=new Map(c.tafels.map(t=>[t.id,[]]));for(const u of U){const t=c.plaats[u.id];if(t&&per.has(t))per.get(t).push(u)}
   const kol=Math.min(6,Math.max(3,Math.ceil(Math.sqrt(c.tafels.length*1.6)))),pers=U.reduce((s,u)=>s+u.n,0),veg=U.reduce((s,u)=>s+u.veg,0);
-  const kaart=t=>{const L=(per.get(t.id)||[]).slice().sort((a,b)=>a.cat.localeCompare(b.cat,"nl")||String(a.r.naam).localeCompare(String(b.r.naam),"nl")),n=L.reduce((s,u)=>s+u.n,0),v=L.reduce((s,u)=>s+u.veg,0);
-    return `<div class="t"><div class="h"><b>${esc(t.naam)}</b><span>${n} pers.${v?` · ${v} veg.`:""}</span></div><ol>${L.map(u=>`<li>${esc(u.r.naam||"")}${u.n===2?" <i>+ partner</i>":""}${u.veg?` <em>V${u.veg>1?"×"+u.veg:""}</em>`:""}${u.opm?`<span class="o">! ${esc(u.opm)}</span>`:""}</li>`).join("")}</ol></div>`};
+  const BLAD='<svg class="ic veg" viewBox="0 0 24 24"><path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19c3-4 6-7 10-9"/></svg>',LET='<svg class="ic opm" viewBox="0 0 24 24"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18v.5"/></svg>';
+  const sorteer=L=>L.slice().sort((a,b)=>a.cat.localeCompare(b.cat,"nl")||String(a.r.naam).localeCompare(String(b.r.naam),"nl"));let nr=0;const NR=new Map();
+  for(const t of c.tafels)for(const u of sorteer(per.get(t.id)||[]))if(u.opm)NR.set(u.id,++nr);
+  const kaart=t=>{const L=sorteer(per.get(t.id)||[]),n=L.reduce((s,u)=>s+u.n,0),v=L.reduce((s,u)=>s+u.veg,0),o=L.filter(u=>u.opm).length;
+    return `<div class="t"><div class="h"><b>${esc(t.naam)}</b><span>${n} pers.${v?` · ${BLAD}${v}`:""}${o?` · ${LET}${o}`:""}</span></div><ol>${L.map(u=>`<li>${esc(u.r.naam||"")}${u.n===2?" <i>+ partner</i>":""}${u.veg?` ${BLAD.repeat(u.veg)}`:""}${u.opm?` ${LET}<sup>${NR.get(u.id)}</sup>`:""}</li>`).join("")}</ol></div>`};
+  const opmLijst=c.tafels.map(t=>{const L=sorteer(per.get(t.id)||[]).filter(u=>u.opm);return L.length?`<div class="ot"><b>${esc(t.naam)}</b>${L.map(u=>`<p><sup>${NR.get(u.id)}</sup> <span>${esc(u.r.naam||"")}</span> ${esc(u.opm)}</p>`).join("")}</div>`:""}).join("");
   const dt=bc.datum?new Date(bc.datum+"T12:00:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):"";
   const html=`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Tafelschikking banket ${JAAR}</title><style>
     @page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Inter,"Segoe UI",Arial,sans-serif;color:#1a1b1e;margin:0}
@@ -9936,9 +9940,14 @@ function tfPdf(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaak
     .t{border:1.5px solid #c9a75a;border-radius:8px;padding:6px 8px;break-inside:avoid}
     .h{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #e5e5e5;margin-bottom:3px;padding-bottom:2px}.h b{font-size:12.5px;color:#b30000}.h span{font-size:9.5px;color:#666}
     ol{margin:0;padding-left:16px;font-size:10px;line-height:1.35}i{color:#555;font-style:normal}em{font-style:normal;font-weight:700;color:#1a7f45;font-size:9px}
-    footer{margin-top:6px;font-size:9px;color:#777}.o{display:block;color:#b30000;font-size:9px;line-height:1.25}</style></head><body>
+    footer{margin-top:6px;font-size:9px;color:#777;display:flex;gap:14px;align-items:center}
+    .ic{width:10px;height:10px;vertical-align:-1px;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ic.veg{stroke:#1a7f45}.ic.opm{stroke:#b30000}
+    sup{font-size:7.5px;font-weight:700;color:#b30000;vertical-align:3px;margin-left:1px}
+    .om{margin-top:10px;break-before:auto}.om h2{font-size:13px;margin:0 0 5px;color:#b30000}.og{columns:3;column-gap:14px}
+    .ot{break-inside:avoid;margin:0 0 6px;font-size:9.5px}.ot b{display:block;font-size:10.5px;border-bottom:1px solid #e5e5e5;margin-bottom:2px}.ot p{margin:0 0 2px;line-height:1.3}.ot span{font-weight:600}</style></head><body>
     <header><h1>Banket ${JAAR} · tafelschikking</h1><div>${esc(dt)}${bc.uur?" · "+esc(bc.uur):""}<br>${esc(bc.locatie||"")}<br><b>${pers} personen</b>${veg?` · ${veg} vegetarisch`:""} · ${c.tafels.length} tafels</div></header>
-    <div class="g">${c.tafels.map(kaart).join("")}</div><footer>V = vegetarisch menu · ! = opmerking (allergie, dieet, …) · Vriendenkring Brandweer Hoofdpost Aalst</footer>
+    <div class="g">${c.tafels.map(kaart).join("")}</div><footer><span>${BLAD} vegetarisch menu</span><span>${LET} opmerking (allergie, dieet, …), zie de lijst</span><span>Vriendenkring Brandweer Hoofdpost Aalst</span></footer>
+    ${opmLijst?`<section class="om"><h2>Opmerkingen per tafel</h2><div class="og">${opmLijst}</div></section>`:""}
     <script>onload=()=>setTimeout(()=>print(),300)<\/script></body></html>`;
   const w=window.open("","_blank");if(!w){toast("Je browser blokkeerde het nieuwe venster.",true);return}w.document.open();w.document.write(html);w.document.close()}
 
