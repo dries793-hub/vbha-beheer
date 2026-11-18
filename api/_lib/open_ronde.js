@@ -8,6 +8,9 @@ import { kloptRonde } from "./lidlink.js";
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "public, max-age=20");
   try {
+    // de openbare kaart kan in de app (Kalenders › Kaart) niet actief gezet worden
+    const kaartUit = async () => { try { const { data } = await admin().from("config").select("data").eq("id", "kaart").maybeSingle(); return !!(data && data.data && data.data.aan === false); } catch (e) { return false; } };
+    if (req.method === "POST" && await kaartUit()) throw httpErr(403, "De kalenderkaart is momenteel niet actief.");
     if (req.method === "POST") { const bb = typeof req.body === "string" ? (() => { try { return JSON.parse(req.body); } catch { return {}; } })() : (req.body || {}); if (bb.her) return await herReserveer(req, res, bb, true); return await melding(req, res); }
     if (req.query && req.query.her) return await herReserveer(req, res, req.query, false);
     if (req.method !== "GET") throw httpErr(405, "Gebruik GET");
@@ -15,6 +18,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.dozen) return await dozenVan(req, res);
     if (req.query && req.query.ik) return await wieBenIk(req, res);
     const sb = admin();
+    if (await kaartUit()) return res.status(200).json({ gesloten: true });
     const A = await algemeen(sb);
     const out = [];
     for (let from = 0; ; from += 1000) {

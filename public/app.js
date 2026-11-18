@@ -9733,6 +9733,12 @@ const krTh=(k,l,cls="")=>{const on=KR_SORT.k===k;return `<th class="${cls} sorta
 function krHistSort(E){const inf=m=>{const dl=KR_DEEL.get(m.straat),s=KR.byId.get(dl?dl.sid:m.straat)||{};return{n:(s.n||"")+(dl?" "+String(dl.nr).padStart(3,"0"):""),s:m.status==="reserved"?"Gereserveerd":"Gedaan",w:s.w||"",a:dl?dl.a:(s.a||0),d:krWie(m)||"",t:m.at||""}};
   const k=KR_SORT.k,d=KR_SORT.d;return E.map(m=>[m,inf(m)]).sort((x,y)=>{const a=x[1][k],b=y[1][k];const r=typeof a==="number"?a-b:String(a).localeCompare(String(b),"nl",{numeric:true});return (r||(y[1].t).localeCompare(x[1].t))*(r?d:1)}).map(x=>x[0])}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-kr-sort]");if(!t)return;const k=t.dataset.krSort;KR_SORT=KR_SORT.k===k?{k,d:-KR_SORT.d}:{k,d:k==="t"||k==="a"?-1:1};renderBody()});
+/* openbare kaart actief / niet actief (config "kaart".aan; de server en /kaart tonen dan een melding) */
+{const _v=VIEWS.ronde;VIEWS.ronde=function(){const v=_v.apply(this,arguments);const aan=(S.config.get("kaart")||{}).aan!==false;
+  v.actions=(canWrite?`<button class="btn" data-act="kaartAan" title="Openbare kaart ${aan?"uitzetten":"aanzetten"}"><span class="spi-dot ${aan?"open":"dicht"}">${aan?"Actief":"Niet actief"}</span>Openbare kaart</button>`:"")+(v.actions||"");return v}}
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="kaartAan"]');if(!b)return;e.stopPropagation();const aan=(S.config.get("kaart")||{}).aan!==false;
+  confirmBox(aan?"De openbare kaart <b>niet actief</b> zetten? Wie de kaart opent, ziet dan enkel dat ze niet actief is en kan geen straten melden.":"De openbare kaart weer <b>actief</b> zetten?",aan?"Niet actief zetten":"Actief zetten",async()=>{
+    try{await write("config","kaart",{aan:!aan,op:new Date().toISOString(),door:ME_NAME||""},{merge:true});toast(aan?"De openbare kaart is niet actief.":"De openbare kaart is actief.");renderBody()}catch(x){toast(x.message,true)}})},true);
 
 /* Eenmalig: fotoalbum "Brandweerkalender 2027" met de 12 maandfoto's uit de geplande social-mediaberichten (pkal27-01 … 12).
    Gebeurt automatisch zodra een beheerder Foto's opent; daarna staat het album als concept klaar (titel, watermerk, publiceren). */
