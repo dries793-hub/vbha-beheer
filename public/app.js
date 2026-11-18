@@ -4457,6 +4457,18 @@ function inkZetBetaald(id,aan){const x=S.documenten.get(id);if(!x)return;const i
 document.addEventListener("click",e=>{const b=e.target.closest("[data-inkbetaald]");if(!b)return;e.preventDefault();closeModal();inkZetBetaald(b.dataset.inkbetaald,true);toast("Aangeduid als betaald.")});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-inkonbetaald]");if(!b)return;e.preventDefault();const id=b.dataset.inkonbetaald;
   confirmBox("Is deze factuur toch nog niet betaald? Dan verschijnt de knop Betalen opnieuw.","Niet betaald",()=>{closeModal();inkZetBetaald(id,false)})});
+/* vervaldatum uit de PDF-tekst: "vervaldatum/vervaldag/te betalen vóór/uiterlijk/due date/échéance" + datum,
+   anders factuurdatum + betalingstermijn ("binnen 30 dagen", "30 dagen na factuurdatum") */
+function inkVerval(tekst){const T=String(tekst||""),M={jan:1,januari:1,janvier:1,january:1,feb:2,februari:2,"février":2,fevrier:2,february:2,mrt:3,maart:3,mars:3,march:3,mar:3,apr:4,april:4,avril:4,mei:5,mai:5,may:5,jun:6,juni:6,juin:6,june:6,jul:7,juli:7,juillet:7,july:7,aug:8,augustus:8,"août":8,aout:8,august:8,sep:9,sept:9,september:9,septembre:9,okt:10,oct:10,oktober:10,octobre:10,october:10,nov:11,november:11,novembre:11,dec:12,december:12,"décembre":12,decembre:12};
+  const iso=(d,m,y)=>{y=+y;if(y<100)y+=2000;d=+d;m=+m;if(!(d>=1&&d<=31&&m>=1&&m<=12&&y>=2000&&y<2100))return"";return`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`};
+  const datIn=s=>{let m=s.match(/(?<!\d)(\d{4})-(\d{2})-(\d{2})/);if(m)return iso(m[3],m[2],m[1]);m=s.match(/(?<!\d)(\d{1,2})[./-](\d{1,2})[./-](\d{4}|\d{2})(?!\d)/);if(m)return iso(m[1],m[2],m[3]);
+    m=s.match(/(\d{1,2})\s+([a-zéû]+)\.?\s+(\d{4})/i);if(m&&M[m[2].toLowerCase()])return iso(m[1],M[m[2].toLowerCase()],m[3]);return""};
+  const L=T.split(/\n/),kw=/verval|uiterste\s+betaal|uiterlijk|te\s+betalen\s+(vóór|voor|tegen|ten\s+laatste)|betaalbaar\s+(vóór|voor|tegen)|betalen\s+vóór|due\s+date|payment\s+due|échéance|echeance|payable\s+(avant|pour)/i;
+  for(let i=0;i<L.length;i++){if(!kw.test(L[i]))continue;const k=L[i].search(kw),d=datIn(L[i].slice(k))||datIn(L[i+1]||"")||datIn(L[i]);if(d)return d}
+  const fk=/factuurdatum|datum\s+factuur|invoice\s+date|date\s+(de\s+)?(la\s+)?facture|^\s*datum\b/i;let fd="";for(let i=0;i<L.length&&!fd;i++)if(fk.test(L[i]))fd=datIn(L[i])||datIn(L[i+1]||"");
+  const tm=T.match(/(\d{1,3})\s*(dagen|jours|days)/i);if(fd&&tm&&+tm[1]>0&&+tm[1]<=120){const x=new Date(fd+"T12:00:00");x.setDate(x.getDate()+ +tm[1]);return x.toISOString().slice(0,10)}
+  return""}
+{const _v=inkAnalyse;inkAnalyse=function(t){const r=_v.apply(this,arguments)||{};r.verval=inkVerval(t);r.tekstOk=!!String(t||"").trim();return r}}
 
 /* ============ Dashboard: meldingen voor de boekhouding ============
    - transacties die nog verwerkt moeten worden (na het inladen van de bankgegevens)
@@ -8716,12 +8728,12 @@ Object.assign(ICON,{
 /* wat de app uit de PDF afleidt (domiciliëring, bedrag) ook bewaren, zodat de dagelijkse controle op de server (mail na 5 dagen) hetzelfde ziet */
 const TBD_BEW=new Set();
 function tbdBewaar(d,A){if(TBD_BEW.has(d.id)||!(ROL==="admin"||ROL==="boekhouder"))return;const I=d.inkomend||{},p={};
-  if(I.domi==null&&inkDomi(d))p.domi=true;if(!I.totaal&&!I.bedragPdf&&A&&Number(A.totaal)>0)p.bedragPdf=Number(A.totaal);if(!I.nr&&A&&A.nr)p.nr=A.nr;
+  if(I.domi==null&&inkDomi(d))p.domi=true;if(!I.totaal&&!I.bedragPdf&&A&&Number(A.totaal)>0)p.bedragPdf=Number(A.totaal);if(A&&A.tekstOk&&I.verval===undefined)p.verval=A.verval||"";if(!I.nr&&A&&A.nr)p.nr=A.nr;
   if(!Object.keys(p).length)return;TBD_BEW.add(d.id);const x=S.documenten.get(d.id)||d;write("documenten",d.id,{...stripId(x),inkomend:{...(x.inkomend||{}),...p}}).catch(()=>{})}
 function tbDashLijst(){if(typeof inkDocs==="function")for(const d of inkDocs())if(d.inkomend&&inkOpen(d))tbdBewaar(d,(typeof INK!=="undefined"&&INK.txt.get(d.id))||null);const F=typeof inkDocs==="function"?inkDocs().filter(d=>d.inkomend&&inkOpen(d)&&!inkDomi(d)&&!(typeof inkBetaald==="function"&&inkBetaald(d))).map(d=>{const A=(typeof INK!=="undefined"&&INK.txt.get(d.id))||{},t=inkTot(d)||Number(A.totaal)||0,open=t>0?t-inkSom(d.id):0;
-    if(!t&&typeof inkLees==="function"&&!INK.txt.has(d.id)&&!INK.bezig.has(d.id)&&/pdf/i.test(d.type||d.naam))inkLees(d).then(()=>{if(INK.txt.has(d.id)&&route()==="dashboard")renderBody()}).catch(()=>{});
-    const I=d.inkomend||{},nr=I.nr||A.nr||(typeof inkNrUit==="function"?inkNrUit(I.onderwerp||d.omschrijving):""),ont=String(I.ontvangen||d.op||"").slice(0,10);
-    return{soort:"f",id:d.id,naam:inkVan(d)||d.naam,bedrag:open>0.005?open:null,info:"factuur"+(nr?" "+nr:"")+(ont?" · ontvangen "+fmtDate(ont):"")}}):[];
+    if((!t||(d.inkomend||{}).verval===undefined)&&typeof inkLees==="function"&&!INK.txt.has(d.id)&&!INK.bezig.has(d.id)&&/pdf/i.test(d.type||d.naam))inkLees(d).then(()=>{if(INK.txt.has(d.id)&&route()==="dashboard")renderBody()}).catch(()=>{});
+    const I=d.inkomend||{},nr=I.nr||A.nr||(typeof inkNrUit==="function"?inkNrUit(I.onderwerp||d.omschrijving):""),ont=String(I.ontvangen||d.op||"").slice(0,10),vv=I.verval||A.verval||"";
+    return{soort:"f",id:d.id,naam:inkVan(d)||d.naam,bedrag:open>0.005?open:null,info:"factuur"+(nr?" "+nr:"")+(vv?(vv<todayISO()?" · vervallen sinds ":" · vervalt ")+fmtDate(vv):ont?" · ontvangen "+fmtDate(ont):"")}}):[];
   const O=((typeof TB!=="undefined"&&TB.lijst)||[]).filter(r=>r.status==="goedgekeurd"||r.status==="ingediend").map(r=>({soort:"o",id:r.id,naam:r.data.naam,bedrag:Number(r.data.bedrag)||null,info:(r.data.soort==="onkosten"?"onkostennota":"terugbetaling")+(r.status==="ingediend"?" · nog goed te keuren":""),iban:!!r.data.iban,nieuw:r.status==="ingediend"}));
   return F.concat(O)}
 {const _d=VIEWS.dashboard;const n=function(){const v=_d.apply(this,arguments);const b=v.body;v.body=function(){const rest=b.apply(this,arguments);if(!(ROL==="admin"||ROL==="boekhouder"))return rest;
