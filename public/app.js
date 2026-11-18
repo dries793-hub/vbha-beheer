@@ -10034,6 +10034,32 @@ document.addEventListener("click",e=>{const b=e.target.closest('[data-act="jdIns
    niet tonen bij "Sponsorbetalingen zonder sponsor in de lijst". */
 {const _k=spKoppel;spKoppel=function(C){const r=_k.apply(this,arguments);r.los=r.los.filter(b=>!(b.werkjaar&&Number(b.werkjaar)<Number(JAAR)));return r}}
 
+/* ============ Rechten per tabblad: ook voor tabbladen die geen eigen pagina (route) hebben ============
+   bestuur.rechten["functie:tab"] beperkt een tabblad binnen een pagina, zoals Banket › Tafelschikking.
+   Niet ingesteld = zoals de functie. Verrekeningen (eigen route) hoort bij Transacties. */
+if(!RTAB.financien.some(t=>t[0]==="verrekening"))RTAB.financien.push(["verrekening","Verrekeningen"]);
+const RTV={banket:{route:"banket",tabs:[["lijst","Inschrijvingen"],["tafels","Tafelschikking"]],nu:()=>UI.bkTab==="tafels"?"tafels":"lijst",zet:t=>{UI.bkTab=t;saveUI()},sel:t=>`[data-act="bkTab"][data-v="${t}"]`},
+  webshop:{route:"webshop",tabs:[["best","Bestellingen"],["art","Artikelen"]],nu:()=>SH.tab==="art"?"art":"best",zet:t=>{SH.tab=t},sel:t=>`[data-sh="tab"][data-v="${t}"]`}};
+function rtvRecht(f,t){const D=RTV[f],v=recht(D.route);if(typeof ROL==="undefined"||ROL==="admin")return v;const R=rtR();if(!R)return v;const x=R[f+":"+t]||v;return RN[x]<RN[v]?x:v}
+// een verborgen huidig tabblad: naar het eerste zichtbare
+function rtvKies(f){const D=RTV[f];if(rtvRecht(f,D.nu())!=="geen")return;const a=D.tabs.find(t=>rtvRecht(f,t[0])!=="geen");if(a)D.zet(a[0])}
+{const _m=magSchrijven;magSchrijven=function(r){const v=_m.apply(this,arguments);r=r||route();for(const f in RTV)if(RTV[f].route===r)return v&&rtvRecht(f,RTV[f].nu())==="bewerken";return v}}
+for(const f in RTV){const r=RTV[f].route,_v=VIEWS[r];if(!_v)continue;const n=function(){rtvKies(f);if(typeof canWriteConfirmed!=="undefined"&&canWriteConfirmed){canWrite=magSchrijven(r);applyRO()}return _v.apply(this,arguments)};Object.assign(n,_v);VIEWS[r]=n}
+function rtvVerberg(){if(typeof ROL==="undefined"||ROL==="admin")return;const r=route();for(const f in RTV){const D=RTV[f];if(D.route!==r)continue;
+  for(const [t] of D.tabs)if(rtvRecht(f,t)==="geen")document.querySelectorAll("#body "+D.sel(t)).forEach(x=>x.remove())}}
+{const b=document.getElementById("body");if(b)new MutationObserver(rtvVerberg).observe(b,{childList:true})}
+/* ---------- beheer: de tabbladen onder de functie tonen ---------- */
+{const _h=rgHtml;rgHtml=function(u){let h=_h.apply(this,arguments);const R=u.rechten||rechtenVanProfiel(u.rol==="admin"?"lezer":u.rol);
+  for(const f in RTV){const fv=R[f]||"geen";
+    const rij=RTV[f].tabs.map(([t,l])=>{const v=R[f+":"+t]||fv;return `<div class="rg-r rg-sub rg-tabr" data-rgt="${f}"><span>${esc(l)}</span><div class="seg rg-seg" role="radiogroup" aria-label="${esc(l)}">${["geen","lezen","bewerken"].map(x=>`<button type="button" role="radio" data-rgf="${f}:${t}" data-v="${x}" aria-checked="${v===x}" class="${v===x?"on":""}">${RECHT_LBL[x]}</button>`).join("")}</div></div>`}).join("");
+    const m=h.match(new RegExp(`<div class="rg-r[^"]*"><span>[^<]*</span><div class="seg rg-seg"[^>]*>(?:<button[^>]*data-rgf="${f}"[^>]*>[^<]*</button>)+</div></div>`));
+    if(m)h=h.replace(m[0],m[0]+rij)}
+  return h}}
+{const _l=rgLees;rgLees=function(){const o=_l.apply(this,arguments);if(!o)return o;const w=$("#rgWrap");
+  for(const f in RTV)for(const [t] of RTV[f].tabs){const b=w.querySelector(`[data-rgf="${f}:${t}"].on`);if(b)o[f+":"+t]=RN[b.dataset.v]>RN[o[f]]?o[f]:b.dataset.v}return o}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-rgf]");if(!b||!RTV[b.dataset.rgf])return;const w=$("#rgWrap");if(!w)return;const nv=b.dataset.v;
+  w.querySelectorAll(`[data-rgt="${b.dataset.rgf}"]`).forEach(r=>r.querySelectorAll("[data-rgf]").forEach(x=>{const on=x.dataset.v===nv;x.classList.toggle("on",on);x.setAttribute("aria-checked",on)}))});
+
 /* ============ Kalenderdozen overdragen naar een ander lid (enkel administrator) ============
    In de fiche van een persoon (Kalenders › Verdeling): "Dozen overdragen". Kies aan wie (lid of andere naam) en hoeveel dozen.
    Staat de ontvanger nog niet in de lijst, dan wordt hij meteen toegevoegd. Beide kanten krijgen een regel in hun geschiedenis. */
