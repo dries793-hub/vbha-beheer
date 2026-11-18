@@ -9344,16 +9344,15 @@ const vwDM=md=>{const [m,d]=md.split("-");return d+"/"+m},vwMD=t=>{const x=Strin
 viewHook("instellingen",{na(){if(ROL_ECHT!=="admin")return"";const A=S.config.get("algemeen")||{},B=S.config.get("betaalWacht")||{},k=kalSz();
   const f=(id,l,v,ext="")=>`<div class="fld"><label for="${id}">${l}</label><input class="inp" id="${id}" value="${esc(String(v))}"${ext}></div>`;
   return `<form class="panel" id="vwForm"><div class="panel-h"><h2>Vaste waarden</h2></div><div class="panel-b"><div class="form">
-    ${f("vwVan","Kalenderseizoen vanaf (dd/mm)",vwDM(k.van),' inputmode="numeric"')}${f("vwTot","Kalenderseizoen tot (dd/mm, volgend jaar)",vwDM(k.tot),' inputmode="numeric"')}
     ${f("vwWacht","Mail als een betaling wacht na (dagen)",Number(B.dagen)||5,' type="number" min="1" max="60"')}${f("vwMail","Die mail sturen naar",B.mail||"boekhouding@vbha.be",' type="email"')}
     ${f("vwGoud","Goudmelding op het dashboard (dagen)",Number((A.goudMail||{}).dagen)||3,' type="number" min="1" max="30"')}
    </div><div style="margin-top:12px"><button class="btn primary" type="submit">Bewaren</button></div></div></form>`}});
 document.addEventListener("submit",async e=>{if(e.target.id!=="vwForm")return;e.preventDefault();const v=id=>($("#"+id)||{}).value;
-  const van=vwMD(v("vwVan")),tot=vwMD(v("vwTot")),wacht=Math.round(Number(v("vwWacht"))),goud=Math.round(Number(v("vwGoud"))),mail=String(v("vwMail")||"").trim();
-  if(!van||!tot)return toast("Geef de datums in als dd/mm.",true);if(!(wacht>=1&&wacht<=60))return toast("Aantal dagen: tussen 1 en 60.",true);if(!(goud>=1&&goud<=30))return toast("Goudmelding: tussen 1 en 30 dagen.",true);
+  const wacht=Math.round(Number(v("vwWacht"))),goud=Math.round(Number(v("vwGoud"))),mail=String(v("vwMail")||"").trim();
+  if(!(wacht>=1&&wacht<=60))return toast("Aantal dagen: tussen 1 en 60.",true);if(!(goud>=1&&goud<=30))return toast("Goudmelding: tussen 1 en 30 dagen.",true);
   if(!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(mail))return toast("Geen geldig e-mailadres.",true);
   try{const A=S.config.get("algemeen")||{};
-    await write("config","algemeen",{kalSeizoen:{van,tot},goudMail:{...(A.goudMail||{}),dagen:goud}},{merge:true});
+    await write("config","algemeen",{goudMail:{...(A.goudMail||{}),dagen:goud}},{merge:true});
     await write("config","betaalWacht",{dagen:wacht,mail},{merge:true});
     if(typeof KF!=="undefined")KF.jaar=null;toast("Bewaard.")}catch(x){toast(x.message,true)}});
 
@@ -9808,6 +9807,28 @@ moSjablonen=function(M){const tpls=mlTpls(),cats=[...new Set([...ML_CATS,...tpls
 document.addEventListener("click",e=>{const b=e.target.closest("[data-mosc]");if(!b)return;e.preventDefault();e.stopPropagation();const c=b.dataset.mosc,d=new Set(Array.isArray(UI.moDicht)?UI.moDicht:[SYS_CAT]);
   const open=b.getAttribute("aria-expanded")==="true";if(open)d.add(c);else d.delete(c);UI.moDicht=[...d];saveUI();b.setAttribute("aria-expanded",String(!open));const l=b.nextElementSibling;if(l)l.hidden=open},true);
 {const st=document.createElement("style");st.textContent=`.mo-sck{display:flex;align-items:center;gap:6px;width:100%;border:0;background:none;cursor:pointer;text-align:left;font:inherit;font-size:11.5px;color:var(--muted);padding:8px 10px 4px;border-radius:6px}.mo-sck:hover{color:var(--ink)}.mo-sck svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.4;flex:none;transition:transform .15s}.mo-sck[aria-expanded="true"] svg{transform:rotate(90deg)}.mo-sck small{margin-left:auto;font-size:11px;opacity:.8}.mo-scl[hidden]{display:none!important}`;document.head.appendChild(st)}
+
+/* Kalenders › Overzicht › tandwiel: kalenderseizoen (vanaf/tot) en Bancontact-export (CSV) opladen.
+   (Het seizoen stond vroeger bij Instellingen › Vaste waarden.) */
+{const _v=VIEWS.kalfin;VIEWS.kalfin=function(){const v=_v.apply(this,arguments);
+  if(ROL_ECHT==="admin"||(canWrite&&typeof kfFinMag==="function"&&kfFinMag()))v.actions=(v.actions||"")+'<button class="btn iconbtn" data-act="kalInst" title="Instellingen kalenders" aria-label="Instellingen kalenders">'+ic("instellingen")+'</button>';
+  return v}}
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="kalInst"]');if(!b)return;e.stopPropagation();const k=kalSz(),adm=ROL_ECHT==="admin";
+  modal("Instellingen kalenders",`<form id="kiForm" class="form">
+      <div class="fld"><label for="kiVan">Kalenderseizoen vanaf (dd/mm)</label><input class="inp" id="kiVan" value="${esc(vwDM(k.van))}" inputmode="numeric"${adm?"":" disabled"}></div>
+      <div class="fld"><label for="kiTot">Kalenderseizoen tot (dd/mm, volgend jaar)</label><input class="inp" id="kiTot" value="${esc(vwDM(k.tot))}" inputmode="numeric"${adm?"":" disabled"}></div>
+      ${adm?'<div class="full"><button class="btn primary" type="submit">Bewaren</button></div>':""}</form>
+    <div class="pi-sec" style="margin-top:18px"><h4>Bancontact-export</h4><label class="btn" style="cursor:pointer;align-self:flex-start">${ic("upload")}<span id="kiBcL">CSV opladen</span><input type="file" id="kiBc" accept=".csv,text/csv" hidden></label></div>`,
+    `<button class="btn" data-act="closeModal">Sluiten</button>`);
+  $("#kiBc").onchange=async ev=>{const f=ev.target.files&&ev.target.files[0];if(!f)return;const lb=$("#kiBcL");lb.textContent="Bezig…";
+    try{const rijen=bcCsv(await f.text()).filter(r=>r.id);if(!rijen.length)throw new Error("Geen Bancontact-betalingen gevonden in dit bestand.");
+      const j=await api("/api/mail?f=bcsplit",{method:"POST",body:JSON.stringify({actie:"export",rijen})});
+      toast(`${j.opgeslagen} betalingen ingelezen · ${j.gesplitst||0} ${j.gesplitst===1?"storting":"stortingen"} opgesplitst`+(j.overgeslagen&&j.overgeslagen.length?` · ${j.overgeslagen.length} niet (bedrag klopt niet)`:""),!!(j.overgeslagen&&j.overgeslagen.length));
+      lb.textContent="CSV opladen";if(typeof KF!=="undefined")KF.jaar=null}
+    catch(x){lb.textContent="CSV opladen";toast(x.message,true)}ev.target.value=""}},true);
+document.addEventListener("submit",async e=>{if(e.target.id!=="kiForm")return;e.preventDefault();const van=vwMD($("#kiVan").value),tot=vwMD($("#kiTot").value);
+  if(!van||!tot)return toast("Geef de datums in als dd/mm.",true);
+  try{await write("config","algemeen",{kalSeizoen:{van,tot}},{merge:true});if(typeof KF!=="undefined")KF.jaar=null;closeModal();toast("Bewaard.");renderBody()}catch(x){toast(x.message,true)}});
 
 /* ============ Kalenderdozen overdragen naar een ander lid (enkel administrator) ============
    In de fiche van een persoon (Kalenders › Verdeling): "Dozen overdragen". Kies aan wie (lid of andere naam) en hoeveel dozen.
