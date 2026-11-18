@@ -9869,14 +9869,14 @@ async function tfBewaar(c){await write("config",tfId(),{types:c.types,tafels:c.t
 function tfLater(c){S.config.set(tfId(),{id:tfId(),...(S.config.get(tfId())||{}),...c});clearTimeout(TF.t);TF.t=setTimeout(()=>tfBewaar(c).catch(e=>toast(e.message,true)),500)}
 
 function tfChip(u){const sel=TF.sel===u.id;
-  return `<div class="tf-p${sel?" on":""}" draggable="${canWrite}" data-tfp="${esc(u.id)}" title="${esc(u.cat)}"><b>${esc(u.r.naam||"")}</b>${u.n===2?'<span class="tf-plus">+ partner</span>':""}${u.veg?`<span class="tf-v" title="${u.veg} vegetarisch">V${u.veg>1?"×"+u.veg:""}</span>`:""}<small>${esc(u.cat)}</small>${u.opm?`<span class="tf-o">${esc(u.opm)}</span>`:""}</div>`}
+  return `<div class="tf-p${sel?" on":""}" draggable="${canWrite}" data-tfp="${esc(u.id)}" title="${esc(u.cat)}"><b>${esc(u.r.naam||"")}</b>${u.n===2?'<span class="tf-plus">+ partner</span>':""}${u.veg?`<span class="tf-v" title="${u.veg} vegetarisch">V${u.veg>1?"×"+u.veg:""}</span>`:""}${u.opm?`<span class="tf-o">${esc(u.opm)}</span>`:""}</div>`}
 function tfBody(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);
   const per=new Map(c.tafels.map(t=>[t.id,[]])),los=[];for(const u of U){const t=c.plaats[u.id];if(t&&per.has(t))per.get(t).push(u);else los.push(u)}
   const pers=U.reduce((s,u)=>s+u.n,0),cap=c.tafels.reduce((s,t)=>s+t.cap,0),geplaatst=pers-los.reduce((s,u)=>s+u.n,0);
   const kaart=t=>{const L=per.get(t.id)||[],n=L.reduce((s,u)=>s+u.n,0),cats=[...new Set(L.map(u=>u.cat))];
     return `<div class="tf-t${n>t.cap?" vol":""}" data-tft="${esc(t.id)}"><div class="tf-h"><b>${esc(t.naam)}</b><span class="${n>t.cap?"tf-over":""}">${n}/${t.cap}</span></div>${cats.length?`<div class="tf-c">${esc(cats.join(" · "))}</div>`:""}<div class="tf-l">${L.map(tfChip).join("")||'<div class="tf-e">Sleep hier personen naartoe</div>'}</div></div>`};
   return `<div class="tiles"><div class="tile hero"><span class="lbl">Personen</span><span class="val">${pers}</span></div><div class="tile"><span class="lbl">Geplaatst</span><span class="val">${geplaatst}</span></div><div class="tile"><span class="lbl">Plaatsen</span><span class="val"${cap<pers?' style="color:var(--accent)"':""}>${cap}</span></div><div class="tile"><span class="lbl">Tafels</span><span class="val">${c.tafels.length}</span></div></div>
-  ${los.length?`<div class="panel tf-los" data-tft=""><div class="panel-h"><h2>Nog niet geplaatst</h2><span class="pill warn">${los.reduce((s,u)=>s+u.n,0)}</span></div><div class="tf-l">${los.map(tfChip).join("")}</div></div>`:""}
+  <div class="panel tf-los" data-tft=""><div class="panel-h"><h2>Wachtzone</h2>${los.length?`<span class="pill warn">${los.reduce((s,u)=>s+u.n,0)}</span>`:""}</div><div class="tf-l">${los.map(tfChip).join("")||'<div class="tf-e" style="flex:1">Sleep hier personen naartoe om ze even van een tafel te halen</div>'}</div></div>
   <div class="tf-g">${c.tafels.map(kaart).join("")}</div>
   ${(()=>{const O=U.filter(u=>u.opm);if(!O.length)return"";const tn=id=>{const t=c.tafels.find(x=>x.id===c.plaats[id]);return t?t.naam:"niet geplaatst"};
     return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h2>Opmerkingen</h2><span class="pill neutral">${O.length}</span></div><div class="tf-ol">${O.sort((a,b)=>tn(a.id).localeCompare(tn(b.id),"nl",{numeric:true})).map(u=>`<div><b>${esc(u.r.naam||"")}</b><span>${esc(tn(u.id))}</span><p>${esc(u.opm)}</p></div>`).join("")}</div></div>`})()}`}
@@ -9903,7 +9903,9 @@ document.addEventListener("drop",e=>{const t=e.target.closest&&e.target.closest(
 document.addEventListener("click",e=>{if(route()!=="banket"||UI.bkTab!=="tafels"||!canWrite)return;const p=e.target.closest("[data-tfp]");
   if(p){e.stopPropagation();TF.sel=TF.sel===p.dataset.tfp?null:p.dataset.tfp;$$("[data-tfp]").forEach(x=>x.classList.toggle("on",x.dataset.tfp===TF.sel));return}
   const t=e.target.closest("[data-tft]");if(t&&TF.sel){tfZet(TF.sel,t.dataset.tft);TF.sel=null}});
-function tfZet(uid,tid){if(!uid)return;const c=tfCfg();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);if(tid)c.plaats[uid]=tid;else delete c.plaats[uid];tfLater(c);renderBody()}
+function tfZet(uid,tid){if(!uid)return;const c=tfCfg();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);
+  if(tid&&c.plaats[uid]!==tid){const U=tfUnits(),u=U.find(x=>x.id===uid),t=c.tafels.find(x=>x.id===tid);if(u&&t){const bezet=U.filter(x=>c.plaats[x.id]===tid).reduce((s,x)=>s+x.n,0);
+    if(bezet+u.n>t.cap){toast(`${t.naam} is vol (${bezet}/${t.cap})${u.n===2?": er is geen plaats voor 2 personen":""}.`,true);return}}}if(tid)c.plaats[uid]=tid;else delete c.plaats[uid];tfLater(c);renderBody()}
 
 /* instellingen: hoeveel tafels van hoeveel personen */
 function tfInst(){const c=tfCfg();const rij=(t,i)=>`<div class="tf-ir"><input class="inp" type="number" min="0" max="50" value="${Number(t.aantal)||0}" data-tfa="${i}" aria-label="Aantal tafels"><span>tafels van</span><input class="inp" type="number" min="1" max="40" value="${Number(t.cap)||8}" data-tfc="${i}" aria-label="Personen per tafel"><span>personen</span><button type="button" class="btn sm ghost danger" data-tfw="${i}" aria-label="Verwijderen">${ic("x")}</button></div>`;
