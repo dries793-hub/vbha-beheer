@@ -81,7 +81,7 @@ export async function actieveLeden(sb, jaar) {
   LEDEN_CACHE = { jaar, t: Date.now(), L };
   return L;
 }
-// E-mailadres gedeeltelijk verbergen (deze lijst is openbaar): "jan.pe@example.org" -> "dr•••@telenet.be"
+// E-mailadres gedeeltelijk verbergen (deze lijst is openbaar): "jan.peeters@voorbeeld.be" -> "ja•••@voorbeeld.be"
 export function masker(e) { const m = /^([^@\s]+)@([^@\s]+\.[^@\s]+)$/.exec(String(e || "")); if (!m) return ""; return m[1].slice(0, Math.min(2, m[1].length - 1 || 1)) + "•••@" + m[2]; }
 // Zoeken op (een deel van) naam en/of voornaam; geeft enkel id + naam terug, maximaal 8.
 export function zoekLeden(L, q) {
