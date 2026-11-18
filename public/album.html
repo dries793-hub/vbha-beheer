@@ -17,7 +17,7 @@ a{color:inherit}
 button{font:inherit;color:inherit;cursor:pointer}
 .top{position:fixed;inset:0 0 auto;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;background:linear-gradient(rgba(0,0,0,.55),transparent);pointer-events:none}
 .top a,.top button{pointer-events:auto}
-.top img{height:30px;width:auto;display:block}
+.top img{height:22px;width:auto;display:block;filter:brightness(0) invert(1)}
 .pill{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:99px;background:rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap}
 .pill:hover{background:rgba(255,255,255,.2)}
 .pill svg{width:18px;height:18px}
@@ -74,7 +74,7 @@ h1{font-size:clamp(2.2rem,7vw,4.6rem);line-height:1.02;letter-spacing:-.03em;fon
 </style>
 </head>
 <body>
-<header class="top"><a href="https://vbha.be" aria-label="VBHA – naar vbha.be"><img src="/w/logo.png" alt="VBHA" width="720" height="245"></a><button class="pill" id="deelTop" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13M7.5 7.5 12 3l4.5 4.5"/></svg>Delen</button></header>
+<header class="top"><a href="https://vbha.be" aria-label="VBHA – naar vbha.be"><img src="/w/vbha-woordmerk.png" alt="VBHA" width="264" height="80"></a><button class="pill" id="deelTop" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13M7.5 7.5 12 3l4.5 4.5"/></svg>Delen</button></header>
 <main id="app"><div class="leeg"><b>Album laden…</b></div></main>
 <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Foto bekijken">
   <div class="prog" id="prog"></div>
