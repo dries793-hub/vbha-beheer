@@ -48,7 +48,7 @@ async function melding(req, res) {
   let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
   if (b.website) return res.status(200).json({ ok: true }); // honeypot
   const sb = admin();
-  await rateLimit(sb, req, "rondemelding", 12, 3600, httpErr);
+  await rateLimit(sb, req, "rondemelding", 60, 3600, httpErr); // ruim: leden melden vaak veel straten na elkaar, soms via hetzelfde netwerk
   const straten = [...new Set((Array.isArray(b.straten) ? b.straten : []).map(String).filter(s => /^[\w.~-]{1,80}$/.test(s)))].slice(0, 60);
   if (!straten.length) throw httpErr(400, "Kies minstens één straat.");
   const soort = b.soort === "d" ? "done" : b.soort === "r" ? "reserved" : null;
