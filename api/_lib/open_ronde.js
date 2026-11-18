@@ -194,8 +194,8 @@ async function wieBenIk(req, res) {
 }
 
 /* GeoJSON van de gereserveerde en bedeelde straten (zonder namen van personen), bv. als laag met "externe gegevens" in uMap.
-   Kleuren via properties._umap_options. Een deel van een straat ("straat~n") toont de hele straat in streepjes. */
-let KRL = null;
+   Kleuren via properties._umap_options. Een deel van een straat ("straat~n") toont enkel dat stuk (zelfde opdeling als de kaart). */
+let KRL = null, KRD = null;
 function decodeer(str) { const pts = []; let i = 0, lat = 0, lng = 0;
   while (i < str.length) { for (const k of [0, 1]) { let b, sh = 0, r = 0; do { b = str.charCodeAt(i++) - 63; r |= (b & 0x1f) << sh; sh += 5; } while (b >= 0x20 && i <= str.length);
       const d = r & 1 ? ~(r >> 1) : r >> 1; if (k === 0) lat += d; else lng += d; }
@@ -205,21 +205,18 @@ const mooi = id => { const [s, dg] = String(id).split("--"); const n = s.replace
 async function geoJson(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*"); res.setHeader("Cache-Control", "public, max-age=60");
   if (!KRL) KRL = (await import("./kr_lijnen.js")).default;
-  const sb = admin(), A = await algemeen(sb), per = new Map();
+  if (!KRD) KRD = (await import("./kr_delen.js")).default;
+  const sb = admin(), A = await algemeen(sb), feats = [];
+  const KL = { done: "#18794A", reserved: "#2F6FE4" }; // zelfde kleuren als de kaart in de app (bedeeld groen, gereserveerd blauw)
   for (let from = 0; ; from += 1000) {
     const { data, error } = await sb.from("ronde").select("data").eq("data->>jaar", String(A.jaar)).range(from, from + 999);
     if (error) throw error;
-    for (const r of data) { const d = r.data || {}; if (!d.straat) continue; const id = String(d.straat).split("~")[0], deel = String(d.straat).includes("~"), st = d.status === "done" ? "done" : "reserved";
-      const cur = per.get(id) || { done: 0, res: 0, deel: false, heel: null, at: "" };
-      if (deel) { cur.deel = true; if (st === "done") cur.done++; else cur.res++; } else cur.heel = st;
-      if (String(d.at || "") > cur.at) cur.at = String(d.at || ""); per.set(id, cur); }
+    for (const r of data) { const d = r.data || {}; if (!d.straat) continue; const sid = String(d.straat), id = sid.split("~")[0], deel = sid.includes("~");
+      const L = deel ? KRD[sid] : KRL[id]; if (!L || !L.length) continue; const st = d.status === "done" ? "done" : "reserved";
+      feats.push({ type: "Feature", geometry: { type: "MultiLineString", coordinates: L.map(decodeer) },
+        properties: { name: mooi(id) + (deel ? ` (stuk ${Number(sid.split("~")[1]) + 1})` : ""), status: st === "done" ? "bedeeld" : "gereserveerd", sinds: String(d.at || "").slice(0, 10),
+          _umap_options: { color: KL[st], weight: 5, opacity: 0.9 } } }); }
     if (data.length < 1000) break;
   }
-  const KL = { done: "#1f9d55", reserved: "#e8a33d" }, feats = [];
-  for (const [id, x] of per) { const L = KRL[id]; if (!L || !L.length) continue;
-    const status = x.heel || (x.done && !x.res ? "done" : "reserved"), deels = !x.heel;
-    feats.push({ type: "Feature", geometry: { type: "MultiLineString", coordinates: L.map(decodeer) },
-      properties: { name: mooi(id), status: status === "done" ? "bedeeld" : "gereserveerd", deels, sinds: x.at.slice(0, 10),
-        _umap_options: { color: KL[status], weight: 5, opacity: 0.9, ...(deels ? { dashArray: "8,6" } : {}) } } }); }
   res.status(200).json({ type: "FeatureCollection", features: feats });
 }
