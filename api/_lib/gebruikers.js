@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { requireUser, httpErr, isAdminRol } from "./sb.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
 import { huisstijl, knop } from "./bevestiging.js";
+import { registreer, sysMail } from "./sjabloon.js";
 
 // Gebruikersbeheer (enkel voor een admin).
 // GET                                           -> {gebruikers:[{id,email,naam,rol,laatst,tijdelijk,ik}], mail}
@@ -29,18 +30,24 @@ async function alleGebruikers(sb) {
   }
   return out;
 }
-export function welkomMail({ naam, email, rol, wachtwoord, url, reset }) {
-  const groet = naam ? "Beste " + esc(String(naam).split(" ")[0]) + "," : "Hallo,";
-  const html = huisstijl(`<p style="margin:0 0 15px">${groet}</p>
-<p style="margin:0 0 15px">${reset ? "Er werd een nieuw tijdelijk wachtwoord voor je aangemaakt voor" : "Je hebt nu toegang tot"} de beheeromgeving van de Vriendenkring Brandweer Hoofdpost Aalst, met de rechten <b>${esc(ROL_NAAM[rol] || rol)}</b>.</p>
+registreer({ key: "toegang", naam: "Beheeromgeving: toegang of nieuw wachtwoord", wanneer: "Als je bij Gebruikers iemand toegang geeft of een nieuw tijdelijk wachtwoord aanmaakt.",
+  onderwerp: "{als:reset}VBHA - Nieuw tijdelijk wachtwoord{/als:reset}{niet:reset}VBHA - Je toegang tot de beheeromgeving{/niet:reset}",
+  body: `<p style="margin:0 0 15px">Beste {voornaam},</p>
+<p style="margin:0 0 15px">{als:reset}Er werd een nieuw tijdelijk wachtwoord voor je aangemaakt voor{/als:reset}{niet:reset}Je hebt nu toegang tot{/niet:reset} de beheeromgeving van de Vriendenkring Brandweer Hoofdpost Aalst, met de rechten <b>{rechten}</b>.</p>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 18px"><tr><td bgcolor="#fff9f9" style="padding:16px 20px;border-left:5px solid #C1A057;font-family:Helvetica,Arial,sans-serif;font-size:15px;color:#222222">
-<p style="margin:0 0 5px"><b>Adres:</b> <a href="${esc(url)}" style="color:#b30000;text-decoration:underline">${esc(url.replace(/^https?:\/\//, ""))}</a></p>
-<p style="margin:0 0 5px"><b>E-mailadres:</b> ${esc(email)}</p>
-<p style="margin:0"><b>Tijdelijk wachtwoord:</b> <span style="font-family:Consolas,Menlo,monospace;font-size:16px">${esc(wachtwoord)}</span></p></td></tr></table>
+<p style="margin:0 0 5px"><b>Adres:</b> {adres}</p>
+<p style="margin:0 0 5px"><b>E-mailadres:</b> {email}</p>
+<p style="margin:0"><b>Tijdelijk wachtwoord:</b> {wachtwoord}</p></td></tr></table>
 <p style="margin:0 0 15px">Bij je eerste aanmelding kies je meteen je eigen wachtwoord. Het tijdelijke wachtwoord werkt daarna niet meer.</p>
-${knop("Aanmelden", url)}
-`, "Vriendenkring Brandweer Hoofdpost Aalst");
-  return { aan: email, aanNaam: naam || "", onderwerp: reset ? "VBHA - Nieuw tijdelijk wachtwoord" : "VBHA - Je toegang tot de beheeromgeving", html };
+<p>{knop_aanmelden}</p>`,
+  velden: [["voornaam", "Voornaam"], ["rechten", "Rechten"], ["adres", "Adres van de app (link)"], ["email", "E-mailadres"], ["wachtwoord", "Tijdelijk wachtwoord"], ["knop_aanmelden", "Knop aanmelden"], ["reset", "Voorwaarde: nieuw wachtwoord"]],
+  voorbeeld: { voornaam: "Jan", rechten: "Bestuur", adres: "vbha-beheer.vercel.app", email: "jan@voorbeeld.be", wachtwoord: "Abc-123-xyz", reset: "" } });
+export async function welkomMail({ naam, email, rol, wachtwoord, url, reset }, sb) {
+  const m = await sysMail(sb, "toegang", { voornaam: naam ? esc(String(naam).split(" ")[0]) : "", reset: !!reset, rechten: esc(ROL_NAAM[rol] || rol), email: esc(email),
+    adres: `<a href="${esc(url)}" style="color:#b30000;text-decoration:underline">${esc(url.replace(/^https?:\/\//, ""))}</a>`,
+    wachtwoord: `<span style="font-family:Consolas,Menlo,monospace;font-size:16px">${esc(wachtwoord)}</span>`, knop_aanmelden: knop("Aanmelden", url) });
+  const html = huisstijl(m.html.replace(/Beste\s+,/, "Hallo,"), "Vriendenkring Brandweer Hoofdpost Aalst");
+  return { aan: email, aanNaam: naam || "", onderwerp: m.onderwerp, html };
 }
 
 // rechten per tabblad binnen een functie, bv. "kalenders:ronde"
@@ -93,7 +100,7 @@ export async function gebruikers(req, res) {
     const rechten = isAdminRol(rol) ? null : { ...Object.fromEntries(FUNCTIES.map(f => { const v = b.rechten && b.rechten[f]; return [f, ["geen", "lezen", "bewerken"].includes(v) ? v : "geen"]; })), ...tabRechten(b.rechten) };
     const { error: e2 } = await sb.from("bestuur").upsert({ user_id: id, email, naam: naam || null, rol, rechten }, { onConflict: "user_id" });
     if (e2) throw e2;
-    const gemaild = await mailen(welkomMail({ naam, email, rol, wachtwoord: ww, url }));
+    const gemaild = await mailen(await welkomMail({ naam, email, rol, wachtwoord: ww, url }, sb));
     return res.status(200).json({ id, wachtwoord: ww, gemaild });
   }
   const id = String(b.id || "");
@@ -120,7 +127,7 @@ export async function gebruikers(req, res) {
     const { error } = await sb.auth.admin.updateUserById(id, { password: ww, user_metadata: { ...((u && u.user && u.user.user_metadata) || {}), tijdelijk: true } });
     if (error) throw error;
     const email = (u && u.user && u.user.email) || rij.email;
-    const gemaild = await mailen(welkomMail({ naam: rij.naam, email, rol: rij.rol === "bewerker" ? "admin" : rij.rol, wachtwoord: ww, url, reset: true }));
+    const gemaild = await mailen(await welkomMail({ naam: rij.naam, email, rol: rij.rol === "bewerker" ? "admin" : rij.rol, wachtwoord: ww, url, reset: true }, sb));
     return res.status(200).json({ wachtwoord: ww, gemaild });
   }
   if (b.actie === "verwijder") {

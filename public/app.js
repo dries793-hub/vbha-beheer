@@ -9750,6 +9750,57 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-kr-sort]")
     catch(e){console.error(e);toast("Album maken lukte niet: "+(e.message||e),true)}finally{bezig=false}}
   const t=()=>setTimeout(maak,1200);addEventListener("hashchange",t);t();setInterval(()=>{if(route()==="fotos")maak()},5000)})();
 
+/* ============ Mail/Sms › Automatische mails ============
+   De server registreert een sjabloon per automatische mail (bevestigingen, herinneringen, facturen, tickets, …) en bewaart
+   het in "templates" met id "sys-<sleutel>" (categorie "Automatische mails"). Aanpassen en bewaren hier = de automatische mail
+   verandert mee. Zo'n sjabloon heeft geen ontvangers: in plaats daarvan staat uitleg wanneer de mail vertrekt, met een knop
+   om de standaardtekst terug te zetten. Velden: {veld}, {als:veld}…{/als:veld}, {niet:veld}…{/niet:veld}. */
+const SYS_CAT="Automatische mails";
+if(!ML_CATS.includes(SYS_CAT))ML_CATS.push(SYS_CAT);
+let SYS_GEZAAID=false;
+async function sysLaad(){const {data}=await SB.from("templates").select("id,data").like("id","sys-%");for(const r of data||[])S.templates.set(r.id,{id:r.id,...(r.data||{})})}
+async function sysZaai(herstel){const j=await api("/api/mail?f=sysSjablonen",{method:"POST",body:JSON.stringify(herstel?{herstel}:{})});await sysLaad();return j}
+const sysTpl=M=>M&&M.tplId&&String(M.tplId).startsWith("sys-")?S.templates.get(M.tplId):null;
+/* zelfde regels als de server (api/_lib/sjabloon.js) */
+function sysVul(t,v){let s=String(t||"");const leeg=x=>x==null||x===false||x===""||x===0;
+  for(let i=0;i<3;i++)s=s.replace(/\{als:(\w+)\}([\s\S]*?)\{\/als:\1\}/g,(m,k,inh)=>leeg(v[k])?"":inh).replace(/\{niet:(\w+)\}([\s\S]*?)\{\/niet:\1\}/g,(m,k,inh)=>leeg(v[k])?inh:"");
+  s=s.replace(/<(p|div)(\s[^>]*)?>\s*(?:<br\s*\/?>\s*)*\{(\w+)\}\s*(?:<br\s*\/?>\s*)*<\/\1>/gi,(m,tag,at,k)=>k in v?(leeg(v[k])?"":String(v[k])):m);
+  s=s.replace(/\{(\w+)\}/g,(m,k)=>k in v?(leeg(v[k])?"":String(v[k])):m);return s.replace(/<p(\s[^>]*)?>\s*(<br\s*\/?>)?\s*<\/p>/gi,"")}
+/* voorbeeldwaarden: wat de server meegeeft; blokken (tabellen, knoppen) als grijs vak met hun omschrijving */
+function sysVoorbeeld(t){const v={...(t.voorbeeld||{})};
+  for(const [k,l] of t.velden||[])if(!(k in v)){const blok=/^(gegevens|betaling|betalen|factuur|aanmaning|overschrijving|knop_|lijst|straten|details|antwoord|qr_codes|bestelling|cadeau|kinderen|nieuwe_punten|aanwezigheid|volgende$|bijbetaling|cadeaus|levering|info|opmerking|boodschap|korting|samen|wijzigen|extra_tekst)/.test(k);
+    v[k]=blok?`<div style="margin:6px 0 16px;padding:12px 14px;border:1.5px dashed #c8c9cc;border-radius:8px;background:#fafafa;color:#686b71;font-size:13.5px">${esc(l)}</div>`:`[${esc(l)}]`}
+  return v}
+
+{const _v=mlVanTpl;mlVanTpl=function(t){const M=_v.apply(this,arguments);if(t&&t.sys){M.sys=t.sys;M.categorie=SYS_CAT}return M}}
+{const _e=mlEditor;mlEditor=function(M){const t=sysTpl(M);if(!t)return _e.apply(this,arguments);
+  const bewaar=ML_VELDEN.splice(0,ML_VELDEN.length);ML_VELDEN.push(["Velden van deze mail",(t.velden||[]).map(([k,l])=>[k,l])]);
+  try{return _e.apply(this,arguments).replace(/<span class="help">[\s\S]*?<\/span>\s*$/,`<span class="help">Velden zoals <span class="kbd">{voornaam}</span> worden bij het versturen ingevuld. Een stuk tekst tussen <span class="kbd">{als:veld}</span> en <span class="kbd">{/als:veld}</span> komt er enkel in als dat veld van toepassing is (<span class="kbd">{niet:veld}</span> net omgekeerd). Logo, rode balken en groet komen er bij het versturen vanzelf bij.</span>`)}
+  finally{ML_VELDEN.splice(0,ML_VELDEN.length,...bewaar)}}}
+{const _p=mailPreview;mailPreview=function(){const M=mailState(),t=sysTpl(M);if(!t)return _p.apply(this,arguments);
+  const fr=$("#mlFrame"),hd=$("#mHead");if(!fr)return;const ed=$("#mlEd");const body=ed?ed.innerHTML:M.body,v=sysVoorbeeld(t);
+  hd.innerHTML=`<div class="ml-meta"><div><span>Aan</span><b class="trunc">Voorbeeld</b></div><div><span>Onderwerp</span><b class="trunc">${esc(sysVul(M.onderwerp,v).replace(/<[^>]+>/g,"").replace(/&amp;/g,"&"))}</b></div></div>`;
+  const h=mlKader(mlStijl(sysVul(body,v))).replace("<head>",'<head><base target="_blank">');
+  fr.onload=()=>{try{const b=fr.contentDocument.documentElement;fr.style.height=Math.max(320,b.scrollHeight+4)+"px"}catch(e){}};fr.srcdoc=h}}
+{const _b=mlBewaar;mlBewaar=async function(kopie){const M=MAIL,t=sysTpl(M);if(!t||kopie)return _b.apply(this,arguments);
+  const ed=$("#mlEd");if(ed)M.body=ed.innerHTML;
+  await write("templates",M.tplId,{...stripId(t),onderwerp:M.onderwerp,body:M.body,opmaak:"huisstijl",isHtml:true,categorie:SYS_CAT,gewijzigd:new Date().toISOString(),door:ME_NAME||""});
+  M.dirty=false;toast("Sjabloon bewaard. De automatische mail gebruikt vanaf nu deze tekst.");render(true)}}
+{const _v=VIEWS.mails;const n=function(){const v=_v.apply(this,arguments);
+  if(!SYS_GEZAAID&&canWrite){SYS_GEZAAID=true;sysZaai().then(j=>{if(route()==="mails"&&j&&j.aangemaakt)renderBody()}).catch(e=>console.warn("sjablonen",e))}
+  return v};Object.assign(n,_v);VIEWS.mails=n}
+/* opstelvenster voor een automatische mail: geen ontvangers of verzenden, wel bewaren, uitleg en standaardtekst terugzetten */
+{const _o=moOpstel;moOpstel=function(M){const t=sysTpl(M);if(!t)return _o.apply(this,arguments);const d=canWrite?"":" disabled";
+  const balk=`<div class="mo-bk">${canWrite?`<button class="btn primary" data-act="mlSave">Bewaren</button><button class="btn" data-act="sysHerstel">Standaardtekst terugzetten</button>`:""}<span class="grow"></span><span class="ml-dirty" id="mlDirty">${M.dirty?"Niet bewaard":""}</span></div>`;
+  const uitleg=`<div class="mo-vl"><div class="mo-r"><span class="mo-l">Mail</span><span class="mo-v"><b>${esc(t.naam||"")}</b></span></div>
+    <div class="mo-r"><span class="mo-l">Wanneer</span><span class="mo-v muted">${esc(t.wanneer||"Deze mail vertrekt automatisch.")}${t.gewijzigd?` · aangepast op ${esc(fmtDate(String(t.gewijzigd).slice(0,10)))}${t.door?" door "+esc(t.door):""}`:""}</span></div>
+    <div class="mo-r"><label class="mo-l" for="mOnd">Onderwerp</label><input id="mOnd" class="mo-v mo-ond" data-mlv="onderwerp" value="${esc(M.onderwerp)}"${d}></div></div>`;
+  return `<div class="mo-op met-pv"><div class="panel mo-ed">${balk}${uitleg}<div class="mo-inh">${mlEditor(M)}</div></div>
+    <div class="panel mo-pv"><div class="panel-h"><h2>Voorbeeld</h2></div><div class="panel-b stack" style="gap:10px"><div class="ml-head" id="mHead"></div><div class="ml-prev"><iframe id="mlFrame" title="Voorbeeld van de mail" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div></div></div></div>`}}
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="sysHerstel"]');if(!b)return;e.stopPropagation();const M=MAIL,t=sysTpl(M);if(!t)return;
+  confirmBox(`De tekst van <b>${esc(t.naam)}</b> terugzetten naar de standaardtekst? Je aanpassingen gaan verloren.`,"Terugzetten",async()=>{
+    try{await sysZaai(t.sys);MAIL=mlVanTpl(S.templates.get(M.tplId));toast("Standaardtekst teruggezet.");render(true)}catch(x){toast("Terugzetten lukte niet: "+(x.message||x),true)}})},true);
+
 /* ============ Kalenderdozen overdragen naar een ander lid (enkel administrator) ============
    In de fiche van een persoon (Kalenders › Verdeling): "Dozen overdragen". Kies aan wie (lid of andere naam) en hoeveel dozen.
    Staat de ontvanger nog niet in de lijst, dan wordt hij meteen toegevoegd. Beide kanten krijgen een regel in hun geschiedenis. */

@@ -5,6 +5,20 @@ import { adresVolledig, ADRES_FOUT } from "./adrescheck.js";
 import { onlineConfigured } from "./betaalprovider.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
 import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, site } from "./bevestiging.js";
+import { registreer, sysMail } from "./sjabloon.js";
+const SV = [["voornaam", "Voornaam"], ["nr", "Bestelnummer"], ["bestelling", "Tabel met de bestelling"], ["totaal", "Totaal"], ["adres", "Adres klant"], ["afhaaladres", "Afhaaladres"]], SVV = { voornaam: "Jan", nr: "W2026-012", totaal: "€24,00", adres: "Kerkstraat 1, 9300 Aalst", afhaaladres: "Kazerne Aalst" };
+registreer({ key: "shop-bevestiging", naam: "Webshop: bevestiging bestelling", wanneer: "Na een bestelling in de webshop.",
+  onderwerp: "Je bestelling {nr} bij de VBHA webshop",
+  body: p("Beste {voornaam},") + p("Bedankt voor je bestelling! Hieronder vind je een overzicht.") + kaderBlok("Bestelling {nr}", "{bestelling}") + "<p>{betaling}</p>" + p("{levering}") + "<p>{opmerking}</p><p>{info}</p>",
+  velden: [...SV, ["betaling", "Blok betaling"], ["levering", "Zin over verzending of afhalen"], ["opmerking", "Opmerking van de klant"], ["info", "Extra info (instellingen webshop)"]], voorbeeld: SVV });
+registreer({ key: "shop-verzonden", naam: "Webshop: bestelling verzonden", wanneer: "Als je een bestelling op verzonden zet.",
+  onderwerp: "Je bestelling {nr} is verzonden",
+  body: p("Beste {voornaam},") + p("Goed nieuws: je bestelling <b>{nr}</b> is vandaag met bpost verzonden naar {adres}.") + kaderBlok("Bestelling {nr}", "{bestelling}") + p("Bedankt voor je steun aan de Vriendenkring!"),
+  velden: SV, voorbeeld: SVV });
+registreer({ key: "shop-klaar", naam: "Webshop: bestelling ligt klaar", wanneer: "Als je een bestelling om af te halen op klaar zet.",
+  onderwerp: "Je bestelling {nr} ligt klaar",
+  body: p("Beste {voornaam},") + p("Je bestelling <b>{nr}</b> ligt klaar in de kazerne ({afhaaladres}). We nemen contact met je op om een moment af te spreken{als:cash}; je betaalt dan <b>{totaal}</b> cash{/als:cash}.") + kaderBlok("Bestelling {nr}", "{bestelling}"),
+  velden: [...SV, ["cash", "Voorwaarde: cash betalen bij afhalen"]], voorbeeld: { ...SVV, cash: "" } });
 import { epcPayload, qrSvg } from "./epc.js";
 import { meldPush } from "./push.js";
 
@@ -125,17 +139,18 @@ export async function shopMail(sb, id, soort) {
   const lijnen = tabel([...d.items.map(l => rij(`${l.aantal} × ${l.naam}`, eur(l.prijs * l.aantal))), rij(d.levering === "post" ? "Verzending met bpost" : "Afhalen in de kazerne", d.verzendkost ? eur(d.verzendkost) : "gratis"), rij("Totaal", `<b>${eur(d.totaal)}</b>`)]);
   const lev = d.levering === "post" ? `We sturen je bestelling met bpost naar:<br><b>${esc(d.klant.adres)}</b>` : `Je haalt je bestelling af in de kazerne (${esc(c.afhaaladres)}). We nemen contact met je op om een moment af te spreken.`;
   let ond, html;
+  const V = { voornaam: esc(d.klant.voornaam), nr: esc(d.nr), bestelling: lijnen, totaal: eur(d.totaal), adres: esc(d.klant.adres || ""), afhaaladres: esc(c.afhaaladres || "") };
   if (soort === "bevestiging") {
     const bet = d.betaald ? kaderBlok("&#10003; Betaling ontvangen", p(`We ontvingen je betaling van <b>${eur(d.totaal)}</b>.`, "margin:0"), "#1a7f45", "#f1faf4")
       : d.betaalwijze === "cash" ? kaderBlok("Betalen bij afhalen", p(`Je betaalt <b>${eur(d.totaal)}</b> cash wanneer je de bestelling afhaalt.`, "margin:0"))
       : kaderBlok("Nog te betalen", tabel([rij("Bedrag", `<b>${eur(d.totaal)}</b>`), rij("Rekening", `<b>${esc(iban)}</b>`), rij("Begunstigde", esc(A.vereniging)), rij("Mededeling", `<b>${esc(mededeling(d))}</b>`)])
         + p("We verwerken je bestelling zodra je betaling binnen is.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2") + knop("Betaalgegevens en QR-code bekijken", orderUrl(r.id, d.betaalToken));
-    ond = `Je bestelling ${d.nr} bij de VBHA webshop`;
-    html = p(`Beste ${esc(d.klant.voornaam)},`) + p(`Bedankt voor je bestelling! Hieronder vind je een overzicht.`) + kaderBlok(`Bestelling ${esc(d.nr)}`, lijnen) + bet + p(lev) + (d.opmerking ? p(`<i>Jouw opmerking: ${esc(d.opmerking)}</i>`, "margin:0 0 15px;color:#666666") : "") + (c.info ? p(esc(c.info), "margin:0 0 15px;font-size:13.5px;color:#666666") : "");
+    const m = await sysMail(sb, "shop-bevestiging", { ...V, betaling: bet, levering: lev, opmerking: d.opmerking ? p(`<i>Jouw opmerking: ${esc(d.opmerking)}</i>`, "margin:0 0 15px;color:#666666") : "", info: c.info ? p(esc(c.info), "margin:0 0 15px;font-size:13.5px;color:#666666") : "" });
+    ond = m.onderwerp; html = m.html;
   } else if (soort === "verzonden") {
-    ond = `Je bestelling ${d.nr} is verzonden`; html = p(`Beste ${esc(d.klant.voornaam)},`) + p(`Goed nieuws: je bestelling <b>${esc(d.nr)}</b> is vandaag met bpost verzonden naar ${esc(d.klant.adres)}.`) + kaderBlok(`Bestelling ${esc(d.nr)}`, lijnen) + p("Bedankt voor je steun aan de Vriendenkring!");
+    const m = await sysMail(sb, "shop-verzonden", V); ond = m.onderwerp; html = m.html;
   } else if (soort === "klaar") {
-    ond = `Je bestelling ${d.nr} ligt klaar`; html = p(`Beste ${esc(d.klant.voornaam)},`) + p(`Je bestelling <b>${esc(d.nr)}</b> ligt klaar in de kazerne (${esc(c.afhaaladres)}). We nemen contact met je op om een moment af te spreken${d.betaalwijze === "cash" && !d.betaald ? `; je betaalt dan <b>${eur(d.totaal)}</b> cash` : ""}.`) + kaderBlok(`Bestelling ${esc(d.nr)}`, lijnen);
+    const m = await sysMail(sb, "shop-klaar", { ...V, cash: d.betaalwijze === "cash" && !d.betaald }); ond = m.onderwerp; html = m.html;
   } else return false;
   const [x] = await verstuur([{ aan: d.klant.email, aanNaam: `${d.klant.voornaam} ${d.klant.naam}`, onderwerp: ond, html: huisstijl(html, A.vereniging), van: afzender() }]);
   if (x && x.ok) { const { data: n } = await sb.from("shop_orders").select("data").eq("id", id).maybeSingle(); await sb.from("shop_orders").update({ data: { ...n.data, mail: { ...(n.data.mail || {}), [soort]: new Date().toISOString() } } }).eq("id", id); }

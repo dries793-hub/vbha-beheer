@@ -55,6 +55,14 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "klik") { const { klikApi } = await import("./_lib/klik.js"); return await klikApi(req, res); } // knop in een mail: klik bewaren en doorsturen
     if (req.query && req.query.f === "backup") { const { backupApi } = await import("./_lib/backup.js"); return await backupApi(req, res); } // wekelijkse back-up (ook manueel door een administrator)
     if (req.query && req.query.f === "jaardoc") { const { jaardocApi } = await import("./_lib/jaardoc.js"); return await jaardocApi(req, res); } // jaarrekening / jaarverslag als PDF
+    if (req.query && req.query.f === "sysSjablonen") { // sjablonen van de automatische mails aanmaken (of één terugzetten naar de standaardtekst)
+      const { requireUser } = await import("./_lib/sb.js"); const { sb } = await requireUser(req, { write: true, functie: "mails" });
+      for (const m of ["bevestiging", "betaalherinnering", "betaalwacht", "factuur", "fuif", "gebruikers", "goudmail", "herinnering", "kfcadeau", "open_kinderfeest", "open_sponsor", "rondemail", "shop", "sponsorbev", "terugbetaling"]) await import(`./_lib/${m}.js`);
+      const { zaaiSjablonen, sysDefs } = await import("./_lib/sjabloon.js"); const { admin } = await import("./_lib/sb.js");
+      let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+      const r = await zaaiSjablonen(admin(), b.herstel ? String(b.herstel) : null);
+      return res.status(200).json({ ...r, sleutels: sysDefs().map(d => d.key) });
+    }
     if (req.query && req.query.f === "r2") return await r2Api(req, res); // fotoalbums: tijdelijke links naar Cloudflare R2
     if (req.query && req.query.f === "shop") return await shopApi(req, res); // webshop: status van een bestelling, mails
     if (req.query && req.query.f === "kfcadeau") { const { kfCadeauApp } = await import("./_lib/kfcadeau.js"); return await kfCadeauApp(req, res); } // kinderfeest: cadeaulink, prijzen en voorraad opnieuw controleren

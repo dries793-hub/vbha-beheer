@@ -8,6 +8,27 @@ import crypto from "node:crypto";
 import { admin, httpErr, sendError, requireUser } from "./sb.js";
 import { body, clean, configDoc, algemeen, rateLimit, vandaagISO } from "./publiek.js";
 import { kfMailDef, kfGroepen } from "./bevestiging.js";
+import { registreer, sysMail } from "./sjabloon.js";
+const KP = (t, st = "margin:0 0 16px") => `<p style="${st}">${t}</p>`;
+registreer({ key: "kinderfeest-cadeaukeuze", naam: "Kinderfeest: cadeaukeuze ontvangen", wanneer: "Als een ouder het cadeau online kiest (of de bijbetaling doet).",
+  onderwerp: "{als:bijbetaald}VBHA - Bijbetaling ontvangen, cadeaus kinderfeest {jaar}{/als:bijbetaald}{niet:bijbetaald}VBHA - Cadeaukeuze kinderfeest {jaar} ontvangen{/niet:bijbetaald}",
+  body: KP("Beste {voornaam},") + KP("{als:bijbetaald}Je bijbetaling is in orde: we bestellen de cadeaus die je koos voor het kinderfeest.{/als:bijbetaald}{niet:bijbetaald}Bedankt! We ontvingen je cadeaukeuze voor het kinderfeest.{/niet:bijbetaald}")
+    + "<p>{bijbetaling}</p><p>{cadeaus}</p><p>{samen}</p><p>{wijzigen}</p>" + KP("Tot op het kinderfeest{als:datum} van {datum}{/als:datum}!"),
+  velden: [["voornaam", "Voornaam"], ["jaar", "Jaar"], ["datum", "Datum kinderfeest"], ["cadeaus", "Gekozen cadeaus per kind"], ["bijbetaling", "Blok bijbetaling ontvangen"], ["samen", "Zin over het totale budget"], ["wijzigen", "Zin over wijzigen"], ["link_cadeau", "Link cadeaupagina"], ["bijbetaald", "Voorwaarde: bijbetaling"]],
+  voorbeeld: { voornaam: "Jan", jaar: "2026", datum: "zaterdag 19 december 2026", link_cadeau: "https://vbha.be/cadeau", bijbetaald: "" } });
+registreer({ key: "kinderfeest-cadeau-online", naam: "Kinderfeest: kies het cadeau online", wanneer: "Als je bij Kinderfeest de ingeschreven ouders laat weten dat ze het cadeau online kunnen kiezen.",
+  onderwerp: "VBHA - Kies nu online het cadeau voor het kinderfeest {jaar}",
+  body: KP("Beste {voornaam},") + KP("Goed nieuws: het cadeau voor je kind(eren) kies je dit jaar gewoon online. Je hoeft niets meer door te mailen.") + "<p>{kinderen}</p>"
+    + KP("Kies het cadeau <b>tot en met {tot}</b> via de knop hieronder: plak de link van het product, wij controleren meteen de prijs en de voorraad. Indien je tegen {tot} geen keuze doorgeeft, krijg je een waardebon van bol.com t.w.v. het bedrag hierboven.")
+    + "<p>{knop_cadeau}</p>" + KP("Gaf je je keuze al door per mail? Dan hoef je niets meer te doen."),
+  velden: [["voornaam", "Voornaam"], ["jaar", "Jaar"], ["tot", "Kiezen tot en met"], ["kinderen", "Lijst kinderen met budget"], ["link_cadeau", "Link cadeaupagina"], ["knop_cadeau", "Knop cadeau kiezen"]],
+  voorbeeld: { voornaam: "Jan", jaar: "2026", tot: "woensdag 9 december 2026", link_cadeau: "https://vbha.be/cadeau" } });
+registreer({ key: "kinderfeest-voorraad", naam: "Kinderfeest: gekozen cadeau niet meer op voorraad", wanneer: "Als een gekozen artikel niet meer op voorraad is (binnen de keuzetermijn).",
+  onderwerp: "VBHA - Gekozen cadeau voor {kind} niet meer op voorraad",
+  body: KP("Beste {voornaam},") + KP("Het cadeau dat je koos voor <b>{kind}</b>, <b>{artikel}</b> ({winkel}), is helaas niet meer op voorraad.")
+    + KP("Kies een ander artikel <b>tot en met {tot}</b> via de knop hieronder. Indien je geen nieuwe keuze doorgeeft, krijgt {kind} een waardebon van bol.com.") + "<p>{knop_cadeau}</p>",
+  velden: [["voornaam", "Voornaam"], ["kind", "Naam kind"], ["artikel", "Artikel"], ["winkel", "Winkel"], ["tot", "Kiezen tot en met"], ["link_cadeau", "Link cadeaupagina"], ["knop_cadeau", "Knop ander artikel kiezen"]],
+  voorbeeld: { voornaam: "Jan", kind: "Lotte", artikel: "LEGO City brandweerwagen", winkel: "bol.com", tot: "woensdag 9 december 2026", link_cadeau: "https://vbha.be/cadeau" } });
 
 const sleutel = () => String(process.env.BETAAL_GEHEIM || process.env.SUPABASE_SERVICE_ROLE_KEY || "");
 export const kfcToken = id => crypto.createHmac("sha256", sleutel()).update(`vbha-kfcadeau|${id}`).digest("base64url").slice(0, 22);
@@ -254,8 +275,8 @@ export async function kfCadeauMail(sb, id, { betaald = 0 } = {}) {
     const bet = betaald > 0 ? kaderBlok("Bijbetaling ontvangen", p(`We ontvingen je betaling van <b>${eu(betaald)}</b> met Bancontact. Bedankt!`, "margin:0"), "#1a7f45", "#f1faf4") : "";
     const vast = (d.kinderen || []).some(k => k.cadeau && k.cadeau.betaald);
     const wijzig = !vast && vandaagISO() <= M.tot ? p(`Wil je nog iets wijzigen? Dat kan tot en met ${e(lang(M.tot))} via <a href="${e(kfcLink(row.id))}">je cadeaupagina</a>.`) : "";
-    const html = p(`Beste ${e(voornaam)},`) + p(betaald > 0 ? "Je bijbetaling is in orde: we bestellen de cadeaus die je koos voor het kinderfeest." : "Bedankt! We ontvingen je cadeaukeuze voor het kinderfeest.") + bet + kids + pot + wijzig + p(`Tot op het kinderfeest${M.datum ? " van " + e(lang(M.datum)) : ""}!`);
-    const [r] = await verstuur([{ aan, aanNaam: d.lid || "", onderwerp: betaald > 0 ? `VBHA - Bijbetaling ontvangen, cadeaus kinderfeest ${d.jaar}` : `VBHA - Cadeaukeuze kinderfeest ${d.jaar} ontvangen`, html: huisstijl(html, A.vereniging), van: afzender() }]);
+    const m = await sysMail(sb, "kinderfeest-cadeaukeuze", { voornaam: e(voornaam), jaar: d.jaar, bijbetaald: betaald > 0, bijbetaling: bet, cadeaus: kids, samen: pot, wijzigen: wijzig, datum: M.datum ? e(lang(M.datum)) : "", link_cadeau: e(kfcLink(row.id)) });
+    const [r] = await verstuur([{ aan, aanNaam: d.lid || "", onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging), van: afzender() }]);
     return !!(r && r.ok);
   } catch (x) { console.error("kfCadeauMail", x); return false; }
 }
@@ -423,11 +444,8 @@ export async function kfCadeauApp(req, res) {
         const d = r.data; let vn = String(d.lid || "").split(" ").slice(-1)[0];
         if (d.lidId) { const { data: l } = await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle(); if (l && l.data && l.data.voornaam) vn = l.data.voornaam; }
         const kids = (d.kinderen || []).map(k => { const B = budgetVan(k.geb, M); return B.budget != null ? `<li style="margin:0 0 4px"><b>${e(k.naam)}</b>: cadeau ter waarde van <b>${eu(B.budget)}</b></li>` : B.voorzien ? `<li style="margin:0 0 4px"><b>${e(k.naam)}</b>: de vriendenkring voorziet een cadeau</li>` : ""; }).join("");
-        const html = p(`Beste ${e(vn)},`) + p("Goed nieuws: het cadeau voor je kind(eren) kies je dit jaar gewoon online. Je hoeft niets meer door te mailen.")
-          + (kids ? `<ul style="margin:0 0 15px;padding-left:22px">${kids}</ul>` : "")
-          + p(`Kies het cadeau <b>tot en met ${e(tot)}</b> via de knop hieronder: plak de link van het product, wij controleren meteen de prijs en de voorraad. Indien je tegen ${e(tot)} geen keuze doorgeeft, krijg je een waardebon van bol.com t.w.v. het bedrag hierboven.`)
-          + knop(kfcLink(r.id)) + p("Gaf je je keuze al door per mail? Dan hoef je niets meer te doen.");
-        rijen.push({ batch, data: { aan: String(d.email).trim(), aanNaam: d.lid || "", onderwerp: `VBHA - Kies nu online het cadeau voor het kinderfeest ${jaar}`, html: huisstijl(html, A.vereniging), antwoordAan: "info@vbha.be" } });
+        const m = await sysMail(sb, "kinderfeest-cadeau-online", { voornaam: e(vn), jaar, tot: e(tot), kinderen: kids ? `<ul style="margin:0 0 15px;padding-left:22px">${kids}</ul>` : "", link_cadeau: e(kfcLink(r.id)), knop_cadeau: knop(kfcLink(r.id)) });
+        rijen.push({ batch, data: { aan: String(d.email).trim(), aanNaam: d.lid || "", onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging), antwoordAan: "info@vbha.be" } });
       }
       const { error: e2 } = await sb.from("mail_wachtrij").insert(rijen); if (e2) throw e2;
       const op = new Date().toISOString();
@@ -450,11 +468,8 @@ async function kfcVoorraadMail(sb, row, kindNr, it) {
   let vn = String(d.lid || "").split(" ").slice(-1)[0];
   if (d.lidId) { const { data: l } = await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle(); if (l && l.data && l.data.voornaam) vn = l.data.voornaam; }
   const knop = u => `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 18px"><tr><td bgcolor="#C0161F" style="border-radius:8px"><a href="${e(u)}" style="display:inline-block;padding:12px 22px;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px">Een ander artikel kiezen</a></td></tr></table>`;
-  const html = p(`Beste ${e(vn)},`)
-    + p(`Het cadeau dat je koos voor <b>${e(k.naam)}</b>, <b>${e(it.naam || "")}</b> (${e(it.winkel || "")}), is helaas niet meer op voorraad.`)
-    + p(open ? `Kies een ander artikel <b>tot en met ${e(lang(M.tot))}</b> via de knop hieronder. Indien je geen nieuwe keuze doorgeeft, krijgt ${e(k.naam)} een waardebon van bol.com.` : `Kies een ander artikel via de knop hieronder.`)
-    + knop(kfcLink(row.id));
-  const { error } = await sb.from("mail_wachtrij").insert({ batch: "kfvoorraad-" + row.id, data: { aan: email, aanNaam: d.lid || "", onderwerp: `VBHA - Gekozen cadeau voor ${k.naam} niet meer op voorraad`, html: huisstijl(html, A.vereniging), antwoordAan: "info@vbha.be" } });
+  const m = await sysMail(sb, "kinderfeest-voorraad", { voornaam: e(vn), kind: e(k.naam), artikel: e(it.naam || ""), winkel: e(it.winkel || ""), tot: e(lang(M.tot)), link_cadeau: e(kfcLink(row.id)), knop_cadeau: knop(kfcLink(row.id)) });
+  const { error } = await sb.from("mail_wachtrij").insert({ batch: "kfvoorraad-" + row.id, data: { aan: email, aanNaam: d.lid || "", onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging), antwoordAan: "info@vbha.be" } });
   if (error) throw error;
   return true;
 }

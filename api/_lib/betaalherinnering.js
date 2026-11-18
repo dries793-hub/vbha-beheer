@@ -2,6 +2,7 @@ import { admin, requireUser, httpErr } from "./sb.js";
 import { smtpConfigured } from "./smtp.js";
 import { algemeen, configDoc, norm, DEF_IBAN, lidgeldBoekingen } from "./publiek.js";
 import { teken } from "./lidlink.js";
+import { registreer, sysMail } from "./sjabloon.js";
 import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, lang, plusDagen, site } from "./bevestiging.js";
 import { meldPush } from "./push.js";
 
@@ -79,15 +80,20 @@ async function banketLijst(sb, cfg, nu) {
   }
   return { lijst: out, jaar, verval, feest };
 }
-export function banketMail(x, A) {
+const BH_KADER = (meded, A, x) => tabel([rij("Bedrag", `<b>${eur(x.bedrag)}</b>`), rij("Rekening", `<b>${esc(A.rekeningnummer || DEF_IBAN)}</b>`), rij("Begunstigde", esc(A.vereniging)), rij("Mededeling", `<b>${esc(meded)}</b>`)]);
+const KLEIN = t => p(t, "margin:0 0 15px;font-size:13.5px;color:#666666");
+registreer({ key: "herinnering-banket", naam: "Herinnering betaling banket", wanneer: "Volgens de instellingen bij Financiën › Betaalherinneringen, aan wie ingeschreven is voor het banket maar nog niet betaalde.",
+  onderwerp: "VBHA - Herinnering betaling banket {jaar}",
+  body: p("Beste {voornaam},") + p("Bedankt voor je inschrijving voor ons banket van {datum}. Volgens onze gegevens hebben we je betaling nog niet ontvangen.")
+    + p("Pas wanneer je betaling binnen is, is je inschrijving definitief. Mogen we je vragen het bedrag zo snel mogelijk over te schrijven?")
+    + kaderBlok("Nog te betalen", "{overschrijving}" + p("Gebruik exact deze mededeling, dan wordt je betaling automatisch herkend.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2")
+    + KLEIN("Heb je intussen al betaald? Dan kruisten onze berichten elkaar en mag je deze herinnering als niet verzonden beschouwen. Kan je toch niet komen? Laat het ons dan weten door op deze mail te antwoorden."),
+  velden: [["voornaam", "Voornaam"], ["naam", "Naam"], ["jaar", "Jaar"], ["datum", "Datum banket"], ["bedrag", "Bedrag"], ["mededeling", "Mededeling"], ["overschrijving", "Tabel overschrijving"]],
+  voorbeeld: { voornaam: "Jan", naam: "Peeters Jan", jaar: "2026", datum: "zaterdag 12 december 2026", bedrag: "€65,00", mededeling: "Peeters Jan Banket 2026" } });
+export async function banketMail(sb, x, A) {
   const meded = `${x.naam} Banket ${x.jaar}`;
-  const html = p(`Beste ${esc(x.voornaam || x.naam)},`)
-    + p(`Bedankt voor je inschrijving voor ons banket van ${esc(lang(x.feest))}. Volgens onze gegevens hebben we je betaling nog niet ontvangen.`)
-    + p(`Pas wanneer je betaling binnen is, is je inschrijving definitief. Mogen we je vragen het bedrag zo snel mogelijk over te schrijven?`)
-    + kaderBlok("Nog te betalen", tabel([rij("Bedrag", `<b>${eur(x.bedrag)}</b>`), rij("Rekening", `<b>${esc(A.rekeningnummer || DEF_IBAN)}</b>`), rij("Begunstigde", esc(A.vereniging)), rij("Mededeling", `<b>${esc(meded)}</b>`)])
-      + p("Gebruik exact deze mededeling, dan wordt je betaling automatisch herkend.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2")
-    + p("Heb je intussen al betaald? Dan kruisten onze berichten elkaar en mag je deze herinnering als niet verzonden beschouwen. Kan je toch niet komen? Laat het ons dan weten door op deze mail te antwoorden.", "margin:0 0 15px;font-size:13.5px;color:#666666");
-  return { onderwerp: `VBHA - Herinnering betaling banket ${x.jaar}`, html: huisstijl(html, A.vereniging) };
+  const m = await sysMail(sb, "herinnering-banket", { voornaam: esc(x.voornaam || x.naam), naam: esc(x.naam), jaar: x.jaar, datum: esc(lang(x.feest)), bedrag: eur(x.bedrag), mededeling: esc(meded), overschrijving: BH_KADER(meded, A, x) });
+  return { onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging) };
 }
 
 /* ---------- lidgeld ---------- */
@@ -116,17 +122,22 @@ async function lidgeldLijst(sb, cfg) {
   }
   return { lijst: out, jaar: J, verval };
 }
-export function lidgeldMail(x, A) {
+registreer({ key: "herinnering-lidgeld", naam: "Herinnering lidgeld", wanneer: "Volgens de instellingen bij Financiën › Betaalherinneringen, aan leden die hun lidgeld nog niet betaalden.",
+  onderwerp: "VBHA - Herinnering lidgeld {jaar}",
+  body: p("Beste {voornaam},")
+    + p("Een tijdje geleden vroegen we je om je lidmaatschap van de <b>{vereniging}</b> voor {jaar} te verlengen. Na controle van onze rekeningen stellen we vast dat we je lidgeld nog niet mochten ontvangen.")
+    + p("Mogen we je vriendelijk vragen om het lidgeld zo snel mogelijk over te maken? Betaal eenvoudig online met Bancontact via de knop hieronder. Op de betaalpagina kan je ook een QR-code scannen met je bankapp.")
+    + "<p>{knop_betalen}</p>" + kaderBlok("Liever zelf overschrijven?", "{overschrijving}")
+    + KLEIN("Is dit ondertussen al geregeld, of wil je je lidmaatschap stopzetten? Laat het ons dan weten door gewoon op deze mail te antwoorden.")
+    + p("Alvast bedankt om dit in orde te brengen."),
+  velden: [["voornaam", "Voornaam"], ["naam", "Naam"], ["vereniging", "Naam vereniging"], ["jaar", "Jaar"], ["bedrag", "Bedrag"], ["mededeling", "Mededeling"], ["link_betalen", "Link online betalen"], ["knop_betalen", "Knop online betalen"], ["overschrijving", "Tabel overschrijving"]],
+  voorbeeld: { voornaam: "Jan", naam: "Peeters Jan", vereniging: "Vriendenkring Brandweer Hoofdpost Aalst", jaar: "2026", bedrag: "€30,00", mededeling: "Peeters Jan Lidgeld 2026", link_betalen: "https://vbha.be/lidgeld" } });
+export async function lidgeldMail(sb, x, A) {
   const meded = `${x.naam} Lidgeld ${x.jaar}`;
   const link = `${site()}/lidgeld?l=${encodeURIComponent(x.id)}&j=${x.jaar}&b=${Number(x.bedrag)}&t=${encodeURIComponent(teken(x.id, x.jaar, x.bedrag))}`;
-  const html = p(`Beste ${esc(x.voornaam || x.naam)},`)
-    + p(`Een tijdje geleden vroegen we je om je lidmaatschap van de <b>${esc(A.vereniging)}</b> voor ${x.jaar} te verlengen. Na controle van onze rekeningen stellen we vast dat we je lidgeld nog niet mochten ontvangen.`)
-    + p(`Mogen we je vriendelijk vragen om het lidgeld zo snel mogelijk over te maken? Betaal eenvoudig online met Bancontact via de knop hieronder. Op de betaalpagina kan je ook een QR-code scannen met je bankapp.`)
-    + knop("Betaal je lidgeld met Bancontact", link)
-    + kaderBlok("Liever zelf overschrijven?", tabel([rij("Bedrag", `<b>${eur(x.bedrag)}</b>`), rij("Rekening", `<b>${esc(A.rekeningnummer || DEF_IBAN)}</b>`), rij("Begunstigde", esc(A.vereniging)), rij("Mededeling", `<b>${esc(meded)}</b>`)]))
-    + p("Is dit ondertussen al geregeld, of wil je je lidmaatschap stopzetten? Laat het ons dan weten door gewoon op deze mail te antwoorden.", "margin:0 0 15px;font-size:13.5px;color:#666666")
-    + p("Alvast bedankt om dit in orde te brengen.<br>Met vriendelijke groeten,<br>Het bestuur");
-  return { onderwerp: `VBHA - Herinnering lidgeld ${x.jaar}`, html: huisstijl(html, A.vereniging) };
+  const m = await sysMail(sb, "herinnering-lidgeld", { voornaam: esc(x.voornaam || x.naam), naam: esc(x.naam), vereniging: esc(A.vereniging), jaar: x.jaar, bedrag: eur(x.bedrag), mededeling: esc(meded),
+    link_betalen: esc(link), knop_betalen: knop("Betaal je lidgeld met Bancontact", link), overschrijving: BH_KADER(meded, A, x) });
+  return { onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging) };
 }
 
 /* ---------- planning (ook voor het voorbeeld in de instellingen) ---------- */
@@ -165,7 +176,7 @@ export async function betaalHerinneringCron(sb) {
   await sb.from("config").upsert({ id: "betaalherinnering", data: { ...((cur && cur.data) || {}), laatsteDag: nu } });
   const P = await plan(sb, cfg, nu), A = cfg.A, batch = "betaalherinnering-" + nu, berichten = [], log = [];
   for (const x of [...P.banket.nu, ...P.lidgeld.nu]) {
-    const m = x.soort === "banket" ? banketMail(x, A) : lidgeldMail(x, A);
+    const m = x.soort === "banket" ? await banketMail(sb, x, A) : await lidgeldMail(sb, x, A);
     berichten.push({ batch, data: { aan: x.aan, aanNaam: x.naam, onderwerp: m.onderwerp, html: m.html } });
     const e = { op: new Date().toISOString(), aan: x.aan, n: x.log.length + 1 };
     // per inschrijving / per lid bijhouden

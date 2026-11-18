@@ -4,6 +4,7 @@ import { Pdf, afbreken } from "./pdf.js";
 import { LOGO, WATERMERK } from "./logo_pdf.js";
 import { fcConfig } from "./factuur.js";
 import { huisstijl, kaderBlok, tabel, rij, p, esc, eur, lang } from "./bevestiging.js";
+import { registreer, sysMail } from "./sjabloon.js";
 
 /* ============ Sponsorbevestiging ============
    Bewijsstuk voor de boekhouding van een sponsor: wat de vereniging ontving (in natura of in geld), de waarde,
@@ -79,19 +80,18 @@ export function bevPdf(b, s, cfg, hand) {
 }
 const pdfNaam = (b, s) => `Sponsorbevestiging ${b.nr} ${sponsorNaam(s)}.pdf`.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ");
 
-export function bevMail(b, s, cfg) {
+registreer({ key: "sponsorbevestiging", naam: "Sponsorbevestiging (attest voor de boekhouding)", wanneer: "Als je bij Sponsors een sponsorbevestiging mailt (met de PDF in bijlage).",
+  onderwerp: "Sponsorbevestiging {nr} - {vereniging}",
+  body: p("Beste {voornaam},") + p("Hartelijk dank voor je steun aan de {vereniging}. Zoals gevraagd vind je in bijlage de bevestiging van je sponsoring voor je boekhouding.")
+    + kaderBlok("Sponsorbevestiging {nr}", "{gegevens}") + p("Vragen? Antwoord gewoon op deze mail.", "margin:0 0 15px;font-size:13.5px;color:#666666"),
+  velden: [["voornaam", "Voornaam"], ["vereniging", "Naam vereniging"], ["nr", "Nummer"], ["omschrijving", "Omschrijving"], ["bedrag", "Bedrag of waarde"], ["gegevens", "Tabel met de gegevens"]],
+  voorbeeld: { voornaam: "Jan", vereniging: "Vriendenkring Brandweer Hoofdpost Aalst", nr: "SB2026-004", omschrijving: "Drank voor het banket", bedrag: "€150,00" } });
+export async function bevMail(sb, b, s, cfg) {
   const natura = b.soort !== "geld";
   const vn = String(s.voornaam || "").trim();
-  let html = p(vn ? `Beste ${esc(vn)},` : "Beste,")
-    + p(`Hartelijk dank voor je steun aan de ${esc(cfg.vereniging)}. Zoals gevraagd vind je in bijlage de bevestiging van je sponsoring voor je boekhouding.`)
-    + kaderBlok("Sponsorbevestiging " + esc(b.nr), tabel([
-      rij("Omschrijving", esc(b.omschrijving)),
-      rij(natura ? "Waarde" : "Bedrag", `<b>${eur(b.waarde)}</b>`),
-      b.datum ? rij(natura ? "Ontvangen op" : "Betaald op", esc(lang(b.datum))) : "",
-      b.tegenprestatie ? rij("Tegenprestatie", esc(b.tegenprestatie)) : "",
-    ]))
-    + p("Vragen? Antwoord gewoon op deze mail.", "margin:0 0 15px;font-size:13.5px;color:#666666");
-  return { onderwerp: `Sponsorbevestiging ${b.nr} - ${cfg.vereniging}`, html: huisstijl(html, cfg.vereniging, { extern: true }) };
+  const m = await sysMail(sb, "sponsorbevestiging", { voornaam: esc(vn), vereniging: esc(cfg.vereniging), nr: esc(b.nr), omschrijving: esc(b.omschrijving), bedrag: eur(b.waarde),
+    gegevens: tabel([rij("Omschrijving", esc(b.omschrijving)), rij(natura ? "Waarde" : "Bedrag", `<b>${eur(b.waarde)}</b>`), b.datum ? rij(natura ? "Ontvangen op" : "Betaald op", esc(lang(b.datum))) : "", b.tegenprestatie ? rij("Tegenprestatie", esc(b.tegenprestatie)) : ""]) });
+  return { onderwerp: m.onderwerp, html: huisstijl(m.html.replace(/Beste\s+,/g, "Beste,"), cfg.vereniging, { extern: true }) };
 }
 
 // Handtekening (tabel "handtekeningen", enkel leesbaar voor de server): wordt enkel gebruikt als de ondertekenaar exact die naam heeft.
@@ -142,7 +142,7 @@ export async function sponsorBevestiging(req, res) {
     const aan = String(b0.aan || s.email || "").trim();
     if (!isMail(aan)) throw httpErr(400, "Geen geldig e-mailadres voor deze sponsor.");
     if (!smtpConfigured()) throw httpErr(501, "Versturen is niet ingesteld (SMTP in Vercel).");
-    const m = bevMail(b, s, cfg);
+    const m = await bevMail(sb, b, s, cfg);
     const berichten = [{ aan, aanNaam: contactNaam(s) || sponsorNaam(s), onderwerp: m.onderwerp, html: m.html, van: afzender(), bijlagen: [{ naam: pdfNaam(b, s), type: "application/pdf", data: pdfb }], antwoordAan: undefined }];
     const kopie = String(cfg.kopie || "").split(/[,;\s]+/).filter(x => /@/.test(x) && x.toLowerCase() !== aan.toLowerCase());
     for (const k of kopie) berichten.push({ ...berichten[0], aan: k, aanNaam: "", onderwerp: "[Kopie] " + m.onderwerp });

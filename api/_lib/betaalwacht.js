@@ -3,6 +3,11 @@
    - Onkostennota's die nog goed te keuren (ingediend) of nog te betalen (goedgekeurd) zijn.
    Per betaling één keer gemeld (config betaalWacht.gemeld); de mail toont telkens alle betalingen die 5 dagen of langer wachten. */
 import { huisstijl, kaderBlok, knop, p, esc, eur } from "./bevestiging.js";
+import { registreer, sysMail } from "./sjabloon.js";
+registreer({ key: "betaalwacht", naam: "Te verwerken betalingen (aan de boekhouding)", wanneer: "Als betalingen (inkomende facturen, onkostennota's) al enkele dagen wachten om uitgevoerd te worden.",
+  onderwerp: "{als:een}1 betaling wacht{/als:een}{niet:een}{aantal} betalingen wachten{/niet:een} al {dagen} dagen",
+  body: p("Dag boekhouding,") + p("Er {als:een}wacht een betaling{/als:een}{niet:een}wachten {aantal} betalingen{/niet:een} al {dagen} dagen of langer om uitgevoerd te worden{als:totaal} (samen {totaal}){/als:totaal}.") + kaderBlok("Te verwerken betalingen", "{lijst}") + "<p>{knop_app}</p>",
+  velden: [["aantal", "Aantal betalingen"], ["dagen", "Aantal dagen"], ["totaal", "Totaal bedrag"], ["lijst", "Lijst van de betalingen"], ["knop_app", "Knop naar de app"], ["een", "Voorwaarde: één betaling"]], voorbeeld: { aantal: "2", dagen: "5", totaal: "€430,00", een: "" } });
 let DAGEN = 5, AAN = ""; const MAP = "Inkomende facturen"; // aantal dagen en ontvanger instelbaar in de app (config betaalWacht.dagen / .mail)
 const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 const van = d => (d.inkomend && (d.inkomend.leverancier || d.inkomend.vanNaam || d.inkomend.van)) || d.door || "";
@@ -37,10 +42,10 @@ export async function betaalWachtCron(sb) {
   items.sort((a, b) => a.sinds - b.sinds);
   const dagen = x => Math.floor((Date.now() - x.sinds) / 864e5), tot = items.reduce((s, x) => s + (x.bedrag || 0), 0);
   const lijst = items.map(x => p(`<b>${esc(x.naam)}</b>${x.bedrag ? ` · ${eur(x.bedrag)}` : ""}<br><span style="color:#6b7280">${esc(x.soort)} · wacht ${dagen(x)} dagen</span>`, "margin:0 0 10px")).join("");
-  const html = huisstijl(p("Dag boekhouding,") + p(`Er ${items.length === 1 ? "wacht een betaling" : `wachten ${items.length} betalingen`} al ${DAGEN} dagen of langer om uitgevoerd te worden${tot ? ` (samen ${eur(tot)})` : ""}.`)
-    + kaderBlok("Te verwerken betalingen", lijst) + knop("Openen in de app", "https://vbha-beheer.vercel.app/#dashboard"), "Vriendenkring Brandweer Hoofdpost Aalst");
+  const m = await sysMail(sb, "betaalwacht", { aantal: items.length, een: items.length === 1, dagen: DAGEN, totaal: tot ? eur(tot) : "", lijst, knop_app: knop("Openen in de app", "https://vbha-beheer.vercel.app/#dashboard") });
+  const html = huisstijl(m.html, "Vriendenkring Brandweer Hoofdpost Aalst");
   const aan = AAN || process.env.BETAALWACHT_MAIL || "boekhouding@vbha.be";
-  const { error } = await sb.from("mail_wachtrij").insert({ batch: "betaalwacht-" + new Date().toISOString().slice(0, 10), data: { aan, aanNaam: "Boekhouding VBHA", onderwerp: `${items.length === 1 ? "1 betaling wacht" : items.length + " betalingen wachten"} al ${DAGEN} dagen`, html, label: "Te verwerken betalingen" } });
+  const { error } = await sb.from("mail_wachtrij").insert({ batch: "betaalwacht-" + new Date().toISOString().slice(0, 10), data: { aan, aanNaam: "Boekhouding VBHA", onderwerp: m.onderwerp, html, label: "Te verwerken betalingen" } });
   if (error) throw error;
   for (const x of nieuw) schoon[x.id] = new Date().toISOString();
   await sb.from("config").upsert({ id: "betaalWacht", data: { ...C, gemeld: schoon } });

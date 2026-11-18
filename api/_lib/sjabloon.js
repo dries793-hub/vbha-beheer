@@ -9,6 +9,8 @@ const REG = new Map();
 export const SYS_CAT = "Automatische mails";
 export function registreer(def) { REG.set(def.key, def); return def; }
 export function sysDefs() { return [...REG.values()]; }
+// body mag ook een functie zijn die de opmaakhulpjes krijgt (voor modules die bevestiging.js niet vooraf laden)
+async function bodyVan(def) { return typeof def.body === "function" ? def.body(await import("./bevestiging.js")) : def.body; }
 
 const leeg = v => v == null || v === false || v === "" || v === 0;
 export function vulSjabloon(t, vars = {}) {
@@ -38,12 +40,12 @@ export function wisCache() { CACHE = null; }
 export async function sysMail(sb, key, vars) {
   const def = REG.get(key); if (!def) throw new Error("Onbekend mailsjabloon: " + key);
   const M = await laad(sb), t = M.get(key);
-  const ond = t && String(t.onderwerp || "").trim() ? t.onderwerp : def.onderwerp, body = t && String(t.body || "").trim() ? t.body : def.body;
+  const ond = t && String(t.onderwerp || "").trim() ? t.onderwerp : def.onderwerp, body = t && String(t.body || "").trim() ? t.body : await bodyVan(def);
   return { onderwerp: tekst(vulSjabloon(ond, vars)), html: vulSjabloon(body, vars) };
 }
 
 /* rij voor de tabel templates */
-export const sysRij = def => ({ naam: def.naam, categorie: SYS_CAT, groep: "", onderwerp: def.onderwerp, body: def.body, opmaak: "huisstijl", isHtml: true,
+export const sysRij = async def => ({ naam: def.naam, categorie: SYS_CAT, groep: "", onderwerp: def.onderwerp, body: await bodyVan(def), opmaak: "huisstijl", isHtml: true,
   sys: def.key, wanneer: def.wanneer || "", velden: def.velden || [], voorbeeld: def.voorbeeld || {} });
 
 /* ontbrekende standaardsjablonen aanmaken; met "herstel" één sjabloon terugzetten naar de standaardtekst.
@@ -52,7 +54,7 @@ export async function zaaiSjablonen(sb, herstel) {
   const { data } = await sb.from("templates").select("id,data").like("id", "sys-%");
   const B = new Map((data || []).map(r => [r.id, r.data || {}])), rijen = [];
   for (const def of REG.values()) {
-    const id = "sys-" + def.key, cur = B.get(id), std = sysRij(def);
+    const id = "sys-" + def.key, cur = B.get(id), std = await sysRij(def);
     if (!cur || herstel === def.key) rijen.push({ id, data: std });
     else if (JSON.stringify([cur.naam, cur.wanneer, cur.velden, cur.voorbeeld, cur.sys, cur.categorie]) !== JSON.stringify([std.naam, std.wanneer, std.velden, std.voorbeeld, std.sys, std.categorie]))
       rijen.push({ id, data: { ...cur, naam: std.naam, categorie: SYS_CAT, sys: def.key, wanneer: std.wanneer, velden: std.velden, voorbeeld: std.voorbeeld, opmaak: "huisstijl", isHtml: true } });

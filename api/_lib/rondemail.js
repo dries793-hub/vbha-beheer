@@ -5,6 +5,14 @@ import { huisstijl, kaderBlok, knop, p, esc, site } from "./bevestiging.js";
 import { algemeen } from "./publiek.js";
 import { verstuur } from "./smtp.js";
 import { tekenRonde } from "./lidlink.js";
+import { registreer, sysMail } from "./sjabloon.js";
+
+registreer({ key: "ronde-reservatie", naam: "Kalenderronde: reservatie goedgekeurd", wanneer: "Als het bestuur een reservatie van straten (melding via de openbare kaart) goedkeurt.",
+  onderwerp: "Je straten voor de kalenderronde zijn gereserveerd",
+  body: p("Beste {voornaam},") + p("Je reservatie voor de kalenderronde is goedgekeurd. {als:een}Deze straat staat{/als:een}{niet:een}Deze straten staan{/niet:een} nu op jouw naam:")
+    + kaderBlok("Jouw straten", "{straten}") + p("Samen zijn dat <b>± {adressen} adressen</b>. Voorzie <b>{dozen}</b> kalenders.") + p("Bedankt om mee te helpen met de kalenderronde!") + "<p>{knop_kaart}</p>",
+  velden: [["voornaam", "Voornaam"], ["straten", "Lijst met de straten"], ["aantal_straten", "Aantal straten"], ["adressen", "Aantal adressen"], ["dozen", "Aantal dozen (bv. 3 dozen)"], ["link_kaart", "Persoonlijke link naar de kaart"], ["knop_kaart", "Knop naar de kaart"], ["een", "Voorwaarde: één straat"]],
+  voorbeeld: { voornaam: "Jan", aantal_straten: "2", adressen: "170", dozen: "2 dozen", link_kaart: "https://vbha.be/kaart", een: "" } });
 
 export async function rondeMailApi(req, res) {
   if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
@@ -24,15 +32,12 @@ export async function rondeMailApi(req, res) {
   if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(email)) return res.status(200).json({ ok: false, reden: "geen e-mailadres" });
   const S = (Array.isArray(b.straten) ? b.straten : []).slice(0, 80).map(x => ({ naam: String(x.naam || "").slice(0, 120), a: Math.max(0, Math.round(Number(x.adressen) || 0)) })).filter(x => x.naam);
   const tot = S.reduce((t, x) => t + x.a, 0), doz = Math.max(0, Math.round(Number(b.dozen) || 0)), A = await algemeen(sb).catch(() => ({}));
-  const html = huisstijl(
-    p(`Beste ${esc(lid.voornaam || "lid")},`)
-    + p(`Je reservatie voor de kalenderronde is goedgekeurd. Deze ${S.length === 1 ? "straat staat" : "straten staan"} nu op jouw naam:`)
-    + kaderBlok("Jouw straten", S.map(x => p(`<b>${esc(x.naam)}</b> · ${x.a} ${x.a === 1 ? "adres" : "adressen"}`, "margin:0 0 6px")).join(""))
-    + p(`Samen zijn dat <b>± ${tot} adressen</b>. Voorzie <b>${doz} ${doz === 1 ? "doos" : "dozen"}</b> kalenders.`)
-    + p("Bedankt om mee te helpen met de kalenderronde!")
-    + knop("Bekijk de kaart", site() + (d.lidId && A.jaar ? `/kaart?k=${encodeURIComponent(d.lidId)}&j=${A.jaar}&t=${tekenRonde(d.lidId, A.jaar)}` : "/kaart")),
-    A.vereniging || "Vriendenkring Brandweer Hoofdpost Aalst");
-  const [r] = await verstuur([{ aan: email, aanNaam: `${lid.voornaam || ""} ${lid.naam || ""}`.trim(), onderwerp: "Je straten voor de kalenderronde zijn gereserveerd", html, label: "Reservatie kalenderronde" }]);
+  const kaartLink = site() + (d.lidId && A.jaar ? `/kaart?k=${encodeURIComponent(d.lidId)}&j=${A.jaar}&t=${tekenRonde(d.lidId, A.jaar)}` : "/kaart");
+  const m = await sysMail(sb, "ronde-reservatie", { voornaam: esc(lid.voornaam || "lid"), een: S.length === 1, aantal_straten: S.length,
+    straten: S.map(x => p(`<b>${esc(x.naam)}</b> · ${x.a} ${x.a === 1 ? "adres" : "adressen"}`, "margin:0 0 6px")).join(""), adressen: tot, dozen: `${doz} ${doz === 1 ? "doos" : "dozen"}`,
+    link_kaart: esc(kaartLink), knop_kaart: knop("Bekijk de kaart", kaartLink) });
+  const html = huisstijl(m.html, A.vereniging || "Vriendenkring Brandweer Hoofdpost Aalst");
+  const [r] = await verstuur([{ aan: email, aanNaam: `${lid.voornaam || ""} ${lid.naam || ""}`.trim(), onderwerp: m.onderwerp, html, label: "Reservatie kalenderronde" }]);
   if (r && r.ok) for (const x of M) await sb.from("rondemeldingen").update({ data: { ...x.data, mail: { op: new Date().toISOString(), aan: email } } }).eq("id", x.id);
   return res.status(200).json({ ok: !!(r && r.ok), fout: r && r.fout });
 }

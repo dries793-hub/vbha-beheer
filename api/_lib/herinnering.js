@@ -4,6 +4,7 @@ import { vandaagISO, configDoc } from "./publiek.js";
 import { pushVanDaag, vgPushVandaag } from "./push.js";
 import { huisstijl } from "./bevestiging.js";
 import { vgLink, vgLidLink, vgBestuur } from "./open_vergadering.js";
+import { registreer, sysMail } from "./sjabloon.js";
 
 // Herinneringsmail vóór een vergadering uit de agenda (collectie "vergaderingen").
 // Instellingen in config "herinneringen" (app: Instellingen › Herinneringen): aan, ontvangers, dagen vooraf, uur, soorten.
@@ -18,23 +19,31 @@ const lang = iso => { const [y, m, d] = iso.split("-").map(Number); const s = ne
 const dagenTot = (van, tot) => Math.round((Date.parse(tot + "T12:00:00Z") - Date.parse(van + "T12:00:00Z")) / 864e5);
 const F = "font-family:Helvetica,Arial,sans-serif;";
 
-export function mail(v, n, url, cfg) {
+registreer({ key: "vergadering-herinnering", naam: "Vergadering: herinnering aan het bestuur", wanneer: "Enkele dagen voor elke vergadering in de agenda (Instellingen › Herinneringen).",
+  onderwerp: "Herinnering: {titel} op {datum_kort}{als:uur} om {uur}{/als:uur}",
+  body: `<p style="margin:0 0 15px">Beste {aanspreking},</p>
+<p style="margin:0 0 15px">Een herinnering: {wanneer} is er een <b>{soort}</b>.</p>
+<p>{details}</p>
+<p>{antwoord}</p>
+<p style="margin:0;color:#888888;font-size:12.5px">Deze herinnering wordt automatisch verstuurd {dagen} voor elke vergadering in de agenda.</p>`,
+  velden: [["aanspreking", "Aanspreking (voornaam of bestuursleden)"], ["titel", "Titel vergadering"], ["soort", "Soort vergadering"], ["wanneer", "Wanneer (vandaag, morgen, over 3 dagen)"], ["datum", "Datum"], ["datum_kort", "Datum (zonder jaar)"], ["uur", "Uur"], ["locatie", "Locatie"], ["details", "Kader met datum, uur, locatie en agenda"], ["antwoord", "Knoppen aanwezig/verontschuldigd"], ["dagen", "Aantal dagen vooraf"]],
+  voorbeeld: { aanspreking: "Jan", titel: "Bestuursvergadering", soort: "bestuursvergadering", wanneer: "over 5 dagen", datum: "Maandag 7 december 2026", datum_kort: "maandag 7 december", uur: "19u30", locatie: "Kazerne Aalst", dagen: "5 dagen" } });
+export async function mail(sb, v, n, url, cfg) {
   const titel = v.titel || v.soort || "Vergadering";
   const punten = String(v.agenda || "").split(/\r?\n/).map(x => x.replace(/^\s*[-•*\d.)]+\s*/, "").trim()).filter(Boolean);
   const wanneer = n === 0 ? "vandaag" : n === 1 ? "morgen" : "over " + n + " dagen";
-  const html = huisstijl(`<p style="margin:0 0 15px">Beste bestuursleden,</p>
-<p style="margin:0 0 15px">Een herinnering: ${wanneer} is er een <b>${esc((v.soort || "vergadering").toLowerCase())}</b>.</p>
-<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 18px;border-collapse:collapse"><tr><td bgcolor="#fff9f9" style="padding:18px 24px;border-left:5px solid #C1A057;${F}font-size:15px;color:#222222;line-height:1.5">
+  const details = `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 18px;border-collapse:collapse"><tr><td bgcolor="#fff9f9" style="padding:18px 24px;border-left:5px solid #C1A057;${F}font-size:15px;color:#222222;line-height:1.5">
 <h2 style="color:#b30000;font-size:18px;font-weight:bold;margin:0 0 10px">${esc(titel)}</h2>
 <p style="margin:0 0 5px">&bull; <b>Datum:</b> ${esc(lang(v.datum))}</p>
 ${v.uur ? `<p style="margin:0 0 5px">&bull; <b>Uur:</b> ${esc(v.uur)}</p>` : ""}
 ${v.locatie ? `<p style="margin:0 0 5px">&bull; <b>Locatie:</b> ${esc(v.locatie)}</p>` : ""}
 ${punten.length ? `<p style="margin:12px 0 5px"><b>Agenda</b></p><ol style="margin:0;padding-left:22px">${punten.map(p => `<li style="margin:0 0 4px">${esc(p)}</li>`).join("")}</ol>` : ""}
-</td></tr></table>
-${v.id && vgBestuur(v) ? KNOP : `<p style="margin:0 0 15px">Kan je er niet bij zijn? Laat het dan even weten.</p>`}
-<p style="margin:0;color:#888888;font-size:12.5px">Deze herinnering wordt automatisch verstuurd ${cfg.dagen} ${cfg.dagen === 1 ? "dag" : "dagen"} voor elke vergadering in de agenda.</p>
-`, "Vriendenkring Brandweer Hoofdpost Aalst", { groet: false });
-  return { aan: "", aanNaam: "Bestuur VBHA", onderwerp: `Herinnering: ${titel} op ${lang(v.datum).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase())}${v.uur ? " om " + v.uur : ""}`, html };
+</td></tr></table>`;
+  const m = await sysMail(sb, "vergadering-herinnering", { aanspreking: "bestuursleden", titel: esc(titel), soort: esc((v.soort || "vergadering").toLowerCase()), wanneer, datum: esc(lang(v.datum)),
+    datum_kort: esc(lang(v.datum).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase())), uur: esc(v.uur || ""), locatie: esc(v.locatie || ""), details,
+    antwoord: v.id && vgBestuur(v) ? KNOP : `<p style="margin:0 0 15px">Kan je er niet bij zijn? Laat het dan even weten.</p>`, dagen: `${cfg.dagen} ${cfg.dagen === 1 ? "dag" : "dagen"}` });
+  const html = huisstijl(m.html, "Vriendenkring Brandweer Hoofdpost Aalst", { groet: false });
+  return { aan: "", aanNaam: "Bestuur VBHA", onderwerp: m.onderwerp, html };
 }
 
 const ontvangers = cfg => String(cfg.ontvangers || "").split(/[,;\s]+/).map(x => x.trim()).filter(x => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x));
@@ -89,7 +98,7 @@ export async function herinneringen(req, res) {
     const v = r.data || {};
     if (!v.datum || v.herinnerdVoor === v.datum) continue; // al verstuurd voor deze datum (bij een nieuwe datum komt er een nieuwe herinnering)
     if (cfg.soorten && cfg.soorten.length && !cfg.soorten.includes(v.soort || "Andere")) continue;
-    const m = mail({ ...v, id: r.id }, dagenTot(nu, v.datum), site(), cfg);
+    const m = await mail(sb, { ...v, id: r.id }, dagenTot(nu, v.datum), site(), cfg);
     const uit = await verstuur(aan.map((o, i) => ({ ...m, html: groet(m.html, o).replace(KNOP, knoppen(r.id, o.lid)), aan: o.aan, aanNaam: o.naam || m.aanNaam, van: afzender(), ...(i ? { geenBcc: true } : {}) })));
     if (uit.some(x => x && x.ok)) {
       await sb.rpc("vg_zet", { vid: r.id, patch: { herinnerdVoor: v.datum, herinnerdOp: new Date().toISOString() } });
@@ -108,7 +117,7 @@ export async function herinneringTest(req, res) {
   const cfg = await instellingen(admin()), nu = vandaagISO();
   const { data } = await admin().from("vergaderingen").select("id,data").gte("data->>datum", nu).order("data->>datum", { ascending: true }).limit(1);
   const v = (data && data[0] && { ...data[0].data, id: data[0].id }) || { soort: "Bestuursvergadering", datum: plusDagen(nu, Number(cfg.dagen) || 5), uur: "19u30", locatie: "Kazerne Aalst", agenda: "Verslag vorige vergadering\nVaria" };
-  const m = mail(v, dagenTot(nu, v.datum), site(), cfg);
+  const m = await mail(admin(), v, dagenTot(nu, v.datum), site(), cfg);
   // de knoppen zoals een bestuurslid ze krijgt: met de eigen (persoonlijke) knoppen als je in de ledenlijst staat, anders de algemene knop
   let lidId = null; if (v.id) { const { data: L } = await admin().from("leden").select("id").ilike("data->>email", String(user.email || "").trim()).limit(1); lidId = (L && L[0] && L[0].id) || null; }
   const html = v.id ? m.html.replace(KNOP, knoppen(v.id, lidId)) : m.html;
@@ -121,20 +130,27 @@ export async function herinneringTest(req, res) {
    POST /api/mail?f=vergadering-afgerond {id}  (aangemeld, administrator)
    De app laadt het verslag op in Documenten (bucket "documenten"), maakt de volgende vergadering aan en zet
    data.afgerond = {op, door, volgendeId, verslagDoc} op de afgeronde vergadering. */
+registreer({ key: "vergadering-verslag", naam: "Vergadering: verslag en volgende vergadering", wanneer: "Als je een vergadering afrondt in de agenda (verslag en datum van de volgende vergadering).",
+  onderwerp: "Verslag {titel} {datum}{als:volgende} - volgende vergadering {volgende_datum_kort}{/als:volgende}",
+  body: ({ p }) => p("Beste {aanspreking},") + p("De {soort} van {datum_lang} is afgerond. {als:bijlage}In bijlage vind je het <b>verslag</b>.{/als:bijlage}") + "<p>{aanwezigheid}</p>" + "<p>{volgende}</p>"
+    + "{als:antwoord}" + p("Zet de datum alvast in je agenda.") + "<p>{antwoord}</p>{/als:antwoord}"
+    + "{niet:antwoord}{als:volgende}" + p("Zet de datum alvast in je agenda. Kan je er niet bij zijn? Laat het dan even weten.") + "{/als:volgende}{niet:volgende}" + p("Opmerkingen bij het verslag? Antwoord gewoon op deze mail.") + "{/niet:volgende}{/niet:antwoord}",
+  velden: [["aanspreking", "Aanspreking"], ["titel", "Titel"], ["soort", "Soort vergadering"], ["datum", "Datum"], ["datum_lang", "Datum (met dag)"], ["aanwezigheid", "Kader aanwezigheid"], ["volgende", "Kader volgende vergadering"], ["volgende_datum_kort", "Datum volgende (kort)"], ["antwoord", "Knoppen aanwezig/verontschuldigd"], ["bijlage", "Voorwaarde: verslag in bijlage"]],
+  voorbeeld: { aanspreking: "Jan", titel: "bestuursvergadering", soort: "bestuursvergadering", datum: "7 december 2026", datum_lang: "maandag 7 december 2026", volgende_datum_kort: "maandag 4 januari", bijlage: "1" } });
 export async function afgerondMail(v, nv, bijlagenLen) {
   const bijlagen = { length: bijlagenLen ? 1 : 0 };
   const { huisstijl, kaderBlok, tabel, rij, p } = await import("./bevestiging.js");
   const soort = (v.soort || "vergadering").toLowerCase(), titel = v.titel || v.soort || "Vergadering";
   const punten = nv ? String(nv.agenda || "").split(/\r?\n/).map(x => x.replace(/^\s*[-•*\d.)]+\s*/, "").trim()).filter(Boolean) : [];
-  let html = p("Beste bestuursleden,") + p(`De ${esc(soort)} van ${esc(lang(v.datum).replace(/^./, c => c.toLowerCase()))} is afgerond. ${bijlagen.length ? "In bijlage vind je het <b>verslag</b>." : ""}`);
-  if (v.aanwezig || v.verontschuldigd) html += kaderBlok("Aanwezigheid", tabel([rij("Aanwezig", esc(v.aanwezig || "-")), rij("Verontschuldigd", esc(v.verontschuldigd || "-"))]));
-  if (nv) html += kaderBlok("Volgende " + esc((nv.soort || "vergadering").toLowerCase()), tabel([
-    rij("Datum", `<b>${esc(lang(nv.datum))}</b>`), nv.uur ? rij("Uur", esc(nv.uur)) : "", nv.locatie ? rij("Locatie", esc(nv.locatie)) : "", nv.titel ? rij("Onderwerp", esc(nv.titel)) : ""])
-    + (punten.length ? `<p style="margin:12px 0 5px"><b>Agenda</b></p><ol style="margin:0;padding-left:22px">${punten.map(x => `<li style="margin:0 0 4px">${esc(x)}</li>`).join("")}</ol>` : ""));
-  if (nv && nv.id && vgBestuur(nv)) html += p("Zet de datum alvast in je agenda.") + KNOP;
-  else html += p(nv ? "Zet de datum alvast in je agenda. Kan je er niet bij zijn? Laat het dan even weten." : "Opmerkingen bij het verslag? Antwoord gewoon op deze mail.");
-  const onderwerp = `Verslag ${titel.toLowerCase() === soort ? soort : titel} ${lang(v.datum).replace(/^\S+ /, "")}${nv ? " - volgende vergadering " + lang(nv.datum).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase()) : ""}`;
-  return { onderwerp, html, huisstijl };
+  const m = await sysMail(admin(), "vergadering-verslag", { aanspreking: "bestuursleden", soort: esc(soort), titel: esc(titel.toLowerCase() === soort ? soort : titel), datum: esc(lang(v.datum).replace(/^\S+ /, "")),
+    datum_lang: esc(lang(v.datum).replace(/^./, c => c.toLowerCase())), bijlage: !!bijlagen.length,
+    aanwezigheid: v.aanwezig || v.verontschuldigd ? kaderBlok("Aanwezigheid", tabel([rij("Aanwezig", esc(v.aanwezig || "-")), rij("Verontschuldigd", esc(v.verontschuldigd || "-"))])) : "",
+    volgende: nv ? kaderBlok("Volgende " + esc((nv.soort || "vergadering").toLowerCase()), tabel([
+      rij("Datum", `<b>${esc(lang(nv.datum))}</b>`), nv.uur ? rij("Uur", esc(nv.uur)) : "", nv.locatie ? rij("Locatie", esc(nv.locatie)) : "", nv.titel ? rij("Onderwerp", esc(nv.titel)) : ""])
+      + (punten.length ? `<p style="margin:12px 0 5px"><b>Agenda</b></p><ol style="margin:0;padding-left:22px">${punten.map(x => `<li style="margin:0 0 4px">${esc(x)}</li>`).join("")}</ol>` : "")) : "",
+    volgende_datum_kort: nv ? esc(lang(nv.datum).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase())) : "",
+    antwoord: nv && nv.id && vgBestuur(nv) ? KNOP : "" });
+  return { onderwerp: m.onderwerp, html: m.html, huisstijl };
 }
 export async function vergaderingAfgerond(req, res) {
   res.setHeader("Cache-Control", "no-store");

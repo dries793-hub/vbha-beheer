@@ -9,6 +9,22 @@
 import crypto from "node:crypto";
 import { admin, httpErr, sendError, requireUser, isAdminRol } from "./sb.js";
 import { body, rateLimit, clean, vandaagISO } from "./publiek.js";
+import { registreer, sysMail } from "./sjabloon.js";
+
+registreer({ key: "onkosten-link", naam: "Onkosten terugvragen (link naar een lid)", wanneer: "Als je bij Onkostennota's de algemene link naar een lid mailt.",
+  onderwerp: "Onkosten terugvragen bij de Vriendenkring",
+  body: ({ p, kaderBlok }) => p("Beste {voornaam},") + p("Heb je kosten gemaakt voor de Vriendenkring? Via de knop hieronder vraag je ze eenvoudig terug.")
+    + kaderBlok("Hoe werkt het?", p("Kies je naam, vul het bedrag en de reden in, voeg een foto van het kasticket of de factuur toe en geef je rekeningnummer door. Na goedkeuring storten we het bedrag terug.", "margin:0")) + "<p>{knop_onkosten}</p>",
+  velden: [["voornaam", "Voornaam"], ["link_onkosten", "Link onkostennota"], ["knop_onkosten", "Knop onkosten terugvragen"]], voorbeeld: { voornaam: "Jan", link_onkosten: "https://vbha.be/onkosten" } });
+registreer({ key: "terugbetaling-iban", naam: "Terugbetaling: rekeningnummer opvragen", wanneer: "Als je bij een terugbetaling de link mailt om het rekeningnummer door te geven.",
+  onderwerp: "Terugbetaling: geef je rekeningnummer door",
+  body: ({ p, kaderBlok }) => p("Beste {voornaam},") + p("De Vriendenkring betaalt je <b>{bedrag}</b> terug{als:reden} voor <b>{reden}</b>{/als:reden}.")
+    + kaderBlok("Wat moet je doen?", p("Geef via de knop hieronder je rekeningnummer (IBAN) door. Daarna schrijven we het bedrag zo snel mogelijk naar je over.", "margin:0")) + "<p>{knop_iban}</p>",
+  velden: [["voornaam", "Voornaam"], ["bedrag", "Bedrag"], ["reden", "Reden"], ["link_iban", "Persoonlijke link"], ["knop_iban", "Knop rekeningnummer doorgeven"]], voorbeeld: { voornaam: "Jan", bedrag: "€ 25,00", reden: "drank kinderfeest", link_iban: "https://vbha.be/terug" } });
+registreer({ key: "onkosten-boekhouding", naam: "Nieuwe onkostennota (aan de boekhouding)", wanneer: "Als iemand een onkostennota indient; gaat naar de boekhouding.",
+  onderwerp: "Nieuwe onkostennota: {naam} · {bedrag}",
+  body: ({ p, kaderBlok }) => p("Beste,") + p("Er is een nieuwe onkostennota ingediend{als:via} {via}{/als:via}.") + kaderBlok("Onkostennota", "{gegevens}") + "<p>{knop_app}</p>",
+  velden: [["naam", "Naam"], ["bedrag", "Bedrag"], ["reden", "Waarvoor"], ["via", "Via (bv. via de website)"], ["gegevens", "Tabel met de gegevens"], ["knop_app", "Knop naar de app"]], voorbeeld: { naam: "Jan Peeters", bedrag: "€ 25,00", reden: "drank", via: "" } });
 
 const BUCKET = "documenten";
 const sleutel = () => String(process.env.BETAAL_GEHEIM || process.env.SUPABASE_SERVICE_ROLE_KEY || "");
@@ -147,11 +163,9 @@ export async function terugApp(req, res) {
       const { data: l } = await sb.from("leden").select("id,data").eq("id", String(b.lidId || "")).maybeSingle();
       if (!l) throw httpErr(404, "Lid niet gevonden."); const aan = String(l.data.email || "").trim(); if (!mailOk(aan) || !aan) throw httpErr(400, "Van dit lid is geen e-mailadres gekend.");
       const { huisstijl, kaderBlok, knop, p, esc } = await import("./bevestiging.js");
-      const html = huisstijl(p(`Beste ${esc(l.data.voornaam || "lid")},`)
-        + p("Heb je kosten gemaakt voor de Vriendenkring? Via de knop hieronder vraag je ze eenvoudig terug.")
-        + kaderBlok("Hoe werkt het?", p("Kies je naam, vul het bedrag en de reden in, voeg een foto van het kasticket of de factuur toe en geef je rekeningnummer door. Na goedkeuring storten we het bedrag terug.", "margin:0"))
-        + knop("Onkosten terugvragen", onkostLink()), "Vriendenkring Brandweer Hoofdpost Aalst");
-      const { error } = await sb.from("mail_wachtrij").insert({ batch: "onkost-" + l.id + "-" + Date.now().toString(36), data: { aan, aanNaam: `${l.data.voornaam || ""} ${l.data.naam || ""}`.trim(), onderwerp: "Onkosten terugvragen bij de Vriendenkring", html, label: "Onkostennota" } });
+      const m = await sysMail(sb, "onkosten-link", { voornaam: esc(l.data.voornaam || "lid"), link_onkosten: esc(onkostLink()), knop_onkosten: knop("Onkosten terugvragen", onkostLink()) });
+      const html = huisstijl(m.html, "Vriendenkring Brandweer Hoofdpost Aalst");
+      const { error } = await sb.from("mail_wachtrij").insert({ batch: "onkost-" + l.id + "-" + Date.now().toString(36), data: { aan, aanNaam: `${l.data.voornaam || ""} ${l.data.naam || ""}`.trim(), onderwerp: m.onderwerp, html, label: "Onkostennota" } });
       if (error) throw error;
       return res.status(200).json({ ok: true, aan });
     }
@@ -206,11 +220,9 @@ export async function terugApp(req, res) {
       if (d.iban && row.status !== "aangevraagd") throw httpErr(409, "Het rekeningnummer is al gekend.");
       const { huisstijl, kaderBlok, knop, p, esc } = await import("./bevestiging.js");
       const vn = String(d.naam || "").split(" ")[0], bd = "€ " + Number(d.bedrag).toFixed(2).replace(".", ",");
-      const html = huisstijl(p(`Beste ${esc(vn || "lid")},`)
-        + p(`De Vriendenkring betaalt je <b>${bd}</b> terug${d.reden ? ` voor <b>${esc(d.reden)}</b>` : ""}.`)
-        + kaderBlok("Wat moet je doen?", p("Geef via de knop hieronder je rekeningnummer (IBAN) door. Daarna schrijven we het bedrag zo snel mogelijk naar je over.", "margin:0"))
-        + knop("Rekeningnummer doorgeven", tbLink(row.id)), "Vriendenkring Brandweer Hoofdpost Aalst");
-      const { error } = await sb.from("mail_wachtrij").insert({ batch: "terug-" + row.id, data: { aan, aanNaam: d.naam || "", onderwerp: "Terugbetaling: geef je rekeningnummer door", html, label: "Terugbetaling" } });
+      const m = await sysMail(sb, "terugbetaling-iban", { voornaam: esc(vn || "lid"), bedrag: bd, reden: d.reden ? esc(d.reden) : "", link_iban: esc(tbLink(row.id)), knop_iban: knop("Rekeningnummer doorgeven", tbLink(row.id)) });
+      const html = huisstijl(m.html, "Vriendenkring Brandweer Hoofdpost Aalst");
+      const { error } = await sb.from("mail_wachtrij").insert({ batch: "terug-" + row.id, data: { aan, aanNaam: d.naam || "", onderwerp: m.onderwerp, html, label: "Terugbetaling" } });
       if (error) throw error;
       const nd = { ...d, email: aan, gemaild: [...(d.gemaild || []), { op: nu(), aan, door: wie }] };
       await sb.from("terugbetalingen").update({ data: nd, gewijzigd: nu() }).eq("id", row.id);
@@ -232,10 +244,10 @@ async function mailBoekhouding(sb, { id, naam, bedrag, reden, datum, bon, geenBo
     const app = String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, "") + "/#terug";
     const bd = "€ " + Number(bedrag || 0).toFixed(2).replace(".", ",");
     const dt = /^\d{4}-\d{2}-\d{2}$/.test(datum || "") ? datum.split("-").reverse().join("/") : "";
-    const html = huisstijl(p("Beste,") + p(`Er is een nieuwe onkostennota ingediend${via ? " " + esc(via) : ""}.`) +
-      kaderBlok("Onkostennota", tabel([rij("Naam", esc(naam)), rij("Bedrag", `<b>${bd}</b>`), rij("Waarvoor", esc(reden)), rij("Datum aankoop", dt), rij("Bewijsstuk", bon ? "toegevoegd" : geenBon ? "geen kasticket of factuur" : "")])) +
-      knop("Bekijken en goedkeuren", app), "Nieuwe onkostennota", { groet: false });
-    await sb.from("mail_wachtrij").insert({ batch: "onkost-" + id, data: { aan: process.env.ONKOST_MAIL || "boekhouding@vbha.be", aanNaam: "Boekhouding VBHA", onderwerp: `Nieuwe onkostennota: ${naam} · ${bd}`, html, label: "Onkostennota " + naam } });
+    const m = await sysMail(sb, "onkosten-boekhouding", { naam: esc(naam), bedrag: bd, reden: esc(reden), via: via ? esc(via) : "",
+      gegevens: tabel([rij("Naam", esc(naam)), rij("Bedrag", `<b>${bd}</b>`), rij("Waarvoor", esc(reden)), rij("Datum aankoop", dt), rij("Bewijsstuk", bon ? "toegevoegd" : geenBon ? "geen kasticket of factuur" : "")]), knop_app: knop("Bekijken en goedkeuren", app) });
+    const html = huisstijl(m.html, "Nieuwe onkostennota", { groet: false });
+    await sb.from("mail_wachtrij").insert({ batch: "onkost-" + id, data: { aan: process.env.ONKOST_MAIL || "boekhouding@vbha.be", aanNaam: "Boekhouding VBHA", onderwerp: m.onderwerp, html, label: "Onkostennota " + naam } });
   } catch (e) { console.error("mail boekhouding", e); }
 }
 

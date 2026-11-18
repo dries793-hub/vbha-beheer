@@ -9,6 +9,11 @@ import { kfCadeauPubliek } from "./kfcadeau.js";
    Voorinvullen gebeurt NIET op basis van enkel de naam (dan kan iedereen de kinderen van een lid zien),
    maar via een persoonlijke link die naar het e-mailadres van het lid gemaild wordt: /kinderfeest?v=<lidId>&t=<handtekening>. */
 import crypto from "node:crypto";
+import { registreer, sysMail } from "./sjabloon.js";
+registreer({ key: "kinderfeest-invullink", naam: "Kinderfeest: link met de kinderen al ingevuld", wanneer: "Als een lid op de inschrijfpagina van het kinderfeest vraagt om zijn gekende kinderen in te vullen.",
+  onderwerp: "VBHA - Inschrijving kinderfeest {jaar}",
+  body: `<p style="margin:0 0 15px">Beste {voornaam},</p><p style="margin:0 0 15px">Met de knop hieronder open je de inschrijving voor het kinderfeest {jaar}, met je kinderen al ingevuld.</p><p>{knop_inschrijven}</p>`,
+  velden: [["voornaam", "Voornaam"], ["jaar", "Jaar"], ["link_inschrijven", "Persoonlijke link"], ["knop_inschrijven", "Knop kinderen invullen"]], voorbeeld: { voornaam: "Jan", jaar: "2026", link_inschrijven: "https://vbha.be/kinderfeest" } });
 const vSleutel = () => String(process.env.BETAAL_GEHEIM || process.env.SUPABASE_SERVICE_ROLE_KEY || "");
 const vToken = (lidId, jaar) => crypto.createHmac("sha256", vSleutel()).update(`vbha-kfvul|${lidId}|${jaar}`).digest("base64url").slice(0, 22);
 const vKlopt = (lidId, jaar, t) => { const a = Buffer.from(vToken(lidId, jaar)), b = Buffer.from(String(t || "")); return !!vSleutel() && a.length === b.length && crypto.timingSafeEqual(a, b); };
@@ -79,9 +84,9 @@ export default async function handler(req, res) {
             const { huisstijl } = await import("./bevestiging.js"), A = await algemeen(sb);
             const site = "https://vbha.be", url = `${site}/kinderfeest?v=${encodeURIComponent(lidId)}&t=${vToken(lidId, I.jaar)}`;
             const vn = (lr.data.voornaam || "").trim(), esc = x => String(x ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-            const html = `<p style="margin:0 0 15px">Beste ${esc(vn)},</p><p style="margin:0 0 15px">Met de knop hieronder open je de inschrijving voor het kinderfeest ${I.jaar}, met je kinderen al ingevuld.</p>
-<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 18px"><tr><td bgcolor="#C0161F" style="border-radius:8px"><a href="${esc(url)}" style="display:inline-block;padding:12px 22px;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px">Kinderen invullen</a></td></tr></table>`;
-            await verstuur([{ aan, aanNaam: vn, onderwerp: `VBHA - Inschrijving kinderfeest ${I.jaar}`, html: huisstijl(html, A.vereniging), van: afzender() }]);
+            const m = await sysMail(sb, "kinderfeest-invullink", { voornaam: esc(vn), jaar: I.jaar, link_inschrijven: esc(url),
+              knop_inschrijven: `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 18px"><tr><td bgcolor="#C0161F" style="border-radius:8px"><a href="${esc(url)}" style="display:inline-block;padding:12px 22px;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px">Kinderen invullen</a></td></tr></table>` });
+            await verstuur([{ aan, aanNaam: vn, onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging), van: afzender() }]);
           }
         } catch (e) { console.error("kfvul", e); }
       }

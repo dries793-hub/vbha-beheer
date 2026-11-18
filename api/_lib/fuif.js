@@ -5,6 +5,32 @@ import { adresVolledig, ADRES_FOUT } from "./adrescheck.js";
 import { onlineConfigured } from "./betaalprovider.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
 import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, lang, site } from "./bevestiging.js";
+import { registreer, sysMail } from "./sjabloon.js";
+const FK = t => p(t, "margin:0 0 15px;font-size:13.5px;color:#666666");
+registreer({ key: "fuif-tickets", naam: "Fuif: tickets en drankkaarten", wanneer: "Na een betaalde bestelling van tickets of drankkaarten, of als sponsors en genodigden hun gratis tickets aanvragen.",
+  onderwerp: "{als:gast}Je tickets voor {fuif}{/als:gast}{als:sponsor}Bedankt voor je sponsoring: {wat_kort} voor {fuif}{/als:sponsor}{als:gekocht}{als:tickets}Je {tickets} voor {fuif}{/als:tickets}{niet:tickets}Je {drankkaarten} voor {fuif}{/niet:tickets}{/als:gekocht}",
+  body: p("Beste {voornaam},")
+    + "{als:gast}" + p("Fijn dat je erbij bent! Hieronder vind je {wat} voor onze fuif <b>{fuif}</b>, aangeboden door de Vriendenkring.") + "{/als:gast}"
+    + "{als:sponsor}" + p("Hartelijk dank om de brandweerkalender te sponsoren{als:bedrijf} met <b>{bedrijf}</b>{/als:bedrijf}! Als dank krijg je van de Vriendenkring {wat} voor onze jaarlijkse fuif <b>{fuif}</b>. Je vindt ze hieronder.") + "{/als:sponsor}"
+    + "{als:gekocht}" + p("Bedankt voor je bestelling! Je betaling van <b>{bedrag}</b> is goed ontvangen. Hieronder vind je {wat} voor <b>{fuif}</b>.") + "{/als:gekocht}"
+    + kaderBlok("{fuif}", "{gegevens}") + "<p>{korting}</p>" + p("{uitleg_qr}") + "<p>{qr_codes}</p><p>{knop_online}</p>"
+    + "{als:gekocht}" + FK("Gekochte tickets en drankkaarten worden niet terugbetaald en kunnen niet geannuleerd worden.") + "{/als:gekocht}" + "<p>{info}</p>" + p("Tot op de fuif!"),
+  velden: [["voornaam", "Voornaam"], ["fuif", "Naam fuif"], ["wat", "Wat (bv. je 2 tickets)"], ["wat_kort", "Wat (zonder je)"], ["tickets", "Aantal tickets"], ["drankkaarten", "Aantal drankkaarten"], ["bedrijf", "Bedrijf (sponsor)"], ["bedrag", "Betaald bedrag"], ["gegevens", "Tabel bestelling"], ["korting", "Zin over voorverkoopkorting"], ["uitleg_qr", "Uitleg QR-codes"], ["qr_codes", "De QR-codes"], ["knop_online", "Knop online bekijken"], ["info", "Extra info (instellingen fuif)"], ["gast", "Voorwaarde: genodigde"], ["sponsor", "Voorwaarde: sponsor"], ["gekocht", "Voorwaarde: gekocht"]],
+  voorbeeld: { voornaam: "Jan", fuif: "In Vier en Vlam 4", wat: "je 2 tickets", wat_kort: "2 tickets", tickets: "2 tickets", drankkaarten: "", bedrijf: "", bedrag: "€24,00", uitleg_qr: "Toon de QR-codes aan de kassa.", gast: "", sponsor: "", gekocht: "1" } });
+registreer({ key: "fuif-sponsoruitnodiging", naam: "Fuif: gratis tickets voor sponsors", wanneer: "Als je bij Fuif de sponsors uitnodigt om hun gratis tickets en drankkaart aan te vragen.",
+  onderwerp: "Bedankt voor je sponsoring: gratis tickets voor {fuif}",
+  body: p("Beste {voornaam},") + p("Hartelijk dank om de brandweerkalender te sponsoren{als:bedrijf} met <b>{bedrijf}</b>{/als:bedrijf}! Als dank bieden we je graag {wat} aan voor onze jaarlijkse fuif <b>{fuif}</b>.")
+    + kaderBlok("{fuif}", "{gegevens}") + p("Kom je graag? Klik dan op de knop hieronder. We maken de tickets en de drankkaart meteen aan op naam van {bedrijf_of} en mailen ze door met QR-codes.")
+    + "<p>{knop_aanvragen}</p>" + FK("De knop werkt één keer. Kom je niet? Dan hoef je niets te doen.") + p("Nogmaals bedankt voor je steun!"),
+  velden: [["voornaam", "Voornaam"], ["bedrijf", "Bedrijf"], ["bedrijf_of", "Bedrijf (of: je bedrijf)"], ["fuif", "Naam fuif"], ["wat", "Wat ze krijgen"], ["gegevens", "Tabel fuif"], ["knop_aanvragen", "Knop tickets aanvragen"]],
+  voorbeeld: { voornaam: "Jan", bedrijf: "Bakkerij Peeters", bedrijf_of: "Bakkerij Peeters", fuif: "In Vier en Vlam 4", wat: "2 inkomkaarten en een drankkaart van €10,00" } });
+registreer({ key: "fuif-genodigde", naam: "Fuif: uitnodiging genodigden", wanneer: "Als je bij Fuif genodigden uitnodigt (gratis tickets).",
+  onderwerp: "Uitnodiging: gratis tickets voor {fuif}",
+  body: p("Beste {voornaam},") + p("Graag nodigen we {jullie_van} uit op onze jaarlijkse fuif <b>{fuif}</b>. We bieden {jullie} {wat} aan.") + "<p>{boodschap}</p>"
+    + kaderBlok("{fuif}", "{gegevens}") + p("Kom je? Klik dan op de knop hieronder. We maken de tickets meteen aan en mailen ze door met QR-codes.")
+    + "<p>{knop_aanvragen}</p>" + FK("De knop werkt één keer. Kom je niet? Dan hoef je niets te doen.") + p("Hopelijk tot dan!"),
+  velden: [["voornaam", "Voornaam"], ["organisatie", "Organisatie"], ["jullie_van", "je / jullie van organisatie"], ["jullie", "je / jullie"], ["fuif", "Naam fuif"], ["wat", "Wat ze krijgen"], ["boodschap", "Persoonlijke boodschap"], ["gegevens", "Tabel fuif"], ["knop_aanvragen", "Knop tickets aanvragen"]],
+  voorbeeld: { voornaam: "Jan", organisatie: "Brandweer Lede", jullie_van: "jullie van <b>Brandweer Lede</b>", jullie: "jullie", fuif: "In Vier en Vlam 4", wat: "4 gratis inkomkaarten", boodschap: "" } });
 import { Pdf } from "./pdf.js";
 import { LOGO } from "./logo_pdf.js";
 import { qrMatrix } from "./epc.js";
@@ -269,22 +295,16 @@ export async function stuurTickets(sb, row, aan) {
       <img src="${qrUrl(t.code)}" alt="QR-code ${esc(kop.toLowerCase())}" width="220" height="220" style="display:block;width:220px;height:220px;border:0;margin:0 auto">
       <div style="font-family:Menlo,Consolas,monospace;font-size:16px;font-weight:bold;letter-spacing:.08em;margin-top:8px">${t.code.replace(/(.{4})(?=.)/g, "$1 ")}</div></td></tr></table>`;
   const sp = d.bron === "sponsor" || d.bron === "genodigde", gast = d.bron === "genodigde";
-  const html = p(`Beste ${esc(d.voornaam || "")},`.replace(" ,", ","))
-    + (gast ? p(`Fijn dat je erbij bent! Hieronder vind je ${wat} voor onze fuif <b>${esc(c.naam)}</b>, aangeboden door de Vriendenkring.`)
-      : sp ? p(`Hartelijk dank om de brandweerkalender te sponsoren${d.bedrijf ? ` met <b>${esc(d.bedrijf)}</b>` : ""}! Als dank krijg je van de Vriendenkring ${wat} voor onze jaarlijkse fuif <b>${esc(c.naam)}</b>. Je vindt ze hieronder.`)
-      : p(`Bedankt voor je bestelling! Je betaling van <b>${eur(d.bedrag)}</b> is goed ontvangen. Hieronder vind je ${wat} voor <b>${esc(c.naam)}</b>.`))
-    + kaderBlok(esc(c.naam), tabel([rij("Wanneer", esc(wanneer(c))), rij("Waar", esc(c.locatie || "")), n ? rij("Tickets", sp ? `${n} inkomkaarten (geschenk)` : `${n} × ${eur(d.prijs)}`) : "",
+  const m = await sysMail(sb, "fuif-tickets", { voornaam: esc(d.voornaam || ""), fuif: esc(c.naam), wat: esc(wat), wat_kort: esc(wat.replace(/^je /, "").replace(" en je ", " en ")), bedrijf: esc(d.bedrijf || ""), bedrag: eur(d.bedrag),
+    gast, sponsor: sp && !gast, gekocht: !sp, tickets: n ? `${n} ${n === 1 ? "ticket" : "tickets"}` : "", drankkaarten: D.length ? `${D.length} ${D.length === 1 ? "drankkaart" : "drankkaarten"}` : "",
+    gegevens: tabel([rij("Wanneer", esc(wanneer(c))), rij("Waar", esc(c.locatie || "")), n ? rij("Tickets", sp ? `${n} inkomkaarten (geschenk)` : `${n} × ${eur(d.prijs)}`) : "",
       ...(d.drank || []).map(k => rij(`Drankkaart ${eur(k.waarde)}`, sp ? `${k.aantal} × (geschenk)` : `${k.aantal} × ${eur(k.prijs)} <span style="color:#1a7f45">(voorverkoop, je bespaart ${eur((k.waarde - k.prijs) * k.aantal)})</span>`)),
-      rij("Op naam van", esc(opNaam(d)))]))
-    + (!sp && d.korting > 0 ? p(`<b style="color:#1a7f45">Dankzij de voorverkoop bespaar je ${eur(d.korting)} op je drankkaarten.</b>`) : "")
-    + p(`Toon de QR-codes aan de kassa, op je gsm of afgedrukt. Elke code is één keer geldig${n > 1 ? ", dus geef je vrienden elk hun eigen ticket" : ""}.${D.length ? " Je drankkaarten wissel je aan de kassa om met de gele QR-codes." : ""} Alles zit ook als PDF in bijlage.`)
-    + T.map(t => blok(t, `TICKET ${t.nr} VAN ${n}`, "#b30000")).join("")
-    + D.map(t => blok(t, `DRANKKAART ${eur(t.waarde).replace(",00", "")} · ${t.nr} VAN ${D.filter(x => x.waarde === t.waarde).length}`, "#b07a12")).join("")
-    + knop("Online bekijken", bestelUrl(row.id, d.betaalToken))
-    + (sp ? "" : p("Gekochte tickets en drankkaarten worden niet terugbetaald en kunnen niet geannuleerd worden.", "margin:0 0 15px;font-size:13.5px;color:#666666"))
-    + (c.info ? p(esc(c.info), "margin:0 0 15px;font-size:13.5px;color:#666666") : "")
-    + p("Tot op de fuif!");
-  const ond = gast ? `Je tickets voor ${c.naam}` : sp ? `Bedankt voor je sponsoring: ${wat.replace(/^je /, "").replace(" en je ", " en ")} voor ${c.naam}` : n ? `Je ${n === 1 ? "ticket" : "tickets"} voor ${c.naam}` : `Je ${D.length === 1 ? "drankkaart" : "drankkaarten"} voor ${c.naam}`;
+      rij("Op naam van", esc(opNaam(d)))]),
+    korting: !sp && d.korting > 0 ? p(`<b style="color:#1a7f45">Dankzij de voorverkoop bespaar je ${eur(d.korting)} op je drankkaarten.</b>`) : "",
+    uitleg_qr: `Toon de QR-codes aan de kassa, op je gsm of afgedrukt. Elke code is één keer geldig${n > 1 ? ", dus geef je vrienden elk hun eigen ticket" : ""}.${D.length ? " Je drankkaarten wissel je aan de kassa om met de gele QR-codes." : ""} Alles zit ook als PDF in bijlage.`,
+    qr_codes: T.map(t => blok(t, `TICKET ${t.nr} VAN ${n}`, "#b30000")).join("") + D.map(t => blok(t, `DRANKKAART ${eur(t.waarde).replace(",00", "")} · ${t.nr} VAN ${D.filter(x => x.waarde === t.waarde).length}`, "#b07a12")).join(""),
+    knop_online: knop("Online bekijken", bestelUrl(row.id, d.betaalToken)), info: c.info ? p(esc(c.info), "margin:0 0 15px;font-size:13.5px;color:#666666") : "" });
+  const html = m.html.replace(/Beste\s+,/g, "Beste,"), ond = m.onderwerp;
   const [r] = await verstuur([{ aan: naar, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" "), onderwerp: ond, html: huisstijl(html, A.vereniging), van: afzender(), bijlagen: [{ naam: `Tickets ${c.naam}.pdf`, type: "application/pdf", data: ticketPdf(d, c, await fuifHeader(sb, true)) }] }]);
   if (r && r.ok) await sb.from("tickets").update({ data: { ...d, mail: { op: new Date().toISOString(), aan: naar } } }).eq("id", row.id);
   return !!(r && r.ok);
@@ -426,16 +446,11 @@ async function sponsorUitLink(sb, q) {
   if (!s) throw httpErr(404, "Deze link is niet meer geldig.");
   return { s, jk };
 }
-export function sponsorUitnodigingMail(sd, sid, jk, c) {
+export async function sponsorUitnodigingMail(sb, sd, sid, jk, c) {
   const wat = [c.sponsorTickets ? `${c.sponsorTickets} inkomkaarten` : "", c.sponsorDrank ? `een drankkaart van ${eur(c.sponsorDrank)}` : ""].filter(Boolean).join(" en ");
-  const html = p(`Beste ${esc(sd.voornaam || "")},`.replace(" ,", ","))
-    + p(`Hartelijk dank om de brandweerkalender te sponsoren${sd.bedrijf ? ` met <b>${esc(sd.bedrijf)}</b>` : ""}! Als dank bieden we je graag ${wat} aan voor onze jaarlijkse fuif <b>${esc(c.naam)}</b>.`)
-    + kaderBlok(esc(c.naam), tabel([rij("Wanneer", esc(wanneer(c))), c.locatie ? rij("Waar", esc(c.locatie)) : "", rij("Jouw bedankje", esc(wat))].filter(Boolean)))
-    + p(`Kom je graag? Klik dan op de knop hieronder. We maken de tickets en de drankkaart meteen aan op naam van ${esc(sd.bedrijf || "je bedrijf")} en mailen ze door met QR-codes.`)
-    + knop("Mijn tickets en drankkaart aanvragen", sponsorLink(sid, jk))
-    + p("De knop werkt één keer. Kom je niet? Dan hoef je niets te doen.", "margin:0 0 15px;font-size:13.5px;color:#666666")
-    + p("Nogmaals bedankt voor je steun!");
-  return { onderwerp: `Bedankt voor je sponsoring: gratis tickets voor ${c.naam}`, html };
+  const m = await sysMail(sb, "fuif-sponsoruitnodiging", { voornaam: esc(sd.voornaam || ""), bedrijf: esc(sd.bedrijf || ""), bedrijf_of: esc(sd.bedrijf || "je bedrijf"), fuif: esc(c.naam), wat: esc(wat),
+    gegevens: tabel([rij("Wanneer", esc(wanneer(c))), c.locatie ? rij("Waar", esc(c.locatie)) : "", rij("Jouw bedankje", esc(wat))].filter(Boolean)), knop_aanvragen: knop("Mijn tickets en drankkaart aanvragen", sponsorLink(sid, jk)) });
+  return { onderwerp: m.onderwerp, html: m.html.replace(/Beste\s+,/g, "Beste,") };
 }
 async function sponsorUitnodigen(sb, b, user) {
   const jk = String(Math.floor(Number(b.jaar)) || ""); if (!/^20\d\d$/.test(jk)) throw httpErr(400, "Jaar ontbreekt.");
@@ -450,7 +465,7 @@ async function sponsorUitnodigen(sb, b, user) {
     const sd = r.data || {}, g = (sd.geschenk || {})[jk] || {}, aan = String(sd.email || "").trim();
     if (g.kaarten) { over.push({ id: r.id, reden: "kreeg al kaarten" }); continue; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(aan)) { over.push({ id: r.id, reden: "geen e-mailadres" }); continue; }
-    const m = sponsorUitnodigingMail(sd, r.id, jk, c);
+    const m = await sponsorUitnodigingMail(sb, sd, r.id, jk, c);
     berichten.push({ batch, data: { aan, aanNaam: [sd.voornaam, sd.naam].filter(Boolean).join(" ") || sd.bedrijf || "", onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging, { extern: true }), label: "Uitnodiging fuifkaarten sponsors" } });
     ok.push(r);
   }
@@ -497,15 +512,10 @@ async function gastUitnodigen(sb, ids, user) {
     const d = r.data; if (d.bron !== "genodigde" || d.status !== "uitgenodigd") continue;
     const dw = (d.drank && d.drank[0] && d.drank[0].waarde) || 0;
     const wat = [d.aantal ? `${d.aantal} ${d.aantal === 1 ? "gratis inkomkaart" : "gratis inkomkaarten"}` : "", dw ? `een drankkaart van ${eur(dw)}` : ""].filter(Boolean).join(" en ");
-    const html = p(`Beste ${esc(d.voornaam || d.organisatie || "")},`.replace(" ,", ","))
-      + p(`Graag nodigen we ${d.organisatie ? `jullie van <b>${esc(d.organisatie)}</b>` : "je"} uit op onze jaarlijkse fuif <b>${esc(c.naam)}</b>. We bieden ${d.organisatie ? "jullie" : "je"} ${wat} aan.`)
-      + (d.boodschap ? p(esc(d.boodschap).replace(/\n/g, "<br>")) : "")
-      + kaderBlok(esc(c.naam), tabel([rij("Wanneer", esc(wanneer(c))), c.locatie ? rij("Waar", esc(c.locatie)) : "", rij("Voor jou", esc(wat))].filter(Boolean)))
-      + p("Kom je? Klik dan op de knop hieronder. We maken de tickets meteen aan en mailen ze door met QR-codes.")
-      + knop("Mijn tickets aanvragen", gastLink(r.id, d.betaalToken))
-      + p("De knop werkt één keer. Kom je niet? Dan hoef je niets te doen.", "margin:0 0 15px;font-size:13.5px;color:#666666")
-      + p("Hopelijk tot dan!");
-    berichten.push({ batch, data: { aan: d.email, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" ") || d.organisatie || "", onderwerp: `Uitnodiging: gratis tickets voor ${c.naam}`, html: huisstijl(html, A.vereniging, { extern: true }), label: "Uitnodiging genodigden fuif" } });
+    const m = await sysMail(sb, "fuif-genodigde", { voornaam: esc(d.voornaam || d.organisatie || ""), organisatie: esc(d.organisatie || ""), fuif: esc(c.naam), wat: esc(wat),
+      jullie_van: d.organisatie ? `jullie van <b>${esc(d.organisatie)}</b>` : "je", jullie: d.organisatie ? "jullie" : "je", boodschap: d.boodschap ? p(esc(d.boodschap).replace(/\n/g, "<br>")) : "",
+      gegevens: tabel([rij("Wanneer", esc(wanneer(c))), c.locatie ? rij("Waar", esc(c.locatie)) : "", rij("Voor jou", esc(wat))].filter(Boolean)), knop_aanvragen: knop("Mijn tickets aanvragen", gastLink(r.id, d.betaalToken)) });
+    berichten.push({ batch, data: { aan: d.email, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" ") || d.organisatie || "", onderwerp: m.onderwerp, html: huisstijl(m.html.replace(/Beste\s+,/g, "Beste,"), A.vereniging, { extern: true }), label: "Uitnodiging genodigden fuif" } });
     ok.push(r);
   }
   if (berichten.length) { const { error: e } = await sb.from("mail_wachtrij").insert(berichten); if (e) throw e; }

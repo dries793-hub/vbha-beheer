@@ -7,6 +7,7 @@ import { LOGO, WATERMERK } from "./logo_pdf.js";
 import { epcPayload, qrSvg, qrMatrix } from "./epc.js";
 import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, lang, kort, vandaag, plusDagen, site } from "./bevestiging.js";
 import { meldPush } from "./push.js";
+import { registreer, sysMail } from "./sjabloon.js";
 
 /* ============ Facturatie ============
    Tabel "facturen": data = {type: factuur|credit, status: concept|open|gecrediteerd, nr, seq, jaar, ogm, datum, vervaldatum,
@@ -273,57 +274,68 @@ function groetVan(k) {
 function vul(t, f, cfg, T) {
   return String(t || "").replace(/\{(\w+)\}/g, (m, k) => ({ naam: (f.klant && (f.klant.contact || f.klant.naam)) || "", nr: f.nr || "", bedrag: eur(T.totaal), vervaldatum: kort(f.vervaldatum), vereniging: cfg.vereniging }[k] ?? m));
 }
-export function factuurMail(f, cfg, soort = "factuur", status, extra = "") {
+const FKL = t => p(t, "margin:0 0 15px;font-size:13.5px;color:#666666");
+const FV = [["aanspreking", "Aanspreking (Beste …,)"], ["nr", "Factuurnummer"], ["klant", "Klant"], ["vereniging", "Naam vereniging"], ["datum", "Factuurdatum"], ["vervaldatum", "Vervaldatum"], ["bedrag", "Bedrag factuur"], ["open", "Nog te betalen"], ["mededeling", "Mededeling"], ["link_betalen", "Link online betalen"], ["factuur", "Kader met de factuurgegevens"], ["betalen", "Blok betalen (met knop)"]];
+const FVV = { aanspreking: "Beste Jan,", nr: "F2026010", klant: "Bakkerij Peeters", vereniging: "Vriendenkring Brandweer Hoofdpost Aalst", datum: "18 november 2026", vervaldatum: "18 december 2026", bedrag: "€250,00", open: "€250,00", mededeling: "+++123/4567/89012+++", link_betalen: "https://vbha.be/betaal" };
+registreer({ key: "factuur", naam: "Factuur versturen", wanneer: "Als je een factuur mailt (de factuur zit als PDF in bijlage).",
+  onderwerp: "Factuur {nr} - {vereniging}",
+  body: p("{aanspreking}") + p("Hartelijk dank voor je steun aan de {vereniging}. In bijlage vind je factuur <b>{nr}</b>.") + "<p>{factuur}</p><p>{betalen}</p>" + FKL("Vragen over deze factuur? Antwoord gewoon op deze mail."),
+  velden: FV, voorbeeld: FVV });
+registreer({ key: "factuur-herinnering", naam: "Factuur: betalingsherinnering", wanneer: "Als een factuur vervallen is en je (of de automatische opvolging) een herinnering stuurt.",
+  onderwerp: "{herinnering}: factuur {nr} - {vereniging}",
+  body: p("{aanspreking}") + p("Volgens onze gegevens is factuur <b>{nr}</b> van {datum} nog niet{als:deels} volledig{/als:deels} betaald. De vervaldatum was {vervaldatum}.")
+    + p("Mogen we je vragen het openstaande bedrag van <b>{open}</b> zo snel mogelijk over te schrijven? De factuur zit opnieuw in bijlage.")
+    + FKL("Heb je intussen al betaald? Dan kruisten onze berichten elkaar en mag je deze herinnering als niet verzonden beschouwen.") + "<p>{factuur}</p><p>{betalen}</p>" + FKL("Vragen over deze factuur? Antwoord gewoon op deze mail."),
+  velden: [...FV, ["herinnering", "Herinnering / 2e herinnering"], ["deels", "Voorwaarde: al deels betaald"]], voorbeeld: { ...FVV, herinnering: "Herinnering", deels: "" } });
+registreer({ key: "factuur-aanmaning", naam: "Factuur: aanmaning", wanneer: "Als je bij een vervallen factuur een aanmaning (met intresten en schadevergoeding) stuurt.",
+  onderwerp: "Aanmaning: factuur {nr} - {vereniging}",
+  body: p("{aanspreking}") + p("Voor onze factuur <b>{nr}</b> van {datum} hebben wij{als:herinnerd}, ondanks onze herinnering,{/als:herinnerd} nog geen{als:deels} volledige{/als:deels} betaling ontvangen. De vervaldatum was {vervaldatum}.")
+    + p("Zoals vermeld in onze betalingsvoorwaarden rekenen wij vanaf nu verwijlintresten en een forfaitaire schadevergoeding aan.")
+    + p("Wij vragen je het totaal van <b>{totaal_aanmaning}</b> uiterlijk op <b>{uiterlijk}</b> over te schrijven. Zonder betaling binnen deze termijn zien wij ons genoodzaakt verdere stappen tot invordering te zetten.")
+    + "<p>{extra_tekst}</p>" + FKL("Heb je intussen al betaald? Dan kruisten onze berichten elkaar en mag je deze aanmaning als niet verzonden beschouwen.")
+    + "<p>{aanmaning}</p><p>{betalen}</p>" + FKL("Vragen? Antwoord gewoon op deze mail."),
+  velden: [...FV.filter(v => v[0] !== "factuur"), ["totaal_aanmaning", "Totaal met intresten"], ["uiterlijk", "Uiterlijk te betalen op"], ["extra_tekst", "Extra tekst (bij het versturen ingevuld)"], ["aanmaning", "Kader met de berekening"], ["herinnerd", "Voorwaarde: al herinnerd"], ["deels", "Voorwaarde: al deels betaald"]],
+  voorbeeld: { ...FVV, totaal_aanmaning: "€290,00", uiterlijk: "maandag 30 november 2026", extra_tekst: "", herinnerd: "1", deels: "" } });
+registreer({ key: "creditnota", naam: "Creditnota versturen", wanneer: "Als je een creditnota mailt.",
+  onderwerp: "Creditnota {nr} - {vereniging}",
+  body: p("{aanspreking}") + p("In bijlage vind je creditnota <b>{nr}</b>{als:voor_factuur} voor factuur <b>{voor_factuur}</b>{/als:voor_factuur} ten bedrage van <b>{bedrag}</b>.")
+    + p("{als:voor_factuur}Hiermee vervalt het openstaande bedrag van die factuur. {/als:voor_factuur}Je hoeft niets te doen.") + "<p>{factuur}</p>" + FKL("Vragen over deze creditnota? Antwoord gewoon op deze mail."),
+  velden: [["aanspreking", "Aanspreking"], ["nr", "Nummer creditnota"], ["voor_factuur", "Voor factuur"], ["klant", "Klant"], ["vereniging", "Naam vereniging"], ["datum", "Datum"], ["bedrag", "Bedrag"], ["factuur", "Kader met de gegevens"]],
+  voorbeeld: { aanspreking: "Beste Jan,", nr: "C2026002", voor_factuur: "F2026010", klant: "Bakkerij Peeters", vereniging: "Vriendenkring Brandweer Hoofdpost Aalst", datum: "18 november 2026", bedrag: "€250,00" } });
+registreer({ key: "factuur-betaald", naam: "Factuur: online betaling ontvangen", wanneer: "Als een klant een factuur online betaalt met Bancontact.",
+  onderwerp: "Betaling ontvangen voor factuur {nr}",
+  body: p("{aanspreking}") + kaderBlok("&#10003; Betaling ontvangen", p("We ontvingen je betaling van <b>{bedrag}</b> voor factuur <b>{nr}</b> via Bancontact. Hartelijk dank!", "margin:0"), "#1a7f45", "#f1faf4")
+    + "{als:bijlage}" + p("In bijlage vind je de factuur, met de vermelding dat ze betaald is.") + "{/als:bijlage}",
+  velden: [["aanspreking", "Aanspreking"], ["nr", "Factuurnummer"], ["bedrag", "Bedrag"], ["vereniging", "Naam vereniging"], ["bijlage", "Voorwaarde: factuur in bijlage"]], voorbeeld: { aanspreking: "Beste Jan,", nr: "F2026010", bedrag: "€250,00", vereniging: "Vriendenkring Brandweer Hoofdpost Aalst", bijlage: "1" } });
+export async function factuurMail(sb, f, cfg, soort = "factuur", status, extra = "") {
   const T = totalen(f), k = f.klant || {}, credit = f.type === "credit";
-  const groet = groetVan(k);
   const open = status ? status.open : T.totaal;
-  let html = p(groet), onderwerp;
-  if (credit) {
-    onderwerp = `Creditnota ${f.nr} - ${cfg.vereniging}`;
-    html += p(`In bijlage vind je creditnota <b>${esc(f.nr)}</b>${f.factuurNr ? ` voor factuur <b>${esc(f.factuurNr)}</b>` : ""} ten bedrage van <b>${eur(T.totaal)}</b>.`)
-      + p(f.factuurNr ? `Hiermee vervalt het openstaande bedrag van die factuur. Je hoeft niets te doen.` : `Je hoeft niets te doen.`);
-  } else if (soort === "aanmaning" && f.aanmaning) {
-    const A = f.aanmaning;
-    onderwerp = `Aanmaning: factuur ${f.nr} - ${cfg.vereniging}`;
-    html += p(`Voor onze factuur <b>${esc(f.nr)}</b> van ${esc(kort(f.datum))} hebben wij${(f.verzonden || []).some(v => v.soort === "herinnering" && v.ok) || f.eerderHerinnerd ? ", ondanks onze herinnering," : ""} nog geen${status && status.ontvangen > 0 ? " volledige" : ""} betaling ontvangen. De vervaldatum was ${esc(kort(f.vervaldatum))}.`)
-      + p(`Zoals vermeld in onze betalingsvoorwaarden rekenen wij vanaf nu verwijlintresten en een forfaitaire schadevergoeding aan.`)
-      + p(`Wij vragen je het totaal van <b>${eur(A.totaal)}</b> uiterlijk op <b>${esc(lang(A.tot).replace(/^\p{Lu}/u, c => c.toLowerCase()))}</b> over te schrijven. Zonder betaling binnen deze termijn zien wij ons genoodzaakt verdere stappen tot invordering te zetten.`)
-      + String(extra || "").trim().split(/\n\s*\n/).filter(x => x.trim()).map(x => p(esc(x.trim()).replace(/\n/g, "<br>"))).join("")
-      + p(`Heb je intussen al betaald? Dan kruisten onze berichten elkaar en mag je deze aanmaning als niet verzonden beschouwen.`, "margin:0 0 15px;font-size:13.5px;color:#666666");
-    html += kaderBlok("Aanmaning factuur " + esc(f.nr), tabel([
-      rij("Openstaand bedrag", eur(A.open)),
-      A.intrest ? rij(`Verwijlintrest ${String(A.pct).replace(".", ",")}% (${A.dagen} dagen)`, eur(A.intrest)) : "",
-      A.forfait ? rij("Forfaitaire schadevergoeding", eur(A.forfait)) : "",
-      rij("Totaal te betalen", `<b>${eur(A.totaal)}</b>`),
-      rij("Uiterlijk op", `<b>${esc(lang(A.tot).replace(/^\p{Lu}/u, c => c.toLowerCase()))}</b>`),
-    ]));
-    html += kaderBlok("Betalen", tabel([rij("Bedrag", `<b>${eur(open)}</b>`), rij("Rekening", `<b>${esc(String(cfg.iban).replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim())}</b>`), rij("Begunstigde", esc(cfg.vereniging)), rij("Mededeling", `<b>${esc(ogmFmt(f.ogm) || f.nr)}</b>`)]), "#b30000", "#fdf2f2")
-      + knop("Online betalen met Bancontact of QR-code", betaalLink(f.id))
-      + p(`Vragen? Antwoord gewoon op deze mail.`, "margin:0 0 15px;font-size:13.5px;color:#666666");
-    return { onderwerp, html: huisstijl(html, cfg.vereniging, { extern: true }) };
+  const iban = esc(String(cfg.iban).replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim()), meded = esc(ogmFmt(f.ogm) || f.nr);
+  const V = { aanspreking: groetVan(k), nr: esc(f.nr), klant: esc(k.naam || ""), vereniging: esc(cfg.vereniging), datum: esc(kort(f.datum)), vervaldatum: esc(kort(f.vervaldatum)), bedrag: eur(T.totaal), open: eur(open), mededeling: meded,
+    link_betalen: esc(betaalLink(f.id)), deels: !!(status && status.ontvangen > 0),
+    factuur: kaderBlok(credit ? "Creditnota " + esc(f.nr) : "Factuur " + esc(f.nr), tabel([rij(credit ? "Datum" : "Factuurdatum", esc(lang(f.datum))), credit ? "" : rij("Vervaldatum", `<b>${esc(lang(f.vervaldatum))}</b>`), rij("Bedrag", `<b>${eur(T.totaal)}</b>`),
+      status && status.ontvangen > 0 && !status.betaald ? rij("Nog te betalen", `<b>${eur(open)}</b>`) : ""])),
+    betalen: !credit && open > 0 ? kaderBlok("Betalen", tabel([rij("Bedrag", `<b>${eur(open)}</b>`), rij("Rekening", `<b>${iban}</b>`), rij("Begunstigde", esc(cfg.vereniging)), rij("Mededeling", `<b>${meded}</b>`)])
+      + p("Gebruik exact deze gestructureerde mededeling, dan wordt je betaling automatisch aan de factuur gekoppeld.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2") + knop("Online betalen met Bancontact of QR-code", betaalLink(f.id)) : "" };
+  let m;
+  if (credit) m = await sysMail(sb, "creditnota", { ...V, voor_factuur: f.factuurNr ? esc(f.factuurNr) : "" });
+  else if (soort === "aanmaning" && f.aanmaning) {
+    const A = f.aanmaning, tot = esc(lang(A.tot).replace(/^\p{Lu}/u, c => c.toLowerCase()));
+    m = await sysMail(sb, "factuur-aanmaning", { ...V, herinnerd: (f.verzonden || []).some(v => v.soort === "herinnering" && v.ok) || !!f.eerderHerinnerd, totaal_aanmaning: eur(A.totaal), uiterlijk: tot,
+      extra_tekst: String(extra || "").trim().split(/\n\s*\n/).filter(x => x.trim()).map(x => p(esc(x.trim()).replace(/\n/g, "<br>"))).join(""),
+      aanmaning: kaderBlok("Aanmaning factuur " + esc(f.nr), tabel([rij("Openstaand bedrag", eur(A.open)), A.intrest ? rij(`Verwijlintrest ${String(A.pct).replace(".", ",")}% (${A.dagen} dagen)`, eur(A.intrest)) : "",
+        A.forfait ? rij("Forfaitaire schadevergoeding", eur(A.forfait)) : "", rij("Totaal te betalen", `<b>${eur(A.totaal)}</b>`), rij("Uiterlijk op", `<b>${tot}</b>`)])),
+      betalen: kaderBlok("Betalen", tabel([rij("Bedrag", `<b>${eur(open)}</b>`), rij("Rekening", `<b>${iban}</b>`), rij("Begunstigde", esc(cfg.vereniging)), rij("Mededeling", `<b>${meded}</b>`)]), "#b30000", "#fdf2f2") + knop("Online betalen met Bancontact of QR-code", betaalLink(f.id)) });
   } else if (soort === "herinnering") {
     const n = (f.verzonden || []).filter(v => v.soort === "herinnering" && v.ok).length + 1;
-    onderwerp = `${n > 1 ? n + "e herinnering" : "Herinnering"}: factuur ${f.nr} - ${cfg.vereniging}`;
-    html += p(`Volgens onze gegevens is factuur <b>${esc(f.nr)}</b> van ${esc(kort(f.datum))} nog niet${status && status.ontvangen > 0 ? " volledig" : ""} betaald. De vervaldatum was ${esc(kort(f.vervaldatum))}.`)
-      + p(`Mogen we je vragen het openstaande bedrag van <b>${eur(open)}</b> zo snel mogelijk over te schrijven? De factuur zit opnieuw in bijlage.`)
-      + p(`Heb je intussen al betaald? Dan kruisten onze berichten elkaar en mag je deze herinnering als niet verzonden beschouwen.`, "margin:0 0 15px;font-size:13.5px;color:#666666");
+    m = await sysMail(sb, "factuur-herinnering", { ...V, herinnering: n > 1 ? n + "e herinnering" : "Herinnering" });
   } else {
-    onderwerp = vul(cfg.mailOnderwerp, f, cfg, T) || `Factuur ${f.nr} - ${cfg.vereniging}`;
-    html += (cfg.mailTekst ? vul(cfg.mailTekst, f, cfg, T).split(/\n{2,}/).map(a => p(esc(a).replace(/\n/g, "<br>"))).join("") : p(`Hartelijk dank voor je steun aan de ${esc(cfg.vereniging)}. In bijlage vind je factuur <b>${esc(f.nr)}</b>.`));
+    m = await sysMail(sb, "factuur", V);
+    // eigen tekst uit de factuurinstellingen (oud) blijft voorrang hebben
+    if (String(cfg.mailOnderwerp || "").trim()) m.onderwerp = vul(cfg.mailOnderwerp, f, cfg, T);
+    if (String(cfg.mailTekst || "").trim()) m.html = p(groetVan(k)) + vul(cfg.mailTekst, f, cfg, T).split(/\n{2,}/).map(a => p(esc(a).replace(/\n/g, "<br>"))).join("") + V.factuur + V.betalen + FKL("Vragen over deze factuur? Antwoord gewoon op deze mail.");
   }
-  html += kaderBlok(credit ? "Creditnota " + esc(f.nr) : "Factuur " + esc(f.nr), tabel([
-    rij(credit ? "Datum" : "Factuurdatum", esc(lang(f.datum))),
-    credit ? "" : rij("Vervaldatum", `<b>${esc(lang(f.vervaldatum))}</b>`),
-    rij("Bedrag", `<b>${eur(T.totaal)}</b>`),
-    status && status.ontvangen > 0 && !status.betaald ? rij("Nog te betalen", `<b>${eur(open)}</b>`) : "",
-  ]));
-  if (!credit && open > 0) {
-    html += kaderBlok("Betalen", tabel([rij("Bedrag", `<b>${eur(open)}</b>`), rij("Rekening", `<b>${esc(String(cfg.iban).replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim())}</b>`), rij("Begunstigde", esc(cfg.vereniging)), rij("Mededeling", `<b>${esc(ogmFmt(f.ogm) || f.nr)}</b>`)])
-      + p("Gebruik exact deze gestructureerde mededeling, dan wordt je betaling automatisch aan de factuur gekoppeld.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2")
-      + knop("Online betalen met Bancontact of QR-code", betaalLink(f.id));
-  }
-  html += p(`Vragen over deze ${credit ? "creditnota" : "factuur"}? Antwoord gewoon op deze mail.`, "margin:0 0 15px;font-size:13.5px;color:#666666");
-  return { onderwerp, html: huisstijl(html, cfg.vereniging, { extern: true }) };
+  return { onderwerp: m.onderwerp, html: huisstijl(m.html, cfg.vereniging, { extern: true }) };
 }
 
 /* ---------- opslag ---------- */
@@ -377,7 +389,7 @@ async function verstuurFactuur(sb, row, cfg, soort, aanExtra, extraTekst) {
   if (!smtpConfigured()) throw httpErr(501, "Versturen is niet ingesteld (SMTP in Vercel).");
   const st = f.type === "credit" ? null : await statusVan(sb, row);
   if ((soort === "herinnering" || soort === "aanmaning") && st && st.betaald) throw httpErr(409, "Deze factuur is al betaald.");
-  const m = factuurMail(f, cfg, soort, st, extraTekst);
+  const m = await factuurMail(sb, f, cfg, soort, st, extraTekst);
   const bijlagen = [{ naam: soort === "aanmaning" ? pdfNaam(f).replace(/^Factuur/i, "Aanmaning") : pdfNaam(f), type: "application/pdf", data: factuurPdf(f, cfg, { status: st, aanmaning: soort === "aanmaning" ? f.aanmaning : null }) }];
   const berichten = [{ aan, aanNaam: (f.klant && (f.klant.contact || f.klant.naam)) || "", onderwerp: m.onderwerp, html: m.html, van: factuurAfzender(), bijlagen, antwoordAan: FACTUUR_ADRES() }];
   const kopie = String(cfg.kopie || "").split(/[,;\s]+/).filter(x => /@/.test(x) && x.toLowerCase() !== aan.toLowerCase());
@@ -483,12 +495,11 @@ export async function factuurOnlineBetaald(sb, id) {
   const aan = String((f.klant && f.klant.email) || "").trim();
   if (aan) {
     const cfg = await fcConfig(sb);
-    const html = p(groetVan(f.klant || {}))
-      + kaderBlok("&#10003; Betaling ontvangen", p(`We ontvingen je betaling van <b>${eur(b.bedrag)}</b> voor factuur <b>${esc(f.nr)}</b> via Bancontact. Hartelijk dank!`, "margin:0"), "#1a7f45", "#f1faf4");
     // de factuur met de vermelding "BETAALD (Bancontact)" mee in bijlage
     let bijlagen;
     try { const st = await statusVan(sb, row); bijlagen = [{ naam: pdfNaam(f), type: "application/pdf", data: factuurPdf({ ...f, id }, cfg, { status: st }) }]; } catch (e) { console.error("pdf betaald", e); }
-    await verstuur([{ aan, aanNaam: (f.klant && f.klant.naam) || "", onderwerp: `Betaling ontvangen voor factuur ${f.nr}`, html: huisstijl(html + (bijlagen ? p("In bijlage vind je de factuur, met de vermelding dat ze betaald is.") : ""), cfg.vereniging, { extern: true }), van: factuurAfzender(), antwoordAan: FACTUUR_ADRES(), ...(bijlagen ? { bijlagen } : {}) }], { factuur: true });
+    const m = await sysMail(sb, "factuur-betaald", { aanspreking: groetVan(f.klant || {}), nr: esc(f.nr), bedrag: eur(b.bedrag), vereniging: esc(cfg.vereniging), bijlage: !!bijlagen });
+    await verstuur([{ aan, aanNaam: (f.klant && f.klant.naam) || "", onderwerp: m.onderwerp, html: huisstijl(m.html, cfg.vereniging, { extern: true }), van: factuurAfzender(), antwoordAan: FACTUUR_ADRES(), ...(bijlagen ? { bijlagen } : {}) }], { factuur: true });
   }
   const vers = await haal(sb, id);
   await bewaar(sb, id, { ...vers.data, betaling: { ...vers.data.betaling, bevestigd: true } });
