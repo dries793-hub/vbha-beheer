@@ -9884,7 +9884,9 @@ function tfBody(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaa
   <div class="panel tf-los" data-tft=""><div class="panel-h"><h2>Wachtzone</h2>${los.length?`<span class="pill warn">${los.reduce((s,u)=>s+u.n,0)}</span>`:""}</div><div class="tf-l">${los.map(tfChip).join("")||'<div class="tf-e" style="flex:1">Sleep hier personen naartoe om ze even van een tafel te halen</div>'}</div></div>
   <div class="tf-g">${c.tafels.map(kaart).join("")}</div>
   ${(()=>{const O=U.filter(u=>u.opm);if(!O.length)return"";const tn=id=>{const t=c.tafels.find(x=>x.id===c.plaats[id]);return t?t.naam:"niet geplaatst"};
-    return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h2>Opmerkingen</h2><span class="pill neutral">${O.length}</span></div><div class="tf-ol">${O.sort((a,b)=>tn(a.id).localeCompare(tn(b.id),"nl",{numeric:true})).map(u=>`<div><b>${esc(u.r.naam||"")}</b><span>${esc(tn(u.id))}</span>${u.o1?`<p>${TF_LET}${esc(u.o1)}</p>`:""}${u.o2?`<p><i>partner</i> ${TF_LET}${esc(u.o2)}</p>`:""}</div>`).join("")}</div></div>`})()}`}
+    const R=[];for(const u of O){if(u.o1)R.push({u,wie:"",o:u.o1});if(u.o2)R.push({u,wie:"partner",o:u.o2})}
+    const G=new Map();for(const x of R.sort((a,b)=>tn(a.u.id).localeCompare(tn(b.u.id),"nl",{numeric:true})||String(a.u.r.naam).localeCompare(String(b.u.r.naam),"nl")||(a.wie?1:-1))){const k=tn(x.u.id);if(!G.has(k))G.set(k,[]);G.get(k).push(x)}
+    return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h2>Opmerkingen</h2><span class="pill neutral">${R.length}</span></div><div class="tf-ol">${[...G].map(([t,L])=>`<div class="tf-og"><div class="tf-ot">${esc(t)}</div><div class="tf-or">${L.map(x=>`<div class="tf-oi"><div class="tf-on"><b>${esc(x.u.r.naam||"")}</b>${x.wie?`<span class="tf-pw">partner</span>`:""}</div><div class="tf-ox">${TF_LET}<span>${esc(x.o)}</span></div></div>`).join("")}</div></div>`).join("")}</div></div>`})()}`}
 
 /* tab Tafelschikking in Banket */
 {const _v=VIEWS.banket;VIEWS.banket=function(){const v=_v.apply(this,arguments),_b=v.body,tab=UI.bkTab==="tafels"?"tafels":"lijst";
@@ -9916,12 +9918,14 @@ function tfZet(uid,tid){if(!uid)return;const c=tfCfg();if(!c.tafels.length)c.taf
 function tfInst(){const c=tfCfg();const rij=(t,i)=>`<div class="tf-ir"><input class="inp" type="number" min="0" max="50" value="${Number(t.aantal)||0}" data-tfa="${i}" aria-label="Aantal tafels"><span>tafels van</span><input class="inp" type="number" min="1" max="40" value="${Number(t.cap)||8}" data-tfc="${i}" aria-label="Personen per tafel"><span>personen</span><button type="button" class="btn sm ghost danger" data-tfw="${i}" aria-label="Verwijderen">${ic("x")}</button></div>`;
   const teken=T=>`<div id="tfIr">${T.map(rij).join("")}</div><button type="button" class="btn sm" id="tfAdd">${ic("plus")}Rij toevoegen</button><div class="muted small" id="tfSom" style="margin-top:10px"></div>`;
   let T=c.types.map(x=>({...x}));
-  modal("Tafels",`<div id="tfIb">${teken(T)}</div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="tfIOk">Bewaren</button>`);
+  modal("Tafels",`<div id="tfIb">${teken(T)}</div>`,`${Object.keys(c.plaats||{}).length?`<button class="btn ghost danger" id="tfLeeg" style="margin-right:auto">${ic("x")}Tafelschikking leegmaken</button>`:""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="tfIOk">Bewaren</button>`);
   const lees=()=>{T=[...$$("[data-tfa]")].map(i=>({aantal:Math.max(0,Math.round(+i.value||0)),cap:Math.max(1,Math.round(+($(`[data-tfc="${i.dataset.tfa}"]`)||{}).value||8))}))},
     som=()=>{lees();const n=T.reduce((s,t)=>s+t.aantal,0),p=T.reduce((s,t)=>s+t.aantal*t.cap,0),pers=tfUnits().reduce((s,u)=>s+u.n,0);$("#tfSom").innerHTML=`${n} tafels · ${p} plaatsen · ${pers} ingeschreven${p<pers?' · <b style="color:var(--accent)">te weinig plaatsen</b>':""}`},
     her=()=>{$("#tfIb").innerHTML=teken(T);bind();som()},
     bind=()=>{$("#tfAdd").onclick=()=>{lees();T.push({aantal:1,cap:8});her()};$$("[data-tfw]").forEach(b=>b.onclick=()=>{lees();T.splice(+b.dataset.tfw,1);her()});$$("#tfIr input").forEach(i=>i.oninput=som)};
   bind();som();
+  const lg=$("#tfLeeg");if(lg)lg.onclick=()=>{closeModal();confirmBox("Iedereen van de tafels halen? Alle personen gaan terug naar de wachtzone; de tafels zelf blijven.","Leegmaken",async()=>{
+    const n={types:c.types,tafels:c.tafels,plaats:{}};S.config.set(tfId(),{id:tfId(),...n});await tfBewaar(n);TF.sel=null;renderBody();toast("Tafelschikking leeggemaakt.")})};
   $("#tfIOk").onclick=async()=>{lees();T=T.filter(t=>t.aantal>0);if(!T.length)return toast("Voeg minstens één tafel toe.",true);
     const nieuw=tfMaakTafels(T),ids=new Set(nieuw.map(t=>t.id)),oud=new Map(c.tafels.map(t=>[t.id,t]));
     for(const t of nieuw){const o=oud.get(t.id);if(o&&o.naam&&!/^Tafel \d+$/.test(o.naam))t.naam=o.naam}
@@ -9969,7 +9973,7 @@ function tfPdf(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaak
 .tf-e{font-size:12.5px;color:var(--muted);padding:10px 0;text-align:center;border:1.5px dashed var(--line);border-radius:8px}
 .tf-pp{display:inline-flex;align-items:baseline;gap:5px;flex-wrap:wrap}.tf-o{font-size:12px;color:var(--accent);line-height:1.3}
 .tfi{width:13px;height:13px;flex:none;align-self:center;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.tfi.veg{stroke:#1a7f45}.tfi.opm{stroke:var(--accent)}
-.tf-ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:12px 16px 16px}.tf-ol>div{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;padding:8px 10px;border-radius:8px;background:var(--sunken,#f6f6f7)}.tf-ol span{font-size:12px;color:var(--muted)}.tf-ol p{flex-basis:100%;margin:0;font-size:13px;color:var(--accent)}.tf-ol p i{font-style:normal;color:var(--muted);font-size:12px}.tf-ol p .tfi{margin-right:4px}
+.tf-ol{padding:4px 0}.tf-og{display:grid;grid-template-columns:110px 1fr;border-top:1px solid var(--line,#eee)}.tf-og:first-child{border-top:0}.tf-ot{padding:12px 16px;font-weight:600;font-size:13px;color:var(--accent)}.tf-or{display:flex;flex-direction:column}.tf-oi{display:grid;grid-template-columns:minmax(180px,280px) 1fr;gap:12px;padding:10px 16px 10px 0;align-items:baseline}.tf-oi+.tf-oi{border-top:1px dashed var(--line,#eee)}.tf-on{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}.tf-on b{font-size:13.5px}.tf-pw{font-size:11px;color:var(--muted);background:var(--sunken,#f1f1f2);border-radius:999px;padding:1px 7px}.tf-ox{display:flex;gap:7px;align-items:flex-start;font-size:13.5px;line-height:1.4}.tf-ox .tfi{margin-top:3px}@media(max-width:700px){.tf-og{grid-template-columns:1fr}.tf-ot{padding:10px 16px 0}.tf-oi{grid-template-columns:1fr;gap:3px;padding:8px 16px}}
 .tf-ir{display:flex;align-items:center;gap:8px;margin-bottom:8px}.tf-ir .inp{width:72px}`;document.head.appendChild(st)}
 
 /* ============ Pagina's openen altijd op de eerste tab ============
