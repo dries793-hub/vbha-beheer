@@ -9936,7 +9936,7 @@ function tfPdf(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaak
   const sorteer=L=>L.slice().sort((a,b)=>a.cat.localeCompare(b.cat,"nl")||String(a.r.naam).localeCompare(String(b.r.naam),"nl"));let nr=0;const NR=new Map();
   for(const t of c.tafels)for(const u of sorteer(per.get(t.id)||[])){if(u.o1)NR.set(u.id+"|1",++nr);if(u.o2)NR.set(u.id+"|2",++nr)}
   const kaart=t=>{const L=sorteer(per.get(t.id)||[]),n=L.reduce((s,u)=>s+u.n,0),v=L.reduce((s,u)=>s+u.veg,0),o=L.reduce((s,u)=>s+(u.o1?1:0)+(u.o2?1:0),0);
-    return `<div class="t"><div class="h"><b>${esc(t.naam)}</b><span>${n} pers.${v?` · ${BLAD}${v}`:""}${o?` · ${LET}${o}`:""}</span></div><ol>${L.map(u=>`<li>${esc(u.r.naam||"")}${u.v1?" "+BLAD:""}${u.o1?` ${LET}<sup>${NR.get(u.id+"|1")}</sup>`:""}${u.n===2?` <i>+ partner</i>${u.v2?" "+BLAD:""}${u.o2?` ${LET}<sup>${NR.get(u.id+"|2")}</sup>`:""}`:""}</li>`).join("")}</ol></div>`};
+    return `<div class="t"><div class="h"><b>${esc(t.naam)}</b><span>${n} pers.${v?` · ${BLAD}${v}`:""}${o?` · ${LET}${o}`:""}</span></div><ol>${L.map(u=>`<li>${esc(u.r.naam||"")}${u.v1?" "+BLAD:""}${u.o1?` ${LET}<sup>${NR.get(u.id+"|1")}</sup>`:""}${u.n===2?`<div class="pa">partner${u.v2?" "+BLAD:""}${u.o2?` ${LET}<sup>${NR.get(u.id+"|2")}</sup>`:""}</div>`:""}</li>`).join("")}</ol></div>`};
   const opmLijst=c.tafels.map(t=>{const L=sorteer(per.get(t.id)||[]).filter(u=>u.opm);return L.length?`<div class="ot"><b>${esc(t.naam)}</b>${L.flatMap(u=>[u.o1?`<p><sup>${NR.get(u.id+"|1")}</sup> <span>${esc(u.r.naam||"")}</span> ${esc(u.o1)}</p>`:"",u.o2?`<p><sup>${NR.get(u.id+"|2")}</sup> <span>partner van ${esc(u.r.naam||"")}</span> ${esc(u.o2)}</p>`:""]).join("")}</div>`:""}).join("");
   const dt=bc.datum?new Date(bc.datum+"T12:00:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):"";
   const html=`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Tafelschikking banket ${JAAR}</title><style>
@@ -9946,7 +9946,7 @@ function tfPdf(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaak
     .g{display:grid;grid-template-columns:repeat(${kol},1fr);gap:9px}
     .t{border:1.5px solid #c9a75a;border-radius:9px;padding:8px 10px;break-inside:avoid}
     .h{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #e5e5e5;margin-bottom:3px;padding-bottom:2px}.h b{font-size:16px;color:#b30000}.h span{font-size:12px;color:#666}
-    ol{margin:0;padding-left:20px;font-size:13px;line-height:1.45}i{color:#555;font-style:normal}em{font-style:normal;font-weight:700;color:#1a7f45;font-size:9px}
+    ol{margin:0;padding:0;list-style:none;font-size:13px;line-height:1.4}li{margin:0 0 2px}.pa{position:relative;padding-left:17px;color:#555;font-size:12px}.pa::before{content:"";position:absolute;left:5px;top:-2px;height:.85em;width:8px;border-left:1.5px solid #bbb;border-bottom:1.5px solid #bbb;border-bottom-left-radius:2px}i{color:#555;font-style:normal}em{font-style:normal;font-weight:700;color:#1a7f45;font-size:9px}
     footer{margin-top:8px;font-size:11px;color:#777;display:flex;gap:14px;align-items:center}
     .ic{width:13px;height:13px;vertical-align:-1px;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ic.veg{stroke:#1a7f45}.ic.opm{stroke:#b30000}
     sup{font-size:9.5px;font-weight:700;color:#b30000;vertical-align:3px;margin-left:1px}
