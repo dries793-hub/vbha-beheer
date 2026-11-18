@@ -2675,7 +2675,16 @@ function krNulStand(stand){const uit={},sids=new Set();for(const id in stand){co
       for(const b of P){if(b===a)continue;const s=st(b.x.id);if(s&&ends.some(e=>b.q.some(q=>Math.hypot(q[0]-e[0],q[1]-e[1])<12)))S.add(s)}
       if(S.size){uit[a.x.id]=S.has("r")?"r":"d";ok=true}}}}
   return uit}
-function krDeelLijn(x){try{const G=krGroepen(x.sid)||[],g=G.find(g=>g.ids&&g.ids.includes(x.id));if(g&&g.g&&g.g.length)return g.g}catch(e){}return krEnkel(x.g)}
+/* stukjes middellijn die bij geen enkel stuk horen (aansluiting op een kruispunt, overbrugging): kleur van het aangrenzende stuk */
+const KRGAT=new Map();
+function krGaten(sid){if(KRGAT.has(sid))return KRGAT.get(sid);const out=[];try{const G=krGroepenRuw(sid)||[];if(G.length){const GQ=G.map(g=>(g.g||[]).map(q=>q.map(KRE.m)));
+  const naast=pt=>{let bd=1e9,bi=-1;GQ.forEach((qs,i)=>{for(const q of qs){if(q.length<2)continue;const x=KRE.afst(pt,q).d;if(x<bd){bd=x;bi=i}}});return{d:bd,i:bi}};
+  for(const lijn of krGeo(sid)){if(lijn.length<2)continue;const lat=lijn[0][0],d=KRE.dicht8(lijn.map(KRE.m));let run=[],vorig=null;
+    const sluit=volg=>{if(run.length){const a=vorig,b=volg,ids=new Set();if(a&&a.i>=0)G[a.i].ids.forEach(id=>ids.add(id));if(b&&b.i>=0)G[b.i].ids.forEach(id=>ids.add(id));
+      const pts=[...(a?[a.p]:[]),...run,...(b?[b.p]:[])];if(pts.length>1&&ids.size&&run.length<=12)out.push({g:[pts.map(q=>KRE.terug(q,lat))],ids:[...ids],a:a&&a.i>=0?G[a.i].ids:[],b:b&&b.i>=0?G[b.i].ids:[]})}run=[]};
+    for(const pt of d){const n=naast(pt);if(n.d>3)run.push(pt);else{sluit({...n,p:pt});vorig={...n,p:pt}}}sluit(null)}}}catch(e){}
+  KRGAT.set(sid,out);return out}
+function krDeelLijn(x){try{const G=krGroepenRuw(x.sid)||[],g=G.find(g=>g.ids&&g.ids.includes(x.id));if(g&&g.g&&g.g.length)return g.g}catch(e){}return krEnkel(x.g)}
 function krGroepen(sid){if(KRG.has(sid))return KRG.get(sid);const S=(KR_DELEN.get(sid)||[]).map(x=>{const qs=KRE.delen(x.g).map(p=>p.map(KRE.m));return{x,qs,l:qs.reduce((t,q)=>t+KRE.lengte(q),0),d:qs.flatMap(KRE.dicht8)}}).sort((a,b)=>b.l-a.l);
   const G=[];for(const s of S){let best=null,bn=0;if(s.d.length)for(const g of G){let n=0;for(const p of s.d)if(g.qs.some(q=>KRE.afst(p,q).d<30))n++;if(n>bn){bn=n;best=g}}
     if(best&&bn/s.d.length>=.85){best.ids.push(s.x.id);best.a+=s.x.a;best.xs.push(s.x)}else G.push({lead:s.x,ids:[s.x.id],a:s.x.a,xs:[s.x],qs:s.qs})}
@@ -2694,6 +2703,7 @@ function krGroepen(sid){if(KRG.has(sid))return KRG.get(sid);const S=(KR_DELEN.ge
     if(!raak&&best)g.g.push([pt,KRE.terug(best.x,pt[0])])}}});
   KRG.set(sid,G);return G}
 /* stukken zonder adressen: niet tonen, niet aanklikbaar, nummering zonder die stukken */
+const krGroepenRuw=krGroepen;
 {const _g=krGroepen,KV=new Map();krGroepen=function(sid){if(KV.has(sid))return KV.get(sid);const V=_g(sid).filter(g=>g.a>0);V.forEach((g,i)=>g.n=i+1);KV.set(sid,V);return V}}
 
 /* verborgen straten en stukken (geen woonstraat), ingesteld in de app (config "kaart".verborgen) */
@@ -2794,7 +2804,10 @@ function krStyleAll(){const todo=krVar("--kr-todo"),sel=krVar("--accent");const 
   if(!KR.segLayer)KR.segLayer=L.layerGroup().addTo(KR.map);KR.segLayer.clearLayers();
   const ST=Object.assign(krNulStand(KR_STAND),KR_STAND);
   for(const id in ST){const x=KR_DEEL.get(id);if(!x||KR_STAND[x.sid]||KR.ss.has(x.sid))continue;
-    L.polyline(krDeelLijn(x),{renderer:KR.renderer,interactive:false,weight:w[1],color:ST[id]==="r"?rs:dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}}
+    L.polyline(krDeelLijn(x),{renderer:KR.renderer,interactive:false,weight:w[1],color:ST[id]==="r"?rs:dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}
+  {const sids=new Set();for(const id in ST){const x=KR_DEEL.get(id);if(x&&!KR_STAND[x.sid]&&!KR.ss.has(x.sid))sids.add(x.sid)}
+    for(const sid of sids)for(const t of krGaten(sid)){const sa=t.a.map(i=>ST[i]).find(Boolean),sb=t.b.map(i=>ST[i]).find(Boolean),k=t.a.length&&t.b.length?(sa&&sb?(sa==="r"||sb==="r"?"r":"d"):""):(sa||sb);if(!k)continue;
+      L.polyline(t.g,{renderer:KR.renderer,interactive:false,weight:w[1],color:k==="r"?rs:dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}}}
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const krDeelTekst=sid=>{const t=krDeelStand(sid);return t.d||t.r?"deels: "+[t.d?t.d+" van "+t.n+" stukken bedeeld":"",t.r?t.r+" gereserveerd":""].filter(Boolean).join(", "):""};
 const krWie=id=>KR_STAND[id]!=="d"&&KR_PEND[id]?"melding in behandeling":(KR_STAND[id]==="d"?"al bedeeld":"gereserveerd")+(KR_OP[id]?" · "+KR_OP[id]:"");
