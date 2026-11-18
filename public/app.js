@@ -9873,7 +9873,7 @@ async function tfBewaar(c){await write("config",tfId(),{types:c.types,tafels:c.t
 function tfLater(c){S.config.set(tfId(),{id:tfId(),...(S.config.get(tfId())||{}),...c});clearTimeout(TF.t);TF.t=setTimeout(()=>tfBewaar(c).catch(e=>toast(e.message,true)),500)}
 
 function tfChip(u){const sel=TF.sel===u.id;
-  const zin=(v,o)=>(v?TF_BLAD:"")+(o?`${TF_LET}<span class="tf-o">${esc(o)}</span>`:"");
+  const zin=v=>v?TF_BLAD:""; // opmerkingen enkel in het paneel onderaan en op de afdruk
   return `<div class="tf-p${sel?" on":""}" draggable="${canWrite}" data-tfp="${esc(u.id)}" title="${esc(u.cat)}"><span class="tf-pp"><b>${esc(u.r.naam||"")}</b>${zin(u.v1,u.o1)}</span>${u.n===2?`<span class="tf-pp"><span class="tf-plus">+ partner</span>${zin(u.v2,u.o2)}</span>`:""}</div>`}
 function tfBody(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);
   const per=new Map(c.tafels.map(t=>[t.id,[]])),los=[];for(const u of U){const t=c.plaats[u.id];if(t&&per.has(t))per.get(t).push(u);else los.push(u)}
