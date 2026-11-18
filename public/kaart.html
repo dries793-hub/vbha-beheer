@@ -2668,6 +2668,13 @@ function krEnkel(g){const P=KRE.delen(g);if(P.length<2)return g;
     if(best){uit.push([KRE.terug(e,lat),KRE.terug(best.x,lat)]);con.push([e,best.x])}}
   return uit}
 const KRG=new Map();
+/* stukken zonder adressen (kruispunt, brugje, …) tussen aangeduide stukken: zelfde kleur, zodat de straat doorloopt */
+function krNulStand(stand){const uit={},sids=new Set();for(const id in stand){const x=KR_DEEL.get(id);if(x)sids.add(x.sid)}
+  for(const sid of sids){const L=KR_DELEN.get(sid)||[],st=id=>stand[id]||uit[id],P=L.map(x=>({x,q:KRE.delen(x.g).flatMap(p=>p.map(KRE.m))}));
+    let ok=true,n=0;while(ok&&n++<12){ok=false;for(const a of P){if(a.x.a>0||st(a.x.id))continue;const ends=KRE.delen(a.x.g).flatMap(p=>[p[0],p[p.length-1]]).map(KRE.m),S=new Set();
+      for(const b of P){if(b===a)continue;const s=st(b.x.id);if(s&&ends.some(e=>b.q.some(q=>Math.hypot(q[0]-e[0],q[1]-e[1])<12)))S.add(s)}
+      if(S.size){uit[a.x.id]=S.has("r")?"r":"d";ok=true}}}}
+  return uit}
 function krDeelLijn(x){try{const G=krGroepen(x.sid)||[],g=G.find(g=>g.ids&&g.ids.includes(x.id));if(g&&g.g&&g.g.length)return g.g}catch(e){}return krEnkel(x.g)}
 function krGroepen(sid){if(KRG.has(sid))return KRG.get(sid);const S=(KR_DELEN.get(sid)||[]).map(x=>{const qs=KRE.delen(x.g).map(p=>p.map(KRE.m));return{x,qs,l:qs.reduce((t,q)=>t+KRE.lengte(q),0),d:qs.flatMap(KRE.dicht8)}}).sort((a,b)=>b.l-a.l);
   const G=[];for(const s of S){let best=null,bn=0;if(s.d.length)for(const g of G){let n=0;for(const p of s.d)if(g.qs.some(q=>KRE.afst(p,q).d<30))n++;if(n>bn){bn=n;best=g}}
@@ -2688,6 +2695,15 @@ function krGroepen(sid){if(KRG.has(sid))return KRG.get(sid);const S=(KR_DELEN.ge
   KRG.set(sid,G);return G}
 /* stukken zonder adressen: niet tonen, niet aanklikbaar, nummering zonder die stukken */
 {const _g=krGroepen,KV=new Map();krGroepen=function(sid){if(KV.has(sid))return KV.get(sid);const V=_g(sid).filter(g=>g.a>0);V.forEach((g,i)=>g.n=i+1);KV.set(sid,V);return V}}
+
+/* verborgen straten en stukken (geen woonstraat), ingesteld in de app (config "kaart".verborgen) */
+let KR_VERB=new Set(),KR_VERB_OK=false;const KR_GV=new Map();let krGroepenBasis=null;
+function krVerbergToepassen(L){const V=new Set((L||[]).map(String));KR_VERB=V;KR_GV.clear();if(!V.size)return;
+  for(let i=KR_STREETS.length-1;i>=0;i--){const s=KR_STREETS[i];if(V.has(s.id)){KR_STREETS.splice(i,1);KR.byId.delete(s.id)}}
+  for(const s of KR_STREETS){const G=krGroepenBasis(s.id)||[];let a=0;for(const g of G)if(g.ids.some(id=>V.has(id)))a+=g.a;if(a&&s.a0==null){s.a0=s.a;s.a=Math.max(0,s.a-a)}}}
+{const _g=krGroepen;krGroepenBasis=_g;krGroepen=function(sid){if(!KR_VERB.size)return _g(sid);if(KR_GV.has(sid))return KR_GV.get(sid);
+  const V=_g(sid).filter(g=>!g.ids.some(id=>KR_VERB.has(id)));V.forEach((g,i)=>g.n=i+1);KR_GV.set(sid,V);return V}}
+{const _k=krGeo;krGeo=function(sid){if(KR_VERB.size){const G0=krGroepenBasis(sid)||[];if(G0.some(g=>g.ids.some(id=>KR_VERB.has(id))))return G0.filter(g=>!g.ids.some(id=>KR_VERB.has(id))).flatMap(g=>g.g)}return _k(sid)}}
 function krGroepMidden(g){const P=KRE.delen(g);let best=P[0]||[],bl=-1;for(const p of P){const l=KRE.lengte(p.map(KRE.m));if(l>bl){bl=l;best=p}}
   const q=best.map(KRE.m),tot=KRE.lengte(q);let h=tot/2;for(let i=1;i<q.length;i++){const d=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);if(h<=d){const f=d?h/d:0;return[best[i-1][0]+(best[i][0]-best[i-1][0])*f,best[i-1][1]+(best[i][1]-best[i-1][1])*f]}h-=d}return best[0]}
 /* krGeo(sid): de te tekenen lijn van een straat (krEnkel) waarbij losse uiteinden doorgetrokken worden tot de dichtstbijzijnde
@@ -2701,10 +2717,14 @@ function krGeo(sid){if(!KRE.geo){const t0=Date.now(),cos=Math.cos(50.94*Math.PI/
   const zoek=(e,sid,pi,max)=>{let best=null;const cx=Math.floor(e[0]/C),cy=Math.floor(e[1]/C);
     for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++)for(const o of seg.get((cx+i)+"|"+(cy+j))||[]){if(o.sid===sid&&o.pi===pi)continue;const r=KRE.proj(e,o.a,o.b);if(r.d<max&&(!best||r.d<best.d))best=r}return best};
   for(const s of KR_STREETS){const P=geo.get(s.id),n=P.length;for(let pi=0;pi<n;pi++){const p=P[pi];if(p.length<2)continue;
-    for(const [pt,nb] of [[p[0],p[1]],[p[p.length-1],p[p.length-2]]]){const e=m(pt);const raak=zoek(e,s.id,pi,2.5);if(raak)continue;const r=zoek(e,s.id,pi,35);if(!r)continue;
+    for(const [pt,nb] of [[p[0],p[1]],[p[p.length-1],p[p.length-2]]]){const e=m(pt);const raak=zoek(e,s.id,pi,2.5);if(raak)continue;
+      // een ander stuk van dezelfde straat dat binnen 45 m begint of eindigt: rechtstreeks aansluiten (doorlopende straat)
+      let eb=null;for(let pj=0;pj<n;pj++){if(pj===pi||P[pj].length<2)continue;for(const o of [P[pj][0],P[pj][P[pj].length-1]]){const d=Math.hypot(...[0,1].map(k=>m(o)[k]-e[k]));if(d<45&&(!eb||d<eb.d))eb={d,o}}}
+      if(eb){P.push([pt,eb.o.slice()]);continue}
+      const r=zoek(e,s.id,pi,35);if(!r)continue;
       // enkel doortrekken in de richting van de straat zelf (niet zijdelings naar een evenwijdige straat)
       const q=m(nb),ux=e[0]-q[0],uy=e[1]-q[1],vx=r.x[0]-e[0],vy=r.x[1]-e[1],lu=Math.hypot(ux,uy),lv=Math.hypot(vx,vy);
-      if(lv<12||(lu>0&&(ux*vx+uy*vy)/(lu*lv)>0.7))P.push([pt,terug(r.x)])}}}
+      if(lv<15||(lu>0&&(ux*vx+uy*vy)/(lu*lv)>0.7))P.push([pt,terug(r.x)])}}}
   KRE.geo=geo;KRE.ms=Date.now()-t0}
   return KRE.geo.get(sid)||[]}
 /* ---- Achtergrond: officiële GRB-basiskaart (grijs) van Digitaal Vlaanderen als kaarttegels; lukt dat niet, dan de gekleurde
@@ -2772,8 +2792,9 @@ function krStyleAll(){const todo=krVar("--kr-todo"),sel=krVar("--accent");const 
   for(const id of KR.ss){const l=KR.lines.get(id);if(l)l.bringToFront()}
   /* delen van een straat (tot een kruispunt) */
   if(!KR.segLayer)KR.segLayer=L.layerGroup().addTo(KR.map);KR.segLayer.clearLayers();
-  for(const id in KR_STAND){const x=KR_DEEL.get(id);if(!x||KR_STAND[x.sid]||KR.ss.has(x.sid))continue;
-    L.polyline(krDeelLijn(x),{renderer:KR.renderer,interactive:false,weight:w[1],color:KR_STAND[id]==="r"?rs:dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}}
+  const ST=Object.assign(krNulStand(KR_STAND),KR_STAND);
+  for(const id in ST){const x=KR_DEEL.get(id);if(!x||KR_STAND[x.sid]||KR.ss.has(x.sid))continue;
+    L.polyline(krDeelLijn(x),{renderer:KR.renderer,interactive:false,weight:w[1],color:ST[id]==="r"?rs:dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}}
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const krDeelTekst=sid=>{const t=krDeelStand(sid);return t.d||t.r?"deels: "+[t.d?t.d+" van "+t.n+" stukken bedeeld":"",t.r?t.r+" gereserveerd":""].filter(Boolean).join(", "):""};
 const krWie=id=>KR_STAND[id]!=="d"&&KR_PEND[id]?"melding in behandeling":(KR_STAND[id]==="d"?"al bedeeld":"gereserveerd")+(KR_OP[id]?" · "+KR_OP[id]:"");
@@ -2858,11 +2879,12 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){const h=document.qu
 document.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement){const h=document.querySelector(".kr-host.kr-vol");if(h)krVol(h,false)}});
 krVolKnop(document.querySelector(".kr-host"));
 $("#krStand").textContent="Stand laden…";
-krInit();
+krLive().finally(()=>{if(!KR.map)krInit()});
 /* Live stand uit VBHA Beheer (via /api/ronde), elke 30 seconden vernieuwd. */
 const krDag=t=>{const d=new Date(t);if(isNaN(d))return /^\d{1,2}\/\d{1,2}\/\d{4}/.test(t)?t.split(" ")[0]:"";const p=new Intl.DateTimeFormat("nl-BE",{timeZone:"Europe/Brussels",day:"numeric",month:"numeric",year:"numeric"}).formatToParts(d),g=k=>p.find(x=>x.type===k).value;return g("day")+"/"+g("month")+"/"+g("year")};
 async function krLive(){try{const r=await fetch("/api/ronde",{cache:"no-store"});if(!r.ok)throw 0;const j=await r.json();
   {let o=document.getElementById("krDicht");if(j.gesloten){if(!o){o=document.createElement("div");o.id="krDicht";o.innerHTML='<div><b>De kalenderkaart is momenteel niet actief.</b><span>Vragen? Neem contact op met het bestuur.</span></div>';document.body.appendChild(o)}return}else if(o)o.remove()}
+  if(!KR_VERB_OK){KR_VERB_OK=true;try{krVerbergToepassen(j.verborgen)}catch(e){console.warn(e)}}
   const st={},dr={},op={};for(const x of j.straten||[]){st[x.s]=x.st;const d=x.at?krDag(x.at):"";if(d)op[x.s]=d}
   KR_STAND=st;KR_DOOR=dr;KR_OP=op;KR_PEND={};for(const x of j.open||[])if(st[x.s]!=="d")KR_PEND[x.s]=x.st;PER_DOOS=Number(j.perDoos)||100;
   if(j.jaar){document.title="Kalenders "+j.jaar+" VBHA";document.querySelectorAll("[data-krjaar]").forEach(e=>e.textContent="Kalenders "+j.jaar)}
@@ -2870,7 +2892,6 @@ async function krLive(){try{const r=await fetch("/api/ronde",{cache:"no-store"})
   $("#krStand").textContent="Bijgewerkt "+KR_STAND_OP;if(KR.map){krStyleAll();krCard()}}
   catch(e){if(!KR_STAND_OP)$("#krStand").textContent="Stand kon niet geladen worden"}}
 setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)krLive()});
-krLive();
 
 </script>
 <script>

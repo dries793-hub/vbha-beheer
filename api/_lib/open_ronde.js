@@ -19,7 +19,8 @@ export default async function handler(req, res) {
     if (req.query && req.query.ik) return await wieBenIk(req, res);
     if (req.query && req.query.geojson != null) return await geoJson(req, res);
     const sb = admin();
-    if (await kaartUit()) return res.status(200).json({ gesloten: true });
+    let verborgen = [];
+    try { const { data: kc } = await sb.from("config").select("data").eq("id", "kaart").maybeSingle(); if (kc?.data?.aan === false) return res.status(200).json({ gesloten: true }); verborgen = Array.isArray(kc?.data?.verborgen) ? kc.data.verborgen.map(String).slice(0, 2000) : []; } catch (e) { /* geen config */ }
     const A = await algemeen(sb);
     const out = [];
     for (let from = 0; ; from += 1000) {
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
       const { data: M } = await sb.from("rondemeldingen").select("data").eq("data->>jaar", String(A.jaar)).eq("data->>stand", "open").limit(500);
       for (const r of M || []) { const d = r.data || {}; for (const s of d.straten || []) if (open[s] !== "d") open[s] = d.soort === "done" ? "d" : "r"; }
     } catch (e) { /* tabel niet bereikbaar: geen meldingen tonen */ }
-    res.status(200).json({ jaar: A.jaar, perDoos: Number(pd?.data?.perDoos) || 100, straten: out, open: Object.entries(open).map(([s, st]) => ({ s, st })), nu: new Date().toISOString() });
+    res.status(200).json({ jaar: A.jaar, perDoos: Number(pd?.data?.perDoos) || 100, straten: out, verborgen, open: Object.entries(open).map(([s, st]) => ({ s, st })), nu: new Date().toISOString() });
   } catch (e) { sendError(res, e); }
 }
 
@@ -207,11 +208,12 @@ async function geoJson(req, res) {
   if (!KRL) KRL = (await import("./kr_lijnen.js")).default;
   if (!KRD) KRD = (await import("./kr_delen.js")).default;
   const sb = admin(), A = await algemeen(sb), feats = [];
+  let VB = new Set(); try { const { data: kc } = await sb.from("config").select("data").eq("id", "kaart").maybeSingle(); VB = new Set((kc?.data?.verborgen || []).map(String)); } catch (e) { }
   const KL = { done: "#18794A", reserved: "#2F6FE4" }; // zelfde kleuren als de kaart in de app (bedeeld groen, gereserveerd blauw)
   for (let from = 0; ; from += 1000) {
     const { data, error } = await sb.from("ronde").select("data").eq("data->>jaar", String(A.jaar)).range(from, from + 999);
     if (error) throw error;
-    for (const r of data) { const d = r.data || {}; if (!d.straat) continue; const sid = String(d.straat), id = sid.split("~")[0], deel = sid.includes("~");
+    for (const r of data) { const d = r.data || {}; if (!d.straat) continue; const sid = String(d.straat); if (VB.has(sid) || VB.has(sid.split("~")[0])) continue; const id = sid.split("~")[0], deel = sid.includes("~");
       const L = deel ? KRD[sid] : KRL[id]; if (!L || !L.length) continue; const st = d.status === "done" ? "done" : "reserved";
       feats.push({ type: "Feature", geometry: { type: "MultiLineString", coordinates: L.map(decodeer) },
         properties: { name: mooi(id) + (deel ? ` (stuk ${Number(sid.split("~")[1]) + 1})` : ""), status: st === "done" ? "bedeeld" : "gereserveerd", sinds: String(d.at || "").slice(0, 10),
