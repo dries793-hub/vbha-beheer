@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}.logo-a{display:block;flex:none;line-height:0;border-radius:4px}.logo-a:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .age.te{color:#b91c1c;font-weight:600}
 </style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
-<title>Terugbetaling · VBHA</title><meta name="robots" content="noindex">
+<title>Onkosten en kastickets · VBHA</title><meta name="robots" content="noindex">
 <link rel="icon" href="/favicon.png">
 <link rel="stylesheet" href="/fonts/inter.css">
 <style>
@@ -197,7 +197,8 @@ async function verklein(file){if(file.type==="application/pdf"){if(file.size>4e6
   let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:"from-image"})}catch(e){bmp=await new Promise((ok,nok)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>nok(new Error("Dit bestand is geen foto of PDF."));i.src=URL.createObjectURL(file)})}
   const s=Math.min(1,2000/Math.max(bmp.width,bmp.height)),cv=document.createElement("canvas");cv.width=Math.round(bmp.width*s);cv.height=Math.round(bmp.height*s);cv.getContext("2d").drawImage(bmp,0,0,cv.width,cv.height);
   return{data:cv.toDataURL("image/jpeg",.82),naam:(file.name||"bon").replace(/\.[^.]+$/,"")+".jpg"}}
-function toonOnkost(){$("#h1").textContent="Onkosten terugvragen";$("#lead").textContent="Kosten gemaakt voor de Vriendenkring? Vul dit in met een foto van het kasticket of de factuur. Na goedkeuring storten we het bedrag terug.";
+const ON_LEAD={eigen:"Betaald met eigen geld? Vraag hier je onkosten terug met een foto van het kasticket of de factuur. Na goedkeuring storten we het bedrag terug.",kaart:"Betaald met de bankkaart van de Vriendenkring? Bezorg ons hier het kasticket of de factuur, zodat de uitgave bij de juiste betaling in de boekhouding komt."};
+function toonOnkost(){$("#h1").textContent="Onkosten en kastickets";$("#lead").textContent="Betaald met eigen geld? Vraag hier je onkosten terug. Betaald met de kaart van de Vriendenkring? Laad hier het kasticket op.";
   const vd=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
   $("#box").innerHTML=`<form class="card" id="f" novalidate><div class="grid">
     <div class="full"><span class="lbl">Betaald met</span><div class="bm" role="radiogroup"><label><input type="radio" name="bm" value="eigen" checked><span>Eigen geld</span></label><label><input type="radio" name="bm" value="kaart"><span>Kaart vriendenkring</span></label></div></div>
@@ -208,11 +209,11 @@ function toonOnkost(){$("#h1").textContent="Onkosten terugvragen";$("#lead").tex
     <div class="full"><span class="lbl">Kasticket of factuur</span><label class="up" id="upl"><input type="file" id="bon" accept="image/*,application/pdf"><svg viewBox="0 0 24 24"><path d="M12 16V4m-5 5l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><span id="bonT">Foto nemen of bestand kiezen</span></label><label class="geen" id="geenW" hidden data-eigen><input type="checkbox" id="geenBon"> Ik heb geen kasticket of factuur</label></div>
     <div class="full" data-eigen><label for="iban">Rekeningnummer (IBAN) voor de terugbetaling</label><p class="hint" style="margin:-2px 0 6px">Al eens doorgegeven? Dan mag je dit leeg laten.</p><input type="text" id="iban" autocomplete="off" placeholder="BE00 0000 0000 0000" maxlength="42" spellcheck="false"></div>
     <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
-   </div><p class="err" id="err"></p><button class="btn" type="submit">Indienen</button></form>`;
+   </div><p class="err" id="err"></p><button class="btn" type="submit">Terugbetaling aanvragen</button></form>`;
   lidPicker($("#naam"),$("#naamL"));
   const kaart=()=>!!$('input[name="bm"][value="kaart"]:checked');
   $("#f").addEventListener("change",e=>{if(e.target.name!=="bm")return;document.querySelectorAll("#f [data-eigen]").forEach(x=>{if(x.id==="geenW"){if(kaart())x.hidden=true}else x.hidden=kaart()});
-    $("#h1").textContent=kaart()?"Kasticket doorgeven":"Onkosten terugvragen";    $("#lead").textContent=kaart()?"Betaald met de bankkaart van de Vriendenkring? Bezorg ons hier het kasticket.":"Kosten gemaakt voor de Vriendenkring? Vul dit in met een foto van het kasticket of de factuur. Na goedkeuring storten we het bedrag terug."});
+    $("#h1").textContent=kaart()?"Kasticket opladen":"Onkosten terugvragen";$("#lead").textContent=ON_LEAD[kaart()?"kaart":"eigen"];const sb=$('#f button[type="submit"]');if(sb)sb.textContent=kaart()?"Kasticket opladen":"Terugbetaling aanvragen"});
   $("#bon").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;$("#bonT").textContent="Bezig…";try{BON=await verklein(f);$("#bonT").textContent="✓ "+(f.name||"bewijsstuk");$("#upl").classList.add("ok")}catch(x){BON=null;$("#bonT").textContent=x.message;$("#upl").classList.remove("ok")}});
   $("#f").addEventListener("submit",async e=>{e.preventDefault();const v=s=>$(s).value.trim(),err=$("#err");
     const bedrag=Number(v("#bedrag").replace(/\s/g,"").replace(",","."));
@@ -220,7 +221,7 @@ function toonOnkost(){$("#h1").textContent="Onkosten terugvragen";$("#lead").tex
     if(f){err.textContent=f;return}const b=$("#f .btn");b.disabled=true;b.textContent="Bezig met versturen…";err.textContent="";
     try{await api({actie:"onkost",betaald:kaart()?"kaart":"eigen",naam:v("#naam"),lidId:$("#naam").dataset.id||"",bedrag,datum:v("#datum"),reden:v("#reden"),iban:v("#iban")===MASK?"":v("#iban"),bon:BON,geenBon:!BON&&$("#geenBon").checked,website:v("#website"),duur:Date.now()-T0});
       $("#lead").textContent="";$("#box").innerHTML=kaart()?OK("Bedankt!",`Het kasticket van ${eur(bedrag)} is doorgegeven.`):OK("Bedankt!",`Je onkosten van ${eur(bedrag)} zijn doorgegeven. Na goedkeuring storten we het bedrag terug.`)}
-    catch(x){err.textContent=x.message;b.disabled=false;b.textContent="Indienen"}})}
+    catch(x){err.textContent=x.message;b.disabled=false;b.textContent=kaart()?"Kasticket opladen":"Terugbetaling aanvragen"}})}
 /* gekend rekeningnummer van het gekozen lid (gedeeltelijk verborgen) */
 let MASK="";
 async function ibanVan(id){const f=$("#iban");if(!f)return;try{const r=await fetch("/api/terug?lid="+encodeURIComponent(id));const j=r.ok?await r.json():{};
