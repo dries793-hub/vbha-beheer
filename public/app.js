@@ -9873,7 +9873,6 @@ function tfBody(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaa
   const kaart=t=>{const L=per.get(t.id)||[],n=L.reduce((s,u)=>s+u.n,0),cats=[...new Set(L.map(u=>u.cat))];
     return `<div class="tf-t${n>t.cap?" vol":""}" data-tft="${esc(t.id)}"><div class="tf-h"><b>${esc(t.naam)}</b><span class="${n>t.cap?"tf-over":""}">${n}/${t.cap}</span></div>${cats.length?`<div class="tf-c">${esc(cats.join(" · "))}</div>`:""}<div class="tf-l">${L.map(tfChip).join("")||'<div class="tf-e">Sleep hier personen naartoe</div>'}</div></div>`};
   return `<div class="tiles"><div class="tile hero"><span class="lbl">Personen</span><span class="val">${pers}</span></div><div class="tile"><span class="lbl">Geplaatst</span><span class="val">${geplaatst}</span></div><div class="tile"><span class="lbl">Plaatsen</span><span class="val"${cap<pers?' style="color:var(--accent)"':""}>${cap}</span></div><div class="tile"><span class="lbl">Tafels</span><span class="val">${c.tafels.length}</span></div></div>
-  <div class="bar">${canWrite?`<button class="btn primary" data-act="tfAuto">Automatisch indelen</button><button class="btn" data-act="tfInst">${ic("instellingen")}Tafels</button>`:""}<span class="grow"></span><button class="btn" data-act="tfPdf">${ic("download")}Afdrukken (PDF)</button></div>
   ${los.length?`<div class="panel tf-los" data-tft=""><div class="panel-h"><h2>Nog niet geplaatst</h2><span class="pill warn">${los.reduce((s,u)=>s+u.n,0)}</span></div><div class="tf-l">${los.map(tfChip).join("")}</div></div>`:""}
   <div class="tf-g">${c.tafels.map(kaart).join("")}</div>
   ${(()=>{const O=U.filter(u=>u.opm);if(!O.length)return"";const tn=id=>{const t=c.tafels.find(x=>x.id===c.plaats[id]);return t?t.naam:"niet geplaatst"};
@@ -9882,7 +9881,9 @@ function tfBody(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaa
 /* tab Tafelschikking in Banket */
 {const _v=VIEWS.banket;VIEWS.banket=function(){const v=_v.apply(this,arguments),_b=v.body,tab=UI.bkTab==="tafels"?"tafels":"lijst";
   const tabs=`<nav class="tabs" aria-label="Onderdelen banket"><a href="#banket" data-act="bkTab" data-v="lijst" class="${tab==="lijst"?"on":""}">Inschrijvingen</a><a href="#banket" data-act="bkTab" data-v="tafels" class="${tab==="tafels"?"on":""}">Tafelschikking</a></nav>`;
-  v.body=function(){return tabs+(tab==="tafels"?tfBody():_b.apply(this,arguments))};return v};for(const k in _v)VIEWS.banket[k]=_v[k]}
+  v.body=function(){return tabs+(tab==="tafels"?tfBody():_b.apply(this,arguments))};
+  if(tab==="tafels")v.actions=(canWrite?`<button class="btn" data-act="tfAuto">Automatisch indelen</button><button class="btn" data-act="tfInst">${ic("instellingen")}Tafels</button>`:"")+`<button class="btn primary" data-act="tfPdf">${ic("download")}Afdrukken (PDF)</button>`+(String(v.actions||"").match(/<button class="btn iconbtn" data-act="bkInst"[\s\S]*?<\/button>/)||[""])[0];
+  return v};for(const k in _v)VIEWS.banket[k]=_v[k]}
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-act]");if(!b)return;const a=b.dataset.act;
   if(a==="bkTab"){e.preventDefault();e.stopPropagation();UI.bkTab=b.dataset.v;saveUI();TF.sel=null;renderBody();return}
   if(a==="tfAuto"){e.stopPropagation();const c=tfCfg();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);
