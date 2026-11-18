@@ -9680,6 +9680,8 @@ function krCasing(){if(!KR.map)return;const w=krDikte(KR.map.getZoom());
 function krMaskStijl(){if(!KR.bg||!KR.bg.mask)return;const out=krVar("--kr-out")||"#F5F6F8";KR.bg.mask.setStyle({fillColor:out,fillOpacity:1,stroke:false});if(KR.bg.grens)KR.bg.grens.setStyle({color:krVar("--muted")||"#888",weight:1.5,dashArray:"6 5",opacity:.9})}
 // app: witte rand onder de straten
 {const _s=krStyleAll;krStyleAll=function(){const r=_s.apply(this,arguments);try{krCasing()}catch(e){}return r}}
+/* stukken zonder adressen: niet tonen, niet aanklikbaar, nummering zonder die stukken (zoals op de openbare kaart) */
+{const _g=krGroepen,KV=new Map();krGroepen=function(sid){if(KV.has(sid))return KV.get(sid);const V=_g(sid).filter(g=>g.a>0);V.forEach((g,i)=>g.n=i+1);KV.set(sid,V);return V}}
 
 /* ============ Kalender aan huis: automatisch "gebust" als de straat bedeeld is ============
    Zodra een straat (of een stuk ervan) op bedeeld komt, krijgen de open aanvragen in die straat de status "gedaan".
