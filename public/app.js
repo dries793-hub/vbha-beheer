@@ -9002,14 +9002,34 @@ const RJ_BASIS=f=>["financien","facturen","begroting","historiek"].includes(f)?"
 const RJ=[["bestuur","Bestuurslid",{}],["kalender","Kalenderverantwoordelijke",{kalenders:"bewerken",kalverdeling:"bewerken"}],
   ["activiteit","Kassa en activiteiten",{kassa:"bewerken",fuif:"bewerken",banket:"bewerken",kinderfeest:"bewerken",familiedag:"bewerken",shiften:"bewerken",webshop:"bewerken"}],
   ["communicatie","Media",{mails:"bewerken",social:"bewerken",sms:"bewerken",website:"bewerken",fotos:"bewerken",agenda:"bewerken"}],
-  ["financieel","Financieel",{financien:"bewerken",facturen:"bewerken",begroting:"bewerken",historiek:"lezen",overzicht:"bewerken",sponsors:"bewerken",kalverdeling:"lezen"}],
+  ["financieel","Financieel",{financien:"bewerken",facturen:"bewerken",begroting:"bewerken",historiek:"lezen",overzicht:"bewerken",sponsors:"bewerken",kalverdeling:"lezen",terug:"bewerken",jaardocumenten:"bewerken"}],
   ["lezen","Alles lezen",{financien:"lezen",facturen:"lezen",begroting:"lezen",historiek:"lezen",kalverdeling:"lezen"}]];
 {const _h=rgHtml;rgHtml=function(u){const h=_h.apply(this,arguments);if(!h.includes('class="rg-snel"'))return h;
-  return h.replace('<div class="rg-snel">',`<div class="rg-snel rg-sj"><span class="muted small">Sjabloon:</span><select class="sel" id="rgSjabloon" style="width:auto"><option value="">Kiezen…</option>${RJ.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join("")}</select></div><div class="rg-snel">`)}}
-document.addEventListener("change",e=>{if(e.target.id!=="rgSjabloon"||!e.target.value)return;const s=RJ.find(x=>x[0]===e.target.value),w=$("#rgWrap");if(!s||!w)return;
+  return h.replace('<div class="rg-snel">',`<div class="rg-snel rg-sj"><span class="muted small">Sjabloon:</span><select class="sel" id="rgSjabloon" style="width:auto"><option value="">Kiezen…</option>${RJ.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join("")}${rjEigen().length?`<optgroup label="Eigen sjablonen">${rjEigen().map(x=>`<option value="e:${esc(x.id)}">${esc(x.naam)}</option>`).join("")}</optgroup>`:""}</select><button type="button" class="btn sm ghost" id="rgSjBewaar">${ic("plus")}Als sjabloon bewaren</button><button type="button" class="btn sm ghost danger" id="rgSjWis" hidden>Sjabloon verwijderen</button></div><div class="rg-snel">`)}}
+document.addEventListener("change",e=>{if(e.target.id!=="rgSjabloon")return;const wb=$("#rgSjWis");if(wb)wb.hidden=!e.target.value.startsWith("e:");if(!e.target.value||e.target.value.startsWith("e:"))return;const s=RJ.find(x=>x[0]===e.target.value),w=$("#rgWrap");if(!s||!w)return;
   const fs=[...new Set([...w.querySelectorAll("[data-rgf]")].map(b=>b.dataset.rgf).filter(f=>!f.includes(":")))];
   for(const f of fs){const v=s[2][f]||RJ_BASIS(f),b=w.querySelector(`[data-rgf="${f}"][data-v="${v}"]`);if(b)b.click()}
   toast(`Sjabloon "${s[1]}" ingevuld. Pas aan waar nodig en bewaar.`)});
+
+/* eigen sjablonen: de huidige keuzes bewaren onder een naam (config "rechtsjablonen" = {lijst:[{id,naam,rechten}]}) */
+function rjEigen(){const c=S.config.get("rechtsjablonen");return Array.isArray(c&&c.lijst)?c.lijst:[]}
+async function rjBewaarLijst(L){const d={...stripId(S.config.get("rechtsjablonen")||{}),lijst:L};S.config.set("rechtsjablonen",{id:"rechtsjablonen",...d});await write("config","rechtsjablonen",d)}
+function rjSelect(v){const sel=$("#rgSjabloon");if(!sel)return;const r=sel.closest(".rg-sj");const tmp=document.createElement("div");tmp.innerHTML=rgHtml({rol:"lezer",naam:""});
+  const n=tmp.querySelector("#rgSjabloon");if(n){sel.innerHTML=n.innerHTML;sel.value=v||""}const wb=$("#rgSjWis");if(wb)wb.hidden=!String(v||"").startsWith("e:")}
+document.addEventListener("change",e=>{if(e.target.id!=="rgSjabloon"||!e.target.value.startsWith("e:"))return;const x=rjEigen().find(t=>"e:"+t.id===e.target.value),w=$("#rgWrap");if(!x||!w)return;
+  const R=x.rechten||{},ks=[...new Set([...w.querySelectorAll("[data-rgf]")].map(b=>b.dataset.rgf))].sort((a,b)=>a.includes(":")-b.includes(":"));
+  for(const f of ks){const v=R[f]||(f.includes(":")?null:"geen");if(!v)continue;const b=w.querySelector(`[data-rgf="${f}"][data-v="${v}"]`);if(b)b.click()}
+  toast(`Sjabloon "${x.naam}" ingevuld. Pas aan waar nodig en bewaar.`)});
+document.addEventListener("click",async e=>{const b=e.target.closest("#rgSjBewaar,#rgSjWis,#rgSjOk,#rgSjNee");if(!b)return;e.preventDefault();e.stopPropagation();const sj=b.closest(".rg-sj");
+  if(b.id==="rgSjBewaar"){if(sj.querySelector("#rgSjNaam"))return;const cur=rjEigen().find(t=>"e:"+t.id===$("#rgSjabloon").value);
+    sj.insertAdjacentHTML("afterend",`<div class="rg-snel rg-sjn"><input class="inp" id="rgSjNaam" placeholder="Naam van het sjabloon" value="${esc(cur?cur.naam:"")}" style="flex:1;min-width:160px"><button type="button" class="btn sm primary" id="rgSjOk">Bewaren</button><button type="button" class="btn sm ghost" id="rgSjNee">Annuleren</button></div>`);$("#rgSjNaam").focus();return}
+  if(b.id==="rgSjNee"){const r=$(".rg-sjn");if(r)r.remove();return}
+  if(b.id==="rgSjOk"){const naam=$("#rgSjNaam").value.trim();if(!naam)return toast("Geef het sjabloon een naam.",true);const R=rgLees();if(!R)return;
+    const L=rjEigen().slice(),i=L.findIndex(t=>norm(t.naam)===norm(naam)),id=i>=0?L[i].id:"s"+Date.now().toString(36);const rij={id,naam,rechten:R};if(i>=0)L[i]=rij;else L.push(rij);
+    b.disabled=true;try{await rjBewaarLijst(L);$(".rg-sjn").remove();rjSelect("e:"+id);toast(i>=0?`Sjabloon "${naam}" bijgewerkt.`:`Sjabloon "${naam}" bewaard.`)}catch(x){b.disabled=false;toast("Bewaren lukte niet: "+(x.message||x),true)}return}
+  if(b.id==="rgSjWis"){const v=$("#rgSjabloon").value,x=rjEigen().find(t=>"e:"+t.id===v);if(!x)return;
+    if(!b.dataset.zeker){b.dataset.zeker="1";b.textContent="Zeker? Klik opnieuw";setTimeout(()=>{if(b.isConnected){delete b.dataset.zeker;b.textContent="Sjabloon verwijderen"}},4000);return}
+    try{await rjBewaarLijst(rjEigen().filter(t=>t.id!==x.id));rjSelect("");toast(`Sjabloon "${x.naam}" verwijderd.`)}catch(y){toast("Verwijderen lukte niet: "+(y.message||y),true)}}},true);
 
 /* ============ Instellingen › Gegevens (back-ups en jaardocumenten) en een overzicht van alle instellingen ============ */
 if(!INST_TABS.some(t=>t[0]==="gegevens")){const i=INST_TABS.findIndex(t=>t[0]==="logboek");INST_TABS.splice(i<0?INST_TABS.length:i,0,["gegevens","Gegevens"]);INST_IDS.push("gegevens")}
