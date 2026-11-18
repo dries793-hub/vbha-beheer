@@ -9830,6 +9830,115 @@ document.addEventListener("submit",async e=>{if(e.target.id!=="kiForm")return;e.
   if(!van||!tot)return toast("Geef de datums in als dd/mm.",true);
   try{await write("config","algemeen",{kalSeizoen:{van,tot}},{merge:true});if(typeof KF!=="undefined")KF.jaar=null;closeModal();toast("Bewaard.");renderBody()}catch(x){toast(x.message,true)}});
 
+/* ============ Banket › Tafelschikking ============
+   Config "tafels_<jaar>": {types:[{aantal,cap}], tafels:[{id,cap,naam}], plaats:{<banketId>:<tafelId>}}
+   - Automatisch indelen per categorie van het lid (Ploeg 1, Erewacht, Vrijwilligers, …); een inschrijving met partner blijft samen.
+   - Personen (met hun partner) versleep je naar een andere tafel; op gsm: tik op een naam en dan op een tafel.
+   - Afdrukken: A4 liggend, om aan de zaal te geven. */
+const TF={sel:null,t:null};
+const tfId=()=>"tafels_"+JAAR;
+const tfCfg=()=>{const c=S.config.get(tfId())||{};return{types:Array.isArray(c.types)&&c.types.length?c.types:[{aantal:5,cap:10},{aantal:3,cap:8}],tafels:Array.isArray(c.tafels)?c.tafels:[],plaats:c.plaats&&typeof c.plaats==="object"?c.plaats:{}}};
+const tfCat=r=>{const l=(r.lidId&&S.leden.get(r.lidId))||bkLid(r);return (l&&l.categorie)||"Andere"};
+const tfUnits=()=>bkLijst().map(r=>({id:r.id,r,n:r.personen===2?2:1,cat:tfCat(r),veg:[r.menu1,r.personen===2?r.menu2:null].filter(m=>m==="Vegetarisch").length})).sort((a,b)=>String(a.r.naam||"").localeCompare(String(b.r.naam||""),"nl"));
+function tfMaakTafels(types){const T=[];let i=1;for(const t of types)for(let k=0;k<(Number(t.aantal)||0);k++)T.push({id:"t"+i,naam:"Tafel "+i,cap:Number(t.cap)||8}),i++;return T}
+/* indeling: per categorie (grootste eerst) zoveel mogelijk aan dezelfde tafel; koppels blijven samen */
+function tfIndelen(tafels,units,vast={}){const vrij=new Map(tafels.map(t=>[t.id,t.cap])),cats=new Map(tafels.map(t=>[t.id,new Set()])),P={};
+  for(const [uid,tid] of Object.entries(vast)){const u=units.find(x=>x.id===uid);if(!u||!vrij.has(tid))continue;P[uid]=tid;vrij.set(tid,vrij.get(tid)-u.n);cats.get(tid).add(u.cat)}
+  const G=new Map();for(const u of units)if(!P[u.id]){if(!G.has(u.cat))G.set(u.cat,[]);G.get(u.cat).push(u)}
+  const groepen=[...G.entries()].sort((a,b)=>b[1].reduce((s,u)=>s+u.n,0)-a[1].reduce((s,u)=>s+u.n,0));
+  for(const [cat,L] of groepen){L.sort((a,b)=>b.n-a.n);let tot=L.reduce((s,u)=>s+u.n,0);
+    for(const u of L){const kies=()=>{const T=tafels.filter(t=>vrij.get(t.id)>=u.n);if(!T.length)return null;
+        const zelfde=T.filter(t=>cats.get(t.id).has(cat));if(zelfde.length)return zelfde.sort((a,b)=>vrij.get(b.id)-vrij.get(a.id))[0];
+        const past=T.filter(t=>vrij.get(t.id)>=tot&&vrij.get(t.id)===t.cap).sort((a,b)=>vrij.get(a.id)-vrij.get(b.id));if(past.length)return past[0]; // hele groep aan een lege tafel die net past
+        const leeg=T.filter(t=>vrij.get(t.id)===t.cap).sort((a,b)=>vrij.get(b.id)-vrij.get(a.id));if(leeg.length)return leeg[0];
+        return T.sort((a,b)=>vrij.get(b.id)-vrij.get(a.id))[0]};
+      const t=kies();if(!t)continue;P[u.id]=t.id;vrij.set(t.id,vrij.get(t.id)-u.n);cats.get(t.id).add(cat);tot-=u.n}}
+  return P}
+async function tfBewaar(c){await write("config",tfId(),{types:c.types,tafels:c.tafels,plaats:c.plaats})}
+function tfLater(c){S.config.set(tfId(),{id:tfId(),...(S.config.get(tfId())||{}),...c});clearTimeout(TF.t);TF.t=setTimeout(()=>tfBewaar(c).catch(e=>toast(e.message,true)),500)}
+
+function tfChip(u){const sel=TF.sel===u.id;
+  return `<div class="tf-p${sel?" on":""}" draggable="${canWrite}" data-tfp="${esc(u.id)}" title="${esc(u.cat)}"><b>${esc(u.r.naam||"")}</b>${u.n===2?'<span class="tf-plus">+ partner</span>':""}${u.veg?`<span class="tf-v" title="${u.veg} vegetarisch">V${u.veg>1?"×"+u.veg:""}</span>`:""}<small>${esc(u.cat)}</small></div>`}
+function tfBody(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);
+  const per=new Map(c.tafels.map(t=>[t.id,[]])),los=[];for(const u of U){const t=c.plaats[u.id];if(t&&per.has(t))per.get(t).push(u);else los.push(u)}
+  const pers=U.reduce((s,u)=>s+u.n,0),cap=c.tafels.reduce((s,t)=>s+t.cap,0),geplaatst=pers-los.reduce((s,u)=>s+u.n,0);
+  const kaart=t=>{const L=per.get(t.id)||[],n=L.reduce((s,u)=>s+u.n,0),cats=[...new Set(L.map(u=>u.cat))];
+    return `<div class="tf-t${n>t.cap?" vol":""}" data-tft="${esc(t.id)}"><div class="tf-h"><b>${esc(t.naam)}</b><span class="${n>t.cap?"tf-over":""}">${n}/${t.cap}</span></div>${cats.length?`<div class="tf-c">${esc(cats.join(" · "))}</div>`:""}<div class="tf-l">${L.map(tfChip).join("")||'<div class="tf-e">Sleep hier personen naartoe</div>'}</div></div>`};
+  return `<div class="tiles"><div class="tile hero"><span class="lbl">Personen</span><span class="val">${pers}</span></div><div class="tile"><span class="lbl">Geplaatst</span><span class="val">${geplaatst}</span></div><div class="tile"><span class="lbl">Plaatsen</span><span class="val"${cap<pers?' style="color:var(--accent)"':""}>${cap}</span></div><div class="tile"><span class="lbl">Tafels</span><span class="val">${c.tafels.length}</span></div></div>
+  <div class="bar">${canWrite?`<button class="btn primary" data-act="tfAuto">Automatisch indelen</button><button class="btn" data-act="tfInst">${ic("instellingen")}Tafels</button>`:""}<span class="grow"></span><button class="btn" data-act="tfPdf">${ic("download")}Afdrukken (PDF)</button></div>
+  ${los.length?`<div class="panel tf-los" data-tft=""><div class="panel-h"><h2>Nog niet geplaatst</h2><span class="pill warn">${los.reduce((s,u)=>s+u.n,0)}</span></div><div class="tf-l">${los.map(tfChip).join("")}</div></div>`:""}
+  <div class="tf-g">${c.tafels.map(kaart).join("")}</div>`}
+
+/* tab Tafelschikking in Banket */
+{const _v=VIEWS.banket;VIEWS.banket=function(){const v=_v.apply(this,arguments),_b=v.body,tab=UI.bkTab==="tafels"?"tafels":"lijst";
+  const tabs=`<nav class="tabs" aria-label="Onderdelen banket"><a href="#banket" data-act="bkTab" data-v="lijst" class="${tab==="lijst"?"on":""}">Inschrijvingen</a><a href="#banket" data-act="bkTab" data-v="tafels" class="${tab==="tafels"?"on":""}">Tafelschikking</a></nav>`;
+  v.body=function(){return tabs+(tab==="tafels"?tfBody():_b.apply(this,arguments))};return v}}
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-act]");if(!b)return;const a=b.dataset.act;
+  if(a==="bkTab"){e.preventDefault();e.stopPropagation();UI.bkTab=b.dataset.v;saveUI();TF.sel=null;renderBody();return}
+  if(a==="tfAuto"){e.stopPropagation();const c=tfCfg();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);
+    const doe=()=>{c.plaats=tfIndelen(c.tafels,tfUnits());tfLater(c);renderBody();toast("Tafels ingedeeld per categorie.")};
+    if(Object.keys(c.plaats).length)confirmBox("Alle tafels opnieuw indelen? Wat je met de hand verschoof, gaat verloren.","Opnieuw indelen",doe);else doe();return}
+  if(a==="tfInst"){e.stopPropagation();tfInst();return}
+  if(a==="tfPdf"){e.stopPropagation();tfPdf();return}},true);
+/* verslepen (computer) */
+document.addEventListener("dragstart",e=>{const p=e.target.closest&&e.target.closest("[data-tfp]");if(!p||!canWrite)return;e.dataTransfer.setData("text/plain",p.dataset.tfp);e.dataTransfer.effectAllowed="move";p.classList.add("sleep")});
+document.addEventListener("dragend",e=>{const p=e.target.closest&&e.target.closest("[data-tfp]");if(p)p.classList.remove("sleep");$$(".tf-t.over,.tf-los.over").forEach(x=>x.classList.remove("over"))});
+document.addEventListener("dragover",e=>{const t=e.target.closest&&e.target.closest("[data-tft]");if(!t)return;e.preventDefault();e.dataTransfer.dropEffect="move";$$(".tf-t.over,.tf-los.over").forEach(x=>x!==t&&x.classList.remove("over"));t.classList.add("over")});
+document.addEventListener("drop",e=>{const t=e.target.closest&&e.target.closest("[data-tft]");if(!t)return;e.preventDefault();tfZet(e.dataTransfer.getData("text/plain"),t.dataset.tft)});
+/* tikken (gsm): naam kiezen, dan een tafel */
+document.addEventListener("click",e=>{if(route()!=="banket"||UI.bkTab!=="tafels"||!canWrite)return;const p=e.target.closest("[data-tfp]");
+  if(p){e.stopPropagation();TF.sel=TF.sel===p.dataset.tfp?null:p.dataset.tfp;$$("[data-tfp]").forEach(x=>x.classList.toggle("on",x.dataset.tfp===TF.sel));return}
+  const t=e.target.closest("[data-tft]");if(t&&TF.sel){tfZet(TF.sel,t.dataset.tft);TF.sel=null}});
+function tfZet(uid,tid){if(!uid)return;const c=tfCfg();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);if(tid)c.plaats[uid]=tid;else delete c.plaats[uid];tfLater(c);renderBody()}
+
+/* instellingen: hoeveel tafels van hoeveel personen */
+function tfInst(){const c=tfCfg();const rij=(t,i)=>`<div class="tf-ir"><input class="inp" type="number" min="0" max="50" value="${Number(t.aantal)||0}" data-tfa="${i}" aria-label="Aantal tafels"><span>tafels van</span><input class="inp" type="number" min="1" max="40" value="${Number(t.cap)||8}" data-tfc="${i}" aria-label="Personen per tafel"><span>personen</span><button type="button" class="btn sm ghost danger" data-tfw="${i}" aria-label="Verwijderen">${ic("x")}</button></div>`;
+  const teken=T=>`<div id="tfIr">${T.map(rij).join("")}</div><button type="button" class="btn sm" id="tfAdd">${ic("plus")}Rij toevoegen</button><div class="muted small" id="tfSom" style="margin-top:10px"></div>`;
+  let T=c.types.map(x=>({...x}));
+  modal("Tafels",`<div id="tfIb">${teken(T)}</div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="tfIOk">Bewaren</button>`);
+  const lees=()=>{T=[...$$("[data-tfa]")].map(i=>({aantal:Math.max(0,Math.round(+i.value||0)),cap:Math.max(1,Math.round(+($(`[data-tfc="${i.dataset.tfa}"]`)||{}).value||8))}))},
+    som=()=>{lees();const n=T.reduce((s,t)=>s+t.aantal,0),p=T.reduce((s,t)=>s+t.aantal*t.cap,0),pers=tfUnits().reduce((s,u)=>s+u.n,0);$("#tfSom").innerHTML=`${n} tafels · ${p} plaatsen · ${pers} ingeschreven${p<pers?' · <b style="color:var(--accent)">te weinig plaatsen</b>':""}`},
+    her=()=>{$("#tfIb").innerHTML=teken(T);bind();som()},
+    bind=()=>{$("#tfAdd").onclick=()=>{lees();T.push({aantal:1,cap:8});her()};$$("[data-tfw]").forEach(b=>b.onclick=()=>{lees();T.splice(+b.dataset.tfw,1);her()});$$("#tfIr input").forEach(i=>i.oninput=som)};
+  bind();som();
+  $("#tfIOk").onclick=async()=>{lees();T=T.filter(t=>t.aantal>0);if(!T.length)return toast("Voeg minstens één tafel toe.",true);
+    const nieuw=tfMaakTafels(T),ids=new Set(nieuw.map(t=>t.id)),oud=new Map(c.tafels.map(t=>[t.id,t]));
+    for(const t of nieuw){const o=oud.get(t.id);if(o&&o.naam&&!/^Tafel \d+$/.test(o.naam))t.naam=o.naam}
+    const plaats=Object.fromEntries(Object.entries(c.plaats).filter(([u,t])=>ids.has(t)));
+    closeModal();const n={types:T,tafels:nieuw,plaats};S.config.set(tfId(),{id:tfId(),...n});await tfBewaar(n);renderBody();toast("Tafels bewaard.")}}
+
+/* afdrukken: A4 liggend, alle tafels op één blad */
+function tfPdf(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);const bc=bkCfg();
+  const per=new Map(c.tafels.map(t=>[t.id,[]]));for(const u of U){const t=c.plaats[u.id];if(t&&per.has(t))per.get(t).push(u)}
+  const kol=Math.min(6,Math.max(3,Math.ceil(Math.sqrt(c.tafels.length*1.6)))),pers=U.reduce((s,u)=>s+u.n,0),veg=U.reduce((s,u)=>s+u.veg,0);
+  const kaart=t=>{const L=(per.get(t.id)||[]).slice().sort((a,b)=>a.cat.localeCompare(b.cat,"nl")||String(a.r.naam).localeCompare(String(b.r.naam),"nl")),n=L.reduce((s,u)=>s+u.n,0),v=L.reduce((s,u)=>s+u.veg,0);
+    return `<div class="t"><div class="h"><b>${esc(t.naam)}</b><span>${n} pers.${v?` · ${v} veg.`:""}</span></div><ol>${L.map(u=>`<li>${esc(u.r.naam||"")}${u.n===2?" <i>+ partner</i>":""}${u.veg?` <em>V${u.veg>1?"×"+u.veg:""}</em>`:""}</li>`).join("")}</ol></div>`};
+  const dt=bc.datum?new Date(bc.datum+"T12:00:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):"";
+  const html=`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Tafelschikking banket ${JAAR}</title><style>
+    @page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Inter,"Segoe UI",Arial,sans-serif;color:#1a1b1e;margin:0}
+    header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #b30000;padding-bottom:6px;margin-bottom:8px}
+    h1{font-size:18px;margin:0}header div{font-size:11px;color:#555;text-align:right}
+    .g{display:grid;grid-template-columns:repeat(${kol},1fr);gap:7px}
+    .t{border:1.5px solid #c9a75a;border-radius:8px;padding:6px 8px;break-inside:avoid}
+    .h{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #e5e5e5;margin-bottom:3px;padding-bottom:2px}.h b{font-size:12.5px;color:#b30000}.h span{font-size:9.5px;color:#666}
+    ol{margin:0;padding-left:16px;font-size:10px;line-height:1.35}i{color:#555;font-style:normal}em{font-style:normal;font-weight:700;color:#1a7f45;font-size:9px}
+    footer{margin-top:6px;font-size:9px;color:#777}</style></head><body>
+    <header><h1>Banket ${JAAR} · tafelschikking</h1><div>${esc(dt)}${bc.uur?" · "+esc(bc.uur):""}<br>${esc(bc.locatie||"")}<br><b>${pers} personen</b>${veg?` · ${veg} vegetarisch`:""} · ${c.tafels.length} tafels</div></header>
+    <div class="g">${c.tafels.map(kaart).join("")}</div><footer>V = vegetarisch menu · Vriendenkring Brandweer Hoofdpost Aalst</footer>
+    <script>onload=()=>setTimeout(()=>print(),300)<\/script></body></html>`;
+  const w=window.open("","_blank");if(!w){toast("Je browser blokkeerde het nieuwe venster.",true);return}w.document.open();w.document.write(html);w.document.close()}
+
+{const st=document.createElement("style");st.textContent=`.tf-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.tf-t{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;min-height:120px;transition:border-color .12s,box-shadow .12s}
+.tf-t.vol{border-color:var(--accent)}.tf-t.over,.tf-los.over{border-color:var(--info,#2f6fe4);box-shadow:0 0 0 3px rgba(47,111,228,.15)}
+.tf-h{display:flex;justify-content:space-between;align-items:baseline}.tf-h span{font-size:13px;color:var(--muted)}.tf-h .tf-over{color:var(--accent);font-weight:700}
+.tf-c{font-size:11.5px;color:var(--muted);margin-top:-4px}.tf-l{display:flex;flex-direction:column;gap:5px}.tf-los .tf-l{flex-direction:row;flex-wrap:wrap;padding:10px 14px 14px}
+.tf-p{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 6px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--sunken,#f6f6f7);font-size:13.5px;cursor:grab;user-select:none}
+.tf-p small{flex-basis:100%;font-size:11px;color:var(--muted)}.tf-p.on{border-color:var(--info,#2f6fe4);background:#eef3fd}.tf-p.sleep{opacity:.4}
+.tf-plus{font-size:11.5px;color:var(--muted)}.tf-v{font-size:10.5px;font-weight:700;color:#1a7f45;border:1px solid #bfe3cc;border-radius:5px;padding:0 4px}
+.tf-e{font-size:12.5px;color:var(--muted);padding:10px 0;text-align:center;border:1.5px dashed var(--line);border-radius:8px}
+.tf-ir{display:flex;align-items:center;gap:8px;margin-bottom:8px}.tf-ir .inp{width:72px}`;document.head.appendChild(st)}
+
 /* ============ Kalenderdozen overdragen naar een ander lid (enkel administrator) ============
    In de fiche van een persoon (Kalenders › Verdeling): "Dozen overdragen". Kies aan wie (lid of andere naam) en hoeveel dozen.
    Staat de ontvanger nog niet in de lijst, dan wordt hij meteen toegevoegd. Beide kanten krijgen een regel in hun geschiedenis. */
