@@ -25,6 +25,7 @@ export async function betaalWachtCron(sb) {
   for (const r of D) {
     const d = r.data, I = d.inkomend, t = Number(I.totaal) || Number(I.bedragPdf) || 0, betaald = som.get(r.id) || 0;
     if (betaald && (!t || betaald >= t - 0.005)) continue;
+    if (I.betaald) continue; // in de app op "Betaald" gezet
     const v = norm(van(d));
     if (I.domi === true || (I.domi !== false && (/bancontact|payconiq/.test(v) || domiLev.has(v)))) continue;
     const op = new Date(I.ontvangen || d.op || 0).getTime(); if (!op || op > grens) continue;
