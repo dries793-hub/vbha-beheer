@@ -9885,7 +9885,7 @@ function tfBody(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaa
   if(tab==="tafels")v.actions=(canWrite?`<button class="btn" data-act="tfAuto">Automatisch indelen</button><button class="btn" data-act="tfInst">${ic("instellingen")}Tafels</button>`:"")+`<button class="btn primary" data-act="tfPdf">${ic("download")}Afdrukken (PDF)</button>`+(String(v.actions||"").match(/<button class="btn iconbtn" data-act="bkInst"[\s\S]*?<\/button>/)||[""])[0];
   return v};for(const k in _v)VIEWS.banket[k]=_v[k]}
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-act]");if(!b)return;const a=b.dataset.act;
-  if(a==="bkTab"){e.preventDefault();e.stopPropagation();UI.bkTab=b.dataset.v;saveUI();TF.sel=null;renderBody();return}
+  if(a==="bkTab"){e.preventDefault();e.stopPropagation();UI.bkTab=b.dataset.v;saveUI();TF.sel=null;render(true);return}
   if(a==="tfAuto"){e.stopPropagation();const c=tfCfg();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);
     const doe=()=>{c.plaats=tfIndelen(c.tafels,tfUnits());tfLater(c);renderBody();toast("Tafels ingedeeld per categorie.")};
     if(Object.keys(c.plaats).length)confirmBox("Alle tafels opnieuw indelen? Wat je met de hand verschoof, gaat verloren.","Opnieuw indelen",doe);else doe();return}
