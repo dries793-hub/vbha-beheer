@@ -9844,7 +9844,7 @@ document.addEventListener("submit",async e=>{if(e.target.id!=="kiForm")return;e.
    Config "tafels_<jaar>": {types:[{aantal,cap}], tafels:[{id,cap,naam}], plaats:{<banketId>:<tafelId>}}
    - Automatisch indelen per categorie van het lid (Ploeg 1, Erewacht, Vrijwilligers, …); een inschrijving met partner blijft samen.
    - Personen (met hun partner) versleep je naar een andere tafel; op gsm: tik op een naam en dan op een tafel.
-   - Afdrukken: A4 liggend, om aan de zaal te geven. */
+   - Afdrukken: A4 staand, om aan de zaal te geven. */
 const TF={sel:null,t:null};
 const tfId=()=>"tafels_"+JAAR;
 const tfCfg=()=>{const c=S.config.get(tfId())||{};return{types:Array.isArray(c.types)&&c.types.length?c.types:[{aantal:5,cap:10},{aantal:3,cap:8}],tafels:Array.isArray(c.tafels)?c.tafels:[],plaats:c.plaats&&typeof c.plaats==="object"?c.plaats:{}}};
@@ -9928,10 +9928,10 @@ function tfInst(){const c=tfCfg();const rij=(t,i)=>`<div class="tf-ir"><input cl
     const plaats=Object.fromEntries(Object.entries(c.plaats).filter(([u,t])=>ids.has(t)));
     closeModal();const n={types:T,tafels:nieuw,plaats};S.config.set(tfId(),{id:tfId(),...n});await tfBewaar(n);renderBody();toast("Tafels bewaard.")}}
 
-/* afdrukken: A4 liggend, alle tafels op één blad */
+/* afdrukken: A4 staand, alle tafels op één blad */
 function tfPdf(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);const bc=bkCfg();
   const per=new Map(c.tafels.map(t=>[t.id,[]]));for(const u of U){const t=c.plaats[u.id];if(t&&per.has(t))per.get(t).push(u)}
-  const kol=Math.min(4,Math.max(3,Math.ceil(Math.sqrt(c.tafels.length*1.4)))),pers=U.reduce((s,u)=>s+u.n,0),veg=U.reduce((s,u)=>s+u.veg,0);
+  const kol=(c.tafels.length>4?3:2),pers=U.reduce((s,u)=>s+u.n,0),veg=U.reduce((s,u)=>s+u.veg,0);
   const BLAD='<svg class="ic veg" viewBox="0 0 24 24"><path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19c3-4 6-7 10-9"/></svg>',LET='<svg class="ic opm" viewBox="0 0 24 24"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18v.5"/></svg>';
   const sorteer=L=>L.slice().sort((a,b)=>a.cat.localeCompare(b.cat,"nl")||String(a.r.naam).localeCompare(String(b.r.naam),"nl"));let nr=0;const NR=new Map();
   for(const t of c.tafels)for(const u of sorteer(per.get(t.id)||[])){if(u.o1)NR.set(u.id+"|1",++nr);if(u.o2)NR.set(u.id+"|2",++nr)}
@@ -9940,7 +9940,7 @@ function tfPdf(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaak
   const opmLijst=c.tafels.map(t=>{const L=sorteer(per.get(t.id)||[]).filter(u=>u.opm);return L.length?`<div class="ot"><b>${esc(t.naam)}</b>${L.flatMap(u=>[u.o1?`<p><sup>${NR.get(u.id+"|1")}</sup> <span>${esc(u.r.naam||"")}</span> ${esc(u.o1)}</p>`:"",u.o2?`<p><sup>${NR.get(u.id+"|2")}</sup> <span>partner van ${esc(u.r.naam||"")}</span> ${esc(u.o2)}</p>`:""]).join("")}</div>`:""}).join("");
   const dt=bc.datum?new Date(bc.datum+"T12:00:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):"";
   const html=`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Tafelschikking banket ${JAAR}</title><style>
-    @page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Inter,"Segoe UI",Arial,sans-serif;color:#1a1b1e;margin:0}
+    @page{size:A4 portrait;margin:10mm}*{box-sizing:border-box}body{font-family:Inter,"Segoe UI",Arial,sans-serif;color:#1a1b1e;margin:0}
     header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #b30000;padding-bottom:6px;margin-bottom:8px}
     h1{font-size:24px;margin:0}header div{font-size:13px;color:#555;text-align:right}
     .g{display:grid;grid-template-columns:repeat(${kol},1fr);gap:9px}
