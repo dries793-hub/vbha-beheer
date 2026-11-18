@@ -71,6 +71,21 @@ export async function syncAll(sb, { manueel = false } = {}) {
           ck = r.continuation_key || null;
         } while (ck && ++guard < 50);
         const r = await boekTransacties(sb, txs, { regels, leden, facturen, sponsors, bron: d.aspsp || "Bank" });
+        // controlelijst voor de saldocontrole in de app: de verrichtingen bij de bank (bij manueel ophalen tot 89 dagen terug)
+        try {
+          let lijst = txs, van = dateFrom;
+          if (manueel) {
+            const v = new Date(Math.max(new Date(`${nu.getFullYear()}-01-01`).getTime(), nu.getTime() - 89 * 86400000)).toISOString().slice(0, 10);
+            if (v < dateFrom) { const extra = []; let ck2 = null, g2 = 0;
+              do { const q = new URLSearchParams({ date_from: v, transaction_status: "BOOK" }); if (ck2) q.set("continuation_key", ck2);
+                const rr = await eb(`/accounts/${encodeURIComponent(acc.uid)}/transactions?${q}`); extra.push(...(rr.transactions || [])); ck2 = rr.continuation_key || null; } while (ck2 && ++g2 < 50);
+              lijst = extra; van = v; }
+          }
+          const tx = lijst.map(mapTransaction).filter(b => b.datum && b.bedrag).map(b => ({ d: b.datum, b: b.bedrag, r: b.richting, ref: b.bankRef || "", p: String(b.partij || "").slice(0, 60), m: String(b.mededeling || "").slice(0, 80) }));
+          // een bredere lijst van een vorige keer aanvullen in plaats van overschrijven
+          const oud = acc.controle && acc.controle.van && acc.controle.van < van && Array.isArray(acc.controle.tx) ? acc.controle : null;
+          acc.controle = oud ? { van: oud.van, op: nu.toISOString(), tx: [...oud.tx.filter(x => x.d < van), ...tx].slice(-800) } : { van, op: nu.toISOString(), tx: tx.slice(-800) };
+        } catch (e) { console.warn("controle", e.message); }
         totaal.nieuw += r.nieuw; totaal.dubbel += r.dubbel; totaal.open += r.open;
       } catch (e) { totaal.fouten.push(`${acc.iban || acc.uid}: ${e.message}`); }
       if (manueel || !acc.saldo || String(acc.saldo.op || "").slice(0, 10) !== nu.toISOString().slice(0, 10)) {
@@ -140,7 +155,8 @@ export async function boekTransacties(sb, txs, { regels, leden, facturen = [], s
       const data = { ...b, jaar, nr: ++nr, categorie, rekening: "Rekening", bron: "api", status, regelNaam: s ? s.naam : "", lidId: categorie === "Lidgeld" ? findLid(b, leden, jaar) : null, ...(ef && ef.sponsorId ? { sponsorId: ef.sponsorId } : {}) };
       const { error } = await sb.from("boekingen").insert({ id, data });
       if (error) { if (error.code === "23505") { out.dubbel++; nr--; continue; } throw error; }
-      ids.add(id); if (b.bankRef) refs.add(b.bankRef); fuzzy.add(fz); out.nieuw++;
+      // fuzzy enkel voor transacties zonder bankreferentie: twee echte, identieke betalingen met elk een eigen referentie blijven allebei
+      ids.add(id); if (b.bankRef) refs.add(b.bankRef); else fuzzy.add(fz); out.nieuw++;
       if (!categorie || status) out.open++;
     }
   }
