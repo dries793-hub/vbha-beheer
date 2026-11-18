@@ -9892,7 +9892,7 @@ function tfBody(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaa
 {const _v=VIEWS.banket;VIEWS.banket=function(){const v=_v.apply(this,arguments),_b=v.body,tab=UI.bkTab==="tafels"?"tafels":"lijst";
   const tabs=`<nav class="tabs" aria-label="Onderdelen banket"><a href="#banket" data-act="bkTab" data-v="lijst" class="${tab==="lijst"?"on":""}">Inschrijvingen</a><a href="#banket" data-act="bkTab" data-v="tafels" class="${tab==="tafels"?"on":""}">Tafelschikking</a></nav>`;
   v.body=function(){return tabs+(tab==="tafels"?tfBody():_b.apply(this,arguments))};
-  if(tab==="tafels")v.actions=(canWrite?`<button class="btn" data-act="tfAuto">Automatisch indelen</button>`:"")+`<button class="btn primary" data-act="tfPdf">${ic("download")}Afdrukken</button>`+(canWrite?`<button class="btn iconbtn" data-act="tfInst" aria-label="Tafels instellen" title="Tafels instellen">${ic("instellingen")}</button>`:"");
+  if(tab==="tafels")v.actions=`<button class="btn" data-act="tfPdf">${ic("download")}Afdrukken</button>`+(canWrite?`<button class="btn primary" data-act="tfAuto">Automatisch indelen</button>`:"")+(canWrite?`<button class="btn iconbtn" data-act="tfInst" aria-label="Tafels instellen" title="Tafels instellen">${ic("instellingen")}</button>`:"");
   return v};for(const k in _v)VIEWS.banket[k]=_v[k]}
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-act]");if(!b)return;const a=b.dataset.act;
   if(a==="bkTab"){e.preventDefault();e.stopPropagation();UI.bkTab=b.dataset.v;saveUI();TF.sel=null;render(true);return}
