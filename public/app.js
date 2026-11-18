@@ -9735,6 +9735,21 @@ function krHistSort(E){const inf=m=>{const dl=KR_DEEL.get(m.straat),s=KR.byId.ge
   const k=KR_SORT.k,d=KR_SORT.d;return E.map(m=>[m,inf(m)]).sort((x,y)=>{const a=x[1][k],b=y[1][k];const r=typeof a==="number"?a-b:String(a).localeCompare(String(b),"nl",{numeric:true});return (r||(y[1].t).localeCompare(x[1].t))*(r?d:1)}).map(x=>x[0])}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-kr-sort]");if(!t)return;const k=t.dataset.krSort;KR_SORT=KR_SORT.k===k?{k,d:-KR_SORT.d}:{k,d:k==="t"||k==="a"?-1:1};renderBody()});
 
+/* Eenmalig: fotoalbum "Brandweerkalender 2027" met de 12 maandfoto's uit de geplande social-mediaberichten (pkal27-01 … 12).
+   Gebeurt automatisch zodra een beheerder Foto's opent; daarna staat het album als concept klaar (titel, watermerk, publiceren). */
+(function(){const ID="album-kalender2027";let bezig=false;
+  async function maak(){if(bezig||ROL!=="admin"||route()!=="fotos"||!S.fotoalbums||!S.fotoalbums.size||S.fotoalbums.has(ID))return;
+    try{if(localStorage.getItem("vbha-kalalbum27"))return}catch(e){}
+    bezig=true;try{try{localStorage.setItem("vbha-kalalbum27","1")}catch(e){}
+      const M=["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"],paden=M.map((m,i)=>"Social/kalender2027-"+String(i+1).padStart(2,"0")+".jpg");
+      toast("Fotoalbum Brandweerkalender 2027 wordt gemaakt…");
+      const files=[];for(let i=0;i<12;i++){const {data,error}=await SB.storage.from(DOC_BUCKET).download(paden[i]);if(error||!data)continue;files.push(new File([data],String(i+1).padStart(2,"0")+" "+M[i]+" 2027.jpg",{type:"image/jpeg",lastModified:Date.UTC(2027,i,1)}))}
+      if(!files.length){toast("De kalenderfoto's werden niet gevonden.",true);return}
+      const r2=await faR2Aan();const a={soort:"eigen",opslag:r2?"r2":"supabase",titel:"Brandweerkalender 2027",datum:"2026-11-18",jaar:2026,fotograaf:"",omschrijving:"De twaalf maandfoto's uit onze brandweerkalender 2027.",fotos:[],watermerk:null,status:"concept",aangemaakt:new Date().toISOString(),door:ME_NAME||""};
+      await write("fotoalbums",ID,a);S.fotoalbums.set(ID,{id:ID,...a});faOpen(ID);await faOpladen(files)}
+    catch(e){console.error(e);toast("Album maken lukte niet: "+(e.message||e),true)}finally{bezig=false}}
+  const t=()=>setTimeout(maak,1200);addEventListener("hashchange",t);t();setInterval(()=>{if(route()==="fotos")maak()},5000)})();
+
 /* ============ Kalenderdozen overdragen naar een ander lid (enkel administrator) ============
    In de fiche van een persoon (Kalenders › Verdeling): "Dozen overdragen". Kies aan wie (lid of andere naam) en hoeveel dozen.
    Staat de ontvanger nog niet in de lijst, dan wordt hij meteen toegevoegd. Beide kanten krijgen een regel in hun geschiedenis. */
