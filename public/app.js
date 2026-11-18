@@ -9738,7 +9738,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-kr-sort]")
   v.actions=`<a class="btn" href="/kaart" target="_blank" rel="noopener" title="Openbare kaart openen (${aan?"actief":"niet actief"})"><span class="spi-dot ${aan?"open":"dicht"}" aria-hidden="true"></span>Openbare kaart</a>`+String(v.actions||"").replace(/<a class="btn" href="\/kaart"[^>]*>[\s\S]*?Kaart openen<\/a>/,"");return v};Object.assign(n,_v);VIEWS.ronde=n}
 /* aan/uit in het tandwiel van de kaart */
 {const _k=kaInst;kaInst=function(){_k.apply(this,arguments);const b=$("#modal .modal-b");if(!b||!canWrite)return;const aan=(S.config.get("kaart")||{}).aan!==false;
-  b.insertAdjacentHTML("afterbegin",`<div class="pi-sec"><h4>Openbare kalenderkaart</h4><label class="spi-sw" for="kaartAanSw" style="display:inline-flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="kaartAanSw" role="switch"${aan?" checked":""}><span>Actief</span></label></div>`);
+  b.insertAdjacentHTML("afterbegin",`<div class="pi-sec"><label class="spi-sw" for="kaartAanSw"><input type="checkbox" id="kaartAanSw" role="switch"${aan?" checked":""}><span class="spi-sw-t" aria-hidden="true"></span><b>Openbare kaart actief</b></label></div>`);
   $("#kaartAanSw").onchange=async e=>{const nu=e.target.checked;try{await write("config","kaart",{aan:nu,op:new Date().toISOString(),door:ME_NAME||""},{merge:true});toast(nu?"De openbare kaart is actief.":"De openbare kaart is niet actief.");renderBody()}catch(x){e.target.checked=!nu;toast(x.message,true)}}}}
 
 
