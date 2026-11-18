@@ -9775,7 +9775,7 @@ function sysVoorbeeld(t){const v={...(t.voorbeeld||{})};
 {const _v=mlVanTpl;mlVanTpl=function(t){const M=_v.apply(this,arguments);if(t&&t.sys){M.sys=t.sys;M.categorie=SYS_CAT}return M}}
 {const _e=mlEditor;mlEditor=function(M){const t=sysTpl(M);if(!t)return _e.apply(this,arguments);
   const bewaar=ML_VELDEN.splice(0,ML_VELDEN.length);ML_VELDEN.push(["Velden van deze mail",(t.velden||[]).map(([k,l])=>[k,l])]);
-  try{return _e.apply(this,arguments).replace(/<span class="help">[\s\S]*?<\/span>\s*$/,`<span class="help">Velden zoals <span class="kbd">{voornaam}</span> worden bij het versturen ingevuld. Een stuk tekst tussen <span class="kbd">{als:veld}</span> en <span class="kbd">{/als:veld}</span> komt er enkel in als dat veld van toepassing is (<span class="kbd">{niet:veld}</span> net omgekeerd). Logo, rode balken en groet komen er bij het versturen vanzelf bij.</span>`)}
+  try{return _e.apply(this,arguments).replace(/<span class="help">[\s\S]*?<\/span>\s*$/,"")}
   finally{ML_VELDEN.splice(0,ML_VELDEN.length,...bewaar)}}}
 {const _p=mailPreview;mailPreview=function(){const M=mailState(),t=sysTpl(M);if(!t)return _p.apply(this,arguments);
   const fr=$("#mlFrame"),hd=$("#mHead");if(!fr)return;const ed=$("#mlEd");const body=ed?ed.innerHTML:M.body,v=sysVoorbeeld(t);
