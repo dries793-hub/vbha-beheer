@@ -9972,6 +9972,21 @@ function tfPdf(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaak
 .tf-ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:12px 16px 16px}.tf-ol>div{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;padding:8px 10px;border-radius:8px;background:var(--sunken,#f6f6f7)}.tf-ol span{font-size:12px;color:var(--muted)}.tf-ol p{flex-basis:100%;margin:0;font-size:13px;color:var(--accent)}.tf-ol p i{font-style:normal;color:var(--muted);font-size:12px}.tf-ol p .tfi{margin-right:4px}
 .tf-ir{display:flex;align-items:center;gap:8px;margin-bottom:8px}.tf-ir .inp{width:72px}`;document.head.appendChild(st)}
 
+/* ============ Pagina's openen altijd op de eerste tab ============
+   Bij het wisselen naar een andere pagina (en bij het laden van de app) worden de onthouden tabs teruggezet. */
+let ET_VORIG=null;
+function etReset(){try{
+  if(UI.bkTab&&UI.bkTab!=="lijst"){UI.bkTab="lijst";saveUI()}
+  if(typeof KA_UI!=="undefined"&&KA_UI.tab)for(const k in KA_UI.tab)delete KA_UI.tab[k];
+  if(typeof BG!=="undefined")BG.tab=null;
+  if(typeof SHF!=="undefined")SHF.weerg="bord";
+  if(typeof SH!=="undefined")SH.tab="best";
+  if(typeof AG!=="undefined")AG.oud=false;
+  if(typeof TF!=="undefined")TF.sel=null;
+}catch(e){console.warn("eerste tab",e)}}
+etReset();ET_VORIG=route();
+window.addEventListener("hashchange",()=>{const r=route();if(r!==ET_VORIG)etReset();ET_VORIG=r},true);
+
 /* ============ Kalenderdozen overdragen naar een ander lid (enkel administrator) ============
    In de fiche van een persoon (Kalenders › Verdeling): "Dozen overdragen". Kies aan wie (lid of andere naam) en hoeveel dozen.
    Staat de ontvanger nog niet in de lijst, dan wordt hij meteen toegevoegd. Beide kanten krijgen een regel in hun geschiedenis. */
