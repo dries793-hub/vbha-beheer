@@ -9850,7 +9850,9 @@ const tfCat=r=>{const l=(r.lidId&&S.leden.get(r.lidId))||bkLid(r);return (l&&l.c
 /* opmerkingen per persoon: opmerking1 (lid) en opmerking2 (partner); oude inschrijvingen hebben enkel "opmerking" */
 const tfOpm=r=>{const o1=String(r.opmerking1!=null?r.opmerking1:(r.personen===2?"":r.opmerking||"")).trim(),o2=String(r.personen===2?(r.opmerking2!=null?r.opmerking2:r.opmerking||""):"").trim();
   return [o1?(r.personen===2?"lid: ":"")+o1:"",o2?"partner: "+o2:""].filter(Boolean).join(" · ")};
-const tfUnits=()=>bkLijst().map(r=>({id:r.id,r,n:r.personen===2?2:1,cat:tfCat(r),veg:[r.menu1,r.personen===2?r.menu2:null].filter(m=>m==="Vegetarisch").length,opm:tfOpm(r)})).sort((a,b)=>String(a.r.naam||"").localeCompare(String(b.r.naam||""),"nl"));
+const tfO12=r=>[String(r.opmerking1!=null?r.opmerking1:(r.personen===2?"":r.opmerking||"")).trim(),String(r.personen===2?(r.opmerking2!=null?r.opmerking2:r.opmerking||""):"").trim()];
+const TF_BLAD='<svg class="tfi veg" viewBox="0 0 24 24" aria-label="vegetarisch"><path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19c3-4 6-7 10-9"/></svg>',TF_LET='<svg class="tfi opm" viewBox="0 0 24 24" aria-label="opmerking"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18v.5"/></svg>';
+const tfUnits=()=>bkLijst().map(r=>{const [o1,o2]=tfO12(r);return{id:r.id,r,n:r.personen===2?2:1,cat:tfCat(r),veg:[r.menu1,r.personen===2?r.menu2:null].filter(m=>m==="Vegetarisch").length,v1:r.menu1==="Vegetarisch",v2:r.personen===2&&r.menu2==="Vegetarisch",o1,o2,opm:tfOpm(r)}}).sort((a,b)=>String(a.r.naam||"").localeCompare(String(b.r.naam||""),"nl"));
 function tfMaakTafels(types){const T=[];let i=1;for(const t of types)for(let k=0;k<(Number(t.aantal)||0);k++)T.push({id:"t"+i,naam:"Tafel "+i,cap:Number(t.cap)||8}),i++;return T}
 /* indeling: per categorie (grootste eerst) zoveel mogelijk aan dezelfde tafel; koppels blijven samen */
 function tfIndelen(tafels,units,vast={}){const vrij=new Map(tafels.map(t=>[t.id,t.cap])),cats=new Map(tafels.map(t=>[t.id,new Set()])),P={};
@@ -9869,7 +9871,8 @@ async function tfBewaar(c){await write("config",tfId(),{types:c.types,tafels:c.t
 function tfLater(c){S.config.set(tfId(),{id:tfId(),...(S.config.get(tfId())||{}),...c});clearTimeout(TF.t);TF.t=setTimeout(()=>tfBewaar(c).catch(e=>toast(e.message,true)),500)}
 
 function tfChip(u){const sel=TF.sel===u.id;
-  return `<div class="tf-p${sel?" on":""}" draggable="${canWrite}" data-tfp="${esc(u.id)}" title="${esc(u.cat)}"><b>${esc(u.r.naam||"")}</b>${u.n===2?'<span class="tf-plus">+ partner</span>':""}${u.veg?`<span class="tf-v" title="${u.veg} vegetarisch">V${u.veg>1?"×"+u.veg:""}</span>`:""}${u.opm?`<span class="tf-o">${esc(u.opm)}</span>`:""}</div>`}
+  const zin=(v,o)=>(v?TF_BLAD:"")+(o?`${TF_LET}<span class="tf-o">${esc(o)}</span>`:"");
+  return `<div class="tf-p${sel?" on":""}" draggable="${canWrite}" data-tfp="${esc(u.id)}" title="${esc(u.cat)}"><span class="tf-pp"><b>${esc(u.r.naam||"")}</b>${zin(u.v1,u.o1)}</span>${u.n===2?`<span class="tf-pp"><span class="tf-plus">+ partner</span>${zin(u.v2,u.o2)}</span>`:""}</div>`}
 function tfBody(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);
   const per=new Map(c.tafels.map(t=>[t.id,[]])),los=[];for(const u of U){const t=c.plaats[u.id];if(t&&per.has(t))per.get(t).push(u);else los.push(u)}
   const pers=U.reduce((s,u)=>s+u.n,0),cap=c.tafels.reduce((s,t)=>s+t.cap,0),geplaatst=pers-los.reduce((s,u)=>s+u.n,0);
@@ -9926,27 +9929,27 @@ function tfInst(){const c=tfCfg();const rij=(t,i)=>`<div class="tf-ir"><input cl
 /* afdrukken: A4 liggend, alle tafels op één blad */
 function tfPdf(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);const bc=bkCfg();
   const per=new Map(c.tafels.map(t=>[t.id,[]]));for(const u of U){const t=c.plaats[u.id];if(t&&per.has(t))per.get(t).push(u)}
-  const kol=Math.min(6,Math.max(3,Math.ceil(Math.sqrt(c.tafels.length*1.6)))),pers=U.reduce((s,u)=>s+u.n,0),veg=U.reduce((s,u)=>s+u.veg,0);
+  const kol=Math.min(4,Math.max(3,Math.ceil(Math.sqrt(c.tafels.length*1.4)))),pers=U.reduce((s,u)=>s+u.n,0),veg=U.reduce((s,u)=>s+u.veg,0);
   const BLAD='<svg class="ic veg" viewBox="0 0 24 24"><path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19c3-4 6-7 10-9"/></svg>',LET='<svg class="ic opm" viewBox="0 0 24 24"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18v.5"/></svg>';
   const sorteer=L=>L.slice().sort((a,b)=>a.cat.localeCompare(b.cat,"nl")||String(a.r.naam).localeCompare(String(b.r.naam),"nl"));let nr=0;const NR=new Map();
-  for(const t of c.tafels)for(const u of sorteer(per.get(t.id)||[]))if(u.opm)NR.set(u.id,++nr);
-  const kaart=t=>{const L=sorteer(per.get(t.id)||[]),n=L.reduce((s,u)=>s+u.n,0),v=L.reduce((s,u)=>s+u.veg,0),o=L.filter(u=>u.opm).length;
-    return `<div class="t"><div class="h"><b>${esc(t.naam)}</b><span>${n} pers.${v?` · ${BLAD}${v}`:""}${o?` · ${LET}${o}`:""}</span></div><ol>${L.map(u=>`<li>${esc(u.r.naam||"")}${u.n===2?" <i>+ partner</i>":""}${u.veg?` ${BLAD.repeat(u.veg)}`:""}${u.opm?` ${LET}<sup>${NR.get(u.id)}</sup>`:""}</li>`).join("")}</ol></div>`};
-  const opmLijst=c.tafels.map(t=>{const L=sorteer(per.get(t.id)||[]).filter(u=>u.opm);return L.length?`<div class="ot"><b>${esc(t.naam)}</b>${L.map(u=>`<p><sup>${NR.get(u.id)}</sup> <span>${esc(u.r.naam||"")}</span> ${esc(u.opm)}</p>`).join("")}</div>`:""}).join("");
+  for(const t of c.tafels)for(const u of sorteer(per.get(t.id)||[])){if(u.o1)NR.set(u.id+"|1",++nr);if(u.o2)NR.set(u.id+"|2",++nr)}
+  const kaart=t=>{const L=sorteer(per.get(t.id)||[]),n=L.reduce((s,u)=>s+u.n,0),v=L.reduce((s,u)=>s+u.veg,0),o=L.reduce((s,u)=>s+(u.o1?1:0)+(u.o2?1:0),0);
+    return `<div class="t"><div class="h"><b>${esc(t.naam)}</b><span>${n} pers.${v?` · ${BLAD}${v}`:""}${o?` · ${LET}${o}`:""}</span></div><ol>${L.map(u=>`<li>${esc(u.r.naam||"")}${u.v1?" "+BLAD:""}${u.o1?` ${LET}<sup>${NR.get(u.id+"|1")}</sup>`:""}${u.n===2?` <i>+ partner</i>${u.v2?" "+BLAD:""}${u.o2?` ${LET}<sup>${NR.get(u.id+"|2")}</sup>`:""}`:""}</li>`).join("")}</ol></div>`};
+  const opmLijst=c.tafels.map(t=>{const L=sorteer(per.get(t.id)||[]).filter(u=>u.opm);return L.length?`<div class="ot"><b>${esc(t.naam)}</b>${L.flatMap(u=>[u.o1?`<p><sup>${NR.get(u.id+"|1")}</sup> <span>${esc(u.r.naam||"")}</span> ${esc(u.o1)}</p>`:"",u.o2?`<p><sup>${NR.get(u.id+"|2")}</sup> <span>partner van ${esc(u.r.naam||"")}</span> ${esc(u.o2)}</p>`:""]).join("")}</div>`:""}).join("");
   const dt=bc.datum?new Date(bc.datum+"T12:00:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):"";
   const html=`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Tafelschikking banket ${JAAR}</title><style>
     @page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Inter,"Segoe UI",Arial,sans-serif;color:#1a1b1e;margin:0}
     header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #b30000;padding-bottom:6px;margin-bottom:8px}
-    h1{font-size:18px;margin:0}header div{font-size:11px;color:#555;text-align:right}
-    .g{display:grid;grid-template-columns:repeat(${kol},1fr);gap:7px}
-    .t{border:1.5px solid #c9a75a;border-radius:8px;padding:6px 8px;break-inside:avoid}
-    .h{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #e5e5e5;margin-bottom:3px;padding-bottom:2px}.h b{font-size:12.5px;color:#b30000}.h span{font-size:9.5px;color:#666}
-    ol{margin:0;padding-left:16px;font-size:10px;line-height:1.35}i{color:#555;font-style:normal}em{font-style:normal;font-weight:700;color:#1a7f45;font-size:9px}
-    footer{margin-top:6px;font-size:9px;color:#777;display:flex;gap:14px;align-items:center}
-    .ic{width:10px;height:10px;vertical-align:-1px;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ic.veg{stroke:#1a7f45}.ic.opm{stroke:#b30000}
-    sup{font-size:7.5px;font-weight:700;color:#b30000;vertical-align:3px;margin-left:1px}
-    .om{margin-top:10px;break-before:auto}.om h2{font-size:13px;margin:0 0 5px;color:#b30000}.og{columns:3;column-gap:14px}
-    .ot{break-inside:avoid;margin:0 0 6px;font-size:9.5px}.ot b{display:block;font-size:10.5px;border-bottom:1px solid #e5e5e5;margin-bottom:2px}.ot p{margin:0 0 2px;line-height:1.3}.ot span{font-weight:600}</style></head><body>
+    h1{font-size:24px;margin:0}header div{font-size:13px;color:#555;text-align:right}
+    .g{display:grid;grid-template-columns:repeat(${kol},1fr);gap:9px}
+    .t{border:1.5px solid #c9a75a;border-radius:9px;padding:8px 10px;break-inside:avoid}
+    .h{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #e5e5e5;margin-bottom:3px;padding-bottom:2px}.h b{font-size:16px;color:#b30000}.h span{font-size:12px;color:#666}
+    ol{margin:0;padding-left:20px;font-size:13px;line-height:1.45}i{color:#555;font-style:normal}em{font-style:normal;font-weight:700;color:#1a7f45;font-size:9px}
+    footer{margin-top:8px;font-size:11px;color:#777;display:flex;gap:14px;align-items:center}
+    .ic{width:13px;height:13px;vertical-align:-1px;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ic.veg{stroke:#1a7f45}.ic.opm{stroke:#b30000}
+    sup{font-size:9.5px;font-weight:700;color:#b30000;vertical-align:3px;margin-left:1px}
+    .om{margin-top:10px;break-before:auto}.om h2{font-size:16px;margin:0 0 5px;color:#b30000}.og{columns:3;column-gap:14px}
+    .ot{break-inside:avoid;margin:0 0 8px;font-size:12px}.ot b{display:block;font-size:13px;border-bottom:1px solid #e5e5e5;margin-bottom:2px}.ot p{margin:0 0 2px;line-height:1.3}.ot span{font-weight:600}</style></head><body>
     <header><h1>Banket ${JAAR} · tafelschikking</h1><div>${esc(dt)}${bc.uur?" · "+esc(bc.uur):""}<br>${esc(bc.locatie||"")}<br><b>${pers} personen</b>${veg?` · ${veg} vegetarisch`:""} · ${c.tafels.length} tafels</div></header>
     <div class="g">${c.tafels.map(kaart).join("")}</div><footer><span>${BLAD} vegetarisch menu</span><span>${LET} opmerking (allergie, dieet, …), zie de lijst</span><span>Vriendenkring Brandweer Hoofdpost Aalst</span></footer>
     ${opmLijst?`<section class="om"><h2>Opmerkingen per tafel</h2><div class="og">${opmLijst}</div></section>`:""}
@@ -9962,7 +9965,8 @@ function tfPdf(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaak
 .tf-p small{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap}.tf-p.on{border-color:var(--info,#2f6fe4);background:#eef3fd}.tf-p.sleep{opacity:.4}
 .tf-plus{font-size:11.5px;color:var(--muted)}.tf-v{font-size:10.5px;font-weight:700;color:#1a7f45;border:1px solid #bfe3cc;border-radius:5px;padding:0 4px}
 .tf-e{font-size:12.5px;color:var(--muted);padding:10px 0;text-align:center;border:1.5px dashed var(--line);border-radius:8px}
-.tf-o{flex-basis:100%;font-size:12px;color:var(--accent);line-height:1.3}.tf-o::before{content:"! "}
+.tf-pp{display:inline-flex;align-items:baseline;gap:5px;flex-wrap:wrap}.tf-o{font-size:12px;color:var(--accent);line-height:1.3}
+.tfi{width:13px;height:13px;flex:none;align-self:center;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.tfi.veg{stroke:#1a7f45}.tfi.opm{stroke:var(--accent)}
 .tf-ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:12px 16px 16px}.tf-ol>div{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;padding:8px 10px;border-radius:8px;background:var(--sunken,#f6f6f7)}.tf-ol span{font-size:12px;color:var(--muted)}.tf-ol p{flex-basis:100%;margin:0;font-size:13px;color:var(--accent)}
 .tf-ir{display:flex;align-items:center;gap:8px;margin-bottom:8px}.tf-ir .inp{width:72px}`;document.head.appendChild(st)}
 
