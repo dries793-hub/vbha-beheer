@@ -10016,6 +10016,8 @@ function etReset(){try{
 }catch(e){console.warn("eerste tab",e)}}
 etReset();ET_VORIG=route();
 window.addEventListener("hashchange",()=>{const r=route();if(r!==ET_VORIG)etReset();ET_VORIG=r},true);
+/* menubalk: het actieve onderdeel niet vetter maken bij hover (anders schuiven de volgende onderdelen enkele pixels op) */
+{const st=document.createElement("style");st.textContent=".nav a.on,.nav .navdd.on{font-weight:500}";document.head.appendChild(st)}
 
 /* ============ Jaardocumenten › instellingen (tandwiel) ============
    Per document aan- of uitvinken welke onderdelen in de jaarrekening en het jaarverslag komen.
