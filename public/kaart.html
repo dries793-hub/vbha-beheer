@@ -2959,7 +2959,7 @@ krLive();
         // vorige (nog niet verwerkte) melding: wat toen nog over was, is nu de voorraad; meteen ingevuld
         if(j.vorige&&j.vorige.rest>0&&j.vorige.rest<=DZ.op+1e-9){const v=j.vorige.rest;DZ.vorig=v;DZ.op=v;DZ.over=true;DZ.heel=Math.floor(v+1e-9);DZ.deel=Math.round((v-DZ.heel)*4)/4||null}}catch(e){DZ.op=0}DZ.voor=id;tekenDz()}
     dzBox.addEventListener("click",e=>{const b=e.target.closest("[data-dz]");if(!b)return;const k=b.dataset.dz,v=b.dataset.v;err.textContent="";
-      if(k==="over"){DZ.over=v==="1";DZ.heel=DZ.deel=DZ.nodig=DZ.nodigN=null;DZ.af=DZ.over?null:"alle"}
+      if(k==="over"){DZ.over=v==="1";DZ.heel=DZ.deel=DZ.nodig=DZ.nodigN=null;DZ.af=DZ.over?null:"alle";if(DZ.over){const st=DZ.vorig?DZ.op:Math.max(0,DZ.op-1);DZ.heel=Math.floor(st+1e-9);DZ.deel=Math.round((st-DZ.heel)*4)/4||null}}
       else if(k==="hplus"){DZ.heel=(DZ.heel||0)+1;if(DZ.vorig?dzRest()>DZ.op+1e-9:dzRest()>=DZ.op-1e-9)DZ.heel--}else if(k==="hmin"){DZ.heel=Math.max(0,(DZ.heel||0)-1)}
       else if(k==="heel"){DZ.heel=DZ.heel===+v?null:+v;if(dzRest()>=DZ.op-1e-9)DZ.deel=null}else if(k==="deel"){DZ.deel=DZ.deel===+v?null:+v;if(DZ.vorig?dzRest()>DZ.op+1e-9:dzRest()>=DZ.op-1e-9)DZ.deel=null}
       else if(k==="af"){DZ.af=v==="alle"?"alle":+v;if(DZ.af!=="alle")DZ.nodig=DZ.nodigN=null}
