@@ -6,11 +6,11 @@ import { huisstijl, kaderBlok, knop, p, esc, eur } from "./bevestiging.js";
 import { registreer, sysMail } from "./sjabloon.js";
 registreer({ key: "betaalwacht", naam: "Te verwerken betalingen (aan de boekhouding)", wanneer: "Als betalingen (inkomende facturen, onkostennota's) al enkele dagen wachten om uitgevoerd te worden.",
   onderwerp: "{als:een}1 betaling wacht{/als:een}{niet:een}{aantal} betalingen wachten{/niet:een} al {dagen} dagen",
-  body: p("Dag boekhouding,") + p("Er {als:een}wacht een betaling{/als:een}{niet:een}wachten {aantal} betalingen{/niet:een} al {dagen} dagen of langer om uitgevoerd te worden{als:totaal} (samen {totaal}){/als:totaal}.") + kaderBlok("Te verwerken betalingen", "{lijst}") + "<p>{knop_app}</p>",
+  body: p("Er {als:een}wacht een betaling{/als:een}{niet:een}wachten {aantal} betalingen{/niet:een} al {dagen} dagen of langer om uitgevoerd te worden{als:totaal} (samen {totaal}){/als:totaal}.") + kaderBlok("Te verwerken betalingen", "{lijst}") + "<p>{knop_app}</p>",
   velden: [["aantal", "Aantal betalingen"], ["dagen", "Aantal dagen"], ["totaal", "Totaal bedrag"], ["lijst", "Lijst van de betalingen"], ["knop_app", "Knop naar de app"], ["een", "Voorwaarde: één betaling"]], voorbeeld: { aantal: "2", dagen: "5", totaal: "€430,00", een: "" } });
 registreer({ key: "factuur-vervalt", naam: "Facturen die binnenkort vervallen (aan de boekhouding)", wanneer: "Als een inkomende factuur 5 dagen voor de vervaldatum nog niet betaald is.",
   onderwerp: "{als:een}1 factuur vervalt{/als:een}{niet:een}{aantal} facturen vervallen{/niet:een} binnenkort",
-  body: p("Dag boekhouding,") + p("{als:een}Deze factuur is{/als:een}{niet:een}Deze facturen zijn{/niet:een} nog niet betaald en {als:een}vervalt{/als:een}{niet:een}vervallen{/niet:een} binnen {dagen} dagen{als:totaal} (samen {totaal}){/als:totaal}.") + kaderBlok("Te betalen facturen", "{lijst}") + "<p>{knop_app}</p>",
+  body: p("{als:een}Deze factuur is{/als:een}{niet:een}Deze facturen zijn{/niet:een} nog niet betaald en {als:een}vervalt{/als:een}{niet:een}vervallen{/niet:een} binnen {dagen} dagen{als:totaal} (samen {totaal}){/als:totaal}.") + kaderBlok("Te betalen facturen", "{lijst}") + "<p>{knop_app}</p>",
   velden: [["aantal", "Aantal facturen"], ["dagen", "Aantal dagen voor de vervaldatum"], ["totaal", "Totaal bedrag"], ["lijst", "Lijst met de facturen en vervaldata"], ["knop_app", "Knop naar de app"], ["een", "Voorwaarde: één factuur"]], voorbeeld: { aantal: "2", dagen: "5", totaal: "€430,00", een: "" } });
 let DAGEN = 5, AAN = ""; const MAP = "Inkomende facturen"; // aantal dagen en ontvanger instelbaar in de app (config betaalWacht.dagen / .mail)
 const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
@@ -18,7 +18,7 @@ const van = d => (d.inkomend && (d.inkomend.leverancier || d.inkomend.vanNaam ||
 export async function betaalWachtCron(sb) {
   const { data: cfgRow } = await sb.from("config").select("data").eq("id", "betaalWacht").maybeSingle();
   const C = (cfgRow && cfgRow.data) || {}; if (C.aan === false) return { uit: true };
-  DAGEN = Math.max(1, Math.min(60, Number(C.dagen) || 5)); AAN = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(String(C.mail || "").trim()) ? String(C.mail).trim() : "";
+  DAGEN = Math.max(1, Math.min(60, Number(C.dagen) || 10)); AAN = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(String(C.mail || "").trim()) ? String(C.mail).trim() : "";
   const grens = Date.now() - DAGEN * 864e5, gemeld = C.gemeld || {};
   const { data: docs } = await sb.from("documenten").select("id,data").eq("data->>map", MAP).limit(2000);
   const D = (docs || []).filter(r => r.data && r.data.inkomend);
