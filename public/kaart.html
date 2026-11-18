@@ -2668,6 +2668,7 @@ function krEnkel(g){const P=KRE.delen(g);if(P.length<2)return g;
     if(best){uit.push([KRE.terug(e,lat),KRE.terug(best.x,lat)]);con.push([e,best.x])}}
   return uit}
 const KRG=new Map();
+function krDeelLijn(x){try{const G=krGroepen(x.sid)||[],g=G.find(g=>g.ids&&g.ids.includes(x.id));if(g&&g.g&&g.g.length)return g.g}catch(e){}return krEnkel(x.g)}
 function krGroepen(sid){if(KRG.has(sid))return KRG.get(sid);const S=(KR_DELEN.get(sid)||[]).map(x=>{const qs=KRE.delen(x.g).map(p=>p.map(KRE.m));return{x,qs,l:qs.reduce((t,q)=>t+KRE.lengte(q),0),d:qs.flatMap(KRE.dicht8)}}).sort((a,b)=>b.l-a.l);
   const G=[];for(const s of S){let best=null,bn=0;if(s.d.length)for(const g of G){let n=0;for(const p of s.d)if(g.qs.some(q=>KRE.afst(p,q).d<30))n++;if(n>bn){bn=n;best=g}}
     if(best&&bn/s.d.length>=.85){best.ids.push(s.x.id);best.a+=s.x.a;best.xs.push(s.x)}else G.push({lead:s.x,ids:[s.x.id],a:s.x.a,xs:[s.x],qs:s.qs})}
@@ -2700,10 +2701,10 @@ function krGeo(sid){if(!KRE.geo){const t0=Date.now(),cos=Math.cos(50.94*Math.PI/
   const zoek=(e,sid,pi,max)=>{let best=null;const cx=Math.floor(e[0]/C),cy=Math.floor(e[1]/C);
     for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++)for(const o of seg.get((cx+i)+"|"+(cy+j))||[]){if(o.sid===sid&&o.pi===pi)continue;const r=KRE.proj(e,o.a,o.b);if(r.d<max&&(!best||r.d<best.d))best=r}return best};
   for(const s of KR_STREETS){const P=geo.get(s.id),n=P.length;for(let pi=0;pi<n;pi++){const p=P[pi];if(p.length<2)continue;
-    for(const [pt,nb] of [[p[0],p[1]],[p[p.length-1],p[p.length-2]]]){const e=m(pt);const raak=zoek(e,s.id,pi,2.5);if(raak)continue;const r=zoek(e,s.id,pi,30);if(!r)continue;
+    for(const [pt,nb] of [[p[0],p[1]],[p[p.length-1],p[p.length-2]]]){const e=m(pt);const raak=zoek(e,s.id,pi,2.5);if(raak)continue;const r=zoek(e,s.id,pi,35);if(!r)continue;
       // enkel doortrekken in de richting van de straat zelf (niet zijdelings naar een evenwijdige straat)
       const q=m(nb),ux=e[0]-q[0],uy=e[1]-q[1],vx=r.x[0]-e[0],vy=r.x[1]-e[1],lu=Math.hypot(ux,uy),lv=Math.hypot(vx,vy);
-      if(lv<6||(lu>0&&(ux*vx+uy*vy)/(lu*lv)>0.85))P.push([pt,terug(r.x)])}}}
+      if(lv<12||(lu>0&&(ux*vx+uy*vy)/(lu*lv)>0.7))P.push([pt,terug(r.x)])}}}
   KRE.geo=geo;KRE.ms=Date.now()-t0}
   return KRE.geo.get(sid)||[]}
 /* ---- Achtergrond: officiële GRB-basiskaart (grijs) van Digitaal Vlaanderen als kaarttegels; lukt dat niet, dan de gekleurde
@@ -2772,7 +2773,7 @@ function krStyleAll(){const todo=krVar("--kr-todo"),sel=krVar("--accent");const 
   /* delen van een straat (tot een kruispunt) */
   if(!KR.segLayer)KR.segLayer=L.layerGroup().addTo(KR.map);KR.segLayer.clearLayers();
   for(const id in KR_STAND){const x=KR_DEEL.get(id);if(!x||KR_STAND[x.sid]||KR.ss.has(x.sid))continue;
-    L.polyline(krEnkel(x.g),{renderer:KR.renderer,interactive:false,weight:w[1],color:KR_STAND[id]==="r"?rs:dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}}
+    L.polyline(krDeelLijn(x),{renderer:KR.renderer,interactive:false,weight:w[1],color:KR_STAND[id]==="r"?rs:dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}}
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const krDeelTekst=sid=>{const t=krDeelStand(sid);return t.d||t.r?"deels: "+[t.d?t.d+" van "+t.n+" stukken bedeeld":"",t.r?t.r+" gereserveerd":""].filter(Boolean).join(", "):""};
 const krWie=id=>KR_STAND[id]!=="d"&&KR_PEND[id]?"melding in behandeling":(KR_STAND[id]==="d"?"al bedeeld":"gereserveerd")+(KR_OP[id]?" · "+KR_OP[id]:"");
