@@ -152,7 +152,13 @@ async function dozenVan(req, res) {
   const id = String(req.query.dozen || "").slice(0, 80);
   const A = await algemeen(sb);
   if (!(await actieveLeden(sb, A.jaar)).some(l => l.id === id)) return res.status(200).json({ op: 0 });
-  return res.status(200).json({ op: await opVan(sb, A.jaar, id) });
+  // straat per straat melden: wat het lid bij zijn vorige melding (nog niet verwerkt, laatste 12 uur) nog over had
+  let vorige = null;
+  try {
+    const { data: M } = await sb.from("rondemeldingen").select("data").eq("data->>lidId", id).eq("data->>stand", "open").gte("data->>op", new Date(Date.now() - 12 * 3600e3).toISOString()).order("data->>op", { ascending: false }).limit(1);
+    const dz = M && M[0] && M[0].data && M[0].data.dozen; if (dz && dz.over === true && Number(dz.rest) > 0) vorige = { rest: Number(dz.rest), op: M[0].data.op };
+  } catch (e) { }
+  return res.status(200).json({ op: await opVan(sb, A.jaar, id), vorige });
 }
 /* antwoorden nakijken: kwarten van een doos, binnen redelijke grenzen */
 function schoonDozen(x) {

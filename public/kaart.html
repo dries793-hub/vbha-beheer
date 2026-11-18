@@ -2940,25 +2940,27 @@ krLive();
     function tekenDz(){if(soort!=="d"||!lid){dzBox.hidden=true;return}dzBox.hidden=false;
       if(DZ.op==null||DZ.voor!==lid.id){dzBox.innerHTML='<p class="km-di">Dozen opzoeken…</p>';return}const op=DZ.op;let h="";
       if(op>0){const heel=DZ.heel||0,deel=DZ.deel||0,r=heel+deel;
-        h+=`<p class="km-di">Volgens onze lijst heb je <b>${fd(op)}</b>.</p>`+vraag("Heb je nog kalenders over?",knop("over","1","Ja",DZ.over===true)+knop("over","0","Nee",DZ.over===false));
-        if(DZ.over===true)h+=`<div class="km-ov"><div class="km-st2"><button type="button" data-dz="hmin" aria-label="Eén doos minder"${heel<=0?" disabled":""}>−</button><b>${heel}</b><button type="button" data-dz="hplus" aria-label="Eén doos meer"${heel+1+deel>=op-1e-9?" disabled":""}>+</button></div>`
-          +`<div class="km-dc km-q">${[.25,.5,.75].map(q=>knop("deel",q,"+"+KW[q*4],deel===q,heel+q>=op-1e-9)).join("")}</div></div>`
+        h+=(DZ.vorig?`<p class="km-di">Bij je vorige melding had je nog <b>${fd(op)}</b> over.</p>`:`<p class="km-di">Volgens onze lijst heb je <b>${fd(op)}</b>.</p>`)+vraag("Heb je nog kalenders over?",knop("over","1","Ja",DZ.over===true)+knop("over","0","Nee",DZ.over===false));
+        if(DZ.over===true)h+=`<div class="km-ov"><div class="km-st2"><button type="button" data-dz="hmin" aria-label="Eén doos minder"${heel<=0?" disabled":""}>−</button><b>${heel}</b><button type="button" data-dz="hplus" aria-label="Eén doos meer"${heel+1+deel>(DZ.vorig?op+1e-9:op-1e-9)?" disabled":""}>+</button></div>`
+          +`<div class="km-dc km-q">${[.25,.5,.75].map(q=>knop("deel",q,"+"+KW[q*4],deel===q,heel+q>(DZ.vorig?op+1e-9:op-1e-9))).join("")}</div></div>`
           +(r>0?`<p class="km-dt">Je hebt nog <b>${fd(r)}</b> over.</p>`:"");
         if(DZ.over===false)h+=`<p class="km-dt">Je hebt alle <b>${fd(op)}</b> bedeeld.</p>`}
       else h+=`<p class="km-dw">Volgens onze lijst heb je geen dozen met kalenders. Neem contact op met het bestuur.</p>`;
       dzBox.innerHTML=h}
     function dzKlaar(){if(dzBox.hidden)return true;if(DZ.op==null)return false;
-      if(DZ.op>0){if(DZ.over===false)return true;if(DZ.over!==true)return false;const r=dzRest();return r>0&&r<DZ.op-1e-9}
+      if(DZ.op>0){if(DZ.over===false)return true;if(DZ.over!==true)return false;const r=dzRest();return r>0&&(DZ.vorig?r<=DZ.op+1e-9:r<DZ.op-1e-9)}
       if(!NODIG_AAN)return DZ.op>0;return DZ.op>0||DZ.nodig===false||(DZ.nodig===true&&DZ.nodigN!=null)}
     function dzData(){if(dzBox.hidden||DZ.op==null)return undefined;const o={opBij:DZ.op};
       if(DZ.op>0){o.over=DZ.over;if(DZ.over)o.rest=dzRest();else o.af="alle"}
       if(NODIG_AAN&&(!(DZ.op>0)||DZ.af==="alle")){o.nodig=DZ.nodig;if(DZ.nodig)o.nodigN=DZ.nodigN}return o}
     async function dzLaad(){if(!lid)return;const id=lid.id;DZ.op=null;DZ.voor=null;Object.assign(DZ,{over:null,heel:null,deel:null,af:null,nodig:null,nodigN:null});tekenDz();
-      try{const r=await fetch("/api/ronde?dozen="+encodeURIComponent(id),{cache:"no-store"});const j=r.ok?await r.json():{op:0};if(!lid||lid.id!==id)return;DZ.op=Number(j.op)||0}catch(e){DZ.op=0}DZ.voor=id;tekenDz()}
+      try{const r=await fetch("/api/ronde?dozen="+encodeURIComponent(id),{cache:"no-store"});const j=r.ok?await r.json():{op:0};if(!lid||lid.id!==id)return;DZ.op=Number(j.op)||0;DZ.vorig=null;
+        // vorige (nog niet verwerkte) melding: wat toen nog over was, is nu de voorraad; meteen ingevuld
+        if(j.vorige&&j.vorige.rest>0&&j.vorige.rest<=DZ.op+1e-9){const v=j.vorige.rest;DZ.vorig=v;DZ.op=v;DZ.over=true;DZ.heel=Math.floor(v+1e-9);DZ.deel=Math.round((v-DZ.heel)*4)/4||null}}catch(e){DZ.op=0}DZ.voor=id;tekenDz()}
     dzBox.addEventListener("click",e=>{const b=e.target.closest("[data-dz]");if(!b)return;const k=b.dataset.dz,v=b.dataset.v;err.textContent="";
       if(k==="over"){DZ.over=v==="1";DZ.heel=DZ.deel=DZ.nodig=DZ.nodigN=null;DZ.af=DZ.over?null:"alle"}
-      else if(k==="hplus"){DZ.heel=(DZ.heel||0)+1;if(dzRest()>=DZ.op-1e-9)DZ.heel--}else if(k==="hmin"){DZ.heel=Math.max(0,(DZ.heel||0)-1)}
-      else if(k==="heel"){DZ.heel=DZ.heel===+v?null:+v;if(dzRest()>=DZ.op-1e-9)DZ.deel=null}else if(k==="deel"){DZ.deel=DZ.deel===+v?null:+v;if(dzRest()>=DZ.op-1e-9)DZ.deel=null}
+      else if(k==="hplus"){DZ.heel=(DZ.heel||0)+1;if(DZ.vorig?dzRest()>DZ.op+1e-9:dzRest()>=DZ.op-1e-9)DZ.heel--}else if(k==="hmin"){DZ.heel=Math.max(0,(DZ.heel||0)-1)}
+      else if(k==="heel"){DZ.heel=DZ.heel===+v?null:+v;if(dzRest()>=DZ.op-1e-9)DZ.deel=null}else if(k==="deel"){DZ.deel=DZ.deel===+v?null:+v;if(DZ.vorig?dzRest()>DZ.op+1e-9:dzRest()>=DZ.op-1e-9)DZ.deel=null}
       else if(k==="af"){DZ.af=v==="alle"?"alle":+v;if(DZ.af!=="alle")DZ.nodig=DZ.nodigN=null}
       else if(k==="nodig"){DZ.nodig=v==="1";DZ.nodigN=DZ.nodig?(DZ.nodigN||1):null}else if(k==="nplus")DZ.nodigN=Math.min(50,(DZ.nodigN||1)+1);else if(k==="nmin")DZ.nodigN=Math.max(1,(DZ.nodigN||1)-1);tekenDz()});
     const zet=s=>{if(alRes&&s==="r")return;soort=s;bg.querySelectorAll("[data-ks]").forEach(b=>b.classList.toggle("on",b.dataset.ks===s));tekenDz()};zet(soort);
