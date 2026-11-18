@@ -1265,13 +1265,13 @@ function bkForm(r,id){
    ${fld("biB","Betaling",`<select id="biB" name="betaald">${selOpts([["","Automatisch uit transacties"],["OK","Betaald (manueel)"],["NOK","Niet betaald (manueel)"]],r.betaald||"")}</select>`)}
    ${fld("biM1","Menu lid",`<select id="biM1" name="menu1">${selOpts(["Normaal","Vegetarisch"],r.menu1||"Normaal")}</select>`)}
    ${fld("biM2","Menu partner",`<select id="biM2" name="menu2">${selOpts([["","—"],"Normaal","Vegetarisch"],r.menu2||"")}</select>`)}
-   ${fld("biO","Allergieën / opmerkingen",`<textarea id="biO" name="opmerking" style="min-height:80px">${esc(r.opmerking||"")}</textarea>`,"full")}<div class="err full" id="biErr"></div></form>
+   ${fld("biO1","Allergieën / opmerkingen lid",`<textarea id="biO1" name="opmerking1" style="min-height:60px">${esc(r.opmerking1!=null?r.opmerking1:(r.personen===2?"":r.opmerking||""))}</textarea>`,"full")}${fld("biO2","Allergieën / opmerkingen partner",`<textarea id="biO2" name="opmerking2" style="min-height:60px">${esc(r.opmerking2!=null?r.opmerking2:(r.personen===2?r.opmerking||"":""))}</textarea>`,"full")}<div class="err full" id="biErr"></div></form>
    ${id&&p.ok?`<div class="pill ok" style="align-self:flex-start">${ic("check")}Betaald — ${esc(p.bron||"")}</div>`:""}${id&&!p.ok?`<div class="note info" style="display:grid;grid-template-columns:${E.svg?"130px ":""}minmax(0,1fr);gap:14px;align-items:center">${E.svg?`<div style="background:#fff;border-radius:6px;padding:4px">${E.svg}</div>`:""}<div><b>${eur(due)}</b> op ${esc(E.iban.replace(/(.{4})/g,"$1 ").trim())}<br>Mededeling: <b>${esc(E.med)}</b><br><span class="muted small">${p.ok?"Betaald — "+esc(p.bron):p.deel?"Deels betaald ("+eur(p.bedrag)+")":"Nog geen betaling gevonden."}</span></div></div>`:""}`,
    `${id?'<button class="btn ghost danger" data-w id="biDel">Verwijderen</button><span class="grow"></span>':""}<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-w id="biOk">Bewaren</button>`);
   if(!canWrite)$$("#fBkI input,#fBkI select,#fBkI textarea").forEach(i=>i.disabled=true);
   $("#biOk").onclick=async()=>{const f=formData($("#fBkI"));if(!f.naam.trim()){$("#biErr").textContent="Vul een naam in.";return}
     const pers=f.personen==="2"?2:1;
-    const d={...(id?stripId(r):{jaar:JAAR,bron:"manueel",ingediend:fmtDate(todayISO())}),naam:f.naam.trim(),personen:pers,menu1:f.menu1,menu2:pers===2?(f.menu2||"Normaal"):"",opmerking:f.opmerking.trim(),betaald:f.betaald||null};
+    const d={...(id?stripId(r):{jaar:JAAR,bron:"manueel",ingediend:fmtDate(todayISO())}),naam:f.naam.trim(),personen:pers,menu1:f.menu1,menu2:pers===2?(f.menu2||"Normaal"):"",opmerking1:(f.opmerking1||"").trim(),opmerking2:pers===2?(f.opmerking2||"").trim():"",opmerking:[(f.opmerking1||"").trim()?(pers===2?"Lid: ":"")+(f.opmerking1||"").trim():"",pers===2&&(f.opmerking2||"").trim()?"Partner: "+(f.opmerking2||"").trim():""].filter(Boolean).join(" · "),betaald:f.betaald||null};
     closeModal();if(typeof bkKortingVoor==="function")await bkKortingVoor(d);await write("banket",id||newId("banket"),d);toast("Inschrijving bewaard.")};
   if(id)$("#biDel").onclick=()=>confirmBox("Inschrijving van <b>"+esc(r.naam)+"</b> verwijderen?","Verwijderen",async()=>{await write("banket",id,null,{del:true});toast("Inschrijving verwijderd.")});
 }
@@ -9847,7 +9847,10 @@ const TF={sel:null,t:null};
 const tfId=()=>"tafels_"+JAAR;
 const tfCfg=()=>{const c=S.config.get(tfId())||{};return{types:Array.isArray(c.types)&&c.types.length?c.types:[{aantal:5,cap:10},{aantal:3,cap:8}],tafels:Array.isArray(c.tafels)?c.tafels:[],plaats:c.plaats&&typeof c.plaats==="object"?c.plaats:{}}};
 const tfCat=r=>{const l=(r.lidId&&S.leden.get(r.lidId))||bkLid(r);return (l&&l.categorie)||"Andere"};
-const tfUnits=()=>bkLijst().map(r=>({id:r.id,r,n:r.personen===2?2:1,cat:tfCat(r),veg:[r.menu1,r.personen===2?r.menu2:null].filter(m=>m==="Vegetarisch").length,opm:String(r.opmerking||"").trim()})).sort((a,b)=>String(a.r.naam||"").localeCompare(String(b.r.naam||""),"nl"));
+/* opmerkingen per persoon: opmerking1 (lid) en opmerking2 (partner); oude inschrijvingen hebben enkel "opmerking" */
+const tfOpm=r=>{const o1=String(r.opmerking1!=null?r.opmerking1:(r.personen===2?"":r.opmerking||"")).trim(),o2=String(r.personen===2?(r.opmerking2!=null?r.opmerking2:r.opmerking||""):"").trim();
+  return [o1?(r.personen===2?"lid: ":"")+o1:"",o2?"partner: "+o2:""].filter(Boolean).join(" · ")};
+const tfUnits=()=>bkLijst().map(r=>({id:r.id,r,n:r.personen===2?2:1,cat:tfCat(r),veg:[r.menu1,r.personen===2?r.menu2:null].filter(m=>m==="Vegetarisch").length,opm:tfOpm(r)})).sort((a,b)=>String(a.r.naam||"").localeCompare(String(b.r.naam||""),"nl"));
 function tfMaakTafels(types){const T=[];let i=1;for(const t of types)for(let k=0;k<(Number(t.aantal)||0);k++)T.push({id:"t"+i,naam:"Tafel "+i,cap:Number(t.cap)||8}),i++;return T}
 /* indeling: per categorie (grootste eerst) zoveel mogelijk aan dezelfde tafel; koppels blijven samen */
 function tfIndelen(tafels,units,vast={}){const vrij=new Map(tafels.map(t=>[t.id,t.cap])),cats=new Map(tafels.map(t=>[t.id,new Set()])),P={};

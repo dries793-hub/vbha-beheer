@@ -159,10 +159,11 @@ html,body{overflow-x:hidden}
         <label><input type="radio" name="personen" value="1"><b>Ik kom alleen</b></label>
         <label><input type="radio" name="personen" value="2"><b>Ik kom met partner</b></label></div></fieldset>
       <fieldset class="full" style="border:0;margin:0;padding:0"><legend class="lbl">Menu voor jezelf</legend><div class="ch">
-        <label><input type="radio" name="menu1" value="Normaal"><b>Normaal menu</b></label><label><input type="radio" name="menu1" value="Vegetarisch"><b>Vegetarisch menu</b></label></div></fieldset>
+        <label><input type="radio" name="menu1" value="Normaal"><b>Normaal menu</b></label><label><input type="radio" name="menu1" value="Vegetarisch"><b>Vegetarisch menu</b></label></div>
+        <div class="opmw" id="opm1w" hidden><label for="opm1">Allergieën of opmerkingen</label><textarea id="opm1" maxlength="300" placeholder="Optioneel"></textarea></div></fieldset>
       <fieldset class="full" id="m2" hidden style="border:0;margin:0;padding:0"><legend class="lbl">Menu voor je partner</legend><div class="ch">
-        <label><input type="radio" name="menu2" value="Normaal"><b>Normaal menu</b></label><label><input type="radio" name="menu2" value="Vegetarisch"><b>Vegetarisch menu</b></label></div></fieldset>
-      <div class="full"><label for="opm">Allergieën of andere opmerkingen</label><textarea id="opm" name="opmerking" maxlength="400" placeholder="Optioneel"></textarea></div>
+        <label><input type="radio" name="menu2" value="Normaal"><b>Normaal menu</b></label><label><input type="radio" name="menu2" value="Vegetarisch"><b>Vegetarisch menu</b></label></div>
+        <div class="opmw" id="opm2w" hidden><label for="opm2">Allergieën of opmerkingen van je partner</label><textarea id="opm2" maxlength="300" placeholder="Optioneel"></textarea></div></fieldset>
     </div>
     <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
     <div class="pay" id="pay" hidden></div>
@@ -249,7 +250,7 @@ function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
   if(lidOk&&(p||kader)){pay.hidden=false;pay.innerHTML=kader||`Te betalen: <b>${eur(p*INFO.prijs)}</b>`}else pay.hidden=true}
 document.addEventListener("change",e=>{if(e.target.name)upd()});
 $("#f").addEventListener("submit",async e=>{e.preventDefault();const er=$("#err");er.textContent="";
-  const d={naam:$("#naam").value.trim(),lidId:$("#naam").dataset.id||"",personen:+val("personen"),menu1:val("menu1"),menu2:val("menu2"),opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0};
+  const d={naam:$("#naam").value.trim(),lidId:$("#naam").dataset.id||"",personen:+val("personen"),menu1:val("menu1"),menu2:val("menu2"),opmerking1:$("#opm1").value.trim(),opmerking2:+val("personen")===2?$("#opm2").value.trim():"",website:$("#website").value,duur:Date.now()-t0};
   if(!d.lidId){er.textContent=d.naam?"Kies je naam uit de lijst van leden.":"Vul je naam in en kies ze uit de lijst.";$("#naam").focus();return}
   if(!d.personen){er.textContent="Kies of je alleen of met partner komt.";return}
   if(!d.menu1){er.textContent="Kies je menu.";return}
@@ -281,4 +282,6 @@ upd();
 
 </script>
 <script>/* bezoekteller zonder cookies of IP-adres */(function(){try{if(navigator.webdriver||window.top!==window)return;var s=sessionStorage,n=!s.getItem("vbt"),b;if(n){var u=new URLSearchParams(location.search);b={r:document.referrer,q:u.get("utm_source")||u.get("bron")||(u.has("fbclid")?"fb":u.has("igshid")?"ig":"")};s.setItem("vbt",JSON.stringify(b))}else b=JSON.parse(s.getItem("vbt")||"{}");var d=JSON.stringify({p:location.pathname,r:b.r||"",q:b.q||"",n:n});if(navigator.sendBeacon)navigator.sendBeacon("/api/tel",d);else fetch("/api/tel",{method:"POST",body:d,keepalive:true})}catch(e){}})()</script>
+<script>document.addEventListener("change",e=>{const n=e.target&&e.target.name;if(n==="menu1"||n==="menu2"){const w=document.getElementById(n==="menu1"?"opm1w":"opm2w");if(w)w.hidden=false}});</script>
+<style>.opmw{margin-top:10px}.opmw label{font-size:14px}.opmw textarea{min-height:64px}</style>
 </body></html>

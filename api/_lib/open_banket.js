@@ -65,7 +65,8 @@ export default async function handler(req, res) {
     const id = nieuwId("web");
     const d = {
       jaar: I.jaar, bron: "formulier", ingediend: vandaag(), aangemeld: new Date().toISOString(), nieuw: true,
-      naam, lidId: lidRij.id, personen, menu1: menu(b.menu1), menu2: personen === 2 ? menu(b.menu2) : "", opmerking: clean(b.opmerking, 400),
+      naam, lidId: lidRij.id, personen, menu1: menu(b.menu1), menu2: personen === 2 ? menu(b.menu2) : "", opmerking1: clean(b.opmerking1 ?? b.opmerking, 300), opmerking2: personen === 2 ? clean(b.opmerking2, 300) : "",
+      opmerking: [clean(b.opmerking1 ?? b.opmerking, 300) ? (personen === 2 ? "Jij: " : "") + clean(b.opmerking1 ?? b.opmerking, 300) : "", personen === 2 && clean(b.opmerking2, 300) ? "Partner: " + clean(b.opmerking2, 300) : ""].filter(Boolean).join(" · "),
       betaald: null, teBetalen, prijsPP: P.prijs, ...(P.status ? { status: P.status, korting: P.korting } : {}), ...(token ? { betaalToken: token } : {}),
     };
     const { error } = await sb.from("banket").insert({ id, data: d });
