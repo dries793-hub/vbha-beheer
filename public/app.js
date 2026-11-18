@@ -9734,8 +9734,8 @@ function krHistSort(E){const inf=m=>{const dl=KR_DEEL.get(m.straat),s=KR.byId.ge
   const k=KR_SORT.k,d=KR_SORT.d;return E.map(m=>[m,inf(m)]).sort((x,y)=>{const a=x[1][k],b=y[1][k];const r=typeof a==="number"?a-b:String(a).localeCompare(String(b),"nl",{numeric:true});return (r||(y[1].t).localeCompare(x[1].t))*(r?d:1)}).map(x=>x[0])}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-kr-sort]");if(!t)return;const k=t.dataset.krSort;KR_SORT=KR_SORT.k===k?{k,d:-KR_SORT.d}:{k,d:k==="t"||k==="a"?-1:1};renderBody()});
 /* openbare kaart actief / niet actief (config "kaart".aan; de server en /kaart tonen dan een melding) */
-{const _v=VIEWS.ronde;VIEWS.ronde=function(){const v=_v.apply(this,arguments);const aan=(S.config.get("kaart")||{}).aan!==false;
-  v.actions=(canWrite?`<button class="btn" data-act="kaartAan" title="Openbare kaart ${aan?"uitzetten":"aanzetten"}"><span class="spi-dot ${aan?"open":"dicht"}">${aan?"Actief":"Niet actief"}</span>Openbare kaart</button>`:"")+(v.actions||"");return v}}
+{const _v=VIEWS.ronde;const n=function(){const v=_v.apply(this,arguments);const aan=(S.config.get("kaart")||{}).aan!==false;
+  v.actions=(canWrite?`<button class="btn" data-act="kaartAan" title="Openbare kaart ${aan?"uitzetten":"aanzetten"}"><span class="spi-dot ${aan?"open":"dicht"}">${aan?"Actief":"Niet actief"}</span>Openbare kaart</button>`:"")+(v.actions||"");return v};Object.assign(n,_v);VIEWS.ronde=n}
 document.addEventListener("click",e=>{const b=e.target.closest('[data-act="kaartAan"]');if(!b)return;e.stopPropagation();const aan=(S.config.get("kaart")||{}).aan!==false;
   confirmBox(aan?"De openbare kaart <b>niet actief</b> zetten? Wie de kaart opent, ziet dan enkel dat ze niet actief is en kan geen straten melden.":"De openbare kaart weer <b>actief</b> zetten?",aan?"Niet actief zetten":"Actief zetten",async()=>{
     try{await write("config","kaart",{aan:!aan,op:new Date().toISOString(),door:ME_NAME||""},{merge:true});toast(aan?"De openbare kaart is niet actief.":"De openbare kaart is actief.");renderBody()}catch(x){toast(x.message,true)}})},true);
@@ -9818,7 +9818,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-mosc]");if
    (Het seizoen stond vroeger bij Instellingen › Vaste waarden.) */
 {const _v=VIEWS.kalfin;VIEWS.kalfin=function(){const v=_v.apply(this,arguments);
   if(ROL_ECHT==="admin"||(canWrite&&typeof kfFinMag==="function"&&kfFinMag()))v.actions=(v.actions||"")+'<button class="btn iconbtn" data-act="kalInst" title="Instellingen kalenders" aria-label="Instellingen kalenders">'+ic("instellingen")+'</button>';
-  return v}}
+  return v};for(const k in _v)VIEWS.kalfin[k]=_v[k]}
 document.addEventListener("click",e=>{const b=e.target.closest('[data-act="kalInst"]');if(!b)return;e.stopPropagation();const k=kalSz(),adm=ROL_ECHT==="admin";
   modal("Instellingen kalenders",`<form id="kiForm" class="form">
       <div class="fld"><label for="kiVan">Kalenderseizoen vanaf (dd/mm)</label><input class="inp" id="kiVan" value="${esc(vwDM(k.van))}" inputmode="numeric"${adm?"":" disabled"}></div>
@@ -9878,7 +9878,7 @@ function tfBody(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaa
 /* tab Tafelschikking in Banket */
 {const _v=VIEWS.banket;VIEWS.banket=function(){const v=_v.apply(this,arguments),_b=v.body,tab=UI.bkTab==="tafels"?"tafels":"lijst";
   const tabs=`<nav class="tabs" aria-label="Onderdelen banket"><a href="#banket" data-act="bkTab" data-v="lijst" class="${tab==="lijst"?"on":""}">Inschrijvingen</a><a href="#banket" data-act="bkTab" data-v="tafels" class="${tab==="tafels"?"on":""}">Tafelschikking</a></nav>`;
-  v.body=function(){return tabs+(tab==="tafels"?tfBody():_b.apply(this,arguments))};return v}}
+  v.body=function(){return tabs+(tab==="tafels"?tfBody():_b.apply(this,arguments))};return v};for(const k in _v)VIEWS.banket[k]=_v[k]}
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-act]");if(!b)return;const a=b.dataset.act;
   if(a==="bkTab"){e.preventDefault();e.stopPropagation();UI.bkTab=b.dataset.v;saveUI();TF.sel=null;renderBody();return}
   if(a==="tfAuto"){e.stopPropagation();const c=tfCfg();if(!c.tafels.length)c.tafels=tfMaakTafels(c.types);
