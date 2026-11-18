@@ -70,6 +70,7 @@ export async function syncAll(sb, { manueel = false } = {}) {
           txs.push(...(r.transactions || []));
           ck = r.continuation_key || null;
         } while (ck && ++guard < 50);
+        if (!txs.length) totaal.leeg = (totaal.leeg || 0) + 1; // de bank gaf geen verrichtingen terug (bv. limiet van automatische opvragingen bereikt)
         const r = await boekTransacties(sb, txs, { regels, leden, facturen, sponsors, bron: d.aspsp || "Bank" });
         // controlelijst voor de saldocontrole in de app: de verrichtingen bij de bank (bij manueel ophalen tot 89 dagen terug)
         try {
@@ -85,7 +86,7 @@ export async function syncAll(sb, { manueel = false } = {}) {
           // een bredere lijst van een vorige keer aanvullen in plaats van overschrijven
           const oud = acc.controle && acc.controle.van && acc.controle.van < van && Array.isArray(acc.controle.tx) ? acc.controle : null;
           acc.controle = oud ? { van: oud.van, op: nu.toISOString(), tx: [...oud.tx.filter(x => x.d < van), ...tx].slice(-800) } : { van, op: nu.toISOString(), tx: tx.slice(-800) };
-        } catch (e) { console.warn("controle", e.message); }
+        } catch (e) { console.warn("controle", e.message); acc.controleFout = String(e.message || e).slice(0, 200); }
         totaal.nieuw += r.nieuw; totaal.dubbel += r.dubbel; totaal.open += r.open;
       } catch (e) { totaal.fouten.push(`${acc.iban || acc.uid}: ${e.message}`); }
       if (manueel || !acc.saldo || String(acc.saldo.op || "").slice(0, 10) !== nu.toISOString().slice(0, 10)) {
@@ -100,7 +101,7 @@ export async function syncAll(sb, { manueel = false } = {}) {
   // kastickets (betaald met de bankkaart van de vriendenkring) aan de nieuwe transacties koppelen
   try { const { kasticketKoppel } = await import("../_lib/terugbetaling.js"); const kt = await kasticketKoppel(sb); if (kt.gekoppeld) totaal.kastickets = kt.gekoppeld; } catch (e) { console.error("kasticket", e); }
   if (totaal.nieuw || totaal.fouten.length || !manueel) { // automatische ophaling altijd loggen, ook zonder nieuwe transacties
-    await sb.from("imports").insert({ id: crypto.randomUUID(), data: { tijd: nu.toISOString(), bestand: "Enable Banking", bron: "api", jaar: nu.getFullYear(), nieuw: totaal.nieuw, dubbel: totaal.dubbel, open: totaal.open, fouten: totaal.fouten } });
+    await sb.from("imports").insert({ id: crypto.randomUUID(), data: { tijd: nu.toISOString(), bestand: "Enable Banking", bron: "api", jaar: nu.getFullYear(), nieuw: totaal.nieuw, dubbel: totaal.dubbel, open: totaal.open, fouten: totaal.fouten, ...(totaal.leeg ? { leeg: totaal.leeg } : {}) } });
   }
   try { await bankPush(sb, kops, totaal, nu); } catch (e) { console.error("bankPush", e); }
   return totaal;
@@ -141,7 +142,9 @@ export async function boekTransacties(sb, txs, { regels, leden, facturen = [], s
     const refs = new Set(bestaand.map(b => b.bankRef).filter(Boolean));
     // vergelijken op datum/bedrag/partij enkel met transacties zonder bankreferentie (oude CSV-imports en manuele boekingen):
     // twee echte, identieke betalingen op dezelfde dag (bv. twee keer € 7 via de kaartlezer) hebben elk een eigen bankreferentie
-    const fuzzy = new Set(bestaand.filter(b => !b.bankRef).map(b => `${b.datum}|${r2(b.bedrag)}|${b.richting || "in"}|${norm(b.partij)}`));
+    // geen opgesplitste delen (bulkVan) of eerder via de bank ingelezen boekingen: een deel van een Bancontact-storting
+    // (bv. € 130 banket) mag een echte, andere storting van hetzelfde bedrag op dezelfde dag niet als "dubbel" laten wegvallen
+    const fuzzy = new Set(bestaand.filter(b => !b.bankRef && !b.bulkVan && b.bron !== "api" && !String(b.id).startsWith("eb-")).map(b => `${b.datum}|${r2(b.bedrag)}|${b.richting || "in"}|${norm(b.partij)}`));
     let nr = bestaand.reduce((m, b) => Math.max(m, Number(b.nr) || 0), 0);
     const nieuw = items.filter(b => Number(b.datum.slice(0, 4)) === jaar).sort((a, c) => a.datum.localeCompare(c.datum));
     for (const b of nieuw) {
