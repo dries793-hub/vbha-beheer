@@ -2940,17 +2940,18 @@ krLive();
     function tekenDz(){if(soort!=="d"||!lid){dzBox.hidden=true;return}dzBox.hidden=false;
       if(DZ.op==null||DZ.voor!==lid.id){dzBox.innerHTML='<p class="km-di">Dozen opzoeken…</p>';return}const op=DZ.op;let h="";
       if(op>0){const heel=DZ.heel||0,deel=DZ.deel||0,r=heel+deel;
-        h+=`<p class="km-di">Volgens onze lijst heb je <b>${fd(op)}</b>. Hoeveel heb je nog over?</p>`
-          +`<div class="km-ov"><div class="km-st2"><button type="button" data-dz="hmin" aria-label="Eén doos minder"${heel<=0?" disabled":""}>−</button><b>${heel}</b><button type="button" data-dz="hplus" aria-label="Eén doos meer"${heel+1+deel>=op-1e-9?" disabled":""}>+</button></div>`
+        h+=`<p class="km-di">Volgens onze lijst heb je <b>${fd(op)}</b>.</p>`+vraag("Heb je nog kalenders over?",knop("over","1","Ja",DZ.over===true)+knop("over","0","Nee",DZ.over===false));
+        if(DZ.over===true)h+=`<div class="km-ov"><div class="km-st2"><button type="button" data-dz="hmin" aria-label="Eén doos minder"${heel<=0?" disabled":""}>−</button><b>${heel}</b><button type="button" data-dz="hplus" aria-label="Eén doos meer"${heel+1+deel>=op-1e-9?" disabled":""}>+</button></div>`
           +`<div class="km-dc km-q">${[.25,.5,.75].map(q=>knop("deel",q,"+"+KW[q*4],deel===q,heel+q>=op-1e-9)).join("")}</div></div>`
-          +(r>0?`<p class="km-dt">Je hebt nog <b>${fd(r)}</b> over.</p>`:`<p class="km-dt">Niets over: je hebt alle <b>${fd(op)}</b> bedeeld.</p>`)}
+          +(r>0?`<p class="km-dt">Je hebt nog <b>${fd(r)}</b> over.</p>`:"");
+        if(DZ.over===false)h+=`<p class="km-dt">Je hebt alle <b>${fd(op)}</b> bedeeld.</p>`}
       else h+=`<p class="km-dw">Volgens onze lijst heb je geen dozen met kalenders. Neem contact op met het bestuur.</p>`;
       dzBox.innerHTML=h}
     function dzKlaar(){if(dzBox.hidden)return true;if(DZ.op==null)return false;
-      if(DZ.op>0){const r=dzRest();return r<DZ.op-1e-9}
+      if(DZ.op>0){if(DZ.over===false)return true;if(DZ.over!==true)return false;const r=dzRest();return r>0&&r<DZ.op-1e-9}
       if(!NODIG_AAN)return DZ.op>0;return DZ.op>0||DZ.nodig===false||(DZ.nodig===true&&DZ.nodigN!=null)}
     function dzData(){if(dzBox.hidden||DZ.op==null)return undefined;const o={opBij:DZ.op};
-      if(DZ.op>0){const r=dzRest();o.over=r>0;if(r>0)o.rest=r;else o.af="alle"}
+      if(DZ.op>0){o.over=DZ.over;if(DZ.over)o.rest=dzRest();else o.af="alle"}
       if(NODIG_AAN&&(!(DZ.op>0)||DZ.af==="alle")){o.nodig=DZ.nodig;if(DZ.nodig)o.nodigN=DZ.nodigN}return o}
     async function dzLaad(){if(!lid)return;const id=lid.id;DZ.op=null;DZ.voor=null;Object.assign(DZ,{over:null,heel:null,deel:null,af:null,nodig:null,nodigN:null});tekenDz();
       try{const r=await fetch("/api/ronde?dozen="+encodeURIComponent(id),{cache:"no-store"});const j=r.ok?await r.json():{op:0};if(!lid||lid.id!==id)return;DZ.op=Number(j.op)||0}catch(e){DZ.op=0}DZ.voor=id;tekenDz()}
