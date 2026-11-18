@@ -50,7 +50,7 @@ export async function betaalWachtCron(sb) {
     const lijst = vervalt.map(x => p(`<b>${esc(x.naam)}</b>${x.bedrag ? ` · ${eur(x.bedrag)}` : ""}<br><span style="color:#6b7280">${x.nr ? "factuur " + esc(x.nr) + " · " : ""}${x.verval < vandaag ? "vervallen sinds" : "vervalt"} ${fd(x.verval)}</span>`, "margin:0 0 10px")).join("");
     const tv = vervalt.reduce((t, x) => t + (x.bedrag || 0), 0);
     const mv = await sysMail(sb, "factuur-vervalt", { aantal: vervalt.length, een: vervalt.length === 1, dagen: VD, totaal: tv ? eur(tv) : "", lijst, knop_app: knop("Openen in de app", "https://vbha-beheer.vercel.app/#dashboard") });
-    const { error: ev } = await sb.from("mail_wachtrij").insert({ batch: "factuurvervalt-" + vandaag, data: { aan: AAN || process.env.BETAALWACHT_MAIL || "boekhouding@vbha.be", aanNaam: "Boekhouding VBHA", onderwerp: mv.onderwerp, html: huisstijl(mv.html, "Vriendenkring Brandweer Hoofdpost Aalst"), label: "Facturen vervallen binnenkort" } });
+    const { error: ev } = await sb.from("mail_wachtrij").insert({ batch: "factuurvervalt-" + vandaag, data: { aan: AAN || process.env.BETAALWACHT_MAIL || "boekhouding@vbha.be", aanNaam: "Boekhouding VBHA", onderwerp: mv.onderwerp, html: huisstijl(mv.html, "Vriendenkring Brandweer Hoofdpost Aalst", { groet: false }), label: "Facturen vervallen binnenkort" } });
     if (ev) throw ev;
     const ids = new Set(vervalt.map(x => x.id)), nv = Object.fromEntries(Object.entries(gemeldV).filter(([k]) => ids.has(k)));
     for (const x of nieuwV) nv[x.id] = new Date().toISOString();
@@ -64,7 +64,7 @@ export async function betaalWachtCron(sb) {
   const dagen = x => Math.floor((Date.now() - x.sinds) / 864e5), tot = items.reduce((s, x) => s + (x.bedrag || 0), 0);
   const lijst = items.map(x => p(`<b>${esc(x.naam)}</b>${x.bedrag ? ` · ${eur(x.bedrag)}` : ""}<br><span style="color:#6b7280">${esc(x.soort)} · wacht ${dagen(x)} dagen</span>`, "margin:0 0 10px")).join("");
   const m = await sysMail(sb, "betaalwacht", { aantal: items.length, een: items.length === 1, dagen: DAGEN, totaal: tot ? eur(tot) : "", lijst, knop_app: knop("Openen in de app", "https://vbha-beheer.vercel.app/#dashboard") });
-  const html = huisstijl(m.html, "Vriendenkring Brandweer Hoofdpost Aalst");
+  const html = huisstijl(m.html, "Vriendenkring Brandweer Hoofdpost Aalst", { groet: false });
   const aan = AAN || process.env.BETAALWACHT_MAIL || "boekhouding@vbha.be";
   const { error } = await sb.from("mail_wachtrij").insert({ batch: "betaalwacht-" + new Date().toISOString().slice(0, 10), data: { aan, aanNaam: "Boekhouding VBHA", onderwerp: m.onderwerp, html, label: "Te verwerken betalingen" } });
   if (error) throw error;
