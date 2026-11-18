@@ -30,13 +30,19 @@ export default async function handler(req, res) {
       if (data.length < 1000) break;
     }
     const { data: pd } = await sb.from("jaren").select("data").eq("id", String(A.jaar)).maybeSingle();
+    // teller: afgewerkte dozen (verdeling) × kalenders per doos, tegenover de stock
+    let teller = null;
+    try { const per = Number(pd?.data?.perDoos) || 100, stock = Number(pd?.data?.kalenderStock) || 0; let ui = 0;
+      for (let from = 0; ; from += 1000) { const { data: J, error: e2 } = await sb.from("jaarleden").select("data").eq("data->>jaar", String(A.jaar)).range(from, from + 999); if (e2) throw e2;
+        for (const r of J) ui += Number(r.data?.kalUitgevoerd) || 0; if (J.length < 1000) break; }
+      if (stock > 0) teller = { bedeeld: Math.round(ui * per), totaal: Math.round(stock * per) }; } catch (e) { /* geen teller */ }
     // meldingen die het bestuur nog moet nakijken (zonder namen): oranje stippellijn op de kaart
     const open = {};
     try {
       const { data: M } = await sb.from("rondemeldingen").select("data").eq("data->>jaar", String(A.jaar)).eq("data->>stand", "open").limit(500);
       for (const r of M || []) { const d = r.data || {}; for (const s of d.straten || []) if (open[s] !== "d") open[s] = d.soort === "done" ? "d" : "r"; }
     } catch (e) { /* tabel niet bereikbaar: geen meldingen tonen */ }
-    res.status(200).json({ jaar: A.jaar, perDoos: Number(pd?.data?.perDoos) || 100, straten: out, verborgen, open: Object.entries(open).map(([s, st]) => ({ s, st })), nu: new Date().toISOString() });
+    res.status(200).json({ jaar: A.jaar, perDoos: Number(pd?.data?.perDoos) || 100, straten: out, verborgen, teller, open: Object.entries(open).map(([s, st]) => ({ s, st })), nu: new Date().toISOString() });
   } catch (e) { sendError(res, e); }
 }
 
