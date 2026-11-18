@@ -21,7 +21,7 @@ export async function betaalWachtCron(sb) {
   DAGEN = Math.max(1, Math.min(60, Number(C.dagen) || 10)); AAN = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(String(C.mail || "").trim()) ? String(C.mail).trim() : "";
   const grens = Date.now() - DAGEN * 864e5, gemeld = C.gemeld || {};
   const { data: docs } = await sb.from("documenten").select("id,data").eq("data->>map", MAP).limit(2000);
-  const D = (docs || []).filter(r => r.data && r.data.inkomend);
+  const D = (docs || []).filter(r => r.data && r.data.inkomend && !r.data.inkomend.dubbelVan);
   const { data: bk } = await sb.from("boekingen").select("data").not("data->>documentId", "is", null).limit(5000);
   const som = new Map(); for (const r of bk || []) { const k = r.data.documentId; som.set(k, (som.get(k) || 0) + (Number(r.data.bedrag) || 0)); }
   const domiLev = new Set(D.filter(r => r.data.inkomend.domi === true).map(r => norm(van(r.data))).filter(Boolean));
