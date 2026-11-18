@@ -9960,26 +9960,28 @@ function tfPdf(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaak
   const sorteer=L=>L.slice().sort((a,b)=>a.cat.localeCompare(b.cat,"nl")||String(a.r.naam).localeCompare(String(b.r.naam),"nl"));let nr=0;const NR=new Map();
   for(const t of c.tafels)for(const u of sorteer(per.get(t.id)||[])){if(u.o1)NR.set(u.id+"|1",++nr);if(u.o2)NR.set(u.id+"|2",++nr)}
   const kaart=t=>{const L=sorteer(per.get(t.id)||[]),n=L.reduce((s,u)=>s+u.n,0),v=L.reduce((s,u)=>s+u.veg,0),o=L.reduce((s,u)=>s+(u.o1?1:0)+(u.o2?1:0),0);
-    return `<div class="t"><div class="h"><b>${esc(t.naam)}</b><span>${n} pers.${v?` · ${BLAD}${v}`:""}${o?` · ${LET}${o}`:""}</span></div><ol>${L.map(u=>`<li>${esc(u.r.naam||"")}${u.v1?" "+BLAD:""}${u.o1?` ${LET}<sup>${NR.get(u.id+"|1")}</sup>`:""}${u.n===2?`<div class="pa">partner${u.v2?" "+BLAD:""}${u.o2?` ${LET}<sup>${NR.get(u.id+"|2")}</sup>`:""}</div>`:""}</li>`).join("")}</ol></div>`};
-  const opmLijst=c.tafels.map(t=>{const L=sorteer(per.get(t.id)||[]).filter(u=>u.opm);return L.length?`<div class="ot"><b>${esc(t.naam)}</b>${L.flatMap(u=>[u.o1?`<p><sup>${NR.get(u.id+"|1")}</sup> <span>${esc(u.r.naam||"")}</span> ${esc(u.o1)}</p>`:"",u.o2?`<p><sup>${NR.get(u.id+"|2")}</sup> <span>partner van ${esc(u.r.naam||"")}</span> ${esc(u.o2)}</p>`:""]).join("")}</div>`:""}).join("");
-  const dt=bc.datum?new Date(bc.datum+"T12:00:00").toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):"";
-  const html=`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Tafelschikking banket ${JAAR}</title><style>
-    @page{size:A4 portrait;margin:10mm}*{box-sizing:border-box}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;font-family:Inter,"Segoe UI",Arial,sans-serif;color:#1a1b1e;margin:0}
-    header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #b30000;padding-bottom:6px;margin-bottom:8px}
-    h1{font-size:24px;margin:0}header div{font-size:13px;color:#555;text-align:right}
-    .g{display:grid;grid-template-columns:repeat(${kol},1fr);gap:9px}
-    .t{border:1.5px solid #c9a75a;border-radius:9px;padding:8px 10px;break-inside:avoid}
-    .h{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #e5e5e5;margin-bottom:3px;padding-bottom:2px}.h b{font-size:16px;color:#b30000}.h span{font-size:12px;color:#666}
-    ol{margin:0;padding:0;list-style:none;font-size:13px;line-height:1.4}li{margin:0 0 2px;position:relative;padding-left:13px}li::before{content:"";position:absolute;left:2px;top:.55em;width:0;height:0;border:3px solid #b30000;border-radius:50%}.pa{position:relative;margin-left:-13px;padding-left:17px;color:#555;font-size:12px}.pa::before{content:"";position:absolute;left:4.5px;top:-3px;height:.95em;width:9px;border-left:1.5px solid #999;border-bottom:1.5px solid #999;border-bottom-left-radius:2px}i{color:#555;font-style:normal}em{font-style:normal;font-weight:700;color:#1a7f45;font-size:9px}
-    footer{margin-top:8px;font-size:11px;color:#777;display:flex;gap:14px;align-items:center}
-    .ic{width:13px;height:13px;vertical-align:-1px;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ic.veg{stroke:#1a7f45}.ic.opm{stroke:#b30000}
-    sup{font-size:9.5px;font-weight:700;color:#b30000;vertical-align:3px;margin-left:1px}
-    .om{break-before:page;page-break-before:always;padding-top:4px}.om h2{font-size:20px;margin:0 0 10px;color:#b30000}.og{max-width:900px}.om .ot{margin:0 0 14px;font-size:14px}.om .ot b{font-size:16px;margin-bottom:4px}.om .ot p{margin:3px 0}
-    .ot{break-inside:avoid;margin:0 0 8px;font-size:12px}.ot b{display:block;font-size:13px;border-bottom:1px solid #e5e5e5;margin-bottom:2px}.ot p{margin:0 0 2px;line-height:1.3}.ot span{font-weight:600}</style></head><body>
-    <header><h1>Banket ${JAAR} · tafelschikking</h1><div>${esc(dt)}${bc.uur?" · "+esc(bc.uur):""}<br>${esc(bc.locatie||"")}<br><b>${pers} personen</b>${veg?` · ${veg} vegetarisch`:""} · ${c.tafels.length} tafels</div></header>
-    <div class="g">${c.tafels.map(kaart).join("")}</div><footer><span>${BLAD} vegetarisch menu</span><span>${LET} opmerking (allergie, dieet, …), zie de lijst</span></footer>
-    ${opmLijst?`<section class="om"><h2>Opmerkingen per tafel</h2><div class="og">${opmLijst}</div></section>`:""}
-    <script>onload=()=>setTimeout(()=>print(),300)<\/script></body></html>`;
+    return `<section class="k"><header><b>${esc(t.naam)}</b><span>${v?`${BLAD}${v}`:""}${v&&o?" · ":""}${o?`${LET}${o}`:""}</span><i>${n}</i></header><ol>${L.map(u=>`<li><div class="n">${esc(u.r.naam||"")}${u.v1?" "+BLAD:""}${u.o1?` ${LET}<sup>${NR.get(u.id+"|1")}</sup>`:""}</div>${u.n===2?`<div class="pa">partner${u.v2?" "+BLAD:""}${u.o2?` ${LET}<sup>${NR.get(u.id+"|2")}</sup>`:""}</div>`:""}</li>`).join("")||'<li class="leeg">Nog niemand</li>'}</ol></section>`};
+  const opmLijst=c.tafels.map(t=>{const L=sorteer(per.get(t.id)||[]).filter(u=>u.opm);return L.length?`<section class="k"><header><b>${esc(t.naam)}</b><span></span><i>${L.reduce((s,u)=>s+(u.o1?1:0)+(u.o2?1:0),0)}</i></header><ol>${L.flatMap(u=>[u.o1?`<li class="or"><sup>${NR.get(u.id+"|1")}</sup><div class="wie">${esc(u.r.naam||"")}</div><div class="wat">${esc(u.o1)}</div></li>`:"",u.o2?`<li class="or"><sup>${NR.get(u.id+"|2")}</sup><div class="wie">${esc(u.r.naam||"")} <small>partner</small></div><div class="wat">${esc(u.o2)}</div></li>`:""]).join("")}</ol></section>`:""}).join("");
+  const dt=bc.datum?fmtDate(bc.datum):"",emb=(EMBLEM.match(/src="([^"]+)"/)||[])[1]||"",sub=esc([dt,bc.uur,bc.locatie].filter(Boolean).join(" · "));
+  const kop=t=>`<div class="kop">${emb?`<img src="${emb}" alt="VBHA">`:""}<div class="t"><h1>${t}</h1><p>${sub}</p></div><div class="tot"><b>${pers}</b> personen${veg?` · ${veg} vegetarisch`:""} · ${c.tafels.length} tafels</div></div><div class="rood"></div>`;
+  const html=`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Tafelschikking banket ${JAAR}</title><link rel="stylesheet" href="${location.origin}/fonts/inter.css"><style>
+@page{size:A4 portrait;margin:0}*{box-sizing:border-box}body{margin:0;font:11pt/1.35 "Inter",system-ui,Arial,sans-serif;color:#1a1b1e;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.kop{display:flex;align-items:center;gap:14px;padding:0 2px 8px}.kop img{height:46px}.kop .t{flex:1}.kop h1{margin:0;font-size:17pt;font-weight:700}.kop p{margin:2px 0 0;color:#686b71;font-size:10pt}.kop .tot{font-size:9.5pt;color:#686b71;text-align:right}.kop .tot b{color:#1a1b1e}
+.rood{height:3px;background:#c0161f;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(${kol},1fr);gap:8px;align-items:start}
+.k{border:1px solid #d9dadd;border-radius:8px;overflow:hidden;break-inside:avoid}.k header{display:flex;align-items:center;gap:8px;background:#f5f5f6;padding:7px 10px;border-bottom:2px solid #c0161f}
+.k header b{font-size:12pt}.k header span{color:#686b71;font-size:9.5pt;flex:1;display:flex;align-items:center;gap:3px}.k header i{font-style:normal;font-weight:700;font-size:9.5pt}
+ol{list-style:none;margin:0;padding:0}li{padding:5px 10px;border-bottom:1px solid #eee;min-height:24px}li:last-child{border-bottom:0}.n{font-weight:600}li.leeg{color:#9a9ca1;font-style:italic}
+.pa{position:relative;padding-left:16px;margin-top:1px;color:#686b71;font-size:9.5pt}.pa::before{content:"";position:absolute;left:4px;top:-2px;height:.85em;width:8px;border-left:1.5px solid #b5b7bb;border-bottom:1.5px solid #b5b7bb;border-bottom-left-radius:2px}
+.ic{width:12px;height:12px;vertical-align:-1px;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ic.veg{stroke:#1a7f45}.ic.opm{stroke:#c0161f}
+sup{font-size:7.5pt;font-weight:700;color:#c0161f;vertical-align:3px;margin-left:1px}
+.voet{margin-top:8px;font-size:8.5pt;color:#9a9ca1;display:flex;gap:16px;align-items:center}
+.om{break-before:page;page-break-before:always}.om .grid{grid-template-columns:1fr}
+li.or{display:grid;grid-template-columns:22px 210px 1fr;gap:8px;align-items:baseline}li.or sup{vertical-align:0;font-size:9pt}.wie{font-weight:600}.wie small{font-weight:400;color:#686b71;font-size:9pt}
+@media print{.blad{padding:10mm 12mm}}@media screen{body{background:#eee;padding:20px}.blad{background:#fff;width:210mm;margin:0 auto 20px;padding:10mm;box-shadow:0 4px 20px rgba(0,0,0,.15)}}</style></head><body>
+<div class="blad">${kop(`Tafelschikking banket ${JAAR}`)}<div class="grid">${c.tafels.map(kaart).join("")}</div><div class="voet"><span>${BLAD} vegetarisch menu</span><span>${LET} opmerking (allergie, dieet, …), zie de lijst</span></div></div>
+${opmLijst?`<div class="blad om">${kop("Opmerkingen per tafel")}<div class="grid">${opmLijst}</div></div>`:""}
+<script>onload=()=>setTimeout(()=>print(),400)<\/script></body></html>`;
   const w=window.open("","_blank");if(!w){toast("Je browser blokkeerde het nieuwe venster.",true);return}w.document.open();w.document.write(html);w.document.close()}
 
 {const st=document.createElement("style");st.textContent=`.tf-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
