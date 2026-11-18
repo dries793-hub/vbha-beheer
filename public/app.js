@@ -9991,6 +9991,25 @@ function etReset(){try{
 etReset();ET_VORIG=route();
 window.addEventListener("hashchange",()=>{const r=route();if(r!==ET_VORIG)etReset();ET_VORIG=r},true);
 
+/* ============ Jaardocumenten › instellingen (tandwiel) ============
+   Per document aan- of uitvinken welke onderdelen in de jaarrekening en het jaarverslag komen.
+   Bewaard in config "jaardoc" = {uit:{rekening:[sleutels],verslag:[sleutels]}}; een sleutel is de titel zonder jaartal. */
+const JD_DELEN={rekening:[["Staat van ontvangsten en uitgaven"],["Detail per activiteit en rubriek"],["Staat van het vermogen op","Staat van het vermogen"],["Verloop van de liquide middelen"],["Openstaande facturen op","Openstaande facturen"],["Begroting","Begroting volgend jaar"],["Toelichting"],["Goedkeuring"]],
+  verslag:[["Inleiding"],["Leden"],["Activiteiten"],["Enkele cijfers"],["Financieel resultaat per activiteit"],["Vergaderingen"],["Financiële toestand"],["Vooruitblik op","Vooruitblik volgend jaar"],["Goedkeuring"]]};
+const jdSleutel=k=>String(k||"").replace(/\d{1,2}\/\d{1,2}\/\d{4}/g,"").replace(/\b\d{4}\b/g,"").trim();
+const jdUit=s=>{const c=S.config.get("jaardoc")||{};return new Set(((c.uit||{})[s])||[])};
+{const _r=jdRekening,_v=jdVerslag,f=(doc,s)=>{const U=jdUit(s);if(U.size&&doc&&Array.isArray(doc.secties))doc.secties=doc.secties.filter(x=>!U.has(jdSleutel(x.kop)));return doc};
+  jdRekening=function(){return f(_r.apply(this,arguments),"rekening")};jdVerslag=function(){return f(_v.apply(this,arguments),"verslag")}}
+{const _v=VIEWS.jaardocumenten;const n=function(){const v=_v.apply(this,arguments);
+  if(recht("jaardocumenten")!=="geen"&&canWrite)v.actions=(v.actions||"")+`<button class="btn iconbtn" data-act="jdInst" aria-label="Instellingen jaardocumenten" title="Instellingen">${ic("instellingen")}</button>`;return v};
+  Object.assign(n,_v);VIEWS.jaardocumenten=n}
+function jdInst(){const blok=(s,titel)=>{const U=jdUit(s);return `<div class="jdi-k"><h3>${titel}</h3>${JD_DELEN[s].map(([k,l])=>`<label class="jdi-r"><input type="checkbox" data-jdi="${s}" value="${esc(k)}"${U.has(k)?"":" checked"}><span>${esc(l||k)}</span></label>`).join("")}</div>`};
+  modal("Jaardocumenten",`<div class="jdi">${blok("rekening","Jaarrekening")}${blok("verslag","Jaarverslag")}</div>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" id="jdiOk">Bewaren</button>`);
+  $("#jdiOk").onclick=async()=>{const uit={rekening:[],verslag:[]};$$("[data-jdi]").forEach(i=>{if(!i.checked)uit[i.dataset.jdi].push(i.value)});
+    const d={...stripId(S.config.get("jaardoc")||{}),uit};S.config.set("jaardoc",{id:"jaardoc",...d});await write("config","jaardoc",d);closeModal();toast("Instellingen bewaard.")}}
+document.addEventListener("click",e=>{const b=e.target.closest('[data-act="jdInst"]');if(!b)return;e.preventDefault();e.stopPropagation();jdInst()},true);
+{const st=document.createElement("style");st.textContent=`.jdi{display:grid;grid-template-columns:1fr 1fr;gap:20px}.jdi h3{font-size:13px;margin:0 0 8px;color:var(--muted);font-weight:600}.jdi-r{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px;cursor:pointer}.jdi-r input{width:16px;height:16px;accent-color:var(--accent)}@media(max-width:560px){.jdi{grid-template-columns:1fr}}`;document.head.appendChild(st)}
+
 /* ============ Kalenderdozen overdragen naar een ander lid (enkel administrator) ============
    In de fiche van een persoon (Kalenders › Verdeling): "Dozen overdragen". Kies aan wie (lid of andere naam) en hoeveel dozen.
    Staat de ontvanger nog niet in de lijst, dan wordt hij meteen toegevoegd. Beide kanten krijgen een regel in hun geschiedenis. */
