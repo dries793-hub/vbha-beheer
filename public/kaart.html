@@ -2708,12 +2708,25 @@ const krGroepenRuw=krGroepen;
 
 /* verborgen straten en stukken (geen woonstraat), ingesteld in de app (config "kaart".verborgen) */
 let KR_VERB=new Set(),KR_VERB_OK=false;const KR_GV=new Map();let krGroepenBasis=null;
-function krVerbergToepassen(L){const V=new Set((L||[]).map(String));KR_VERB=V;KR_GV.clear();if(!V.size)return;
+const krLijnSl=(sid,p)=>sid+"@"+[p[0],p[p.length-1]].map(q=>(+q[0]).toFixed(5)+","+(+q[1]).toFixed(5)).sort().join(">");
+/* losse lijnstukken verbergen (op- en afritten, ventwegen, lussen op een kruispunt): sleutel "straat@begin>einde" */
+/* "straat#lat,lng,r": uiteinden van lijnen van die straat binnen r meter van het punt afknippen (een haakje aan het einde) */
+function krLijnenVerbergen(V){const per=new Map(),kn=new Map();for(const k of V){let i=k.indexOf("@");if(i>0){const sid=k.slice(0,i);if(!per.has(sid))per.set(sid,new Set());per.get(sid).add(k);continue}
+    i=k.indexOf("#");if(i>0){const sid=k.slice(0,i),[la,lo,r]=k.slice(i+1).split(",").map(Number);if(isFinite(la)&&isFinite(lo)){if(!kn.has(sid))kn.set(sid,[]);kn.get(sid).push([la,lo,r||8])}}}
+  if(!per.size&&!kn.size)return;
+  const knip=(sid,p)=>{const K=kn.get(sid);if(!K)return p;const bij=q=>K.some(c=>Math.hypot((q[0]-c[0])*111320,(q[1]-c[1])*111320*Math.cos(c[0]*Math.PI/180))<c[2]);let a=0,b=p.length;while(b-a>2&&bij(p[a]))a++;while(b-a>2&&bij(p[b-1]))b--;return a||b<p.length?p.slice(a,b):p};
+  const sids=new Set([...per.keys(),...kn.keys()]);
+  for(const sid of sids){const S=per.get(sid)||new Set(),ok=p=>!S.has(krLijnSl(sid,p));const ml=KR_LIJN.get(sid);
+    if(Array.isArray(ml)){for(let i=ml.length-1;i>=0;i--)if(!ok(ml[i]))ml.splice(i,1);else ml[i]=knip(sid,ml[i])}
+    const st=KR_ALLE.find(s=>s.id===sid);if(st&&st.g){const P=KRE.delen(st.g),Q=P.filter(ok).map(p=>knip(sid,p));if(Q.length)st.g=Q}
+    for(const x of KR_DELEN.get(sid)||[]){const P=KRE.delen(x.g),Q=P.filter(ok).map(p=>knip(sid,p));if(Q.length)x.g=Q}}
+  KRE.geo=null;KRG.clear();try{KRGAT.clear()}catch(e){}}
+function krVerbergToepassen(L){const V=new Set((L||[]).map(String));KR_VERB=V;KR_GV.clear();krLijnenVerbergen(V);if(!V.size)return;
   for(let i=KR_STREETS.length-1;i>=0;i--){const s=KR_STREETS[i];if(V.has(s.id)){KR_STREETS.splice(i,1);KR.byId.delete(s.id)}}
   for(const s of KR_STREETS){const G=krGroepenBasis(s.id)||[];let a=0;for(const g of G)if(g.ids.some(id=>V.has(id)))a+=g.a;if(a&&s.a0==null){s.a0=s.a;s.a=Math.max(0,s.a-a)}}}
 {const _g=krGroepen;krGroepenBasis=_g;krGroepen=function(sid){if(!KR_VERB.size)return _g(sid);if(KR_GV.has(sid))return KR_GV.get(sid);
   const V=_g(sid).filter(g=>!g.ids.some(id=>KR_VERB.has(id)));V.forEach((g,i)=>g.n=i+1);KR_GV.set(sid,V);return V}}
-{const _k=krGeo;krGeo=function(sid){if(KR_VERB.size){const G0=krGroepenBasis(sid)||[];if(G0.some(g=>g.ids.some(id=>KR_VERB.has(id))))return G0.filter(g=>!g.ids.some(id=>KR_VERB.has(id))).flatMap(g=>g.g)}return _k(sid)}}
+{const _k=krGeo;krGeo=function(sid){if(KR_VERB.size){const G0=krGroepenRuw(sid)||[];if(G0.some(g=>g.ids.some(id=>KR_VERB.has(id))))return G0.filter(g=>!g.ids.some(id=>KR_VERB.has(id))).flatMap(g=>g.g)}return _k(sid)}}
 function krGroepMidden(g){const P=KRE.delen(g);let best=P[0]||[],bl=-1;for(const p of P){const l=KRE.lengte(p.map(KRE.m));if(l>bl){bl=l;best=p}}
   const q=best.map(KRE.m),tot=KRE.lengte(q);let h=tot/2;for(let i=1;i<q.length;i++){const d=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);if(h<=d){const f=d?h/d:0;return[best[i-1][0]+(best[i][0]-best[i-1][0])*f,best[i-1][1]+(best[i][1]-best[i-1][1])*f]}h-=d}return best[0]}
 /* krGeo(sid): de te tekenen lijn van een straat (krEnkel) waarbij losse uiteinden doorgetrokken worden tot de dichtstbijzijnde
@@ -2841,7 +2854,7 @@ function krInit(){if(!window.L){$("#krMap").innerHTML='<div class="empty">De kaa
     .on("click",e=>{L.DomEvent.stopPropagation(e);krToggle(s.id)}).addTo(map);KR.lines.set(s.id,line)}
   
   KR.labelAt=new Map(KR_STREETS.map(s=>{let best=null,bl=-1;
-    for(const part of s.g)for(let i=1;i<part.length;i++){const a=map.project(part[i-1],KR_LABEL_ZOOM),b=map.project(part[i],KR_LABEL_ZOOM);const len=a.distanceTo(b);if(len>bl){bl=len;best=[part[i-1],part[i],a,b]}}
+    for(const part of (KR_VERB.size?krGeo(s.id):s.g))for(let i=1;i<part.length;i++){const a=map.project(part[i-1],KR_LABEL_ZOOM),b=map.project(part[i],KR_LABEL_ZOOM);const len=a.distanceTo(b);if(len>bl){bl=len;best=[part[i-1],part[i],a,b]}}
     if(!best){const p=s.g[0][0];return[s.id,{at:p,angle:0}]}
     const [p,q,a,b]=best;let ang=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;if(ang>90)ang-=180;if(ang<-90)ang+=180;
     return[s.id,{at:[(p[0]+q[0])/2,(p[1]+q[1])/2],angle:ang}]}));

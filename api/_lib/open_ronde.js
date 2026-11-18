@@ -197,6 +197,20 @@ async function wieBenIk(req, res) {
 /* GeoJSON van de gereserveerde en bedeelde straten (zonder namen van personen), bv. als laag met "externe gegevens" in uMap.
    Kleuren via properties._umap_options. Een deel van een straat ("straat~n") toont enkel dat stuk (zelfde opdeling als de kaart). */
 let KRL = null, KRD = null;
+// verborgen lijnstukken (sleutel "straat@lat,lng>lat,lng"): lijnen die volledig op zo'n stuk liggen, weglaten
+const sleutel = (sid, p) => sid + "@" + [p[0], p[p.length - 1]].map(q => q[1].toFixed(5) + "," + q[0].toFixed(5)).sort().join(">");
+function zonderVerborgen(sid, C, VB) {
+  const KN = [...VB].filter(k => k.startsWith(sid + "#")).map(k => k.slice(sid.length + 1).split(",").map(Number)).filter(c => isFinite(c[0]) && isFinite(c[1]));
+  if (KN.length) { const bij = q => KN.some(c => Math.hypot((q[1] - c[0]) * 111320, (q[0] - c[1]) * 111320 * Math.cos(c[0] * Math.PI / 180)) < (c[2] || 8));
+    C = C.map(p => { let a = 0, b = p.length; while (b - a > 2 && bij(p[a])) a++; while (b - a > 2 && bij(p[b - 1])) b--; return p.slice(a, b); }); }
+  const K = [...VB].filter(k => k.startsWith(sid + "@")); if (!K.length) return C;
+  const W = new Set(K), weg = (KRL[sid] || []).map(decodeer).filter(p => p.length > 1 && W.has(sleutel(sid, p)));
+  if (!weg.length) return C;
+  const m = q => [q[1] * 111320, q[0] * 111320 * Math.cos(q[1] * Math.PI / 180)];
+  const afst = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = dx * dx + dy * dy, t = l ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l)) : 0; return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy); };
+  const W2 = weg.map(p => p.map(m)), dicht = q => W2.some(w => w.some((a, i) => i && afst(q, w[i - 1], a) < 4));
+  return C.filter(p => !p.map(m).every(dicht));
+}
 function decodeer(str) { const pts = []; let i = 0, lat = 0, lng = 0;
   while (i < str.length) { for (const k of [0, 1]) { let b, sh = 0, r = 0; do { b = str.charCodeAt(i++) - 63; r |= (b & 0x1f) << sh; sh += 5; } while (b >= 0x20 && i <= str.length);
       const d = r & 1 ? ~(r >> 1) : r >> 1; if (k === 0) lat += d; else lng += d; }
@@ -215,7 +229,8 @@ async function geoJson(req, res) {
     if (error) throw error;
     for (const r of data) { const d = r.data || {}; if (!d.straat) continue; const sid = String(d.straat); if (VB.has(sid) || VB.has(sid.split("~")[0])) continue; const id = sid.split("~")[0], deel = sid.includes("~");
       const L = deel ? KRD[sid] : KRL[id]; if (!L || !L.length) continue; const st = d.status === "done" ? "done" : "reserved";
-      feats.push({ type: "Feature", geometry: { type: "MultiLineString", coordinates: L.map(decodeer) },
+      const C = zonderVerborgen(id, L.map(decodeer), VB); if (!C.length) continue;
+      feats.push({ type: "Feature", geometry: { type: "MultiLineString", coordinates: C },
         properties: { name: mooi(id) + (deel ? ` (stuk ${Number(sid.split("~")[1]) + 1})` : ""), status: st === "done" ? "bedeeld" : "gereserveerd", sinds: String(d.at || "").slice(0, 10),
           _umap_options: { color: KL[st], weight: 5, opacity: 0.9 } } }); }
     if (data.length < 1000) break;
