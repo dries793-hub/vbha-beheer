@@ -9950,10 +9950,10 @@ function tfPdf(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaak
     footer{margin-top:8px;font-size:11px;color:#777;display:flex;gap:14px;align-items:center}
     .ic{width:13px;height:13px;vertical-align:-1px;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.ic.veg{stroke:#1a7f45}.ic.opm{stroke:#b30000}
     sup{font-size:9.5px;font-weight:700;color:#b30000;vertical-align:3px;margin-left:1px}
-    .om{margin-top:10px;break-before:auto}.om h2{font-size:16px;margin:0 0 5px;color:#b30000}.og{columns:3;column-gap:14px}
+    .om{break-before:page;page-break-before:always;padding-top:4px}.om h2{font-size:20px;margin:0 0 10px;color:#b30000}.og{max-width:900px}.om .ot{margin:0 0 14px;font-size:14px}.om .ot b{font-size:16px;margin-bottom:4px}.om .ot p{margin:3px 0}
     .ot{break-inside:avoid;margin:0 0 8px;font-size:12px}.ot b{display:block;font-size:13px;border-bottom:1px solid #e5e5e5;margin-bottom:2px}.ot p{margin:0 0 2px;line-height:1.3}.ot span{font-weight:600}</style></head><body>
     <header><h1>Banket ${JAAR} · tafelschikking</h1><div>${esc(dt)}${bc.uur?" · "+esc(bc.uur):""}<br>${esc(bc.locatie||"")}<br><b>${pers} personen</b>${veg?` · ${veg} vegetarisch`:""} · ${c.tafels.length} tafels</div></header>
-    <div class="g">${c.tafels.map(kaart).join("")}</div><footer><span>${BLAD} vegetarisch menu</span><span>${LET} opmerking (allergie, dieet, …), zie de lijst</span><span>Vriendenkring Brandweer Hoofdpost Aalst</span></footer>
+    <div class="g">${c.tafels.map(kaart).join("")}</div><footer><span>${BLAD} vegetarisch menu</span><span>${LET} opmerking (allergie, dieet, …), zie de lijst</span></footer>
     ${opmLijst?`<section class="om"><h2>Opmerkingen per tafel</h2><div class="og">${opmLijst}</div></section>`:""}
     <script>onload=()=>setTimeout(()=>print(),300)<\/script></body></html>`;
   const w=window.open("","_blank");if(!w){toast("Je browser blokkeerde het nieuwe venster.",true);return}w.document.open();w.document.write(html);w.document.close()}
