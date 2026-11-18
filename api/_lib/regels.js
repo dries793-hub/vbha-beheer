@@ -1,11 +1,12 @@
 // Dezelfde regel-logica als in de browser (public/app.js): eerste passende regel wint,
 // anders een voorstel op basis van eerdere boekingen van dezelfde tegenpartij.
 export const norm = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
-const OPS = { bevat: "bevat", begint: "begint met", gelijk: "is gelijk aan" };
+const OPS = { bevat: "bevat", begint: "begint met", gelijk: "is gelijk aan", leeg: "is leeg" };
 
 export function matchRegel(r, b) {
-  const raw = String(r.waarde || ""); if (!raw.trim()) return false;
+  const raw = String(r.waarde || ""); if (!raw.trim() && r.op !== "leeg") return false;
   if (r.richting && r.richting !== "beide" && r.richting !== (b.richting === "uit" ? "uit" : "in")) return false;
+  if (r.op === "leeg") { const F = r.veld === "partij" ? [b.partij] : r.veld === "iban" ? [b.iban] : r.veld === "alles" ? [b.mededeling, b.partij] : [b.mededeling]; return F.every(f => !norm(f)); }
   const iban = r.veld === "iban";
   const v = iban ? norm(raw).replace(/\s/g, "") : norm(raw);
   const fields = r.veld === "partij" ? [b.partij] : iban ? [b.iban] : r.veld === "alles" ? [b.mededeling, b.partij] : [b.mededeling];
