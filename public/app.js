@@ -9800,6 +9800,14 @@ function sysVoorbeeld(t){const v={...(t.voorbeeld||{})};
 document.addEventListener("click",e=>{const b=e.target.closest('[data-act="sysHerstel"]');if(!b)return;e.stopPropagation();const M=MAIL,t=sysTpl(M);if(!t)return;
   confirmBox(`De tekst van <b>${esc(t.naam)}</b> terugzetten naar de standaardtekst? Je aanpassingen gaan verloren.`,"Terugzetten",async()=>{
     try{await sysZaai(t.sys);MAIL=mlVanTpl(S.templates.get(M.tplId));toast("Standaardtekst teruggezet.");render(true)}catch(x){toast("Terugzetten lukte niet: "+(x.message||x),true)}})},true);
+/* sjablonen per categorie open- en dichtklappen (keuze onthouden; standaard staan enkel de automatische mails dicht) */
+moSjablonen=function(M){const tpls=mlTpls(),cats=[...new Set([...ML_CATS,...tpls.map(t=>t.categorie||"Algemeen")])].filter(c=>tpls.some(t=>(t.categorie||"Algemeen")===c));
+  const dicht=new Set(Array.isArray(UI.moDicht)?UI.moDicht:[SYS_CAT]);
+  return cats.map(c=>{const L=tpls.filter(t=>(t.categorie||"Algemeen")===c),open=!dicht.has(c)||L.some(t=>t.id===M.tplId);
+    return `<button type="button" class="mo-sc mo-sck" data-mosc="${esc(c)}" aria-expanded="${open}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>${esc(c)}<small>${L.length}</small></button><div class="mo-scl"${open?"":" hidden"}>${L.map(t=>`<button type="button" class="mo-si${MO.view==="nieuw"&&t.id===M.tplId?" on":""}" data-mo="tpl" data-id="${esc(t.id)}" title="${esc(t.onderwerp||"")}">${esc(t.naam||"Zonder naam")}</button>`).join("")}</div>`}).join("")};
+document.addEventListener("click",e=>{const b=e.target.closest("[data-mosc]");if(!b)return;e.preventDefault();e.stopPropagation();const c=b.dataset.mosc,d=new Set(Array.isArray(UI.moDicht)?UI.moDicht:[SYS_CAT]);
+  const open=b.getAttribute("aria-expanded")==="true";if(open)d.add(c);else d.delete(c);UI.moDicht=[...d];saveUI();b.setAttribute("aria-expanded",String(!open));const l=b.nextElementSibling;if(l)l.hidden=open},true);
+{const st=document.createElement("style");st.textContent=`.mo-sck{display:flex;align-items:center;gap:6px;width:100%;border:0;background:none;cursor:pointer;text-align:left;font:inherit;font-size:11.5px;color:var(--muted);padding:8px 10px 4px;border-radius:6px}.mo-sck:hover{color:var(--ink)}.mo-sck svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.4;flex:none;transition:transform .15s}.mo-sck[aria-expanded="true"] svg{transform:rotate(90deg)}.mo-sck small{margin-left:auto;font-size:11px;opacity:.8}.mo-scl[hidden]{display:none!important}`;document.head.appendChild(st)}
 
 /* ============ Kalenderdozen overdragen naar een ander lid (enkel administrator) ============
    In de fiche van een persoon (Kalenders › Verdeling): "Dozen overdragen". Kies aan wie (lid of andere naam) en hoeveel dozen.
