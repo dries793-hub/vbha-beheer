@@ -10010,6 +10010,10 @@ function jdInst(){const blok=(s,titel)=>{const U=jdUit(s);return `<div class="jd
 document.addEventListener("click",e=>{const b=e.target.closest('[data-act="jdInst"]');if(!b)return;e.preventDefault();e.stopPropagation();jdInst()},true);
 {const st=document.createElement("style");st.textContent=`.jdi{display:grid;grid-template-columns:1fr 1fr;gap:20px}.jdi h3{font-size:13px;margin:0 0 8px;color:var(--muted);font-weight:600}.jdi-r{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px;cursor:pointer}.jdi-r input{width:16px;height:16px;accent-color:var(--accent)}@media(max-width:560px){.jdi{grid-template-columns:1fr}}`;document.head.appendChild(st)}
 
+/* Sponsorbetalingen die bij een vorig werkjaar horen (bv. een sponsor van 2025 die pas nu zijn factuur betaalt)
+   niet tonen bij "Sponsorbetalingen zonder sponsor in de lijst". */
+{const _k=spKoppel;spKoppel=function(C){const r=_k.apply(this,arguments);r.los=r.los.filter(b=>!(b.werkjaar&&Number(b.werkjaar)<Number(JAAR)));return r}}
+
 /* ============ Kalenderdozen overdragen naar een ander lid (enkel administrator) ============
    In de fiche van een persoon (Kalenders › Verdeling): "Dozen overdragen". Kies aan wie (lid of andere naam) en hoeveel dozen.
    Staat de ontvanger nog niet in de lijst, dan wordt hij meteen toegevoegd. Beide kanten krijgen een regel in hun geschiedenis. */
