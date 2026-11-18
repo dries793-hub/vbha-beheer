@@ -3585,13 +3585,17 @@ function fcInstel(){const c=fcCfg(),H=c.herinnering,j=new Date().getFullYear(),p
    ${(()=>{const A={pct:10.5,forfait:40,termijn:8,...(c.aanmaning||{})};return `<div class="full lbl" style="margin-top:8px"><b>Aanmaning met kosten</b> <span class="muted small">(wet van 2 augustus 2002, handelstransacties)</span></div>
    ${fld("fiAp","Verwijlintrest (% per jaar)",`<input id="fiAp" inputmode="decimal" value="${esc(String(A.pct).replace(".",","))}">`)}${fld("fiAf","Forfaitaire schadevergoeding (€)",`<input id="fiAf" inputmode="decimal" value="${esc(String(A.forfait).replace(".",","))}">`)}${fld("fiAt","Betaaltermijn aanmaning",`<select id="fiAt" class="sel">${[8,10,14,15,30].map(n=>`<option value="${n}"${n===num(A.termijn)?" selected":""}>${n} dagen</option>`).join("")}</select>`)}`})()}
    ${fld("fiHm","Maximum aantal herinneringen",`<select id="fiHm" class="sel">${[1,2,3,4].map(n=>`<option value="${n}"${n===num(H.max)?" selected":""}>${n}</option>`).join("")}</select>`)}
+   ${(()=>{const B=S.config.get("betaalWacht")||{};return `<div class="fc-sec full"><h4>Meldingen aan de boekhouding</h4></div>
+   ${fld("fiBw","Mail als een betaling wacht na",`<select id="fiBw" class="sel">${[1,2,3,4,5,7,10,14,21,30].map(n=>`<option value="${n}"${n===(Number(B.dagen)||5)?" selected":""}>${n} ${n===1?"dag":"dagen"}</option>`).join("")}</select>`)}${fld("fiBv","Mail als een inkomende factuur vervalt binnen",`<select id="fiBv" class="sel">${[1,2,3,5,7,10,14].map(n=>`<option value="${n}"${n===Number(B.vervalDagen??5)?" selected":""}>${n} ${n===1?"dag":"dagen"}</option>`).join("")}</select>`)}
+   ${fld("fiBm","Die mails sturen naar",inp("fiBm",B.mail||"boekhouding@vbha.be",'type="email"'),"full")}`})()}
    <div class="err full" id="fiErr"></div></form>`,`<button class="btn" data-act="closeModal">Annuleren</button><button class="btn primary" data-fc="instelOk" data-v="${volgend}">Bewaren</button>`,{wide:true})}
 async function fcInstelBewaar(volgend){const c=fcCfg(),j=new Date().getFullYear(),pre=c.voorvoegsel||"F",g=s=>$(s).value.trim();
   const kop=g("#fiKop").split(/[,;\s]+/).filter(Boolean);if(kop.some(x=>!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x))){$("#fiErr").textContent="Het kopie-adres klopt niet.";return}
   const start={...(c.start||{})};
   const d={...stripId(S.config.get("facturen")||{}),adres:$("#fiAd").value.trim(),kbo:g("#fiKbo"),bic:g("#fiBic"),email:g("#fiMail"),telefoon:g("#fiTel"),website:g("#fiWeb"),vervaldagen:num($("#fiVd").value),voettekst:$("#fiVt").value.trim(),btwPlichtig:!!$("#fiBtwP").checked,rechtsvorm:g("#fiRv"),rpr:g("#fiRpr"),voorwaarden:$("#fiVw").value.trim(),
     start,mailOnderwerp:g("#fiOnd"),mailTekst:$("#fiTxt").value.trim(),kopie:kop.join(", "),herinnering:{aan:$("#fiHa").checked,dagenNaVerval:num($("#fiHd").value),interval:num($("#fiHi").value),max:num($("#fiHm").value)},aanmaning:{pct:num($("#fiAp").value),forfait:num($("#fiAf").value),termijn:num($("#fiAt").value)}};
-  try{await write("config","facturen",d);closeModal();toast("Instellingen bewaard.")}catch(x){$("#fiErr").textContent="Bewaren lukte niet: "+(x.message||"")}}
+  const bm=g("#fiBm");if(!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(bm)){$("#fiErr").textContent="Het adres voor de meldingen klopt niet.";return}
+  try{await write("config","facturen",d);await write("config","betaalWacht",{dagen:num($("#fiBw").value),vervalDagen:num($("#fiBv").value),mail:bm},{merge:true});closeModal();toast("Instellingen bewaard.")}catch(x){$("#fiErr").textContent="Bewaren lukte niet: "+(x.message||"")}}
 
 /* ---------- acties ---------- */
 async function fcActie(actie,id,extra={}){try{return await api("/api/mail?f=factuur",{method:"POST",body:JSON.stringify({actie,id,...extra})})}catch(x){toast(x.message,true);return null}}
@@ -9358,22 +9362,18 @@ Object.assign(LOG_TYPE,{rondemeldingen:"Kalenderronde",kalenderaanvragen:"Kalend
 
 /* ============ Instellingen › Vaste waarden (admin): waarden die vroeger vast in de code stonden ============
    config algemeen.kalSeizoen {van,tot} ("MM-DD"; tot valt in het volgende jaar), algemeen.goudMail.dagen,
-   config betaalWacht.dagen en .mail (server: api/_lib/betaalwacht.js, api/_lib/bcsplit.js). */
+   (betaalWacht.dagen/.vervalDagen/.mail staan nu bij Facturen › instellingen) */
 const kalSz=()=>{const k=((S.config.get("algemeen")||{}).kalSeizoen)||{},ok=x=>/^\d{2}-\d{2}$/.test(String(x||""));return{van:ok(k.van)?k.van:"11-01",tot:ok(k.tot)?k.tot:"05-01"}};
 const vwDM=md=>{const [m,d]=md.split("-");return d+"/"+m},vwMD=t=>{const x=String(t||"").trim().match(/^(\d{1,2})\/(\d{1,2})$/);if(!x)return null;const d=+x[1],m=+x[2];return d>=1&&d<=31&&m>=1&&m<=12?String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0"):null};
 viewHook("instellingen",{na(){if(ROL_ECHT!=="admin")return"";const A=S.config.get("algemeen")||{},B=S.config.get("betaalWacht")||{},k=kalSz();
   const f=(id,l,v,ext="")=>`<div class="fld"><label for="${id}">${l}</label><input class="inp" id="${id}" value="${esc(String(v))}"${ext}></div>`;
   return `<form class="panel" id="vwForm"><div class="panel-h"><h2>Vaste waarden</h2></div><div class="panel-b"><div class="form">
-    ${f("vwWacht","Mail als een betaling wacht na (dagen)",Number(B.dagen)||5,' type="number" min="1" max="60"')}${f("vwMail","Die mail sturen naar",B.mail||"boekhouding@vbha.be",' type="email"')}
     ${f("vwGoud","Goudmelding op het dashboard (dagen)",Number((A.goudMail||{}).dagen)||3,' type="number" min="1" max="30"')}
    </div><div style="margin-top:12px"><button class="btn primary" type="submit">Bewaren</button></div></div></form>`}});
 document.addEventListener("submit",async e=>{if(e.target.id!=="vwForm")return;e.preventDefault();const v=id=>($("#"+id)||{}).value;
-  const wacht=Math.round(Number(v("vwWacht"))),goud=Math.round(Number(v("vwGoud"))),mail=String(v("vwMail")||"").trim();
-  if(!(wacht>=1&&wacht<=60))return toast("Aantal dagen: tussen 1 en 60.",true);if(!(goud>=1&&goud<=30))return toast("Goudmelding: tussen 1 en 30 dagen.",true);
-  if(!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(mail))return toast("Geen geldig e-mailadres.",true);
+  const goud=Math.round(Number(v("vwGoud")));if(!(goud>=1&&goud<=30))return toast("Goudmelding: tussen 1 en 30 dagen.",true);
   try{const A=S.config.get("algemeen")||{};
     await write("config","algemeen",{goudMail:{...(A.goudMail||{}),dagen:goud}},{merge:true});
-    await write("config","betaalWacht",{dagen:wacht,mail},{merge:true});
     if(typeof KF!=="undefined")KF.jaar=null;toast("Bewaard.")}catch(x){toast(x.message,true)}});
 
 /* ============ Meldingen per gebruiker: welke dashboardmeldingen wil je zien ============
