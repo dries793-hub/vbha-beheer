@@ -2711,11 +2711,14 @@ const krGroepenRuw=krGroepen;
 let KR_VERB=new Set(),KR_VERB_OK=false;const KR_GV=new Map();let krGroepenBasis=null;
 const krLijnSl=(sid,p)=>sid+"@"+[p[0],p[p.length-1]].map(q=>(+q[0]).toFixed(5)+","+(+q[1]).toFixed(5)).sort().join(">");
 /* losse lijnstukken verbergen (op- en afritten, ventwegen, lussen op een kruispunt): sleutel "straat@begin>einde" */
-/* "straat#lat,lng,r": uiteinden van lijnen van die straat binnen r meter van het punt afknippen (een haakje aan het einde) */
-function krLijnenVerbergen(V){const per=new Map(),kn=new Map();for(const k of V){let i=k.indexOf("@");if(i>0){const sid=k.slice(0,i);if(!per.has(sid))per.set(sid,new Set());per.get(sid).add(k);continue}
+/* "straat#lat,lng,r": punten van lijnen van die straat binnen r meter van het punt weglaten (een haakje of lusje)
+   "straat!lat,lng": een los uiteinde op die plaats niet automatisch doortrekken naar een andere lijn */
+var KR_NOSNAP=[];
+function krLijnenVerbergen(V){const per=new Map(),kn=new Map();KR_NOSNAP=[];for(const k of V){let i=k.indexOf("@");if(i>0){const sid=k.slice(0,i);if(!per.has(sid))per.set(sid,new Set());per.get(sid).add(k);continue}
+    i=k.indexOf("!");if(i>0){const [la,lo]=k.slice(i+1).split(",").map(Number);if(isFinite(la)&&isFinite(lo))KR_NOSNAP.push({sid:k.slice(0,i),m:[la*111320,lo*111320*Math.cos(50.94*Math.PI/180)]});continue}
     i=k.indexOf("#");if(i>0){const sid=k.slice(0,i),[la,lo,r]=k.slice(i+1).split(",").map(Number);if(isFinite(la)&&isFinite(lo)){if(!kn.has(sid))kn.set(sid,[]);kn.get(sid).push([la,lo,r||8])}}}
-  if(!per.size&&!kn.size)return;
-  const knip=(sid,p)=>{const K=kn.get(sid);if(!K)return p;const bij=q=>K.some(c=>Math.hypot((q[0]-c[0])*111320,(q[1]-c[1])*111320*Math.cos(c[0]*Math.PI/180))<c[2]);let a=0,b=p.length;while(b-a>2&&bij(p[a]))a++;while(b-a>2&&bij(p[b-1]))b--;return a||b<p.length?p.slice(a,b):p};
+  const knip=(sid,p)=>{const K=kn.get(sid);if(!K)return p;const bij=q=>K.some(c=>Math.hypot((q[0]-c[0])*111320,(q[1]-c[1])*111320*Math.cos(c[0]*Math.PI/180))<c[2]);const q=p.filter(x=>!bij(x));return q.length>=2&&q.length<p.length?q:p};
+  if(!per.size&&!kn.size){KRE.geo=null;return}
   const sids=new Set([...per.keys(),...kn.keys()]);
   for(const sid of sids){const S=per.get(sid)||new Set(),ok=p=>!S.has(krLijnSl(sid,p));const ml=KR_LIJN.get(sid);
     if(Array.isArray(ml)){for(let i=ml.length-1;i>=0;i--)if(!ok(ml[i]))ml.splice(i,1);else ml[i]=knip(sid,ml[i])}
@@ -2742,6 +2745,7 @@ function krGeo(sid){if(!KRE.geo){const t0=Date.now(),cos=Math.cos(50.94*Math.PI/
     for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++)for(const o of seg.get((cx+i)+"|"+(cy+j))||[]){if(o.sid===sid&&o.pi===pi)continue;const r=KRE.proj(e,o.a,o.b);if(r.d<max&&(!best||r.d<best.d))best=r}return best};
   for(const s of KR_STREETS){const P=geo.get(s.id),n=P.length;for(let pi=0;pi<n;pi++){const p=P[pi];if(p.length<2)continue;
     for(const [pt,nb] of [[p[0],p[1]],[p[p.length-1],p[p.length-2]]]){const e=m(pt);const raak=zoek(e,s.id,pi,2.5);if(raak)continue;
+      if(typeof KR_NOSNAP!=="undefined"&&KR_NOSNAP.some(c=>c.sid===s.id&&Math.hypot(e[0]-c.m[0],e[1]-c.m[1])<6))continue;
       // een ander stuk van dezelfde straat dat binnen 45 m begint of eindigt: rechtstreeks aansluiten (doorlopende straat)
       let eb=null;for(let pj=0;pj<n;pj++){if(pj===pi||P[pj].length<2)continue;for(const o of [P[pj][0],P[pj][P[pj].length-1]]){const d=Math.hypot(...[0,1].map(k=>m(o)[k]-e[k]));if(d<45&&(!eb||d<eb.d))eb={d,o}}}
       if(eb){P.push([pt,eb.o.slice()]);continue}

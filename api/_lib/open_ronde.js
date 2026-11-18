@@ -208,7 +208,7 @@ const sleutel = (sid, p) => sid + "@" + [p[0], p[p.length - 1]].map(q => q[1].to
 function zonderVerborgen(sid, C, VB) {
   const KN = [...VB].filter(k => k.startsWith(sid + "#")).map(k => k.slice(sid.length + 1).split(",").map(Number)).filter(c => isFinite(c[0]) && isFinite(c[1]));
   if (KN.length) { const bij = q => KN.some(c => Math.hypot((q[1] - c[0]) * 111320, (q[0] - c[1]) * 111320 * Math.cos(c[0] * Math.PI / 180)) < (c[2] || 8));
-    C = C.map(p => { let a = 0, b = p.length; while (b - a > 2 && bij(p[a])) a++; while (b - a > 2 && bij(p[b - 1])) b--; return p.slice(a, b); }); }
+    C = C.map(p => { const q = p.filter(x => !bij(x)); return q.length >= 2 ? q : p; }); }
   const K = [...VB].filter(k => k.startsWith(sid + "@")); if (!K.length) return C;
   const W = new Set(K), weg = (KRL[sid] || []).map(decodeer).filter(p => p.length > 1 && W.has(sleutel(sid, p)));
   if (!weg.length) return C;
