@@ -9882,7 +9882,7 @@ function tfBody(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaa
   <div class="panel tf-los" data-tft=""><div class="panel-h"><h2>Wachtzone</h2>${los.length?`<span class="pill warn">${los.reduce((s,u)=>s+u.n,0)}</span>`:""}</div><div class="tf-l">${los.map(tfChip).join("")||'<div class="tf-e" style="flex:1">Sleep hier personen naartoe om ze even van een tafel te halen</div>'}</div></div>
   <div class="tf-g">${c.tafels.map(kaart).join("")}</div>
   ${(()=>{const O=U.filter(u=>u.opm);if(!O.length)return"";const tn=id=>{const t=c.tafels.find(x=>x.id===c.plaats[id]);return t?t.naam:"niet geplaatst"};
-    return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h2>Opmerkingen</h2><span class="pill neutral">${O.length}</span></div><div class="tf-ol">${O.sort((a,b)=>tn(a.id).localeCompare(tn(b.id),"nl",{numeric:true})).map(u=>`<div><b>${esc(u.r.naam||"")}</b><span>${esc(tn(u.id))}</span><p>${esc(u.opm)}</p></div>`).join("")}</div></div>`})()}`}
+    return `<div class="panel" style="margin-top:14px"><div class="panel-h"><h2>Opmerkingen</h2><span class="pill neutral">${O.length}</span></div><div class="tf-ol">${O.sort((a,b)=>tn(a.id).localeCompare(tn(b.id),"nl",{numeric:true})).map(u=>`<div><b>${esc(u.r.naam||"")}</b><span>${esc(tn(u.id))}</span>${u.o1?`<p>${TF_LET}${esc(u.o1)}</p>`:""}${u.o2?`<p><i>partner</i> ${TF_LET}${esc(u.o2)}</p>`:""}</div>`).join("")}</div></div>`})()}`}
 
 /* tab Tafelschikking in Banket */
 {const _v=VIEWS.banket;VIEWS.banket=function(){const v=_v.apply(this,arguments),_b=v.body,tab=UI.bkTab==="tafels"?"tafels":"lijst";
@@ -9967,7 +9967,7 @@ function tfPdf(){const c=tfCfg(),U=tfUnits();if(!c.tafels.length)c.tafels=tfMaak
 .tf-e{font-size:12.5px;color:var(--muted);padding:10px 0;text-align:center;border:1.5px dashed var(--line);border-radius:8px}
 .tf-pp{display:inline-flex;align-items:baseline;gap:5px;flex-wrap:wrap}.tf-o{font-size:12px;color:var(--accent);line-height:1.3}
 .tfi{width:13px;height:13px;flex:none;align-self:center;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.tfi.veg{stroke:#1a7f45}.tfi.opm{stroke:var(--accent)}
-.tf-ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:12px 16px 16px}.tf-ol>div{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;padding:8px 10px;border-radius:8px;background:var(--sunken,#f6f6f7)}.tf-ol span{font-size:12px;color:var(--muted)}.tf-ol p{flex-basis:100%;margin:0;font-size:13px;color:var(--accent)}
+.tf-ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:12px 16px 16px}.tf-ol>div{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;padding:8px 10px;border-radius:8px;background:var(--sunken,#f6f6f7)}.tf-ol span{font-size:12px;color:var(--muted)}.tf-ol p{flex-basis:100%;margin:0;font-size:13px;color:var(--accent)}.tf-ol p i{font-style:normal;color:var(--muted);font-size:12px}.tf-ol p .tfi{margin-right:4px}
 .tf-ir{display:flex;align-items:center;gap:8px;margin-bottom:8px}.tf-ir .inp{width:72px}`;document.head.appendChild(st)}
 
 /* ============ Kalenderdozen overdragen naar een ander lid (enkel administrator) ============
