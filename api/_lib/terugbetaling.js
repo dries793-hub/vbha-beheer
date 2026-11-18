@@ -70,7 +70,7 @@ export default async function terugPubliek(req, res) {
     if (req.method === "POST" && b.actie === "onkost") { // onkostennota indienen (zonder link)
       await rateLimit(sb, req, "onkost", 8, 3600, httpErr);
       if (b.website) return res.status(200).json({ ok: true }); // honeypot
-      const naam = clean(b.naam, 80), email = clean(b.email, 160), iban = String(b.iban || "").replace(/\s+/g, "").toUpperCase(), bedrag = bedragVan(b.bedrag), reden = clean(b.reden, 300), datum = /^\d{4}-\d{2}-\d{2}$/.test(b.datum || "") ? b.datum : vandaagISO();
+      const naam = clean(b.naam, 80) || (b.betaald === "kaart" ? "Kaart vriendenkring" : ""), email = clean(b.email, 160), iban = String(b.iban || "").replace(/\s+/g, "").toUpperCase(), bedrag = bedragVan(b.bedrag), reden = clean(b.reden, 300), datum = /^\d{4}-\d{2}-\d{2}$/.test(b.datum || "") ? b.datum : vandaagISO();
       if (!naam) throw httpErr(400, "Vul je naam in.");
       if (!mailOk(email)) throw httpErr(400, "Dit e-mailadres klopt niet.");
       if (iban && !ibanOk(iban)) throw httpErr(400, "Dit rekeningnummer (IBAN) klopt niet.");
