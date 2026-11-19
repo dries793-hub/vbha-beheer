@@ -3019,14 +3019,14 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
           h+=vraag(`Volledige dozen over?`,`<div class="km-st2"><button type="button" data-dz="hmin" aria-label="Eén doos minder"${heel<=0?" disabled":""}>−</button><b>${heel}</b><button type="button" data-dz="hplus" aria-label="Eén doos meer"${heel+1+deel>mx?" disabled":""}>+</button></div>`)
             +vraag("Begonnen doos?",[.25,.5,.75].map(q=>knop("deel",q,KW[q*4],deel===q,heel+q>mx)).join(""))}
         if(DZ.over===false)h+=nodigV()}
-      else h+=NODIG_AAN?`<p class="km-di">Volgens onze lijst heb je geen dozen meer.</p>`+nodigV():`<p class="km-dw">Volgens onze lijst heb je geen dozen met kalenders. Neem contact op met het bestuur.</p>`;
+      else h+=`<p class="km-dw">Volgens onze lijst heb je geen dozen met kalenders. Neem contact op met het bestuur.</p>`;
       dzBox.innerHTML=h}
     function dzKlaar(){if(dzBox.hidden)return true;if(DZ.op==null)return false;
       if(DZ.op>0){if(DZ.over===false)return true;if(DZ.over!==true)return false;const r=dzRest();return r>0&&(DZ.vorig?r<=DZ.op+1e-9:r<DZ.op-1e-9)}
-      if(!NODIG_AAN)return DZ.op>0;return DZ.op>0||DZ.nodig===false||(DZ.nodig===true&&DZ.nodigN!=null)}
+      return DZ.op>0} // geen dozen volgens de lijst: niet als gedaan melden, contact opnemen met het bestuur
     function dzData(){if(dzBox.hidden||DZ.op==null)return undefined;const o={opBij:DZ.op};
       if(DZ.op>0){o.over=DZ.over;if(DZ.over)o.rest=dzRest();else o.af="alle"}
-      if(NODIG_AAN&&(!(DZ.op>0)||DZ.af==="alle")){o.nodig=DZ.nodig;if(DZ.nodig)o.nodigN=DZ.nodigN}return o}
+      if(NODIG_AAN&&DZ.op>0&&DZ.af==="alle"){o.nodig=DZ.nodig;if(DZ.nodig)o.nodigN=DZ.nodigN}return o}
     async function dzLaad(){if(!lid)return;const id=lid.id;DZ.op=null;DZ.voor=null;Object.assign(DZ,{over:null,heel:null,deel:null,af:null,nodig:null,nodigN:null});tekenDz();
       try{const r=await fetch("/api/ronde?dozen="+encodeURIComponent(id),{cache:"no-store"});const j=r.ok?await r.json():{op:0};if(!lid||lid.id!==id)return;DZ.op=Number(j.op)||0;DZ.vorig=null;
         // vorige (nog niet verwerkte) melding: wat toen nog over was, is nu de voorraad; meteen ingevuld
