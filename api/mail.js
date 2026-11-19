@@ -46,8 +46,14 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "social") { const { default: socialApi } = await import("./_lib/social.js"); return await socialApi(req, res); } // sociale media: posts klaarzetten en publiceren (ook geplande taak)
     if (req.query && req.query.f === "bcsplit") { // Bancontact-bulkstortingen opsplitsen (knop in de app of beheerder met geplande-taaksleutel)
       const { requireUser, isDbCron, admin } = await import("./_lib/sb.js"); const { splitsBulk } = await import("./_lib/bcsplit.js");
-      let sb; if (req.method === "POST" && await isDbCron(req)) sb = admin(); else { if (req.method !== "POST") return res.status(405).json({ error: "Gebruik POST" }); await requireUser(req, { boek: true }); sb = admin(); }
       let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+      let sb; if (req.method === "POST" && await isDbCron(req)) sb = admin(); else { if (req.method !== "POST") return res.status(405).json({ error: "Gebruik POST" });
+        if (b.actie === "kalstat") { // kalenderoverzicht lezen: ook wie leesrecht heeft op Kalenders › Overzicht
+          const u = await requireUser(req), R = u.rechten, adm = u.rol === "admin" || u.rol === "bewerker";
+          const ok = adm || (R ? (["lezen", "bewerken"].includes(R["kalenders:kalfin"]) && R.kalenders !== "geen") || R.financien === "bewerken" : u.rol === "boekhouder");
+          if (!ok) return res.status(403).json({ error: "Je hebt geen toegang tot het kalenderoverzicht" });
+        } else await requireUser(req, { boek: true });
+        sb = admin(); }
       if (b.actie === "kalstat") { const { kalStat } = await import("./_lib/bcsplit.js"); return res.status(200).json(await kalStat(sb, Number(b.jaar) || new Date().getFullYear())); }
       if (b.actie === "export") { const { bcExport } = await import("./_lib/bcsplit.js"); return res.status(200).json(await bcExport(sb, b.rijen)); } // Bancontact-export opladen
       return res.status(200).json(await splitsBulk(sb, { ids: Array.isArray(b.ids) ? b.ids.slice(0, 50).map(String) : null, proef: !!b.proef }));
