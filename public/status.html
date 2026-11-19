@@ -147,7 +147,7 @@ html,body{overflow-x:hidden}
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const Q=new URLSearchParams(location.search),l=Q.get("l"),j=Q.get("j"),t=Q.get("t");
-const fout=m=>{$("#lead").textContent="";$("#box").innerHTML=`<div class="card"><p>${esc(m)}</p><p><a href="/reglement">Reglement puntensysteem bekijken</a></p></div>`};
+const fout=m=>{$("#lead").textContent="";$("#box").innerHTML=`<div class="card"><p>${esc(m)}</p><p><a href="/reglement${esc(location.search)}">Reglement puntensysteem bekijken</a></p></div>`};
 const nm=s=>s==="GEEN"?"Geen status":s.charAt(0)+s.slice(1).toLowerCase();
 if(!l||!j||!t)fout("Deze link is onvolledig. Gebruik de link uit de mail die je van ons kreeg.");
 else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({l,j,t})}).then(async r=>{const x=await r.json().catch(()=>({}));if(!r.ok)throw new Error(x.error||"Er ging iets mis. Probeer het later opnieuw.");return x})
@@ -166,7 +166,7 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
      <div class="sp-c"><div class="sp-top"><span class="sp-j">Volgend jaar · ${Y+1}</span><span class="sp-badge ${P.volgend}">${nm(P.volgend)}</span></div>
       <div class="sp-head"><div class="sp-hl"><div class="sp-big">${P.totaal} <span>punten</span></div><p class="sp-s">${P.totaal?`al verzameld in ${Y}.`:`Je punten van ${Y} tellen voor ${Y+1}. Je hebt er nog geen.`}</p></div></div>${rijen(P.onderdelen)}
       <p class="sp-n ${P.naar?"":"ok"}">${volg}</p></div>
-     <p class="sp-w"><a href="/reglement">Hoe werkt het puntensysteem?</a></p></div>`})
+     <p class="sp-w"><a href="/reglement${esc(location.search)}">Hoe werkt het puntensysteem?</a></p></div>`})
   .catch(e=>fout(e.message));
 </script>
 </body>

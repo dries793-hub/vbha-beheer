@@ -18,6 +18,8 @@ export function kloptStatus(l, j, t) {
   const a = Buffer.from(tekenStatus(l, j)), c = Buffer.from(t);
   return a.length === c.length && crypto.timingSafeEqual(a, c);
 }
+// Persoonlijke link naar het reglement (zelfde handtekening als de statuslink): /reglement?l=<lidId>&j=<jaar>&t=<handtekening>
+export function reglementPad(l, j) { return `/reglement?l=${encodeURIComponent(l)}&j=${j}&t=${tekenStatus(l, j)}`; }
 // Ondertekende link "straten van vorig jaar opnieuw reserveren": /kaart?l=<lidId>&j=<jaar>&t=<handtekening>
 export function tekenRonde(l, j) { return crypto.createHmac("sha256", sleutel()).update(`vbha-ronde|${l}|${j}`).digest("base64url").slice(0, 22); }
 export function kloptRonde(l, j, t) {
@@ -33,7 +35,7 @@ export function kloptVul(soort, l, j, t) { if (!sleutel() || !l || typeof t !== 
 export function ondertekenLinks(html) {
   return String(html).replace(/\/lidgeld\?l=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?b=([\d.]+)&(amp;)?t=@@SIG@@/g,
     (m, l, a1, j, a2, b, a3) => m.replace("@@SIG@@", teken(decodeURIComponent(l), j, b)))
-    .replace(/\/status\?l=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?t=@@SIG@@/g, (m, l, a1, j) => m.replace("@@SIG@@", tekenStatus(decodeURIComponent(l), j)))
+    .replace(/\/(?:status|reglement)\?l=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?t=@@SIG@@/g, (m, l, a1, j) => m.replace("@@SIG@@", tekenStatus(decodeURIComponent(l), j)))
     .replace(/\/kaart\?k=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?t=@@SIG@@/g, (m, l, a1, j) => m.replace("@@SIG@@", tekenRonde(decodeURIComponent(l), j)))
     .replace(/\/kaart\?l=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?t=@@SIG@@/g, (m, l, a1, j) => m.replace("@@SIG@@", tekenRonde(decodeURIComponent(l), j)))
     .replace(/\/(banket|kinderfeest|familiedag)\?v=([^&"'\s<>]+)&(amp;)?j=(\d{4})&(amp;)?t=@@SIG@@/g, (m, p, l, a1, j) => m.replace("@@SIG@@", tekenVul(p === "banket" ? "bk" : p === "familiedag" ? "fd" : "kf", decodeURIComponent(l), j)));

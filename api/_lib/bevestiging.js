@@ -3,7 +3,7 @@ import { socialRij } from "./mailsocial.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
 import { algemeen, configDoc, inschrijving, DEF_IBAN, lidgeldBoekingen, norm } from "./publiek.js";
 import { controleerBetaling } from "./betaal.js";
-import { teken, ondertekenLinks } from "./lidlink.js";
+import { teken, ondertekenLinks, reglementPad } from "./lidlink.js";
 import { registreer, sysMail } from "./sjabloon.js";
 
 /* Bevestigingsmails voor de inschrijfpagina's.
@@ -125,7 +125,7 @@ export async function mailNieuwLid(sb, row) {
   const m = await sysMail(sb, "lid-bevestiging", { voornaam: esc(d.voornaam || d.naam), naam: esc(d.naam + " " + d.voornaam), vereniging: esc(A.vereniging), jaar, betaald,
     gegevens: tabel([rij("Naam", esc(d.naam + " " + d.voornaam)), rij("Adres", esc(d.adres)), rij("E-mail", esc(d.email)), rij("Telefoon", esc(d.telefoon)), rij("Categorie", esc(d.categorie)), rij("Lidgeld " + jaar, eur(bedrag))]),
     betaling: betaalBlok({ betaald, betaling: d.betaling, bedrag, rekeningnummer: A.rekeningnummer || DEF_IBAN, begunstigde: A.vereniging, mededeling: `${d.naam} ${d.voornaam} Lidgeld ${jaar}`, tegen, link }),
-    lidgeld: eur(bedrag), link_reglement: `${site()}/reglement`, knop_reglement: knop("Reglement puntensysteem lezen", `${site()}/reglement`) });
+    lidgeld: eur(bedrag), link_reglement: site() + reglementPad(row.id, jaar), knop_reglement: knop("Reglement puntensysteem lezen", site() + reglementPad(row.id, jaar)) });
   const html = m.html;
   return { aan, aanNaam: d.voornaam + " " + d.naam, onderwerp: m.onderwerp, html: huisstijl(html, A.vereniging), betaald };
 }
