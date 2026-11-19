@@ -156,7 +156,7 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
     document.title="Status "+(x.voornaam||"")+" · VBHA";$("#lead").textContent=x.voornaam?"Dag "+x.voornaam+"!":"";
     const een=o=>o.aantal!=null?`${o.aantal} ${o.aantal===1?o.eenheid[0]:o.eenheid[1]} · `:"";
     const dag=d=>d?d.slice(8,10)+"/"+d.slice(5,7):"";
-    const rijen=L=>L.filter(o=>o.punten).map(o=>`<div class="sp-r"><span>${esc(o.naam)}</span><span><b>${o.punten} pt</b></span></div>`+(Array.isArray(o.detail)&&o.detail.length?`<div class="sp-det">${o.detail.map(x=>`<div><span>${esc(x.naam)}${x.datum?` <i>${dag(x.datum)}</i>`:""}${x.partner?` <i>+ partner</i>`:""}</span><span>${x.punten!=null?x.punten:(x.pt||0)} pt</span></div>`).join("")}</div>`:"")).join("");
+    const rijen=L=>L.filter(o=>o.punten).map(o=>`<div class="sp-r"><span>${esc(o.naam)}</span><span><b>${o.punten} pt</b></span></div>`+(Array.isArray(o.detail)&&o.detail.length?`<div class="sp-det">${o.detail.map(x=>`<div><span>${esc(x.naam)}${x.datum?` <i>· ${dag(x.datum)}</i>`:""}${x.partner?` <i>+ partner</i>`:""}</span><span>${x.punten!=null?x.punten:(x.pt||0)} pt</span></div>`).join("")}</div>`:"")).join("");
     const waarom=N.ere?"Erewacht: altijd de maximale korting.":N.vrij?`Je was in ${N.puntenJaar} vrijgesteld van het puntensysteem.`:N.start?`Het puntensysteem startte in ${N.puntenJaar+1}: iedereen krijgt goud.`:`Dankzij je <b>${N.totaal} punten</b> uit ${N.puntenJaar}.`;
     /* rustige meter: één balk tot goud, in de kleur van je status, met een streepje bij zilver */
     const max=D.goud||1,pc=v=>Math.min(100,Math.max(0,v/max*100));
