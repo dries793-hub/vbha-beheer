@@ -2843,7 +2843,7 @@ function krStyleAll(){const todo=krVar("--kr-todo"),sel=krVar("--accent");const 
   for(const id of KR.ss){const l=KR.lines.get(id);if(l)l.bringToFront()}
   /* delen van een straat (tot een kruispunt) */
   if(!KR.segLayer)KR.segLayer=L.layerGroup().addTo(KR.map);KR.segLayer.clearLayers();
-  const ST=Object.assign(krNulStand(KR_STAND),KR_STAND);
+  const ST=Object.assign(krNulStand(KR_STAND),KR_STAND);if(KR_VERB&&KR_VERB.size)for(const k in ST)if(KR_VERB.has(k))delete ST[k];
   for(const id in ST){const x=KR_DEEL.get(id);if(!x||KR_STAND[x.sid]||KR.ss.has(x.sid))continue;
     L.polyline(krDeelLijn(x),{renderer:KR.renderer,interactive:false,weight:w[1],color:ST[id]==="r"?rs:dn,lineCap:"round",opacity:1}).addTo(KR.segLayer)}
   {const sids=new Set();for(const id in ST){const x=KR_DEEL.get(id);if(x&&!KR_STAND[x.sid]&&!KR.ss.has(x.sid))sids.add(x.sid)}
