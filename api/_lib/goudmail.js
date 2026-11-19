@@ -44,6 +44,12 @@ export async function goudCron(sb) {
     kandidaten = kandidaten.filter(r => !M.has(r.id) || (M.get(r.id) || {}).status === "goud");
   }
   if (!kandidaten.length) return { nieuw: 0 };
+  // tijdelijke pauze (algemeen.puntenPauze): wie in die tijd goud haalt, krijgt geen proficiat-mail (enkel aangeduid)
+  if (alg.data.puntenPauze && Date.now() < Date.parse(alg.data.puntenPauze)) {
+    const op = new Date().toISOString();
+    for (const r of kandidaten) await sb.from("jaarleden").update({ data: { ...r.data, goudMail: { op, verstuurd: false, reden: "pauze" } } }).eq("id", r.id);
+    return { pauze: kandidaten.length };
+  }
   const ids = kandidaten.map(r => r.data.lidId || r.id.slice(String(Y).length + 1));
   const { data: leden } = await sb.from("leden").select("id,data").in("id", ids);
   const L = new Map((leden || []).map(r => [r.id, r.data]));
@@ -127,11 +133,14 @@ export async function puntenCron(sb) {
   const MS = new Map((ms || []).map(r => [r.id, r.stand]));
   const sleutel = `${PM.aan === true ? "p" : ""}${SM.aan === true ? "s" : ""}-${Y}`, eersteKeer = C.puntenStart !== sleutel;
   const rust = Date.now() - 30 * 60000, verschil = [];
+  // tijdelijke pauze (config algemeen.puntenPauze = ISO-tijd): wijzigingen tot dan worden enkel opgeslagen, niet gemaild
+  const pauze = C.puntenPauze && Date.now() < Date.parse(C.puntenPauze);
   for (const r of jl || []) {
     const j = r.data || {}, nu = stand(j), pt = punten(j, w), st = statusVan(pt, dr), m = MS.get(r.id);
     if (!m || eersteKeer) { verschil.push({ r, nu, pt, st, init: true }); continue; }
     const meer = Object.keys(nu).some(k => nu[k] > (m[k] || 0)), ander = st !== m.status;
     if (!meer && !ander) continue;
+    if (pauze) { verschil.push({ r, nu, pt, st, init: true }); continue; }
     if (new Date(r.updated_at || 0).getTime() > rust) continue; // nog even wachten tot het invullen klaar is
     verschil.push({ r, nu, pt, st, m, meer, ander });
   }
