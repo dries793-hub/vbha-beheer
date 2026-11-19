@@ -3016,8 +3016,8 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
       if(op>0){const heel=DZ.heel||0,deel=DZ.deel||0,r=heel+deel;
         h+=vraag(`Nog kalenders over?<small>${DZ.vorig?"vorige melding: nog":"je hebt"} ${fd(op)}</small>`,knop("over","1","Ja",DZ.over===true)+knop("over","0","Nee",DZ.over===false));
         if(DZ.over===true){const mx=DZ.vorig?op+1e-9:op-1e-9;
-          h+=vraag(`Volledige dozen over?${r>0?`<small>samen nog ${fd(r)}</small>`:""}`,`<div class="km-st2"><button type="button" data-dz="hmin" aria-label="Eén doos minder"${heel<=0?" disabled":""}>−</button><b>${heel}</b><button type="button" data-dz="hplus" aria-label="Eén doos meer"${heel+1+deel>mx?" disabled":""}>+</button></div>`)
-            +vraag("Plus een deel?",[.25,.5,.75].map(q=>knop("deel",q,"+"+KW[q*4],deel===q,heel+q>mx)).join(""))}
+          h+=vraag(`Volledige dozen over?`,`<div class="km-st2"><button type="button" data-dz="hmin" aria-label="Eén doos minder"${heel<=0?" disabled":""}>−</button><b>${heel}</b><button type="button" data-dz="hplus" aria-label="Eén doos meer"${heel+1+deel>mx?" disabled":""}>+</button></div>`)
+            +vraag("Begonnen doos?",[.25,.5,.75].map(q=>knop("deel",q,"+"+KW[q*4],deel===q,heel+q>mx)).join(""))}
         if(DZ.over===false)h+=nodigV()}
       else h+=NODIG_AAN?`<p class="km-di">Volgens onze lijst heb je geen dozen meer.</p>`+nodigV():`<p class="km-dw">Volgens onze lijst heb je geen dozen met kalenders. Neem contact op met het bestuur.</p>`;
       dzBox.innerHTML=h}
