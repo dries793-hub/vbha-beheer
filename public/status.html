@@ -130,7 +130,8 @@ html,body{overflow-x:hidden}
 .sp-badge.BRONS{background:#a5703f}.sp-badge.ZILVER{background:#8d959e}.sp-badge.GOUD{background:#c19a2e}.sp-badge.GEEN{background:#9aa0a6}
 .sp-big{font-size:30px;font-weight:800;letter-spacing:-.01em;margin:10px 0 2px;line-height:1.1}
 .sp-s{color:var(--muted);font-size:14px;margin:0}
-.sp-r{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:14.5px}.sp-r:first-of-type{margin-top:12px}
+.sp-r{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:14.5px}
+.sp-det{margin:-4px 0 6px;padding-left:14px;border-left:2px solid var(--line)}.sp-det>div{display:flex;justify-content:space-between;gap:12px;padding:2px 0;font-size:13px;color:var(--muted)}.sp-det i{font-style:normal;opacity:.8}.sp-r:first-of-type{margin-top:12px}
 .sp-r span:last-child{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--muted)}.sp-r b{color:var(--ink)}
 .sp-m{position:relative;margin:18px 0 0}.sp-m .bar{height:8px;border-radius:999px;background:var(--sunken);overflow:hidden}.sp-m .bar i{display:block;height:100%;border-radius:999px}
 .sp-m .BRONS{background:#a5703f}.sp-m .ZILVER{background:#8d959e}.sp-m .GOUD{background:#c19a2e}.sp-m .GEEN{background:#9aa0a6}
@@ -154,7 +155,8 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
   .then(x=>{const N=x.nu,P=x.punten,Y=x.jaar,D=x.drempels;
     document.title="Status "+(x.voornaam||"")+" · VBHA";$("#lead").textContent=x.voornaam?"Dag "+x.voornaam+"!":"";
     const een=o=>o.aantal!=null?`${o.aantal} ${o.aantal===1?o.eenheid[0]:o.eenheid[1]} · `:"";
-    const rijen=L=>L.filter(o=>o.punten).map(o=>`<div class="sp-r"><span>${esc(o.naam)}</span><span>${een(o)}<b>${o.punten} pt</b></span></div>`).join("");
+    const dag=d=>d?d.slice(8,10)+"/"+d.slice(5,7):"";
+    const rijen=L=>L.filter(o=>o.punten).map(o=>`<div class="sp-r"><span>${esc(o.naam)}</span><span>${een(o)}<b>${o.punten} pt</b></span></div>`+(Array.isArray(o.detail)&&o.detail.length?`<div class="sp-det">${o.detail.map(x=>`<div><span>${esc(x.naam)}${x.datum?` <i>${dag(x.datum)}</i>`:""}</span><span>${x.aantal} ${x.aantal===1?"shift":"shiften"}</span></div>`).join("")}</div>`:"")).join("");
     const waarom=N.ere?"Erewacht: altijd de maximale korting.":N.vrij?`Je was in ${N.puntenJaar} vrijgesteld van het puntensysteem.`:N.start?`Het puntensysteem startte in ${N.puntenJaar+1}: iedereen krijgt goud.`:`Dankzij je <b>${N.totaal} punten</b> uit ${N.puntenJaar}.`;
     /* rustige meter: één balk tot goud, in de kleur van je status, met een streepje bij zilver */
     const max=D.goud||1,pc=v=>Math.min(100,Math.max(0,v/max*100));
