@@ -141,9 +141,9 @@ export async function puntenCron(sb) {
     const meer = Object.keys(nu).some(k => nu[k] > (m[k] || 0)), ander = st !== m.status;
     if (!meer && !ander) continue;
     if (pauze) { verschil.push({ r, nu, pt, st, init: true }); continue; }
-    // punten van vergaderingen: nooit een mail (ook geen goudmail); enkel de stand bijwerken
+    // punten van vergaderingen: geen puntenmail, enkel de stand bijwerken (wie zo goud haalt, krijgt wel de proficiat-mail via goudCron)
     const omhoog = Object.keys(nu).filter(k => nu[k] > (m[k] || 0));
-    if (omhoog.length && omhoog.every(k => k === "vergaderingen")) { verschil.push({ r, nu, pt, st, init: true, verg: st === "goud" && !j.goudMail }); continue; }
+    if (omhoog.length && omhoog.every(k => k === "vergaderingen")) { verschil.push({ r, nu, pt, st, init: true }); continue; }
     if (new Date(r.updated_at || 0).getTime() > rust) continue; // nog even wachten tot het invullen klaar is
     verschil.push({ r, nu, pt, st, m, meer, ander });
   }
@@ -154,7 +154,6 @@ export async function puntenCron(sb) {
   const mails = [], standen = [], goudZet = [], nuIso = new Date().toISOString();
   for (const x of verschil) {
     const nieuwStand = { ...x.nu, status: x.st, op: new Date().toISOString(), ...(x.r.data.kalAfExact != null ? { kalAfExact: Number(x.r.data.kalAfExact) } : {}) };
-    if (x.verg) goudZet.push({ id: x.r.id, data: { ...x.r.data, goudMail: { op: nuIso, verstuurd: false, via: "vergadering", reden: "vergadering" } } });
     if (!x.init) {
       const lidId = x.r.data.lidId || x.r.id.slice(String(Y).length + 1), lid = L.get(lidId) || {}, j = x.r.data;
       const ok = lid.naam && !lid.geenLid && lid.categorie !== "Erewacht" && !j.vrijstelling && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(String(lid.email || "").trim());
