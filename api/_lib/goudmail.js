@@ -141,6 +141,9 @@ export async function puntenCron(sb) {
     const meer = Object.keys(nu).some(k => nu[k] > (m[k] || 0)), ander = st !== m.status;
     if (!meer && !ander) continue;
     if (pauze) { verschil.push({ r, nu, pt, st, init: true }); continue; }
+    // punten van vergaderingen: nooit een mail (ook geen goudmail); enkel de stand bijwerken
+    const omhoog = Object.keys(nu).filter(k => nu[k] > (m[k] || 0));
+    if (omhoog.length && omhoog.every(k => k === "vergaderingen")) { verschil.push({ r, nu, pt, st, init: true, verg: st === "goud" && !j.goudMail }); continue; }
     if (new Date(r.updated_at || 0).getTime() > rust) continue; // nog even wachten tot het invullen klaar is
     verschil.push({ r, nu, pt, st, m, meer, ander });
   }
@@ -151,11 +154,12 @@ export async function puntenCron(sb) {
   const mails = [], standen = [], goudZet = [], nuIso = new Date().toISOString();
   for (const x of verschil) {
     const nieuwStand = { ...x.nu, status: x.st, op: new Date().toISOString(), ...(x.r.data.kalAfExact != null ? { kalAfExact: Number(x.r.data.kalAfExact) } : {}) };
+    if (x.verg) goudZet.push({ id: x.r.id, data: { ...x.r.data, goudMail: { op: nuIso, verstuurd: false, via: "vergadering", reden: "vergadering" } } });
     if (!x.init) {
       const lidId = x.r.data.lidId || x.r.id.slice(String(Y).length + 1), lid = L.get(lidId) || {}, j = x.r.data;
       const ok = lid.naam && !lid.geenLid && lid.categorie !== "Erewacht" && !j.vrijstelling && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(String(lid.email || "").trim());
       const regels = [];
-      for (const [k, wk, naam] of ONDERDELEN) { const d = x.nu[k] - (x.m[k] || 0); if (d > 0) regels.push({ naam, pt: d * (w[wk] || 0), n: k === "kalUitgevoerd" ? `${d} ${d === 1 ? "doos" : "dozen"}` : k === "kaarten" ? `${d} ${d === 1 ? "kaart" : "kaarten"}` : k === "shifts" ? `${d} keer geholpen` : `${d}` }); }
+      for (const [k, wk, naam] of ONDERDELEN) { if (k === "vergaderingen") continue; const d = x.nu[k] - (x.m[k] || 0); if (d > 0) regels.push({ naam, pt: d * (w[wk] || 0), n: k === "kalUitgevoerd" ? `${d} ${d === 1 ? "doos" : "dozen"}` : k === "kaarten" ? `${d} ${d === 1 ? "kaart" : "kaarten"}` : k === "shifts" ? `${d} keer geholpen` : `${d}` }); }
       { const kr = regels.find(r => r.naam === "kalenders bussen"), ex = j.kalAfExact != null ? Number(j.kalAfExact) : null;
         if (kr && ex != null) { const d = x.nu.kalUitgevoerd - (x.m.kalUitgevoerd || 0), exD = Math.round((ex - (x.m.kalAfExact != null ? Number(x.m.kalAfExact) : (x.m.kalUitgevoerd || 0))) * 100) / 100;
           if (exD > 0 && exD < d) kr.n = `${String(exD).replace(".", ",")} dozen bedeeld; een begonnen doos telt als volle doos`; } }
