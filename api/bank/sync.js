@@ -16,16 +16,44 @@ export default async function handler(req, res) {
     if (isCron(req) || await isDbCron(req)) sb = admin();
     else { if (req.method !== "POST") throw httpErr(405, "Gebruik POST"); ({ sb } = await requireUser(req, { boek: true })); manueel = true; }
     if (!configured()) throw httpErr(501, "Enable Banking is nog niet ingesteld");
-    const result = await syncAll(sb, { manueel });
+    // wie zelf ophaalt, is aanwezig: PSU-headers meesturen (telt dan niet mee voor de daglimiet van de bank)
+    const ip = manueel ? String(req.headers["x-forwarded-for"] || req.headers["x-real-ip"] || "").split(",")[0].trim() : "";
+    const result = await syncAll(sb, { manueel, psu: ip ? { ip, ua: String(req.headers["user-agent"] || "").slice(0, 300) } : null });
     res.status(200).json(result);
   } catch (e) { sendError(res, e); }
+}
+
+/* Verrichtingen ophalen vanaf een datum. Volgt de continuation_key van de bank. Sommige banken (bv. Argenta) geven per
+   antwoord maar een beperkt aantal verrichtingen (de recentste) zonder vervolgsleutel: dan het oudere stuk apart opvragen
+   (tot de dag van de oudste ontvangen verrichting), zodat er bij drukke dagen niets wegvalt. */
+async function haalTx(acc, dateFrom, psu) {
+  const alle = new Map(), sleutel = t => String(t.entry_reference || t.transaction_id || JSON.stringify([t.booking_date, t.transaction_amount, t.remittance_information]));
+  let dateTo = null;
+  for (let ronde = 0; ronde < 8; ronde++) {
+    const deel = []; let ck = null, guard = 0;
+    do {
+      const q = new URLSearchParams({ date_from: dateFrom, transaction_status: "BOOK" });
+      if (dateTo) q.set("date_to", dateTo);
+      if (ck) q.set("continuation_key", ck);
+      const r = await eb(`/accounts/${encodeURIComponent(acc.uid)}/transactions?${q}`, { psu });
+      deel.push(...(r.transactions || []));
+      ck = r.continuation_key || null;
+    } while (ck && ++guard < 50);
+    const voor = alle.size; for (const t of deel) alle.set(sleutel(t), t);
+    // een "rond" aantal zonder vervolgsleutel wijst op een afgekapt antwoord: het oudere deel apart opvragen
+    if (deel.length < 25 || deel.length % 25 !== 0) break;
+    const oudste = deel.map(t => String(t.booking_date || t.value_date || "").slice(0, 10)).filter(Boolean).sort()[0];
+    if (!oudste || oudste <= dateFrom || oudste === dateTo || alle.size === voor) break;
+    dateTo = oudste;
+  }
+  return [...alle.values()];
 }
 
 // Saldo van de rekening bij de bank. Banken beperken automatische opvragingen (PSD2: ongeveer 4 per dag),
 // dus automatisch hooguit één keer per dag; met "Nu ophalen" altijd.
 const VOORKEUR = ["CLBD", "ITBD", "XPCD", "CLAV", "ITAV", "OPBD"];
-async function haalSaldo(acc) {
-  const r = await eb(`/accounts/${encodeURIComponent(acc.uid)}/balances`);
+async function haalSaldo(acc, psu) {
+  const r = await eb(`/accounts/${encodeURIComponent(acc.uid)}/balances`, { psu });
   const L = (r.balances || []).filter(b => b.balance_amount && b.balance_amount.amount != null);
   if (!L.length) return null;
   L.sort((a, b) => (VOORKEUR.indexOf(a.balance_type) + 1 || 99) - (VOORKEUR.indexOf(b.balance_type) + 1 || 99));
@@ -33,7 +61,7 @@ async function haalSaldo(acc) {
   return { bedrag: r2(Number(b.balance_amount.amount)), munt: b.balance_amount.currency || "EUR", type: b.balance_type || "", naam: b.name || "",
     datum: b.reference_date || String(b.last_change_date_time || "").slice(0, 10) || null, geboekt, op: new Date().toISOString() };
 }
-export async function syncAll(sb, { manueel = false } = {}) {
+export async function syncAll(sb, { manueel = false, psu = null } = {}) {
   const { data: kops, error } = await sb.from("bank_koppelingen").select("id,data");
   if (error) throw error;
   const totaal = { nieuw: 0, dubbel: 0, open: 0, rekeningen: 0, fouten: [] };
@@ -56,20 +84,15 @@ export async function syncAll(sb, { manueel = false } = {}) {
   for (const k of kops) {
     const d = k.data || {};
     if (d.valid_until && new Date(d.valid_until) < nu) { totaal.fouten.push(`Toestemming voor ${d.aspsp} is verlopen: koppel opnieuw.`); continue; }
-    const vanaf = d.laatste_sync ? new Date(new Date(d.laatste_sync).getTime() - 10 * 86400000) : eersteVanaf;
+    // vertrekken van de laatste ophaling die echt gelukt is (niet van een poging die op de daglimiet botste), met 4 dagen overlap
+    const basis = d.laatste_ok || d.laatste_sync;
+    const vanaf = basis ? new Date(new Date(basis).getTime() - 4 * 86400000) : eersteVanaf;
+    let ok = false;
     const dateFrom = vanaf.toISOString().slice(0, 10);
     for (const acc of d.accounts || []) {
       totaal.rekeningen++;
       try {
-        const txs = [];
-        let ck = null, guard = 0;
-        do {
-          const q = new URLSearchParams({ date_from: dateFrom, transaction_status: "BOOK" });
-          if (ck) q.set("continuation_key", ck);
-          const r = await eb(`/accounts/${encodeURIComponent(acc.uid)}/transactions?${q}`);
-          txs.push(...(r.transactions || []));
-          ck = r.continuation_key || null;
-        } while (ck && ++guard < 50);
+        const txs = await haalTx(acc, dateFrom, psu);
         if (!txs.length) totaal.leeg = (totaal.leeg || 0) + 1; // de bank gaf geen verrichtingen terug (bv. limiet van automatische opvragingen bereikt)
         const r = await boekTransacties(sb, txs, { regels, leden, facturen, sponsors, bron: d.aspsp || "Bank" });
         // controlelijst voor de saldocontrole in de app: de verrichtingen bij de bank (bij manueel ophalen tot 89 dagen terug)
@@ -77,24 +100,21 @@ export async function syncAll(sb, { manueel = false } = {}) {
           let lijst = txs, van = dateFrom;
           if (manueel) {
             const v = new Date(Math.max(new Date(`${nu.getFullYear()}-01-01`).getTime(), nu.getTime() - 89 * 86400000)).toISOString().slice(0, 10);
-            if (v < dateFrom) { const extra = []; let ck2 = null, g2 = 0;
-              do { const q = new URLSearchParams({ date_from: v, transaction_status: "BOOK" }); if (ck2) q.set("continuation_key", ck2);
-                const rr = await eb(`/accounts/${encodeURIComponent(acc.uid)}/transactions?${q}`); extra.push(...(rr.transactions || [])); ck2 = rr.continuation_key || null; } while (ck2 && ++g2 < 50);
-              lijst = extra; van = v; }
+            if (v < dateFrom) { lijst = await haalTx(acc, v, psu); van = v; }
           }
           const tx = lijst.map(mapTransaction).filter(b => b.datum && b.bedrag).map(b => ({ d: b.datum, b: b.bedrag, r: b.richting, ref: b.bankRef || "", p: String(b.partij || "").slice(0, 60), m: String(b.mededeling || "").slice(0, 80) }));
           // een bredere lijst van een vorige keer aanvullen in plaats van overschrijven
           const oud = acc.controle && acc.controle.van && acc.controle.van < van && Array.isArray(acc.controle.tx) ? acc.controle : null;
           acc.controle = oud ? { van: oud.van, op: nu.toISOString(), tx: [...oud.tx.filter(x => x.d < van), ...tx].slice(-800) } : { van, op: nu.toISOString(), tx: tx.slice(-800) };
         } catch (e) { console.warn("controle", e.message); acc.controleFout = String(e.message || e).slice(0, 200); }
-        totaal.nieuw += r.nieuw; totaal.dubbel += r.dubbel; totaal.open += r.open;
+        totaal.nieuw += r.nieuw; totaal.dubbel += r.dubbel; totaal.open += r.open; ok = true;
       } catch (e) { totaal.fouten.push(`${acc.iban || acc.uid}: ${e.message}`); }
       if (manueel || !acc.saldo || String(acc.saldo.op || "").slice(0, 10) !== nu.toISOString().slice(0, 10)) {
-        try { const sd = await haalSaldo(acc); if (sd) { acc.saldo = sd; totaal.saldo = r2((totaal.saldo || 0) + sd.bedrag); } }
+        try { const sd = await haalSaldo(acc, psu); if (sd) { acc.saldo = sd; totaal.saldo = r2((totaal.saldo || 0) + sd.bedrag); } }
         catch (e) { console.warn("saldo", acc.iban || acc.uid, e.message); if (acc.saldo) acc.saldo = { ...acc.saldo, fout: e.message.slice(0, 160) }; }
       }
     }
-    await sb.from("bank_koppelingen").update({ data: { ...d, laatste_sync: nu.toISOString() } }).eq("id", k.id);
+    await sb.from("bank_koppelingen").update({ data: { ...d, laatste_sync: nu.toISOString(), ...(ok ? { laatste_ok: nu.toISOString() } : {}) } }).eq("id", k.id);
   }
   // Bancontact-bulkstortingen meteen opsplitsen volgens de online betalingen van die dag (rest: Kalenders)
   try { const sp = await splitsBulk(sb); if (sp.gesplitst) totaal.gesplitst = sp.gesplitst; } catch (e) { console.error("splitsBulk", e); }

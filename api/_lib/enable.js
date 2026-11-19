@@ -21,14 +21,19 @@ export function makeJwt(appId = process.env.ENABLE_BANKING_APP_ID, key = private
   return `${header}.${payload}.${b64url(sig)}`;
 }
 
-export async function eb(path, { method = "GET", body } = {}) {
+// psu: { ip, ua } van de gebruiker die zelf op "Nu ophalen" klikt. Met die headers weet de bank dat de gebruiker
+// aanwezig is en telt de opvraging niet mee voor de limiet van ongeveer 4 automatische opvragingen per dag.
+export async function eb(path, { method = "GET", body, psu = null } = {}) {
+  const ph = psu && psu.ip ? { "Psu-Ip-Address": psu.ip, "Psu-User-Agent": psu.ua || "Mozilla/5.0" } : {};
   const r = await fetch(BASE + path, {
     method,
-    headers: { Authorization: `Bearer ${makeJwt()}`, "Content-Type": "application/json", Accept: "application/json" },
+    headers: { Authorization: `Bearer ${makeJwt()}`, "Content-Type": "application/json", Accept: "application/json", ...ph },
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await r.text();
   let json; try { json = text ? JSON.parse(text) : {}; } catch { json = { raw: text }; }
+  // vraagt de bank nog andere PSU-headers dan wij meesturen, dan gewoon opnieuw zonder (zoals een automatische opvraging)
+  if (!r.ok && psu && r.status === 422 && /PSU_HEADER/i.test(text)) return eb(path, { method, body });
   if (!r.ok) {
     const e = new Error(`Enable Banking ${r.status}: ${json.message || json.detail || json.error || text.slice(0, 200)}`);
     e.status = 502; e.detail = json; throw e;
