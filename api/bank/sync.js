@@ -109,7 +109,9 @@ export async function syncAll(sb, { manueel = false, psu = null } = {}) {
         } catch (e) { console.warn("controle", e.message); acc.controleFout = String(e.message || e).slice(0, 200); }
         totaal.nieuw += r.nieuw; totaal.dubbel += r.dubbel; totaal.open += r.open; ok = true;
       } catch (e) { totaal.fouten.push(`${acc.iban || acc.uid}: ${e.message}`); }
-      if (manueel || !acc.saldo || String(acc.saldo.op || "").slice(0, 10) !== nu.toISOString().slice(0, 10)) {
+      // saldo altijd mee ophalen (de automatische ophaling gebeurt nog maar één keer per dag); anders blijft er een saldo van eerder
+      // die dag staan terwijl er intussen nieuwe verrichtingen ingelezen zijn, en toont de app een vals verschil
+      {
         try { const sd = await haalSaldo(acc, psu); if (sd) { acc.saldo = sd; totaal.saldo = r2((totaal.saldo || 0) + sd.bedrag); } }
         catch (e) { console.warn("saldo", acc.iban || acc.uid, e.message); if (acc.saldo) acc.saldo = { ...acc.saldo, fout: e.message.slice(0, 160) }; }
       }
