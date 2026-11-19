@@ -2802,7 +2802,7 @@ const krFold=t=>t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const KR_SORTED=[...KR_STREETS].sort((a,b)=>a.n.localeCompare(b.n,"nl")||a.w.localeCompare(b.w,"nl"));
 function krLabels(){if(!KR.labels)return;KR.labels.clearLayers();const map=KR.map;if(map.getZoom()<KR_LABEL_ZOOM)return;
   const view=map.getBounds().pad(.1);
-  for(const s of KR_STREETS){const {at,angle}=KR.labelAt.get(s.id);if(!view.contains(at))continue;
+  for(const s of KR_STREETS){const {at,angle}=KR.labelAt.get(s.id);if(!view.contains(at))continue;if(KR_VERB.size&&!krGeo(s.id).some(l=>l&&l.length>1))continue;
     const t=document.createElement("span");t.textContent=s.n;t.style.transform=`rotate(${angle.toFixed(1)}deg)`;
     KR.labels.addLayer(L.tooltip({permanent:true,direction:"center",className:"kr-lbl",interactive:false}).setLatLng(at).setContent(t))}}
 const KR_BLD_ZOOM=15;
