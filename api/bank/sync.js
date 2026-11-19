@@ -9,7 +9,7 @@ const slug = s => norm(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "
 const r2 = n => Math.round(n * 100) / 100;
 
 // Haalt nieuwe verrichtingen op voor alle gekoppelde rekeningen en boekt ze.
-// Wordt om 9u, 13u en 17u aangeroepen door een geplande taak in Supabase (pg_cron, functie bank_sync_cron) of via de knop "Nu ophalen".
+// Wordt dagelijks om 13u aangeroepen door een geplande taak in Supabase (pg_cron, functie bank_sync_cron) of via de knop "Nu ophalen".
 export default async function handler(req, res) {
   try {
     let sb, manueel = false;
