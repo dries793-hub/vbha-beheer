@@ -2993,7 +2993,7 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
   const _c=krCard;krCard=function(){_c.apply(this,arguments);const m=$("#krMeld");if(m){m.hidden=!KR.ss.size;const r=m.querySelector('[data-krmeld="r"]');if(r)r.hidden=krAlRes()}};
   const e2=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   function open(soort){const ids=[...KR.ss].filter(id=>KR.byId.has(id)||KR_DEEL.has(id));if(!ids.length)return;let lid=null,L=[],sel=-1,T=null;
-    const bg=document.createElement("div");bg.className="km-bg";bg.innerHTML=`<div class="km" role="dialog" aria-modal="true" aria-labelledby="kmT"><h3 id="kmT">Straten melden</h3><p>Het bestuur kijkt je melding na. Daarna verschijnt ze op de kaart.</p>
+    const bg=document.createElement("div");bg.className="km-bg";bg.innerHTML=`<div class="km" role="dialog" aria-modal="true" aria-labelledby="kmT"><h3 id="kmT" style="margin-bottom:12px">Straten melden</h3>
       <div class="km-st">${[...new Set(ids.map(id=>krNaamId(id)))].map(n=>`<span>${e2(n)}</span>`).join("")}</div>
       <div class="km-seg"><button type="button" data-ks="r">Reserveren</button><button type="button" data-ks="d"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Gedaan</button></div>
       <label for="kmN">Naam</label><div class="km-w"><input type="text" id="kmN" autocomplete="off"><div class="km-l" id="kmL" hidden></div></div><div class="km-dz" id="kmDz" hidden></div>
