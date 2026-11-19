@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     let teller = null;
     try { const per = Number(pd?.data?.perDoos) || 100, stock = Number(pd?.data?.kalenderStock) || 0; let ui = 0;
       for (let from = 0; ; from += 1000) { const { data: J, error: e2 } = await sb.from("jaarleden").select("data").eq("data->>jaar", String(A.jaar)).range(from, from + 999); if (e2) throw e2;
-        for (const r of J) ui += Number(r.data?.kalUitgevoerd) || 0; if (J.length < 1000) break; }
+        for (const r of J) ui += (Number(r.data?.kalUitgevoerd) || 0) - (Number(r.data?.kalTerugRest) || 0); if (J.length < 1000) break; }
       if (stock > 0) teller = { bedeeld: Math.round(ui * per), totaal: Math.round(stock * per) }; } catch (e) { /* geen teller */ }
     // meldingen die het bestuur nog moet nakijken (zonder namen): oranje stippellijn op de kaart
     const open = {};
