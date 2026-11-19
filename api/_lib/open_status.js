@@ -63,7 +63,7 @@ export default async function handler(req, res) {
     const J = (jr && jr.data) || {}, JV = (jv && jv.data) || {};
     const delen = (J, w) => { const o = [
       { naam: "Kalenders bussen", aantal: J.kalUitgevoerd || 0, eenheid: ["doos", "dozen"], per: w.kalenders },
-      { naam: "Hulp bij activiteiten", aantal: J.shifts || 0, eenheid: ["shift", "shiften"], per: w.shifts },
+      { naam: "Hulp bij activiteiten", aantal: J.shifts || 0, eenheid: ["keer geholpen", "keer geholpen"], per: w.shifts },
       { naam: "Verkoop kaarten fuif", aantal: J.kaarten || 0, eenheid: ["kaart", "kaarten"], per: w.kaarten },
       { naam: "Vergaderingen", aantal: J.vergaderingen || 0, eenheid: ["vergadering", "vergaderingen"], per: w.vergaderingen }
     ].map(x => ({ ...x, punten: x.aantal * (x.per || 0) }));
@@ -75,7 +75,7 @@ export default async function handler(req, res) {
       const rest = (Number(J.shifts) || 0) - d.reduce((t, x) => t + x.aantal, 0); if (rest > 0) d.push({ naam: "Andere", datum: "", aantal: rest }); return d; })();
     const onderdelen = [
       { naam: "Kalenders bussen", aantal: J.kalUitgevoerd || 0, eenheid: ["doos", "dozen"], per: w.kalenders },
-      { naam: "Hulp bij activiteiten", aantal: J.shifts || 0, eenheid: ["shift", "shiften"], per: w.shifts, ...(shDetail ? { detail: shDetail } : {}) },
+      { naam: "Hulp bij activiteiten", aantal: J.shifts || 0, eenheid: ["keer geholpen", "keer geholpen"], per: w.shifts, ...(shDetail ? { detail: shDetail } : {}) },
       { naam: "Verkoop kaarten fuif", aantal: J.kaarten || 0, eenheid: ["kaart", "kaarten"], per: w.kaarten },
       { naam: "Vergaderingen", aantal: J.vergaderingen || 0, eenheid: ["vergadering", "vergaderingen"], per: w.vergaderingen }
     ].map(o => ({ ...o, punten: o.aantal * (o.per || 0) }));

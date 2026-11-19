@@ -155,7 +155,7 @@ export async function puntenCron(sb) {
       const lidId = x.r.data.lidId || x.r.id.slice(String(Y).length + 1), lid = L.get(lidId) || {}, j = x.r.data;
       const ok = lid.naam && !lid.geenLid && lid.categorie !== "Erewacht" && !j.vrijstelling && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(String(lid.email || "").trim());
       const regels = [];
-      for (const [k, wk, naam] of ONDERDELEN) { const d = x.nu[k] - (x.m[k] || 0); if (d > 0) regels.push({ naam, pt: d * (w[wk] || 0), n: k === "kalUitgevoerd" ? `${d} ${d === 1 ? "doos" : "dozen"}` : k === "kaarten" ? `${d} ${d === 1 ? "kaart" : "kaarten"}` : k === "shifts" ? `${d} ${d === 1 ? "shift" : "shiften"}` : `${d}` }); }
+      for (const [k, wk, naam] of ONDERDELEN) { const d = x.nu[k] - (x.m[k] || 0); if (d > 0) regels.push({ naam, pt: d * (w[wk] || 0), n: k === "kalUitgevoerd" ? `${d} ${d === 1 ? "doos" : "dozen"}` : k === "kaarten" ? `${d} ${d === 1 ? "kaart" : "kaarten"}` : k === "shifts" ? `${d} keer geholpen` : `${d}` }); }
       { const kr = regels.find(r => r.naam === "kalenders bussen"), ex = j.kalAfExact != null ? Number(j.kalAfExact) : null;
         if (kr && ex != null) { const d = x.nu.kalUitgevoerd - (x.m.kalUitgevoerd || 0), exD = Math.round((ex - (x.m.kalAfExact != null ? Number(x.m.kalAfExact) : (x.m.kalUitgevoerd || 0))) * 100) / 100;
           if (exD > 0 && exD < d) kr.n = `${String(exD).replace(".", ",")} dozen bedeeld; een begonnen doos telt als volle doos`; } }
