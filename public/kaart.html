@@ -2722,7 +2722,8 @@ const krLijnSl=(sid,p)=>sid+"@"+[p[0],p[p.length-1]].map(q=>(+q[0]).toFixed(5)+"
 /* "straat#lat,lng,r": punten van lijnen van die straat binnen r meter van het punt weglaten (een haakje of lusje)
    "straat!lat,lng": een los uiteinde op die plaats niet automatisch doortrekken naar een andere lijn */
 var KR_NOSNAP=[];
-function krLijnenVerbergen(V){const per=new Map(),kn=new Map(),sn=new Map();KR_NOSNAP=[];for(const k of V){let i=k.indexOf("%");if(i>0){const sid=k.slice(0,i);if(!sn.has(sid))sn.set(sid,new Set());sn.get(sid).add(k.slice(i+1));continue}
+function krLijnenVerbergen(V){const per=new Map(),kn=new Map(),sn=new Map(),bij=new Map();KR_NOSNAP=[];for(const k of V){let i=k.indexOf("+");if(i>0){const sid=k.slice(0,i),q=k.slice(i+1).split(">").map(t=>t.split(",").map(Number));if(q.length===2&&q.flat().every(isFinite)){if(!bij.has(sid))bij.set(sid,[]);bij.get(sid).push(q)}continue}
+    i=k.indexOf("%");if(i>0){const sid=k.slice(0,i);if(!sn.has(sid))sn.set(sid,new Set());sn.get(sid).add(k.slice(i+1));continue}
     i=k.indexOf("@");if(i>0){const sid=k.slice(0,i);if(!per.has(sid))per.set(sid,new Set());per.get(sid).add(k);continue}
     i=k.indexOf("!");if(i>0){const [la,lo]=k.slice(i+1).split(",").map(Number);if(isFinite(la)&&isFinite(lo))KR_NOSNAP.push({sid:k.slice(0,i),m:[la*111320,lo*111320*Math.cos(50.94*Math.PI/180)]});continue}
     i=k.indexOf("#");if(i>0){const sid=k.slice(0,i),[la,lo,r]=k.slice(i+1).split(",").map(Number);if(isFinite(la)&&isFinite(lo)){if(!kn.has(sid))kn.set(sid,[]);kn.get(sid).push([la,lo,r||8])}}}
@@ -2735,7 +2736,12 @@ function krLijnenVerbergen(V){const per=new Map(),kn=new Map(),sn=new Map();KR_N
   const splits=(sid,p)=>{const C=SNG.get(sid);if(!C||!p||p.length<2)return [p];const D=[p[0]];
     for(let i=1;i<p.length;i++){const a=mm(p[i-1]),b=mm(p[i]),n=Math.min(200,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/2));for(let j=1;j<n;j++)D.push([p[i-1][0]+(p[i][0]-p[i-1][0])*j/n,p[i-1][1]+(p[i][1]-p[i-1][1])*j/n]);D.push(p[i])}
     if(!D.some(q=>binnen(mm(q),C)))return [p];const out=[];let cur=[];for(const q of D){if(binnen(mm(q),C)){if(cur.length>=2)out.push(cur);cur=[]}else cur.push(q)}if(cur.length>=2)out.push(cur);return out};
-  if(!per.size&&!kn.size&&!sn.size){KRE.geo=null;return}
+  if(!per.size&&!kn.size&&!sn.size&&!bij.size){KRE.geo=null;return}
+  // "straat+punt>punt": ontbrekend stukje straat toevoegen (gat in de kaartgegevens); hoort bij het stuk met het dichtste eindpunt
+  for(const [sid,Q] of bij){const ml=KR_LIJN.get(sid),st=KR_ALLE.find(s=>s.id===sid),D=KR_DELEN.get(sid)||[];
+    for(const q of Q){if(Array.isArray(ml))ml.push(q.map(x=>[...x]));if(st&&st.g)st.g=[...KRE.delen(st.g),q.map(x=>[...x])];
+      let best=null,bd=1e9;for(const x of D)for(const p of KRE.delen(x.g))for(const e of [p[0],p[p.length-1]])for(const c of q){const d=Math.hypot(e[0]-c[0],(e[1]-c[1])*.63);if(d<bd){bd=d;best=x}}
+      if(best)best.g=[...KRE.delen(best.g),q.map(x=>[...x])]}}
   const sids=new Set([...per.keys(),...kn.keys(),...sn.keys()]);
   for(const sid of sids){const S=per.get(sid)||new Set(),ok=p=>!S.has(krLijnSl(sid,p));const ml=KR_LIJN.get(sid);
     if(Array.isArray(ml)){for(let i=ml.length-1;i>=0;i--)if(!ok(ml[i]))ml.splice(i,1);else{const d=splits(sid,knip(sid,ml[i]));ml.splice(i,1,...d)}}

@@ -206,6 +206,8 @@ let KRL = null, KRD = null;
 // verborgen lijnstukken (sleutel "straat@lat,lng>lat,lng"): lijnen die volledig op zo'n stuk liggen, weglaten
 const sleutel = (sid, p) => sid + "@" + [p[0], p[p.length - 1]].map(q => q[1].toFixed(5) + "," + q[0].toFixed(5)).sort().join(">");
 function zonderVerborgen(sid, C, VB) {
+  // "straat+punt>punt": ontbrekend stukje straat toevoegen (coördinaten hier [lng, lat])
+  for (const k of VB) if (k.startsWith(sid + "+")) { const q = k.slice(sid.length + 1).split(">").map(t => t.split(",").map(Number)); if (q.length === 2 && q.flat().every(isFinite)) C = [...C, q.map(x => [x[1], x[0]])]; }
   const KN = [...VB].filter(k => k.startsWith(sid + "#")).map(k => k.slice(sid.length + 1).split(",").map(Number)).filter(c => isFinite(c[0]) && isFinite(c[1]));
   if (KN.length) { const bij = q => KN.some(c => Math.hypot((q[1] - c[0]) * 111320, (q[0] - c[1]) * 111320 * Math.cos(c[0] * Math.PI / 180)) < (c[2] || 8));
     C = C.map(p => { const q = p.filter(x => !bij(x)); return q.length >= 2 ? q : p; }); }
