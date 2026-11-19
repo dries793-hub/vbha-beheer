@@ -1643,6 +1643,9 @@ details[data-vrd]>summary{display:flex;align-items:baseline;gap:6px;flex-wrap:wr
 /* kaart: bronvermelding op gsm ingeklapt tot een klein ©-bolletje; tikken toont de volledige tekst */
 @media(max-width:640px){.leaflet-container .kr-attr:not(.open){font-size:0;width:22px;height:22px;padding:0;margin:0 0 6px 6px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:color-mix(in srgb,var(--surface) 85%,transparent);box-shadow:0 1px 4px rgba(17,18,20,.15)}
   .leaflet-container .kr-attr:not(.open)::before{content:"©";font-size:12px;color:var(--muted)}.leaflet-container .kr-attr.open{margin:0 0 6px 6px;border-radius:6px;cursor:pointer}}
+.imp-gs>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}.imp-gs>summary::-webkit-details-marker{display:none}
+.imp-gs>summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .15s}.imp-gs[open]>summary::after{transform:rotate(-135deg)}
+.imp-gs:not([open])>summary{border-bottom:0}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
@@ -3486,7 +3489,7 @@ zesbunderstraat~0 12
 zesbunderstraat~1 0
 zesbunderstraat~2 0
 </script>
-<script src="/app.js?v=94e7d26ae0"></script>
+<script src="/app.js?v=6076f69475"></script>
 <script type="text/plain" id="krLijn">
 t-maegelijnplein cb|uHansWKu@Ue@
 1-meistraat mq|uHm|tWc@Q qr|uH_}tWWM is|uHm}tWQOUc@I]Ce@B{C
