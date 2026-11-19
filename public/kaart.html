@@ -143,6 +143,9 @@ button{font:inherit;color:inherit}
 .kr-map .leaflet-control{position:relative;pointer-events:auto;float:left;clear:both}
 .kr-map .leaflet-control-attribution{margin:0;padding:1px 6px;font-size:11px;background:color-mix(in srgb,var(--surface) 80%,transparent);color:var(--muted)}
 .kr-map .leaflet-control-attribution a{color:var(--muted)}
+/* gsm: bronvermelding ingeklapt tot een klein ©-bolletje; tikken toont de volledige tekst */
+@media(max-width:640px){.kr-map .kr-attr:not(.open){font-size:0;width:22px;height:22px;padding:0;margin:0 0 6px 6px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:color-mix(in srgb,var(--surface) 85%,transparent);box-shadow:0 1px 4px rgba(17,18,20,.15)}
+  .kr-map .kr-attr:not(.open)::before{content:"©";font-size:12px;color:var(--muted)}.kr-map .kr-attr.open{margin:0 0 6px 6px;border-radius:6px;cursor:pointer}}
 .kr-map .leaflet-tooltip{position:absolute;white-space:nowrap;pointer-events:none;user-select:none}
 .kr-map .leaflet-tooltip.kr-lbl{background:transparent;border:0;box-shadow:none;padding:0;font:600 11px/1.2 var(--f-body);color:var(--ink);text-shadow:0 0 3px var(--kr-halo),0 0 3px var(--kr-halo),0 0 2px var(--kr-halo)}
 .kr-map .kr-lbl span{display:block;transform-origin:center}
@@ -2859,6 +2862,7 @@ function krInit(){if(!window.L){$("#krMap").innerHTML='<div class="empty">De kaa
   map.setView(KR_START.at,KR_START.zoom);map.setMaxBounds(KR.bounds.pad(.3));
   map.on("zoomend",()=>krStyleAll());
   map.attributionControl.setPrefix(false);map.attributionControl.setPosition("bottomleft");
+  {const ac=map.attributionControl.getContainer();ac.classList.add("kr-attr");ac.title="Bronnen van de kaart";ac.addEventListener("click",e=>{if(e.target.closest("a"))return;ac.classList.toggle("open")})}
   map.attributionControl.addAttribution('Straten © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>');
   for(const s of KR_STREETS){const line=L.polyline(krGeo(s.id),{renderer,weight:4,lineCap:"round",lineJoin:"round"})
     .on("click",e=>{L.DomEvent.stopPropagation(e);krToggle(s.id)}).addTo(map);KR.lines.set(s.id,line)}
