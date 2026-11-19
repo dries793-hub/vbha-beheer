@@ -209,6 +209,12 @@ function zonderVerborgen(sid, C, VB) {
   const KN = [...VB].filter(k => k.startsWith(sid + "#")).map(k => k.slice(sid.length + 1).split(",").map(Number)).filter(c => isFinite(c[0]) && isFinite(c[1]));
   if (KN.length) { const bij = q => KN.some(c => Math.hypot((q[1] - c[0]) * 111320, (q[0] - c[1]) * 111320 * Math.cos(c[0] * Math.PI / 180)) < (c[2] || 8));
     C = C.map(p => { const q = p.filter(x => !bij(x)); return q.length >= 2 ? q : p; }); }
+  // "straat%punt>punt": het stukje van de straat tussen die twee punten weg (geometrisch, zoals op de kaart; coördinaten hier [lng, lat])
+  const SN = [...VB].filter(k => k.startsWith(sid + "%")).map(k => k.slice(sid.length + 1).split(">").map(t => t.split(",").map(Number)));
+  if (SN.length) { const CO = Math.cos(50.94 * Math.PI / 180), mm = (la, lo) => [la * 111320, lo * 111320 * CO], CS = SN.map(([a, b]) => [mm(a[0], a[1]), mm(b[0], b[1])]);
+    const binnen = q => CS.some(([A, B]) => { const dx = B[0] - A[0], dy = B[1] - A[1], L2 = dx * dx + dy * dy || 1, t = ((q[0] - A[0]) * dx + (q[1] - A[1]) * dy) / L2; if (t < -0.02 || t > 1.02) return false; return Math.hypot(q[0] - (A[0] + t * dx), q[1] - (A[1] + t * dy)) < 4; });
+    C = C.flatMap(p => { const D = [p[0]]; for (let i = 1; i < p.length; i++) { const a = mm(p[i - 1][1], p[i - 1][0]), b = mm(p[i][1], p[i][0]), n = Math.min(200, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 2)); for (let j = 1; j < n; j++) D.push([p[i - 1][0] + (p[i][0] - p[i - 1][0]) * j / n, p[i - 1][1] + (p[i][1] - p[i - 1][1]) * j / n]); D.push(p[i]); }
+      if (!D.some(q => binnen(mm(q[1], q[0])))) return [p]; const out = []; let cur = []; for (const q of D) { if (binnen(mm(q[1], q[0]))) { if (cur.length >= 2) out.push(cur); cur = []; } else cur.push(q); } if (cur.length >= 2) out.push(cur); return out; }); }
   const K = [...VB].filter(k => k.startsWith(sid + "@")); if (!K.length) return C;
   const W = new Set(K), weg = (KRL[sid] || []).map(decodeer).filter(p => p.length > 1 && W.has(sleutel(sid, p)));
   if (!weg.length) return C;
