@@ -71,7 +71,7 @@ export default async function handler(req, res) {
     const vorigDelen = S.ere || S.vrij || S.start ? [] : delen(JV, S.cfgVorig.gewichten);
     // bij welke activiteiten het lid hielp (uit de shiftenmodule of manueel in het puntensysteem)
     const shDetail = (() => { const L = Array.isArray(J.shiftLijst) ? J.shiftLijst.filter(x => x && Number(x.n) > 0) : []; if (!L.length) return null;
-      const d = L.map(x => ({ naam: String(x.t || "Activiteit").slice(0, 80), datum: /^\d{4}-\d{2}-\d{2}$/.test(x.d || "") ? x.d : "", aantal: Number(x.n) })).sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
+      const d = L.map(x => ({ naam: String(x.t || "Activiteit").slice(0, 80), datum: /^\d{4}-\d{2}-\d{2}$/.test(x.d || "") ? x.d : "", aantal: Number(x.n), ...(x.pa ? { partner: true } : {}) })).sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
       const rest = (Number(J.shifts) || 0) - d.reduce((t, x) => t + x.aantal, 0); if (rest > 0) d.push({ naam: "Andere", datum: "", aantal: rest }); return d; })();
     const onderdelen = [
       { naam: "Kalenders bussen", aantal: J.kalUitgevoerd || 0, eenheid: ["doos", "dozen"], per: w.kalenders },
