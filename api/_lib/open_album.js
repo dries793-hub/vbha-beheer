@@ -22,15 +22,19 @@ export default async function album(req, res) {
     const F = (a.publiek.fotos || []).filter(f => f && /^[\w-]{3,40}$/.test(f.id));
     const paden = F.flatMap(f => [`Albums/${id}/pub/${f.id}.jpg`, `Albums/${id}/klein/${f.id}.jpg`]);
     const urls = {};
+    const dl = {};
     if (a.opslag === "r2") {
       if (!r2Aan()) throw httpErr(503, "De foto's zijn tijdelijk niet beschikbaar.");
       for (const p of paden) urls[p] = r2Url("GET", p, 6 * 3600);
+      // downloadlink: R2 stuurt de foto als bijlage (fetch vanuit de browser mag niet door CORS)
+      const naam = String(a.titel || "foto").normalize("NFD").replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "_").slice(0, 60) || "foto";
+      F.forEach((f, i) => { const p = `Albums/${id}/pub/${f.id}.jpg`; if (urls[p]) dl[p] = r2Url("GET", p, 6 * 3600, { "response-content-disposition": `attachment; filename="${naam}_${String(i + 1).padStart(3, "0")}.jpg"` }); });
     } else for (let k = 0; k < paden.length; k += 200) {
       const { data, error } = await sb.storage.from("documenten").createSignedUrls(paden.slice(k, k + 200), 6 * 3600);
       if (error) throw error;
       for (const d of data || []) if (d.signedUrl) urls[d.path] = d.signedUrl;
     }
-    const fotos = F.map(f => ({ id: f.id, w: f.w, h: f.h, g: urls[`Albums/${id}/pub/${f.id}.jpg`], k: urls[`Albums/${id}/klein/${f.id}.jpg`] })).filter(f => f.g && f.k);
+    const fotos = F.map(f => { const g = urls[`Albums/${id}/pub/${f.id}.jpg`]; return { id: f.id, w: f.w, h: f.h, g, k: urls[`Albums/${id}/klein/${f.id}.jpg`], d: dl[`Albums/${id}/pub/${f.id}.jpg`] || (g ? g + (g.includes("?") ? "&" : "?") + "download=" : undefined) }; }).filter(f => f.g && f.k);
     res.setHeader("Cache-Control", "private, max-age=300");
     res.setHeader("X-Robots-Tag", "noindex, nofollow");
     return res.status(200).json({ titel: a.titel || "Fotoalbum", datum: a.datum || "", omschrijving: a.omschrijving || "", fotograaf: a.fotograaf || "", cover: a.cover || (fotos[0] && fotos[0].id) || null, fotos });

@@ -24,9 +24,9 @@ export function presign({ method, host, uri, region, ak, sk, expires, now = new 
   return `https://${host}${uri}?${cq}&X-Amz-Signature=${crypto.createHmac("sha256", key).update(sts).digest("hex")}`;
 }
 const geldig = p => typeof p === "string" && (/^Albums\/[\w-]{3,80}\/(bron|mini|pub|klein)\/[\w-]{3,40}\.jpg$/.test(p) || p === "Albums/_test/bron/verbinding.jpg");
-export function r2Url(method, pad, expires = 3600) {
+export function r2Url(method, pad, expires = 3600, extra = {}) {
   if (!geldig(pad)) throw httpErr(400, "Ongeldig pad");
-  return presign({ method, host: r2Host(), uri: `/${enc(env("R2_BUCKET"))}/${pad.split("/").map(enc).join("/")}`, region: "auto", ak: env("R2_ACCESS_KEY_ID"), sk: env("R2_SECRET_ACCESS_KEY"), expires });
+  return presign({ method, host: r2Host(), uri: `/${enc(env("R2_BUCKET"))}/${pad.split("/").map(enc).join("/")}`, region: "auto", ak: env("R2_ACCESS_KEY_ID"), sk: env("R2_SECRET_ACCESS_KEY"), expires, extra });
 }
 /* ---------- opslaglimiet: nooit boven het gratis deel van Cloudflare R2 (10 GB) ---------- */
 export const LIMIET = 10 * 1000 ** 3;           // 10 GB
