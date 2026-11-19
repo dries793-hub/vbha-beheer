@@ -3000,7 +3000,7 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
     const dzRest=()=>(DZ.heel||0)+(DZ.deel||0);
     const knop=(k,v,t,on,uit)=>`<button type="button" data-dz="${k}" data-v="${v}" class="${on?"on":""}"${uit?" disabled":""}>${t}</button>`;
     const vraag=(t,inh)=>`<div class="km-dq"><span class="km-dl">${t}</span><div class="km-dc">${inh}</div></div>`;
-    const NODIG_AAN=false; // vraag "Heb je nog dozen nodig?" voorlopig niet stellen
+    const NODIG_AAN=true; // vraag "Heb je nog dozen nodig?" (bij alle dozen op): na goedkeuring door het bestuur "nog mee te geven" in de verdeling
     const nodigV=()=>!NODIG_AAN?"":vraag("Heb je nog dozen nodig?",knop("nodig","1","Ja",DZ.nodig===true)+knop("nodig","0","Nee",DZ.nodig===false))+(DZ.nodig?vraag("Hoeveel dozen?",`<div class="km-st2"><button type="button" data-dz="nmin" aria-label="Minder"${(DZ.nodigN||1)<=1?" disabled":""}>−</button><b>${DZ.nodigN||1}</b><button type="button" data-dz="nplus" aria-label="Meer">+</button></div>`):"");
     function tekenDz(){if(soort!=="d"||!lid){dzBox.hidden=true;return}dzBox.hidden=false;
       if(DZ.op==null||DZ.voor!==lid.id){dzBox.innerHTML='<p class="km-di">Dozen opzoeken…</p>';return}const op=DZ.op;let h="";
@@ -3009,8 +3009,8 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
         if(DZ.over===true)h+=`<div class="km-ov"><div class="km-st2"><button type="button" data-dz="hmin" aria-label="Eén doos minder"${heel<=0?" disabled":""}>−</button><b>${heel}</b><button type="button" data-dz="hplus" aria-label="Eén doos meer"${heel+1+deel>(DZ.vorig?op+1e-9:op-1e-9)?" disabled":""}>+</button></div>`
           +`<div class="km-dc km-q">${[.25,.5,.75].map(q=>knop("deel",q,"+"+KW[q*4],deel===q,heel+q>(DZ.vorig?op+1e-9:op-1e-9))).join("")}</div></div>`
           +(r>0?`<p class="km-dt">Je hebt nog <b>${fd(r)}</b> over.</p>`:"");
-        if(DZ.over===false)h+=`<p class="km-dt">Je hebt alle <b>${fd(op)}</b> bedeeld.</p>`}
-      else h+=`<p class="km-dw">Volgens onze lijst heb je geen dozen met kalenders. Neem contact op met het bestuur.</p>`;
+        if(DZ.over===false)h+=`<p class="km-dt">Je hebt alle <b>${fd(op)}</b> bedeeld.</p>`+nodigV()}
+      else h+=NODIG_AAN?`<p class="km-di">Volgens onze lijst heb je geen dozen meer.</p>`+nodigV():`<p class="km-dw">Volgens onze lijst heb je geen dozen met kalenders. Neem contact op met het bestuur.</p>`;
       dzBox.innerHTML=h}
     function dzKlaar(){if(dzBox.hidden)return true;if(DZ.op==null)return false;
       if(DZ.op>0){if(DZ.over===false)return true;if(DZ.over!==true)return false;const r=dzRest();return r>0&&(DZ.vorig?r<=DZ.op+1e-9:r<DZ.op-1e-9)}

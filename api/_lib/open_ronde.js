@@ -76,7 +76,7 @@ async function melding(req, res) {
   const dozen = soort === "done" ? schoonDozen(b.dozen) : null;
   if (soort === "done" && b.dozen && !dozen) throw httpErr(400, "Beantwoord de vragen over je dozen.");
   if (dozen) dozen.opBij = await opVan(sb, A.jaar, lid.id);
-  if (dozen && !(dozen.opBij > 0)) throw httpErr(400, "Volgens onze lijst heb je geen dozen. Neem contact op met het bestuur.");
+  if (dozen && !(dozen.opBij > 0) && dozen.nodig == null) throw httpErr(400, "Volgens onze lijst heb je geen dozen. Neem contact op met het bestuur.");
   const id = "m" + Date.now().toString(36) + crypto.randomBytes(3).toString("hex");
   const toon = lid.voornaam && lid.an ? `${lid.voornaam} ${lid.an}` : lid.naam;
   const { error } = await sb.from("rondemeldingen").insert({ id, data: { jaar: A.jaar, straten, soort, lidId: lid.id, naam: lid.naam, toon, op: new Date().toISOString(), stand: "open", ...(dozen ? { dozen } : {}) } });
@@ -181,7 +181,7 @@ function schoonDozen(x) {
   else if (x.over === false) { o.over = false; if (x.af === "alle") o.af = "alle"; else { o.af = kw(x.af); if (!o.af) return null; } }
   else if (!(o.opBij > 0)) { /* geen dozen in de verdeling: enkel de vraag of er dozen nodig zijn */ }
   else return null;
-  // "nog dozen nodig?" is optioneel (de vraag staat voorlopig uit)
+  // "nog dozen nodig?" (enkel als alle dozen op zijn): na goedkeuring "nog mee te geven" in de verdeling
   if (o.over !== true && (o.af === "alle" || !(o.opBij > 0))) {
     if (x.nodig === true) { o.nodig = true; const n = Math.round(Number(x.nodigN)); o.nodigN = n >= 1 && n <= 50 ? n : null; }
     else if (x.nodig === false) o.nodig = false;
