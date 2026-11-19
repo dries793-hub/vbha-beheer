@@ -2746,7 +2746,7 @@ function krLijnenVerbergen(V){const per=new Map(),kn=new Map(),sn=new Map(),bij=
   for(const sid of sids){const S=per.get(sid)||new Set(),ok=p=>!S.has(krLijnSl(sid,p));const ml=KR_LIJN.get(sid);
     if(Array.isArray(ml)){for(let i=ml.length-1;i>=0;i--)if(!ok(ml[i]))ml.splice(i,1);else{const d=splits(sid,knip(sid,ml[i]));ml.splice(i,1,...d)}}
     const st=KR_ALLE.find(s=>s.id===sid);if(st&&st.g){const P=KRE.delen(st.g),Q=P.filter(ok).flatMap(p=>splits(sid,knip(sid,p)));if(Q.length)st.g=Q}
-    for(const x of KR_DELEN.get(sid)||[]){const P=KRE.delen(x.g),Q=P.filter(ok).flatMap(p=>splits(sid,knip(sid,p)));if(Q.length)x.g=Q}}
+    for(const x of KR_DELEN.get(sid)||[]){const P=KRE.delen(x.g),Q=P.filter(ok).flatMap(p=>splits(sid,knip(sid,p)));if(Q.length||(sn.has(sid)&&P.length))x.g=Q}}
   KRE.geo=null;KRG.clear();try{KRGAT.clear()}catch(e){}}
 function krVerbergToepassen(L){const V=new Set((L||[]).map(String));KR_VERB=V;KR_GV.clear();krLijnenVerbergen(V);if(!V.size)return;
   for(let i=KR_STREETS.length-1;i>=0;i--){const s=KR_STREETS[i];if(V.has(s.id)){KR_STREETS.splice(i,1);KR.byId.delete(s.id)}}
