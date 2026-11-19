@@ -10,7 +10,7 @@ export async function lidStatus(sb, lidId, jaar) {
   const vorig = jaar - 1;
   const [{ data: lid }, { data: jl }, cv, cj] = await Promise.all([sb.from("leden").select("data").eq("id", lidId).maybeSingle(), sb.from("jaarleden").select("data").eq("id", vorig + "_" + lidId).maybeSingle(), jaarCfg(sb, vorig), jaarCfg(sb, jaar)]);
   const L = (lid && lid.data) || {}, j = (jl && jl.data) || {}, w = cv.gewichten;
-  const punten = (j.kaarten || 0) * w.kaarten + (j.kalUitgevoerd || 0) * w.kalenders + (j.shifts || 0) * w.shifts + (j.vergaderingen || 0) * w.vergaderingen + (j.extraPunten || 0);
+  const punten = (j.kaarten || 0) * w.kaarten + (j.kalUitgevoerd || 0) * w.kalenders + (j.shifts || 0) * w.shifts + (Number(j.shiftPt) || 0) + (j.vergaderingen || 0) * w.vergaderingen + (j.extraPunten || 0);
   const ere = L.categorie === "Erewacht";
   const vrij = !ere && !!j.vrijstelling; // vrijstelling puntensysteem voor werkjaar J-1 (ziekte, werkonderbreking…) = goud
   const start = !ere && !vrij && vorig < PUNTEN_START; // vóór de start van het puntensysteem telt iedereen als goud

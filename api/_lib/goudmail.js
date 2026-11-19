@@ -11,7 +11,7 @@ const statusLink = (lidId, Y) => `${site()}/status?l=${encodeURIComponent(lidId)
    - Uit te schakelen in config algemeen: goudMail.aan = false.
    - Bij de eerste start worden de leden die al goud waren enkel aangeduid (geen mail); zij krijgen de tussenstand-mail. */
 const huidigJaar = () => Number(new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels", year: "numeric" }).format(new Date()));
-const punten = (j, w) => (j.kaarten || 0) * w.kaarten + (j.kalUitgevoerd || 0) * w.kalenders + (j.shifts || 0) * w.shifts + (j.vergaderingen || 0) * w.vergaderingen + (j.extraPunten || 0);
+const punten = (j, w) => (j.kaarten || 0) * w.kaarten + (j.kalUitgevoerd || 0) * w.kalenders + (j.shifts || 0) * w.shifts + (Number(j.shiftPt) || 0) + (j.vergaderingen || 0) * w.vergaderingen + (j.extraPunten || 0);
 
 registreer({ key: "goudstatus", naam: "Puntensysteem: proficiat goudstatus", wanneer: "Zodra een lid met de punten van dit jaar de goudstatus voor volgend jaar haalt (niet voor de erewacht).",
   onderwerp: "Proficiat: je behaalde de goudstatus voor {volgend_jaar}!",
@@ -108,7 +108,7 @@ export async function goudApp(req, res) {
 const ONDERDELEN = [["kaarten", "kaarten", "verkoop kaarten fuif"], ["kalUitgevoerd", "kalenders", "kalenders bussen"], ["shifts", "shifts", "hulp bij activiteiten"], ["vergaderingen", "vergaderingen", "vergaderingen"]];
 const STATUS = { geen: "geen status", brons: "Brons", zilver: "Zilver", goud: "Goud" };
 const statusVan = (pt, dr) => pt >= dr.goud ? "goud" : pt >= dr.zilver ? "zilver" : pt >= (dr.brons || 0) ? "brons" : "geen";
-const stand = j => ({ kaarten: j.kaarten || 0, kalUitgevoerd: j.kalUitgevoerd || 0, shifts: j.shifts || 0, vergaderingen: j.vergaderingen || 0, extraPunten: j.extraPunten || 0 });
+const stand = j => ({ kaarten: j.kaarten || 0, kalUitgevoerd: j.kalUitgevoerd || 0, shifts: j.shifts || 0, shiftPt: Number(j.shiftPt) || 0, vergaderingen: j.vergaderingen || 0, extraPunten: j.extraPunten || 0 });
 registreer({ key: "punten", naam: "Puntensysteem: nieuwe punten of status", wanneer: "Als er nieuwe punten bijkomen of de status voor volgend jaar verandert (aan te zetten in de instellingen van het puntensysteem).",
   onderwerp: "{als:status_nieuw}Je status voor {volgend_jaar}: {status}{/als:status_nieuw}{niet:status_nieuw}Nieuwe punten: je totaal is nu {totaal} pt{/niet:status_nieuw}",
   body: p("Beste {voornaam},") + "{als:nieuwe_punten}" + p("Zonet werden er nieuwe punten voor je toegevoegd:") + kaderBlok("Nieuwe punten", "{nieuwe_punten}") + "{/als:nieuwe_punten}"
@@ -162,6 +162,7 @@ export async function puntenCron(sb) {
       { const kr = regels.find(r => r.naam === "kalenders bussen"), ex = j.kalAfExact != null ? Number(j.kalAfExact) : null;
         if (kr && ex != null) { const d = x.nu.kalUitgevoerd - (x.m.kalUitgevoerd || 0), exD = Math.round((ex - (x.m.kalAfExact != null ? Number(x.m.kalAfExact) : (x.m.kalUitgevoerd || 0))) * 100) / 100;
           if (exD > 0 && exD < d) kr.n = `${String(exD).replace(".", ",")} dozen bedeeld; een begonnen doos telt als volle doos`; } }
+      { const ds = x.nu.shiftPt - (x.m.shiftPt || 0); if (ds > 0) regels.push({ naam: "hulp bij activiteiten", pt: ds, n: "" }); }
       const de = x.nu.extraPunten - (x.m.extraPunten || 0); if (de > 0) regels.push({ naam: j.extraTekst ? "extra: " + j.extraTekst : "extra punten", pt: de, n: "" });
       const goudVia = x.ander && x.st === "goud" && GM.aan !== false; // de proficiat-mail voor goud gaat apart
       const stuurPunten = PM.aan === true && regels.length, stuurStatus = SM.aan === true && x.ander && !goudVia && statusRang(x.st) > statusRang(x.m.status);
