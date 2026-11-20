@@ -244,7 +244,7 @@ let LP=0;async function lidPrijs(id){const el=$("#lpPrijs"),n=++LP;alMeld($("#na
     if(j.al){alMeld($("#naam"),j.melding);INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
     INFO.teg=Number(j.tegoed)||0;
     if(!INFO.kortingAan){INFO.lp=null;INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}INFO.prijs=j.prijs;INFO.lp=j;
-    if(el){const st=String(j.status||"");const stN=st==="GEEN"&&j.basisStatus?"Basis":st.charAt(0)+st.slice(1).toLowerCase();el.hidden=!st||(st==="GEEN"&&!j.basisStatus);el.innerHTML=`${VB.badge(st)}<span>${j.korting?`${j.korting}% ledenkorting`:"geen ledenkorting"}${j.viaPartner?" (hoogste status in je gezin)":""}</span>${INFO.goudMelding&&j.start?`<small class="lp-gm">Omdat het puntensysteem dit jaar van start ging, krijgt iedereen uitzonderlijk de goudstatus.</small>`:""}`}}
+    if(el)el.hidden=true;/* status en korting staan enkel in het overzicht (Statuskorting) */}
   catch(x){if(n!==LP)return;INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true}upd()}
 function val(n){const c=document.querySelector('input[name="'+n+'"]:checked');return c?c.value:""}
 function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
@@ -253,7 +253,7 @@ function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
   const lidOk=!!$("#naam").dataset.id&&!$("#alMeld")&&(!INFO.kortingAan||INFO.lp);
   const basis=L?L.basis:(INFO.basis||INFO.prijs),tot=Math.round(n*INFO.prijs*100)/100,max=lidOk&&p?Math.min(INFO.teg||0,tot):0,teg=VB.credit.gebruik(max);INFO.tegGebruik=teg;
   const sec=$("#paySec");
-  if(lidOk&&p){sec.hidden=false;pay.innerHTML=VB.summary({titel:"",rijen:[{label:`Deelnameprijs · ${n} × ${VB.eur2(basis)}`,bedrag:n*basis},L&&L.korting>0?{label:`Statuskorting ${L.korting}%`,status:L.status,bedrag:n*(L.basis-L.prijs),min:true}:null],
+  if(lidOk&&p){sec.hidden=false;pay.innerHTML=VB.summary({titel:"",rijen:[{label:`Deelnameprijs · ${n} × ${VB.eur2(basis)}`,bedrag:n*basis},L&&L.korting>0?{label:`Statuskorting ${L.korting}%`,status:L.status,bedrag:n*(L.basis-L.prijs),min:true,sub:[L.viaPartner?"Hoogste status in je gezin.":"",INFO.goudMelding&&L.start&&!L.ere?"Omdat het puntensysteem dit jaar van start ging, krijgt iedereen uitzonderlijk de goudstatus.":""].filter(Boolean).join(" ")||null}:null],
     credit:{saldo:INFO.teg,max}});VB.due($("#due"),tot-teg)}else{sec.hidden=true;VB.due($("#due"),null)}
   $("#go").textContent=lidOk&&p&&tot-teg<=0?"Inschrijving bevestigen":"Inschrijven en betalen"}
 VB.credit.label="Punten gebruiken";VB.credit.op=()=>upd();

@@ -24,7 +24,7 @@ export async function banketPrijs(sb, I, lidId) {
   // goudtegoed (reglement 2027, art. 22): los van de kortingsinstelling te gebruiken
   const T = S.tegoed ? await tegoedSaldo(sb, lidId, I.jaar, S) : { saldo: 0 };
   if (!I.kortingAan) return { prijs: basis, basis, status: null, korting: 0, tegoed: T.saldo };
-  return { prijs: Math.round(basis * (100 - S.korting)) / 100, basis, status: S.status, korting: S.korting, punten: S.punten, puntenJaar: S.puntenJaar, start: !!S.start, tegoed: T.saldo, viaPartner: S.viaPartner ? S.viaPartner.status : null, basisStatus: !!S.basis };
+  return { prijs: Math.round(basis * (100 - S.korting)) / 100, basis, status: S.status, korting: S.korting, punten: S.punten, puntenJaar: S.puntenJaar, start: !!S.start, ere: !!S.ere, tegoed: T.saldo, viaPartner: S.viaPartner ? S.viaPartner.status : null, basisStatus: !!S.basis };
 }
 const menu = v => /veg/i.test(String(v || "")) ? "Vegetarisch" : "Normaal";
 
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
       if (!(await actieveLeden(sb, I.jaar)).some(l => l.id === lidId)) throw httpErr(404, "Lid niet gevonden.");
       if (!beheer && await alIngeschreven(sb, "banket", I.jaar, lidId)) return res.status(200).json({ al: true, melding: AL_TEKST("het banket", I.jaar) });
       const P = await banketPrijs(sb, I, lidId);
-      return res.status(200).json({ prijs: P.prijs, basis: P.basis, status: P.status, korting: P.korting, puntenJaar: P.puntenJaar || null, start: !!P.start, tegoed: P.tegoed || 0, viaPartner: P.viaPartner || null, basisStatus: !!P.basisStatus });
+      return res.status(200).json({ prijs: P.prijs, basis: P.basis, status: P.status, korting: P.korting, puntenJaar: P.puntenJaar || null, start: !!P.start, ere: !!P.ere, tegoed: P.tegoed || 0, viaPartner: P.viaPartner || null, basisStatus: !!P.basisStatus });
     }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
     const b = body(req);

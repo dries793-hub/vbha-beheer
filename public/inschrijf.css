@@ -516,3 +516,4 @@ body.vb .vb-pc>b{justify-self:end}
 body.vb .vb-pc .vb-cin{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 10px;border:1px solid var(--vb-line);border-radius:8px;background:var(--vb-field,#F3F4F6);font-size:14px;color:var(--vb-muted)}
 body.vb .vb-pc .vb-cin:focus-within{border-color:var(--vb-dark);box-shadow:0 0 0 3px var(--vb-focus-soft)}
 body.vb .vb-pc .vb-cin input{all:unset;width:64px;text-align:right;font:inherit;font-size:16px;color:var(--vb-ink);font-variant-numeric:tabular-nums}
+body.vb .vb-r.korting{align-items:flex-start!important}body.vb .vb-r.korting>b{padding-top:1px}body.vb .vb-r.korting small{margin-top:3px}

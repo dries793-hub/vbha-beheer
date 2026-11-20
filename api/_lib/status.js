@@ -41,7 +41,7 @@ export async function lidStatus(sb, lidId, jaar, { partner = true } = {}) {
     sb.from("jaarleden").select("data").eq("id", (vorig - 1) + "_" + lidId).maybeSingle(), jaarCfg(sb, vorig, aan), jaarCfg(sb, jaar, aan)]);
   const L = (lid && lid.data) || {}, j = (jl && jl.data) || {};
   const punten = puntenVan(j, cv, L);
-  const ere = L.categorie === "Erewacht";
+  const ere = /erewacht/i.test([].concat(L.categorie || []).join(" "));
   const vrij = !ere && !!j.vrijstelling; // vrijstelling puntensysteem voor werkjaar J-1
   const start = !ere && !vrij && vorig < PUNTEN_START; // vóór de start van het puntensysteem telt iedereen als goud
   const nieuwLid = cv.nieuw && !ere && Number(L.lidSinds) === jaar; // art. 18: wie in de loop van het jaar lid wordt, is dat jaar brons
