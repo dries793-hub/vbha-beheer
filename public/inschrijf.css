@@ -517,3 +517,7 @@ body.vb .vb-pc .vb-cin{display:inline-flex;align-items:center;gap:4px;height:32p
 body.vb .vb-pc .vb-cin:focus-within{border-color:var(--vb-dark);box-shadow:0 0 0 3px var(--vb-focus-soft)}
 body.vb .vb-pc .vb-cin input{all:unset;width:64px;text-align:right;font:inherit;font-size:16px;color:var(--vb-ink);font-variant-numeric:tabular-nums}
 body.vb .vb-r.korting{align-items:flex-start!important}body.vb .vb-r.korting>b{padding-top:1px}body.vb .vb-r.korting small{margin-top:3px}
+/* balk bovenaan: logo links op dezelfde lijn als de inhoud eronder (zelfde kolom als main) */
+@media (min-width:561px){body.vb .hdr{padding-left:20px!important;padding-right:20px!important}body.vb .hdr .in{max-width:calc(var(--vb-hdr-w,var(--vb-w)) - 40px)!important;margin-left:auto;margin-right:auto}}
+@media (max-width:560px){body.vb .hdr{padding-left:20px!important;padding-right:20px!important}}
+@media (max-width:360px){body.vb .hdr{padding-left:16px!important;padding-right:16px!important}}
