@@ -115,7 +115,7 @@ export default async function handler(req, res) {
       if (te) throw httpErr(400, `${te.naam} is op de dag van het feest al ${lft(te.geb)} jaar en kan niet meer ingeschreven worden.`); }
     // reglement 2027 (art. 23, vanaf statusjaar 2028): cadeaubudget per kind volgens de status van het lid (100/80/50%; basis = kleine attentie)
     let kfSt = null;
-    try { const S = await lidStatus(sb, lidRij.id, I.jaar); if (S.cfgVorig && S.cfgVorig.nieuw) { kfSt = S.status; for (const k of kinderen) k.pct = REG27.kfPct[S.status] ?? 100; } } catch (e) { console.error("kf status", e); }
+    try { const S = await lidStatus(sb, lidRij.id, I.jaar); if (S.cfgVorig && S.cfgVorig.nieuw) { kfSt = S.status; for (const k of kinderen) k.pct = (S.cfgVorig.kfPct || REG27.kfPct)[S.status] ?? 100; } } catch (e) { console.error("kf status", e); }
     const d = { jaar: I.jaar, lid, lidId: lidRij.id, email, opmerking: clean(b.opmerking, 400), kinderen, bron: "formulier", aangemeld: new Date().toISOString(), nieuw: true, ...(kfSt ? { status: kfSt } : {}) };
     const kid = nieuwId("web");
     const { error } = await sb.from("kinderfeest").insert({ id: kid, data: d });

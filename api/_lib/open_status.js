@@ -97,7 +97,7 @@ export default async function handler(req, res) {
     }
     // goudtegoed (art. 22): tegoed van dit statusjaar + wat volgend jaar verwacht wordt
     const T = S.tegoed ? await tegoedSaldo(sb, l, Y, S) : null;
-    const tegoedVolgend = c.r27 && Y + 1 >= REG27.tegoedStart && !ere && !vrij && totaal >= dr.goud ? Math.round((totaal - dr.goud) * REG27.tegoedPerPunt * 100) / 100 : 0;
+    const tegoedVolgend = c.r27 && Y + 1 >= REG27.tegoedStart && !ere && !vrij && totaal >= dr.goud ? Math.round((totaal - dr.goud) * (c.tegoedPerPunt ?? REG27.tegoedPerPunt) * 100) / 100 : 0;
     return res.status(200).json({ ok: true, voornaam: L.voornaam || "", jaar: Y, rang, r27: !!c.r27, nieuw: !!c.nieuw,
       tegoed: T ? { ...T, tot: `31/12/${Y}` } : null, tegoedVolgend,
       nu: { status: S.status, korting: S.korting, ere: S.ere, vrij: S.vrij, start: S.start, nieuwLid: !!S.nieuwLid, viaPartner: S.viaPartner ? S.viaPartner.status : null, basis: !!S.basis, puntenJaar: S.puntenJaar, onderdelen: vorigDelen, totaal: vorigDelen.reduce((t, o) => t + o.punten, 0) },

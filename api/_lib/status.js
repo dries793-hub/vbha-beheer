@@ -9,7 +9,7 @@ export async function reg27Aan(sb) { const { data } = await sb.from("config").se
 export async function jaarCfg(sb, Y, aan) {
   const [{ data }, r27] = await Promise.all([sb.from("jaren").select("data").eq("id", String(Y)).maybeSingle(), aan == null ? reg27Aan(sb) : aan]); const j = (data && data.data) || {};
   const c = { gewichten: { ...DEF.gewichten, ...(j.gewichten || {}) }, drempels: { ...DEF.drempels, ...(j.drempels || {}) }, korting: { ...DEF.korting, ...(j.korting || {}) }, jaar: Y, r27: !!r27 };
-  if (r27 && Y >= REG27.start) { c.nieuw = true; const o = j.r27 || {}; c.gewichten = { ...REG27.gewichten, ...(o.gewichten || {}) }; c.drempels = { ...REG27.drempels, ...(o.drempels || {}) }; c.kalDeadline = (j.kalDeadline && /^\d{2}-\d{2}$/.test(j.kalDeadline) ? j.kalDeadline : REG27.kalDeadline); }
+  if (r27 && Y >= REG27.start) { c.nieuw = true; const o = j.r27 || {}; c.tegoedPerPunt = o.tegoedPerPunt != null ? Number(o.tegoedPerPunt) : REG27.tegoedPerPunt; c.kfPct = { ...REG27.kfPct, ...(o.kfPct || {}) }; c.gewichten = { ...REG27.gewichten, ...(o.gewichten || {}) }; c.drempels = { ...REG27.drempels, ...(o.drempels || {}) }; c.kalDeadline = (j.kalDeadline && /^\d{2}-\d{2}$/.test(j.kalDeadline) ? j.kalDeadline : REG27.kalDeadline); }
   return c;
 }
 /* aantal activiteiten waarop het lid hielp (art. 6: 50 punten per activiteit, ongeacht het aantal shiften) */
@@ -61,7 +61,7 @@ export async function lidStatus(sb, lidId, jaar, { partner = true } = {}) {
   }
   const korting = Math.max(0, Math.min(100, Number(cj.korting[status.toLowerCase()]) || 0));
   // art. 22: goudtegoed (€ 0,10 per punt boven de goudgrens), enkel met eigen punten
-  const tegoed = aan && jaar >= REG27.tegoedStart && !ere && !vrij && !start && punten >= cv.drempels.goud ? Math.round((punten - cv.drempels.goud) * REG27.tegoedPerPunt * 100) / 100 : 0;
+  const tegoed = aan && jaar >= REG27.tegoedStart && !ere && !vrij && !start && punten >= cv.drempels.goud ? Math.round((punten - cv.drempels.goud) * (cv.tegoedPerPunt ?? REG27.tegoedPerPunt) * 100) / 100 : 0;
   return { status, korting, punten, puntenJaar: vorig, ere, vrij, start, nieuwLid, viaPartner, tegoed, r27: aan, basis: cv.nieuw && status === "GEEN", lid: L, cfg: cj, cfgVorig: cv };
 }
 export const RANG = { GEEN: 0, BRONS: 1, ZILVER: 2, GOUD: 3 };
