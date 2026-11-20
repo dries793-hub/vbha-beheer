@@ -283,8 +283,9 @@ fetch("/api/familiedag"+(FQ.get("v")?"?v="+encodeURIComponent(FQ.get("v"))+"&t="
   if(j.vul){$("#wie").hidden=true;const i=$("#naam");i.value=j.vul.lid;i.dataset.id=j.vul.lidId;i.classList.add("lp-ok");vastNaam(i,j.vul.lid);$("#email").closest(".full").hidden=true;
     /* persoonlijke link: begroeten zoals op de statuspagina en de aantallen van vorig jaar invullen */
     if(j.vul.voornaam){const d=$("#dag");d.textContent="Dag "+j.vul.voornaam+"!";d.hidden=false}
+    {const w=$("#naam").closest(".full");if(w)w.hidden=true}
     const V=j.vul.vorig;if(V&&V.aantallen){for(const [k,n] of Object.entries(V.aantallen))AANT[k]=n;for(const [k,n] of Object.entries(V.gasten||{}))if(n>0){GAST[k]=n;GAST_AAN=true}if(V.opmerking&&$("#opm"))$("#opm").value=V.opmerking;
-      const n=document.createElement("p");n.className="vul-n";n.textContent="We vulden je inschrijving van vorig jaar al in. Pas aan waar nodig.";const f=$("#f");if(f)f.prepend(n)}
+      const n=document.createElement("p");n.className="vul-n";n.innerHTML="<b>Fijn dat je er weer bij bent!</b> We zetten je inschrijving van vorig jaar alvast klaar. Kijk ze even na en schrijf je in. Tot op de familiedag!";const f=$("#f");if(f)f.prepend(n)}
     lidPrijs(j.vul.lidId);try{history.replaceState(null,"",location.pathname)}catch(e){}}
   tekenPrijzen();if(!j.open)gesloten(j)});
 $("#f").addEventListener("submit",async e=>{e.preventDefault();const er=$("#err");er.textContent="";const niet=!$("#wNiet").hidden;
