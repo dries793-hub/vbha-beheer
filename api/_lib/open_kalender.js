@@ -6,7 +6,7 @@ import KS from "./kalstraten.js";
 
 /* ---- controle tegen de kalenderronde: ligt het adres in de verdeelregio en is die straat (dat stuk straat) al bedeeld? ---- */
 const inRing = (p, r) => { let c = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const yi = r[i][0], xi = r[i][1], yj = r[j][0], xj = r[j][1]; if (((yi > p[0]) !== (yj > p[0])) && (p[1] < (xj - xi) * (p[0] - yi) / (yj - yi) + xi)) c = !c; } return c; };
-const binnen = p => !KS.grens.length || KS.grens.some(r => inRing(p, r));
+export const binnen = p => !KS.grens.length || KS.grens.some(r => inRing(p, r));
 const nm = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "");
 function afstand(p, a, b) { // meter van punt p tot lijnstuk a-b
   const k = Math.cos(p[0] * Math.PI / 180) * 111320, X = q => [(q[1] - p[1]) * k, (q[0] - p[0]) * 111320];
@@ -38,7 +38,7 @@ async function zoekPunt(q) {
   } catch (e) { console.error("geocode", e.message); return null; } finally { clearTimeout(t); }
 }
 /* opzoeken met terugvalopties: zonder busnummer ("18/14", "18 bus 2", "18b2"), en anders enkel straat + gemeente */
-async function zoekPuntSlim(adres) {
+export async function zoekPuntSlim(adres) {
   const a = String(adres || "");
   const zonderBus = a.replace(/(\d+)\s*(?:\/\s*\w+|\s(?:bus|bte|boite|box)\s*\w+|-\s*\d+)(?=\s*(?:,|$|\s\d{4}))/i, "$1");
   const straatGem = a.replace(/\s+\d+[^,]*(?=,)/, "");
