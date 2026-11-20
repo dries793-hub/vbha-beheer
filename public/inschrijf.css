@@ -852,3 +852,6 @@ body.vb-app .ch{background:var(--g-track)!important;border-color:var(--g-line)!i
 body.vb-app .stp button{background:var(--g-soft)!important;border-color:var(--g-line)!important}
 /* kaart (.vb-ui): zelfde accent op de titel van het selectiepaneel en de melding */
 .vb-ui .vb-acc{border-left:3px solid var(--g-red);padding-left:10px}
+/* begroeting: donkergrijs tussen de zwarte titel en de lichtgrijze tekst */
+body.vb-app .dag,body.vb-app #dag{color:#45474D!important}
+@media (prefers-color-scheme:dark){body.vb-app .dag,body.vb-app #dag{color:#C9CBD0!important}}
