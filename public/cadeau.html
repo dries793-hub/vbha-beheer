@@ -256,8 +256,9 @@ function potBlok(){const K=V.kinderen.filter(heeftB);if(K.length<2)return"";cons
 /* goudtegoed (reglement 2027): gebruiken voor wat boven het budget gaat */
 function tegBlok(){const vrij=Number(V.tegoedSaldo)||0,gebr=Number(V.tegoed)||0,nodig=Math.max(0,(V.extraTotaal||0)+(V.extraVoorlopig||0)-(V.bijbetaald||0));
   if(!(vrij>0||gebr>0)||(!(nodig>0)&&!(gebr>0)))return"";const kan=Math.min(vrij,nodig);
-  return `<div class="card teg"><div class="tr"><span>Goudtegoed</span><b>${gebr>0?`${eur(gebr)} gebruikt`:`${eur(vrij)} beschikbaar`}</b></div><p class="hint" style="margin:4px 0 8px">${gebr>0?"Dit bedrag gaat af van wat je moet bijbetalen.":`Gebruik je tegoed voor wat boven het budget gaat${kan<nodig?` (${eur(kan)} van ${eur(nodig)})`:""}.`}</p>
-   <div class="acts">${gebr>0?`<button type="button" class="btn" data-teg="0">Tegoed niet gebruiken</button>`:kan>0?`<button type="button" class="btn" data-teg="${kan.toFixed(2)}">${eur(kan)} tegoed gebruiken</button>`:""}</div></div>`}
+  /* zelfde puntenkeuze als banket en familiedag (schakelaar); dezelfde regel: maximaal wat boven het budget gaat */
+  return `<div class="card teg"><div class="vb-sum"><div class="vb-r credit vb-credit"><span><label class="vb-sw"><input type="checkbox" data-tegsw="${gebr>0?"0":kan.toFixed(2)}"${gebr>0?" checked":""}${!(gebr>0)&&!(kan>0)?" disabled":""}><i aria-hidden="true"></i>Punten gebruiken</label></span><b>${gebr>0?"− "+eur(gebr):eur(0)}</b><small>${eur(vrij)} beschikbaar${!(gebr>0)&&kan<nodig?` · dekt ${eur(kan)} van ${eur(nodig)}`:""}</small></div></div></div>`}
+document.addEventListener("change",async e=>{const t=e.target.closest("[data-tegsw]");if(!t)return;t.disabled=true;try{V=await api({actie:"tegoed",bedrag:+t.dataset.tegsw});toon()}catch(x){t.disabled=false;t.checked=!t.checked;alert(x.message||"Lukt niet.")}});
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-teg]");if(!t)return;t.disabled=true;try{V=await api({actie:"tegoed",bedrag:+t.dataset.teg});toon()}catch(x){t.disabled=false;alert(x.message||"Lukt niet.")}});
 function betaalBlok(){if(!V)return"";const b=V.betaling;
   if(!(V.teBetalen>0))return tegBlok()+potBlok()+(V.bijbetaald>0&&b&&b.status==="SUCCEEDED"?`<div class="card bet ok"><b>✓ Bijbetaling ontvangen</b><p class="hint" style="margin:4px 0 0">Bedankt! We bestellen de cadeaus.</p></div>`:"");

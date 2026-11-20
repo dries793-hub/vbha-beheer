@@ -54,6 +54,10 @@
   /* ---- afrekenbalk: "Te betalen" + bedrag (bedrag null = verbergen); korte visuele tik bij een wijziging ---- */
   VB.due=(el,bedrag)=>{if(!el)return;if(bedrag==null){el.hidden=true;return}el.hidden=false;const b=el.querySelector("b");const t=eur2(bedrag);
     if(b.textContent!==t){if(b.textContent&&!matchMedia("(prefers-reduced-motion: reduce)").matches){b.classList.add("vb-tik");setTimeout(()=>{b.textContent=t;b.classList.remove("vb-tik")},110)}else b.textContent=t}};
+  /* ---- afrekenbalk die het bestaande totaal van de pagina toont (data-due-from="selector"); de pagina rekent zelf ---- */
+  {let q=0;const run=()=>{q=0;document.querySelectorAll(".vb-checkout[data-due-from]").forEach(c=>{const due=c.querySelector(".vb-due");if(!due)return;const src=document.querySelector(c.dataset.dueFrom);
+      const t=src?src.textContent.replace(/\s+/g," ").trim():"";if(!t||!/\d/.test(t)){due.hidden=true;return}due.hidden=false;const b=due.querySelector("b");if(b.textContent!==t)b.textContent=t})};
+    new MutationObserver(()=>{if(!q)q=requestAnimationFrame(run)}).observe(document.documentElement,{subtree:true,childList:true,characterData:true});document.addEventListener("DOMContentLoaded",run)}
   /* ---- foutmelding bij het veld (FieldError) ---- */
   VB.wisFouten=root=>{(root||document).querySelectorAll(".veld-fout").forEach(x=>x.remove());(root||document).querySelectorAll('[aria-invalid="true"],.is-fout').forEach(x=>{x.removeAttribute("aria-invalid");x.classList.remove("is-fout")})};
   VB.veldFout=(el,tekst,{focus=true}={})=>{if(!el)return;const box=el.closest("fieldset,.vb-veld,.kid>div,.full")||el.parentElement;box.querySelectorAll(".veld-fout").forEach(x=>x.remove());

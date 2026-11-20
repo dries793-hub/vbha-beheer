@@ -1943,6 +1943,12 @@ ${g?`<div class="blad om">${b("Opmerkingen per tafel")}<div class="grid">${g}</d
 .ka-tabs .cnt,.ka-tabs .bt-n,.tabs .cnt{background:var(--vbha-black);color:#fff}
 @media (prefers-color-scheme:dark){.tabs a.on,nav.tabs a.on,.ka-tabs button.on,.ka-tabs a.on{border-bottom-color:var(--text-primary)!important}}
 
+/* ---- één VBHA-balk op elke pagina (beheer en publiek): logo · scheidingslijn · naam op één regel, ook op gsm ---- */
+.hdr .brand{min-width:0;gap:14px}
+.hdr .brand .logo{height:30px;width:auto}
+.hdr .brand-lbl{display:block!important;min-width:0;font-size:14px;font-weight:500;line-height:20px;color:#fff;padding-left:14px;border-left:1px solid rgba(255,255,255,.28);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:560px){.hdr .brand{gap:10px}.hdr .brand .logo{height:24px}.hdr .brand-lbl{font-size:12px;padding-left:10px}}
+
 /* ---- knoppen ---- */
 .btn{border-radius:var(--radius-md);border-color:var(--border-strong);color:var(--text-primary);font-weight:500;min-height:36px;padding:0 14px;transition:background var(--t-fast),border-color var(--t-fast),color var(--t-fast),box-shadow var(--t-fast)}
 .btn:hover{background:var(--bg-subtle)}
