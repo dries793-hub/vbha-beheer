@@ -161,10 +161,10 @@ html,body{overflow-x:hidden}
         <label><input type="radio" name="personen" value="2"><b>Met partner</b></label></div></fieldset>
       <fieldset class="full rij" style="border:0;margin:0;padding:0"><legend class="lbl">Jouw menu</legend><div class="ch">
         <label><input type="radio" name="menu1" value="Normaal"><b>Normaal</b></label><label><input type="radio" name="menu1" value="Vegetarisch"><b>Vegetarisch</b></label></div>
-        <div class="opmw" id="opm1w" hidden><label for="opm1">Allergieën of opmerkingen</label><textarea id="opm1" maxlength="300" placeholder="Optioneel"></textarea></div></fieldset>
+        <div class="opmw" id="opm1w" hidden><label for="opm1">Allergieën of opmerkingen</label><textarea id="opm1" rows="1" maxlength="300" placeholder="Optioneel"></textarea></div></fieldset>
       <fieldset class="full rij" id="m2" hidden style="border:0;margin:0;padding:0"><legend class="lbl">Menu partner</legend><div class="ch">
         <label><input type="radio" name="menu2" value="Normaal"><b>Normaal</b></label><label><input type="radio" name="menu2" value="Vegetarisch"><b>Vegetarisch</b></label></div>
-        <div class="opmw" id="opm2w" hidden><label for="opm2">Allergieën of opmerkingen van je partner</label><textarea id="opm2" maxlength="300" placeholder="Optioneel"></textarea></div></fieldset>
+        <div class="opmw" id="opm2w" hidden><label for="opm2">Allergieën of opmerkingen van je partner</label><textarea id="opm2" rows="1" maxlength="300" placeholder="Optioneel"></textarea></div></fieldset>
     </div>
     <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
     <div class="pay" id="pay" hidden></div>
@@ -233,11 +233,11 @@ fetch("/api/banket"+(BQ.get("v")?"?v="+encodeURIComponent(BQ.get("v"))+"&t="+enc
     {const w=$("#naam").closest(".full");if(w)w.hidden=true} // naam en status niet tonen: de persoonlijke link en "Dag …" zeggen al wie het is
     const V=j.vul.vorig;if(V){const zet=(n,v)=>{const r=document.querySelector(`input[name="${n}"][value="${v}"]`);if(r){r.checked=true;r.dispatchEvent(new Event("change",{bubbles:true}))}};
       zet("personen",String(V.personen));zet("menu1",V.menu1);if(V.personen===2)zet("menu2",V.menu2);
-      if(V.opmerking1){$("#opm1").value=V.opmerking1;$("#opm1w").hidden=false}if(V.personen===2&&V.opmerking2){$("#opm2").value=V.opmerking2;$("#opm2w").hidden=false}
+      if(V.opmerking1){$("#opm1").value=V.opmerking1;$("#opm1w").hidden=false}if(V.personen===2&&V.opmerking2){$("#opm2").value=V.opmerking2;$("#opm2w").hidden=false}setTimeout(()=>["#opm1","#opm2"].forEach(q=>{const t=$(q);if(t&&t.value)t.dispatchEvent(new Event("input",{bubbles:true}))}),0);
 }
     /* persoonlijke uitnodiging: tekst bovenaan, de kaartjes wanneer/waar blijven, daaronder (kleiner) de uitleg over vorig jaar */
     $("#lead").innerHTML=`Fijn dat je er weer bij bent! Geniet van een uitgebreid diner, gevolgd door een dansfeest tot in de vroege uurtjes. Schrijf je hier in vóór ${esc(j.totTekst||j.deadline||"")} en betaal meteen online.`;
-    if(V){const n=document.createElement("p");n.className="uit-k";n.textContent="We hebben je keuzes van vorig jaar alvast klaargezet. Kijk ze even na, pas aan waar nodig en bevestig je inschrijving. Tot op het banket!";$("#facts").after(n)}try{history.replaceState(null,"",location.pathname)}catch(e){}}$("#h1").textContent="Banket "+j.jaar;document.title="Banket "+j.jaar+" · VBHA";INFO.basis=j.prijs;$("#fPrijs").textContent=(j.kortingAan?"vanaf ":"")+eur(j.prijs)+" per persoon";if(j.kortingAan){const f=$("#fPrijs");f.textContent=eur(j.prijs)+" per persoon";const s=document.createElement("small");s.className="fk";s.textContent="korting volgens je status (brons, zilver, goud)";f.after(s)}if(j.totTekst)$("#fDead").textContent=(j.open===false?"inschrijven was mogelijk t.e.m. ":"inschrijven t.e.m. ")+j.totTekst;if(j.totTekst&&j.open!==false&&$("#lTot"))$("#lTot").textContent=" tot en met "+j.totTekst;if(j.open===false)gesloten("het banket",j)}).catch(()=>{});
+try{history.replaceState(null,"",location.pathname)}catch(e){}}$("#h1").textContent="Banket "+j.jaar;document.title="Banket "+j.jaar+" · VBHA";INFO.basis=j.prijs;$("#fPrijs").textContent=(j.kortingAan?"vanaf ":"")+eur(j.prijs)+" per persoon";if(j.kortingAan){const f=$("#fPrijs");f.textContent=eur(j.prijs)+" per persoon";const s=document.createElement("small");s.className="fk";s.textContent="korting volgens je status (brons, zilver, goud)";f.after(s)}if(j.totTekst)$("#fDead").textContent=(j.open===false?"inschrijven was mogelijk t.e.m. ":"inschrijven t.e.m. ")+j.totTekst;if(j.totTekst&&j.open!==false&&$("#lTot"))$("#lTot").textContent=" tot en met "+j.totTekst;if(j.open===false)gesloten("het banket",j)}).catch(()=>{});
 /* persoonlijke prijs (korting volgens de status van het lid) */
 function alMeld(inp,t){let m=document.getElementById("alMeld");const go=$("#go");
   if(!t){if(m)m.remove();if(go&&go.dataset.al){go.disabled=false;delete go.dataset.al}return}
@@ -256,15 +256,16 @@ function val(n){const c=document.querySelector('input[name="'+n+'"]:checked');re
 function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
   const pay=$("#pay"),L=INFO.lp,n=p||1;
   /* korting volgens het puntensysteem: kostprijs, bijdrage van de vriendenkring en jouw aandeel duidelijk tonen */
-  const kader=L&&L.korting>0?`<div class="kv"><div><span>Deelnameprijs${n>1?` (${n} × ${eur2(L.basis)})`:""}</span><b>${eur2(n*L.basis)}</b></div><div class="kv-vk kv-st st-${esc(L.status.toLowerCase())}"><span>Bijdrage door vriendenkring<small><span class="st-pil">${esc(L.status==="GEEN"?"Basis":L.status.charAt(0)+L.status.slice(1).toLowerCase())}</span></small></span><b>− ${eur2(n*(L.basis-L.prijs))}</b></div><div class="kv-tot"><span>Jouw aandeel</span><b>${eur2(n*L.prijs)}</b></div></div>`:"";
+  const kader=L&&L.korting>0?`<div class="kv"><div><span>Deelnameprijs${n>1?` (${n} × ${eur2(L.basis)})`:""}</span><b>${eur2(n*L.basis)}</b></div><div class="kv-vk kv-st st-${esc(L.status.toLowerCase())}"><span class="kv-bv">Bijdrage door vriendenkring <span class="st-pil">${esc(L.status==="GEEN"?"Basis":L.status.charAt(0)+L.status.slice(1).toLowerCase())}</span></span><b>− ${eur2(n*(L.basis-L.prijs))}</b></div><div class="kv-tot"><span>Jouw aandeel</span><b>${eur2(n*L.prijs)}</b></div></div>`:"";
   /* bedragen pas tonen als een lid gekozen is (en bij korting de persoonlijke prijs gekend is) */
   const lidOk=!!$("#naam").dataset.id&&!$("#alMeld")&&(!INFO.kortingAan||INFO.lp);
   /* goudtegoed (reglement 2027): schakelaar (standaard aan, volle bedrag) en optioneel "ander bedrag"; bedragen altijd met 2 decimalen (geen verspringen) */
   const tot=Math.round(n*INFO.prijs*100)/100,max=lidOk&&p?Math.min(INFO.teg||0,tot):0;
   const teg=max>0&&TEG.aan?Math.max(0,Math.min(max,TEG.bedrag==null?max:TEG.bedrag)):0;INFO.tegGebruik=Math.round(teg*100)/100;
-  const tegR=max>0?`<div class="kv-teg"><span><label class="tg-sw"><input type="checkbox" id="tegAan"${TEG.aan?" checked":""}><i aria-hidden="true"></i>Punten gebruiken</label><small>${eur2(INFO.teg)} beschikbaar${TEG.aan?` · ${TEG.ander?`<input id="tegIn" class="tg-in" type="text" inputmode="decimal" value="${teg.toFixed(2).replace(".",",")}" aria-label="Bedrag punten">`:`<button type="button" class="tg-ander" id="tegAnder">ander bedrag</button>`}`:""}</small></span><b>${teg>0?"− "+eur2(teg):eur2(0)}</b></div><div class="kv-tot"><span>Te betalen</span><b>${eur2(tot-teg)}</b></div>`:"";
+  const tegR=max>0?`<div class="kv-teg"><span><label class="tg-sw"><input type="checkbox" id="tegAan"${TEG.aan?" checked":""}><i aria-hidden="true"></i>Punten gebruiken</label><small>${eur2(INFO.teg)} beschikbaar${TEG.aan?` · ${TEG.ander?`<input id="tegIn" class="tg-in" type="text" inputmode="decimal" value="${teg.toFixed(2).replace(".",",")}" aria-label="Bedrag punten">`:`<button type="button" class="tg-ander" id="tegAnder">ander bedrag</button>`}`:""}</small></span><b class="tg-b">${teg>0?"− "+eur2(teg):eur2(0)}</b></div><div class="kv-tot"><span>Te betalen</span><b>${eur2(tot-teg)}</b></div>`:"";
   if(lidOk&&(p||kader)){pay.hidden=false;pay.innerHTML=kader?(max>0?kader.replace(/<\/div>$/,tegR+"</div>"):kader):(max>0?`<div class="kv"><div><span>Deelnameprijs</span><b>${eur2(tot)}</b></div>${tegR}</div>`:`Te betalen: <b>${eur(p*INFO.prijs)}</b>`)}else pay.hidden=true}
 const TEG={aan:true,bedrag:null,ander:false};const eur2=n=>"€"+(Number(n)||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
+document.addEventListener("input",e=>{if(e.target.id==="opm1"||e.target.id==="opm2"){e.target.style.height="auto";e.target.style.height=e.target.scrollHeight+2+"px"}});
 document.addEventListener("change",e=>{if(e.target.id==="tegAan"){TEG.aan=e.target.checked;upd()}else if(e.target.id==="tegIn"){const v=Number(String(e.target.value).replace(",","."));TEG.bedrag=isFinite(v)&&v>=0?v:null;upd()}});
 document.addEventListener("click",e=>{if(e.target.id==="tegAnder"){TEG.ander=true;upd();const i=$("#tegIn");if(i){i.focus();i.select()}}});
 document.addEventListener("keydown",e=>{if(e.target.id==="tegIn"&&e.key==="Enter"){e.preventDefault();e.target.blur()}});
@@ -350,5 +351,8 @@ textarea{width:100%;font:inherit;border:1px solid var(--line-strong);background:
 .kv-st.st-goud{--st:var(--goud)}.kv-st.st-zilver{--st:var(--zilver)}.kv-st.st-brons{--st:var(--brons)}.kv-st.st-geen{--st:var(--muted)}
 .kv-st>b,.kv-st small{color:var(--st)!important}.kv-st small{display:flex;align-items:center;gap:6px;margin-top:3px}
 .st-pil{display:inline-block;padding:1px 8px;border-radius:99px;background:var(--st);color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.03em;line-height:1.6}
+#opm1,#opm2{resize:none;overflow:hidden;height:auto;min-height:44px}
+.kv-bv{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.kv-st .kv-bv{color:var(--ink)}
+.tg-b{color:var(--goud)}
 </style>
 </body></html>
