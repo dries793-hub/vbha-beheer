@@ -746,3 +746,26 @@ body.vb-app .ovs .pd .mono{white-space:nowrap}
   body.vb-app .grid:has(>.full){display:grid!important;grid-template-columns:1fr 1fr;column-gap:14px}
   body.vb-app .grid:has(>.full)>.full,body.vb-app .grid:has(>.full)>:not(div):not(label),body.vb-app .grid:has(>.full)>[hidden]+.full{grid-column:1/-1}
 }
+/* statusbadges overal subtiel (reglement: .medal) */
+body.vb-app .medal{justify-self:start;padding:1px 9px!important;border-radius:99px;font-size:11.5px!important;font-weight:650!important;letter-spacing:.04em;color:#6b7078!important;background:#EEF0F3!important}
+body.vb-app .medal.GOUD{color:#7a5d0c!important;background:#FBF3DC!important}body.vb-app .medal.ZILVER{color:#4B5563!important;background:#EEF0F3!important}body.vb-app .medal.BRONS{color:#8A4B1F!important;background:#F6ECE3!important}
+/* lange informatiepagina's (reglement, privacy): iets breder op desktop, rustige hoofdstukken */
+@media (min-width:768px){body.vb-app.vb-info main{max-width:760px}}
+body.vb-app .regl h2{font-size:var(--g-h2)!important;margin:24px 0 6px!important;padding-top:16px;border-top:1px solid var(--g-line)}
+body.vb-app .regl h2:first-of-type{border-top:0;padding-top:0}
+body.vb-app .r27-kort>div{padding:10px 12px!important}
+/* vergadering: open info, rijen als lijst, keuze als segmented (antraciet) */
+body.vb-app .vg-info{background:none!important;padding:0 0 12px!important;margin:0 0 4px!important;border-bottom:1px solid var(--g-line);border-radius:0!important;font-size:15px!important}
+body.vb-app .vg-info div+div{color:var(--g-sec)}
+body.vb-app .vg-l{gap:0!important}
+body.vb-app .vg-r{border:0!important;border-bottom:1px solid var(--g-line)!important;border-radius:0!important;padding:8px 0!important;background:none!important}
+body.vb-app .vg-r.mij .n{color:var(--g-ink)}body.vb-app .vg-r.mij .n::after{content:" · jij";font-weight:500;color:var(--g-sec);font-size:13px}
+body.vb-app .vg-b{gap:3px!important;padding:3px;border:1px solid var(--g-line);border-radius:11px;background:var(--g-track)}
+body.vb-app .vg-b button{border:0!important;background:none!important;min-height:38px;padding:0 12px!important;border-radius:8px!important;font-weight:500!important;font-size:14px!important;transition:background-color var(--g-t),color var(--g-t)}
+body.vb-app .vg-b button.on.a,body.vb-app .vg-b button.on.v{background:var(--g-ink)!important;color:#fff!important}
+body.vb-app .vg-tel{margin-top:12px;font-size:14px;color:var(--g-sec)}
+body.vb-app .vg-ok{background:none!important;padding:0!important;color:#1E7A46!important;font-weight:600}
+/* sponsorkaarten: event als open EventInfo, geschenk als compacte tegels */
+body.vb-app .ev{background:none!important;padding:0 0 12px!important;border-bottom:1px solid var(--g-line);border-radius:0!important;margin:0 0 14px!important;gap:2px!important}
+body.vb-app .gift div{padding:10px!important}body.vb-app .gift b{font-size:26px!important;color:var(--g-ink)!important}
+@media (max-width:420px){body.vb-app .vg-r{flex-wrap:wrap}body.vb-app .vg-b{width:100%}body.vb-app .vg-b button{flex:1}}

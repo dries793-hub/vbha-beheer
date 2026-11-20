@@ -22,14 +22,14 @@ button{font:inherit;color:inherit;cursor:pointer}
 .pill:hover{background:rgba(255,255,255,.2)}
 .pill svg{width:18px;height:18px}
 .pill.wit{background:#fff;color:#111;border-color:#fff}
-.hero{position:relative;min-height:78vh;min-height:78svh;display:flex;align-items:flex-end;overflow:hidden}
+.hero{position:relative;min-height:52vh;min-height:52svh;display:flex;align-items:flex-end;overflow:hidden}
 .hero .bg{position:absolute;inset:-4%;background-size:cover;background-position:center;transform:scale(1.04);animation:kb 22s ease-in-out infinite alternate}
 @keyframes kb{to{transform:scale(1.14) translate(-1.5%,-1%)}}
 @media (prefers-reduced-motion:reduce){.hero .bg{animation:none}}
 .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,13,15,.15) 0%,rgba(13,13,15,.35) 45%,var(--bg) 100%)}
-.hero .in{position:relative;z-index:2;width:100%;max-width:1200px;margin:0 auto;padding:0 20px 40px}
+.hero .in{position:relative;z-index:2;width:100%;max-width:1200px;margin:0 auto;padding:0 20px 24px}
 .kick{display:inline-block;font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--accent);padding:6px 10px;border-radius:6px}
-h1{font-size:clamp(2.2rem,7vw,4.6rem);line-height:1.02;letter-spacing:-.03em;font-weight:800;margin:14px 0 10px;max-width:16ch}
+h1{font-size:clamp(1.75rem,3.2vw,2.5rem);line-height:1.08;letter-spacing:-.025em;font-weight:800;margin:10px 0 6px;max-width:20ch}
 .meta{color:#d4d4d8;font-size:15px;display:flex;flex-wrap:wrap;gap:6px 14px}
 .oms{color:#d4d4d8;max-width:60ch;margin-top:12px;font-size:16px;line-height:1.55;white-space:pre-line}
 .acts{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
@@ -70,7 +70,7 @@ h1{font-size:clamp(2.2rem,7vw,4.6rem);line-height:1.02;letter-spacing:-.03em;fon
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:99px;font-weight:600;font-size:14px;z-index:90;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.on{opacity:1}
 .vb{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#facc15;color:#111;text-align:center;font:700 14px Inter,system-ui;padding:9px calc(env(safe-area-inset-bottom) + 9px)}
-@media (max-width:600px){.grid{columns:2;column-gap:6px;padding:6px 6px 30px}.it{margin-bottom:6px;border-radius:8px}.hero .in{padding-bottom:28px}.pill{padding:9px 12px}}
+@media (max-width:600px){.hero{min-height:44svh}.grid{columns:2;column-gap:6px;padding:6px 6px 30px}.it{margin-bottom:6px;border-radius:8px}.hero .in{padding-bottom:18px}.pill{padding:9px 12px}}
 </style>
 <style>/* één VBHA-balk op elke pagina: logo · scheidingslijn · naam op één regel */
 .top{position:sticky;top:0;background:#18191C;padding:calc(env(safe-area-inset-top) + 12px) 20px 12px}
