@@ -8,12 +8,14 @@ export async function erewachtGeoApi(req, res) {
   const sb = admin();
   const { data, error } = await sb.from("leden").select("id,data").eq("data->>categorie", "Erewacht").limit(500);
   if (error) throw error;
-  const todo = (data || []).filter(r => { const a = String(r.data.adres || "").trim(), g = r.data.geo; return a && (!g || g.adres !== a); }).slice(0, 60);
+    // opnieuw proberen: adres gewijzigd, of vorige keer niet gevonden (na een uur)
+  const uurGeleden = new Date(Date.now() - 3600e3).toISOString();
+  const todo = (data || []).filter(r => { const a = String(r.data.adres || "").trim(), g = r.data.geo; return a && (!g || g.adres !== a || (g.lat == null && String(g.op || "") < uurGeleden)); }).slice(0, 60);
   let n = 0;
-  for (let i = 0; i < todo.length; i += 6) {
-    await Promise.all(todo.slice(i, i + 6).map(async r => {
-      const a = String(r.data.adres).trim(), P = await zoekPuntSlim(a);
-      const geo = P && P.lat ? { adres: a, lat: +P.lat, lng: +P.lng, binnen: binnen([P.lat, P.lng]), exact: !!P.huisnummer } : { adres: a, lat: null, lng: null, binnen: false };
+  for (let i = 0; i < todo.length; i += 3) {
+    await Promise.all(todo.slice(i, i + 3).map(async r => {
+      const a = String(r.data.adres).trim(), P = await zoekPuntSlim(a.replace(/[’‘`´]/g, "'")), op = new Date().toISOString();
+      const geo = P && P.lat ? { adres: a, lat: +P.lat, lng: +P.lng, binnen: binnen([P.lat, P.lng]), exact: !!P.huisnummer, op } : { adres: a, lat: null, lng: null, binnen: false, op };
       const { error: e } = await sb.from("leden").update({ data: { ...r.data, geo } }).eq("id", r.id); if (!e) n++;
     }));
   }
