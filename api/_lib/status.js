@@ -9,7 +9,7 @@ export async function reg27Aan(sb) { const { data } = await sb.from("config").se
 export async function jaarCfg(sb, Y, aan) {
   const [{ data }, r27] = await Promise.all([sb.from("jaren").select("data").eq("id", String(Y)).maybeSingle(), aan == null ? reg27Aan(sb) : aan]); const j = (data && data.data) || {};
   const c = { gewichten: { ...DEF.gewichten, ...(j.gewichten || {}) }, drempels: { ...DEF.drempels, ...(j.drempels || {}) }, korting: { ...DEF.korting, ...(j.korting || {}) }, jaar: Y, r27: !!r27 };
-  if (r27 && Y >= REG27.start) { c.nieuw = true; c.gewichten = { ...REG27.gewichten }; c.drempels = { ...REG27.drempels }; c.kalDeadline = (j.kalDeadline && /^\d{2}-\d{2}$/.test(j.kalDeadline) ? j.kalDeadline : REG27.kalDeadline); }
+  if (r27 && Y >= REG27.start) { c.nieuw = true; const o = j.r27 || {}; c.gewichten = { ...REG27.gewichten, ...(o.gewichten || {}) }; c.drempels = { ...REG27.drempels, ...(o.drempels || {}) }; c.kalDeadline = (j.kalDeadline && /^\d{2}-\d{2}$/.test(j.kalDeadline) ? j.kalDeadline : REG27.kalDeadline); }
   return c;
 }
 /* aantal activiteiten waarop het lid hielp (art. 6: 50 punten per activiteit, ongeacht het aantal shiften) */
