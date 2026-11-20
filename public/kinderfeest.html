@@ -165,12 +165,9 @@ html,body{overflow-x:hidden}
     <section class="vb-sec" aria-labelledby="sJ"><h2 class="vb-card-t" id="sJ">Jouw inschrijving</h2>
     <div class="grid">
       <div class="full"><label for="lid">Ouder / lid</label><input type="text" id="lid" maxlength="100"></div>
-      <div class="full"><label for="mail">E-mailadres</label><input type="email" id="mail" autocomplete="email" inputmode="email" maxlength="120"><p class="mhint" id="mhint" hidden></p></div>
       <div class="full"><span class="lbl">Kinderen</span><div id="kids" style="display:flex;flex-direction:column;gap:10px"></div><button type="button" class="kadd" id="add">+ Kind toevoegen</button></div>
-      <div class="full"><label for="opm">Opmerkingen</label><textarea id="opm" maxlength="400" placeholder="Optioneel"></textarea></div>
     </div></section>
     <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
-    <div class="pay" id="pay" data-reveal aria-live="polite"></div>
     <p class="err" id="err" role="alert"></p>
     <div class="vb-checkout"><div class="vb-due" id="due" hidden><span>Te betalen</span><b></b></div><button class="btn" id="go" type="submit">Inschrijving bevestigen</button></div>
   </form></div>
@@ -190,7 +187,6 @@ fetch("/api/kinderfeest"+(VQ.get("v")?"?v="+encodeURIComponent(VQ.get("v"))+"&t=
 function vastNaam(inp,naam){inp.hidden=true;const b=document.createElement("div");b.className="vast-n";b.textContent=naam;inp.after(b)}
   if(j.vul&&j.vul.voornaam){const d=$("#dag");d.textContent="Dag "+j.vul.voornaam+"!";d.hidden=false}
   if(j.vul){const i=$("#lid");i.value=j.vul.lid;i.dataset.id=j.vul.lidId;i.classList.add("lp-ok");vastNaam(i,j.vul.lid);{const w=i.closest(".full");if(w)w.hidden=true}if(typeof alCheck==="function")alCheck(i,j.vul.lidId);
-    const m=$("#mail");if(m&&j.vul.mail){m.value=j.vul.mail;m.dataset.auto="1";m.type="text";m.closest(".full").hidden=true}
     if(j.vul.kinderen&&j.vul.kinderen.length)KIDS=j.vul.kinderen.map(k=>({naam:k.naam,geb:k.geb}));try{history.replaceState(null,"",location.pathname)}catch(e){}}
   $("#h1").textContent="Kinderfeest "+j.jaar;document.title="Kinderfeest "+j.jaar+" · VBHA";
   const d=new Date(j.datum+"T12:00");if(!isNaN(d))$("#kWan").textContent=d.toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).replace(/^./,c=>c.toUpperCase());
@@ -218,16 +214,14 @@ function alMeld(inp,t){let m=document.getElementById("alMeld");const go=$("#go")
   const k=t.indexOf(". ");m.innerHTML=k>0?"<b>"+esc(t.slice(0,k+1))+"</b> "+esc(t.slice(k+2)):esc(t);if(go){go.disabled=true;go.dataset.al="1"}}
 let AC=0;async function alCheck(inp,id){const n=++AC;alMeld(inp,"");try{const r=await fetch("/api/kinderfeest?lid="+encodeURIComponent(id),{cache:"no-store"});const j=await r.json();if(n!==AC||!r.ok)return;if(j.al)alMeld(inp,j.melding)}catch(_){}}
 $("#f").addEventListener("submit",async e=>{e.preventDefault();VB.wisFouten($("#f"));read();const er=$("#err");er.textContent="";
-  const lid=$("#lid").value.trim(),mail=$("#mail").value.trim();
+  const lid=$("#lid").value.trim();
   const lidId=$("#lid").dataset.id||"";if(!lidId){VB.veldFout($("#lid"),lid?"Kies de naam van het lid uit de lijst.":"Vul de naam van het lid in en kies ze uit de lijst.");return}
-  const auto=!!$("#mail").dataset.auto;
-  if(!auto&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)){VB.veldFout($("#mail"),"Vul een geldig e-mailadres in.");return}
   KIDS=KIDS.filter((k,i)=>i===0||k.naam.trim()||k.geb);draw();
   for(let i=0;i<KIDS.length;i++){const k=KIDS[i];if(!k.naam.trim()){VB.veldFout($("#kn"+i),"Vul de naam van kind "+(i+1)+" in.");return}
     const a=lft(k.geb);if(a==null||a<0){VB.veldFout($("#kg"+i),"Vul een geldige geboortedatum in voor "+k.naam.trim()+".");return}
     if(a>CFG.leeftijd){VB.veldFout($("#kg"+i),k.naam.trim()+" is op de dag van het feest al "+a+" jaar en kan niet meer ingeschreven worden. Verwijder dit kind om verder te gaan.");return}}
   const b=$("#go");b.disabled=true;b.classList.add("is-busy");b.textContent="Inschrijving verwerken…";
-  try{const r=await fetch("/api/kinderfeest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({lid,lidId,email:auto?"":mail,lidMail:auto,kinderen:KIDS.map(k=>({naam:k.naam,geb:k.geb})),opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0})});
+  try{const r=await fetch("/api/kinderfeest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({lid,lidId,lidMail:true,kinderen:KIDS.map(k=>({naam:k.naam,geb:k.geb})),website:$("#website").value,duur:Date.now()-t0})});
     const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Inschrijven lukte niet.");
     $("#box").innerHTML=`<div class="card ok"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Bedankt!</h2><p>De inschrijving van ${esc(lid)} is goed ontvangen.</p><p class="sum">${KIDS.map(k=>esc(k.naam.trim())).join(", ")}</p>${j.cadeau?`<div class="kc-go"><b>Kies nu al de cadeaus</b><p>De link staat ook in je bevestigingsmail.</p><a class="btn-go" href="${esc(j.cadeau)}">Cadeaus kiezen →</a></div>`:'<p class="sum">Tot op het kinderfeest!</p>'}</div>`;window.scrollTo({top:0,behavior:"smooth"})}
   catch(x){er.textContent=x.message;b.disabled=false;b.classList.remove("is-busy");b.textContent="Inschrijving bevestigen"}});
@@ -251,11 +245,8 @@ let HK="";async function herken(){const id=($("#lid")||{}).dataset.id,m=(($("#ma
   if(KIDS.some(k=>k.naam.trim()||k.geb))return;const sl=id+"|"+m.toLowerCase();if(sl===HK)return;HK=sl;
   try{const r=await fetch("/api/kinderfeest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({actie:"herken",lidId:id,email:m})});const j=await r.json().catch(()=>({}));
     if(j.kinderen&&j.kinderen.length&&!KIDS.some(k=>k.naam.trim()||k.geb)){KIDS=j.kinderen.map(k=>({naam:k.naam,geb:k.geb}));draw();const h=$("#mhint");if(h){h.textContent="We vulden je kinderen van vorig jaar in. Kijk ze even na.";h.hidden=false}}}catch(e){}}
-$("#mail").addEventListener("change",herken);$("#mail").addEventListener("blur",herken);
+
 lidPicker($("#lid"));
-/* zelf iets aanpassen aan het voorgestelde adres: dan geldt het getypte adres */
-$("#mail").addEventListener("focus",e=>{const m=e.target;if(m.dataset.auto){m.select()}});
-$("#mail").addEventListener("input",e=>{const m=e.target;if(m.dataset.auto){delete m.dataset.auto;m.type="email";$("#mhint").hidden=true}});
 draw();
 
 </script>

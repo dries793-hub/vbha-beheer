@@ -101,9 +101,9 @@ export default async function handler(req, res) {
     if (!lidRij) throw httpErr(400, "Kies de naam van het lid uit de lijst.");
     if (await alIngeschreven(sb, "kinderfeest", I.jaar, lidRij.id)) throw httpErr(409, AL_TEKST("het kinderfeest", I.jaar));
     const lid = lidRij.naam;
-    // "lidMail": de inschrijver liet het bekende adres van het lid staan (dat adres krijgt de browser enkel verborgen te zien)
-    const email = b.lidMail && lidRij.em ? lidRij.em : clean(b.email, 120).toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw httpErr(400, "Vul een geldig e-mailadres in.");
+        // het formulier vraagt geen e-mailadres meer (iedereen krijgt een persoonlijke link): het adres van het lid geldt; een meegestuurd adres enkel als het lid er geen heeft
+    const eigen = clean(b.email, 120).toLowerCase();
+    const email = lidRij.em || (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(eigen) ? eigen : "");
     const kinderen = (Array.isArray(b.kinderen) ? b.kinderen : []).slice(0, 8)
       .map(k => ({ naam: clean(k && k.naam, 80), geb: /^\d{4}-\d{2}-\d{2}$/.test(String(k && k.geb)) ? String(k.geb) : "" }))
       .filter(k => k.naam);
