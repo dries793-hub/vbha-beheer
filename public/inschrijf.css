@@ -1,0 +1,160 @@
+/* ============ VBHA inschrijfpagina's: één gedeeld designsysteem (banket, familiedag, kinderfeest, …) ============
+   Wordt na de eigen stijl van elke pagina geladen en geldt voor <body class="vb">.
+   Componenten: .vb-hdr (header) · .vb-hero (titel, begroeting, omschrijving) · .vb-info/.vb-meta (praktische info)
+   .vb-card (formulier "Jouw inschrijving") · .ch (gesegmenteerde keuze) · .vb-qty (aantallen) · .vb-kid (kind)
+   .vb-notice · .vb-badge (status) · .vb-credit (punten/tegoed) · .vb-sum (prijsoverzicht) · .btn (primaire knop) · .foot */
+:root{
+  --vb-dark:#18191C;--vb-red:#C0161F;--vb-red-deep:#8F0F16;--vb-bg:#F5F5F6;--vb-card:#FFFFFF;--vb-ink:#18191C;--vb-muted:#6F7278;--vb-line:#D9DBDF;--vb-line-soft:#E8E9EC;
+  --vb-ro:#F2F2F3;--vb-gold:#B08400;--vb-silver:#6B7280;--vb-bronze:#9A5B26;--vb-green:#168447;--vb-focus:#2F6FE4;--vb-focus-soft:#E4EDFD;
+  --vb-s1:8px;--vb-s2:12px;--vb-s3:16px;--vb-s4:24px;--vb-s5:32px;--vb-s6:40px;
+  --vb-r-in:10px;--vb-r-card:14px;--vb-h-in:46px;--vb-h-btn:54px;--vb-w:680px;
+  --vb-f:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+@media (prefers-color-scheme:dark){:root{--vb-dark:#0B0B0C;--vb-bg:#111214;--vb-card:#1A1B1E;--vb-ink:#ECEDEF;--vb-muted:#9B9EA5;--vb-line:#3C3F45;--vb-line-soft:#2A2C30;--vb-ro:#202226;--vb-gold:#E2B93B;--vb-silver:#B4BAC4;--vb-bronze:#D08A4F;--vb-green:#3FB57A;--vb-focus-soft:#16233D}}
+
+body.vb{margin:0;background:var(--vb-bg);color:var(--vb-ink);font:16px/1.5 var(--vb-f);-webkit-font-smoothing:antialiased}
+body.vb *,body.vb *::before,body.vb *::after{box-sizing:border-box}
+body.vb [hidden]{display:none!important}
+
+/* ---- header ---- */
+body.vb .hdr{background:var(--vb-dark);padding:calc(12px + env(safe-area-inset-top,0px)) 20px 12px}
+body.vb .hdr .in{max-width:var(--vb-w);margin:0 auto;display:flex;align-items:center;gap:14px;color:#fff}
+body.vb .hdr .logo{height:30px;width:auto;display:block}
+body.vb .hdr .in>span{display:block!important;border-left:1px solid #3a3c40;padding-left:14px;font-size:12.5px;line-height:1.25;color:#B9BCC2;max-width:16ch}
+
+/* ---- pagina ---- */
+body.vb main{max-width:var(--vb-w);margin:0 auto;padding:var(--vb-s4) 20px var(--vb-s6)}
+@media (max-width:360px){body.vb main{padding-left:16px;padding-right:16px}}
+
+/* ---- titel, begroeting, omschrijving ---- */
+body.vb .hero{margin:0}
+body.vb .title{display:flex;align-items:center;gap:var(--vb-s2);margin:0 0 var(--vb-s2)}
+body.vb .title img{height:44px;width:auto;flex:none}
+body.vb h1{font-size:30px;line-height:1.15;font-weight:700;letter-spacing:-.015em;margin:0}
+body.vb .dag{margin:2px 0 0;font-size:16px;color:var(--vb-muted)}
+body.vb .lead{margin:0 0 var(--vb-s4);font-size:16px;color:var(--vb-muted);line-height:1.55}
+@media (max-width:360px){body.vb h1{font-size:26px}}
+
+/* ---- praktische info: twee tegels + compacte metaregels ---- */
+body.vb .facts{display:grid;grid-template-columns:1fr 1fr;gap:var(--vb-s2);margin:0 0 var(--vb-s2)}
+body.vb .fact{background:var(--vb-card);border:1px solid var(--vb-line-soft);border-radius:var(--vb-r-in);padding:var(--vb-s2) 14px;min-width:0}
+body.vb .fact>span{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--vb-muted);margin:0 0 4px}
+body.vb .fact>span svg{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+body.vb .fact b{display:block;font-size:15.5px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+body.vb .fact small{display:block;font-size:14px;color:var(--vb-muted);margin-top:2px;overflow-wrap:anywhere}
+body.vb .vb-meta{display:flex;align-items:center;gap:var(--vb-s1);background:var(--vb-card);border:1px solid var(--vb-line-soft);border-radius:var(--vb-r-in);padding:10px 14px;font-size:14.5px;color:var(--vb-ink);margin:0 0 var(--vb-s2)}
+body.vb .vb-meta svg{width:17px;height:17px;flex:none;stroke:var(--vb-muted);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+body.vb .vb-metas{margin:0 0 var(--vb-s4)}
+@media (max-width:340px){body.vb .facts{grid-template-columns:1fr}}
+
+/* ---- hoofdkaart ---- */
+body.vb .card{background:var(--vb-card);border:1px solid var(--vb-line-soft);border-radius:var(--vb-r-card);padding:var(--vb-s4) 20px;box-shadow:none}
+body.vb .vb-card-t{font-size:21px;font-weight:700;margin:0 0 var(--vb-s3);letter-spacing:-.01em}
+@media (max-width:360px){body.vb .card{padding:20px 16px}}
+body.vb .grid{display:flex;flex-direction:column;gap:20px}
+body.vb fieldset{border:0;margin:0;padding:0;min-width:0}
+
+/* ---- labels en invoervelden ---- */
+body.vb label,body.vb .lbl,body.vb legend{display:block;font-size:15px;font-weight:600;color:var(--vb-ink);margin:0 0 var(--vb-s1);padding:0}
+body.vb input[type=text],body.vb input[type=email],body.vb input[type=tel],body.vb input[type=date],body.vb textarea,body.vb select{width:100%;min-height:var(--vb-h-in);font:inherit;font-size:16px;color:var(--vb-ink);background:var(--vb-card);border:1px solid var(--vb-line);border-radius:var(--vb-r-in);padding:10px 14px;box-shadow:none;-webkit-appearance:none;appearance:none}
+body.vb textarea{min-height:88px;resize:vertical;line-height:1.5}
+body.vb textarea.vb-kort{min-height:var(--vb-h-in);height:var(--vb-h-in);resize:none;overflow:hidden}
+body.vb ::placeholder{color:var(--vb-muted);opacity:1}
+body.vb input:focus,body.vb textarea:focus,body.vb select:focus{outline:none;border-color:var(--vb-focus);box-shadow:0 0 0 3px var(--vb-focus-soft)}
+body.vb .vast-n,body.vb input[readonly]{display:flex;align-items:center;min-height:var(--vb-h-in);background:var(--vb-ro);border:1px solid var(--vb-line-soft);border-radius:var(--vb-r-in);padding:10px 14px;font-size:16px;font-weight:500;box-shadow:none}
+body.vb .lp input.lp-ok{border-color:var(--vb-line);background:var(--vb-card);box-shadow:none}
+body.vb .is-fout,body.vb input.is-fout{border-color:var(--vb-red)!important}
+body.vb .veld-fout{margin:6px 0 0;font-size:14px;color:var(--vb-red);font-weight:500}
+
+/* ---- gesegmenteerde keuze (Alleen | Met partner …) ---- */
+body.vb .ch{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;grid-template-columns:none;gap:0;border:1px solid var(--vb-line);border-radius:var(--vb-r-in);overflow:hidden;background:var(--vb-card);padding:0;width:100%}
+body.vb .ch label{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;margin:0;min-height:48px;padding:8px 10px;border:0;border-left:1px solid var(--vb-line);border-radius:0;background:transparent;cursor:pointer;transition:background .15s,color .15s}
+body.vb .ch label:first-child{border-left:0}
+body.vb .ch input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
+body.vb .ch b,body.vb .ch span{font-weight:500;font-size:15.5px;line-height:1.25;padding:0;border:0;background:none;color:inherit}
+body.vb .ch label:has(input:checked){background:var(--vb-dark);color:#fff;border-color:var(--vb-dark)}
+body.vb .ch label:has(input:checked) b,body.vb .ch label:has(input:checked) span{font-weight:600;color:#fff}
+body.vb .ch label:has(input:focus-visible){box-shadow:inset 0 0 0 3px var(--vb-focus)}
+body.vb .rij>legend{float:none;margin:0 0 var(--vb-s1)}
+body.vb .rij>.ch{float:none;width:100%}
+body.vb .opmw{padding-top:var(--vb-s3);clear:both}
+body.vb .vb-sep{border:0;border-top:1px solid var(--vb-line-soft);margin:4px 0}
+
+/* ---- aantallen (familiedag) ---- */
+body.vb .pr-l{display:flex;flex-direction:column;border:1px solid var(--vb-line);border-radius:var(--vb-r-in);overflow:hidden}
+body.vb .pr-r{display:flex;align-items:center;justify-content:space-between;gap:var(--vb-s2);padding:12px 14px;background:var(--vb-card);border:0;border-top:1px solid var(--vb-line-soft);border-radius:0;margin:0}
+body.vb .pr-r:first-child{border-top:0}
+body.vb .pr-r.on{background:var(--vb-card);border-color:var(--vb-line-soft)}
+body.vb .pr-r{flex-wrap:nowrap}body.vb .pr-r .nm{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}
+body.vb .pr-r .nm b{font-size:16px;font-weight:600}
+body.vb .pr-r .nm span{font-size:14px;color:var(--vb-muted)}
+body.vb .pr-r .pp{display:none}
+body.vb .stp{display:flex;align-items:center;gap:10px;flex:none}
+body.vb .stp button{width:40px;height:40px;border-radius:50%;border:1px solid var(--vb-line);background:var(--vb-card);color:var(--vb-ink);font-size:20px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+body.vb .stp button:hover:not(:disabled){border-color:var(--vb-ink)}
+body.vb .stp button:disabled{opacity:.35;cursor:default}
+body.vb .stp button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--vb-focus-soft);border-color:var(--vb-focus)}
+body.vb .stp output{min-width:22px;text-align:center;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* ---- kinderen (kinderfeest) ---- */
+body.vb #kids{display:flex;flex-direction:column;gap:0!important;border-top:1px solid var(--vb-line-soft)}
+body.vb .kid{display:flex;flex-direction:column;align-items:stretch;margin:0;gap:var(--vb-s2);padding:var(--vb-s3) 0;border:0;border-bottom:1px solid var(--vb-line-soft);border-radius:0;background:none}
+body.vb .kid-k{display:flex;align-items:center;justify-content:space-between;gap:var(--vb-s2)}
+body.vb .kid-k b{font-size:16px;font-weight:700}
+body.vb .kid label{font-size:14px;font-weight:600;margin-bottom:6px}
+body.vb .kdel{all:unset;display:inline-flex;align-items:center;gap:5px;color:var(--vb-red);font-size:14px;font-weight:500;cursor:pointer;padding:6px 2px;border-radius:6px}
+body.vb .kdel svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+body.vb .kdel:focus-visible{box-shadow:0 0 0 3px var(--vb-focus-soft)}
+body.vb .kadd{all:unset;display:inline-flex;align-items:center;gap:6px;margin-top:var(--vb-s3);color:var(--vb-red);font-weight:600;font-size:15px;cursor:pointer;padding:8px 2px;border-radius:6px}
+body.vb .kadd:focus-visible{box-shadow:0 0 0 3px var(--vb-focus-soft)}
+body.vb .age{font-size:14px;color:var(--vb-muted)}.vb .age:empty{display:none}body.vb .age.te{color:var(--vb-red);font-weight:500}
+
+/* ---- melding (neutraal) ---- */
+body.vb .vb-notice{display:flex;gap:10px;align-items:flex-start;background:var(--vb-ro);border:0;border-left:3px solid var(--vb-dark);border-radius:8px;padding:10px 12px;font-size:14.5px;color:var(--vb-ink);margin:0 0 20px}
+body.vb .vb-notice svg{width:18px;height:18px;flex:none;margin-top:1px;stroke:var(--vb-muted);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---- statusbadge ---- */
+body.vb .vb-badge{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;font-weight:700;letter-spacing:.02em;line-height:1.6;color:#fff;background:var(--vb-st,var(--vb-muted));vertical-align:middle}
+body.vb .st-goud{--vb-st:var(--vb-gold)}body.vb .st-zilver{--vb-st:var(--vb-silver)}body.vb .st-brons{--vb-st:var(--vb-bronze)}body.vb .st-geen{--vb-st:var(--vb-muted)}
+
+/* ---- prijsoverzicht ---- */
+body.vb .pay{margin:var(--vb-s4) 0 0;padding:var(--vb-s3) 18px;background:var(--vb-card);border:1px solid var(--vb-line);border-radius:var(--vb-r-in);font-size:16px}
+body.vb .vb-sum-t{font-size:17px;font-weight:700;margin:0 0 var(--vb-s2)}
+body.vb .vb-sum{display:flex;flex-direction:column;gap:10px}
+body.vb .vb-r{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--vb-s2)}
+body.vb .vb-r>span{min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+body.vb .vb-r>b{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+body.vb .vb-r.korting>b,body.vb .vb-r.credit>b{color:var(--vb-st,var(--vb-gold))}
+body.vb .vb-r small{display:block;flex-basis:100%;font-size:14px;color:var(--vb-muted);font-weight:400}
+body.vb .vb-tot{display:flex;justify-content:space-between;align-items:baseline;gap:var(--vb-s2);border-top:1px solid var(--vb-line);padding-top:var(--vb-s2);margin-top:4px}
+body.vb .vb-tot span{font-size:19px;font-weight:700}
+body.vb .vb-tot b{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+body.vb .vb-sel{display:flex;flex-direction:column;gap:2px}.vb-sel small{font-size:14.5px;color:var(--vb-muted)}
+
+/* ---- punten / tegoed (één component) ---- */
+body.vb .vb-credit{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 12px}body.vb .vb-credit>small{grid-column:1/-1;flex-basis:auto}
+body.vb .vb-sw{display:inline-flex!important;align-items:center;gap:10px;margin:0!important;font-size:16px;font-weight:500;cursor:pointer}
+body.vb .vb-sw input{position:absolute;opacity:0;width:1px;height:1px}
+body.vb .vb-sw i{position:relative;width:40px;height:24px;border-radius:99px;background:var(--vb-line);flex:none;transition:background .15s}
+body.vb .vb-sw i::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+body.vb .vb-sw input:checked+i{background:var(--vb-dark)}body.vb .vb-sw input:checked+i::after{left:19px}
+body.vb .vb-sw input:focus-visible+i{box-shadow:0 0 0 3px var(--vb-focus-soft)}
+body.vb .vb-credit small{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:14px;color:var(--vb-muted)}
+body.vb .vb-aanp{all:unset;cursor:pointer;color:var(--vb-ink);text-decoration:underline;text-underline-offset:2px;border-radius:4px}
+body.vb .vb-aanp:focus-visible{box-shadow:0 0 0 3px var(--vb-focus-soft)}
+body.vb .vb-cin{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--vb-line);border-radius:8px;padding:0 8px;background:var(--vb-card);color:var(--vb-ink)}
+body.vb .vb-cin input{all:unset;width:64px;padding:5px 0;font-size:15px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---- primaire knop ---- */
+body.vb .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:var(--vb-h-btn);margin-top:var(--vb-s4);padding:12px 18px;border:0;border-radius:var(--vb-r-in);background:var(--vb-red);color:#fff;font:700 17px var(--vb-f);cursor:pointer;transition:background .15s}
+body.vb .btn:hover{background:var(--vb-red-deep)}
+body.vb .btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--vb-card),0 0 0 6px var(--vb-red)}
+body.vb .btn:disabled{opacity:.55;cursor:default;background:var(--vb-red)}
+body.vb .err{color:var(--vb-red);font-weight:500;margin:var(--vb-s3) 0 0;font-size:15px}
+body.vb .err:empty{display:none}
+
+/* ---- footer ---- */
+body.vb .foot{text-align:center;margin:var(--vb-s5) 0 var(--vb-s3);font-size:14px;color:var(--vb-muted)}
+body.vb .foot a{color:inherit}
+@media (max-width:380px){body.vb .card{padding:20px 14px}body.vb .pay{padding:14px 12px}body.vb .vb-sw{gap:8px;font-size:15.5px}body.vb .vb-sw i{width:36px;height:22px}body.vb .vb-sw i::after{width:16px;height:16px}body.vb .vb-sw input:checked+i::after{left:17px}}
+body.vb .vb-sw{white-space:nowrap}body.vb .vb-nw{white-space:nowrap}
+@media (max-width:360px){body.vb .vb-sw{white-space:normal;line-height:1.25}}
