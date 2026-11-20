@@ -671,3 +671,8 @@ body.vb-app .lnk{color:var(--g-ink)!important;font-weight:500!important}
 body.vb-app .kc .cls{border:0!important;background:none!important;padding:0!important;box-shadow:none!important}
 body.vb-app .kc .tot{display:block!important}
 body.vb-app .kc .tot .tr.sm{justify-content:flex-start!important}
+/* aantal (fuif, shop, …): zelfde QuantitySelector, zonder kader rond het geheel */
+body.vb-app .aantal{display:flex!important;align-items:center;justify-content:space-between;gap:12px;border:0!important;background:none!important;padding:0!important}
+body.vb-app .aantal .stp{border:0!important;background:none!important;padding:0!important}
+body.vb-app .aantal .stp input{width:56px!important;min-height:44px!important;height:44px;padding:0!important;text-align:center;font-weight:600;border-radius:10px!important}
+body.vb-app .aantal .som b,body.vb-app #tot{font-size:20px;font-variant-numeric:tabular-nums}
