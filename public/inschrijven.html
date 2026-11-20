@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}.logo-a{display:block;flex:none;line-height:0;border-radius:4px}.logo-a:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .naam2{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:420px){.naam2{gap:8px}}
+.cat-meer{font:inherit;padding:0;margin:0;border:0;background:none;cursor:pointer;width:100%}.cat-meer span{background:none!important;border:1px dashed var(--line-strong)!important;color:var(--muted,#6B7280)}.cat-meer:hover span{color:inherit;border-style:solid!important}.opt[hidden]{display:none!important}
 </style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Word lid van VBHA</title>
 <meta name="description" content="Schrijf je in als lid van de Vriendenkring Brandweer Hoofdpost Aalst.">
@@ -135,7 +136,11 @@ html,body{overflow-x:hidden}
 const $$=s=>[...document.querySelectorAll(s)];const $=s=>document.querySelector(s);const t0=Date.now();let INFO=null;
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const eur=n=>"€\u00a0"+(Number(n)||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
-function cats(list){$("#cats").innerHTML=list.map((c,i)=>`<label class="opt"><input type="radio" name="categorie" value="${esc(c)}"${i===0?" required":""}><span>${esc(c)}</span></label>`).join("")}
+/* de gewone categorieën staan meteen klaar; de minder gebruikte (administratie, andere post, ambulanciers, dagploeg, erewacht …) komen tevoorschijn via "Andere categorie" */
+function cats(list){const hoofd=c=>/^(vrijwilliger(s)?|ploeg\s*\d+)$/i.test(String(c).trim());const extra=list.filter(c=>!hoofd(c));const alleExtra=extra.length===list.length;
+  const opt=(c,i,x)=>`<label class="opt${x?" cat-x":""}"${x?" hidden":""}><input type="radio" name="categorie" value="${esc(c)}"${i===0?" required":""}><span>${esc(c)}</span></label>`;
+  $("#cats").innerHTML=list.map((c,i)=>opt(c,i,!alleExtra&&!hoofd(c))).join("")+(!alleExtra&&extra.length?`<button type="button" class="opt cat-meer" aria-expanded="false"><span>Andere categorie</span></button>`:"");
+  const m=$("#cats .cat-meer");if(m)m.onclick=()=>{$("#cats").querySelectorAll(".cat-x").forEach(l=>l.hidden=false);m.remove();const f=$("#cats .cat-x input");if(f)f.focus()}}
 cats(["Ploeg 1","Ploeg 2","Ploeg 3","Ploeg 4","Vrijwilligers","Administratie","Erewacht"]);
 fetch("/api/inschrijving").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;if(j.online)$("#go").textContent="Inschrijven en betalen";
   const cur=(document.querySelector("input[name=categorie]:checked")||{}).value;cats(j.categorieen);if(cur){const x=[...document.querySelectorAll("input[name=categorie]")].find(i=>i.value===cur);if(x)x.checked=true}
