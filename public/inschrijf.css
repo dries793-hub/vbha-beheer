@@ -790,3 +790,38 @@ body.vb-app .tk-tip{font-size:13.5px;color:var(--g-sec);text-align:center;margin
 body.vb-app .kid-k>b{display:none!important}
 body.vb-app .kid-k:not(:has(button)){display:none!important}
 body.vb-app .kid-k:has(button){justify-content:flex-end}
+/* ===== Gedeelde Public-componenten buiten de inschrijfpagina's (bv. /kaart): scope .vb-ui =====
+   zelfde tokens en maten als de golden reference: SegmentedControl (.vb-seg), PrimaryButton (.vb-cta),
+   SecondaryButton (.vb-btn2), TertiaryAction (.vb-tert), QuantitySelector (.vb-qty) */
+.vb-ui{--g-ink:#18191C;--g-sec:#6F7278;--g-line:#E2E3E5;--g-soft:#F7F8F9;--g-track:#F1F2F4;--g-red:#C0161F;--g-red-d:#A5121A;--g-t:.16s cubic-bezier(.2,.7,.3,1);--g-seg:44px;--g-cta:50px;--g-on-ink:#fff;--g-surf:#fff}
+@media (min-width:768px){.vb-ui{--g-seg:40px;--g-cta:46px}}
+@media (prefers-color-scheme:dark){.vb-ui{--g-ink:#ECEDEF;--g-sec:#A3A6AD;--g-line:#33363C;--g-soft:#1C1E22;--g-track:#24262B;--g-on-ink:#141517;--g-surf:#17191C}}
+.vb-ui .vb-seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;border:1px solid var(--g-line);border-radius:11px;background:var(--g-track)}
+.vb-ui .vb-seg>button{all:unset;box-sizing:border-box;min-height:var(--g-seg);display:flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;border-radius:8px;font:500 14.5px/1.2 inherit;font-family:inherit;color:var(--g-ink);cursor:pointer;text-align:center;transition:background-color var(--g-t),color var(--g-t),box-shadow var(--g-t)}
+.vb-ui .vb-seg>button[aria-checked=true],.vb-ui .vb-seg>button.on{background:var(--g-ink);color:var(--g-on-ink);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.vb-ui .vb-seg>button:disabled{opacity:.4;cursor:not-allowed}
+.vb-ui .vb-seg>button:focus-visible{outline:2px solid var(--g-ink);outline-offset:2px}
+.vb-ui .vb-cta{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:var(--g-cta);padding:0 16px;border-radius:10px;background:var(--g-red);color:#fff;font:650 16px/1.2 inherit;font-family:inherit;cursor:pointer;text-align:center;transition:background-color var(--g-t),transform .12s}
+.vb-ui .vb-cta:hover{background:var(--g-red-d)}.vb-ui .vb-cta:active{transform:translateY(1px)}
+.vb-ui .vb-cta:focus-visible{box-shadow:0 0 0 3px var(--g-surf),0 0 0 5px var(--g-red)}
+.vb-ui .vb-cta:disabled,.vb-ui .vb-cta[aria-busy=true]{opacity:.6;cursor:default;transform:none}
+.vb-ui .vb-btn2{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;min-height:var(--g-cta);padding:0 16px;border-radius:10px;border:1px solid var(--g-line);background:var(--g-surf);color:var(--g-ink);font:600 15.5px/1.2 inherit;font-family:inherit;cursor:pointer;transition:border-color var(--g-t)}
+.vb-ui .vb-btn2:hover{border-color:var(--g-ink)}.vb-ui .vb-btn2:focus-visible{outline:2px solid var(--g-ink);outline-offset:2px}
+.vb-ui .vb-tert{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;min-height:32px;font:500 13.5px/1.2 inherit;font-family:inherit;color:var(--g-sec);cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--g-line)}
+.vb-ui .vb-tert:hover{color:var(--g-ink)}.vb-ui .vb-tert:focus-visible{outline:2px solid var(--g-ink);outline-offset:2px;border-radius:4px}
+.vb-ui .vb-tert svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.vb-ui .vb-qty{display:inline-flex;align-items:center;gap:8px}
+.vb-ui .vb-qty>button{all:unset;box-sizing:border-box;width:44px;height:44px;display:grid;place-items:center;border-radius:10px;border:1px solid var(--g-line);background:var(--g-soft);color:var(--g-ink);font:500 20px/1 inherit;font-family:inherit;cursor:pointer;transition:background-color var(--g-t)}
+.vb-ui .vb-qty>button:hover:not(:disabled){background:var(--g-track)}.vb-ui .vb-qty>button:disabled{opacity:.35;cursor:default}
+.vb-ui .vb-qty>button:focus-visible{outline:2px solid var(--g-ink);outline-offset:2px}
+.vb-ui .vb-qty>b{min-width:26px;text-align:center;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+@media (min-width:768px){.vb-ui .vb-qty>button{width:40px;height:40px}}
+@keyframes vb-ui-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.vb-ui [data-reveal]{animation:vb-ui-in .17s ease-out both}
+@media (prefers-reduced-motion:reduce){.vb-ui [data-reveal]{animation:none}.vb-ui .vb-cta,.vb-ui .vb-seg>button{transition:none}}
+body.vb-app main textarea{padding:11px 12px!important;line-height:1.4!important;min-height:var(--g-in)!important;resize:vertical}
+/* statuskorting: bedrag in de kleur van de status */
+body.vb-app .vb-r.korting.st-goud>b{color:#9A7410!important}
+body.vb-app .vb-r.korting.st-zilver>b{color:#4B5563!important}
+body.vb-app .vb-r.korting.st-brons>b{color:#8A4B1F!important}
+@media (prefers-color-scheme:dark){body.vb-app .vb-r.korting.st-goud>b{color:#E3BE55!important}body.vb-app .vb-r.korting.st-zilver>b{color:#C3C8D0!important}body.vb-app .vb-r.korting.st-brons>b{color:#E0A274!important}}
