@@ -712,7 +712,7 @@ body.vb-app .fk b{font-weight:600;font-variant-numeric:tabular-nums}
   body.vb-app .fm .vrij{grid-column:1/-1}
 }
 @media (min-width:768px){
-  body.vb-app .kid{display:grid!important;grid-template-columns:1fr 1fr;column-gap:14px;row-gap:6px}
+  body.vb-app .kid{display:grid!important;grid-template-columns:minmax(0,1fr) 190px;column-gap:14px;row-gap:6px}
   body.vb-app .kid>.kid-k,body.vb-app .kid>.age{grid-column:1/-1}
   body.vb-app .kid>.age:empty{display:none}
 }
@@ -784,3 +784,9 @@ body.vb .vb-dk{position:absolute;right:0;top:0;bottom:0;width:46px;display:grid;
 body.vb .vb-dk svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 body.vb .vb-dk input[type=date]{position:absolute;inset:0;width:100%!important;height:100%!important;min-height:0!important;opacity:0;cursor:pointer;border:0!important;padding:0!important;margin:0;background:none!important;box-shadow:none!important}
 body.vb .vb-dk:hover{color:var(--g-ink,#18191C)}
+body.vb-app .tk-tip{font-size:13.5px;color:var(--g-sec);text-align:center;margin:14px 0 0}
+
+/* kinderfeest: geen nummering per kind; enkel de verwijderknop blijft (bij meer dan één kind) */
+body.vb-app .kid-k>b{display:none!important}
+body.vb-app .kid-k:not(:has(button)){display:none!important}
+body.vb-app .kid-k:has(button){justify-content:flex-end}
