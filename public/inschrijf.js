@@ -17,7 +17,7 @@
     info:S+'<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.4"/></svg>',
     vuilbak:S+'<path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l.8 12.5h9.4L17.5 7M10 11v5.5M14 11v5.5"/></svg>'};
   const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  const eur2=n=>"€"+(Number(n)||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const eur2=n=>"€\u00a0"+(Number(n)||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
   const stNaam=s=>!s?"":s==="GEEN"?"Basis":s.charAt(0)+s.slice(1).toLowerCase();
   const VB={icon:n=>IC[n]||"",eur2,esc};
 
@@ -83,3 +83,20 @@
       if(v.length>4)v=v.slice(0,2)+"/"+v.slice(2,4)+"/"+v.slice(4);else if(v.length>2)v=v.slice(0,2)+"/"+v.slice(2);inp.value=v})};
   window.VB=VB;
 })();
+
+/* ---- MemberPicker: naam van het lid kiezen met suggesties terwijl je typt (gedeeld door banket en familiedag).
+   Gebruikt de functies esc() en lidPrijs(id) van de pagina zelf. ---- */
+function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");const box=document.createElement("div");box.className="lp-l";box.hidden=true;box.setAttribute("role","listbox");wrap.append(box);
+  let T=0,L=[],sel=-1,laatste="";inp.setAttribute("autocomplete","off");inp.setAttribute("role","combobox");inp.setAttribute("aria-autocomplete","list");
+  const mark=(n,q)=>{const t=q.trim().split(/\s+/).filter(Boolean);let h=esc(n);for(const x of t){const re=new RegExp("("+x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i");h=h.replace(re,"<b>$1</b>")}return h};
+  const teken=q=>{if(!L.length){box.innerHTML=q.trim().length>=3?'<div class="lp-leeg">Geen lid gevonden met deze naam.</div>':"";box.hidden=q.trim().length<3;return}
+    box.innerHTML=L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${mark(l.toon||l.naam,q)}</button>`).join("");box.hidden=false};
+  const kies=l=>{inp.value=l.toon||l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.toon||l.naam;lidPrijs(l.id)};
+  inp.addEventListener("input",()=>{if(inp.dataset.id)lidPrijs(null);delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;
+    if(q.trim().length<3){L=[];box.hidden=true;return}
+    T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[];}catch(e){L=[]}if(inp.value===q)teken(q)},160)});
+  inp.addEventListener("keydown",e=>{if(box.hidden||!L.length)return;
+    if(e.key==="ArrowDown"){e.preventDefault();sel=(sel+1)%L.length;teken(inp.value)}else if(e.key==="ArrowUp"){e.preventDefault();sel=(sel-1+L.length)%L.length;teken(inp.value)}
+    else if(e.key==="Enter"){e.preventDefault();kies(L[sel<0?0:sel])}else if(e.key==="Escape"){box.hidden=true}});
+  box.addEventListener("mousedown",e=>{const b=e.target.closest(".lp-i");if(!b)return;e.preventDefault();kies(L[+b.dataset.i])});
+  inp.addEventListener("blur",()=>setTimeout(()=>{box.hidden=true;if(!inp.dataset.id&&L.length===1&&inp.value.trim())kies(L[0])},150));}

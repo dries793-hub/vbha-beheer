@@ -7,7 +7,7 @@
 <title>Sponsor worden · VBHA</title>
 <meta name="description" content="Word sponsor van de brandweerkalender van de Vriendenkring Brandweer Hoofdpost Aalst.">
 <link rel="icon" href="/favicon.png">
-<link rel="stylesheet" href="/fonts/inter.css">
+<link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/fonts/inter.css">
 <style>
 :root{--bg:#F5F5F6;--surface:#FFFFFF;--sunken:#F1F1F2;--ink:#1A1B1E;--muted:#686B71;--line:#E5E6E8;--line-strong:#CCCED2;--navy:#18191C;--accent:#C0161F;--accent-deep:#8F0F16;--accent-soft:#FCEBEC;--good:#18794A;--good-soft:#E3F4EA;--info:#2F6FE4;--info-soft:#E4EDFD;--f:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 @media (prefers-color-scheme:dark){:root{--bg:#111214;--surface:#1A1B1E;--sunken:#202226;--ink:#ECEDEF;--muted:#9B9EA5;--line:#2A2C30;--line-strong:#3C3F45;--accent-soft:#3A1416;--good-soft:#12301F;--info-soft:#16233D}}
@@ -155,7 +155,7 @@ h2.sec:first-child{margin-top:0}
 
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const eur=n=>"€"+Number(n).toLocaleString("nl-BE",{minimumFractionDigits:0,maximumFractionDigits:2});
+const eur=n=>"€\u00a0"+(Number(n)||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
 const iban=s=>String(s||"").replace(/\s+/g,"").replace(/(.{4})/g,"$1 ").trim();
 const Q=new URLSearchParams(location.search);
 const OK_ICON='<div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>';
@@ -195,7 +195,7 @@ function formulier(){const c=CFG;
    <div class="hp" aria-hidden="true"><label>Website <input type="text" id="website" tabindex="-1" autocomplete="off"></label></div>
    <div class="pay" id="som" style="display:none"></div>
    <p class="err" id="err"></p>
-   <button class="btn" type="submit" id="go">Inschrijven</button>
+   <div class="vb-checkout" data-due-from="#som b"><div class="vb-due" hidden><span>Te betalen</span><b></b></div><button class="btn" type="submit" id="go">Inschrijven</button></div>
    <p class="hint2" style="text-align:center">Na het inschrijven kan u meteen betalen met Bancontact of via overschrijving.</p></form>`;
   zoekVak();som();lgToon()}
 /* ---------- logo ---------- */

@@ -436,3 +436,9 @@ body.vb-app .btn.bc.off{background:var(--vb-soft);color:var(--vb-muted);pointer-
 body.vb-app .wacht:has(.cp){display:flex;flex-direction:column;align-items:stretch;gap:12px;margin:16px 0 0;padding:14px 16px;border-radius:12px;background:var(--vb-soft);font-size:16px;font-weight:600;color:var(--vb-ink)}
 body.vb-app .wacht .cp{min-height:48px;border-radius:10px;border:1px solid var(--vb-line);background:var(--vb-card);font:600 16px var(--vb-f);color:var(--vb-ink);cursor:pointer}
 body.vb-app .wacht .cp:hover{background:var(--vb-bg)}
+/* donkere modus: gekozen keuze licht op donker (anders verdwijnt ze in de baan) */
+@media (prefers-color-scheme:dark){
+  body.vb-app .ch label:has(input:checked),body.vb-app .opt input:checked+span,body.vb-app .seg2 button.on,body.vb-app .bm input:checked+span,body.vb-app .hu-tab button.on{background:#ECEDEF!important;color:#111214!important}
+  body.vb-app .ch label:has(input:checked) b,body.vb-app .ch label:has(input:checked) span{color:#111214}
+  body.vb-app .vb-sw input:checked+i{background:#ECEDEF}body.vb-app .vb-sw input:checked+i::after{background:#111214}
+}

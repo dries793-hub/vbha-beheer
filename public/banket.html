@@ -9,7 +9,7 @@
 .vast-n{padding:11px 12px;border:1px solid var(--line,#e3e4e6);border-radius:8px;background:var(--sunken,#f3f4f5);font-weight:600;font-size:16px}</style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Banket · VBHA</title>
 <link rel="icon" href="/favicon.png">
-<link rel="stylesheet" href="/fonts/inter.css">
+<link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/fonts/inter.css">
 <style>
 :root{--bg:#F5F5F6;--surface:#FFFFFF;--sunken:#F1F1F2;--ink:#1A1B1E;--muted:#686B71;--line:#E5E6E8;--line-strong:#CCCED2;--navy:#18191C;--accent:#C0161F;--accent-deep:#8F0F16;--accent-soft:#FCEBEC;--good:#18794A;--good-soft:#E3F4EA;--info:#2F6FE4;--info-soft:#E4EDFD;--f:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 @media (prefers-color-scheme:dark){:root{--bg:#111214;--surface:#1A1B1E;--sunken:#202226;--ink:#ECEDEF;--muted:#9B9EA5;--line:#2A2C30;--line-strong:#3C3F45;--accent-soft:#3A1416;--good-soft:#12301F;--info-soft:#16233D}}
@@ -181,7 +181,7 @@ html,body{overflow-x:hidden}
 <script>
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const t0=Date.now();
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const eur=n=>{const x=Number(n)||0;return "€"+x.toLocaleString("nl-BE",{minimumFractionDigits:Number.isInteger(x)?0:2,maximumFractionDigits:2})};
+const eur=n=>"€\u00a0"+(Number(n)||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
 document.addEventListener("click",async e=>{const b=e.target.closest(".cp");if(!b)return;try{await navigator.clipboard.writeText(b.dataset.cp);const t=b.textContent;b.textContent="Gekopieerd";b.classList.add("ok");setTimeout(()=>{b.textContent=t;b.classList.remove("ok")},1600)}catch(x){}});
 const BC_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M10 18.5h4"/></svg>';
 function handmatig(j){return `<dl class="pd"><div><dt>Bedrag</dt><dd><b>${eur(j.bedrag)}</b></dd></div>
@@ -288,20 +288,7 @@ $("#f").addEventListener("submit",async e=>{e.preventDefault();const er=$("#err"
   catch(x){er.textContent=x.message;VB.bezig(b);upd()}});
 (function(){if(!/[?&]betaling=terug/.test(location.search))return;let j=null;try{j=JSON.parse(sessionStorage.getItem("vbha_banket")||"null")}catch(x){}if(!j)return;history.replaceState(null,"",location.pathname);toonKlaar(j)})();
 /* naam van het lid kiezen: suggesties terwijl je typt */
-function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");const box=document.createElement("div");box.className="lp-l";box.hidden=true;box.setAttribute("role","listbox");wrap.append(box);
-  let T=0,L=[],sel=-1,laatste="";inp.setAttribute("autocomplete","off");inp.setAttribute("role","combobox");inp.setAttribute("aria-autocomplete","list");
-  const mark=(n,q)=>{const t=q.trim().split(/\s+/).filter(Boolean);let h=esc(n);for(const x of t){const re=new RegExp("("+x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","i");h=h.replace(re,"<b>$1</b>")}return h};
-  const teken=q=>{if(!L.length){box.innerHTML=q.trim().length>=3?'<div class="lp-leeg">Geen lid gevonden met deze naam.</div>':"";box.hidden=q.trim().length<3;return}
-    box.innerHTML=L.map((l,i)=>`<button type="button" class="lp-i${i===sel?" on":""}" data-i="${i}" role="option">${mark(l.toon||l.naam,q)}</button>`).join("");box.hidden=false};
-  const kies=l=>{inp.value=l.toon||l.naam;inp.dataset.id=l.id;inp.classList.add("lp-ok");box.hidden=true;laatste=l.toon||l.naam;lidPrijs(l.id)};
-  inp.addEventListener("input",()=>{if(inp.dataset.id)lidPrijs(null);delete inp.dataset.id;inp.classList.remove("lp-ok");clearTimeout(T);const q=inp.value;sel=-1;
-    if(q.trim().length<3){L=[];box.hidden=true;return}
-    T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[];}catch(e){L=[]}if(inp.value===q)teken(q)},160)});
-  inp.addEventListener("keydown",e=>{if(box.hidden||!L.length)return;
-    if(e.key==="ArrowDown"){e.preventDefault();sel=(sel+1)%L.length;teken(inp.value)}else if(e.key==="ArrowUp"){e.preventDefault();sel=(sel-1+L.length)%L.length;teken(inp.value)}
-    else if(e.key==="Enter"){e.preventDefault();kies(L[sel<0?0:sel])}else if(e.key==="Escape"){box.hidden=true}});
-  box.addEventListener("mousedown",e=>{const b=e.target.closest(".lp-i");if(!b)return;e.preventDefault();kies(L[+b.dataset.i])});
-  inp.addEventListener("blur",()=>setTimeout(()=>{box.hidden=true;if(!inp.dataset.id&&L.length===1&&inp.value.trim())kies(L[0])},150));}
+/* lidPicker staat in /inschrijf.js (gedeeld) */
 lidPicker($("#naam"));
 upd();
 

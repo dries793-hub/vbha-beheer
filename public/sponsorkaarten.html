@@ -7,7 +7,7 @@
 </style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Fuiftickets · VBHA</title>
 <link rel="icon" href="/favicon.png">
-<link rel="stylesheet" href="/fonts/inter.css">
+<link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/fonts/inter.css">
 <style>
 :root{--bg:#F5F5F6;--surface:#FFFFFF;--sunken:#F1F1F2;--ink:#1A1B1E;--muted:#686B71;--line:#E5E6E8;--line-strong:#CCCED2;--navy:#18191C;--accent:#C0161F;--accent-deep:#8F0F16;--accent-soft:#FCEBEC;--good:#18794A;--good-soft:#E3F4EA;--info:#2F6FE4;--info-soft:#E4EDFD;--f:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 @media (prefers-color-scheme:dark){:root{--bg:#111214;--surface:#1A1B1E;--sunken:#202226;--ink:#ECEDEF;--muted:#9B9EA5;--line:#2A2C30;--line-strong:#3C3F45;--accent-soft:#3A1416;--good-soft:#12301F;--info-soft:#16233D}}
@@ -189,7 +189,7 @@ a.btn{text-decoration:none}
 </main>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const eur=n=>"€ "+Number(n||0).toLocaleString("nl-BE",{minimumFractionDigits:Number(n)%1?2:0,maximumFractionDigits:2});
+const eur=n=>"€\u00a0"+(Number(n)||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
 const Q=new URLSearchParams(location.search),G=!!Q.get("g"),P=G?{g:Q.get("g"),t:Q.get("t")||""}:{sp:Q.get("sp")||"",j:Q.get("j")||"",t:Q.get("t")||""};
 const fdat=iso=>iso?new Date(iso).toLocaleDateString("nl-BE",{day:"numeric",month:"long",year:"numeric"}):"";
 const OK='<div class="ic"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>';
