@@ -774,3 +774,13 @@ body.vb-app .gift div{padding:10px!important}body.vb-app .gift b{font-size:26px!
   body.vb-app:not(.vb-kb) .vb-checkout:not([hidden]){position:fixed!important;left:0;right:0;bottom:0;margin:0!important;z-index:20;background:var(--vb-bg,#fff)}
   body.vb-app:not(.vb-kb):has(.vb-checkout:not([hidden])){padding-bottom:var(--vb-kbar,calc(76px + env(safe-area-inset-bottom,0px)))}
 }
+/* persoonlijke link en al ingeschreven: enkel de melding, geen formulier meer */
+body.vb-app form.vb-al>:not(#alMeld){display:none!important}
+body.vb-app form.vb-al #alMeld{margin:4px 0 0!important}
+/* datumveld met kalendericoon */
+body.vb .vb-dw{position:relative;display:block}
+body.vb .vb-dw>input{padding-right:48px!important}
+body.vb .vb-dk{position:absolute;right:0;top:0;bottom:0;width:46px;display:grid;place-items:center;color:var(--g-sec,#6F7278);cursor:pointer}
+body.vb .vb-dk svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+body.vb .vb-dk input[type=date]{position:absolute;inset:0;width:100%!important;height:100%!important;min-height:0!important;opacity:0;cursor:pointer;border:0!important;padding:0!important;margin:0;background:none!important;box-shadow:none!important}
+body.vb .vb-dk:hover{color:var(--g-ink,#18191C)}

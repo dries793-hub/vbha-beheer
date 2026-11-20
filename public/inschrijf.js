@@ -84,7 +84,15 @@
   VB.datumVeld=inp=>{if(!inp||inp.dataset.vbd)return;inp.dataset.vbd="1";inp.type="text";inp.inputMode="numeric";inp.placeholder="DD/MM/JJJJ";inp.maxLength=10;inp.autocomplete="off";
     if(/^\d{4}-\d{2}-\d{2}$/.test(inp.value))inp.value=VB.dmy(inp.value);
     inp.addEventListener("input",e=>{if(e.inputType&&e.inputType.startsWith("delete"))return;let v=inp.value.replace(/[^\d]/g,"").slice(0,8);
-      if(v.length>4)v=v.slice(0,2)+"/"+v.slice(2,4)+"/"+v.slice(4);else if(v.length>2)v=v.slice(0,2)+"/"+v.slice(2);inp.value=v})};
+      if(v.length>4)v=v.slice(0,2)+"/"+v.slice(2,4)+"/"+v.slice(4);else if(v.length>2)v=v.slice(0,2)+"/"+v.slice(2);inp.value=v});
+    /* kalendericoon: kies de datum in de kalender van het toestel (de tekst blijft DD/MM/JJJJ) */
+    const w=document.createElement("span");w.className="vb-dw";inp.parentNode.insertBefore(w,inp);w.appendChild(inp);
+    const k=document.createElement("span");k.className="vb-dk";k.innerHTML=IC.kal+'<input type="date" tabindex="-1" aria-label="Datum kiezen in de kalender">';w.appendChild(k);
+    const d=k.querySelector("input");d.max=new Date().toISOString().slice(0,10);
+    const sync=()=>{const i=VB.iso(inp.value);d.value=/^\d{4}-\d{2}-\d{2}$/.test(i||"")?i:""};
+    d.addEventListener("focus",sync);d.addEventListener("pointerdown",sync);
+    d.addEventListener("click",()=>{sync();try{d.showPicker&&d.showPicker()}catch(e){}});
+    d.addEventListener("change",()=>{if(!d.value)return;inp.value=VB.dmy(d.value);inp.dispatchEvent(new Event("input",{bubbles:true}));inp.dispatchEvent(new Event("change",{bubbles:true}));inp.dispatchEvent(new Event("blur"))})};
   window.VB=VB;
 })();
 

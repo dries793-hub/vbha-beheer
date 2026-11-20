@@ -253,10 +253,10 @@ document.addEventListener("change",e=>{if(e.target.name==="wie"){const niet=e.ta
 function gesloten(j){$("#box").innerHTML=`<div class="card bevestig"><div class="ic" style="background:var(--sunken);color:var(--muted)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
   <h2>De inschrijvingen zijn afgesloten</h2><p class="lead2">${j.gesloten==="verlopen"&&j.totTekst?"Inschrijven kon tot en met "+esc(j.totTekst)+".":"Je kan je op dit moment niet inschrijven."} Vragen? Mail naar info@vbha.be.</p></div>`}
 function alMeld(inp,t){let m=document.getElementById("alMeld");const go=$("#go");
-  if(!t){if(m)m.remove();if(go&&go.dataset.al){go.disabled=false;delete go.dataset.al}return}
+  if(!t){if(m)m.remove();{const ff=$("#f");if(ff)ff.classList.remove("vb-al")}if(go&&go.dataset.al){go.disabled=false;delete go.dataset.al}return}
   if(!m){m=document.createElement("div");m.id="alMeld";m.setAttribute("role","alert");m.style.cssText="margin:8px 0 0;padding:10px 12px;border-radius:10px;background:#fdecea;color:#8a1c12;border:1px solid #f5c2bd;font-size:14.5px;line-height:1.45";
     /* persoonlijke link: het naamveld is verborgen, dus de melding bovenaan het formulier tonen */
-    {const w=inp.closest(".lp")||inp.parentElement,f=$("#f");if(f&&(inp.hidden||w.closest("[hidden]")))f.prepend(m);else w.append(m)}}
+    {const w=inp.closest(".lp")||inp.parentElement,f=$("#f");if(f&&(inp.hidden||w.closest("[hidden]"))){f.prepend(m);f.classList.add("vb-al")}else w.append(m)}}
   const k=t.indexOf(". ");m.innerHTML=k>0?"<b>"+esc(t.slice(0,k+1))+"</b> "+esc(t.slice(k+2)):esc(t);if(go){go.disabled=true;go.dataset.al="1"}}
 
 async function lidPrijs(id){alMeld($("#naam"),"");LID=!!id;FDL=null;tekenPrijzen();if(!id)return;
