@@ -825,3 +825,5 @@ body.vb-app .vb-r.korting.st-goud>b{color:#9A7410!important}
 body.vb-app .vb-r.korting.st-zilver>b{color:#4B5563!important}
 body.vb-app .vb-r.korting.st-brons>b{color:#8A4B1F!important}
 @media (prefers-color-scheme:dark){body.vb-app .vb-r.korting.st-goud>b{color:#E3BE55!important}body.vb-app .vb-r.korting.st-zilver>b{color:#C3C8D0!important}body.vb-app .vb-r.korting.st-brons>b{color:#E0A274!important}}
+/* gsm: minder witruimte onder de betaalbalk (net boven de home-balk van de iPhone) */
+@media (max-width:640px){body.vb-app:not(.vb-kb) .vb-checkout:not([hidden]){padding-top:10px!important;padding-bottom:max(10px,calc(env(safe-area-inset-bottom,0px) - 12px))!important}}
