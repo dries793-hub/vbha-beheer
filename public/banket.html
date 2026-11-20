@@ -139,7 +139,7 @@ html,body{overflow-x:hidden}
 .kid>*{min-width:0}
 .lp-prijs{display:flex;align-items:center;gap:10px;margin-top:8px;padding:10px 12px;border-radius:10px;background:#f3f8f4;border:1px solid #cfe7d6;font-size:14.5px}
 .lp-prijs small{color:var(--muted)}
-.teg{margin-top:10px;padding:10px 12px;border-radius:10px;background:#fbf6e6;border:1px solid #ecd9a0;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:14.5px}.teg[hidden]{display:none}.teg-c{display:flex;gap:8px;align-items:center;font-weight:600}.teg-c small{font-weight:400;color:var(--muted)}.teg-b{display:flex;gap:8px;align-items:center;margin-left:auto}.teg-b input{width:110px}.lp-prijs[hidden]{display:none}
+.teg{margin-top:10px;padding:10px 12px;border-radius:10px;background:#fbf6e6;border:1px solid #ecd9a0;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:14.5px}.teg[hidden]{display:none}.teg-c{display:flex;gap:8px;align-items:center;font-weight:600}.teg-c small{font-weight:400;color:var(--muted)}.teg-b{display:flex;gap:10px;align-items:center;flex:1 1 220px}.teg-b input{flex:1;accent-color:#b8860b}.teg-b b{min-width:72px;text-align:right;color:#8a6a12}.lp-prijs[hidden]{display:none}
 .lp-st{flex:none;font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px;color:#fff;background:#a5703f}
 .lp-st.zilver{background:#8d959e}.lp-st.goud{background:#c19a2e}
 .fk{display:block;font-size:12.5px;color:var(--muted)}
@@ -250,10 +250,10 @@ function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
   /* bedragen pas tonen als een lid gekozen is (en bij korting de persoonlijke prijs gekend is) */
   const lidOk=!!$("#naam").dataset.id&&!$("#alMeld")&&(!INFO.kortingAan||INFO.lp);
   /* goudtegoed (reglement 2027): het lid kiest hoeveel het gebruikt */
-  let tb=$("#tegBox");if(!tb){tb=document.createElement("div");tb.id="tegBox";tb.className="teg";pay.after(tb);tb.addEventListener("input",upd)}
+  let tb=$("#tegBox");if(!tb){tb=document.createElement("div");tb.id="tegBox";tb.className="teg";pay.after(tb);tb.addEventListener("input",e=>{if(e.target.id==="tegB")e.target.dataset.raak="1";upd()})}
   const tot=Math.round(n*INFO.prijs*100)/100,max=Math.min(INFO.teg||0,tot);
-  if(lidOk&&p&&max>0){if(!tb.dataset.ok){tb.dataset.ok="1";tb.innerHTML=`<label class="teg-c"><input type="checkbox" id="tegAan" checked> Goudtegoed gebruiken <small>(saldo ${eur(INFO.teg)})</small></label><div class="teg-b"><span>Bedrag</span><input id="tegB" type="number" min="0" step="0.01" inputmode="decimal"></div>`;$("#tegB").value=max.toFixed(2)}
-    tb.hidden=false;$("#tegB").max=max.toFixed(2);$("#tegB").disabled=!$("#tegAan").checked}else{tb.hidden=true}
+  if(lidOk&&p&&max>0){if(!tb.dataset.ok){tb.dataset.ok="1";tb.innerHTML=`<label class="teg-c"><input type="checkbox" id="tegAan" checked> Goudtegoed gebruiken <small>(saldo ${eur(INFO.teg)})</small></label><div class="teg-b"><input id="tegB" type="range" min="0" step="0.5" aria-label="Bedrag goudtegoed"><b id="tegV"></b></div>`}
+    tb.hidden=false;const sl=$("#tegB");sl.max=max.toFixed(2);if(!sl.dataset.raak)sl.value=max.toFixed(2);else if(+sl.value>max)sl.value=max.toFixed(2);sl.disabled=!$("#tegAan").checked;$("#tegV").textContent=eur(Math.min(max,+sl.value||0))}else{tb.hidden=true}
   const teg=lidOk&&p&&max>0&&$("#tegAan")&&$("#tegAan").checked?Math.max(0,Math.min(max,Number(String($("#tegB").value).replace(",","."))||0)):0;INFO.tegGebruik=Math.round(teg*100)/100;
   const tegR=teg>0?`<div class="kv-vk"><span>Goudtegoed</span><b>− ${eur(teg)}</b></div><div class="kv-tot"><span>Te betalen</span><b>${eur(tot-teg)}</b></div>`:"";
   if(lidOk&&(p||kader)){pay.hidden=false;pay.innerHTML=kader?(teg>0?kader.replace(/<\/div>$/,tegR+"</div>"):kader):(teg>0?`<div class="kv"><div><span>Prijs</span><b>${eur(tot)}</b></div>${tegR}</div>`:`Te betalen: <b>${eur(p*INFO.prijs)}</b>`)}else pay.hidden=true}
