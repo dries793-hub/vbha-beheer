@@ -133,3 +133,8 @@ async function volg(){clearTimeout(volgT);if(!BET)return;
     if(s.status==="IDENTIFIED"||s.status==="AUTHORIZED"){if(st){st.className="pp-st wacht";st.textContent="Betaling wordt verwerkt… Bevestig de betaling in je app."}}
   }catch(x){}
   if(++volgN<200)volgT=setTimeout(volg,document.hidden?8000:3000)}
+
+/* hoogte van de vaste betaalbalk (gsm) als --vb-kbar, zodat de pagina onderaan net genoeg ruimte laat */
+(function(){if(!window.ResizeObserver)return;const zet=()=>{const c=document.querySelector(".vb-checkout");if(c&&c.offsetHeight)document.body.style.setProperty("--vb-kbar",c.offsetHeight+"px")};
+  const ro=new ResizeObserver(zet);const start=()=>{const c=document.querySelector(".vb-checkout");if(c)ro.observe(c);zet()};
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start()})();

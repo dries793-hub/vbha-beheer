@@ -769,3 +769,8 @@ body.vb-app .vg-ok{background:none!important;padding:0!important;color:#1E7A46!i
 body.vb-app .ev{background:none!important;padding:0 0 12px!important;border-bottom:1px solid var(--g-line);border-radius:0!important;margin:0 0 14px!important;gap:2px!important}
 body.vb-app .gift div{padding:10px!important}body.vb-app .gift b{font-size:26px!important;color:var(--g-ink)!important}
 @media (max-width:420px){body.vb-app .vg-r{flex-wrap:wrap}body.vb-app .vg-b{width:100%}body.vb-app .vg-b button{flex:1}}
+/* gsm: betaalbalk vast onderaan het scherm (niet meer meeschuiven met de pagina-inhoud); de pagina krijgt onderaan evenveel ruimte */
+@media (max-width:640px){
+  body.vb-app:not(.vb-kb) .vb-checkout:not([hidden]){position:fixed!important;left:0;right:0;bottom:0;margin:0!important;z-index:20;background:var(--vb-bg,#fff)}
+  body.vb-app:not(.vb-kb):has(.vb-checkout:not([hidden])){padding-bottom:var(--vb-kbar,calc(76px + env(safe-area-inset-bottom,0px)))}
+}
