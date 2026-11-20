@@ -235,14 +235,9 @@ fetch("/api/banket"+(BQ.get("v")?"?v="+encodeURIComponent(BQ.get("v"))+"&t="+enc
       zet("personen",String(V.personen));zet("menu1",V.menu1);if(V.personen===2)zet("menu2",V.menu2);
       if(V.opmerking1){$("#opm1").value=V.opmerking1;$("#opm1w").hidden=false}if(V.personen===2&&V.opmerking2){$("#opm2").value=V.opmerking2;$("#opm2w").hidden=false}
 }
-    /* persoonlijke uitnodiging: tekst met wanneer en waar in plaats van de kaartjes */
-    {const fx=[...document.querySelectorAll("#facts .fact")].filter(f=>!f.hidden),txt=i=>fx[i]?[...fx[i].querySelectorAll("b,small")].map(x=>x.textContent.trim()).filter(Boolean):[];
-      const w=txt(0),a=txt(1),dag=(w[0]||"").replace(/^Za\b/,"Zaterdag").replace(/^Zo\b/,"Zondag").replace(/^Vr\b/,"Vrijdag");
-      $("#lead").innerHTML=`<span class="uit-z">Fijn dat je er weer bij bent! Geniet van een uitgebreid diner, gevolgd door een dansfeest tot in de vroege uurtjes.</span>
-       <span class="uit-l"><span><b>Wanneer</b>${esc(dag)}${w[1]?", "+esc(w[1]):""}</span><span><b>Waar</b>${esc(a[0]||"")}${a[1]?"<br>"+esc(a[1]):""}</span></span>
-       <span class="uit-z">Schrijf je in vóór ${esc(j.totTekst||j.deadline||"")} en betaal meteen online.</span>
-       ${V?`<span class="uit-z">We hebben je keuzes van vorig jaar alvast klaargezet. Kijk ze even na, pas aan waar nodig en bevestig je inschrijving. Tot op het banket!</span>`:""}`;
-      $("#facts").hidden=true}try{history.replaceState(null,"",location.pathname)}catch(e){}}$("#h1").textContent="Banket "+j.jaar;document.title="Banket "+j.jaar+" · VBHA";INFO.basis=j.prijs;$("#fPrijs").textContent=(j.kortingAan?"vanaf ":"")+eur(j.prijs)+" per persoon";if(j.kortingAan){const f=$("#fPrijs");f.textContent=eur(j.prijs)+" per persoon";const s=document.createElement("small");s.className="fk";s.textContent="korting volgens je status (brons, zilver, goud)";f.after(s)}if(j.totTekst)$("#fDead").textContent=(j.open===false?"inschrijven was mogelijk t.e.m. ":"inschrijven t.e.m. ")+j.totTekst;if(j.totTekst&&j.open!==false&&$("#lTot"))$("#lTot").textContent=" tot en met "+j.totTekst;if(j.open===false)gesloten("het banket",j)}).catch(()=>{});
+    /* persoonlijke uitnodiging: tekst bovenaan, de kaartjes wanneer/waar blijven, daaronder (kleiner) de uitleg over vorig jaar */
+    $("#lead").innerHTML=`Fijn dat je er weer bij bent! Geniet van een uitgebreid diner, gevolgd door een dansfeest tot in de vroege uurtjes. Schrijf je hier in vóór ${esc(j.totTekst||j.deadline||"")} en betaal meteen online.`;
+    if(V){const n=document.createElement("p");n.className="uit-k";n.textContent="We hebben je keuzes van vorig jaar alvast klaargezet. Kijk ze even na, pas aan waar nodig en bevestig je inschrijving. Tot op het banket!";$("#facts").after(n)}try{history.replaceState(null,"",location.pathname)}catch(e){}}$("#h1").textContent="Banket "+j.jaar;document.title="Banket "+j.jaar+" · VBHA";INFO.basis=j.prijs;$("#fPrijs").textContent=(j.kortingAan?"vanaf ":"")+eur(j.prijs)+" per persoon";if(j.kortingAan){const f=$("#fPrijs");f.textContent=eur(j.prijs)+" per persoon";const s=document.createElement("small");s.className="fk";s.textContent="korting volgens je status (brons, zilver, goud)";f.after(s)}if(j.totTekst)$("#fDead").textContent=(j.open===false?"inschrijven was mogelijk t.e.m. ":"inschrijven t.e.m. ")+j.totTekst;if(j.totTekst&&j.open!==false&&$("#lTot"))$("#lTot").textContent=" tot en met "+j.totTekst;if(j.open===false)gesloten("het banket",j)}).catch(()=>{});
 /* persoonlijke prijs (korting volgens de status van het lid) */
 function alMeld(inp,t){let m=document.getElementById("alMeld");const go=$("#go");
   if(!t){if(m)m.remove();if(go&&go.dataset.al){go.disabled=false;delete go.dataset.al}return}
@@ -345,5 +340,7 @@ textarea{width:100%;font:inherit;border:1px solid var(--line-strong);background:
 .uit-z{display:block;margin:0 0 10px}.uit-l{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0 0 12px;color:var(--ink)}.uit-l>span{display:contents}.uit-l b{font-weight:600;color:var(--muted);font-size:13.5px;padding-top:1px}
 .rij>.ch{grid-auto-columns:1fr;width:240px}.rij>.ch label{padding:7px 8px}
 #facts[hidden]{display:none}
+.uit-k{margin:-6px 0 16px;font-size:13.5px;color:var(--muted)}
+#opm1,#opm2{min-height:44px;height:44px;resize:vertical}
 </style>
 </body></html>
