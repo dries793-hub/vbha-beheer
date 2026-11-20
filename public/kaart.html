@@ -2883,7 +2883,7 @@ function krGrens(map){const el=document.getElementById("krGrens");if(!el)return;
 {const _g=krGrens;krGrens=function(map){const r=_g.apply(this,arguments);try{if(!KR.bg||!KR.bg.mask)return r;
   const R=KR_GRENS;if(R&&R.length&&!KR.bg.binnen){if(!map.getPane("krIn"))map.createPane("krIn").style.zIndex=250;const rr=L.canvas({pane:"krIn",padding:.5});
     KR.bg.binnen=L.polygon(R.map(x=>[x]),{renderer:rr,pane:"krIn",interactive:false,stroke:false,fillOpacity:1,fillColor:krVar("--kr-map")||"#ECEEF1"}).addTo(map)}
-  krTegels(map)}catch(x){console.warn(x)}return r}}
+  krTegels(map);const tp=map.getPane("tilePane");if(tp)tp.style.zIndex=200}catch(x){console.warn(x)}return r}}
 function krBgZoom(){const g=KR.bg&&KR.bg.groups.bld;if(!g)return;const on=KR.map.getZoom()>=KR_BLD_ZOOM;
   if(on&&!KR.map.hasLayer(g))g.addTo(KR.map);else if(!on&&KR.map.hasLayer(g))g.remove()}
 function krBgStyle(){if(!KR.bg)return;const c={};
