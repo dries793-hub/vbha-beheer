@@ -240,7 +240,7 @@ let LP=0;async function lidPrijs(id){const el=$("#lpPrijs"),n=++LP;alMeld($("#na
     if(j.al){alMeld($("#naam"),j.melding);INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
     INFO.teg=Number(j.tegoed)||0;
     if(!INFO.kortingAan){INFO.lp=null;INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}INFO.prijs=j.prijs;INFO.lp=j;
-    if(el){const st=String(j.status||"");const stN=st==="GEEN"&&j.basisStatus?"Basis":st.charAt(0)+st.slice(1).toLowerCase();el.hidden=!st||(st==="GEEN"&&!j.basisStatus);el.innerHTML=`<span class="lp-st ${esc(st.toLowerCase())}">${esc(stN)}</span><span>Status ${esc(stN.toLowerCase())}${j.korting?` · ${j.korting}% korting`:" · geen korting"}${j.viaPartner?" (hoogste status in je gezin)":""}</span>${INFO.goudMelding&&j.start?`<small class="lp-gm">Omdat het puntensysteem dit jaar van start ging, krijgt iedereen uitzonderlijk de goudstatus.</small>`:""}`}}
+    if(el){const st=String(j.status||"");const stN=st==="GEEN"&&j.basisStatus?"Basis":st.charAt(0)+st.slice(1).toLowerCase();el.hidden=!st||(st==="GEEN"&&!j.basisStatus);el.innerHTML=`<span class="lp-st ${esc(st.toLowerCase())}">${esc(stN)}</span><span>${j.korting?`${j.korting}% korting`:"geen korting"}${j.viaPartner?" (hoogste status in je gezin)":""}</span>${INFO.goudMelding&&j.start?`<small class="lp-gm">Omdat het puntensysteem dit jaar van start ging, krijgt iedereen uitzonderlijk de goudstatus.</small>`:""}`}}
   catch(x){if(n!==LP)return;INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true}upd()}
 function val(n){const c=document.querySelector('input[name="'+n+'"]:checked');return c?c.value:""}
 function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
@@ -292,5 +292,32 @@ upd();
 </script>
 <script>/* bezoekteller zonder cookies of IP-adres */(function(){try{if(navigator.webdriver||window.top!==window)return;var s=sessionStorage,n=!s.getItem("vbt"),b;if(n){var u=new URLSearchParams(location.search);b={r:document.referrer,q:u.get("utm_source")||u.get("bron")||(u.has("fbclid")?"fb":u.has("igshid")?"ig":"")};s.setItem("vbt",JSON.stringify(b))}else b=JSON.parse(s.getItem("vbt")||"{}");var d=JSON.stringify({p:location.pathname,r:b.r||"",q:b.q||"",n:n});if(navigator.sendBeacon)navigator.sendBeacon("/api/tel",d);else fetch("/api/tel",{method:"POST",body:d,keepalive:true})}catch(e){}})()</script>
 <script>document.addEventListener("change",e=>{const n=e.target&&e.target.name;if(n==="menu1"||n==="menu2"){const w=document.getElementById(n==="menu1"?"opm1w":"opm2w");if(w)w.hidden=false}});</script>
-<style>.opmw{margin-top:10px}.opmw label{font-size:14px}.opmw textarea{min-height:64px}</style>
+<style>.opmw{margin-top:10px}.opmw label{font-size:14px}.opmw textarea{min-height:64px}
+/* ---- uniform met de beheer-app: gesegmenteerde keuzes (navy = gekozen), neutrale vlakken, status als medaille, 8px-hoeken ---- */
+:root{--r:8px;--goud:#A98207;--zilver:#6B7280;--brons:#9A5B26}
+@media (prefers-color-scheme:dark){:root{--goud:#E8C33E;--zilver:#B4BAC4;--brons:#D08A4F}}
+label,.lbl{font-size:13px;font-weight:600;margin:0 0 6px;color:var(--ink)}
+.card{border-radius:var(--r);padding:20px}
+.ch{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--line-strong);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.ch label{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;margin:0;padding:11px 10px;border:0;border-right:1px solid var(--line-strong);border-radius:0;background:transparent;cursor:pointer;min-height:44px}
+.ch label:last-child{border-right:0}
+.ch input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
+.ch b{font-weight:500;font-size:14.5px}
+.ch label:has(input:checked){background:var(--navy);color:#fff;border-color:var(--navy)}
+.ch label:has(input:checked) b{font-weight:600}
+.ch label:has(input:focus-visible){box-shadow:inset 0 0 0 3px var(--info-soft)}
+@media (max-width:560px){.ch{grid-template-columns:1fr 1fr}}
+input[type=text],input[type=email],input[type=tel],textarea{border-radius:var(--r);font-size:15px;padding:10px 12px}
+textarea{width:100%;font:inherit;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);min-height:70px}
+.lp input.lp-ok{border-color:var(--line-strong);background:var(--surface);box-shadow:inset 3px 0 0 var(--good)}
+.vast-n{border-radius:var(--r);background:var(--surface);border-color:var(--line-strong);box-shadow:inset 3px 0 0 var(--good)}
+.lp-prijs{margin-top:8px;padding:8px 12px;border-radius:var(--r);background:var(--sunken);border:0;font-size:14px;gap:10px}
+.lp-st{display:inline-flex;align-items:center;gap:6px;padding:0;border-radius:0;background:none!important;font-size:12.5px;font-weight:700;letter-spacing:.04em;color:var(--brons)}
+.lp-st::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor}
+.lp-st.zilver{color:var(--zilver)}.lp-st.goud{color:var(--goud)}.lp-st.geen{color:var(--muted)}
+.pay{margin-top:18px;padding:14px 16px;border-radius:var(--r);background:var(--surface);border:1px solid var(--line)}
+.kv{font-size:14.5px;gap:7px}.kv-vk{color:var(--good)}.kv-tot{border-top:1px solid var(--line);padding-top:9px;font-size:15.5px;font-weight:600}
+.kv-teg{color:var(--goud)}
+.btn{border-radius:var(--r);padding:12px 18px;font-size:15px;min-height:46px}
+</style>
 </body></html>
