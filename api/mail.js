@@ -37,8 +37,13 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "statuslink") { // persoonlijke statuspagina van een lid openen vanuit de lidfiche
       const { sb, rol } = await requireUser(req); if (rol !== "admin") throw httpErr(403, "Enkel voor de administrator."); const id = String(req.query.id || "");
       const { data: row } = await sb.from("leden").select("id").eq("id", id).maybeSingle(); if (!row) throw httpErr(404, "Lid niet gevonden");
-      const { tekenStatus } = await import("./_lib/lidlink.js"); const { site } = await import("./_lib/bevestiging.js"); const j = new Date().getFullYear();
-      return res.status(200).json({ link: `${site()}/status?l=${encodeURIComponent(id)}&j=${j}&t=${tekenStatus(id, j)}` });
+      const { tekenStatus, tekenVul } = await import("./_lib/lidlink.js"); const { site } = await import("./_lib/bevestiging.js"); const j = new Date().getFullYear();
+      // in de testomgeving naar de testsite (niet naar vbha.be)
+      const { IS_TEST } = await import("./_lib/sb.js"), basis = IS_TEST && req.headers.host ? `https://${req.headers.host}` : site();
+      // persoonlijke inschrijflinks (zoals in de mails): banket, familiedag, kinderfeest
+      if (req.query.soort) { const { algemeen } = await import("./_lib/publiek.js"); const A = await algemeen(sb), J = A.jaar, e = encodeURIComponent(id);
+        return res.status(200).json({ links: { banket: `${basis}/banket?v=${e}&j=${J}&t=${tekenVul("bk", id, J)}`, familiedag: `${basis}/familiedag?v=${e}&j=${J}&t=${tekenVul("fd", id, J)}`, kinderfeest: `${basis}/kinderfeest?v=${e}&j=${J}&t=${tekenVul("kf", id, J)}` } }); }
+      return res.status(200).json({ link: `${basis}/status?l=${encodeURIComponent(id)}&j=${j}&t=${tekenStatus(id, j)}` });
     }
     if (req.query && req.query.f === "terug") { const { terugApp } = await import("./_lib/terugbetaling.js"); return await terugApp(req, res); } // terugbetalingen en onkostennota's
     if (req.query && req.query.f === "rondemail") { const { rondeMailApi } = await import("./_lib/rondemail.js"); return await rondeMailApi(req, res); } // kalenderronde: mail bij goedgekeurde reservatie
