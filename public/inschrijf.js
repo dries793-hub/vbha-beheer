@@ -24,7 +24,7 @@
   /* praktische info: icoon bij Wanneer / Waar */
   VB.info=()=>{for(const sp of document.querySelectorAll(".fact>span")){if(sp.querySelector("svg"))continue;const t=sp.textContent.trim().toLowerCase();
     const n=t.startsWith("wanneer")?"kal":t.startsWith("waar")?"pin":"";if(n)sp.insertAdjacentHTML("afterbegin",IC[n])}};
-  VB.meta=(el,L)=>{if(!el)return;el.innerHTML=L.filter(x=>x&&x.html).map(x=>`<div class="vb-meta">${IC[x.icon]||""}<span>${x.html}</span></div>`).join("");el.hidden=!el.innerHTML};
+  VB.meta=(el,L)=>{if(!el)return;el.innerHTML=L.filter(x=>x&&x.html).map(x=>`<div class="vb-meta m-${x.icon||""}">${IC[x.icon]||""}<span>${x.html}</span></div>`).join("");el.hidden=!el.innerHTML};
   VB.notice=t=>`<div class="vb-notice" role="status">${IC.info}<span>${t}</span></div>`;
   VB.badge=s=>s?`<span class="vb-badge st-${esc(String(s).toLowerCase())}">${esc(stNaam(s))}</span>`:"";
 
@@ -146,3 +146,7 @@ async function volg(){clearTimeout(volgT);if(!BET)return;
 (function(){if(!window.ResizeObserver)return;const zet=()=>{const c=document.querySelector(".vb-checkout");if(c&&c.offsetHeight)document.body.style.setProperty("--vb-kbar",c.offsetHeight+"px")};
   const ro=new ResizeObserver(zet);const start=()=>{const c=document.querySelector(".vb-checkout");if(c)ro.observe(c);zet()};
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start()})();
+/* EventHero: eyebrow "BANKET · 2026" volgt automatisch de titel (enkel bij <p class="vb-eyebrow" data-ev>) */
+(function(){const run=()=>{const e=document.querySelector(".vb-eyebrow[data-ev]"),h=document.querySelector(".hero h1, main h1");if(!e||!h)return;
+  const zet=()=>{const t=h.textContent.trim(),m=/^(.*?)\s+(\d{4})$/.exec(t);e.textContent=m?m[1]+" · "+m[2]:t;e.hidden=!t};zet();new MutationObserver(zet).observe(h,{childList:true,characterData:true,subtree:true})};
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run);else run()})();

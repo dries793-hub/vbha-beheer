@@ -827,3 +827,28 @@ body.vb-app .vb-r.korting.st-brons>b{color:#8A4B1F!important}
 @media (prefers-color-scheme:dark){body.vb-app .vb-r.korting.st-goud>b{color:#E3BE55!important}body.vb-app .vb-r.korting.st-zilver>b{color:#C3C8D0!important}body.vb-app .vb-r.korting.st-brons>b{color:#E0A274!important}}
 /* gsm: minder witruimte onder de betaalbalk (net boven de home-balk van de iPhone) */
 @media (max-width:640px){body.vb-app:not(.vb-kb) .vb-checkout:not([hidden]){padding-top:10px!important;padding-bottom:max(10px,calc(env(safe-area-inset-bottom,0px) - 12px))!important}}
+/* ===== VBHA-karakter: warme achtergrond en micro-accenten (centraal, via tokens) =====
+   70% warm wit/licht neutraal · 20% antraciet · ±7% VBHA-rood · ±3% semantische kleur */
+body.vb.vb-app{--g-page:#FAF9F7;--g-surf:#FFFFFF;--g-soft:#F3F3F2;--g-track:#F3F3F2;--g-line:#E6E4E1;--g-red:#C0161F;--vb-bg:var(--g-page)}
+.vb-ui{--g-soft:#F3F3F2;--g-track:#F3F3F2;--g-line:#E6E4E1}
+@media (prefers-color-scheme:dark){body.vb.vb-app{--g-page:#141517;--g-surf:#1A1C1F;--g-soft:#202226;--g-track:#202226;--g-line:#2F3237}}
+body.vb.vb-app{background:var(--g-page)!important}
+body.vb-app main,body.vb-app .card{background:transparent}
+body.vb-app .vb-checkout{background:var(--g-page)!important}
+/* eyebrow boven de titel: klein, rood, met korte accentlijn */
+body.vb-app .vb-eyebrow:not([hidden]){display:flex!important;align-items:center;gap:8px;margin:0 0 6px!important;font-size:11.5px!important;font-weight:700!important;letter-spacing:.06em!important;text-transform:uppercase;color:var(--g-red)!important}
+body.vb-app .vb-eyebrow:not([hidden])::before{content:"";width:22px;height:2px;border-radius:2px;background:var(--g-red)}
+/* belangrijke sectietitels: dunne rode accentlijn links */
+body.vb-app h2.vb-card-t{display:flex;align-items:center;gap:0;border-left:3px solid var(--g-red);padding-left:10px!important;line-height:1.2!important}
+/* deadline-icoon in het rood */
+body.vb-app .vb-meta.m-klok svg{color:var(--g-red);stroke:var(--g-red)}
+/* links in de inhoud: rood */
+body.vb-app main a:not(.btn):not([class*="vb-"]):not(.pdf):not(.cp){color:var(--g-red);text-decoration-color:rgba(192,22,31,.35);text-underline-offset:3px}
+body.vb-app main a:not(.btn):not([class*="vb-"]):not(.pdf):not(.cp):hover{text-decoration-color:currentColor}
+/* velden en keuzetrack: zacht warm grijs, wit bij focus */
+body.vb-app main input:not([type=checkbox]):not([type=radio]):not([type=range]),body.vb-app main select,body.vb-app main textarea{background:var(--g-soft)!important;border-color:var(--g-line)!important}
+body.vb-app main input:focus,body.vb-app main select:focus,body.vb-app main textarea:focus{background:var(--g-surf)!important}
+body.vb-app .ch{background:var(--g-track)!important;border-color:var(--g-line)!important}
+body.vb-app .stp button{background:var(--g-soft)!important;border-color:var(--g-line)!important}
+/* kaart (.vb-ui): zelfde accent op de titel van het selectiepaneel en de melding */
+.vb-ui .vb-acc{border-left:3px solid var(--g-red);padding-left:10px}
