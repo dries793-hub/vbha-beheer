@@ -620,3 +620,54 @@ body.vb-app .pp .qrwrap{margin:4px 0 0!important}
 @media (max-width:767px){body.vb-app .pp .qrwrap.desk{display:none!important}}
 body.vb-app .pp:has(.pp-st.fout) .hint,body.vb-app .pp:has(.pp-st.fout) .qrwrap{display:none!important}
 body.vb-app .pp-st.wacht{text-align:left;justify-content:flex-start}body.vb-app .btn.bc svg{color:#fff!important;stroke:currentColor!important}body.vb-app .btn.bc svg *{stroke:currentColor}
+/* QuantitySelector: 44×44, zachte vierkante knoppen, duidelijke hover/pressed/disabled */
+body.vb-app .stp{gap:8px!important}
+body.vb-app .stp button{width:44px!important;height:44px!important;border-radius:10px!important;border:1px solid var(--g-line)!important;background:var(--g-soft)!important;color:var(--g-ink)!important;font-size:20px!important;transition:background-color var(--g-t),border-color var(--g-t),transform .08s!important}
+body.vb-app .stp button:hover:not(:disabled){background:#fff!important;border-color:#C9CBCF!important}
+body.vb-app .stp button:active:not(:disabled){transform:scale(.94)}
+body.vb-app .stp button:disabled{opacity:.4}
+body.vb-app .stp output,body.vb-app .stp input{min-width:28px;text-align:center;font-size:17px!important;font-weight:600;font-variant-numeric:tabular-nums}
+body.vb-app .pr-r{padding:14px 0!important;border-color:var(--g-line)!important}
+body.vb-app .pr-r .nm b{font-size:16px!important;font-weight:500!important}
+body.vb-app .pr-r .nm span{font-size:14px!important;color:var(--g-sec)!important}
+/* deelvragen in een sectie ("Wie komt er mee?") als tussenkop */
+body.vb-app fieldset>legend.lbl{font-size:17px!important;font-weight:600!important;margin-bottom:6px!important}
+/* voordeel familiedag: open, badge + tekst */
+body.vb-app .fd-v{background:none!important;border:0!important;padding:0!important;margin:4px 0 18px!important;display:grid;gap:12px}
+body.vb-app .fd-vt{display:flex;align-items:center;gap:10px;margin:0!important;font-size:15.5px;color:var(--g-ink)}
+body.vb-app .fd-gc{display:flex!important;align-items:flex-start;gap:10px;font-size:15px!important;font-weight:400!important;color:var(--g-ink)!important;margin:0!important;cursor:pointer}
+body.vb-app .fd-gc input{margin-top:1px;flex:none}
+body.vb-app .vb-r>b.gratis{font-weight:500!important;color:var(--g-sec)!important}
+/* Kinderfeest: per kind een open blok, rustige verwijderactie, zachte in-animatie */
+body.vb-app .kid{animation:g-in .18s cubic-bezier(.2,.7,.3,1)}
+body.vb-app .kid-k b{font-size:17px!important;font-weight:600!important}
+body.vb-app .kdel{color:var(--g-sec)!important;font-weight:500!important;font-size:14px!important}
+body.vb-app .kdel:hover{color:#B4141B!important}
+body.vb-app .kdel svg{width:15px;height:15px}
+body.vb-app .kadd{min-height:48px!important;border-radius:10px!important;background:#fff!important;border:1px solid var(--g-line)!important;color:var(--g-ink)!important;font-weight:600!important;font-size:15px!important;transition:border-color var(--g-t),background-color var(--g-t)}
+body.vb-app .kadd:hover{border-color:#C9CBCF!important;background:var(--g-soft)!important}
+@media (prefers-color-scheme:dark){body.vb-app .kadd{background:transparent!important}}
+/* Cadeau kiezen: open secties per kind; het product blijft een eigen (functioneel) vlak */
+body.vb-app .kc{padding:24px 0!important;border-top:1px solid var(--g-line)!important}
+body.vb-app .kc h2{font-size:22px!important;font-weight:700!important;margin:0!important}
+body.vb-app .kc .sub{font-size:15px!important;color:var(--g-sec)!important;margin:4px 0 14px!important}
+body.vb-app .kc .mk{display:flex;align-items:flex-start;gap:12px}body.vb-app .kc .mk>div{flex:1}
+body.vb-app .kc .mic{display:none!important}
+body.vb-app .kc .mn{min-width:26px;height:26px;border-radius:99px;background:var(--g-track)!important;color:var(--g-ink)!important;font-size:13px;font-weight:600;display:inline-grid;place-items:center}
+body.vb-app .kc .state.ok{background:none!important;border:0!important;padding:0!important;margin:0 0 10px!important;color:#1E7A46!important;font-weight:600;font-size:15px}
+body.vb-app .kc .pr{border:1px solid var(--g-line)!important;border-radius:12px!important;background:#fff!important;box-shadow:none!important}
+@media (prefers-color-scheme:dark){body.vb-app .kc .pr{background:var(--g-soft)!important}}
+body.vb-app .kc .leeg{background:none!important;border:0!important;padding:4px 0 12px!important;text-align:left!important;color:var(--g-sec)!important;font-size:15px!important}
+body.vb-app .kc .ulbl{font-size:15px!important;font-weight:500!important}
+body.vb-app .kc .tot{background:none!important;border:0!important;padding:14px 0 0!important;margin-top:8px!important;border-top:1px solid var(--g-line)!important;border-radius:0!important}
+body.vb-app .kc .tot .tr,body.vb-app .pot .tr{display:flex!important;justify-content:space-between;align-items:baseline;gap:12px}
+body.vb-app .kc .tot .tr>span{font-size:16px}body.vb-app .kc .tot .tr>b{font-size:20px;font-variant-numeric:tabular-nums}
+body.vb-app .kc .tot .tr.sm{margin-top:6px;font-size:14px}
+body.vb-app .kc .bar,body.vb-app .pot .bar{height:8px!important;border-radius:99px!important;background:var(--g-track)!important;margin-top:10px}
+body.vb-app .pot,body.vb-app .card.bet{padding:24px 0!important;border-top:1px solid var(--g-line)!important;text-align:left!important}
+body.vb-app .card.bet .sub{text-align:left!important;color:var(--g-sec)!important;font-size:15px!important;margin:6px 0 16px!important}
+body.vb-app .card.bet .btn.bc{display:flex!important}
+body.vb-app .lnk{color:var(--g-ink)!important;font-weight:500!important}
+body.vb-app .kc .cls{border:0!important;background:none!important;padding:0!important;box-shadow:none!important}
+body.vb-app .kc .tot{display:block!important}
+body.vb-app .kc .tot .tr.sm{justify-content:flex-start!important}

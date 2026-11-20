@@ -50,7 +50,7 @@
   /* ---- prijsoverzicht ----
      rijen: [{label, sub, status, bedrag, min:true}] · credit: {saldo, max} · totaal: {label, bedrag} */
   VB.summary=({titel="Overzicht",rijen=[],credit=null,totaal=null})=>{
-    const r=rijen.filter(Boolean).map(x=>`<div class="vb-r${x.status?" korting st-"+esc(String(x.status).toLowerCase()):""}"><span>${esc(x.label)}${x.status?" "+VB.badge(x.status):""}${x.sub?`<small>${esc(x.sub)}</small>`:""}</span><b>${x.min?"− ":""}${eur2(x.bedrag)}</b></div>`).join("");
+    const r=rijen.filter(Boolean).map(x=>`<div class="vb-r${x.status?" korting st-"+esc(String(x.status).toLowerCase()):""}"><span>${esc(x.label)}${x.status?" "+VB.badge(x.status):""}${x.sub?`<small>${esc(x.sub)}</small>`:""}</span><b${x.gratis?' class="gratis"':""}>${x.gratis?"Gratis":(x.min?"− ":"")+eur2(x.bedrag)}</b></div>`).join("");
     const c=credit&&credit.max>0?C.rij(credit.saldo,credit.max):"";
     const t=totaal?`<div class="vb-tot"><span>${esc(totaal.label||"Te betalen")}</span><b>${eur2(totaal.bedrag)}</b></div>`:"";
     return `${titel?`<p class="vb-sum-t">${esc(titel)}</p>`:""}<div class="vb-sum">${r}${c}${t}</div>`};
