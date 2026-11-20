@@ -42,7 +42,7 @@ function nieuwsHtml(n, c) {
   const dt = d && !isNaN(d) ? `${d.getDate()} ${maand[d.getMonth()]} ${d.getFullYear()}` : "";
   return `<section class="hero eigen nieuws${f ? "" : " zonder"}" id="nieuws">${f ? `<figure class="photo"><a href="/api/openbaar?f=sitefoto&amp;k=nieuws&amp;v=${esc(f.v)}" target="_blank" rel="noopener" aria-label="Foto groter bekijken"><img data-s-img="nieuws" src="/api/openbaar?f=sitefoto&amp;k=nieuws&amp;v=${esc(f.v)}" alt="" width="${f.w}" height="${f.h}" style="max-width:min(100%,${Number(f.w) || 1600}px)" loading="lazy"></a></figure>` : ""}<div>`
     + `<p class="kicker">Nieuws van de vriendenkring${dt ? ` · ${esc(dt)}` : ""}</p>` + (n.titel ? `<h2 class="h2g">${esc(n.titel)}</h2>` : "")
-    + (n.tekst ? n.tekst.split(/\n{2,}/).map(p => `<p class="lead">${esc(p).replace(/\n/g, "<br>")}</p>`).join("") : "") + knopHtml(n.knop && n.knop.url ? [{ label: n.knop.label || "Meer info", url: n.knop.url, stijl: "rood" }] : []) + `</div></section>`;
+    + (n.tekst ? `<div class="nw-t">${n.tekst.split(/\n{2,}/).map(p => `<p class="lead">${esc(p).replace(/\n/g, "<br>")}</p>`).join("")}</div><button type="button" class="nw-meer" aria-expanded="false" hidden>Lees meer</button>` : "") + knopHtml(n.knop && n.knop.url ? [{ label: n.knop.label || "Meer info", url: n.knop.url, stijl: "rood" }] : []) + `</div></section>`;
 }
 export function schoon(c) {
   c = c && typeof c === "object" ? c : {};
