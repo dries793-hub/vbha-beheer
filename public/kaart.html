@@ -2801,7 +2801,7 @@ function krCasing(){if(!KR.map)return;const w=krDikte(KR.map.getZoom());
 
 /* enkel de vier deelgemeenten tonen: alles erbuiten afdekken in de achtergrondkleur, met een stippellijn op de grens */
 /* buiten onze verdeelregio: de kaart blijft zichtbaar, maar veel lichter (dekking van het masker) */
-const KR_MASK_OP=.72;
+const KR_MASK_OP=.5;
 function krMaskStijl(){if(!KR.bg||!KR.bg.mask)return;const out=krVar("--kr-out")||"#F5F6F8";KR.bg.mask.setStyle({fillColor:out,fillOpacity:KR_MASK_OP,stroke:false});if(KR.bg.grens)KR.bg.grens.setStyle({color:krVar("--muted")||"#888",weight:1.5,dashArray:"6 5",opacity:.9})}const krAdr=n=>n===1?"adres":"adressen";
 const krNum=n=>n.toLocaleString("nl-BE");
 const krFold=t=>t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
