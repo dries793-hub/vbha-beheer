@@ -479,3 +479,16 @@ body.vb-app main h2{font-size:19px}body.vb-app main h3{font-size:16px}
 body.vb .foot{font-size:13px}
 @media (max-width:640px){body.vb-app .vb-due b{font-size:22px}}
 @media (max-width:360px){body.vb h1,body.vb-app h1{font-size:24px}body.vb-app .vb-due b{font-size:20px}}
+
+/* ---- afrekenbalk op gsm: robuust op iOS (bedrag boven, knop over de volle breedte, geen native knopstijl) ---- */
+body.vb .btn{-webkit-appearance:none;appearance:none;white-space:nowrap;overflow:visible;text-overflow:clip;min-width:0}
+body.vb-app .vb-checkout .btn::before{content:none}
+body.vb-app .vb-checkout .btn.is-busy::before{content:""}
+body.vb-app .vb-due[hidden]{display:none!important}
+@media (max-width:640px){
+  body.vb-app .vb-checkout{flex-wrap:wrap;gap:8px 12px;padding-top:10px}
+  body.vb-app .vb-due{flex:1 1 100%;flex-direction:row;align-items:baseline;justify-content:space-between}
+  body.vb-app .vb-due span{font-size:13.5px}
+  body.vb-app .vb-due b{font-size:22px}
+  body.vb-app .vb-checkout .btn{flex:1 1 100%;width:100%}
+}
