@@ -1947,7 +1947,7 @@ ${g?`<div class="blad om">${b("Opmerkingen per tafel")}<div class="grid">${g}</d
 .hdr .brand{min-width:0;gap:14px}
 .hdr .brand .logo{height:30px;width:auto}
 .hdr .brand-lbl{display:block!important;min-width:0;font-size:14px;font-weight:500;line-height:20px;color:#fff;padding-left:14px;border-left:1px solid rgba(255,255,255,.28);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media (max-width:560px){.hdr .brand{gap:10px}.hdr .brand .logo{height:24px}.hdr .brand-lbl{font-size:12px;padding-left:10px}}
+@media (max-width:560px){.hdr .brand .logo{height:28px}.hdr .brand-lbl{display:none!important}}
 
 /* ---- knoppen ---- */
 .btn{border-radius:var(--radius-md);border-color:var(--border-strong);color:var(--text-primary);font-weight:500;min-height:36px;padding:0 14px;transition:background var(--t-fast),border-color var(--t-fast),color var(--t-fast),box-shadow var(--t-fast)}
