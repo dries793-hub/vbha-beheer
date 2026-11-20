@@ -4,8 +4,17 @@ import { createClient } from "@supabase/supabase-js";
 export function admin() {
   const url = String(process.env.SUPABASE_URL || "").trim().replace(/\/(rest|auth)\/v1.*$/i, "").replace(/\/+$/, ""), key = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
   if (!url || !key) throw httpErr(500, "SUPABASE_URL of SUPABASE_SERVICE_ROLE_KEY ontbreekt");
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const c = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, db: { schema: DB_SCHEMA } });
+  if (IS_TEST) { // testomgeving: de opslag (bestanden) is gedeeld met productie, dus niets wissen of verplaatsen
+    const from = c.storage.from.bind(c.storage);
+    c.storage.from = b => { const o = from(b); o.remove = async () => ({ data: [], error: null }); o.move = async () => ({ data: null, error: null }); return o; };
+  }
+  return c;
 }
+/* Testomgeving (Vercel-branch "test"): DB_SCHEMA=test en VBHA_TEST=1. Mails, sms, betalingen en sociale media staan daar altijd uit. */
+// elke preview (niet-productie) van Vercel werkt standaard in het testschema, nooit op de echte gegevens
+export const DB_SCHEMA = String(process.env.DB_SCHEMA || (process.env.VERCEL_ENV === "preview" ? "test" : "public")).trim() || "public";
+export const IS_TEST = process.env.VBHA_TEST === "1" || process.env.VERCEL_ENV === "preview" || DB_SCHEMA !== "public";
 
 export function httpErr(status, message) { const e = new Error(message); e.status = status; return e; }
 

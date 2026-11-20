@@ -8,7 +8,8 @@ import { AsyncLocalStorage } from "node:async_hooks";
 // Testmodus (enkel binnen testMails): berichten worden verzameld i.p.v. verstuurd.
 export const testOpvang = new AsyncLocalStorage();
 
-export const smtpConfigured = () => !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+// in de testomgeving gaan er nooit mails buiten
+export const smtpConfigured = () => process.env.VBHA_TEST !== "1" && process.env.VERCEL_ENV !== "preview" && !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 // standaard antwoordadres (Reply-To) van alle mails; facturen geven hun eigen adres mee
 export const ANTWOORD = () => String(process.env.MAIL_ANTWOORD ?? "info@vbha.be").trim();
 export const BCC = () => String(process.env.MAIL_BCC ?? "dries@vbha.be").trim().toLowerCase();

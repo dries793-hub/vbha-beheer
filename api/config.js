@@ -10,5 +10,6 @@ export default async function handler(req, res) {
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) return res.status(500).json({ error: "SUPABASE_URL of SUPABASE_ANON_KEY ontbreekt" });
   res.setHeader("Cache-Control", "public, max-age=300");
-  res.status(200).json({ supabaseUrl, supabaseAnonKey });
+  const schema = String(process.env.DB_SCHEMA || (process.env.VERCEL_ENV === "preview" ? "test" : "public")).trim() || "public";
+  res.status(200).json({ supabaseUrl, supabaseAnonKey, schema, test: process.env.VBHA_TEST === "1" || process.env.VERCEL_ENV === "preview" || schema !== "public" });
 }
