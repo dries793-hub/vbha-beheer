@@ -58,8 +58,9 @@ const cijfers = s => String(s || "").replace(/\D/g, "");
 const compact = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 // Welke transacties horen bij deze factuur? Gestructureerde mededeling, factuurnummer in de vrije mededeling, of manueel toegewezen.
 export function hoortBij(b, f) {
-  if (!b || b.richting === "uit" || !f.nr) return false;
-  if (b.factuurId) return b.factuurId === f.id;
+  if (!b || b.richting === "uit") return false;
+  if (b.factuurId) return b.factuurId === f.id; // manueel gekoppeld (ook al bij het concept: een eerder uitgevoerde betaling)
+  if (!f.nr) return false;
   const m = String(b.mededeling || "");
   if (f.ogm && cijfers(m).includes(f.ogm)) return true;
   const re = new RegExp("(^|[^A-Z0-9])" + compact(f.nr) + "($|[^0-9])");
@@ -223,7 +224,7 @@ export function factuurPdf(f, cfg, { status, aanmaning: AM } = {}) {
       pdf.vlak(L, y, Wb, 46, "#f1faf4"); pdf.vlak(L, y, 4, 46, "#1a7f45");
       pdf.tekst(L + 16, y + 10, "BETAALD", { size: 13, bold: true, kleur: "#1a7f45" });
       const bc = f.betaling && f.betaling.status === "SUCCEEDED";
-      pdf.tekst(L + 16, y + 28, bc ? `Online betaald met Bancontact${f.betaling.betaaldOp ? " op " + dmy(String(f.betaling.betaaldOp).slice(0, 10)) : ""} (${geld(f.betaling.bedrag || st.ontvangen)}). Bedankt!` : st.laatst ? "Ontvangen op " + dmy(st.laatst) + ". Bedankt!" : "Bedankt voor je betaling.", { size: 9.5, kleur: GRIJS });
+      pdf.tekst(L + 16, y + 28, bc ? `Online betaald met Bancontact${f.betaling.betaaldOp ? " op " + dmy(String(f.betaling.betaaldOp).slice(0, 10)) : ""} (${geld(f.betaling.bedrag || st.ontvangen)}). Bedankt!` : st.laatst ? "Voldaan op " + dmy(st.laatst) + ". Bedankt!" : "Bedankt voor je betaling.", { size: 9.5, kleur: GRIJS });
     } else {
       const te = st ? st.open : T.totaal;
       pdf.vlak(L, y, Wb, bh, LICHT); pdf.vlak(L, y, 4, bh, GOUD);
@@ -314,7 +315,8 @@ export async function factuurMail(sb, f, cfg, soort = "factuur", status, extra =
   const V = { aanspreking: groetVan(k), nr: esc(f.nr), klant: esc(k.naam || ""), vereniging: esc(cfg.vereniging), datum: esc(kort(f.datum)), vervaldatum: esc(kort(f.vervaldatum)), bedrag: eur(T.totaal), open: eur(open), mededeling: meded,
     link_betalen: esc(betaalLink(f.id)), deels: !!(status && status.ontvangen > 0),
     factuur: kaderBlok(credit ? "Creditnota " + esc(f.nr) : "Factuur " + esc(f.nr), tabel([rij(credit ? "Datum" : "Factuurdatum", esc(lang(f.datum))), credit ? "" : rij("Vervaldatum", `<b>${esc(lang(f.vervaldatum))}</b>`), rij("Bedrag", `<b>${eur(T.totaal)}</b>`),
-      status && status.ontvangen > 0 && !status.betaald ? rij("Nog te betalen", `<b>${eur(open)}</b>`) : ""])),
+      status && status.ontvangen > 0 && !status.betaald ? rij("Nog te betalen", `<b>${eur(open)}</b>`) : "",
+      !credit && status && status.betaald ? rij("Betaling", `<b>Voldaan${status.laatst ? " op " + esc(lang(status.laatst)) : ""}</b>`) : ""])),
     betalen: !credit && open > 0 ? kaderBlok("Betalen", tabel([rij("Bedrag", `<b>${eur(open)}</b>`), rij("Rekening", `<b>${iban}</b>`), rij("Begunstigde", esc(cfg.vereniging)), rij("Mededeling", `<b>${meded}</b>`)])
       + p("Gebruik exact deze gestructureerde mededeling, dan wordt je betaling automatisch aan de factuur gekoppeld.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2") + knop("Online betalen met Bancontact of QR-code", betaalLink(f.id)) : "" };
   let m;
@@ -345,7 +347,11 @@ async function boekingenVoor(sb, f) {
   const van = plusDagen(f.datum || vandaag(), -3);
   const { data, error } = await sb.from("boekingen").select("id,data").gte("data->>datum", van).limit(2000);
   if (error) throw error;
-  return (data || []).map(r => ({ ...r.data, id: r.id }));
+  const L = (data || []).map(r => ({ ...r.data, id: r.id }));
+  // manueel gekoppelde transacties van vóór de factuurdatum (betaling die al gebeurd was)
+  if (f.id) { const { data: m } = await sb.from("boekingen").select("id,data").eq("data->>factuurId", f.id).limit(50);
+    for (const r of m || []) if (!L.some(x => x.id === r.id)) L.push({ ...r.data, id: r.id }); }
+  return L;
 }
 export async function statusVan(sb, row) { const f = { ...row.data, id: row.id }; return betaalStatus(f, await boekingenVoor(sb, f)); }
 
