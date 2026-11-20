@@ -125,7 +125,7 @@ html,body{overflow-x:hidden}
     <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
     <div class="pay" id="pay" hidden></div>
     <p class="err" id="err" role="alert"></p>
-    <button class="btn" id="go" type="submit">Inschrijven</button>
+    <div class="vb-checkout"><div class="vb-due" id="due" hidden><span>Te betalen</span><b></b></div><button class="btn" id="go" type="submit">Inschrijven</button></div>
   </form>
   </div>
   <p class="foot">Je gegevens worden enkel gebruikt voor de ledenadministratie van de vriendenkring. · <a href="/privacy" style="color:inherit">Privacy</a></p>
@@ -141,6 +141,9 @@ fetch("/api/inschrijving").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INF
   const cur=(document.querySelector("input[name=categorie]:checked")||{}).value;cats(j.categorieen);if(cur){const x=[...document.querySelectorAll("input[name=categorie]")].find(i=>i.value===cur);if(x)x.checked=true}
   toonPrijs()}).catch(()=>{});
 function toonPrijs(){if(!INFO)return;const c=(document.querySelector("input[name=categorie]:checked")||{}).value;const p=$("#pay");p.hidden=false;
+  /* afrekenbalk: bedrag van de gekozen categorie (of het enige tarief); de server bepaalt het definitieve lidgeld */
+  {const bed=c&&INFO.tarieven&&INFO.tarieven[c]!=null?INFO.tarieven[c]:(INFO.gewoon!=null&&INFO.erewacht!=null&&INFO.gewoon!==INFO.erewacht?null:INFO.bedrag);
+   if(window.VB&&VB.due)VB.due($("#due"),bed!=null&&bed>0?bed:null);const g=$("#go");if(g&&!g.disabled)g.textContent=INFO.online?"Inschrijven en betalen":"Inschrijven"}
   if(c&&INFO.tarieven&&INFO.tarieven[c]!=null)p.innerHTML=`Lidgeld ${INFO.jaar} voor <b>${esc(c)}</b>: <b>${eur(INFO.tarieven[c])}</b>. ${INFO.online?"Na het inschrijven betaal je meteen online met Bancontact of je bankapp.":"Na je inschrijving zie je hoe je het overschrijft."}`;
   else if(INFO.gewoon!=null&&INFO.erewacht!=null&&INFO.gewoon!==INFO.erewacht)p.innerHTML=`Het lidgeld voor ${INFO.jaar} bedraagt <b>${eur(INFO.gewoon)}</b>, of <b>${eur(INFO.erewacht)}</b> voor de erewacht. ${INFO.online?"Na het inschrijven betaal je meteen online met Bancontact of je bankapp.":"Na je inschrijving zie je hoe je het overschrijft."}`;
   else p.innerHTML=`Het lidgeld voor ${INFO.jaar} bedraagt <b>${eur(INFO.bedrag)}</b>. ${INFO.online?"Na het inschrijven betaal je meteen online met Bancontact of je bankapp.":"Na je inschrijving zie je hoe je het overschrijft."}`}
@@ -179,20 +182,20 @@ document.addEventListener("click",async e=>{if(e.target.id!=="bcNieuw")return;e.
 (function(){if(!/[?&]betaling=terug/.test(location.search))return;let j=null;try{j=JSON.parse(sessionStorage.getItem("vbha_insch")||"null")}catch(x){}if(!j)return;history.replaceState(null,"",location.pathname);toonKlaar(j)})();
 
 document.addEventListener("click",async e=>{const b=e.target.closest(".cp");if(!b)return;try{await navigator.clipboard.writeText(b.dataset.cp);const t=b.textContent;b.textContent="Gekopieerd";b.classList.add("ok");setTimeout(()=>{b.textContent=t;b.classList.remove("ok")},1600)}catch(x){}});
-$("#f").addEventListener("submit",async e=>{e.preventDefault();const f=e.target,er=$("#err");er.textContent="";
+$("#f").addEventListener("submit",async e=>{e.preventDefault();const f=e.target,er=$("#err");er.textContent="";VB.wisFouten(f);
   const d=Object.fromEntries(new FormData(f));
   const miss=[["voornaam","je voornaam"],["naam","je naam"],["adres","je adres"],["email","je e-mailadres"],["telefoon","je telefoonnummer"]].find(([k])=>!String(d[k]||"").trim());
   if(miss){er.textContent="Vul "+miss[1]+" in.";f.elements[miss[0]].focus();return}
-  if(!adresVolledig(d.adres)){er.textContent="Vul je volledige adres in: straat, huisnummer, postcode en gemeente (bv. Kerkstraat 12, 9300 Aalst).";f.elements.adres.focus();return}
-  if(!f.elements.email.checkValidity()){er.textContent="Dit e-mailadres lijkt niet te kloppen.";f.elements.email.focus();return}
-  if(String(d.telefoon).replace(/\D/g,"").length<8){er.textContent="Vul een geldig telefoonnummer in.";f.elements.telefoon.focus();return}
-  if(!d.categorie){er.textContent="Duid aan wat bij jou past.";return}
-  const b=$("#go");b.disabled=true;b.textContent="Bezig…";
+  if(!adresVolledig(d.adres)){VB.veldFout(f.elements.adres,"Vul je volledige adres in: straat, huisnummer, postcode en gemeente (bv. Kerkstraat 12, 9300 Aalst).");return}
+  if(!f.elements.email.checkValidity()){VB.veldFout(f.elements.email,"Dit e-mailadres lijkt niet te kloppen.");return}
+  if(String(d.telefoon).replace(/\D/g,"").length<8){VB.veldFout(f.elements.telefoon,"Vul een geldig telefoonnummer in.");return}
+  if(!d.categorie){VB.veldFout($("#cats").closest("fieldset"),"Duid aan wat bij jou past.");return}
+  const b=$("#go");b.disabled=true;b.classList.add("is-busy");b.textContent="Inschrijving verwerken…";
   try{const r=await fetch("/api/inschrijving",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...d,duur:Date.now()-t0})});
     const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Inschrijven lukte niet.");
     toonKlaar({...j,voornaam:d.voornaam});try{sessionStorage.setItem("vbha_insch",JSON.stringify({...j,voornaam:d.voornaam,qr:null}))}catch(x){}
     window.scrollTo({top:0,behavior:"smooth"});
-  }catch(x){er.textContent=x.message;b.disabled=false;b.textContent=INFO&&INFO.online?"Inschrijven en betalen":"Inschrijven"}});
+  }catch(x){er.textContent=x.message;b.disabled=false;b.classList.remove("is-busy");b.textContent=INFO&&INFO.online?"Inschrijven en betalen":"Inschrijven"}});
 </script>
 <script src="/adres.js" defer></script>
 <script>/* bezoekteller zonder cookies of IP-adres */(function(){try{if(navigator.webdriver||window.top!==window)return;var s=sessionStorage,n=!s.getItem("vbt"),b;if(n){var u=new URLSearchParams(location.search);b={r:document.referrer,q:u.get("utm_source")||u.get("bron")||(u.has("fbclid")?"fb":u.has("igshid")?"ig":"")};s.setItem("vbt",JSON.stringify(b))}else b=JSON.parse(s.getItem("vbt")||"{}");var d=JSON.stringify({p:location.pathname,r:b.r||"",q:b.q||"",n:n});if(navigator.sendBeacon)navigator.sendBeacon("/api/tel",d);else fetch("/api/tel",{method:"POST",body:d,keepalive:true})}catch(e){}})()</script>
