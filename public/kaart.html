@@ -9,7 +9,7 @@
 
 /* teller bedeeld in de balk bovenaan (enkel desktop); op gsm blijft hij in de legende */
 .kr-ht{display:none}
-@media (min-width:900px){.hdr .in{display:flex;align-items:center}.kr-ht:not([hidden]){display:flex;flex-direction:column;gap:6px;margin-left:auto;min-width:220px;color:rgba(255,255,255,.72);font-size:13px}.kr-ht b{color:#fff;font-weight:600}.kr-htb{display:block;height:6px;border-radius:99px;background:rgba(255,255,255,.16);overflow:hidden}.kr-htb i{display:block;height:100%;border-radius:99px;background:#22a45d;transition:width .3s}#krTeller{display:none!important}}
+@media (min-width:900px){.hdr .in{display:flex;align-items:center}.hdr .in>.sub{order:3;margin-left:0}.kr-ht:not([hidden]){order:2;margin:0 auto!important}.kr-ht:not([hidden]){display:flex;flex-direction:column;gap:6px;margin-left:auto;min-width:220px;color:rgba(255,255,255,.72);font-size:13px}.kr-ht b{color:#fff;font-weight:600}.kr-htb{display:block;height:6px;border-radius:99px;background:rgba(255,255,255,.16);overflow:hidden}.kr-htb i{display:block;height:100%;border-radius:99px;background:#22a45d;transition:width .3s}#krTeller{display:none!important}}
 </style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Kalenders 2026 VBHA</title>
 <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/fonts/inter.css">
@@ -2800,7 +2800,9 @@ function krCasing(){if(!KR.map)return;const w=krDikte(KR.map.getZoom());
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .kr-tegels{filter:grayscale(1) invert(.9) contrast(.85) brightness(.9)}}:root[data-theme="dark"] .kr-tegels{filter:grayscale(1) invert(.9) contrast(.85) brightness(.9)}`;document.head.appendChild(st)}
 
 /* enkel de vier deelgemeenten tonen: alles erbuiten afdekken in de achtergrondkleur, met een stippellijn op de grens */
-function krMaskStijl(){if(!KR.bg||!KR.bg.mask)return;const out=krVar("--kr-out")||"#F5F6F8";KR.bg.mask.setStyle({fillColor:out,fillOpacity:1,stroke:false});if(KR.bg.grens)KR.bg.grens.setStyle({color:krVar("--muted")||"#888",weight:1.5,dashArray:"6 5",opacity:.9})}const krAdr=n=>n===1?"adres":"adressen";
+/* buiten onze verdeelregio: de kaart blijft zichtbaar, maar veel lichter (dekking van het masker) */
+const KR_MASK_OP=.72;
+function krMaskStijl(){if(!KR.bg||!KR.bg.mask)return;const out=krVar("--kr-out")||"#F5F6F8";KR.bg.mask.setStyle({fillColor:out,fillOpacity:KR_MASK_OP,stroke:false});if(KR.bg.grens)KR.bg.grens.setStyle({color:krVar("--muted")||"#888",weight:1.5,dashArray:"6 5",opacity:.9})}const krAdr=n=>n===1?"adres":"adressen";
 const krNum=n=>n.toLocaleString("nl-BE");
 const krFold=t=>t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const KR_SORTED=[...KR_STREETS].sort((a,b)=>a.n.localeCompare(b.n,"nl")||a.w.localeCompare(b.w,"nl"));
@@ -2831,7 +2833,7 @@ function krGrens(map){const el=document.getElementById("krGrens");if(!el)return;
   const R=KR_GRENS;if(!R.length)return;
   map.createPane("krMask").style.zIndex=330;const r=L.canvas({pane:"krMask",padding:.5});
   const world=[[52.5,2],[52.5,6.5],[49.5,6.5],[49.5,2]];
-  KR.bg.mask=L.polygon([world,...R],{renderer:r,pane:"krMask",interactive:false,stroke:false,fillOpacity:1}).addTo(map);
+  KR.bg.mask=L.polygon([world,...R],{renderer:r,pane:"krMask",interactive:false,stroke:false,fillOpacity:KR_MASK_OP}).addTo(map);
   KR.bg.grens=L.polyline(R.map(x=>x.concat([x[0]])),{renderer:r,pane:"krMask",interactive:false,weight:1.5,dashArray:"6 5",opacity:1}).addTo(map)}
 function krBgZoom(){const g=KR.bg&&KR.bg.groups.bld;if(!g)return;const on=KR.map.getZoom()>=KR_BLD_ZOOM;
   if(on&&!KR.map.hasLayer(g))g.addTo(KR.map);else if(!on&&KR.map.hasLayer(g))g.remove()}
