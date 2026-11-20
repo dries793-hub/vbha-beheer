@@ -32,9 +32,13 @@
      Staat: aan (schakelaar), bedrag (null = maximum), ander (eigen bedrag tonen). De pagina zet VB.credit.op = upd-functie. */
   const C={aan:true,bedrag:null,ander:false,op:null,label:"Punten gebruiken"};
   C.gebruik=max=>max>0&&C.aan?Math.round(Math.max(0,Math.min(max,C.bedrag==null?max:C.bedrag))*100)/100:0;
+  /* PointsControl: [schakelaar] Punten gebruiken ……… − € 42,50
+                         € 42,50 beschikbaar ………… Aanpassen */
   C.rij=(saldo,max)=>{const g=C.gebruik(max);
-    return `<div class="vb-r credit vb-credit"><span><label class="vb-sw"><input type="checkbox" data-vbc="aan"${C.aan?" checked":""}><i aria-hidden="true"></i>${esc(C.label)}</label></span>
-      <b>${g>0?"− "+eur2(g):eur2(0)}</b><small>${eur2(saldo)} beschikbaar${C.aan?(C.ander?`<span class="vb-nw">· <span class="vb-cin">€<input data-vbc="in" type="text" inputmode="decimal" value="${g.toFixed(2).replace(".",",")}" aria-label="Bedrag ${esc(C.label.toLowerCase())}"></span></span>`:`<span class="vb-nw">· <button type="button" class="vb-aanp" data-vbc="aanp">Aanpassen</button></span>`):""}</small></div>`};
+    return `<div class="vb-r credit vb-pc"><label class="vb-pc-sw"><input type="checkbox" id="vbcAan" data-vbc="aan"${C.aan?" checked":""}><i aria-hidden="true"></i></label>
+      <label class="vb-pc-t" for="vbcAan">${esc(C.label)}</label><b class="${g>0?"":"nul"}">${g>0?"− "+eur2(g):eur2(0)}</b>
+      <small class="vb-pc-s">${eur2(saldo)} beschikbaar</small>
+      <span class="vb-pc-a">${C.aan?(C.ander?`<span class="vb-cin">€<input data-vbc="in" type="text" inputmode="decimal" value="${g.toFixed(2).replace(".",",")}" aria-label="Bedrag ${esc(C.label.toLowerCase())}"></span>`:`<button type="button" class="vb-aanp" data-vbc="aanp">Aanpassen</button>`):""}</span></div>`};
   VB.credit=C;
   document.addEventListener("change",e=>{const t=e.target.closest("[data-vbc]");if(!t)return;
     if(t.dataset.vbc==="aan"){C.aan=t.checked;C.op&&C.op()}

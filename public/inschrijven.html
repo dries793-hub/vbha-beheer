@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}.logo-a{display:block;flex:none;line-height:0;border-radius:4px}.logo-a:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.naam2{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:420px){.naam2{gap:8px}}
 </style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Word lid van VBHA</title>
 <meta name="description" content="Schrijf je in als lid van de Vriendenkring Brandweer Hoofdpost Aalst.">
@@ -115,8 +116,7 @@ html,body{overflow-x:hidden}
   <div id="box">
   <form class="card" id="f" novalidate>
     <div class="grid">
-      <div><label for="voornaam">Voornaam</label><input type="text" id="voornaam" name="voornaam" autocomplete="given-name" required maxlength="80"></div>
-      <div><label for="naam">Naam</label><input type="text" id="naam" name="naam" autocomplete="family-name" required maxlength="80"></div>
+      <div class="full"><label for="voornaam">Naam</label><div class="naam2"><input type="text" id="voornaam" name="voornaam" autocomplete="given-name" placeholder="Voornaam" aria-label="Voornaam" required maxlength="80"><input type="text" id="naam" name="naam" autocomplete="family-name" placeholder="Familienaam" aria-label="Familienaam" required maxlength="80"></div></div>
       <div class="full"><label for="adres">Adres</label><input type="text" id="adres" name="adres" autocomplete="street-address" placeholder="Straat nr, postcode gemeente" required maxlength="200"></div>
       <div><label for="email">E-mail</label><input type="email" id="email" name="email" autocomplete="email" inputmode="email" required maxlength="120"></div>
       <div><label for="telefoon">Telefoon/gsm</label><input type="tel" id="telefoon" name="telefoon" autocomplete="tel" inputmode="tel" required maxlength="40"></div>
@@ -140,9 +140,9 @@ cats(["Ploeg 1","Ploeg 2","Ploeg 3","Ploeg 4","Vrijwilligers","Administratie","E
 fetch("/api/inschrijving").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;if(j.online)$("#go").textContent="Inschrijven en betalen";
   const cur=(document.querySelector("input[name=categorie]:checked")||{}).value;cats(j.categorieen);if(cur){const x=[...document.querySelectorAll("input[name=categorie]")].find(i=>i.value===cur);if(x)x.checked=true}
   toonPrijs()}).catch(()=>{});
-function toonPrijs(){if(!INFO)return;const c=(document.querySelector("input[name=categorie]:checked")||{}).value;const p=$("#pay");p.hidden=false;
+function toonPrijs(){if(!INFO)return;const c=(document.querySelector("input[name=categorie]:checked")||{}).value;const p=$("#pay");p.hidden=true;/* geen uitleg over het lidgeld: het bedrag verschijnt in de afrekenbalk zodra een categorie gekozen is */
   /* afrekenbalk: bedrag van de gekozen categorie (of het enige tarief); de server bepaalt het definitieve lidgeld */
-  {const bed=c&&INFO.tarieven&&INFO.tarieven[c]!=null?INFO.tarieven[c]:(INFO.gewoon!=null&&INFO.erewacht!=null&&INFO.gewoon!==INFO.erewacht?null:INFO.bedrag);
+  {const bed=!c?null:INFO.tarieven&&INFO.tarieven[c]!=null?INFO.tarieven[c]:(INFO.gewoon!=null&&INFO.erewacht!=null&&INFO.gewoon!==INFO.erewacht?(/erewacht/i.test(c)?INFO.erewacht:INFO.gewoon):INFO.bedrag);
    if(window.VB&&VB.due)VB.due($("#due"),bed!=null&&bed>0?bed:null);const g=$("#go");if(g&&!g.disabled)g.textContent=INFO.online?"Inschrijven en betalen":"Inschrijven"}
   if(c&&INFO.tarieven&&INFO.tarieven[c]!=null)p.innerHTML=`Lidgeld ${INFO.jaar} voor <b>${esc(c)}</b>: <b>${eur(INFO.tarieven[c])}</b>. ${INFO.online?"Na het inschrijven betaal je meteen online met Bancontact of je bankapp.":"Na je inschrijving zie je hoe je het overschrijft."}`;
   else if(INFO.gewoon!=null&&INFO.erewacht!=null&&INFO.gewoon!==INFO.erewacht)p.innerHTML=`Het lidgeld voor ${INFO.jaar} bedraagt <b>${eur(INFO.gewoon)}</b>, of <b>${eur(INFO.erewacht)}</b> voor de erewacht. ${INFO.online?"Na het inschrijven betaal je meteen online met Bancontact of je bankapp.":"Na je inschrijving zie je hoe je het overschrijft."}`;

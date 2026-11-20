@@ -257,7 +257,9 @@ function potBlok(){const K=V.kinderen.filter(heeftB);if(K.length<2)return"";cons
 function tegBlok(){const vrij=Number(V.tegoedSaldo)||0,gebr=Number(V.tegoed)||0,nodig=Math.max(0,(V.extraTotaal||0)+(V.extraVoorlopig||0)-(V.bijbetaald||0));
   if(!(vrij>0||gebr>0)||(!(nodig>0)&&!(gebr>0)))return"";const kan=Math.min(vrij,nodig);
   /* zelfde puntenkeuze als banket en familiedag (schakelaar); dezelfde regel: maximaal wat boven het budget gaat */
-  return `<div class="card teg"><div class="vb-sum"><div class="vb-r credit vb-credit"><span><label class="vb-sw"><input type="checkbox" data-tegsw="${gebr>0?"0":kan.toFixed(2)}"${gebr>0?" checked":""}${!(gebr>0)&&!(kan>0)?" disabled":""}><i aria-hidden="true"></i>Punten gebruiken</label></span><b>${gebr>0?"− "+eur(gebr):eur(0)}</b><small>${eur(vrij)} beschikbaar${!(gebr>0)&&kan<nodig?` · dekt ${eur(kan)} van ${eur(nodig)}`:""}</small></div></div></div>`}
+  return `<div class="card teg"><div class="vb-sum"><div class="vb-r credit vb-pc"><label class="vb-pc-sw"><input type="checkbox" id="tegSw" data-tegsw="${gebr>0?"0":kan.toFixed(2)}"${gebr>0?" checked":""}${!(gebr>0)&&!(kan>0)?" disabled":""}><i aria-hidden="true"></i></label>
+   <label class="vb-pc-t" for="tegSw">Punten gebruiken</label><b class="${gebr>0?"":"nul"}">${gebr>0?"− "+eur(gebr):eur(0)}</b>
+   <small class="vb-pc-s">${eur(vrij)} beschikbaar${!(gebr>0)&&kan<nodig?` · dekt ${eur(kan)} van ${eur(nodig)}`:""}</small><span class="vb-pc-a"></span></div></div></div>`}
 document.addEventListener("change",async e=>{const t=e.target.closest("[data-tegsw]");if(!t)return;t.disabled=true;try{V=await api({actie:"tegoed",bedrag:+t.dataset.tegsw});toon()}catch(x){t.disabled=false;t.checked=!t.checked;alert(x.message||"Lukt niet.")}});
 document.addEventListener("click",async e=>{const t=e.target.closest("[data-teg]");if(!t)return;t.disabled=true;try{V=await api({actie:"tegoed",bedrag:+t.dataset.teg});toon()}catch(x){t.disabled=false;alert(x.message||"Lukt niet.")}});
 function betaalBlok(){if(!V)return"";const b=V.betaling;
