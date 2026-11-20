@@ -480,15 +480,16 @@ body.vb .foot{font-size:13px}
 @media (max-width:640px){body.vb-app .vb-due b{font-size:22px}}
 @media (max-width:360px){body.vb h1,body.vb-app h1{font-size:24px}body.vb-app .vb-due b{font-size:20px}}
 
-/* ---- afrekenbalk op gsm: robuust op iOS (bedrag boven, knop over de volle breedte, geen native knopstijl) ---- */
-body.vb .btn{-webkit-appearance:none;appearance:none;white-space:nowrap;overflow:visible;text-overflow:clip;min-width:0}
-body.vb-app .vb-checkout .btn::before{content:none}
-body.vb-app .vb-checkout .btn.is-busy::before{content:""}
+/* ---- afrekenbalk: prijs naast de knop, robuust in Safari ----
+   Grid i.p.v. flex (Safari rekent flex-knoppen soms verkeerd), knop als blok met gecentreerde tekst,
+   geen native iOS-knopstijl, tekst kan nooit buiten de knop lopen. */
+body.vb .btn{-webkit-appearance:none;appearance:none;min-width:0}
+body.vb-app .vb-checkout{display:grid!important;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:14px}
 body.vb-app .vb-due[hidden]{display:none!important}
-@media (max-width:640px){
-  body.vb-app .vb-checkout{flex-wrap:wrap;gap:8px 12px;padding-top:10px}
-  body.vb-app .vb-due{flex:1 1 100%;flex-direction:row;align-items:baseline;justify-content:space-between}
-  body.vb-app .vb-due span{font-size:13.5px}
-  body.vb-app .vb-due b{font-size:22px}
-  body.vb-app .vb-checkout .btn{flex:1 1 100%;width:100%}
-}
+body.vb-app .vb-due[hidden]+.btn{grid-column:1/-1}
+body.vb-app .vb-due{display:flex;flex-direction:column;min-width:0}
+body.vb-app .vb-checkout .btn{display:block!important;width:100%!important;max-width:none;margin:0!important;padding:0 12px!important;height:48px;min-height:48px;line-height:48px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:clamp(14px,3.9vw,15.5px);border-radius:10px;-webkit-tap-highlight-color:transparent;transform:translateZ(0)}
+body.vb-app .vb-checkout .btn::before{content:none}
+body.vb-app .vb-checkout .btn.is-busy::before{content:"";display:inline-block;vertical-align:-3px;margin-right:8px}
+@media (max-width:640px){body.vb-app .vb-due b{font-size:22px}}
+@media (max-width:360px){body.vb-app .vb-checkout{column-gap:10px}body.vb-app .vb-due b{font-size:19px}body.vb-app .vb-due span{font-size:12px}}
