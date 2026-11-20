@@ -2141,6 +2141,7 @@ td,.data-table td{padding-top:9px;padding-bottom:9px}
 .dash-snel .ks-knop{margin:0}
 .dash-attn{margin-bottom:var(--space-6)}
 .btn.ks-knop{background:color-mix(in srgb,var(--good,#18794A) 8%,var(--surface));border-color:color-mix(in srgb,var(--good,#18794A) 35%,transparent);color:var(--good,#18794A);min-height:0}.btn.ks-knop:hover{background:color-mix(in srgb,var(--good,#18794A) 14%,var(--surface))}
-@media (max-width:760px){.btn.ks-knop{min-height:50px;padding:12px 16px;font-size:15.5px;font-weight:600;border-radius:12px;gap:10px}.btn.ks-knop svg{width:20px;height:20px}}
+@media (max-width:760px){.btn.ks-knop{min-height:42px;padding:8px 14px;margin:0!important;font-size:15px;font-weight:600;border-radius:10px;gap:9px}.btn.ks-knop svg{width:18px;height:18px}
+.top.page-header{padding-bottom:12px}.ks-knop+.nmeld,.nmeld+.nmeld{margin-top:-6px!important}}
 .dsec-h .btn.ghost{color:var(--text-secondary);font-weight:500}.dsec-h .btn.ghost:hover{color:var(--text-primary);background:none}
 `,document.head.appendChild(e)}Object.assign(DS_DESC,{leden:"Beheer leden en lidgeld.",punten:"Punten en status per lid.",gebruikers:"Bestuursleden met toegang en rechten.",begroting:"Begrote kosten en opbrengsten per activiteit.",sponsors:"Beheer sponsors en betalingen.",kalenders:"Verdeling en opvolging van de kalenders.",kalfin:"Opbrengst en omzet van de kalenders.",kinderfeest:"Inschrijvingen, cadeaus en bestelling.",shiften:"Shiften en planning per activiteit.",website:"Inhoud van de website.",statistieken:"Bezoeken van de website en social media.",fotos:"Foto’s van activiteiten en kalenders."});
