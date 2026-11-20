@@ -197,7 +197,7 @@ async function wieBenIk(req, res) {
   const sb = admin(); await rateLimit(sb, req, "rondeik", 60, 600, httpErr);
   const A = await algemeen(sb), lid = (await actieveLeden(sb, A.jaar)).find(x => x.id === l);
   if (!lid) return res.status(200).json({});
-  return res.status(200).json({ id: lid.id, naam: lid.naam, toon: lid.voornaam && lid.an ? `${lid.voornaam} ${lid.an}` : lid.naam });
+  return res.status(200).json({ id: lid.id, naam: lid.naam, voornaam: lid.voornaam || "", toon: lid.voornaam && lid.an ? `${lid.voornaam} ${lid.an}` : lid.naam });
 }
 
 /* GeoJSON van de gereserveerde en bedeelde straten (zonder namen van personen), bv. als laag met "externe gegevens" in uMap.
