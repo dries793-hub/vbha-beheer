@@ -865,3 +865,8 @@ body.vb-app main>:last-child,body.vb-app form>.vb-sec:last-of-type{margin-bottom
 /* iets extra wit onderaan */
 body.vb-app main{padding-bottom:28px!important}
 @media (max-width:640px){body.vb-app:not(.vb-kb):has(.vb-checkout:not([hidden])) main{padding-bottom:12px!important}}
+/* bevestigingspagina (na inschrijven): enkel titel + bevestiging; eyebrow wordt "Bevestiging" */
+body.vb-app:has(#box .card.ok) .hero .dag,body.vb-app:has(#box .card.ok) .hero .lead,body.vb-app:has(#box .card.ok) .hero .facts,body.vb-app:has(#box .card.ok) .hero .vb-metas,body.vb-app:has(#box .card.ok) #dag,body.vb-app:has(#box .card.ok) #lead{display:none!important}
+body.vb-app:has(#box .card.ok) .vb-eyebrow{font-size:0!important;letter-spacing:0!important;display:flex!important}
+body.vb-app:has(#box .card.ok) .vb-eyebrow::after{content:"Bevestiging";font-size:11.5px;letter-spacing:.06em}
+body.vb-app:has(#box .card.ok) .hero{padding-bottom:4px}
