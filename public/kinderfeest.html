@@ -197,7 +197,7 @@ function lft(g){if(!/^\d{4}-\d{2}-\d{2}$/.test(g))return null;const [y,m,d]=g.sp
 function ageTxt(g){const a=lft(g);if(a==null)return "";if(a<0)return "Deze datum ligt na het feest.";return a>CFG.leeftijd?"Op het feest al "+a+" jaar: dit kind kan niet meer ingeschreven worden.":""}
 function read(){KIDS=$$("#kids .kid").map(el=>{const t=el.querySelector(".kg").value;return{naam:el.querySelector(".kn").value,geb:VB.iso(t),raw:t}})}
 function draw(focus){$("#kids").innerHTML=KIDS.map((k,i)=>`<div class="kid"><div class="kid-k"><b>Kind ${i+1}</b>${KIDS.length>1?`<button type="button" class="kdel" data-del="${i}" aria-label="Kind ${i+1} verwijderen">${VB.icon("vuilbak")}Verwijderen</button>`:""}</div>
-  <div><label for="kn${i}">Voornaam en naam</label><input type="text" class="kn" id="kn${i}" value="${esc(k.naam)}" autocomplete="off" maxlength="80"></div>
+  <div><label for="kn${i}">Naam</label><input type="text" class="kn" id="kn${i}" value="${esc(k.naam)}" autocomplete="off" maxlength="80"></div>
   <div><label for="kg${i}">Geboortedatum</label><input type="text" class="kg" id="kg${i}" value="${esc(k.raw!=null?k.raw:VB.dmy(k.geb))}"></div><div class="age${(lft(k.geb)??-1)>CFG.leeftijd?" te":""}" id="ka${i}" aria-live="polite">${esc(ageTxt(k.geb))}</div></div>`).join("");
   $$("#kids .kg").forEach(VB.datumVeld);selectie();
   $("#add").hidden=KIDS.length>=CFG.max;if(focus){const n=$$("#kids .kn");n[n.length-1].focus()}}
