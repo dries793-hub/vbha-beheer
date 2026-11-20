@@ -189,7 +189,7 @@ const VQ=new URLSearchParams(location.search);
 fetch("/api/kinderfeest"+(VQ.get("v")?"?v="+encodeURIComponent(VQ.get("v"))+"&t="+encodeURIComponent(VQ.get("t")||""):"")).then(r=>r.ok?r.json():null).then(j=>{if(!j)return;CFG={...CFG,...j};
 function vastNaam(inp,naam){inp.hidden=true;const b=document.createElement("div");b.className="vast-n";b.textContent=naam;inp.after(b)}
   if(j.vul&&j.vul.voornaam){const d=$("#dag");d.textContent="Dag "+j.vul.voornaam+"!";d.hidden=false}
-  if(j.vul){const i=$("#lid");i.value=j.vul.lid;i.dataset.id=j.vul.lidId;i.classList.add("lp-ok");vastNaam(i,j.vul.lid);if(typeof alCheck==="function")alCheck(i,j.vul.lidId);
+  if(j.vul){const i=$("#lid");i.value=j.vul.lid;i.dataset.id=j.vul.lidId;i.classList.add("lp-ok");vastNaam(i,j.vul.lid);{const w=i.closest(".full");if(w)w.hidden=true}if(typeof alCheck==="function")alCheck(i,j.vul.lidId);
     const m=$("#mail");if(m&&j.vul.mail){m.value=j.vul.mail;m.dataset.auto="1";m.type="text";m.closest(".full").hidden=true}
     if(j.vul.kinderen&&j.vul.kinderen.length)KIDS=j.vul.kinderen.map(k=>({naam:k.naam,geb:k.geb}));try{history.replaceState(null,"",location.pathname)}catch(e){}}
   $("#h1").textContent="Kinderfeest "+j.jaar;document.title="Kinderfeest "+j.jaar+" · VBHA";

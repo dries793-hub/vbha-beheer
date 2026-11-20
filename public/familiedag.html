@@ -288,7 +288,7 @@ fetch("/api/familiedag"+(FQ.get("v")?"?v="+encodeURIComponent(FQ.get("v"))+"&t="
     if(j.vul.voornaam){const d=$("#dag");d.textContent="Dag "+j.vul.voornaam+"!";d.hidden=false}
     {const w=$("#naam").closest(".full");if(w)w.hidden=true}
     const V=j.vul.vorig;if(V&&V.aantallen){for(const [k,n] of Object.entries(V.aantallen))AANT[k]=n;for(const [k,n] of Object.entries(V.gasten||{}))if(n>0){GAST[k]=n;GAST_AAN=true}if(V.opmerking&&$("#opm"))$("#opm").value=V.opmerking;
-      $("#notice").innerHTML=VB.notice("<b>Welkom terug!</b> Je vorige gegevens staan klaar. Kijk ze even na.")}
+}
     lidPrijs(j.vul.lidId);try{history.replaceState(null,"",location.pathname)}catch(e){}}
   tekenPrijzen();if(!j.open)gesloten(j)});
 $("#f").addEventListener("submit",async e=>{e.preventDefault();const er=$("#err");er.textContent="";const niet=!$("#wNiet").hidden;

@@ -19,7 +19,7 @@ body.vb [hidden]{display:none!important}
 body.vb .hdr{background:var(--vb-dark);padding:calc(12px + env(safe-area-inset-top,0px)) 20px 12px}
 body.vb .hdr .in{max-width:var(--vb-w);margin:0 auto;display:flex;align-items:center;gap:14px;color:#fff}
 body.vb .hdr .logo{height:30px;width:auto;display:block}
-body.vb .hdr .in>span{display:block!important;border-left:1px solid #3a3c40;padding-left:14px;font-size:12.5px;line-height:1.25;color:#B9BCC2;max-width:16ch}
+body.vb .hdr .in>span{display:block!important;min-width:0;border-left:1px solid #3a3c40;padding-left:14px;font-size:14px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ---- pagina ---- */
 body.vb main{max-width:var(--vb-w);margin:0 auto;padding:var(--vb-s4) 20px var(--vb-s6)}
