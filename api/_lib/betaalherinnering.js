@@ -7,7 +7,7 @@ import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, lang, plusDagen, s
 import { meldPush } from "./push.js";
 
 /* ============ Automatische betalingsherinneringen: banket en lidgeld ============
-   Config "betaalherinnering": {banket:{aan,dagenNaVerval,interval,max}, lidgeld:{aan,jaar,vervaldatum,dagenNaVerval,interval,max}, uur,
+   Config "betaalherinnering": {banket:{aan,basis:"termijn"|"inschrijving",dagenNaVerval,interval,max}, lidgeld:{aan,jaar,vervaldatum,dagenNaVerval,interval,max}, uur,
      laatsteDag, log:[{op, soort, id, naam, aan, n, bedrag}], gezienTot}
    - Banket: te betalen vóór de inschrijvingsdeadline (config banket.inschrijvenTot), geen herinneringen meer vanaf de dag van het banket.
    - Lidgeld: te betalen vóór de vervaldatum in de instellingen (standaard 31 januari van het werkjaar); nieuwe leden binnen 14 dagen na hun inschrijving.
@@ -16,7 +16,7 @@ import { meldPush } from "./push.js";
 
 export const BH_DEF = {
   uur: 10,
-  banket: { aan: true, dagenNaVerval: 3, interval: 7, max: 2 },
+  banket: { aan: true, basis: "termijn", dagenNaVerval: 3, interval: 7, max: 2 },
   lidgeld: { aan: true, jaar: null, vervaldatum: "", dagenNaVerval: 7, interval: 14, max: 2 },
 };
 const vandaagBxl = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Brussels" }).format(new Date());
@@ -76,7 +76,10 @@ async function banketLijst(sb, cfg, nu) {
     if (betaald || !(due > 0)) continue;
     const L = d.lidId ? LD.get(d.lidId) || {} : {};
     const aan = String(L.email || d.email || "").trim();
-    out.push({ soort: "banket", tabel: "banket", id: r.id, row: r, naam: d.naam, voornaam: L.voornaam || "", aan, bedrag: due, jaar, verval, feest, log: d.betaalHerinneringen || [] });
+    // vertrekpunt: de inschrijvingstermijn (standaard) of de dag van inschrijving (instelling "basis": "inschrijving")
+    let v = verval;
+    if (cfg.banket.basis === "inschrijving") { const ins = /^\d{4}-\d{2}-\d{2}/.test(String(d.aangemeld || "")) ? String(d.aangemeld).slice(0, 10) : (/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(d.ingediend || "")) || []).slice(1).reverse().join("-"); if (/^\d{4}-\d{2}-\d{2}$/.test(ins)) v = ins; }
+    out.push({ soort: "banket", tabel: "banket", id: r.id, row: r, naam: d.naam, voornaam: L.voornaam || "", aan, bedrag: due, jaar, verval: v, feest, log: d.betaalHerinneringen || [] });
   }
   return { lijst: out, jaar, verval, feest };
 }
