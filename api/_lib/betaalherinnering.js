@@ -68,7 +68,7 @@ async function banketLijst(sb, cfg, nu) {
   const out = [];
   for (const r of rows) {
     const d = r.data || {};
-    const due = r2((d.personen === 2 ? 2 : 1) * (d.prijsPP != null && d.prijsPP !== "" ? Number(d.prijsPP) : Number(B.prijs) || 65));
+    const due = r2((d.personen === 2 ? 2 : 1) * (d.prijsPP != null && d.prijsPP !== "" ? Number(d.prijsPP) : Number(B.prijs) || 65) - (Array.isArray(d.tegoed) ? d.tegoed.reduce((t, x) => t + (Number(x.bedrag) || 0), 0) : 0));
     let betaald = false;
     if (d.betaald === "OK") betaald = true; else if (d.betaald === "NOK") betaald = false;
     else if (d.betaling && d.betaling.status === "SUCCEEDED") betaald = true;

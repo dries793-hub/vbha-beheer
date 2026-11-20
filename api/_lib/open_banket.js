@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { lidStatus } from "./status.js";
+import { lidStatus, tegoedSaldo } from "./status.js";
 import { admin, sendError, httpErr, requireUser } from "./sb.js";
 import { epcPayload, qrSvg } from "./epc.js";
 import { onlineConfigured as bcConfigured } from "./betaalprovider.js";
@@ -19,9 +19,12 @@ async function info(sb) {
 /* korting volgens het puntensysteem: status uit de punten van het vorige jaar (zie status.js) */
 export async function banketPrijs(sb, I, lidId) {
   const basis = I.prijs;
-  if (!I.kortingAan || !lidId) return { prijs: basis, basis, status: null, korting: 0 };
+  if (!lidId) return { prijs: basis, basis, status: null, korting: 0, tegoed: 0 };
   const S = await lidStatus(sb, lidId, I.jaar);
-  return { prijs: Math.round(basis * (100 - S.korting)) / 100, basis, status: S.status, korting: S.korting, punten: S.punten, puntenJaar: S.puntenJaar, start: !!S.start };
+  // goudtegoed (reglement 2027, art. 22): los van de kortingsinstelling te gebruiken
+  const T = S.tegoed ? await tegoedSaldo(sb, lidId, I.jaar, S) : { saldo: 0 };
+  if (!I.kortingAan) return { prijs: basis, basis, status: null, korting: 0, tegoed: T.saldo };
+  return { prijs: Math.round(basis * (100 - S.korting)) / 100, basis, status: S.status, korting: S.korting, punten: S.punten, puntenJaar: S.puntenJaar, start: !!S.start, tegoed: T.saldo, viaPartner: S.viaPartner ? S.viaPartner.status : null, basisStatus: !!S.basis };
 }
 const menu = v => /veg/i.test(String(v || "")) ? "Vegetarisch" : "Normaal";
 
@@ -45,7 +48,7 @@ export default async function handler(req, res) {
       if (!(await actieveLeden(sb, I.jaar)).some(l => l.id === lidId)) throw httpErr(404, "Lid niet gevonden.");
       if (!beheer && await alIngeschreven(sb, "banket", I.jaar, lidId)) return res.status(200).json({ al: true, melding: AL_TEKST("het banket", I.jaar) });
       const P = await banketPrijs(sb, I, lidId);
-      return res.status(200).json({ prijs: P.prijs, basis: P.basis, status: P.status, korting: P.korting, puntenJaar: P.puntenJaar || null, start: !!P.start });
+      return res.status(200).json({ prijs: P.prijs, basis: P.basis, status: P.status, korting: P.korting, puntenJaar: P.puntenJaar || null, start: !!P.start, tegoed: P.tegoed || 0, viaPartner: P.viaPartner || null, basisStatus: !!P.basisStatus });
     }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
     const b = body(req);
@@ -60,14 +63,17 @@ export default async function handler(req, res) {
     if (personen === 2 && !b.menu2) throw httpErr(400, "Kies het menu voor je partner.");
     const [al, P] = await Promise.all([alIngeschreven(sb, "banket", I.jaar, lidRij.id), banketPrijs(sb, I, lidRij.id)]);
     if (al) throw httpErr(409, AL_TEKST("het banket", I.jaar));
-    const teBetalen = Math.round(personen * P.prijs * 100) / 100;
-    const token = I.online ? crypto.randomBytes(18).toString("base64url") : null;
+    const volTeBetalen = Math.round(personen * P.prijs * 100) / 100;
+    // goudtegoed: het lid kiest hoeveel het gebruikt (nooit meer dan het saldo of de prijs)
+    const teg = Math.max(0, Math.min(Number(String(b.tegoed || 0).replace(",", ".")) || 0, P.tegoed || 0, volTeBetalen)), tegR = Math.round(teg * 100) / 100;
+    const teBetalen = Math.round((volTeBetalen - tegR) * 100) / 100;
+    const token = I.online && teBetalen > 0 ? crypto.randomBytes(18).toString("base64url") : null;
     const id = nieuwId("web");
     const d = {
       jaar: I.jaar, bron: "formulier", ingediend: vandaag(), aangemeld: new Date().toISOString(), nieuw: true,
       naam, lidId: lidRij.id, personen, menu1: menu(b.menu1), menu2: personen === 2 ? menu(b.menu2) : "", opmerking1: clean(b.opmerking1 ?? b.opmerking, 300), opmerking2: personen === 2 ? clean(b.opmerking2, 300) : "",
       opmerking: [clean(b.opmerking1 ?? b.opmerking, 300) ? (personen === 2 ? "Jij: " : "") + clean(b.opmerking1 ?? b.opmerking, 300) : "", personen === 2 && clean(b.opmerking2, 300) ? "Partner: " + clean(b.opmerking2, 300) : ""].filter(Boolean).join(" · "),
-      betaald: null, teBetalen, prijsPP: P.prijs, ...(P.status ? { status: P.status, korting: P.korting } : {}), ...(token ? { betaalToken: token } : {}),
+      betaald: teBetalen > 0 ? null : "OK", teBetalen, prijsPP: P.prijs, ...(tegR > 0 ? { tegoed: [{ lidId: lidRij.id, bedrag: tegR }] } : {}), ...(P.status ? { status: P.status, korting: P.korting } : {}), ...(token ? { betaalToken: token } : {}),
     };
     const { error } = await sb.from("banket").insert({ id, data: d });
     if (error) throw error;
@@ -86,6 +92,6 @@ export default async function handler(req, res) {
     // bevestigingsmail: bij online betalen wachten op de uitkomst, anders meteen (met de gegevens om over te schrijven)
     try { if (online) await wachtOpBetaling(sb, "banket", id); else await stuurBevestiging(sb, "banket", id); } catch (e) { console.error("bevestiging", e); }
     await push;
-    res.status(200).json({ ok: true, jaar: I.jaar, bedrag: teBetalen, prijsPP: P.prijs, status: P.status, korting: P.korting, basis: P.basis, rekeningnummer: I.rekeningnummer, begunstigde: I.vereniging, mededeling, qr, online, personen, deadline: I.deadline, naam, voornaam: lidRij.voornaam || "" });
+    res.status(200).json({ ok: true, jaar: I.jaar, bedrag: teBetalen, tegoed: tegR, prijsPP: P.prijs, status: P.status, korting: P.korting, basis: P.basis, rekeningnummer: I.rekeningnummer, begunstigde: I.vereniging, mededeling, qr, online, personen, deadline: I.deadline, naam, voornaam: lidRij.voornaam || "" });
   } catch (e) { sendError(res, e); }
 }

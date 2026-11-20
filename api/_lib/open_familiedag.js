@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { lidStatus, tegoedSaldo } from "./status.js";
 import { admin, sendError, httpErr } from "./sb.js";
 import { epcPayload, qrSvg } from "./epc.js";
 import { onlineConfigured as bcConfigured } from "./betaalprovider.js";
@@ -30,6 +31,13 @@ export function fdBereken(I, aantallen, isLid) {
   }
   return { lijnen, personen: lijnen.reduce((s, l) => s + l.aantal, 0), totaal: Math.round(lijnen.reduce((s, l) => s + l.totaal, 0) * 100) / 100 };
 }
+/* reglement 2027: korting volgens de status (art. 20, vanaf statusjaar 2028) voor de gezinsleden op de inschrijving, gasten betalen de volle prijs (art. 21.3);
+   goudtegoed (art. 22) als extra korting */
+async function fdVoordeel(sb, I, lidId) {
+  if (!lidId) return { korting: 0, status: null, tegoed: 0 };
+  const S = await lidStatus(sb, lidId, I.jaar), T = S.tegoed ? await tegoedSaldo(sb, lidId, I.jaar, S) : { saldo: 0 };
+  return { korting: S.cfgVorig && S.cfgVorig.nieuw ? S.korting : 0, status: S.cfgVorig && S.cfgVorig.nieuw ? S.status : null, basisStatus: !!S.basis, viaPartner: S.viaPartner ? S.viaPartner.status : null, tegoed: T.saldo };
+}
 const geldigMail = a => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(a);
 
 export default async function handler(req, res) {
@@ -49,7 +57,8 @@ export default async function handler(req, res) {
       await rateLimit(sb, req, "lidinfo", 60, 600, httpErr);
       if (!(await actieveLeden(sb, I.jaar)).some(l => l.id === lidId)) throw httpErr(404, "Lid niet gevonden.");
       if (await alIngeschreven(sb, "familiedag", I.jaar, lidId)) return res.status(200).json({ al: true, melding: AL_TEKST("de familiedag", I.jaar) });
-      return res.status(200).json({ ok: true });
+      const V = await fdVoordeel(sb, I, lidId);
+      return res.status(200).json({ ok: true, ...V });
     }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
     const b = body(req);
@@ -74,10 +83,19 @@ export default async function handler(req, res) {
     }
     const B = fdBereken(I, b.aantallen, !!lidId);
     if (!B.personen) throw httpErr(400, "Kies met hoeveel personen je komt.");
+    // korting voor het gezin (gasten volle prijs) en goudtegoed
+    const V = await fdVoordeel(sb, I, lidId);
+    const gasten = {}; let gezin = 0;
+    for (const l of B.lijnen) { const g = Math.max(0, Math.min(l.aantal, parseInt(b.gasten && b.gasten[l.id], 10) || 0)); if (g) gasten[l.id] = g; gezin += (l.aantal - g) * l.prijs; }
+    const kortingBedrag = V.korting > 0 ? Math.round(gezin * V.korting) / 100 : 0;
+    const naKorting = Math.round((B.totaal - kortingBedrag) * 100) / 100;
+    const teg = Math.round(Math.max(0, Math.min(Number(String(b.tegoed || 0).replace(",", ".")) || 0, V.tegoed || 0, naKorting)) * 100) / 100;
+    B.vol = B.totaal; B.totaal = Math.round((naKorting - teg) * 100) / 100;
     const token = I.online && B.totaal > 0 ? crypto.randomBytes(18).toString("base64url") : null;
     const id = nieuwId("fd");
     const d = { jaar: I.jaar, bron: "formulier", ingediend: vandaag(), aangemeld: new Date().toISOString(), nieuw: true, naam, lidId, email, lijnen: B.lijnen, personen: B.personen,
-      opmerking: clean(b.opmerking, 400), teBetalen: B.totaal, betaald: null, ...(token ? { betaalToken: token } : {}) };
+      opmerking: clean(b.opmerking, 400), teBetalen: B.totaal, betaald: null,
+      ...(kortingBedrag > 0 ? { status: V.status, korting: V.korting, kortingBedrag, volPrijs: B.vol, ...(Object.keys(gasten).length ? { gasten } : {}) } : {}), ...(teg > 0 ? { tegoed: [{ lidId, bedrag: teg }] } : {}), ...(token ? { betaalToken: token } : {}) };
     const { error } = await sb.from("familiedag").insert({ id, data: d });
     if (error) throw error;
     const mededeling = `${naam} Familiedag ${I.jaar}`;
@@ -91,6 +109,6 @@ export default async function handler(req, res) {
     }
     await meldPush(sb, "iedereen", { titel: "Nieuwe inschrijving familiedag", tekst: `${naam} · ${B.personen} ${B.personen === 1 ? "persoon" : "personen"}`, url: "/#familiedag", tag: "ins-fd-" + id, lidId }).catch(() => {});
     try { if (online) await wachtOpBetaling(sb, "familiedag", id); else await stuurBevestiging(sb, "familiedag", id); } catch (e) { console.error("bevestiging", e); }
-    res.status(200).json({ ok: true, jaar: I.jaar, voornaam, bedrag: B.totaal, lijnen: B.lijnen, personen: B.personen, rekeningnummer: B.totaal > 0 ? I.rekeningnummer : null, begunstigde: I.vereniging, mededeling, qr, online, deadline: I.totTekst });
+    res.status(200).json({ ok: true, jaar: I.jaar, voornaam, bedrag: B.totaal, kortingBedrag, tegoed: teg, lijnen: B.lijnen, personen: B.personen, rekeningnummer: B.totaal > 0 ? I.rekeningnummer : null, begunstigde: I.vereniging, mededeling, qr, online, deadline: I.totTekst });
   } catch (e) { sendError(res, e); }
 }

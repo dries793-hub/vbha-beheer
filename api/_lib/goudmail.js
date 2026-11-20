@@ -1,4 +1,4 @@
-import { jaarCfg } from "./status.js";
+import { jaarCfg, puntenVan, aantalAct } from "./status.js";
 import { huisstijl, kaderBlok, knop, p, esc, site } from "./bevestiging.js";
 import { algemeen } from "./publiek.js";
 import { tekenStatus } from "./lidlink.js";
@@ -11,7 +11,9 @@ const statusLink = (lidId, Y) => `${site()}/status?l=${encodeURIComponent(lidId)
    - Uit te schakelen in config algemeen: goudMail.aan = false.
    - Bij de eerste start worden de leden die al goud waren enkel aangeduid (geen mail); zij krijgen de tussenstand-mail. */
 const huidigJaar = () => Number(new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels", year: "numeric" }).format(new Date()));
-const punten = (j, w) => (j.kaarten || 0) * w.kaarten + (j.kalUitgevoerd || 0) * w.kalenders + (j.shifts || 0) * w.shifts + (Number(j.shiftPt) || 0) + (j.vergaderingen || 0) * w.vergaderingen + (j.extraPunten || 0);
+// punten volgens het reglement van het jaar (cfg.nieuw = reglement 2027); LID = alle leden (bestuur telt voor vergaderingen)
+const punten = (j, cfg, LID, rid) => puntenVan(j, cfg, LID && LID.get(j.lidId || String(rid || "").slice(5)) || null);
+async function ledenMap(sb) { const { data } = await sb.from("leden").select("id,data").limit(3000); return new Map((data || []).map(r => [r.id, r.data])); }
 
 registreer({ key: "goudstatus", naam: "Puntensysteem: proficiat goudstatus", wanneer: "Zodra een lid met de punten van dit jaar de goudstatus voor volgend jaar haalt (niet voor de erewacht).",
   onderwerp: "Proficiat: je behaalde de goudstatus voor {volgend_jaar}!",
@@ -34,9 +36,9 @@ export async function goudCron(sb) {
   const G = (alg && alg.data && alg.data.goudMail) || {};
   if (G.aan === false) return { uit: true };
   const Y = Number(alg && alg.data && alg.data.actiefJaar) || huidigJaar();
-  const cfg = await jaarCfg(sb, Y), w = cfg.gewichten, grens = cfg.drempels.goud;
+  const cfg = await jaarCfg(sb, Y), grens = cfg.drempels.goud, LID = cfg.nieuw ? await ledenMap(sb) : null;
   const { data: jl } = await sb.from("jaarleden").select("id,data").like("id", Y + "\\_%").limit(2000);
-  let kandidaten = (jl || []).filter(r => !r.data.goudMail && punten(r.data, w) >= grens);
+  let kandidaten = (jl || []).filter(r => !r.data.goudMail && punten(r.data, cfg, LID, r.id) >= grens);
   /* staan de puntenmails aan, dan stuurt puntenCron één gecombineerde mail (proficiat + nieuwe punten) voor wie al gevolgd wordt */
   if (alg.data.puntenMail && alg.data.puntenMail.aan === true && kandidaten.length && G.gestart === Y) {
     const { data: ms } = await sb.from("punten_mailstand").select("id,stand").in("id", kandidaten.map(r => r.id));
@@ -106,9 +108,9 @@ export async function goudApp(req, res) {
    Per lid wordt in de afgeschermde tabel punten_mailstand bijgehouden wat het laatst gemeld werd. Pas als er 30 minuten niets meer aan het lid veranderde,
    gaat er één mail (zo krijgt wie meerdere dozen na elkaar ingevuld krijgt maar één bericht). De eerste keer worden enkel de standen bewaard. */
 const ONDERDELEN = [["kaarten", "kaarten", "verkoop kaarten fuif"], ["kalUitgevoerd", "kalenders", "kalenders bussen"], ["shifts", "shifts", "hulp bij activiteiten"], ["vergaderingen", "vergaderingen", "vergaderingen"]];
-const STATUS = { geen: "geen status", brons: "Brons", zilver: "Zilver", goud: "Goud" };
+let STATUS = { geen: "geen status", brons: "Brons", zilver: "Zilver", goud: "Goud" };
 const statusVan = (pt, dr) => pt >= dr.goud ? "goud" : pt >= dr.zilver ? "zilver" : pt >= (dr.brons || 0) ? "brons" : "geen";
-const stand = j => ({ kaarten: j.kaarten || 0, kalUitgevoerd: j.kalUitgevoerd || 0, shifts: j.shifts || 0, shiftPt: Number(j.shiftPt) || 0, vergaderingen: j.vergaderingen || 0, extraPunten: j.extraPunten || 0 });
+const stand = j => ({ kaarten: j.kaarten || 0, kalUitgevoerd: j.kalUitgevoerd || 0, shifts: j.shifts || 0, act: aantalAct(j), shiftPt: Number(j.shiftPt) || 0, vergaderingen: j.vergaderingen || 0, extraPunten: j.extraPunten || 0 });
 registreer({ key: "punten", naam: "Puntensysteem: nieuwe punten of status", wanneer: "Als er nieuwe punten bijkomen of de status voor volgend jaar verandert (aan te zetten in de instellingen van het puntensysteem).",
   onderwerp: "{als:status_nieuw}Je status voor {volgend_jaar}: {status}{/als:status_nieuw}{niet:status_nieuw}Nieuwe punten: je totaal is nu {totaal} pt{/niet:status_nieuw}",
   body: p("Beste {voornaam},") + "{als:nieuwe_punten}" + p("Zonet werden er nieuwe punten voor je toegevoegd:") + kaderBlok("Nieuwe punten", "{nieuwe_punten}") + "{/als:nieuwe_punten}"
@@ -127,7 +129,8 @@ export async function puntenCron(sb) {
   const { data: alg } = await sb.from("config").select("data").eq("id", "algemeen").maybeSingle();
   const C = (alg && alg.data) || {}, PM = C.puntenMail || {}, SM = C.statusMail || {}, GM = C.goudMail || {};
   if (PM.aan !== true && SM.aan !== true) return { uit: true };
-  const Y = Number(C.actiefJaar) || huidigJaar(), cfg = await jaarCfg(sb, Y), w = cfg.gewichten, dr = cfg.drempels;
+  const Y = Number(C.actiefJaar) || huidigJaar(), cfg = await jaarCfg(sb, Y), w = cfg.gewichten, dr = cfg.drempels, LID = cfg.nieuw ? await ledenMap(sb) : null;
+  STATUS = { geen: cfg.nieuw ? "Basis" : "geen status", brons: "Brons", zilver: "Zilver", goud: "Goud" };
   const { data: jl } = await sb.from("jaarleden").select("id,data,updated_at").like("id", Y + "\\_%").limit(3000);
   const { data: ms } = await sb.from("punten_mailstand").select("id,stand").like("id", Y + "\\_%").limit(3000);
   const MS = new Map((ms || []).map(r => [r.id, r.stand]));
@@ -136,13 +139,13 @@ export async function puntenCron(sb) {
   // tijdelijke pauze (config algemeen.puntenPauze = ISO-tijd): wijzigingen tot dan worden enkel opgeslagen, niet gemaild
   const pauze = C.puntenPauze && Date.now() < Date.parse(C.puntenPauze);
   for (const r of jl || []) {
-    const j = r.data || {}, nu = stand(j), pt = punten(j, w), st = statusVan(pt, dr), m = MS.get(r.id);
+    const j = r.data || {}, nu = stand(j), pt = punten(j, cfg, LID, r.id), st = statusVan(pt, dr), m = MS.get(r.id);
     if (!m || eersteKeer) { verschil.push({ r, nu, pt, st, init: true }); continue; }
-    const meer = Object.keys(nu).some(k => nu[k] > (m[k] || 0)), ander = st !== m.status;
+    const meer = Object.keys(nu).some(k => k !== "act" && nu[k] > (m[k] || 0)), ander = st !== m.status;
     if (!meer && !ander) continue;
     if (pauze) { verschil.push({ r, nu, pt, st, init: true }); continue; }
     // punten van vergaderingen: geen puntenmail, enkel de stand bijwerken (wie zo goud haalt, krijgt wel de proficiat-mail via goudCron)
-    const omhoog = Object.keys(nu).filter(k => nu[k] > (m[k] || 0));
+    const omhoog = Object.keys(nu).filter(k => k !== "act" && nu[k] > (m[k] || 0));
     if (omhoog.length && omhoog.every(k => k === "vergaderingen")) { verschil.push({ r, nu, pt, st, init: true }); continue; }
     if (new Date(r.updated_at || 0).getTime() > rust) continue; // nog even wachten tot het invullen klaar is
     verschil.push({ r, nu, pt, st, m, meer, ander });
@@ -158,7 +161,7 @@ export async function puntenCron(sb) {
       const lidId = x.r.data.lidId || x.r.id.slice(String(Y).length + 1), lid = L.get(lidId) || {}, j = x.r.data;
       const ok = lid.naam && !lid.geenLid && lid.categorie !== "Erewacht" && !j.vrijstelling && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(String(lid.email || "").trim());
       const regels = [];
-      for (const [k, wk, naam] of ONDERDELEN) { if (k === "vergaderingen") continue; const d = x.nu[k] - (x.m[k] || 0); if (d > 0) regels.push({ naam, pt: d * (w[wk] || 0), n: k === "kalUitgevoerd" ? `${d} ${d === 1 ? "doos" : "dozen"}` : k === "kaarten" ? `${d} ${d === 1 ? "kaart" : "kaarten"}` : k === "shifts" ? `${d} keer geholpen` : `${d}` }); }
+      for (const [k, wk, naam] of ONDERDELEN) { if (k === "vergaderingen") continue; if (cfg.nieuw && k === "shifts") { const da = x.nu.act - (x.m.act != null ? x.m.act : 0); if (da > 0) regels.push({ naam, pt: da * (w.shifts || 0), n: `${da} ${da === 1 ? "activiteit" : "activiteiten"}` }); continue; } const d = x.nu[k] - (x.m[k] || 0); if (d > 0) regels.push({ naam, pt: d * (w[wk] || 0), n: k === "kalUitgevoerd" ? `${d} ${d === 1 ? "doos" : "dozen"}` : k === "kaarten" ? `${d} ${d === 1 ? "kaart" : "kaarten"}` : k === "shifts" ? `${d} keer geholpen` : `${d}` }); }
       { const kr = regels.find(r => r.naam === "kalenders bussen"), ex = j.kalAfExact != null ? Number(j.kalAfExact) : null;
         if (kr && ex != null) { const d = x.nu.kalUitgevoerd - (x.m.kalUitgevoerd || 0), exD = Math.round((ex - (x.m.kalAfExact != null ? Number(x.m.kalAfExact) : (x.m.kalUitgevoerd || 0))) * 100) / 100;
           if (exD > 0 && exD < d) kr.n = `${String(exD).replace(".", ",")} dozen bedeeld; een begonnen doos telt als volle doos`; } }

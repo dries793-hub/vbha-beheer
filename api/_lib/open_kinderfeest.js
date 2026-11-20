@@ -3,6 +3,7 @@ import { stuurBevestiging } from "./bevestiging.js";
 import { clean, body, nieuwId, algemeen, configDoc, spamCheck, actieveLeden, inschrijving, alIngeschreven, AL_TEKST, rateLimit, vandaagISO, masker } from "./publiek.js";
 import { meldPush } from "./push.js";
 import { kfCadeauPubliek } from "./kfcadeau.js";
+import { lidStatus, REG27 } from "./status.js";
 
 /* ---------- kinderen onthouden per lid (tabel lid_kinderen, enkel via de server) ----------
    Na elke inschrijving worden de kinderen van het lid bijgehouden; wie 12 of ouder wordt, wist de nachtelijke opkuis.
@@ -112,7 +113,10 @@ export default async function handler(req, res) {
       const lft = g => { const [y, m, d] = g.split("-").map(Number); let x = Y - y; if (M < m || (M === m && D < d)) x--; return x; };
       const te = kinderen.find(k => lft(k.geb) > I.leeftijd);
       if (te) throw httpErr(400, `${te.naam} is op de dag van het feest al ${lft(te.geb)} jaar en kan niet meer ingeschreven worden.`); }
-    const d = { jaar: I.jaar, lid, lidId: lidRij.id, email, opmerking: clean(b.opmerking, 400), kinderen, bron: "formulier", aangemeld: new Date().toISOString(), nieuw: true };
+    // reglement 2027 (art. 23, vanaf statusjaar 2028): cadeaubudget per kind volgens de status van het lid (100/80/50%; basis = kleine attentie)
+    let kfSt = null;
+    try { const S = await lidStatus(sb, lidRij.id, I.jaar); if (S.cfgVorig && S.cfgVorig.nieuw) { kfSt = S.status; for (const k of kinderen) k.pct = REG27.kfPct[S.status] ?? 100; } } catch (e) { console.error("kf status", e); }
+    const d = { jaar: I.jaar, lid, lidId: lidRij.id, email, opmerking: clean(b.opmerking, 400), kinderen, bron: "formulier", aangemeld: new Date().toISOString(), nieuw: true, ...(kfSt ? { status: kfSt } : {}) };
     const kid = nieuwId("web");
     const { error } = await sb.from("kinderfeest").insert({ id: kid, data: d });
     if (error) throw error;
@@ -122,7 +126,7 @@ export default async function handler(req, res) {
     // cadeaukiezer aan en nog binnen de termijn: meteen de persoonlijke keuzelink teruggeven
     let cadeau = null;
     try { const { kfcLink, kfcInstellingen, budgetVan } = await import("./kfcadeau.js"); const c = await configDoc(sb, "kf_" + I.jaar), M = kfcInstellingen(c, I.jaar);
-      if (M.cadeau !== false && M.keuze === true && vandaagISO() <= M.tot && kinderen.some(k => budgetVan(k.geb, M).budget != null)) cadeau = kfcLink(kid).replace(/^https?:\/\/[^/]+/, ""); } catch (e) { console.error("kfc link", e); }
+      if (M.cadeau !== false && M.keuze === true && vandaagISO() <= M.tot && kinderen.some(k => budgetVan(k.geb, M, k).budget != null)) cadeau = kfcLink(kid).replace(/^https?:\/\/[^/]+/, ""); } catch (e) { console.error("kfc link", e); }
     res.status(200).json({ ok: true, ...I, kinderen, cadeau });
   } catch (e) { sendError(res, e); }
 }

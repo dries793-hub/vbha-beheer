@@ -127,6 +127,7 @@ html,body{overflow-x:hidden}
 .sp-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .sp-j{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .sp-badge{display:inline-block;padding:5px 14px;border-radius:999px;color:#fff;font-weight:700;letter-spacing:.05em;font-size:14px}
+.sp-teg{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:baseline;margin:10px 0 6px;padding:10px 12px;border-radius:10px;background:#fbf6e6;border:1px solid #ecd9a0}.sp-teg span{font-weight:600}.sp-teg b{font-size:1.15rem;color:#8a6a12}.sp-teg small{grid-column:1/-1;color:#6b6b6b}.sp-noot{display:block;font-size:.8em;color:#9a6b00;font-style:normal}
 .sp-badge.BRONS{background:#a5703f}.sp-badge.ZILVER{background:#8d959e}.sp-badge.GOUD{background:#c19a2e}.sp-badge.GEEN{background:#9aa0a6}
 .sp-big{font-size:30px;font-weight:800;letter-spacing:-.01em;margin:10px 0 2px;line-height:1.1}
 .sp-s{color:var(--muted);font-size:14px;margin:0}
@@ -149,25 +150,25 @@ html,body{overflow-x:hidden}
 const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const Q=new URLSearchParams(location.search),l=Q.get("l"),j=Q.get("j"),t=Q.get("t");
 const fout=m=>{$("#lead").textContent="";$("#box").innerHTML=`<div class="card"><p>${esc(m)}</p><p><a href="/reglement${esc(location.search)}">Reglement puntensysteem bekijken</a></p></div>`};
-const nm=s=>s==="GEEN"?"Geen status":s.charAt(0)+s.slice(1).toLowerCase();
+let BASIS=false;const nm=s=>s==="GEEN"?(BASIS?"Basis":"Geen status"):s.charAt(0)+s.slice(1).toLowerCase();
 if(!l||!j||!t)fout("Deze link is onvolledig. Gebruik de link uit de mail die je van ons kreeg.");
 else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({l,j,t})}).then(async r=>{const x=await r.json().catch(()=>({}));if(!r.ok)throw new Error(x.error||"Er ging iets mis. Probeer het later opnieuw.");return x})
-  .then(x=>{const N=x.nu,P=x.punten,Y=x.jaar,D=x.drempels;
+  .then(x=>{const N=x.nu,P=x.punten,Y=x.jaar,D=x.drempels;BASIS=!!x.nieuw;const eur=v=>"€ "+Number(v||0).toFixed(2).replace(".",",");
     document.title="Status "+(x.voornaam||"")+" · VBHA";$("#lead").textContent=x.voornaam?"Dag "+x.voornaam+"!":"";
     const een=o=>o.aantal!=null?`${o.aantal} ${o.aantal===1?o.eenheid[0]:o.eenheid[1]} · `:"";
     const dag=d=>d?d.slice(8,10)+"/"+d.slice(5,7):"";
-    const rijen=L=>L.filter(o=>o.punten).map(o=>`<div class="sp-r"><span>${esc(o.naam)}</span><span><b>${o.punten} pt</b></span></div>`+(Array.isArray(o.detail)&&o.detail.length?`<div class="sp-det">${o.detail.map(x=>`<div><span>${esc(x.naam)}${x.datum?` <i>· ${dag(x.datum)}</i>`:""}${x.partner?` <i>+ partner</i>`:""}</span><span>${x.punten!=null?x.punten:(x.pt||0)} pt</span></div>`).join("")}</div>`:"")).join("");
-    const waarom=N.ere?"Erewacht: altijd de maximale korting.":N.vrij?`Je was in ${N.puntenJaar} vrijgesteld van het puntensysteem.`:N.start?`Het puntensysteem startte in ${N.puntenJaar+1}: iedereen krijgt goud.`:`Dankzij je <b>${N.totaal} punten</b> uit ${N.puntenJaar}.`;
+    const rijen=L=>L.filter(o=>o.punten||o.noot).map(o=>`<div class="sp-r"><span>${esc(o.naam)}${o.noot?`<i class="sp-noot">${esc(o.noot)}</i>`:""}</span><span><b>${o.punten} pt</b></span></div>`+(Array.isArray(o.detail)&&o.detail.length?`<div class="sp-det">${o.detail.map(x=>`<div><span>${esc(x.naam)}${x.datum?` <i>· ${dag(x.datum)}</i>`:""}${x.partner?` <i>+ partner</i>`:""}</span><span>${x.punten!=null?x.punten:(x.pt||0)} pt</span></div>`).join("")}</div>`:"")).join("");
+    const waarom=N.ere?"Erewacht: altijd de maximale korting.":N.nieuwLid?`Als nieuw lid krijg je dit jaar de bronsstatus.`:N.viaPartner?`De hoogste status in je gezin telt (art. 17).`:N.vrij?`Je was in ${N.puntenJaar} vrijgesteld van het puntensysteem.`:N.start?`Het puntensysteem startte in ${N.puntenJaar+1}: iedereen krijgt goud.`:`Dankzij je <b>${N.totaal} punten</b> uit ${N.puntenJaar}.`;
     /* rustige meter: één balk tot goud, in de kleur van je status, met een streepje bij zilver */
     const max=D.goud||1,pc=v=>Math.min(100,Math.max(0,v/max*100));
     const meter=`<div class="sp-m" role="img" aria-label="${P.totaal} van ${D.goud} punten"><div class="bar"><i class="${P.volgend}" style="width:${pc(P.totaal)}%"></i></div>${D.brons>0?`<u style="left:${pc(D.brons)}%"></u>`:""}<u style="left:${pc(D.zilver)}%"></u><div class="lb">${D.brons>0?`<span style="left:${pc(D.brons)}%">Brons</span>`:`<span class="b0">Brons</span>`}<span style="left:${pc(D.zilver)}%">Zilver</span><span>Goud</span></div></div>`;
-    const volg=P.ere?"Als erewacht blijf je goud.":P.vrij?`Je bent vrijgesteld: in ${Y+1} krijg je goud.`:P.naar?`Nog <b>${P.nodig} punten</b> voor ${nm(P.naar).toLowerCase()}.`:`Goud voor ${Y+1} heb je al binnen. Proficiat!`;
+    const volg=P.ere?"Als erewacht blijf je goud.":P.vrij?(BASIS?`Je bent vrijgesteld: in ${Y+1} behoud je je huidige status.`:`Je bent vrijgesteld: in ${Y+1} krijg je goud.`):P.naar?`Nog <b>${P.nodig} punten</b> voor ${nm(P.naar).toLowerCase()}.`:`Goud voor ${Y+1} heb je al binnen. Proficiat!`;
     $("#box").innerHTML=`<div class="sp">
      <div class="sp-c"><div class="sp-top"><span class="sp-j">Nu · ${Y}</span><span class="sp-badge ${N.status}">${nm(N.status)}</span></div>
-      <div class="sp-big">${N.korting}% <span>korting</span></div><p class="sp-s">op betalende activiteiten in ${Y}.<br>${waarom}</p>${rijen(N.onderdelen||[])}</div>
+      <div class="sp-big">${N.korting}% <span>korting</span></div><p class="sp-s">op betalende activiteiten in ${Y}.<br>${waarom}</p>${x.tegoed?`<div class="sp-teg"><span>Goudtegoed</span><b>${eur(x.tegoed.saldo)}</b><small>${x.tegoed.gebruikt?`${eur(x.tegoed.tegoed)} − ${eur(x.tegoed.gebruikt)} gebruikt · `:""}te gebruiken bij een inschrijving tot ${x.tegoed.tot}</small></div>`:""}${rijen(N.onderdelen||[])}</div>
      <div class="sp-c"><div class="sp-top"><span class="sp-j">Volgend jaar · ${Y+1}</span><span class="sp-badge ${P.volgend}">${nm(P.volgend)}</span></div>
       <div class="sp-head"><div class="sp-hl"><div class="sp-big">${P.totaal} <span>punten</span></div><p class="sp-s">${P.totaal?`al verzameld in ${Y}.`:`Je punten van ${Y} tellen voor ${Y+1}. Je hebt er nog geen.`}</p></div></div>${rijen(P.onderdelen)}
-      <p class="sp-n ${P.naar?"":"ok"}">${volg}</p></div>
+      <p class="sp-n ${P.naar?"":"ok"}">${volg}${x.tegoedVolgend?` Je goudtegoed voor ${Y+1}: <b>${eur(x.tegoedVolgend)}</b>.`:""}</p></div>
      <p class="sp-w"><a href="/reglement${esc(location.search)}">Hoe werkt het puntensysteem?</a></p></div>`})
   .catch(e=>fout(e.message));
 </script>

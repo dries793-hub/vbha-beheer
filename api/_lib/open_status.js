@@ -3,7 +3,8 @@ import { smtpConfigured, afzender, verstuur } from "./smtp.js";
 import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, site } from "./bevestiging.js";
 import { algemeen, body, masker, rateLimit } from "./publiek.js";
 import { kloptStatus } from "./lidlink.js";
-import { lidStatus, jaarCfg } from "./status.js";
+import { reglement27Html } from "./reglement27.js";
+import { lidStatus, jaarCfg, puntenVan, aantalAct, dozenNaDeadline, tegoedSaldo, REG27 } from "./status.js";
 
 // extra inspanningen: elke lijn apart (oudere gegevens: één lijn met de samengevoegde tekst)
 const extraRijen = J => { const L = Array.isArray(J.extras) ? J.extras.filter(x => x && ((x.tekst || "").trim() || Number(x.punten))) : (J.extraPunten ? [{ tekst: J.extraTekst || "", punten: J.extraPunten }] : []);
@@ -35,12 +36,12 @@ export async function reglement(req, res) {
     if (tok) { try { const { data } = await sb.auth.getUser(tok); if (data?.user) { const { data: b } = await sb.from("bestuur").select("user_id").eq("user_id", data.user.id).maybeSingle(); ok = !!b; } } catch (e) { ok = false; } } }
   if (!ok) { await rateLimit(sb, req, "reglement", 30, 3600, httpErr); return res.status(403).json({ error: "Het reglement is enkel te bekijken via de persoonlijke link uit je mail of via je statuspagina." }); }
   const A = await algemeen(sb), j = A.jaar, c = await jaarCfg(sb, j);
-  return res.status(200).json({ jaar: j, vereniging: A.vereniging, html: reglementHtml(c) });
+  return res.status(200).json({ jaar: j, vereniging: A.vereniging, html: c.r27 ? reglement27Html(c) : reglementHtml(c), versie: c.r27 ? 2027 : 2026 });
 }
 export function statusHtml(L, S, j) {
-  const badge = `<span style="display:inline-block;padding:4px 12px;border-radius:999px;background:${KLEUR[S.status]};color:#ffffff;font-weight:bold;letter-spacing:.5px">${esc(S.status === "GEEN" ? "GEEN STATUS" : S.status)}</span>`;
+  const badge = `<span style="display:inline-block;padding:4px 12px;border-radius:999px;background:${KLEUR[S.status]};color:#ffffff;font-weight:bold;letter-spacing:.5px">${esc(S.status === "GEEN" ? (S.basis ? "BASIS" : "GEEN STATUS") : S.status)}</span>`;
   return p(`Beste ${esc(L.voornaam || L.naam || "")},`) + p(`Je vroeg je status op voor het werkjaar <b>${j}</b>.`)
-    + kaderBlok("Jouw status " + j, tabel([rij("Status", badge), rij("Korting", `<b>${S.korting}%</b> op de kostprijs van betalende activiteiten (bv. het banket)`)]))
+    + kaderBlok("Jouw status " + j, tabel([rij("Status", badge), rij("Korting", `<b>${S.korting}%</b> op de kostprijs van betalende activiteiten (bv. het banket)`), S.tegoed ? rij("Goudtegoed", `<b>€ ${S.tegoed.toFixed(2).replace(".", ",")}</b> (geldig tot en met 31/12/${j})`) : ""]))
     + p(S.ere ? "Als lid van de erewacht geniet je steeds de maximale korting." : S.vrij ? `Omdat je in ${S.puntenJaar} vrijgesteld was van het puntensysteem, krijg je de goudstatus.` : S.start ? `Het puntensysteem startte pas in ${S.puntenJaar + 1}. Daarom krijgt iedereen dit jaar de goudstatus.` : `Je status is gebaseerd op de punten die je in ${S.puntenJaar} verdiende met je inzet voor de vereniging.`)
     + p("Hoe je punten verdient en wat elke status betekent, lees je in het reglement:") + knop("Reglement puntensysteem bekijken", site() + "/reglement")
     + p("Klopt er volgens jou iets niet? Antwoord dan gewoon op deze mail.", "margin:0 0 15px;font-size:13.5px;color:#666666");
@@ -61,27 +62,28 @@ export default async function handler(req, res) {
     const S = await lidStatus(sb, l, Y), c = await jaarCfg(sb, Y), w = c.gewichten, dr = c.drempels;
     const [{ data: jr }, { data: jv }] = await Promise.all([sb.from("jaarleden").select("data").eq("id", Y + "_" + l).maybeSingle(), sb.from("jaarleden").select("data").eq("id", (Y - 1) + "_" + l).maybeSingle()]);
     const J = (jr && jr.data) || {}, JV = (jv && jv.data) || {};
-    const delen = (J, w) => { const o = [
-      { naam: "Kalenders bussen", aantal: J.kalUitgevoerd || 0, eenheid: ["doos", "dozen"], per: w.kalenders },
-      { naam: "Hulp bij activiteiten", aantal: J.shifts || 0, eenheid: ["keer geholpen", "keer geholpen"], per: w.shifts, vast: Number(J.shiftPt) || 0 },
-      { naam: "Verkoop kaarten fuif", aantal: J.kaarten || 0, eenheid: ["kaart", "kaarten"], per: w.kaarten },
-      { naam: "Vergaderingen", aantal: J.vergaderingen || 0, eenheid: ["vergadering", "vergaderingen"], per: w.vergaderingen }
-    ].map(x => ({ ...x, punten: x.aantal * (x.per || 0) + (x.vast || 0) }));
+    // punten per onderdeel volgens het reglement van dat jaar (c.nieuw = reglement 2027: per activiteit, deadline kalenders, vergaderingen enkel bestuur)
+    const delen = (J, c, metDetail) => { const w = c.gewichten, nw = !!c.nieuw, na = nw ? dozenNaDeadline(J, c) : 0, act = nw ? aantalAct(J) : (J.shifts || 0);
+      const o = [
+        { naam: "Kalenders bussen", aantal: Math.max(0, (J.kalUitgevoerd || 0) - na), eenheid: ["doos", "dozen"], per: w.kalenders, ...(na > 0 ? { noot: `${String(na).replace(".", ",")} ${na === 1 ? "doos" : "dozen"} na de deadline (telt niet mee)` } : {}) },
+        { naam: "Hulp bij activiteiten", aantal: act || (Number(J.shiftPt) ? null : 0), eenheid: nw ? ["activiteit", "activiteiten"] : ["keer geholpen", "keer geholpen"], per: w.shifts, vast: Number(J.shiftPt) || 0 },
+        { naam: "Verkoop kaarten fuif", aantal: J.kaarten || 0, eenheid: ["kaart", "kaarten"], per: w.kaarten },
+        ...(!nw || L.bestuur ? [{ naam: nw ? "Bestuursvergaderingen" : "Vergaderingen", aantal: J.vergaderingen || 0, eenheid: ["vergadering", "vergaderingen"], per: w.vergaderingen }] : [])
+      ].map(x => ({ ...x, punten: (x.aantal || 0) * (x.per || 0) + (x.vast || 0) }));
+      if (metDetail) { // bij welke activiteiten het lid hielp (uit de shiftenmodule of manueel in het puntensysteem)
+        const SL = Array.isArray(J.shiftLijst) ? J.shiftLijst.filter(x => x && (Number(x.n) > 0 || Number(x.pt) > 0)) : [];
+        if (SL.length) { const gezien = new Set();
+          const d = SL.map(x => { const k = x.act || (x.t || "") + "|" + (x.d || ""), eerst = Number(x.n) > 0 && !gezien.has(k); if (Number(x.n) > 0) gezien.add(k);
+            return { naam: String(x.t || "Activiteit").slice(0, 80), datum: /^\d{4}-\d{2}-\d{2}$/.test(x.d || "") ? x.d : "", aantal: Number(x.n) || 0, punten: (nw ? (eerst ? w.shifts : 0) : (Number(x.n) || 0) * (w.shifts || 0)) + (Number(x.pt) || 0), ...(Number(x.pt) > 0 ? { pt: Number(x.pt) } : {}), ...(x.pa ? { partner: true } : {}) }; })
+            .sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
+          const rest = (Number(J.shifts) || 0) - SL.reduce((t, x) => t + (Number(x.n) || 0), 0); if (rest > 0) d.push({ naam: "Andere", datum: "", aantal: rest, punten: rest * (w.shifts || 0) });
+          o[1].detail = d; } }
       o.push(...extraRijen(J)); return o; };
-    const vorigDelen = S.ere || S.vrij || S.start ? [] : delen(JV, S.cfgVorig.gewichten);
-    // bij welke activiteiten het lid hielp (uit de shiftenmodule of manueel in het puntensysteem)
-    const shDetail = (() => { const L = Array.isArray(J.shiftLijst) ? J.shiftLijst.filter(x => x && (Number(x.n) > 0 || Number(x.pt) > 0)) : []; if (!L.length) return null;
-      const d = L.map(x => ({ naam: String(x.t || "Activiteit").slice(0, 80), datum: /^\d{4}-\d{2}-\d{2}$/.test(x.d || "") ? x.d : "", aantal: Number(x.n) || 0, punten: (Number(x.n) || 0) * (w.shifts || 0) + (Number(x.pt) || 0), ...(Number(x.pt) > 0 ? { pt: Number(x.pt) } : {}), ...(x.pa ? { partner: true } : {}) })).sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
-      const rest = (Number(J.shifts) || 0) - d.reduce((t, x) => t + x.aantal, 0); if (rest > 0) d.push({ naam: "Andere", datum: "", aantal: rest, punten: rest * (w.shifts || 0) }); return d; })();
-    const onderdelen = [
-      { naam: "Kalenders bussen", aantal: J.kalUitgevoerd || 0, eenheid: ["doos", "dozen"], per: w.kalenders },
-      { naam: "Hulp bij activiteiten", aantal: (J.shifts || 0) || (Number(J.shiftPt) ? null : 0), eenheid: ["keer geholpen", "keer geholpen"], per: w.shifts, vast: Number(J.shiftPt) || 0, ...(shDetail ? { detail: shDetail } : {}) },
-      { naam: "Verkoop kaarten fuif", aantal: J.kaarten || 0, eenheid: ["kaart", "kaarten"], per: w.kaarten },
-      { naam: "Vergaderingen", aantal: J.vergaderingen || 0, eenheid: ["vergadering", "vergaderingen"], per: w.vergaderingen }
-    ].map(o => ({ ...o, punten: (o.aantal || 0) * (o.per || 0) + (o.vast || 0) }));
-    onderdelen.push(...extraRijen(J));
+    const vorigDelen = S.ere || S.vrij || S.start ? [] : delen(JV, S.cfgVorig);
+    const onderdelen = delen(J, c, true);
     const totaal = onderdelen.reduce((t, o) => t + o.punten, 0), ere = L.categorie === "Erewacht", vrij = !ere && !!J.vrijstelling;
-    const volgend = ere || vrij ? "GOUD" : totaal >= dr.goud ? "GOUD" : totaal >= dr.zilver ? "ZILVER" : totaal >= (dr.brons || 0) ? "BRONS" : "GEEN";
+    // art. 19 (reglement 2027): met een vrijstelling behoud je je huidige status; anders (oud reglement) goud
+    const volgend = ere ? "GOUD" : vrij ? (c.nieuw ? S.status : "GOUD") : totaal >= dr.goud ? "GOUD" : totaal >= dr.zilver ? "ZILVER" : totaal >= (dr.brons || 0) ? "BRONS" : "GEEN";
     const tot = volgend === "GOUD" ? 0 : (volgend === "ZILVER" ? dr.goud : volgend === "BRONS" ? dr.zilver : dr.brons) - totaal;
     // plaats in de rangschikking van dit jaar (gedeelde plaats bij evenveel punten; testlid telt niet mee)
     let rang = null;
@@ -89,13 +91,17 @@ export default async function handler(req, res) {
       const [{ data: alleJ }, { data: alleL }] = await Promise.all([sb.from("jaarleden").select("id,data").eq("data->>jaar", String(Y)).limit(2000), sb.from("leden").select("id,data").limit(2000)]);
       const actief = new Set((alleL || []).filter(r => r.data && !r.data.geenLid && !r.data.test && r.id !== "test-vbha" && (!r.data.lidTot || Number(String(r.data.lidTot).slice(0, 4)) >= Y)).map(r => r.id));
       actief.add(l);
-      const pt = new Map(); for (const r of alleJ || []) { const id = r.data && r.data.lidId; if (actief.has(id)) pt.set(id, delen(r.data, w).reduce((t, o) => t + o.punten, 0)); }
+      const LM = new Map((alleL || []).map(r => [r.id, r.data])); const pt = new Map(); for (const r of alleJ || []) { const id = r.data && r.data.lidId; if (actief.has(id)) pt.set(id, puntenVan(r.data, c, LM.get(id) || {})); }
       pt.set(l, totaal);
       rang = { plaats: 1 + [...pt.values()].filter(v => v > totaal).length, gedeeld: [...pt.values()].filter(v => v === totaal).length > 1, van: actief.size };
     }
-    return res.status(200).json({ ok: true, voornaam: L.voornaam || "", jaar: Y, rang,
-      nu: { status: S.status, korting: S.korting, ere: S.ere, vrij: S.vrij, start: S.start, puntenJaar: S.puntenJaar, onderdelen: vorigDelen, totaal: vorigDelen.reduce((t, o) => t + o.punten, 0) },
-      punten: { totaal, onderdelen, volgend, ere, vrij, nodig: tot > 0 ? tot : 0, naar: volgend === "GEEN" ? "BRONS" : volgend === "BRONS" ? "ZILVER" : volgend === "ZILVER" ? "GOUD" : null, kortingVolgend: Number(c.korting[volgend.toLowerCase()]) || 0 },
+    // goudtegoed (art. 22): tegoed van dit statusjaar + wat volgend jaar verwacht wordt
+    const T = S.tegoed ? await tegoedSaldo(sb, l, Y, S) : null;
+    const tegoedVolgend = c.r27 && Y + 1 >= REG27.tegoedStart && !ere && !vrij && totaal >= dr.goud ? Math.round((totaal - dr.goud) * REG27.tegoedPerPunt * 100) / 100 : 0;
+    return res.status(200).json({ ok: true, voornaam: L.voornaam || "", jaar: Y, rang, r27: !!c.r27, nieuw: !!c.nieuw,
+      tegoed: T ? { ...T, tot: `31/12/${Y}` } : null, tegoedVolgend,
+      nu: { status: S.status, korting: S.korting, ere: S.ere, vrij: S.vrij, start: S.start, nieuwLid: !!S.nieuwLid, viaPartner: S.viaPartner ? S.viaPartner.status : null, basis: !!S.basis, puntenJaar: S.puntenJaar, onderdelen: vorigDelen, totaal: vorigDelen.reduce((t, o) => t + o.punten, 0) },
+      punten: { totaal, onderdelen, volgend, ere, vrij, basis: !!c.nieuw, nodig: tot > 0 ? tot : 0, naar: volgend === "GEEN" ? "BRONS" : volgend === "BRONS" ? "ZILVER" : volgend === "ZILVER" ? "GOUD" : null, kortingVolgend: Number(c.korting[volgend.toLowerCase()]) || 0 },
       drempels: { brons: 0, ...dr } });
   } catch (e) { sendError(res, e); }
 }

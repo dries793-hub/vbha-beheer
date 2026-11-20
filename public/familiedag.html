@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}.logo-a{display:block;flex:none;line-height:0;border-radius:4px}.logo-a:focus-visible{outline:2px solid #fff;outline-offset:3px}
-.vast-n{padding:11px 12px;border:1px solid var(--line,#e3e4e6);border-radius:8px;background:var(--sunken,#f3f4f5);font-weight:600;font-size:16px}</style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
+.vast-n{padding:11px 12px;border:1px solid var(--line,#e3e4e6);border-radius:8px;background:var(--sunken,#f3f4f5);font-weight:600;font-size:16px}.fd-v{margin-top:10px;padding:10px 12px;border-radius:10px;background:#f3f8f4;border:1px solid #cfe7d6;font-size:14.5px;display:grid;gap:8px}.fd-v.teg{background:#fbf6e6;border-color:#ecd9a0;grid-template-columns:1fr auto;align-items:center}.fd-v.teg input[type=number]{width:110px}.fd-gc{display:flex;gap:8px;align-items:center;font-weight:500}.fd-gc small{color:var(--muted)}
+.kv{display:grid;gap:4px}.kv>div{display:flex;justify-content:space-between;gap:10px}.kv-vk{color:#1a7f45}.kv-tot{border-top:1px solid var(--line,#e3e4e6);padding-top:4px;font-weight:600}
+</style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Familiedag · VBHA</title>
 <link rel="icon" href="/favicon.png">
 <link rel="stylesheet" href="/fonts/inter.css">
@@ -234,15 +236,26 @@ function gratisKlaar(j){$("#box").innerHTML=`<div class="card bevestig"><div cla
   <h2>Je bent ingeschreven!</h2><p class="lead2">Bedankt${j.voornaam?", "+esc(j.voornaam):""}. Je inschrijving voor ${j.personen} ${j.personen===1?"persoon":"personen"} is goed ontvangen. Je hoeft niets te betalen.</p>
   <div class="sam">${(j.lijnen||[]).map(l=>`<div><span>${esc(l.naam)}</span><b>${l.aantal}</b></div>`).join("")}${$("#fD").textContent!=="–"?`<div><span>Wanneer</span><b>${esc($("#fD").textContent)}${$("#fU").textContent?", "+esc($("#fU").textContent):""}</b></div>`:""}</div>
   <p class="tot">Tot dan!</p></div>`;window.scrollTo({top:0,behavior:"smooth"})}
-let INFO=null,LID=false;const AANT={};
+let INFO=null,LID=false,FDL=null,GAST_AAN=false;const AANT={},GAST={};
 function prijsTxt(p){if(LID&&p.lidGratis&&p.prijs>0)return `<s>${eur(p.prijs)}</s>gratis`;return p.prijs>0?eur(p.prijs):"gratis"}
 function tekenPrijzen(){$("#prijzen").innerHTML=INFO.prijzen.map(p=>{const n=AANT[p.id]||0;return `<div class="pr-r${n?" on":""}" data-id="${esc(p.id)}"><div class="nm"><b>${esc(p.naam)}</b>${p.uitleg?`<span>${esc(p.uitleg)}</span>`:""}${p.lidGratis&&p.prijs>0&&!LID?`<span>gratis voor leden</span>`:""}</div><span class="pp">${prijsTxt(p)}</span>
   <div class="stp"><button type="button" data-d="-1" aria-label="Eén minder"${n?"":" disabled"}>−</button><output aria-live="polite">${n}</output><button type="button" data-d="1" aria-label="Eén meer">+</button></div></div>`}).join("");upd()}
-function totaal(){let t=0,n=0;for(const p of INFO.prijzen){const a=AANT[p.id]||0;n+=a;t+=a*(LID&&p.lidGratis?0:p.prijs)}return{t:Math.round(t*100)/100,n}}
-function upd(){const T=totaal(),pay=$("#pay");if(!T.n){pay.hidden=true;$("#go").textContent="Inschrijven";return}pay.hidden=false;
+function totaal(){let t=0,n=0,g=0;for(const p of INFO.prijzen){const a=AANT[p.id]||0,gs=Math.min(a,GAST[p.id]||0),pr=LID&&p.lidGratis?0:p.prijs;n+=a;t+=a*pr;g+=(a-gs)*pr}
+  const k=LID&&FDL&&FDL.korting>0?Math.round(g*FDL.korting)/100:0;return{t:Math.round(t*100)/100,n,k,na:Math.round((t-k)*100)/100}}
+/* reglement 2027: gasten (geen gezinslid) betalen de volle prijs; goudtegoed als extra korting */
+function voordeelHtml(){if(!LID||!FDL)return"";const k=FDL.korting>0,tg=FDL.tegoed>0;if(!k&&!tg)return"";const nm=s=>s==="GEEN"?"Basis":s.charAt(0)+s.slice(1).toLowerCase();
+  return `${k?`<div class="fd-v"><b>${esc(nm(FDL.status))}</b> · ${FDL.korting}% korting voor je gezin${FDL.viaPartner?" (hoogste status in je gezin)":""}.<label class="fd-gc"><input type="checkbox" id="gastAan"${GAST_AAN?" checked":""}> Ik breng ook gasten mee (geen gezinsleden, volle prijs)</label><div id="gastL"${GAST_AAN?"":" hidden"}>${INFO.prijzen.filter(p=>AANT[p.id]).map(p=>`<div class="pr-r" data-g="${esc(p.id)}"><div class="nm"><span>Gasten · ${esc(p.naam)}</span></div><span></span><div class="stp"><button type="button" data-gd="-1" aria-label="Eén gast minder"${GAST[p.id]?"":" disabled"}>−</button><output>${Math.min(GAST[p.id]||0,AANT[p.id]||0)}</output><button type="button" data-gd="1" aria-label="Eén gast meer"${(GAST[p.id]||0)>=(AANT[p.id]||0)?" disabled":""}>+</button></div></div>`).join("")}</div></div>`:""}
+   ${tg?`<div class="fd-v teg"><label class="fd-gc"><input type="checkbox" id="tegAan" checked> Goudtegoed gebruiken <small>(saldo ${eur(FDL.tegoed)})</small></label><input id="tegB" type="number" min="0" step="0.01" inputmode="decimal" aria-label="Bedrag goudtegoed"></div>`:""}`}
+function upd(){const T=totaal(),pay=$("#pay");let vb=$("#fdV");if(!vb){vb=document.createElement("div");vb.id="fdV";pay.before(vb)}
+  if(!T.n){pay.hidden=true;vb.innerHTML="";$("#go").textContent="Inschrijven";return}pay.hidden=false;
+  if(!vb.dataset.k||vb.dataset.k!==JSON.stringify([AANT,FDL&&FDL.korting,FDL&&FDL.tegoed,LID])){const oud=$("#tegB")?$("#tegB").value:null,oudA=$("#tegAan")?$("#tegAan").checked:true;vb.innerHTML=voordeelHtml();vb.dataset.k=JSON.stringify([AANT,FDL&&FDL.korting,FDL&&FDL.tegoed,LID]);if($("#tegB")){$("#tegB").value=oud!=null?oud:Math.min(FDL.tegoed,T.na).toFixed(2);$("#tegAan").checked=oudA}}
+  const maxT=FDL&&FDL.tegoed>0?Math.min(FDL.tegoed,T.na):0;if($("#tegB")){$("#tegB").max=maxT.toFixed(2);$("#tegB").disabled=!$("#tegAan").checked}
+  const teg=maxT>0&&$("#tegAan")&&$("#tegAan").checked?Math.max(0,Math.min(maxT,Number(String($("#tegB").value).replace(",","."))||0)):0;T.teg=Math.round(teg*100)/100;T.t2=Math.round((T.na-T.teg)*100)/100;INFO.tegGebruik=T.teg;
+  if(T.k>0||T.teg>0){pay.innerHTML=`<div class="kv"><div><span>Prijs</span><b>${eur(T.t)}</b></div>${T.k>0?`<div class="kv-vk"><span>Korting ${FDL.korting}%</span><b>− ${eur(T.k)}</b></div>`:""}${T.teg>0?`<div class="kv-vk"><span>Goudtegoed</span><b>− ${eur(T.teg)}</b></div>`:""}<div class="kv-tot"><span>Te betalen</span><b>${eur(T.t2)}</b></div></div>`;$("#go").textContent=T.t2>0?"Inschrijven en betalen":"Inschrijven";return}
   pay.innerHTML=T.t>0?`Te betalen: <b>${eur(T.t)}</b> voor ${T.n} ${T.n===1?"persoon":"personen"}. ${INFO.online?"Na het inschrijven betaal je meteen met Bancontact of met een overschrijving.":"Na het inschrijven zie je hoe je overschrijft."}`:`${T.n} ${T.n===1?"persoon":"personen"} · <b>gratis</b>${LID?" voor leden":""}. Je hoeft niets te betalen.`;
   $("#go").textContent=T.t>0?"Inschrijven en betalen":"Inschrijven"}
-document.addEventListener("click",e=>{const b=e.target.closest(".stp button");if(!b)return;const id=b.closest(".pr-r").dataset.id;AANT[id]=Math.max(0,Math.min(30,(AANT[id]||0)+ +b.dataset.d));tekenPrijzen()});
+document.addEventListener("click",e=>{const g=e.target.closest("[data-gd]");if(g){const id=g.closest("[data-g]").dataset.g;GAST[id]=Math.max(0,Math.min(AANT[id]||0,(GAST[id]||0)+ +g.dataset.gd));$("#fdV").dataset.k="";upd();return}
+  const b=e.target.closest(".stp button");if(!b)return;const id=b.closest(".pr-r").dataset.id;AANT[id]=Math.max(0,Math.min(30,(AANT[id]||0)+ +b.dataset.d));tekenPrijzen()});
 document.addEventListener("change",e=>{if(e.target.name==="wie"){const niet=e.target.value==="niet";$("#wLid").hidden=niet;$("#wNiet").hidden=!niet;LID=!niet&&!!$("#naam").dataset.id;$("#emHint").textContent=niet?"(verplicht, voor de bevestiging)":"(voor de bevestiging; leeg = het adres dat we van je kennen)";tekenPrijzen()}});
 function gesloten(j){$("#box").innerHTML=`<div class="card bevestig"><div class="ic" style="background:var(--sunken);color:var(--muted)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
   <h2>De inschrijvingen zijn afgesloten</h2><p class="lead2">${j.gesloten==="verlopen"&&j.totTekst?"Inschrijven kon tot en met "+esc(j.totTekst)+".":"Je kan je op dit moment niet inschrijven."} Vragen? Mail naar info@vbha.be.</p></div>`}
@@ -252,8 +265,10 @@ function alMeld(inp,t){let m=document.getElementById("alMeld");const go=$("#go")
     (inp.closest(".lp")||inp.parentElement).append(m)}
   const k=t.indexOf(". ");m.innerHTML=k>0?"<b>"+esc(t.slice(0,k+1))+"</b> "+esc(t.slice(k+2)):esc(t);if(go){go.disabled=true;go.dataset.al="1"}}
 
-async function lidPrijs(id){alMeld($("#naam"),"");LID=!!id;tekenPrijzen();if(!id)return;
-  try{const r=await fetch("/api/familiedag?lid="+encodeURIComponent(id));const j=await r.json();if(r.ok&&j.al){alMeld($("#naam"),j.melding)}}catch(x){}}
+async function lidPrijs(id){alMeld($("#naam"),"");LID=!!id;FDL=null;tekenPrijzen();if(!id)return;
+  try{const r=await fetch("/api/familiedag?lid="+encodeURIComponent(id));const j=await r.json();if(r.ok&&j.al){alMeld($("#naam"),j.melding)}else if(r.ok&&(j.korting>0||j.tegoed>0)){FDL=j;upd()}}catch(x){}}
+document.addEventListener("change",e=>{if(e.target.id==="gastAan"){GAST_AAN=e.target.checked;$("#gastL").hidden=!e.target.checked;if(!e.target.checked){for(const k in GAST)GAST[k]=0;$("#fdV").dataset.k=""}upd()}else if(e.target.id==="tegAan")upd()});
+document.addEventListener("input",e=>{if(e.target.id==="tegB")upd()});
 function vastNaam(inp,naam){inp.hidden=true;const b=document.createElement("div");b.className="vast-n";b.textContent=naam;inp.after(b)}
 const FQ=new URLSearchParams(location.search);
 fetch("/api/familiedag"+(FQ.get("v")?"?v="+encodeURIComponent(FQ.get("v"))+"&t="+encodeURIComponent(FQ.get("t")||""):"")).then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;$("#h1").textContent=j.titel;document.title=j.titel+" · VBHA";
@@ -266,7 +281,7 @@ fetch("/api/familiedag"+(FQ.get("v")?"?v="+encodeURIComponent(FQ.get("v"))+"&t="
   if(j.vul){$("#wie").hidden=true;const i=$("#naam");i.value=j.vul.lid;i.dataset.id=j.vul.lidId;i.classList.add("lp-ok");vastNaam(i,j.vul.lid);$("#email").closest(".full").hidden=true;lidPrijs(j.vul.lidId);try{history.replaceState(null,"",location.pathname)}catch(e){}}
   tekenPrijzen();if(!j.open)gesloten(j)});
 $("#f").addEventListener("submit",async e=>{e.preventDefault();const er=$("#err");er.textContent="";const niet=!$("#wNiet").hidden;
-  const d={lidId:niet?"":$("#naam").dataset.id||"",naam:niet?$("#nNaam").value.trim():$("#naam").value.trim(),email:$("#email").value.trim(),aantallen:AANT,opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0};
+  const d={lidId:niet?"":$("#naam").dataset.id||"",naam:niet?$("#nNaam").value.trim():$("#naam").value.trim(),email:$("#email").value.trim(),aantallen:AANT,gasten:GAST,tegoed:INFO.tegGebruik||0,opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0};
   if(!niet&&!d.lidId){er.textContent=d.naam?"Kies je naam uit de lijst van leden.":"Vul je naam in en kies ze uit de lijst.";$("#naam").focus();return}
   if(niet&&d.naam.length<3){er.textContent="Vul je naam in.";$("#nNaam").focus();return}
   if(niet&&!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(d.email)){er.textContent="Vul een geldig e-mailadres in.";$("#email").focus();return}

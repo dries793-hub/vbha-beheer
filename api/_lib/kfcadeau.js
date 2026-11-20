@@ -210,11 +210,16 @@ export async function productInfo(url) {
 
 /* ---------- budget per kind ---------- */
 export function kfcInstellingen(c, jaar) { const datum = c.datum || jaar + "-12-19"; return { ...kfMailDef(jaar, datum), ...(c.mail || {}), tot: kfMailDef(jaar, datum).tot, datum }; } // kiezen kan altijd tot 10 dagen voor het feest
-export function budgetVan(geb, M) {
+export function budgetVan(geb, M, kind) {
   const y = Number(String(geb || "").slice(0, 4)), g = kfGroepen(M.groepen).find(x => y >= x.van && y <= x.tot);
   if (!g) return { budget: null, tekst: "" };
   const m = String(g.tekst).match(/(\d+(?:[.,]\d{1,2})?)\s*(eur|€)/i) || String(g.tekst).match(/^\s*(?:€\s*)?(\d+(?:[.,]\d{1,2})?)/);
-  return m ? { budget: Number(m[1].replace(",", ".")), tekst: g.tekst } : { budget: null, voorzien: true, tekst: g.tekst };
+  if (!m) return { budget: null, voorzien: true, tekst: g.tekst };
+  // reglement 2027 (art. 23): percentage van het volle budget volgens de status; basis = kleine attentie van de vriendenkring
+  const pct = kind && kind.pct != null ? Number(kind.pct) : 100;
+  if (pct <= 0) return { budget: null, voorzien: true, attentie: true, tekst: "Een kleine attentie van de vriendenkring" };
+  const vol = Number(m[1].replace(",", "."));
+  return pct < 100 ? { budget: Math.round(vol * pct) / 100, vol, pct, tekst: g.tekst } : { budget: vol, tekst: g.tekst };
 }
 const lft = (geb, datum) => { if (!/^\d{4}-\d{2}-\d{2}$/.test(String(geb || ""))) return null; const [y, m, d] = geb.split("-").map(Number), [Y, M, D] = datum.split("-").map(Number); let a = Y - y; if (M < m || (M === m && D < d)) a--; return a; };
 const r2 = n => Math.round(n * 100) / 100;
@@ -230,7 +235,13 @@ function view(row, M, open) {
   const d = row.data;
   return { lid: d.lid || "", jaar: d.jaar, datum: M.datum, tot: M.tot, open, sites: M.sites,
     bijbetalen: bijMag(M), maxExtra: MAX_EXTRA, ...bijStand(d, M),
-    kinderen: (d.kinderen || []).map((k, i) => { const b = budgetVan(k.geb, M), a = lft(k.geb, M.datum); return { i, naam: k.naam, leeftijd: a, ...b, cadeau: k.cadeau || null, besteld: !!(k.besteld && k.besteld.op) }; }) };
+    kinderen: (d.kinderen || []).map((k, i) => { const b = budgetVan(k.geb, M, k), a = lft(k.geb, M.datum); return { i, naam: k.naam, leeftijd: a, ...b, cadeau: k.cadeau || null, besteld: !!(k.besteld && k.besteld.op) }; }) };
+}
+/* saldo goudtegoed van het lid (zonder wat op deze inschrijving al gebruikt is) */
+async function metTegoed(sb, row, v) {
+  try { const d = row.data; if (!d.lidId) return v; const { lidStatus, tegoedGebruikt } = await import("./status.js");
+    const L = await lidStatus(sb, d.lidId, d.jaar, { partner: false }); if (!L.tegoed) return v;
+    return { ...v, tegoedSaldo: Math.max(0, r2(L.tegoed - await tegoedGebruikt(sb, d.lidId, d.jaar, row.id))) }; } catch (e) { return v; }
 }
 /* ---------- bijbetalen boven het budget (Bancontact) ----------
    Eén pot per gezin: de budgetten van de kinderen tellen samen. Een kind mag over zijn budget gaan als een ander kind eronder blijft.
@@ -239,13 +250,13 @@ function view(row, M, open) {
 const MAX_EXTRA = 150;
 const bijMag = M => M.bijbetalen !== false;
 export function bijStand(d, M) {
-  const K = (d.kinderen || []).map(k => ({ k, B: budgetVan(k.geb, M) })).filter(x => x.B.budget != null);
+  const K = (d.kinderen || []).map(k => ({ k, B: budgetVan(k.geb, M, k) })).filter(x => x.B.budget != null);
   const gekozen = K.filter(x => x.k.cadeau && (x.k.cadeau.bon || (x.k.cadeau.items || []).length));
   const pot = r2(gekozen.reduce((s, x) => s + x.B.budget, 0)), potAlles = r2(K.reduce((s, x) => s + x.B.budget, 0));
   const besteed = r2(gekozen.reduce((s, x) => s + (x.k.cadeau.bon ? x.B.budget : Number(x.k.cadeau.keuzeTotaal ?? x.k.cadeau.totaal) || 0), 0));
   const extra = r2(Math.max(0, besteed - pot)), bijbetaald = r2(Number(d.bijbetaald) || 0), alles = K.length > 0 && gekozen.length === K.length;
-  const b = d.betaling || null;
-  return { pot: potAlles, besteed, extraTotaal: extra, bijbetaald, alleGekozen: alles, teBetalen: alles ? r2(Math.max(0, extra - bijbetaald)) : 0, extraVoorlopig: alles ? 0 : extra,
+  const b = d.betaling || null, teg = r2((Array.isArray(d.tegoed) ? d.tegoed : []).reduce((t, x) => t + (Number(x.bedrag) || 0), 0)); // goudtegoed (reglement 2027, art. 23.3)
+  return { pot: potAlles, besteed, extraTotaal: extra, bijbetaald, tegoed: teg, alleGekozen: alles, teBetalen: alles ? r2(Math.max(0, extra - bijbetaald - teg)) : 0, extraVoorlopig: alles ? 0 : extra,
     betaling: b ? { status: b.status, bedrag: b.bedrag } : null };
 }
 /* ---------- bevestigingsmail naar de ouder ----------
@@ -264,13 +275,13 @@ export async function kfCadeauMail(sb, id, { betaald = 0 } = {}) {
     const e = x => String(x ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const eu = n => "€" + Number(n || 0).toLocaleString("nl-BE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const kids = (d.kinderen || []).map(k => {
-      const B = budgetVan(k.geb, M), c = k.cadeau;
+      const B = budgetVan(k.geb, M, k), c = k.cadeau;
       if (B.voorzien || B.budget == null) return kaderBlok(e(k.naam), p("De vriendenkring voorziet een cadeau.", "margin:0"));
       if (c && c.bon) return kaderBlok(e(k.naam), p(`Een bon van bol.com van <b>${eu(B.budget)}</b>.`, "margin:0"));
       if (c && (c.items || []).length) return kaderBlok(e(k.naam), tabel([...c.items.map(it => rij(e(it.winkel || ""), `${e(it.naam || "")} &middot; <b>${eu(it.prijs)}</b>`)), rij("Totaal", `<b>${eu(c.totaal)}</b> (budget ${eu(B.budget)})`)]));
       return "";
     }).join("");
-    const nKids = (d.kinderen || []).filter(k => budgetVan(k.geb, M).budget != null).length;
+    const nKids = (d.kinderen || []).filter(k => budgetVan(k.geb, M, k).budget != null).length;
     const pot = nKids > 1 ? p(`Samen ${eu(S.besteed)} van het totale budget van ${eu(S.pot)}.`) : "";
     const bet = betaald > 0 ? kaderBlok("Bijbetaling ontvangen", p(`We ontvingen je betaling van <b>${eu(betaald)}</b> met Bancontact. Bedankt!`, "margin:0"), "#1a7f45", "#f1faf4") : "";
     const vast = (d.kinderen || []).some(k => k.cadeau && k.cadeau.betaald);
@@ -301,7 +312,7 @@ export async function kfCadeauPubliek(req, res) {
     if (req.method === "GET") {
       await rateLimit(sb, req, "kfcadeau", 120, 600, httpErr);
       const { row, M, open } = await laad(sb, req.query.cadeau, req.query.t);
-      return res.status(200).json(view(row, M, open));
+      return res.status(200).json(await metTegoed(sb, row, view(row, M, open)));
     }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
     const b = body(req);
@@ -311,11 +322,21 @@ export async function kfCadeauPubliek(req, res) {
     if (b.actie === "betaal" || b.actie === "betaalstatus") {
       const { startBetaling, controleerBetaling } = await import("./betaal.js");
       const { onlineConfigured } = await import("./betaalprovider.js");
-      if (b.actie === "betaalstatus") { if (row.data.betaling) await controleerBetaling(sb, "kinderfeest", row); const { data: r2w } = await sb.from("kinderfeest").select("id,data").eq("id", row.id).maybeSingle(); return res.status(200).json(view(r2w, M, open)); }
+      if (b.actie === "betaalstatus") { if (row.data.betaling) await controleerBetaling(sb, "kinderfeest", row); const { data: r2w } = await sb.from("kinderfeest").select("id,data").eq("id", row.id).maybeSingle(); return res.status(200).json(await metTegoed(sb, r2w, view(r2w, M, open))); }
       if (!onlineConfigured()) throw httpErr(501, "Online betalen is niet ingesteld.");
       const bedrag = bijStand(row.data, M).teBetalen; if (!(bedrag > 0)) throw httpErr(400, "Er is niets bij te betalen.");
       const bt = await startBetaling(sb, req, "kinderfeest", row, { bedrag, jaar: row.data.jaar, terug: `/cadeau?i=${encodeURIComponent(row.id)}&t=${encodeURIComponent(String(b.t))}&betaling=terug` });
       return res.status(200).json({ status: bt.status, checkout: bt.checkout || null, deeplink: bt.deeplink || null, qrcode: bt.qrcode || null, bedrag: bt.bedrag });
+    }
+    // goudtegoed gebruiken voor wat boven het cadeaubudget gaat (reglement 2027, art. 23.3)
+    if (b.actie === "tegoed") {
+      const d = row.data; if (!d.lidId) throw httpErr(400, "Geen lid gekend voor deze inschrijving.");
+      const S = bijStand({ ...d, tegoed: [] }, M), { lidStatus, tegoedGebruikt } = await import("./status.js");
+      const L = await lidStatus(sb, d.lidId, d.jaar, { partner: false }); const vrij = Math.max(0, r2((L.tegoed || 0) - await tegoedGebruikt(sb, d.lidId, d.jaar, row.id)));
+      const bedrag = r2(Math.max(0, Math.min(Number(b.bedrag) || 0, vrij, Math.max(0, S.extraTotaal + S.extraVoorlopig - S.bijbetaald))));
+      const nd = { ...d, tegoed: bedrag > 0 ? [{ lidId: d.lidId, bedrag }] : null };
+      const { error } = await sb.from("kinderfeest").update({ data: nd }).eq("id", row.id); if (error) throw error;
+      return res.status(200).json(await metTegoed(sb, { ...row, data: nd }, view({ ...row, data: nd }, M, open)));
     }
     if (b.actie !== "bewaar") throw httpErr(400, "Onbekende actie.");
     if (!open) throw httpErr(403, "Cadeaus kiezen kan niet meer: de termijn is voorbij. Wie niets koos, krijgt een bon van bol.com.");
@@ -323,7 +344,7 @@ export async function kfCadeauPubliek(req, res) {
     if (!k) throw httpErr(400, "Dit kind staat niet in de inschrijving.");
     if (k.besteld && k.besteld.op) throw httpErr(409, "Het cadeau van " + k.naam + " is al besteld en kan niet meer gewijzigd worden.");
     if (k.cadeau && k.cadeau.betaald) throw httpErr(409, "Voor het cadeau van " + k.naam + " werd al bijbetaald. Wil je iets wijzigen, neem dan contact met ons op.");
-    const B = budgetVan(k.geb, M);
+    const B = budgetVan(k.geb, M, k);
     if (B.voorzien || B.budget == null) throw httpErr(400, `Voor ${k.naam} voorziet de vriendenkring het cadeau.`);
     let cadeau;
     if (b.bon) cadeau = { bon: true, op: new Date().toISOString() };
@@ -353,14 +374,14 @@ export async function kfCadeauPubliek(req, res) {
     const nd = { ...d, kinderen };
     // één pot per gezin: enkel wat het gezin samen boven alle budgetten gaat, moet bijbetaald worden
     { const S = bijStand(nd, M), ov = r2(S.besteed - (S.pot > 0 ? S.pot : 0)), eu = n => "€ " + n.toFixed(2).replace(".", ",");
-      const nu = r2(Math.max(0, S.besteed - kinderen.reduce((t, x) => { const bb = budgetVan(x.geb, M); return t + (bb.budget != null && x.cadeau ? bb.budget : 0); }, 0)));
+      const nu = r2(Math.max(0, S.besteed - kinderen.reduce((t, x) => { const bb = budgetVan(x.geb, M, x); return t + (bb.budget != null && x.cadeau ? bb.budget : 0); }, 0)));
       if (ov > 0.004 && !bijMag(M)) throw httpErr(400, `Samen gaan de cadeaus ${eu(ov)} boven het totale budget van ${eu(S.pot)}. Haal iets uit een mandje.`);
       if (ov > MAX_EXTRA) throw httpErr(400, `Samen gaan de cadeaus ${eu(ov)} boven het totale budget van ${eu(S.pot)}. Bijbetalen kan tot ${eu(MAX_EXTRA)}.`);
       if (nu > 0.004 && S.alleGekozen && b.bijbetalen !== true) throw httpErr(400, `Je gaat samen ${eu(nu)} boven het budget. Bevestig dat je dit bijbetaalt.`); }
-    if (kinderen.every(x => budgetVan(x.geb, M).budget == null || x.cadeau) && !bijStand(nd, M).teBetalen && !(d.cadeau && d.cadeau.doorgegeven)) nd.cadeau = { doorgegeven: true, op: new Date().toISOString(), door: "ouder (keuzepagina)" };
+    if (kinderen.every(x => budgetVan(x.geb, M, x).budget == null || x.cadeau) && !bijStand(nd, M).teBetalen && !(d.cadeau && d.cadeau.doorgegeven)) nd.cadeau = { doorgegeven: true, op: new Date().toISOString(), door: "ouder (keuzepagina)" };
     const { error } = await sb.from("kinderfeest").update({ data: nd }).eq("id", row.id); if (error) throw error;
     { const S = bijStand(nd, M); if (S.alleGekozen && !S.teBetalen) await kfCadeauMail(sb, row.id); }
-    return res.status(200).json(view({ ...row, data: nd }, M, open));
+    return res.status(200).json(await metTegoed(sb, { ...row, data: nd }, view({ ...row, data: nd }, M, open)));
   } catch (e) { sendError(res, e); }
 }
 
@@ -430,7 +451,7 @@ export async function kfCadeauApp(req, res) {
       if (vandaagISO() > M.tot) throw httpErr(400, "De keuzetermijn is voorbij.");
       const { data: rows, error } = await sb.from("kinderfeest").select("id,data").eq("data->>jaar", String(jaar)); if (error) throw error;
       const sinds = M.keuzeSinds || "9999";
-      const L = (rows || []).filter(r => { const d = r.data || {}; const K = (d.kinderen || []).filter(k => budgetVan(k.geb, M).budget != null);
+      const L = (rows || []).filter(r => { const d = r.data || {}; const K = (d.kinderen || []).filter(k => budgetVan(k.geb, M, k).budget != null);
         return K.length && !K.every(k => k.cadeau) && !d.cadeauMeld && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(String(d.email || "").trim()) && String((d.bevestiging && d.bevestiging.op) || d.aangemeld || "") < sinds; });
       if (b.dry) return res.status(200).json({ aantal: L.length, wie: L.map(r => r.data.lid) });
       if (!L.length) return res.status(200).json({ aantal: 0 });
@@ -443,7 +464,7 @@ export async function kfCadeauApp(req, res) {
       for (const r of L) {
         const d = r.data; let vn = String(d.lid || "").split(" ").slice(-1)[0];
         if (d.lidId) { const { data: l } = await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle(); if (l && l.data && l.data.voornaam) vn = l.data.voornaam; }
-        const kids = (d.kinderen || []).map(k => { const B = budgetVan(k.geb, M); return B.budget != null ? `<li style="margin:0 0 4px"><b>${e(k.naam)}</b>: cadeau ter waarde van <b>${eu(B.budget)}</b></li>` : B.voorzien ? `<li style="margin:0 0 4px"><b>${e(k.naam)}</b>: de vriendenkring voorziet een cadeau</li>` : ""; }).join("");
+        const kids = (d.kinderen || []).map(k => { const B = budgetVan(k.geb, M, k); return B.budget != null ? `<li style="margin:0 0 4px"><b>${e(k.naam)}</b>: cadeau ter waarde van <b>${eu(B.budget)}</b></li>` : B.voorzien ? `<li style="margin:0 0 4px"><b>${e(k.naam)}</b>: de vriendenkring voorziet een cadeau</li>` : ""; }).join("");
         const m = await sysMail(sb, "kinderfeest-cadeau-online", { voornaam: e(vn), jaar, tot: e(tot), kinderen: kids ? `<ul style="margin:0 0 15px;padding-left:22px">${kids}</ul>` : "", link_cadeau: e(kfcLink(r.id)), knop_cadeau: knop(kfcLink(r.id)) });
         rijen.push({ batch, data: { aan: String(d.email).trim(), aanNaam: d.lid || "", onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging), antwoordAan: "info@vbha.be" } });
       }

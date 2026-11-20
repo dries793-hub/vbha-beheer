@@ -138,7 +138,8 @@ html,body{overflow-x:hidden}
 @media (max-width:760px){*{scrollbar-width:none}*::-webkit-scrollbar{display:none;width:0;height:0}}
 .kid>*{min-width:0}
 .lp-prijs{display:flex;align-items:center;gap:10px;margin-top:8px;padding:10px 12px;border-radius:10px;background:#f3f8f4;border:1px solid #cfe7d6;font-size:14.5px}
-.lp-prijs small{color:var(--muted)}.lp-prijs[hidden]{display:none}
+.lp-prijs small{color:var(--muted)}
+.teg{margin-top:10px;padding:10px 12px;border-radius:10px;background:#fbf6e6;border:1px solid #ecd9a0;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:14.5px}.teg[hidden]{display:none}.teg-c{display:flex;gap:8px;align-items:center;font-weight:600}.teg-c small{font-weight:400;color:var(--muted)}.teg-b{display:flex;gap:8px;align-items:center;margin-left:auto}.teg-b input{width:110px}.lp-prijs[hidden]{display:none}
 .lp-st{flex:none;font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px;color:#fff;background:#a5703f}
 .lp-st.zilver{background:#8d959e}.lp-st.goud{background:#c19a2e}
 .fk{display:block;font-size:12.5px;color:var(--muted)}
@@ -234,11 +235,12 @@ function alMeld(inp,t){let m=document.getElementById("alMeld");const go=$("#go")
     (inp.closest(".lp")||inp.parentElement).append(m)}
   const k=t.indexOf(". ");m.innerHTML=k>0?"<b>"+esc(t.slice(0,k+1))+"</b> "+esc(t.slice(k+2)):esc(t);if(go){go.disabled=true;go.dataset.al="1"}}
 let LP=0;async function lidPrijs(id){const el=$("#lpPrijs"),n=++LP;alMeld($("#naam"),"");{const h=$("#lpHint");if(h)h.hidden=!!id||!INFO.kortingAan}
-  INFO.lp=null;if(!id){INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
+  INFO.lp=null;INFO.teg=0;if(!id){INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
   try{const r=await fetch("/api/banket?lid="+encodeURIComponent(id));const j=await r.json();if(n!==LP)return;if(!r.ok)throw 0;
     if(j.al){alMeld($("#naam"),j.melding);INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}
+    INFO.teg=Number(j.tegoed)||0;
     if(!INFO.kortingAan){INFO.lp=null;INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true;upd();return}INFO.prijs=j.prijs;INFO.lp=j;
-    if(el){const st=String(j.status||"");el.hidden=!st||st==="GEEN";el.innerHTML=`<span class="lp-st ${esc(st.toLowerCase())}">${esc(st.charAt(0)+st.slice(1).toLowerCase())}</span><span>Status ${esc(st.toLowerCase())}${j.korting?` · ${j.korting}% korting`:""}</span>${INFO.goudMelding&&j.start?`<small class="lp-gm">Omdat het puntensysteem dit jaar van start ging, krijgt iedereen uitzonderlijk de goudstatus.</small>`:""}`}}
+    if(el){const st=String(j.status||"");const stN=st==="GEEN"&&j.basisStatus?"Basis":st.charAt(0)+st.slice(1).toLowerCase();el.hidden=!st||(st==="GEEN"&&!j.basisStatus);el.innerHTML=`<span class="lp-st ${esc(st.toLowerCase())}">${esc(stN)}</span><span>Status ${esc(stN.toLowerCase())}${j.korting?` · ${j.korting}% korting`:" · geen korting"}${j.viaPartner?" (hoogste status in je gezin)":""}</span>${INFO.goudMelding&&j.start?`<small class="lp-gm">Omdat het puntensysteem dit jaar van start ging, krijgt iedereen uitzonderlijk de goudstatus.</small>`:""}`}}
   catch(x){if(n!==LP)return;INFO.prijs=INFO.basis||INFO.prijs;if(el)el.hidden=true}upd()}
 function val(n){const c=document.querySelector('input[name="'+n+'"]:checked');return c?c.value:""}
 function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
@@ -247,10 +249,17 @@ function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
   const kader=L&&L.korting>0?`<div class="kv"><div><span>Kostprijs${n>1?` (${n} × ${eur(L.basis)})`:""}</span><b>${eur(n*L.basis)}</b></div><div class="kv-vk"><span>Bijdrage vriendenkring<small>${esc(L.status.charAt(0)+L.status.slice(1).toLowerCase())} · ${L.korting}% korting</small></span><b>− ${eur(n*(L.basis-L.prijs))}</b></div><div class="kv-tot"><span>Jouw aandeel</span><b>${eur(n*L.prijs)}</b></div></div>`:"";
   /* bedragen pas tonen als een lid gekozen is (en bij korting de persoonlijke prijs gekend is) */
   const lidOk=!!$("#naam").dataset.id&&!$("#alMeld")&&(!INFO.kortingAan||INFO.lp);
-  if(lidOk&&(p||kader)){pay.hidden=false;pay.innerHTML=kader||`Te betalen: <b>${eur(p*INFO.prijs)}</b>`}else pay.hidden=true}
+  /* goudtegoed (reglement 2027): het lid kiest hoeveel het gebruikt */
+  let tb=$("#tegBox");if(!tb){tb=document.createElement("div");tb.id="tegBox";tb.className="teg";pay.after(tb);tb.addEventListener("input",upd)}
+  const tot=Math.round(n*INFO.prijs*100)/100,max=Math.min(INFO.teg||0,tot);
+  if(lidOk&&p&&max>0){if(!tb.dataset.ok){tb.dataset.ok="1";tb.innerHTML=`<label class="teg-c"><input type="checkbox" id="tegAan" checked> Goudtegoed gebruiken <small>(saldo ${eur(INFO.teg)})</small></label><div class="teg-b"><span>Bedrag</span><input id="tegB" type="number" min="0" step="0.01" inputmode="decimal"></div>`;$("#tegB").value=max.toFixed(2)}
+    tb.hidden=false;$("#tegB").max=max.toFixed(2);$("#tegB").disabled=!$("#tegAan").checked}else{tb.hidden=true}
+  const teg=lidOk&&p&&max>0&&$("#tegAan")&&$("#tegAan").checked?Math.max(0,Math.min(max,Number(String($("#tegB").value).replace(",","."))||0)):0;INFO.tegGebruik=Math.round(teg*100)/100;
+  const tegR=teg>0?`<div class="kv-vk"><span>Goudtegoed</span><b>− ${eur(teg)}</b></div><div class="kv-tot"><span>Te betalen</span><b>${eur(tot-teg)}</b></div>`:"";
+  if(lidOk&&(p||kader)){pay.hidden=false;pay.innerHTML=kader?(teg>0?kader.replace(/<\/div>$/,tegR+"</div>"):kader):(teg>0?`<div class="kv"><div><span>Prijs</span><b>${eur(tot)}</b></div>${tegR}</div>`:`Te betalen: <b>${eur(p*INFO.prijs)}</b>`)}else pay.hidden=true}
 document.addEventListener("change",e=>{if(e.target.name)upd()});
 $("#f").addEventListener("submit",async e=>{e.preventDefault();const er=$("#err");er.textContent="";
-  const d={naam:$("#naam").value.trim(),lidId:$("#naam").dataset.id||"",personen:+val("personen"),menu1:val("menu1"),menu2:val("menu2"),opmerking1:$("#opm1").value.trim(),opmerking2:+val("personen")===2?$("#opm2").value.trim():"",website:$("#website").value,duur:Date.now()-t0};
+  const d={naam:$("#naam").value.trim(),lidId:$("#naam").dataset.id||"",personen:+val("personen"),menu1:val("menu1"),menu2:val("menu2"),opmerking1:$("#opm1").value.trim(),opmerking2:+val("personen")===2?$("#opm2").value.trim():"",tegoed:INFO.tegGebruik||0,website:$("#website").value,duur:Date.now()-t0};
   if(!d.lidId){er.textContent=d.naam?"Kies je naam uit de lijst van leden.":"Vul je naam in en kies ze uit de lijst.";$("#naam").focus();return}
   if(!d.personen){er.textContent="Kies of je alleen of met partner komt.";return}
   if(!d.menu1){er.textContent="Kies je menu.";return}
