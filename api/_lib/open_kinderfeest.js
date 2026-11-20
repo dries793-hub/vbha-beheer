@@ -53,7 +53,7 @@ export default async function handler(req, res) {
         const v = String(req.query.v);
         if (!vKlopt(v, I.jaar, req.query.t)) throw httpErr(404, "Deze link is niet (meer) geldig.");
         const l = (await actieveLeden(sb, I.jaar)).find(x => x.id === v); if (!l) throw httpErr(404, "Deze link is niet (meer) geldig.");
-        return res.status(200).json({ ...I, vul: { lidId: l.id, lid: l.voornaam && l.an ? `${l.voornaam} ${l.an}` : l.naam, mail: masker(l.em), kinderen: await bekendeKinderen(sb, l.id, I) } });
+        return res.status(200).json({ ...I, vul: { lidId: l.id, lid: l.voornaam && l.an ? `${l.voornaam} ${l.an}` : l.naam, voornaam: l.voornaam || "", mail: masker(l.em), kinderen: await bekendeKinderen(sb, l.id, I) } });
       }
       if (!lidId) return res.status(200).json(I);
       await rateLimit(sb, req, "lidinfo", 60, 600, httpErr);

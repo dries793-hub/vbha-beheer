@@ -51,7 +51,11 @@ export default async function handler(req, res) {
         const v = String(req.query.v);
         if (!kloptVul("fd", v, I.jaar, String(req.query.t || ""))) return res.status(200).json(I);
         const l = (await actieveLeden(sb, I.jaar)).find(x => x.id === v); if (!l) return res.status(200).json(I);
-        return res.status(200).json({ ...I, vul: { lidId: l.id, lid: l.voornaam && l.an ? `${l.voornaam} ${l.an}` : l.naam } });
+        // aantallen van vorig jaar alvast invullen (enkel via de persoonlijke, ondertekende link)
+        let vorig = null;
+        try { const { data: v } = await sb.from("familiedag").select("data").eq("data->>jaar", String(I.jaar - 1)).eq("data->>lidId", l.id).limit(1);
+          const d = v && v[0] && v[0].data; if (d) { const a = {}; for (const x of d.lijnen || []) if (x && x.id && I.prijzen.some(p => p.id === x.id)) a[x.id] = Number(x.aantal) || 0; vorig = { aantallen: a, gasten: d.gasten || {}, opmerking: d.opmerking || "" }; } } catch (e) {}
+        return res.status(200).json({ ...I, vul: { lidId: l.id, lid: l.voornaam && l.an ? `${l.voornaam} ${l.an}` : l.naam, voornaam: l.voornaam || "", vorig } });
       }
       if (!lidId) return res.status(200).json(I);
       await rateLimit(sb, req, "lidinfo", 60, 600, httpErr);
