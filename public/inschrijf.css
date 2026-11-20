@@ -442,3 +442,40 @@ body.vb-app .wacht .cp:hover{background:var(--vb-bg)}
   body.vb-app .ch label:has(input:checked) b,body.vb-app .ch label:has(input:checked) span{color:#111214}
   body.vb-app .vb-sw input:checked+i{background:#ECEDEF}body.vb-app .vb-sw input:checked+i::after{background:#111214}
 }
+
+/* ============ subtielere schaal (op vraag): alles iets kleiner en rustiger ============ */
+body.vb{font-size:15px}
+body.vb h1,body.vb-app h1{font-size:27px;letter-spacing:-.015em}
+body.vb-app .vb-eyebrow{font-size:11.5px;margin-bottom:4px}
+body.vb-app .dag{font-size:16px;margin-top:6px}
+body.vb-app .lead,body.vb .lead{font-size:15px;margin-bottom:18px}
+body.vb-app .fact b{font-size:15px}body.vb-app .fact small{font-size:13.5px}
+body.vb-app .fact>span svg{width:20px;height:20px}body.vb-app .fact{grid-template-columns:20px minmax(0,1fr);column-gap:10px}
+body.vb-app .vb-meta{font-size:14px}body.vb-app .vb-meta svg{width:19px;height:19px}
+body.vb-app .vb-sec{padding:18px 0 20px}
+body.vb-app .vb-sec>h2,body.vb-app .vb-card-t,body.vb-app main .card h2,body.vb-app .vb-form>.pay .vb-sum-t{font-size:19px;margin-bottom:12px}
+body.vb-app label,body.vb-app .lbl,body.vb-app legend{font-size:14px;margin-bottom:6px}
+body.vb-app .grid{gap:14px}
+body.vb-app input[type=text],body.vb-app input[type=email],body.vb-app input[type=tel],body.vb-app input[type=date],body.vb-app input[type=number],body.vb-app input[type=search],body.vb-app textarea,body.vb-app select,body.vb-app .vast-n,body.vb-app input[readonly]{min-height:46px;padding:10px 14px;border-radius:10px}
+body.vb-app textarea.vb-kort{min-height:46px;height:46px}
+body.vb-app .ch{border-radius:10px;padding:3px;gap:3px}body.vb-app .ch label{min-height:40px;border-radius:8px}body.vb-app .ch b,body.vb-app .ch span{font-size:14.5px}
+body.vb-app .opt span{min-height:44px;font-size:14.5px;border-radius:10px}
+body.vb-app .seg2 button,body.vb-app .bm span{min-height:40px;height:40px;font-size:14.5px}
+body.vb-app .vb-r,body.vb-app .vb-r>b{font-size:15px}body.vb-app .vb-sum{gap:10px}body.vb-app .vb-r small,body.vb-app .vb-credit small{font-size:13px}
+body.vb-app .vb-sw{font-size:15px}body.vb-app .vb-badge{font-size:11.5px}
+body.vb-app .vb-due span{font-size:12.5px}body.vb-app .vb-due b{font-size:26px}
+body.vb-app .vb-checkout{padding-top:14px;gap:14px}
+body.vb-app .vb-checkout .btn,body.vb-app .btn,body.vb .btn{min-height:48px;font-size:15.5px;border-radius:10px}
+body.vb-app .paybox .btn.bc,body.vb-app .btn.bc{min-height:48px;font-size:15.5px}
+body.vb-app .pr-r{padding:11px 0}body.vb-app .pr-r .nm b{font-size:15px}body.vb-app .pr-r .nm span{font-size:13.5px}
+body.vb-app .stp button{width:40px;height:40px;font-size:19px}body.vb-app .stp output,body.vb-app .stp input{font-size:16px}
+body.vb-app .kid{padding:14px 0}body.vb-app .kid-k b{font-size:15.5px}body.vb-app .kadd{min-height:44px;font-size:14.5px}
+body.vb-app .card.ok h2,body.vb-app .card.bevestig h2,body.vb-app .vb-state h2{font-size:21px}
+body.vb-app .card.ok .ic,body.vb-app .card.bevestig .ic{width:44px;height:44px}
+body.vb-app .card.ok>p,body.vb-app .bevestig .lead2,body.vb-app .bevestig .sam div{font-size:15px}
+body.vb-app div.tot{font-size:15px}body.vb-app div.tot.g>span:last-child{font-size:24px}
+body.vb-app main p,body.vb-app main li{font-size:15px}
+body.vb-app main h2{font-size:19px}body.vb-app main h3{font-size:16px}
+body.vb .foot{font-size:13px}
+@media (max-width:640px){body.vb-app .vb-due b{font-size:22px}}
+@media (max-width:360px){body.vb h1,body.vb-app h1{font-size:24px}body.vb-app .vb-due b{font-size:20px}}
