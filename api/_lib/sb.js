@@ -41,6 +41,8 @@ export async function requireUser(req, { write = false, boek = false, functie = 
   if (error || !data?.user) throw httpErr(401, "Niet aangemeld");
   const { data: rol } = await sb.from("bestuur").select("rol,rechten").eq("user_id", data.user.id).maybeSingle();
   if (!rol) throw httpErr(403, "Geen toegang");
+  // testomgeving: een tijdelijke gastlink die verlopen is, geeft geen toegang meer
+  if (IS_TEST) { const { data: g } = await sb.from("gast_toegang").select("tot").eq("user_id", data.user.id); if (g && g.length && !g.some(x => new Date(x.tot) > new Date())) throw httpErr(403, "Je testtoegang is verlopen"); }
   const R = rol.rechten && typeof rol.rechten === "object" ? rol.rechten : null, adm = isAdminRol(rol.rol);
   const boekOk = adm || (R ? R.financien === "bewerken" : rol.rol === "boekhouder");
   const fOk = adm || !!(functie && R && R[functie] === "bewerken");
