@@ -119,17 +119,17 @@ function appLink(o){if(!o||!o.deeplink)return null;const ret=location.origin+loc
 
 /* PaymentPanel – onlineBlok: gedeeld door banket, familiedag, inschrijven */
 function onlineBlok(o,bedrag){const href=appLink(o);
-  return `<div id="online"><a class="btn bc" id="bcGo" href="${esc(href||o.checkout||"#")}">${BC_ICON}Betaal ${eur(bedrag)} met Bancontact</a>
+  return `<div id="online" class="pp"><div class="pp-due"><span>Te betalen</span><b>${eur(bedrag)}</b></div><div class="pp-st" id="bcStatus" role="status" aria-live="polite"></div><a class="btn bc" id="bcGo" href="${esc(href||o.checkout||"#")}">${BC_ICON}Betalen met Bancontact</a>
   <p class="hint c">${o.deeplink?"Je Bancontact- of bankapp opent en je bevestigt daar binnen 2 minuten.<br><small>Kom je op een pagina om een app te downloaden? Dan heb je geen app die Bancontact Pay ondersteunt: kies dan hieronder <b>overschrijving</b>.</small>":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
   ${o.qrcode?`<div class="qrwrap desk"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div><p>Op een computer? Scan deze code met de Bancontact-app of de app van je bank.</p></div>`:""}
-  <p class="wacht" id="bcStatus" aria-live="polite"></p></div>`}
+  </div>`}
 
 /* PaymentPanel – volg: gedeeld door banket, familiedag */
 async function volg(){clearTimeout(volgT);if(!BET)return;
   try{const r=await fetch(`/api/betaling?t=${encodeURIComponent(BET.t)}&id=${encodeURIComponent(BET.id)}&token=${encodeURIComponent(BET.token)}`);const s=await r.json();
     if(s.status==="SUCCEEDED"){betaald();return}
     const st=$("#bcStatus");
-    if(["EXPIRED","CANCELLED","FAILED","AUTHORIZATION_FAILED"].includes(s.status)){if(st)st.innerHTML=`${s.status==="EXPIRED"?"Deze betaling is verlopen.":"De betaling is niet gelukt."} <button type="button" class="cp" id="bcNieuw">Opnieuw proberen</button>`;const g=$("#bcGo");if(g)g.classList.add("off");return}
-    if(s.status==="IDENTIFIED"||s.status==="AUTHORIZED"){if(st)st.textContent="Bevestig de betaling in je app…"}
+    if(["EXPIRED","CANCELLED","FAILED","AUTHORIZATION_FAILED"].includes(s.status)){if(st){st.className="pp-st fout";st.innerHTML=`<b>Betaling niet voltooid</b><span>${s.status==="EXPIRED"?"De betaaltermijn is verlopen.":s.status==="CANCELLED"?"De betaling werd geannuleerd.":"De betaling is niet gelukt."}</span><button type="button" class="btn pp-retry" id="bcNieuw">Opnieuw proberen</button>`}const g=$("#bcGo");if(g)g.classList.add("off");return}
+    if(s.status==="IDENTIFIED"||s.status==="AUTHORIZED"){if(st){st.className="pp-st wacht";st.textContent="Betaling wordt verwerkt… Bevestig de betaling in je app."}}
   }catch(x){}
   if(++volgN<200)volgT=setTimeout(volg,document.hidden?8000:3000)}

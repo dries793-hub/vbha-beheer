@@ -521,3 +521,102 @@ body.vb .vb-r.korting{align-items:flex-start!important}body.vb .vb-r.korting>b{p
 @media (min-width:561px){body.vb .hdr{padding-left:20px!important;padding-right:20px!important}body.vb .hdr .in{max-width:calc(var(--vb-hdr-w,var(--vb-w)) - 40px)!important;margin-left:auto;margin-right:auto}}
 @media (max-width:560px){body.vb .hdr{padding-left:20px!important;padding-right:20px!important}}
 @media (max-width:360px){body.vb .hdr{padding-left:16px!important;padding-right:16px!important}}
+
+/* ======================================================================================
+   GOLDEN REFERENCE (Banket) — Public/Member · Comfortable
+   Eén laatste laag die de mock-ups vastlegt; geldt voor alle pagina's met body.vb-app.
+   Open compositie: secties + witruimte + typografie + dunne scheidingslijn, geen kaders.
+   ====================================================================================== */
+body.vb.vb-app{--g-ink:#18191C;--g-sec:#6F7278;--g-line:#E2E3E5;--g-soft:#F7F8F9;--g-track:#F1F2F4;--g-red:var(--vb-red,#C0161F);--g-t:.16s cubic-bezier(.2,.7,.3,1);--g-in:52px;--g-cta:56px}
+@media (prefers-color-scheme:dark){body.vb.vb-app{--g-ink:#ECEDEF;--g-sec:#9B9EA5;--g-line:#2E3035;--g-soft:#1C1D20;--g-track:#232528}}
+body.vb-app main{max-width:680px}
+/* hero: titel · begroeting · korte omschrijving (geen eyebrow) */
+body.vb-app .vb-eyebrow{display:none!important}
+body.vb-app .hero .title{margin:0 0 6px!important}
+body.vb-app h1,body.vb-app .title h1{font-size:34px!important;line-height:1.12!important;font-weight:750!important;letter-spacing:-.022em!important;color:var(--g-ink)}
+body.vb-app .dag,body.vb-app #dag{font-size:17px!important;font-weight:500!important;color:var(--g-ink)!important;margin:6px 0 0!important}
+body.vb-app .hero .lead,body.vb-app main>.lead{font-size:16px!important;line-height:1.5!important;color:var(--g-sec)!important;margin:4px 0 0!important}
+@media (max-width:420px){body.vb-app h1,body.vb-app .title h1{font-size:30px!important}}
+/* EventInfo: randloos, twee kolommen met lijn-iconen, daaronder de termijn */
+body.vb-app .facts{margin-top:22px!important}
+body.vb-app .vb-metas{margin-top:12px!important;font-size:14px!important;color:var(--g-sec)!important}
+/* secties */
+body.vb-app .vb-sec,body.vb-app .hero+#box{border-color:var(--g-line)!important}
+body.vb-app .vb-sec{padding:26px 0 28px!important;border-top:1px solid var(--g-line)!important}
+body.vb-app .vb-card-t,body.vb-app main h2.vb-card-t{font-size:22px!important;font-weight:700!important;letter-spacing:-.012em!important;margin:0 0 16px!important;color:var(--g-ink)}
+/* labels boven velden: 15px, rustig gewicht */
+body.vb-app main label:not(.opt):not(.vb-pc-sw):not(.vb-pc-t):not(:has(input[type=radio])):not(:has(input[type=checkbox])),body.vb-app legend.lbl,body.vb-app .lbl{font-size:15px!important;font-weight:500!important;color:var(--g-ink)!important;margin:0 0 8px!important}
+body.vb-app .grid{row-gap:20px!important}
+/* invoervelden: comfortabel, bijna wit, zeer subtiele rand */
+body.vb-app main input[type=text],body.vb-app main input[type=email],body.vb-app main input[type=tel],body.vb-app main input[type=number],body.vb-app main input[type=search],body.vb-app main input[type=date],body.vb-app main select,body.vb-app main textarea{
+  min-height:var(--g-in)!important;background:var(--g-soft)!important;border:1px solid var(--g-line)!important;border-radius:10px!important;padding:13px 14px!important;font-size:16px!important;color:var(--g-ink)!important;box-shadow:none!important;
+  transition:border-color var(--g-t),background-color var(--g-t),box-shadow var(--g-t)}
+body.vb-app main textarea{min-height:var(--g-in)!important;line-height:1.45}
+body.vb-app main input:hover:not(:focus):not([readonly]),body.vb-app main select:hover,body.vb-app main textarea:hover:not(:focus){border-color:#C9CBCF!important}
+body.vb-app main input:focus,body.vb-app main select:focus,body.vb-app main textarea:focus{outline:none!important;background:#fff!important;border-color:var(--g-ink)!important;box-shadow:0 0 0 3px rgba(24,25,28,.10)!important}
+@media (prefers-color-scheme:dark){body.vb-app main input:focus,body.vb-app main select:focus,body.vb-app main textarea:focus{background:#141517!important;box-shadow:0 0 0 3px rgba(236,237,239,.14)!important}}
+body.vb-app main input::placeholder,body.vb-app main textarea::placeholder{color:#9A9DA3}
+body.vb-app main input[readonly],body.vb-app main input:disabled{background:var(--g-track)!important;color:var(--g-sec)!important}
+body.vb-app .veld-fout input,body.vb-app .veld-fout select,body.vb-app .veld-fout textarea,body.vb-app input[aria-invalid=true]{border-color:#D3131C!important;box-shadow:0 0 0 3px rgba(211,19,28,.10)!important}
+/* SegmentedControl: zacht spoor met fijne rand, selectie charcoal, 150–180ms */
+body.vb-app .ch{background:var(--g-track)!important;border:1px solid var(--g-line)!important;border-radius:11px!important;padding:3px!important;gap:3px!important}
+body.vb-app .ch label{min-height:44px!important;border-radius:8px!important;transition:background-color var(--g-t),color var(--g-t),box-shadow var(--g-t)!important}
+body.vb-app .ch b,body.vb-app .ch span{font-size:15.5px!important;font-weight:500!important}
+body.vb-app .ch label:has(input:checked){background:var(--g-ink)!important;color:#fff!important;box-shadow:0 1px 2px rgba(0,0,0,.14)!important}
+body.vb-app .ch label:has(input:checked) b{font-weight:600!important}
+body.vb-app .ch label:active{transform:scale(.985)}
+/* PriceSummary: open rijen, tabular nums */
+body.vb-app .vb-sum{gap:12px!important}
+body.vb-app .vb-r,body.vb-app .vb-r>b{font-size:16px!important}
+body.vb-app .vb-r>b{font-variant-numeric:tabular-nums;font-weight:600!important}
+body.vb-app .vb-r.korting>b,body.vb-app .vb-pc>b{color:var(--g-ink)!important}
+body.vb-app .vb-r small{font-size:13.5px!important;color:var(--g-sec)!important}
+body.vb-app .vb-pc{padding-top:14px;border-top:1px solid var(--g-line)}
+body.vb-app .vb-pc>b.nul{color:var(--g-sec)!important}
+/* CheckoutAction: "Te betalen" als visueel anker + duidelijke rode actie */
+body.vb-app .vb-checkout{border-top:1px solid var(--g-line)!important}
+body.vb-app .vb-due span{font-size:14.5px!important;color:var(--g-sec)!important;font-weight:500!important}
+body.vb-app .vb-due b{font-size:30px!important;font-weight:750!important;letter-spacing:-.02em!important;font-variant-numeric:tabular-nums;color:var(--g-ink)!important;line-height:1.05!important}
+body.vb-app .vb-checkout .btn{height:var(--g-cta)!important;min-height:var(--g-cta)!important;line-height:var(--g-cta)!important;font-size:16.5px!important;font-weight:650!important;border-radius:12px!important;background:var(--g-red)!important;transition:filter var(--g-t),transform .12s}
+body.vb-app .vb-checkout .btn:hover{filter:brightness(.94)}body.vb-app .vb-checkout .btn:active{transform:translateY(1px)}
+/* desktop: zoals de mock-up — "Te betalen" links, groot bedrag rechts, knop over de volle breedte eronder */
+@media (min-width:768px){
+  body.vb-app .vb-checkout{position:static!important;box-shadow:none!important;margin:0!important;grid-template-columns:1fr!important;row-gap:14px!important;padding:22px 0 0!important}
+  body.vb-app .vb-due:not([hidden]){display:flex!important;flex-direction:row!important;align-items:baseline;justify-content:space-between;gap:16px}
+  body.vb-app .vb-due b{font-size:36px!important}
+  body.vb-app .vb-due span{font-size:16px!important;color:var(--g-ink)!important}
+  body.vb-app .vb-checkout .btn{grid-column:1/-1!important}
+}
+@media (max-width:767px){body.vb-app .vb-due b{font-size:26px!important}}
+@media (max-width:360px){body.vb-app .vb-due b{font-size:22px!important}}
+/* conditionele inhoud: opacity + 5px, 180ms */
+@keyframes g-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+body.vb-app [data-reveal]:not([hidden]),body.vb-app .opmw:not([hidden]),body.vb-app .vb-cin,body.vb-app .veld-fout .vb-ft,body.vb-app #alMeld{animation:g-in .18s cubic-bezier(.2,.7,.3,1)}
+@keyframes g-tik{0%{opacity:.35}100%{opacity:1}}
+@media (prefers-reduced-motion:reduce){body.vb-app *{animation:none!important;transition:none!important}}
+/* footer */
+body.vb-app .foot{font-size:13.5px!important;color:var(--g-sec)!important;margin-top:28px!important;text-align:center}
+body.vb-app .foot a{color:var(--g-sec)!important}
+body.vb-app .opmw{margin-top:18px!important}
+body.vb-app .vb-sec .grid>:last-child .opmw{margin-bottom:0}
+body.vb-app .vb-sec>.grid{margin-bottom:0!important}
+/* PaymentPanel: bedrag als anker, één duidelijke actie, toestanden inline (wachten · niet voltooid · opnieuw) */
+body.vb-app .pp{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+body.vb-app .pp-due{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding-top:4px}
+body.vb-app .pp-due span{font-size:16px;color:var(--g-ink)}
+body.vb-app .pp-due b{font-size:34px;font-weight:750;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--g-ink)}
+body.vb-app .btn.bc{min-height:var(--g-cta)!important;border-radius:12px!important;background:var(--g-red)!important;color:#fff!important;font-size:16.5px!important;font-weight:650!important;display:flex!important;align-items:center;justify-content:center;gap:10px;width:100%}
+body.vb-app .btn.bc.off{display:none!important}
+body.vb-app .pp-st:empty{display:none}
+body.vb-app .pp-st{animation:g-in .18s cubic-bezier(.2,.7,.3,1)}
+body.vb-app .pp-st.wacht{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--g-ink);padding:12px 14px;border-radius:10px;background:var(--g-soft);border:1px solid var(--g-line)}
+body.vb-app .pp-st.wacht::before{content:"";width:16px;height:16px;flex:none;border-radius:50%;border:2px solid var(--g-line);border-top-color:var(--g-ink);animation:vb-spin .8s linear infinite}
+body.vb-app .pp-st.fout{display:grid;gap:4px;padding:14px 16px;border-radius:12px;background:#FDF3F3;border:1px solid #F1CDCF}
+body.vb-app .pp-st.fout b{font-size:16px;color:#A3121A}body.vb-app .pp-st.fout span{font-size:14.5px;color:var(--g-sec)}
+body.vb-app .pp-st.fout .pp-retry{margin-top:10px;min-height:48px;border-radius:10px;background:var(--g-ink)!important;color:#fff!important;font-weight:600;width:100%}
+@media (prefers-color-scheme:dark){body.vb-app .pp-st.fout{background:#2A1517;border-color:#4A2226}body.vb-app .pp-st.fout b{color:#F2A3A7}}
+body.vb-app .pp .hint{margin:0!important;font-size:14px!important;color:var(--g-sec)!important;text-align:left!important}
+body.vb-app .pp .qrwrap{margin:4px 0 0!important}
+@media (max-width:767px){body.vb-app .pp .qrwrap.desk{display:none!important}}
+body.vb-app .pp:has(.pp-st.fout) .hint,body.vb-app .pp:has(.pp-st.fout) .qrwrap{display:none!important}
+body.vb-app .pp-st.wacht{text-align:left;justify-content:flex-start}body.vb-app .btn.bc svg{color:#fff!important;stroke:currentColor!important}body.vb-app .btn.bc svg *{stroke:currentColor}
