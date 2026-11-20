@@ -256,17 +256,18 @@ function val(n){const c=document.querySelector('input[name="'+n+'"]:checked');re
 function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
   const pay=$("#pay"),L=INFO.lp,n=p||1;
   /* korting volgens het puntensysteem: kostprijs, bijdrage van de vriendenkring en jouw aandeel duidelijk tonen */
-  const kader=L&&L.korting>0?`<div class="kv"><div><span>Kostprijs${n>1?` (${n} × ${eur(L.basis)})`:""}</span><b>${eur(n*L.basis)}</b></div><div class="kv-vk"><span>Bijdrage vriendenkring<small>${esc(L.status.charAt(0)+L.status.slice(1).toLowerCase())} · ${L.korting}% korting</small></span><b>− ${eur(n*(L.basis-L.prijs))}</b></div><div class="kv-tot"><span>Jouw aandeel</span><b>${eur(n*L.prijs)}</b></div></div>`:"";
+  const kader=L&&L.korting>0?`<div class="kv"><div><span>Deelnameprijs${n>1?` (${n} × ${eur2(L.basis)})`:""}</span><b>${eur2(n*L.basis)}</b></div><div class="kv-vk"><span>Bijdrage vriendenkring<small>${esc(L.status.charAt(0)+L.status.slice(1).toLowerCase())} · ${L.korting}% korting</small></span><b>− ${eur2(n*(L.basis-L.prijs))}</b></div><div class="kv-tot"><span>Jouw aandeel</span><b>${eur2(n*L.prijs)}</b></div></div>`:"";
   /* bedragen pas tonen als een lid gekozen is (en bij korting de persoonlijke prijs gekend is) */
   const lidOk=!!$("#naam").dataset.id&&!$("#alMeld")&&(!INFO.kortingAan||INFO.lp);
-  /* goudtegoed (reglement 2027): schuifbalk in de rij "Goudtegoed" van het overzicht; tijdens het schuiven enkel de bedragen bijwerken */
-  const tot=Math.round(n*INFO.prijs*100)/100,max=lidOk&&p?Math.min(INFO.teg||0,tot):0,sl=tegSl();
-  sl.max=max.toFixed(2);if(!sl.dataset.raak||+sl.value>max)sl.value=max.toFixed(2);
-  const teg=max>0?Math.max(0,Math.min(max,+sl.value||0)):0;INFO.tegGebruik=Math.round(teg*100)/100;INFO.tegTot=tot;
-  const tegR=max>0?`<div class="kv-vk kv-teg"><span>Goudtegoed<span id="tegSlot"></span></span><b id="tegV">− ${eur(teg)}</b></div><div class="kv-tot"><span>Te betalen</span><b id="tegTot">${eur(tot-teg)}</b></div>`:"";
-  if(lidOk&&(p||kader)){pay.hidden=false;pay.innerHTML=kader?(max>0?kader.replace(/<\/div>$/,tegR+"</div>"):kader):(max>0?`<div class="kv"><div><span>Prijs</span><b>${eur(tot)}</b></div>${tegR}</div>`:`Te betalen: <b>${eur(p*INFO.prijs)}</b>`);const slot=$("#tegSlot");if(slot)slot.append(sl)}else pay.hidden=true}
-let TEG_SL=null;function tegSl(){let sl=TEG_SL;if(!sl){sl=TEG_SL=document.createElement("input");sl.type="range";sl.id="tegB";sl.className="teg-sl";sl.min="0";sl.step="0.5";sl.setAttribute("aria-label","Bedrag goudtegoed");
-  sl.addEventListener("input",()=>{sl.dataset.raak="1";const max=+sl.max||0,t=Math.max(0,Math.min(max,+sl.value||0));INFO.tegGebruik=Math.round(t*100)/100;const v=$("#tegV"),o=$("#tegTot");if(v)v.textContent="− "+eur(t);if(o)o.textContent=eur((INFO.tegTot||0)-t)})}return sl}
+  /* goudtegoed (reglement 2027): schakelaar (standaard aan, volle bedrag) en optioneel "ander bedrag"; bedragen altijd met 2 decimalen (geen verspringen) */
+  const tot=Math.round(n*INFO.prijs*100)/100,max=lidOk&&p?Math.min(INFO.teg||0,tot):0;
+  const teg=max>0&&TEG.aan?Math.max(0,Math.min(max,TEG.bedrag==null?max:TEG.bedrag)):0;INFO.tegGebruik=Math.round(teg*100)/100;
+  const tegR=max>0?`<div class="kv-teg"><span><label class="tg-sw"><input type="checkbox" id="tegAan"${TEG.aan?" checked":""}><i aria-hidden="true"></i>Goudtegoed gebruiken</label><small>${eur2(INFO.teg)} beschikbaar${TEG.aan?` · ${TEG.ander?`<input id="tegIn" class="tg-in" type="text" inputmode="decimal" value="${teg.toFixed(2).replace(".",",")}" aria-label="Bedrag goudtegoed">`:`<button type="button" class="tg-ander" id="tegAnder">ander bedrag</button>`}`:""}</small></span><b>${teg>0?"− "+eur2(teg):eur2(0)}</b></div><div class="kv-tot"><span>Te betalen</span><b>${eur2(tot-teg)}</b></div>`:"";
+  if(lidOk&&(p||kader)){pay.hidden=false;pay.innerHTML=kader?(max>0?kader.replace(/<\/div>$/,tegR+"</div>"):kader):(max>0?`<div class="kv"><div><span>Deelnameprijs</span><b>${eur2(tot)}</b></div>${tegR}</div>`:`Te betalen: <b>${eur(p*INFO.prijs)}</b>`)}else pay.hidden=true}
+const TEG={aan:true,bedrag:null,ander:false};const eur2=n=>"€"+(Number(n)||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
+document.addEventListener("change",e=>{if(e.target.id==="tegAan"){TEG.aan=e.target.checked;upd()}else if(e.target.id==="tegIn"){const v=Number(String(e.target.value).replace(",","."));TEG.bedrag=isFinite(v)&&v>=0?v:null;upd()}});
+document.addEventListener("click",e=>{if(e.target.id==="tegAnder"){TEG.ander=true;upd();const i=$("#tegIn");if(i){i.focus();i.select()}}});
+document.addEventListener("keydown",e=>{if(e.target.id==="tegIn"&&e.key==="Enter"){e.preventDefault();e.target.blur()}});
 document.addEventListener("change",e=>{if(e.target.name)upd()});
 $("#f").addEventListener("submit",async e=>{e.preventDefault();const er=$("#err");er.textContent="";
   const d={naam:$("#naam").value.trim(),lidId:$("#naam").dataset.id||"",personen:+val("personen"),menu1:val("menu1"),menu2:val("menu2"),opmerking1:$("#opm1").value.trim(),opmerking2:+val("personen")===2?$("#opm2").value.trim():"",tegoed:INFO.tegGebruik||0,website:$("#website").value,duur:Date.now()-t0};
@@ -342,5 +343,9 @@ textarea{width:100%;font:inherit;border:1px solid var(--line-strong);background:
 #facts[hidden]{display:none}
 .uit-k{margin:-10px 0 14px;font-size:11.5px;line-height:1.45;color:var(--muted)}
 #opm1,#opm2{min-height:44px;height:44px;resize:vertical}
+.kv-vk,.kv-teg{color:var(--ink)!important}.kv-teg{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.kv-teg>span{display:flex;flex-direction:column;gap:2px;align-items:flex-start}.kv-teg small{font-size:12.5px;color:var(--muted)}
+.tg-sw{display:inline-flex!important;align-items:center;justify-content:flex-start;gap:8px;margin:0!important;padding:0;font-size:14.5px;font-weight:400;cursor:pointer}.tg-sw input{position:absolute;opacity:0;width:1px;height:1px}.tg-sw i{position:relative;width:32px;height:18px;border-radius:99px;background:var(--line-strong);transition:.15s;flex:none}.tg-sw i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.15s}.tg-sw input:checked+i{background:var(--navy)}.tg-sw input:checked+i::after{left:16px}.tg-sw input:focus-visible+i{box-shadow:0 0 0 3px var(--info-soft)}
+.tg-ander{all:unset;cursor:pointer;color:var(--ink);text-decoration:underline;text-underline-offset:2px}.tg-in{width:72px!important;display:inline-block;vertical-align:baseline;padding:2px 6px!important;font-size:12.5px!important;border-radius:6px!important;min-height:0}
+.kv b{font-variant-numeric:tabular-nums}
 </style>
 </body></html>
