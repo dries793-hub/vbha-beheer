@@ -7,7 +7,7 @@
   --vb-dark:#18191C;--vb-red:#C0161F;--vb-red-deep:#8F0F16;--vb-bg:#F5F5F6;--vb-card:#FFFFFF;--vb-ink:#18191C;--vb-muted:#6F7278;--vb-line:#D9DBDF;--vb-line-soft:#E8E9EC;
   --vb-ro:#F2F2F3;--vb-gold:#B08400;--vb-silver:#6B7280;--vb-bronze:#9A5B26;--vb-green:#168447;--vb-focus:#2F6FE4;--vb-focus-soft:#E4EDFD;
   --vb-s1:8px;--vb-s2:12px;--vb-s3:16px;--vb-s4:24px;--vb-s5:32px;--vb-s6:40px;
-  --vb-r-in:10px;--vb-r-card:14px;--vb-h-in:46px;--vb-h-btn:54px;--vb-w:680px;
+  --vb-r-in:10px;--vb-r-card:14px;--vb-h-in:50px;--vb-h-btn:54px;--vb-w:680px;
   --vb-f:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 @media (prefers-color-scheme:dark){:root{--vb-dark:#0B0B0C;--vb-bg:#111214;--vb-card:#1A1B1E;--vb-ink:#ECEDEF;--vb-muted:#9B9EA5;--vb-line:#3C3F45;--vb-line-soft:#2A2C30;--vb-ro:#202226;--vb-gold:#E2B93B;--vb-silver:#B4BAC4;--vb-bronze:#D08A4F;--vb-green:#3FB57A;--vb-focus-soft:#16233D}}
 
@@ -29,7 +29,7 @@ body.vb main{max-width:var(--vb-w);margin:0 auto;padding:var(--vb-s4) 20px var(-
 body.vb .hero{margin:0}
 body.vb .title{display:flex;align-items:center;gap:var(--vb-s2);margin:0 0 var(--vb-s2)}
 body.vb .title img{height:44px;width:auto;flex:none}
-body.vb h1{font-size:30px;line-height:1.15;font-weight:700;letter-spacing:-.015em;margin:0}
+body.vb h1{font-size:32px;line-height:1.15;font-weight:700;letter-spacing:-.015em;margin:0}
 body.vb .dag{margin:2px 0 0;font-size:16px;color:var(--vb-muted)}
 body.vb .lead{margin:0 0 var(--vb-s4);font-size:16px;color:var(--vb-muted);line-height:1.55}
 @media (max-width:360px){body.vb h1{font-size:26px}}
@@ -48,7 +48,7 @@ body.vb .vb-metas{margin:0 0 var(--vb-s4)}
 
 /* ---- hoofdkaart ---- */
 body.vb .card{background:var(--vb-card);border:1px solid var(--vb-line-soft);border-radius:var(--vb-r-card);padding:var(--vb-s4) 20px;box-shadow:none}
-body.vb .vb-card-t{font-size:21px;font-weight:700;margin:0 0 var(--vb-s3);letter-spacing:-.01em}
+body.vb .vb-card-t{font-size:22px;font-weight:700;margin:0 0 var(--vb-s3);letter-spacing:-.01em}
 @media (max-width:360px){body.vb .card{padding:20px 16px}}
 body.vb .grid{display:flex;flex-direction:column;gap:20px}
 body.vb fieldset{border:0;margin:0;padding:0;min-width:0}
@@ -89,7 +89,7 @@ body.vb .pr-r .nm b{font-size:16px;font-weight:600}
 body.vb .pr-r .nm span{font-size:14px;color:var(--vb-muted)}
 body.vb .pr-r .pp{display:none}
 body.vb .stp{display:flex;align-items:center;gap:10px;flex:none}
-body.vb .stp button{width:40px;height:40px;border-radius:50%;border:1px solid var(--vb-line);background:var(--vb-card);color:var(--vb-ink);font-size:20px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+body.vb .stp button{width:44px;height:44px;border-radius:50%;border:1px solid var(--vb-line);background:var(--vb-card);color:var(--vb-ink);font-size:20px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
 body.vb .stp button:hover:not(:disabled){border-color:var(--vb-ink)}
 body.vb .stp button:disabled{opacity:.35;cursor:default}
 body.vb .stp button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--vb-focus-soft);border-color:var(--vb-focus)}
@@ -113,8 +113,9 @@ body.vb .vb-notice{display:flex;gap:10px;align-items:flex-start;background:var(-
 body.vb .vb-notice svg{width:18px;height:18px;flex:none;margin-top:1px;stroke:var(--vb-muted);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
 /* ---- statusbadge ---- */
-body.vb .vb-badge{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;font-weight:700;letter-spacing:.02em;line-height:1.6;color:#fff;background:var(--vb-st,var(--vb-muted));vertical-align:middle}
-body.vb .st-goud{--vb-st:var(--vb-gold)}body.vb .st-zilver{--vb-st:var(--vb-silver)}body.vb .st-brons{--vb-st:var(--vb-bronze)}body.vb .st-geen{--vb-st:var(--vb-muted)}
+body.vb .vb-badge{display:inline-block;padding:1px 10px;border-radius:99px;font-size:12.5px;font-weight:600;line-height:1.6;color:var(--vb-st,var(--vb-muted));background:var(--vb-st-soft,var(--vb-ro));vertical-align:middle}
+body.vb .st-goud{--vb-st:var(--vb-gold);--vb-st-soft:#FBF3DC}body.vb .st-zilver{--vb-st:#4B5563;--vb-st-soft:#EEF0F3}body.vb .st-brons{--vb-st:#8A4B1F;--vb-st-soft:#F6ECE3}body.vb .st-geen{--vb-st:var(--vb-muted);--vb-st-soft:var(--vb-ro)}
+@media (prefers-color-scheme:dark){body.vb .st-goud{--vb-st-soft:#33290F}body.vb .st-zilver{--vb-st:#C3C8D0;--vb-st-soft:#2A2D33}body.vb .st-brons{--vb-st:#E0A274;--vb-st-soft:#36241A}}
 
 /* ---- prijsoverzicht ---- */
 body.vb .pay{margin:var(--vb-s4) 0 0;padding:var(--vb-s3) 18px;background:var(--vb-card);border:1px solid var(--vb-line);border-radius:var(--vb-r-in);font-size:16px}
@@ -126,8 +127,8 @@ body.vb .vb-r>b{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-
 body.vb .vb-r.korting>b,body.vb .vb-r.credit>b{color:var(--vb-st,var(--vb-gold))}
 body.vb .vb-r small{display:block;flex-basis:100%;font-size:14px;color:var(--vb-muted);font-weight:400}
 body.vb .vb-tot{display:flex;justify-content:space-between;align-items:baseline;gap:var(--vb-s2);border-top:1px solid var(--vb-line);padding-top:var(--vb-s2);margin-top:4px}
-body.vb .vb-tot span{font-size:19px;font-weight:700}
-body.vb .vb-tot b{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+body.vb .vb-tot span{font-size:18px;font-weight:700}
+body.vb .vb-tot b{font-size:30px;line-height:1.1;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 body.vb .vb-sel{display:flex;flex-direction:column;gap:2px}.vb-sel small{font-size:14.5px;color:var(--vb-muted)}
 
 /* ---- punten / tegoed (één component) ---- */
@@ -158,3 +159,53 @@ body.vb .foot a{color:inherit}
 @media (max-width:380px){body.vb .card{padding:20px 14px}body.vb .pay{padding:14px 12px}body.vb .vb-sw{gap:8px;font-size:15.5px}body.vb .vb-sw i{width:36px;height:22px}body.vb .vb-sw i::after{width:16px;height:16px}body.vb .vb-sw input:checked+i::after{left:17px}}
 body.vb .vb-sw{white-space:nowrap}body.vb .vb-nw{white-space:nowrap}
 @media (max-width:360px){body.vb .vb-sw{white-space:normal;line-height:1.25}}
+
+
+/* ============ fase 4: alle publieke en ledenpagina's (lid worden, lidgeld, status, cadeau, sponsor, fuif, webshop,
+   onkosten, vergadering, factuur, steun, tickets, kalender aan huis, reglement, privacy, gedeelde map) ============
+   Zelfde tokens en betekenis als de beheerapp: rood = hoofdactie, fout en verwijderen; "gekozen" = antraciet. */
+body.vb{--accent:var(--vb-dark);--accent-deep:#000;--accent-soft:var(--vb-ro);--navy:var(--vb-dark);--ink:var(--vb-ink);--muted:var(--vb-muted);--line:var(--vb-line-soft);--line-strong:var(--vb-line);--surface:var(--vb-card);--bg:var(--vb-bg)}
+@media (prefers-color-scheme:dark){body.vb{--accent:#ECEDEF;--accent-soft:#2A2C30}}
+@media (prefers-reduced-motion:reduce){body.vb *{transition:none!important;animation:none!important}}
+body.vb a{color:var(--vb-ink);text-underline-offset:2px}
+body.vb :focus-visible{outline:none}
+body.vb a:focus-visible,body.vb button:focus-visible{box-shadow:0 0 0 3px var(--vb-focus-soft);border-radius:6px}
+/* keuzetegels (bedragen, ploegen, formules): zelfde gekozen-toestand als de segmentknoppen */
+body.vb .opt span{min-height:48px;display:flex;align-items:center;justify-content:center;border:1px solid var(--vb-line);border-radius:var(--vb-r-in);background:var(--vb-card);font-size:15.5px;font-weight:500;color:var(--vb-ink);transition:background .15s,color .15s,border-color .15s}
+body.vb .opt input:checked+span{background:var(--vb-dark);border-color:var(--vb-dark);color:#fff;font-weight:600}
+body.vb .opt input:focus-visible+span{box-shadow:0 0 0 3px var(--vb-focus-soft)}
+body.vb .seg2 button{min-height:48px;border-radius:var(--vb-r-in)}
+body.vb .seg2 button.on{background:var(--vb-dark);border-color:var(--vb-dark);color:#fff}
+/* tweekeuze in een grijze baan (onkosten: eigen geld / kaart) */
+body.vb .bm{border-radius:var(--vb-r-in);background:var(--vb-ro);padding:3px}
+body.vb .bm label{margin:0!important}
+body.vb .bm span{height:44px;border-radius:8px;font-size:15px}
+body.vb .bm input:checked+span{background:var(--vb-dark);color:#fff;box-shadow:none}
+/* bestand kiezen */
+body.vb label.up{display:flex!important;align-items:center;gap:10px;min-height:var(--vb-h-in);margin:0;padding:10px 14px;font-size:15px;font-weight:500;color:var(--vb-muted);border:1.5px dashed var(--vb-line);border-radius:var(--vb-r-in);background:var(--vb-card)}
+body.vb label.up svg{width:18px;height:18px;flex:none}
+/* aantallen met invoerveld (tickets) */
+body.vb .stp input{width:48px;min-height:44px;border:0;background:none;text-align:center;font:600 17px var(--vb-f);color:var(--vb-ink);padding:0;-moz-appearance:textfield;appearance:textfield}
+body.vb .stp input::-webkit-inner-spin-button,body.vb .stp input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+/* overige invoer */
+body.vb input[type=number],body.vb input[type=search],body.vb input[type=password]{min-height:var(--vb-h-in);font:inherit;font-size:16px;color:var(--vb-ink);background:var(--vb-card);border:1px solid var(--vb-line);border-radius:var(--vb-r-in);padding:10px 14px}
+body.vb .stp input[type=number]{border:0;min-height:44px;padding:0;width:48px}
+body.vb input:disabled,body.vb select:disabled,body.vb textarea:disabled{background:var(--vb-ro);color:var(--vb-muted);cursor:not-allowed}
+body.vb input[type=checkbox],body.vb input[type=radio]{accent-color:var(--vb-dark);width:20px;height:20px}
+/* secundaire knoppen op publieke pagina's (bv. "Kind toevoegen", "Opnieuw proberen") */
+body.vb .btn.sec,body.vb .btn.alt,body.vb .btn.ghost,body.vb .btn.lnk{background:var(--vb-card);color:var(--vb-ink);border:1px solid var(--vb-line)}
+body.vb .btn.sec:hover,body.vb .btn.alt:hover,body.vb .btn.ghost:hover,body.vb .btn.lnk:hover{background:var(--vb-ro)}
+/* bevestiging, fout, gesloten: één toestandspatroon */
+body.vb .state,body.vb .bevestig{text-align:center}
+body.vb .state h2,body.vb .bevestig h2{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:var(--vb-s2) 0 6px}
+body.vb .ok svg,body.vb .state .ic svg{color:var(--vb-green)}
+/* betaalblok en QR */
+body.vb .paybox{border-radius:var(--vb-r-in);border-color:var(--vb-line-soft)}
+body.vb .qr{border-radius:var(--vb-r-in);border-color:var(--vb-line-soft)}
+body.vb .tot{font-variant-numeric:tabular-nums}
+/* lees-pagina's (privacy, reglement): rustige typografie */
+body.vb main h2{font-size:22px;line-height:1.25;font-weight:700;letter-spacing:-.01em}
+body.vb main h3{font-size:18px;line-height:1.3;font-weight:600}
+body.vb main p,body.vb main li{font-size:16px;line-height:1.6}
+/* mobiel: genoeg ruimte onderaan, geen vaste hoogtes */
+body.vb main{padding-bottom:calc(var(--vb-s6) + env(safe-area-inset-bottom,0px))}
