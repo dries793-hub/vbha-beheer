@@ -855,3 +855,10 @@ body.vb-app .stp button{background:var(--g-soft)!important;border-color:var(--g-
 /* begroeting: donkergrijs tussen de zwarte titel en de lichtgrijze tekst */
 body.vb-app .dag,body.vb-app #dag{color:#45474D!important}
 @media (prefers-color-scheme:dark){body.vb-app .dag,body.vb-app #dag{color:#C9CBD0!important}}
+/* minder witruimte onderaan alle pagina's */
+body.vb-app main{padding-bottom:20px!important}
+body.vb-app main>:last-child,body.vb-app form>.vb-sec:last-of-type{margin-bottom:0!important}
+@media (max-width:640px){
+  body.vb-app:not(.vb-kb):has(.vb-checkout:not([hidden])) main{padding-bottom:4px!important}
+  body.vb-app:not(.vb-kb):has(.vb-checkout:not([hidden])) form .vb-sec:last-of-type{padding-bottom:10px!important}
+}
