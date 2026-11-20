@@ -127,10 +127,10 @@ const BC_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" w
 const OK_ICON='<div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>';
 let INFO=null,volgT=0,volgN=0;
 /* handmatig() staat in /inschrijf.js (gedeeld) */
-function overschrijven(j){return `${j.qr?`<div class="qrwrap"><div class="qr">${j.qr}</div><p>Scan deze code met de app van je bank. Bedrag, rekeningnummer en mededeling staan dan al ingevuld.</p></div><div class="or"><span>of schrijf zelf over</span></div>`:""}${handmatig(j)}`}
+function overschrijven(j){return `<div class="ovs${j.qr?" mqr":""}">${j.qr?`<div class="qrwrap"><div class="qr">${j.qr}</div><p>Scan deze code met de app van je bank. Bedrag, rekeningnummer en mededeling staan dan al ingevuld.</p></div><div class="or"><span>of schrijf zelf over</span></div>`:""}<div class="ovs-h">${handmatig(j)}</div></div>`}
 function appLink(o){if(!o||!o.deeplink)return null;const ret=location.origin+location.pathname+qs()+"&betaling=terug";return o.deeplink+(o.deeplink.includes("?")?"&":"?")+"returnUrl="+encodeURIComponent(ret)}
 function onlineBlok(o){const href=appLink(o);
-  return `<a class="btn bc" id="bcGo" href="${esc(href||o.checkout||"#")}">${BC_ICON}Betaal ${eur(INFO.bedrag)} met Bancontact</a>
+  return `<a class="btn bc" id="bcGo" href="${esc(href||o.checkout||"#")}">${BC_ICON}Betalen met Bancontact</a>
   <p class="hint c">${o.deeplink?"Je Bancontact- of bankapp opent en je bevestigt daar binnen 2 minuten.<br><small>Kom je op een pagina om een app te downloaden? Dan heb je geen app die Bancontact Pay ondersteunt: kies dan hieronder <b>overschrijving</b>.</small>":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
   ${o.qrcode?`<div class="qrwrap desk"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div><p>Op een computer? Scan deze code met de Bancontact-app of de app van je bank.</p></div>`:""}
   <p class="wacht" id="bcStatus" aria-live="polite"></p>`}
@@ -138,7 +138,7 @@ function betaald(){$("#lead").textContent="";
   $("#box").innerHTML=`<div class="card bevestig">${OK_ICON}<h2>Je lidgeld is in orde!</h2><p class="lead2">Bedankt${INFO.voornaam?", "+esc(INFO.voornaam):""}. We ontvingen je lidgeld${INFO.bedrag?" van <b>"+eur(INFO.bedrag)+"</b>":""} voor ${esc(INFO.jaar)}.</p><p class="tot">Tot op een van onze activiteiten!</p></div>`;window.scrollTo({top:0,behavior:"smooth"})}
 function toon(){const j=INFO;
   $("#lead").innerHTML=`${j.voornaam?"Dag "+esc(j.voornaam)+", hier":"Hier"} betaal je je lidgeld voor <b>${esc(j.jaar)}</b>.`;
-  $("#box").innerHTML=`<div class="card"><div class="paybox" style="margin-top:0"><h3>Lidgeld ${esc(j.jaar)}: ${eur(j.bedrag)}</h3>
+  $("#box").innerHTML=`<div class="card"><div class="paybox" style="margin-top:0"><div class="pp-due"><span>Lidgeld ${esc(j.jaar)}</span><b>${eur(j.bedrag)}</b></div>
    ${j.kanOnline?`<div id="online"><div class="wacht">Betaling voorbereiden…</div></div><details class="zelf"><summary>Geen app of lukt het niet? Betaal via overschrijving</summary>${overschrijven(j)}</details>`:overschrijven(j)}</div></div>`;
   if(j.kanOnline)start()}
 async function start(o){try{if(!o||!(o.deeplink||o.checkout)||["EXPIRED","CANCELLED","FAILED","AUTHORIZATION_FAILED"].includes(o.status)){

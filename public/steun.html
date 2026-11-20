@@ -133,7 +133,7 @@ html,body{overflow-x:hidden}
       <input type="text" id="mededeling" name="mededeling" maxlength="60" value="Kalender 2027">
     </div>
     <p class="err" id="err" role="alert"></p>
-    <div class="vb-checkout" data-due-from="#chips .opt input:checked+span"><div class="vb-due" hidden><span>Te betalen</span><b></b></div><button class="btn" id="go" type="submit">Betaal met Bancontact</button></div>
+    <div class="vb-checkout" data-due-from="#chips .opt input:checked+span"><div class="vb-due" hidden><span>Te betalen</span><b></b></div><button class="btn" id="go" type="submit">Betalen met Bancontact</button></div>
     <p class="hint c" style="font-size:13px;color:var(--muted)">Je gaat naar de beveiligde betaalpagina van de Vriendenkring.</p>
   </form>
   <div class="card ov" style="margin-top:14px">
@@ -180,7 +180,7 @@ function toonBetalen(j){
     ${j.qr?`<div class="qrwrap"><div class="qr">${j.qr}</div><p>Scan deze code met de app van je bank. Bedrag, rekeningnummer en mededeling staan dan al ingevuld.</p></div><div class="or"><span>of schrijf zelf over</span></div>`:""}${handmatig(j)}</div>${terug}</div>`;return}
   const href=appLink(o)||o.checkout;
   $("#box").innerHTML=`<div class="card"><div class="paybox" style="margin-top:0"><h3>Steun van ${eur(j.bedrag)}</h3><div id="online">
-    <a class="btn bc" id="bcGo" href="${esc(href)}">${BC_ICON}Betaal ${eur(j.bedrag)} met Bancontact</a>
+    <a class="btn bc" id="bcGo" href="${esc(href)}">${BC_ICON}Betalen met Bancontact</a>
     <p class="hint c">${o.deeplink?"Je Bancontact- of bankapp opent en je bevestigt daar binnen 2 minuten.<br><small>Kom je op een pagina om een app te downloaden? Dan heb je geen app die Bancontact Pay ondersteunt: kies dan hieronder <b>overschrijving</b>.</small>":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
     ${o.qrcode?`<div class="qrwrap desk"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div><p>Op een computer? Scan deze code met de Bancontact-app of de app van je bank.</p></div>`:""}
     <p class="wacht" id="bcStatus" aria-live="polite"></p></div>
@@ -214,7 +214,7 @@ async function start(bedrag,mededeling,auto){const er=$("#err");if(er)er.textCon
     bewaar(j);const href=toonBetalen(j);
     // meteen door naar de betaalpagina of de app (op de gsm), behalve als we een QR tonen op de computer
     if(href&&(j.online.checkout&&!j.online.qrcode||mobiel()))location.href=href;
-  }catch(x){if(!$("#f"))location.reload();er.textContent=x.message;b.disabled=false;b.textContent="Betaal met Bancontact"}}
+  }catch(x){if(!$("#f"))location.reload();er.textContent=x.message;b.disabled=false;b.textContent="Betalen met Bancontact"}}
 
 $("#f").addEventListener("submit",e=>{e.preventDefault();const er=$("#err"),n=gekozen();
   if(!(n>=1)||n>2500){er.textContent="Kies een bedrag tussen € 1 en € 2500.";return}

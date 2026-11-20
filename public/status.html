@@ -4,9 +4,36 @@
 <meta charset="utf-8">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>
+/* Compact Premium: status */
+body.vb-app main{max-width:760px}
+.sx-sec.vb-sec{padding:var(--g-sec-y,18px) 0!important}
+.sx-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 6px}
+h2.sx-j{font-size:13px!important;font-weight:650!important;letter-spacing:.07em!important;text-transform:uppercase;color:var(--g-sec,#6F7278)!important;margin:0!important}
+.sx-b{padding:3px 10px!important;font-size:13px!important;font-weight:650!important;background:none!important;border:1px solid currentColor;color:#6b7078!important}
+.sx-b.GOUD{color:#8a6a10!important;background:#fbf4dc!important;border-color:#ecd99a}.sx-b.ZILVER{color:#555c64!important;background:#f1f2f4!important;border-color:#d7dadf}.sx-b.BRONS{color:#8a4e1d!important;background:#f8ece1!important;border-color:#e6c6a8}
+.sx-m{display:flex;align-items:baseline;flex-wrap:wrap;column-gap:10px;row-gap:2px}
+.sx-m2{justify-content:space-between;align-items:baseline}
+.sx-m2>div{display:flex;align-items:baseline;gap:8px}
+.sx-big{font-size:var(--g-due,30px)!important;font-weight:750!important;letter-spacing:-.02em;line-height:1.1!important;margin:0!important;font-variant-numeric:tabular-nums}
+.sx-sub{font-size:15px!important;font-weight:500!important;margin:0!important;color:var(--g-ink,#18191C)!important}
+.sx-s{font-size:14px!important;margin:4px 0 0!important}
+.sx-ok{display:flex;align-items:center;gap:8px;font-size:15px!important;font-weight:600!important;margin:0!important}
+.sx-ok i{width:20px!important;height:20px!important;font-size:12px}
+.sx-naar{display:block!important;font-weight:500!important;color:var(--g-sec,#6F7278)}.sx-naar b{color:var(--g-ink,#18191C)}
+.sx-bar{height:5px!important;margin-top:10px}
+.sx-lb{font-size:12.5px!important;margin-top:4px!important}
+.sx-teg{margin-top:10px!important;padding:8px 12px!important;border-radius:10px!important}
+.sx-r{padding:0!important;border-bottom:1px solid var(--g-line,#E2E3E5)!important}.sx-r:last-child{border-bottom:0!important}
+.sx-rt{min-height:36px;align-items:center;margin:0!important;font-size:15px!important}
+.sx-det{margin:-2px 0 6px!important;padding-left:14px!important;border-left:0!important;gap:0!important}
+.sx-det div{min-height:26px;align-items:center;font-size:13.5px!important}
+.sx-sec h2.vb-card-t{margin-bottom:4px!important}
+.sx-leeg{padding:24px 0!important}.sx-ster{width:56px!important;height:56px!important;margin-bottom:10px!important}.sx-ster svg{width:26px!important;height:26px!important}
+.sx-leeg h2{font-size:17px!important}
+.sx-w{margin:14px 0 0!important;font-size:14px}
+@media (max-width:520px){.sx-m2{flex-direction:column;align-items:flex-start;row-gap:6px}}
 .sx-top .sx-j{margin:0!important}
-#box{margin-top:22px}
-.sx-big{margin-top:14px!important}
+#box{margin-top:10px}
 /* ---- persoonlijke statuspagina in de stijl van de inschrijfpagina's ---- */
 .sx{display:flex;flex-direction:column}
 .sx-sec{padding:22px 0;border-top:1px solid var(--line,#e6e7ea)}.sx-sec:first-child{border-top:0}
@@ -197,20 +224,20 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
     const tegoed=x.tegoed?`<div class="sx-teg"><span>Goudtegoed</span><b>${eur(x.tegoed.saldo)}</b><small>${x.tegoed.gebruikt?`${eur(x.tegoed.tegoed)} − ${eur(x.tegoed.gebruikt)} gebruikt · `:""}te gebruiken bij een inschrijving tot ${esc(x.tegoed.tot)}</small></div>`:"";
     const reden=N.ere?"Erewacht: altijd de maximale korting.":N.nieuwLid?"Als nieuw lid krijg je dit jaar de bronsstatus.":N.viaPartner?"De hoogste status in je gezin telt.":N.vrij?`Je was in ${N.puntenJaar} vrijgesteld van het puntensysteem.`:N.start?`In ${N.puntenJaar+1} start iedereen met Goud.`:`Dankzij je ${N.totaal} punten uit ${N.puntenJaar}.`;
     const naarDrempel={BRONS:D.brons||0,ZILVER:D.zilver,GOUD:D.goud};
-    let voortgang="";
+    let voortgang="",balk="";
     if(P.ere)voortgang=`<p class="sx-ok"><i>✓</i>Als erewacht blijf je goud.</p>`;
     else if(P.vrij)voortgang=`<p class="sx-s">${BASIS?`Je bent vrijgesteld: in ${Y+1} behoud je je huidige status.`:`Je bent vrijgesteld: in ${Y+1} krijg je goud.`}</p>`;
-    else if(!P.naar)voortgang=`<p class="sx-ok"><i>✓</i>Goud voor ${Y+1} behaald</p><div class="sx-bar goud"><i style="width:100%"></i></div>`;
+    else if(!P.naar)voortgang=`<p class="sx-ok"><i>✓</i>Goud voor ${Y+1} behaald</p>`;
     else{const doel=naarDrempel[P.naar]||D.goud,pc=Math.min(100,Math.max(0,P.totaal/doel*100));
-      voortgang=`<p class="sx-hl">Op weg naar ${nm(P.naar)}</p><div class="sx-bar ${P.volgend}"><i style="width:${pc}%"></i></div><div class="sx-lb"><span>${P.totaal} punten</span><span>${doel} punten</span></div><p class="sx-s">Nog <b>${P.nodig}</b> punten tot ${nm(P.naar)}.</p>`}
+      voortgang=`<p class="sx-ok sx-naar">Nog <b>${P.nodig}</b> punten tot ${nm(P.naar)}</p>`;balk=`<div class="sx-bar ${P.volgend}" role="img" aria-label="${P.totaal} van ${doel} punten"><i style="width:${pc}%"></i></div><div class="sx-lb"><span>0</span><span>${nm(P.naar)} · ${doel} punten</span></div>`}
     const L=(P.onderdelen||[]).filter(o=>o.punten||o.noot),mx=Math.max(1,...L.map(o=>Number(o.punten)||0));
-    const punten=P.totaal>0||L.some(o=>o.punten)?`<section class="sx-sec vb-sec"><h2 class="vb-card-t">Je punten</h2>${L.map(o=>`<div class="sx-r"><div class="sx-rt"><span>${esc(o.naam)}${o.noot?`<i class="sx-noot">${esc(o.noot)}</i>`:""}</span><b>${o.punten} pt</b></div><div class="sx-mini"><i style="width:${Math.min(100,(Number(o.punten)||0)/mx*100)}%"></i></div>${Array.isArray(o.detail)&&o.detail.length?`<div class="sx-det">${o.detail.map(d=>`<div><span>${esc(d.naam)}${d.datum?` · ${dag(d.datum)}`:""}${d.partner?" + partner":""}</span><span>${d.punten!=null?d.punten:(d.pt||0)} pt</span></div>`).join("")}</div>`:""}</div>`).join("")}</section>`
+    const punten=P.totaal>0||L.some(o=>o.punten)?`<section class="sx-sec vb-sec"><h2 class="vb-card-t">Je punten</h2>${L.map(o=>`<div class="sx-r"><div class="sx-rt"><span>${esc(o.naam)}${o.noot?`<i class="sx-noot">${esc(o.noot)}</i>`:""}</span><b>${o.punten} pt</b></div>${Array.isArray(o.detail)&&o.detail.length?`<div class="sx-det">${o.detail.map(d=>`<div><span>${esc(d.naam)}${d.datum?` · ${dag(d.datum)}`:""}${d.partner?" + partner":""}</span><span>${d.punten!=null?d.punten:(d.pt||0)} pt</span></div>`).join("")}</div>`:""}</div>`).join("")}</section>`
       :`<section class="sx-sec vb-sec sx-leeg"><div class="sx-ster" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg></div><h2>Je hebt nog geen punten verzameld.</h2><p>Je punten uit ${Y} tellen mee voor je status in ${Y+1}.</p></section>`;
     $("#box").innerHTML=`<div class="sx">
-     <section class="sx-sec vb-sec"><div class="sx-top"><h2 class="vb-card-t sx-j">Jouw voordeel in ${Y}</h2>${badge(N.status)}</div>
-      <div class="sx-big">${N.korting}%</div><p class="sx-sub">korting op betalende activiteiten</p><p class="sx-s">${reden}</p>${tegoed}</section>
-     <section class="sx-sec vb-sec"><div class="sx-top"><h2 class="vb-card-t sx-j">Status voor ${Y+1}</h2>${badge(P.volgend)}</div>
-      <div class="sx-big">${P.totaal}</div><p class="sx-sub">punten verzameld in ${Y}.</p>${voortgang}${x.tegoedVolgend?`<p class="sx-s">Je goudtegoed voor ${Y+1}: <b>${eur(x.tegoedVolgend)}</b>.</p>`:""}</section>
+     <section class="sx-sec vb-sec"><div class="sx-top"><h2 class="sx-j">Jouw voordeel · ${Y}</h2>${badge(N.status)}</div>
+      <div class="sx-m"><b class="sx-big">${N.korting}%</b><span class="sx-sub">korting op betalende activiteiten</span></div><p class="sx-s">${reden}</p>${tegoed}</section>
+     <section class="sx-sec vb-sec"><div class="sx-top"><h2 class="sx-j">Status voor ${Y+1}</h2>${badge(P.volgend)}</div>
+      <div class="sx-m sx-m2"><div><b class="sx-big">${P.totaal}</b><span class="sx-sub">punten in ${Y}</span></div>${voortgang}</div>${balk}${x.tegoedVolgend?`<p class="sx-s">Je goudtegoed voor ${Y+1}: <b>${eur(x.tegoedVolgend)}</b>.</p>`:""}</section>
      ${punten}
      <p class="sx-w"><a href="/reglement${esc(location.search)}">Hoe werkt het puntensysteem?</a></p></div>`})
   .catch(e=>fout(e.message));

@@ -148,10 +148,10 @@ function handmatig(j){return `<dl class="pd"><div><dt>Bedrag</dt><dd><b>${eur(j.
   ${j.begunstigde?`<div><dt>Begunstigde</dt><dd>${esc(j.begunstigde)}</dd></div>`:""}
   <div><dt>Gestructureerde mededeling</dt><dd><span class="mono">${esc(j.mededeling)}</span><button type="button" class="cp" data-cp="${esc(j.mededeling)}">Kopieer</button></dd></div></dl>
   <p class="hint">Gebruik exact deze mededeling, dan wordt je betaling automatisch aan de factuur gekoppeld.</p>`}
-function overschrijven(j){return `${j.qr?`<div class="qrwrap"><div class="qr">${j.qr}</div><p>Scan deze code met de app van je bank. Bedrag, rekeningnummer en mededeling staan dan al ingevuld.</p></div><div class="or"><span>of schrijf zelf over</span></div>`:""}${handmatig(j)}`}
+function overschrijven(j){return `<div class="ovs${j.qr?" mqr":""}">${j.qr?`<div class="qrwrap"><div class="qr">${j.qr}</div><p>Scan deze code met de app van je bank. Bedrag, rekeningnummer en mededeling staan dan al ingevuld.</p></div><div class="or"><span>of schrijf zelf over</span></div>`:""}<div class="ovs-h">${handmatig(j)}</div></div>`}
 function appLink(o){if(!o||!o.deeplink)return null;const ret=location.origin+location.pathname+terug()+"&betaling=terug";return o.deeplink+(o.deeplink.includes("?")?"&":"?")+"returnUrl="+encodeURIComponent(ret)}
 function onlineBlok(o){const href=appLink(o);
-  return `<a class="btn bc" id="bcGo" href="${esc(href||o.checkout||"#")}">${BC_ICON}Betaal ${eur(INFO.open)} met Bancontact</a>
+  return `<a class="btn bc" id="bcGo" href="${esc(href||o.checkout||"#")}">${BC_ICON}Betalen met Bancontact</a>
   <p class="hint c">${o.deeplink?"Je Bancontact- of bankapp opent en je bevestigt daar binnen 2 minuten.<br><small>Kom je op een pagina om een app te downloaden? Dan heb je geen app die Bancontact Pay ondersteunt: kies dan hieronder <b>overschrijving</b>.</small>":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
   ${o.qrcode?`<div class="qrwrap desk"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div><p>Op een computer? Scan deze code met de Bancontact-app of de app van je bank.</p></div>`:""}
   <p class="wacht" id="bcStatus" aria-live="polite"></p>`}
@@ -163,7 +163,7 @@ function betaald(){$("#lead").textContent="";
   $("#box").innerHTML=`<div class="card bevestig">${OK_ICON}<h2>Deze factuur is betaald</h2><p class="lead2">We ontvingen je betaling voor factuur <b>${esc(INFO.nr)}</b>${INFO.betaaldOp?" op "+esc(dmy(INFO.betaaldOp)):""}. Hartelijk dank voor je steun!</p>${pdfLink()}</div>`;window.scrollTo({top:0,behavior:"smooth"})}
 function toon(){const j=INFO;
   $("#lead").innerHTML=`Hier betaal je factuur <b>${esc(j.nr)}</b> van de ${esc(j.begunstigde)}.`;
-  $("#box").innerHTML=`<div class="card">${samenvatting(j)}<div class="paybox" style="margin-top:0"><h3>Te betalen: ${eur(j.open)}</h3>
+  $("#box").innerHTML=`<div class="card">${samenvatting(j)}<div class="paybox" style="margin-top:0"><div class="pp-due"><span>Te betalen</span><b>${eur(j.open)}</b></div>
    ${j.kanOnline?`<div id="online"><div class="wacht">Betaling voorbereiden…</div></div><details class="zelf"><summary>Geen app of lukt het niet? Betaal via overschrijving</summary>${overschrijven(j)}</details>`:overschrijven(j)}</div>${pdfLink()}</div>`;
   if(j.kanOnline)start()}
 async function start(o){try{if(!o||!(o.deeplink||o.checkout)||["EXPIRED","CANCELLED","FAILED","AUTHORIZATION_FAILED"].includes(o.status)){

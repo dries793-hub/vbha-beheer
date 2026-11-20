@@ -255,7 +255,7 @@ $("#f").addEventListener("submit",async e=>{e.preventDefault();const f=e.target,
   }catch(x){er.textContent=x.message;b.disabled=false;som()}});
 /* appLink() staat in /inschrijf.js (gedeeld) */
 function onlineBlok(o,bedrag){const href=appLink(o);
-  return `<div id="online"><a class="btn bc" id="bcGo" href="${esc(href||o.checkout||"#")}">${BC_ICON}Betaal ${eur(bedrag)} met Bancontact</a>
+  return `<div id="online"><a class="btn bc" id="bcGo" href="${esc(href||o.checkout||"#")}">${BC_ICON}Betalen met Bancontact</a>
   <p class="hint c">${o.deeplink?"Je Bancontact- of bankapp opent en je bevestigt daar binnen 2 minuten.<br><small>Kom je op een pagina om een app te downloaden? Dan heb je geen app die Bancontact Pay ondersteunt. Installeer de gratis Bancontact-app of betaal met een ander toestel via de QR-code. Vragen? Mail naar info@vbha.be.</small>":"Je gaat naar de beveiligde betaalpagina."}</p>
   ${o.qrcode?`<details class="zelf mqr" style="margin-top:12px"><summary>QR-code tonen (scannen met een ander toestel)</summary><div class="qrwrap" style="margin-top:10px"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div></div></details>`:""}${o.qrcode?`<div class="qrwrap desk"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div><p>Op een computer? Scan deze code met de Bancontact-app of de app van je bank.</p></div>`:""}
   <p class="wacht" id="bcStatus" aria-live="polite"></p></div>`}
