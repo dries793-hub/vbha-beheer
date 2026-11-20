@@ -252,9 +252,9 @@ function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
   /* goudtegoed (reglement 2027): het lid kiest hoeveel het gebruikt */
   let tb=$("#tegBox");if(!tb){tb=document.createElement("div");tb.id="tegBox";tb.className="teg";pay.after(tb);tb.addEventListener("input",e=>{if(e.target.id==="tegB")e.target.dataset.raak="1";upd()})}
   const tot=Math.round(n*INFO.prijs*100)/100,max=Math.min(INFO.teg||0,tot);
-  if(lidOk&&p&&max>0){if(!tb.dataset.ok){tb.dataset.ok="1";tb.innerHTML=`<label class="teg-c"><input type="checkbox" id="tegAan" checked> Goudtegoed gebruiken <small>(saldo ${eur(INFO.teg)})</small></label><div class="teg-b"><input id="tegB" type="range" min="0" step="0.5" aria-label="Bedrag goudtegoed"><b id="tegV"></b></div>`}
-    tb.hidden=false;const sl=$("#tegB");sl.max=max.toFixed(2);if(!sl.dataset.raak)sl.value=max.toFixed(2);else if(+sl.value>max)sl.value=max.toFixed(2);sl.disabled=!$("#tegAan").checked;$("#tegV").textContent=eur(Math.min(max,+sl.value||0))}else{tb.hidden=true}
-  const teg=lidOk&&p&&max>0&&$("#tegAan")&&$("#tegAan").checked?Math.max(0,Math.min(max,Number(String($("#tegB").value).replace(",","."))||0)):0;INFO.tegGebruik=Math.round(teg*100)/100;
+  if(lidOk&&p&&max>0){if(!tb.dataset.ok){tb.dataset.ok="1";tb.innerHTML=`<label class="teg-c" for="tegB">Goudtegoed</label><div class="teg-b"><input id="tegB" type="range" min="0" step="0.5" aria-label="Bedrag goudtegoed"><b id="tegV"></b></div>`}
+    tb.hidden=false;const sl=$("#tegB");sl.max=max.toFixed(2);if(!sl.dataset.raak)sl.value=max.toFixed(2);else if(+sl.value>max)sl.value=max.toFixed(2);$("#tegV").textContent=eur(Math.min(max,+sl.value||0))}else{tb.hidden=true}
+  const teg=lidOk&&p&&max>0&&$("#tegB")?Math.max(0,Math.min(max,Number(String($("#tegB").value).replace(",","."))||0)):0;INFO.tegGebruik=Math.round(teg*100)/100;
   const tegR=teg>0?`<div class="kv-vk"><span>Goudtegoed</span><b>− ${eur(teg)}</b></div><div class="kv-tot"><span>Te betalen</span><b>${eur(tot-teg)}</b></div>`:"";
   if(lidOk&&(p||kader)){pay.hidden=false;pay.innerHTML=kader?(teg>0?kader.replace(/<\/div>$/,tegR+"</div>"):kader):(teg>0?`<div class="kv"><div><span>Prijs</span><b>${eur(tot)}</b></div>${tegR}</div>`:`Te betalen: <b>${eur(p*INFO.prijs)}</b>`)}else pay.hidden=true}
 document.addEventListener("change",e=>{if(e.target.name)upd()});
