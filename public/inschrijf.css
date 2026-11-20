@@ -209,3 +209,206 @@ body.vb main h3{font-size:18px;line-height:1.3;font-weight:600}
 body.vb main p,body.vb main li{font-size:16px;line-height:1.6}
 /* mobiel: genoeg ruimte onderaan, geen vaste hoogtes */
 body.vb main{padding-bottom:calc(var(--vb-s6) + env(safe-area-inset-bottom,0px))}
+
+/* ============ PUBLIEKE APP-COMPOSITIE (golden reference: Banket) — body.vb.vb-app ============
+   Open compositie zonder kaarten: secties met scheidingslijnen, sterke typografie, zachte velden,
+   zachte segmentknoppen, conditionele inhoud die rustig verschijnt, prijsoverzicht zonder kader,
+   totaal als visueel anker en een afrekenbalk die op gsm onderaan blijft staan.
+   Componenten: .vb-eyebrow · .hero/.facts (EventHero/EventInfo) · .vb-sec (RegistrationSection)
+   · .vb-checkout/.vb-due (CheckoutAction) · .vb-state (Success/Error/InfoState) · .veld-fout (FieldError)
+   · [data-reveal] (conditionele inhoud) · .btn.is-busy (laden) · .lp/.lp-l/.lp-i (MemberPicker) */
+body.vb.vb-app{--vb-soft:#F2F3F5;--vb-div:#E8E9EB;--vb-t:.18s cubic-bezier(.2,.7,.3,1);--vb-bg:#FFFFFF;background:#FFFFFF}
+@media (prefers-color-scheme:dark){body.vb.vb-app{--vb-soft:#202226;--vb-div:#2A2C30;--vb-bg:#141517;background:#141517}}
+/* geen horizontale scroll, maar ook geen eigen scrollcontainer (anders werkt de vaste afrekenbalk niet) */
+html:has(body.vb-app),body.vb.vb-app{overflow:visible;overflow-x:clip}
+/* header: compact, naam rechts */
+body.vb-app .hdr{padding:calc(10px + env(safe-area-inset-top,0px)) 20px 10px}
+body.vb-app .hdr .in{justify-content:space-between;min-height:36px}
+body.vb-app .hdr .logo{height:28px}
+body.vb-app .hdr .in>span{border-left:0;padding-left:0;text-align:right;white-space:normal;max-width:190px;font-size:13.5px;line-height:1.3;color:rgba(255,255,255,.88);display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+body.vb-app main{padding-top:28px}
+/* EventHero */
+body.vb-app .vb-eyebrow{margin:0 0 6px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--vb-red)}
+body.vb-app .title{display:block;margin:0}
+body.vb-app .title img{display:none}
+body.vb-app h1{font-size:34px;line-height:1.1;letter-spacing:-.02em}
+body.vb-app .dag{margin:8px 0 0;font-size:18px;font-weight:600;color:var(--vb-ink)}
+body.vb-app .lead{margin:6px 0 22px;font-size:16px;line-height:1.5;color:var(--vb-muted)}
+@media (max-width:360px){body.vb-app h1{font-size:30px}}
+/* EventInfo: icoon + tekst, geen kaders */
+body.vb-app .facts{grid-template-columns:1fr 1fr;gap:0;margin:0 0 14px}
+body.vb-app .fact{position:relative;display:grid;grid-template-columns:24px minmax(0,1fr);column-gap:12px;align-items:start;background:none;border:0;border-radius:0;padding:0 14px 0 0}
+body.vb-app .fact+.fact{padding:0 0 0 16px;border-left:1px solid var(--vb-div)}
+body.vb-app .fact>span{grid-row:1/4;margin:1px 0 0;font-size:0;color:var(--vb-ink)}
+body.vb-app .fact>span svg{width:24px;height:24px;stroke-width:1.6}
+body.vb-app .fact b{font-size:16.5px;font-weight:500;line-height:1.3}
+body.vb-app .fact small{font-size:14.5px;margin-top:2px}
+body.vb-app .vb-metas{margin:0 0 4px}
+body.vb-app .vb-meta{background:none;border:0;padding:4px 0;font-size:15px;color:var(--vb-muted);gap:12px}
+body.vb-app .vb-meta svg{width:22px;height:22px;stroke:var(--vb-ink);stroke-width:1.6}
+@media (max-width:359px){body.vb-app .facts{grid-template-columns:1fr;gap:14px}body.vb-app .fact+.fact{border-left:0;padding-left:0}}
+/* RegistrationSection */
+body.vb-app .vb-form{margin:0}
+body.vb-app .vb-sec{border-top:1px solid var(--vb-div);padding:22px 0 24px}
+body.vb-app .vb-sec>h2,body.vb-app .vb-card-t{font-size:24px;line-height:1.2;font-weight:700;letter-spacing:-.015em;margin:0 0 16px}
+body.vb-app .grid{gap:18px}
+body.vb-app label,body.vb-app .lbl,body.vb-app legend{font-size:15.5px;font-weight:600;margin-bottom:8px}
+/* zachte velden */
+body.vb-app input[type=text],body.vb-app input[type=email],body.vb-app input[type=tel],body.vb-app input[type=date],body.vb-app input[type=number],body.vb-app input[type=search],body.vb-app textarea,body.vb-app select{background:var(--vb-soft);border:1px solid transparent;border-radius:12px;min-height:52px;padding:12px 16px;transition:background var(--vb-t),border-color var(--vb-t),box-shadow var(--vb-t)}
+body.vb-app textarea.vb-kort{min-height:52px;height:52px}
+body.vb-app input:hover:not(:focus):not([readonly]),body.vb-app textarea:hover:not(:focus){border-color:var(--vb-line)}
+body.vb-app input:focus,body.vb-app textarea:focus,body.vb-app select:focus{background:var(--vb-card);border-color:var(--vb-focus);box-shadow:0 0 0 3px var(--vb-focus-soft)}
+body.vb-app .vast-n,body.vb-app input[readonly]{background:var(--vb-soft);border-color:transparent;border-radius:12px;min-height:52px}
+body.vb-app .is-fout,body.vb-app [aria-invalid="true"]{border-color:var(--vb-red)!important;background:var(--vb-card)}
+/* zachte segmentknoppen */
+body.vb-app .ch{background:var(--vb-soft);border:0;border-radius:12px;padding:4px;gap:4px;overflow:visible}
+body.vb-app .ch label{min-height:46px;border:0!important;border-radius:9px;font-weight:500;transition:background var(--vb-t),color var(--vb-t),box-shadow var(--vb-t)}
+body.vb-app .ch label:hover:not(:has(input:checked)){background:rgba(0,0,0,.04)}
+body.vb-app .ch label:has(input:checked){background:var(--vb-dark);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.18)}
+body.vb-app .ch b,body.vb-app .ch span{font-size:16px}
+body.vb-app .ch.is-fout{box-shadow:inset 0 0 0 1px var(--vb-red)}
+/* conditionele inhoud verschijnt rustig */
+@keyframes vb-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+body.vb-app [data-reveal]:not([hidden]){animation:vb-in .18s cubic-bezier(.2,.7,.3,1)}
+body.vb-app .opmw:not([hidden]){animation:vb-in .18s cubic-bezier(.2,.7,.3,1)}
+body.vb-app .opmw{padding-top:16px}
+body.vb-app .opmw label{font-size:15.5px}
+/* FieldError */
+body.vb-app .veld-fout{display:flex;align-items:center;gap:6px;margin:8px 0 0;font-size:14.5px;font-weight:500;color:var(--vb-red);animation:vb-in .16s ease-out}
+body.vb-app .veld-fout::before{content:"!";display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--vb-red);color:#fff;font-size:12px;font-weight:700;flex:none}
+/* PriceSummary: zonder kader */
+body.vb-app .pay{margin:0;padding:0;background:none;border:0;border-radius:0}
+body.vb-app .vb-sum{gap:14px}
+body.vb-app .vb-r{font-size:16.5px;align-items:center}
+body.vb-app .vb-r>b{font-weight:600;font-size:16.5px}
+body.vb-app .vb-r small{font-size:14.5px}
+body.vb-app .vb-r.credit{border-top:1px solid var(--vb-div);padding-top:14px;margin-top:2px}
+body.vb-app .vb-r>span small{flex-basis:auto;display:inline}
+body.vb-app .vb-r .vb-sub{color:var(--vb-muted);font-weight:400}
+/* CheckoutAction: totaal als anker + knop; op gsm onderaan vast zolang het formulier zichtbaar is */
+body.vb-app .vb-checkout{display:flex;align-items:center;gap:16px;border-top:1px solid var(--vb-div);padding:18px 0 4px;background:var(--vb-bg)}
+body.vb-app .vb-due{display:flex;flex-direction:column;min-width:0;flex:none}
+body.vb-app .vb-due span{font-size:14px;color:var(--vb-muted);line-height:1.2}
+body.vb-app .vb-due b{font-size:34px;line-height:1.1;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap;transition:opacity .14s,transform .14s}
+body.vb-app .vb-due b.vb-tik{opacity:.35;transform:translateY(2px)}
+body.vb-app .vb-checkout .btn{margin:0;flex:1 1 auto;min-height:56px;width:auto;font-size:17px;border-radius:12px}
+@media (max-width:640px){
+  body.vb-app .vb-checkout{position:sticky;bottom:0;z-index:5;margin:0 -20px;padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--vb-div);box-shadow:0 -6px 16px rgba(17,18,20,.05)}
+  body.vb-app.vb-kb .vb-checkout{position:static;box-shadow:none}
+  body.vb-app .vb-due b{font-size:28px}
+}
+@media (max-width:360px){body.vb-app .vb-checkout{margin:0 -16px;padding-left:16px;padding-right:16px;gap:12px}body.vb-app .vb-due b{font-size:24px}body.vb-app .vb-checkout .btn{font-size:15.5px;padding:10px 12px}}
+/* knop: micro-toestanden en laden */
+body.vb-app .btn{transition:background .15s,transform .1s}
+body.vb-app .btn:active:not(:disabled){transform:scale(.99)}
+body.vb-app .btn.is-busy{opacity:1;cursor:progress}
+body.vb-app .btn.is-busy::before{content:"";width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;animation:vb-spin .7s linear infinite;flex:none}
+@keyframes vb-spin{to{transform:rotate(360deg)}}
+body.vb-app .err{margin:12px 0 0}
+/* MemberPicker */
+body.vb-app .lp-l{border:1px solid var(--vb-line-soft);border-radius:12px;box-shadow:0 10px 28px rgba(17,18,20,.12)}
+body.vb-app .lp-i{min-height:48px;padding:12px 16px;font-size:16px}
+body.vb-app .lp-i:hover,body.vb-app .lp-i.on{background:var(--vb-soft)}
+body.vb-app .lp input.lp-ok{background:var(--vb-soft);border-color:transparent}
+body.vb-app .lp-prijs{background:none;border:0;padding:8px 0 0;font-size:15px}
+/* Success / Error / InfoState: open, geen kaart */
+body.vb-app .card.ok,body.vb-app .card.bevestig,body.vb-app .vb-state{background:none;border:0;border-top:1px solid var(--vb-div);border-radius:0;padding:28px 0 8px;text-align:left}
+body.vb-app .card.ok .ic,body.vb-app .card.bevestig .ic,body.vb-app .vb-state .ic{width:52px;height:52px;margin:0 0 16px;animation:vb-in .2s ease-out}
+body.vb-app .card.ok .ic svg,body.vb-app .card.bevestig .ic svg{width:28px;height:28px}
+body.vb-app .card.ok h2,body.vb-app .card.bevestig h2,body.vb-app .vb-state h2{font-size:26px;line-height:1.2;letter-spacing:-.015em;margin:0 0 8px;text-align:left}
+body.vb-app .card.ok>p,body.vb-app .bevestig .lead2{margin:0;max-width:none;font-size:16px;color:var(--vb-muted)}
+body.vb-app .bevestig .sam{margin:22px 0 0;max-width:none;border:0;border-top:1px solid var(--vb-div);border-radius:0}
+body.vb-app .bevestig .sam div{padding:12px 0;font-size:16px}
+body.vb-app .bevestig .sam div+div{border-top:1px solid var(--vb-div)}
+body.vb-app .bevestig .tot{text-align:left;font-size:18px}
+/* PaymentPanel */
+body.vb-app .paybox{background:none;padding:22px 0 0;margin-top:22px;border-top:1px solid var(--vb-div);border-radius:0}
+body.vb-app .paybox h3{text-align:left;font-size:20px}
+body.vb-app .paybox .btn.bc{min-height:56px;border-radius:12px;font-size:17px}
+body.vb-app .paybox .hint{font-size:14.5px;line-height:1.5;text-align:left}
+body.vb-app .wacht:not(:empty){display:flex;align-items:center;gap:10px;margin:14px 0 0;font-size:15px;color:var(--vb-ink)}
+body.vb-app .wacht:not(:empty)::before{content:"";width:16px;height:16px;border-radius:50%;border:2px solid var(--vb-line);border-top-color:var(--vb-dark);animation:vb-spin .8s linear infinite;flex:none}
+body.vb-app .wacht:has(.cp)::before{display:none}
+body.vb-app .zelf{margin-top:18px;border-top:1px solid var(--vb-div);padding-top:14px}
+body.vb-app .zelf summary{cursor:pointer;font-weight:600;font-size:15.5px;min-height:44px;display:flex;align-items:center}
+body.vb-app .cp{min-height:36px;border-radius:8px}
+body.vb-app .foot{margin-top:28px}
+@media (prefers-reduced-motion:reduce){body.vb-app [data-reveal]:not([hidden]),body.vb-app .opmw,body.vb-app .veld-fout,body.vb-app .ic{animation:none!important}body.vb-app .btn.is-busy::before,body.vb-app .wacht::before{animation-duration:2s}}
+/* ---- wave 2: overzicht als eigen sectie, aantallen, kinderen ---- */
+body.vb-app .vb-form>.pay{border-top:1px solid var(--vb-div);padding:22px 0 24px}
+body.vb-app .vb-form>.pay .vb-sum-t{font-size:24px;line-height:1.2;font-weight:700;letter-spacing:-.015em;margin:0 0 16px}
+body.vb-app .vb-sel small{font-size:16px;color:var(--vb-muted)}
+/* QuantitySelector: open lijst met scheidingslijnen */
+body.vb-app .pr-l{border:0;border-radius:0;border-top:1px solid var(--vb-div)}
+body.vb-app .pr-r{padding:14px 0;background:none!important;border-top:0;border-bottom:1px solid var(--vb-div)}
+body.vb-app .pr-r .nm b{font-size:16.5px}
+body.vb-app .pr-r .nm span{font-size:14.5px}
+body.vb-app .stp{gap:6px}
+body.vb-app .stp button{width:44px;height:44px;border:0;background:var(--vb-soft);font-size:22px;transition:background .12s,transform .08s}
+body.vb-app .stp button:hover:not(:disabled){background:#E6E8EB;border:0}
+body.vb-app .stp button:active:not(:disabled){transform:scale(.94)}
+body.vb-app .stp output,body.vb-app .stp input{min-width:32px;font-size:18px}
+body.vb-app .pr-l.is-fout{box-shadow:none;border-top-color:var(--vb-red)}
+/* ChildSection */
+body.vb-app #kids{border-top:1px solid var(--vb-div)}
+body.vb-app .kid{padding:18px 0;border-bottom:1px solid var(--vb-div);gap:14px}
+body.vb-app #kids .kid:last-child{animation:vb-in .18s cubic-bezier(.2,.7,.3,1)}
+body.vb-app .kid-k b{font-size:18px;font-weight:700}
+body.vb-app .kid label{font-size:15px}
+body.vb-app .kdel{min-height:44px;padding:0 4px;color:var(--vb-red)}
+body.vb-app .kadd{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;margin-top:16px;border:1px solid var(--vb-line);border-radius:12px;background:var(--vb-card);color:var(--vb-ink);font-weight:600;font-size:16px;cursor:pointer;transition:background .15s}
+body.vb-app .kadd:hover{background:var(--vb-soft)}
+body.vb-app .kadd:focus-visible{box-shadow:0 0 0 3px var(--vb-focus-soft)}
+body.vb-app .age{margin-top:-6px}
+/* InfoNotice: subtiel */
+body.vb-app .vb-notice{background:var(--vb-soft);border-left:0;border-radius:12px;padding:12px 14px}
+body.vb-app .info-b{font-size:15px;color:var(--vb-muted)}
+/* tweede lid-melding (al ingeschreven) */
+body.vb-app #alMeld{border-radius:12px!important}
+@media (prefers-reduced-motion:reduce){body.vb-app #kids .kid:last-child{animation:none}}
+/* voordeel van het lid (familiedag): rustige melding zonder groene kaart */
+body.vb-app #fdV:not(:empty){padding:0 0 18px}
+body.vb-app .fd-v{margin:0;padding:12px 14px;border:0;border-radius:12px;background:var(--vb-soft);font-size:15px;gap:10px}
+body.vb-app .fd-v input[type=checkbox]{margin-right:8px;vertical-align:-4px}
+body.vb-app .fd-v label{font-weight:500;font-size:15px;margin:0}
+
+/* ============ waves 2–4: alle andere publieke pagina's op dezelfde open compositie ============ */
+/* kaarten worden secties met een scheidingslijn (behalve functionele tegels zoals producten en cadeaus) */
+body.vb-app main .card{background:none;border:0;border-top:1px solid var(--vb-div);border-radius:0;box-shadow:none;padding:22px 0 24px}
+body.vb-app main>.title+.lead+.card,body.vb-app main>.title+.lead+#box>.card:first-child,body.vb-app main>.hero+#box>.card:first-child{margin-top:0}
+body.vb-app main .card h2{font-size:24px;line-height:1.2;font-weight:700;letter-spacing:-.015em;margin:0 0 14px}
+body.vb-app main .card h3{font-size:18px;font-weight:600;margin:0 0 10px}
+body.vb-app main>.title h1,body.vb-app .title h1{font-size:34px}
+body.vb-app main>.title{margin-bottom:6px}
+/* korte meldingen (fout, ongeldige link, gesloten) */
+body.vb-app main .card>p:only-child{font-size:16px;color:var(--vb-ink)}
+body.vb-app .state{padding:6px 0}
+body.vb-app .state b,body.vb-app .state strong{font-size:20px}
+/* totaal als anker */
+body.vb-app .tot{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-top:1px solid var(--vb-div);padding-top:14px;margin-top:14px;font-size:16px}
+body.vb-app .tot b,body.vb-app .tot strong{font-size:30px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+body.vb-app .aantal .som b{font-size:26px}
+/* keuzetegels zacht (bedragen, formules, ploegen) */
+body.vb-app .opt span{background:var(--vb-soft);border:0;border-radius:12px;min-height:50px;font-size:16px}
+body.vb-app .opt input:checked+span{background:var(--vb-dark);color:#fff}
+body.vb-app .seg2{background:var(--vb-soft);border-radius:12px;padding:4px;gap:4px}
+body.vb-app .seg2 button{border:0;background:none;min-height:46px;border-radius:9px;font-size:16px}
+body.vb-app .seg2 button.on{background:var(--vb-dark);color:#fff}
+body.vb-app .bm{background:var(--vb-soft);border-radius:12px;padding:4px}
+body.vb-app .bm span{height:46px;border-radius:9px;font-size:16px}
+body.vb-app .hu{background:var(--vb-soft);border-radius:12px;padding:4px;gap:4px;border:0}
+body.vb-app .hu-tab button{border:0!important;border-radius:9px;min-height:44px;background:none}
+body.vb-app .hu-tab button.on{background:var(--vb-dark)!important;color:#fff}
+/* aantallen met invoerveld (tickets, webshop) */
+body.vb-app .stp input{background:none!important;border:0!important;min-height:44px}
+/* betaalblok: rustig, zonder grijze kaart */
+body.vb-app .paybox,body.vb-app .pay-b,body.vb-app .betaal{background:none;border:0;border-top:1px solid var(--vb-div);border-radius:0;padding:20px 0 0}
+body.vb-app .btn.bc{min-height:56px;border-radius:12px;font-size:17px}
+body.vb-app .qr{border:0;background:#fff;box-shadow:0 0 0 1px var(--vb-div)}
+body.vb-app .pd{margin:0}
+body.vb-app .pd>div{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--vb-div)}
+body.vb-app .pd dt{color:var(--vb-muted);font-size:15px}body.vb-app .pd dd{margin:0;text-align:right;font-size:15.5px}
+/* tekstlinks als secundaire knop */
+body.vb-app .lnk{color:var(--vb-ink);font-weight:500}
+/* leespagina's */
+body.vb-app main section+section{border-top:1px solid var(--vb-div);padding-top:20px;margin-top:20px}

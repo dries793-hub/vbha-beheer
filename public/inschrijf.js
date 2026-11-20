@@ -49,7 +49,25 @@
     const r=rijen.filter(Boolean).map(x=>`<div class="vb-r${x.status?" korting st-"+esc(String(x.status).toLowerCase()):""}"><span>${esc(x.label)}${x.status?" "+VB.badge(x.status):""}${x.sub?`<small>${esc(x.sub)}</small>`:""}</span><b>${x.min?"− ":""}${eur2(x.bedrag)}</b></div>`).join("");
     const c=credit&&credit.max>0?C.rij(credit.saldo,credit.max):"";
     const t=totaal?`<div class="vb-tot"><span>${esc(totaal.label||"Te betalen")}</span><b>${eur2(totaal.bedrag)}</b></div>`:"";
-    return `<p class="vb-sum-t">${esc(titel)}</p><div class="vb-sum">${r}${c}${t}</div>`};
+    return `${titel?`<p class="vb-sum-t">${esc(titel)}</p>`:""}<div class="vb-sum">${r}${c}${t}</div>`};
+
+  /* ---- afrekenbalk: "Te betalen" + bedrag (bedrag null = verbergen); korte visuele tik bij een wijziging ---- */
+  VB.due=(el,bedrag)=>{if(!el)return;if(bedrag==null){el.hidden=true;return}el.hidden=false;const b=el.querySelector("b");const t=eur2(bedrag);
+    if(b.textContent!==t){if(b.textContent&&!matchMedia("(prefers-reduced-motion: reduce)").matches){b.classList.add("vb-tik");setTimeout(()=>{b.textContent=t;b.classList.remove("vb-tik")},110)}else b.textContent=t}};
+  /* ---- foutmelding bij het veld (FieldError) ---- */
+  VB.wisFouten=root=>{(root||document).querySelectorAll(".veld-fout").forEach(x=>x.remove());(root||document).querySelectorAll('[aria-invalid="true"],.is-fout').forEach(x=>{x.removeAttribute("aria-invalid");x.classList.remove("is-fout")})};
+  VB.veldFout=(el,tekst,{focus=true}={})=>{if(!el)return;const box=el.closest("fieldset,.vb-veld,.kid>div,.full")||el.parentElement;box.querySelectorAll(".veld-fout").forEach(x=>x.remove());
+    const id="vf"+Math.random().toString(36).slice(2,7),p=document.createElement("p");p.className="veld-fout";p.id=id;p.setAttribute("role","alert");p.textContent=tekst;box.append(p);
+    const ctl=el.matches("input,textarea,select")?el:el.querySelector(".ch,.opts,.bm,.stp")||el;ctl.classList.add("is-fout");
+    (ctl.matches("input,textarea,select")?[ctl]:ctl.querySelectorAll("input")).forEach(i=>{i.setAttribute("aria-invalid","true");i.setAttribute("aria-describedby",id)});
+    const wis=()=>{p.remove();ctl.classList.remove("is-fout");box.querySelectorAll("[aria-invalid]").forEach(i=>i.removeAttribute("aria-invalid"))};box.addEventListener("change",wis,{once:true});box.addEventListener("input",wis,{once:true});
+    if(focus){box.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"center"});const f=box.querySelector("input:not([type=hidden]):not([hidden]),textarea,select");if(f)setTimeout(()=>f.focus({preventScroll:true}),250)}};
+  /* ---- knop in laadtoestand ---- */
+  VB.bezig=(btn,tekst)=>{if(!btn)return;if(tekst){btn.disabled=true;btn.classList.add("is-busy");btn.textContent=tekst}else{btn.disabled=false;btn.classList.remove("is-busy")}};
+  /* ---- gsm-toetsenbord open: afrekenbalk niet laten zweven ---- */
+  {const tik=()=>{const vv=window.visualViewport;const a=document.activeElement;const typ=a&&a.matches&&a.matches("input:not([type=radio]):not([type=checkbox]),textarea");
+    document.body&&document.body.classList.toggle("vb-kb",!!typ&&(!vv||vv.height<window.innerHeight*.8||matchMedia("(pointer:coarse)").matches))};
+    document.addEventListener("focusin",tik);document.addEventListener("focusout",()=>setTimeout(tik,60));if(window.visualViewport)visualViewport.addEventListener("resize",tik)}
 
   /* ---- datums: tonen als DD/MM/JJJJ, bewaren als JJJJ-MM-DD ---- */
   VB.dmy=iso=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||"");return m?`${m[3]}/${m[2]}/${m[1]}`:""};
