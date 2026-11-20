@@ -100,3 +100,32 @@ function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");co
     else if(e.key==="Enter"){e.preventDefault();kies(L[sel<0?0:sel])}else if(e.key==="Escape"){box.hidden=true}});
   box.addEventListener("mousedown",e=>{const b=e.target.closest(".lp-i");if(!b)return;e.preventDefault();kies(L[+b.dataset.i])});
   inp.addEventListener("blur",()=>setTimeout(()=>{box.hidden=true;if(!inp.dataset.id&&L.length===1&&inp.value.trim())kies(L[0])},150));}
+
+/* ============ PaymentPanel: gedeelde betaalpresentatie (enkel weergave; de betaallogica blijft /api/betaling) ============
+   Gebruikt de globale waarden van de pagina zelf: esc, eur, BET, volgT, volgN, betaald(), BC_ICON. */
+/* PaymentPanel – handmatig: gedeeld door banket, familiedag, inschrijven, lidgeld */
+function handmatig(j){return `<dl class="pd"><div><dt>Bedrag</dt><dd><b>${eur(j.bedrag)}</b></dd></div>
+  <div><dt>Rekeningnummer</dt><dd><span class="mono">${esc(j.rekeningnummer)}</span><button type="button" class="cp" data-cp="${esc(String(j.rekeningnummer).replace(/\s+/g,""))}">Kopieer</button></dd></div>
+  ${j.begunstigde?`<div><dt>Begunstigde</dt><dd>${esc(j.begunstigde)}</dd></div>`:""}
+  <div><dt>Mededeling</dt><dd><span class="mono">${esc(j.mededeling)}</span><button type="button" class="cp" data-cp="${esc(j.mededeling)}">Kopieer</button></dd></div></dl>
+  <p class="hint">Gebruik exact deze mededeling, dan wordt je betaling automatisch herkend.</p>`}
+
+/* PaymentPanel – appLink: gedeeld door banket, familiedag, inschrijven, fuif, shop, steun */
+function appLink(o){if(!o||!o.deeplink)return null;const ret=location.origin+location.pathname+"?betaling=terug";return o.deeplink+(o.deeplink.includes("?")?"&":"?")+"returnUrl="+encodeURIComponent(ret)}
+
+/* PaymentPanel – onlineBlok: gedeeld door banket, familiedag, inschrijven */
+function onlineBlok(o,bedrag){const href=appLink(o);
+  return `<div id="online"><a class="btn bc" id="bcGo" href="${esc(href||o.checkout||"#")}">${BC_ICON}Betaal ${eur(bedrag)} met Bancontact</a>
+  <p class="hint c">${o.deeplink?"Je Bancontact- of bankapp opent en je bevestigt daar binnen 2 minuten.<br><small>Kom je op een pagina om een app te downloaden? Dan heb je geen app die Bancontact Pay ondersteunt: kies dan hieronder <b>overschrijving</b>.</small>":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
+  ${o.qrcode?`<div class="qrwrap desk"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div><p>Op een computer? Scan deze code met de Bancontact-app of de app van je bank.</p></div>`:""}
+  <p class="wacht" id="bcStatus" aria-live="polite"></p></div>`}
+
+/* PaymentPanel – volg: gedeeld door banket, familiedag */
+async function volg(){clearTimeout(volgT);if(!BET)return;
+  try{const r=await fetch(`/api/betaling?t=${encodeURIComponent(BET.t)}&id=${encodeURIComponent(BET.id)}&token=${encodeURIComponent(BET.token)}`);const s=await r.json();
+    if(s.status==="SUCCEEDED"){betaald();return}
+    const st=$("#bcStatus");
+    if(["EXPIRED","CANCELLED","FAILED","AUTHORIZATION_FAILED"].includes(s.status)){if(st)st.innerHTML=`${s.status==="EXPIRED"?"Deze betaling is verlopen.":"De betaling is niet gelukt."} <button type="button" class="cp" id="bcNieuw">Opnieuw proberen</button>`;const g=$("#bcGo");if(g)g.classList.add("off");return}
+    if(s.status==="IDENTIFIED"||s.status==="AUTHORIZED"){if(st)st.textContent="Bevestig de betaling in je app…"}
+  }catch(x){}
+  if(++volgN<200)volgT=setTimeout(volg,document.hidden?8000:3000)}

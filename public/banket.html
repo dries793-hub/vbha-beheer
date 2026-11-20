@@ -184,17 +184,9 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const eur=n=>"€\u00a0"+(Number(n)||0).toLocaleString("nl-BE",{minimumFractionDigits:2,maximumFractionDigits:2});
 document.addEventListener("click",async e=>{const b=e.target.closest(".cp");if(!b)return;try{await navigator.clipboard.writeText(b.dataset.cp);const t=b.textContent;b.textContent="Gekopieerd";b.classList.add("ok");setTimeout(()=>{b.textContent=t;b.classList.remove("ok")},1600)}catch(x){}});
 const BC_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M10 18.5h4"/></svg>';
-function handmatig(j){return `<dl class="pd"><div><dt>Bedrag</dt><dd><b>${eur(j.bedrag)}</b></dd></div>
-  <div><dt>Rekeningnummer</dt><dd><span class="mono">${esc(j.rekeningnummer)}</span><button type="button" class="cp" data-cp="${esc(String(j.rekeningnummer).replace(/\s+/g,""))}">Kopieer</button></dd></div>
-  ${j.begunstigde?`<div><dt>Begunstigde</dt><dd>${esc(j.begunstigde)}</dd></div>`:""}
-  <div><dt>Mededeling</dt><dd><span class="mono">${esc(j.mededeling)}</span><button type="button" class="cp" data-cp="${esc(j.mededeling)}">Kopieer</button></dd></div></dl>
-  <p class="hint">Gebruik exact deze mededeling, dan wordt je betaling automatisch herkend.</p>`}
-function appLink(o){if(!o||!o.deeplink)return null;const ret=location.origin+location.pathname+"?betaling=terug";return o.deeplink+(o.deeplink.includes("?")?"&":"?")+"returnUrl="+encodeURIComponent(ret)}
-function onlineBlok(o,bedrag){const href=appLink(o);
-  return `<div id="online"><a class="btn bc" id="bcGo" href="${esc(href||o.checkout||"#")}">${BC_ICON}Betaal ${eur(bedrag)} met Bancontact</a>
-  <p class="hint c">${o.deeplink?"Je Bancontact- of bankapp opent en je bevestigt daar binnen 2 minuten.<br><small>Kom je op een pagina om een app te downloaden? Dan heb je geen app die Bancontact Pay ondersteunt: kies dan hieronder <b>overschrijving</b>.</small>":"Je gaat naar de beveiligde betaalpagina. Daar betaal je met de Bancontact-app, je bankapp of je kaart."}</p>
-  ${o.qrcode?`<div class="qrwrap desk"><div class="qr"><img src="${esc(o.qrcode)}" alt="Bancontact-QR-code" width="200" height="200"></div><p>Op een computer? Scan deze code met de Bancontact-app of de app van je bank.</p></div>`:""}
-  <p class="wacht" id="bcStatus" aria-live="polite"></p></div>`}
+/* handmatig() staat in /inschrijf.js (gedeeld) */
+/* appLink() staat in /inschrijf.js (gedeeld) */
+/* onlineBlok() staat in /inschrijf.js (gedeeld) */
 let KLAAR=null;
 function toonKlaar(j){KLAAR=j;
   const o=j.online&&(j.online.deeplink||j.online.checkout)?j.online:null;
@@ -212,14 +204,7 @@ function betaald(){const j=KLAAR||{};const f=$$("#facts .fact");const tx=(k,sel)
   <div class="sam">${j.naam?`<div><span>Naam</span><b>${esc(j.naam)}</b></div>`:""}${j.personen?`<div><span>Aanwezig</span><b>${j.personen===2?"2 personen":"1 persoon"}</b></div>`:""}${j.menu1?`<div><span>Menu</span><b>${menu}</b></div>`:""}
   ${tx(0,"b")?`<div><span>Wanneer</span><b>${esc(tx(0,"b"))}${tx(0,"small")?", "+esc(tx(0,"small")):""}</b></div>`:""}${tx(1,"b")?`<div><span>Waar</span><b>${esc(tx(1,"b"))}${tx(1,"small")?", "+esc(tx(1,"small")):""}</b></div>`:""}</div>
   <p class="tot">Tot dan!</p></div>`;window.scrollTo({top:0,behavior:"smooth"});try{sessionStorage.removeItem("vbha_banket")}catch(x){}}
-async function volg(){clearTimeout(volgT);if(!BET)return;
-  try{const r=await fetch(`/api/betaling?t=${encodeURIComponent(BET.t)}&id=${encodeURIComponent(BET.id)}&token=${encodeURIComponent(BET.token)}`);const s=await r.json();
-    if(s.status==="SUCCEEDED"){betaald();return}
-    const st=$("#bcStatus");
-    if(["EXPIRED","CANCELLED","FAILED","AUTHORIZATION_FAILED"].includes(s.status)){if(st)st.innerHTML=`${s.status==="EXPIRED"?"Deze betaling is verlopen.":"De betaling is niet gelukt."} <button type="button" class="cp" id="bcNieuw">Opnieuw proberen</button>`;const g=$("#bcGo");if(g)g.classList.add("off");return}
-    if(s.status==="IDENTIFIED"||s.status==="AUTHORIZED"){if(st)st.textContent="Bevestig de betaling in je app…"}
-  }catch(x){}
-  if(++volgN<200)volgT=setTimeout(volg,document.hidden?8000:3000)}
+/* volg() staat in /inschrijf.js (gedeeld) */
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&BET){volgN=0;volg()}});
 document.addEventListener("click",async e=>{if(e.target.id!=="bcNieuw")return;e.target.disabled=true;
   try{const r=await fetch("/api/betaling",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(BET)});const o=await r.json();if(!r.ok)throw new Error(o.error);
