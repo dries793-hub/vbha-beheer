@@ -240,7 +240,7 @@ function upd(){const T=totaal(),pay=$("#pay");let vb=$("#fdV");if(!vb){vb=docume
   if(!T.n){pay.hidden=true;vb.innerHTML="";VB.due($("#due"),null);$("#go").textContent="Inschrijving bevestigen";return}pay.hidden=false;
   if(!vb.dataset.k||vb.dataset.k!==JSON.stringify([AANT,FDL&&FDL.korting,FDL&&FDL.tegoed,LID])){vb.innerHTML=voordeelHtml();vb.dataset.k=JSON.stringify([AANT,FDL&&FDL.korting,FDL&&FDL.tegoed,LID])}
   const maxT=LID&&FDL&&FDL.tegoed>0?Math.min(FDL.tegoed,T.na):0,teg=VB.credit.gebruik(maxT);T.teg=teg;T.t2=Math.round((T.na-teg)*100)/100;INFO.tegGebruik=teg;
-  if(T.t>0)pay.innerHTML=VB.summary({rijen:[{label:"Deelname",sub:`${T.n} ${T.n===1?"persoon":"personen"}`,bedrag:T.t},T.k>0?{label:"Ledenkorting",status:FDL.status,bedrag:T.k,min:true}:null],credit:{saldo:FDL?FDL.tegoed:0,max:maxT}});
+  if(T.t>0)pay.innerHTML=VB.summary({rijen:[{label:"Deelnameprijs",sub:`${T.n} ${T.n===1?"persoon":"personen"}`,bedrag:T.t},T.k>0?{label:`Statuskorting ${FDL.korting}%`,status:FDL.status,bedrag:T.k,min:true}:null],credit:{saldo:FDL?FDL.tegoed:0,max:maxT}});
   else pay.innerHTML=`<p class="vb-sum-t">Jouw selectie</p><div class="vb-sel"><small>${T.n} ${T.n===1?"persoon":"personen"} · Gratis${LID?" voor leden":""}</small></div>`;
   VB.due($("#due"),T.t>0?T.t2:null);$("#go").textContent=T.t2>0?"Inschrijven en betalen":"Inschrijving bevestigen"}
 VB.credit.label="Punten gebruiken";VB.credit.op=()=>upd();
