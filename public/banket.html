@@ -256,7 +256,7 @@ function val(n){const c=document.querySelector('input[name="'+n+'"]:checked');re
 function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
   const pay=$("#pay"),L=INFO.lp,n=p||1;
   /* korting volgens het puntensysteem: kostprijs, bijdrage van de vriendenkring en jouw aandeel duidelijk tonen */
-  const kader=L&&L.korting>0?`<div class="kv"><div><span>Deelnameprijs${n>1?` (${n} × ${eur2(L.basis)})`:""}</span><b>${eur2(n*L.basis)}</b></div><div class="kv-vk"><span>Bijdrage vriendenkring<small>${esc(L.status.charAt(0)+L.status.slice(1).toLowerCase())} · ${L.korting}% korting</small></span><b>− ${eur2(n*(L.basis-L.prijs))}</b></div><div class="kv-tot"><span>Jouw aandeel</span><b>${eur2(n*L.prijs)}</b></div></div>`:"";
+  const kader=L&&L.korting>0?`<div class="kv"><div><span>Deelnameprijs${n>1?` (${n} × ${eur2(L.basis)})`:""}</span><b>${eur2(n*L.basis)}</b></div><div class="kv-vk kv-st st-${esc(L.status.toLowerCase())}"><span>Bijdrage door vriendenkring<small><span class="st-pil">${esc(L.status==="GEEN"?"Basis":L.status.charAt(0)+L.status.slice(1).toLowerCase())}</span> ${L.korting}% korting</small></span><b>− ${eur2(n*(L.basis-L.prijs))}</b></div><div class="kv-tot"><span>Jouw aandeel</span><b>${eur2(n*L.prijs)}</b></div></div>`:"";
   /* bedragen pas tonen als een lid gekozen is (en bij korting de persoonlijke prijs gekend is) */
   const lidOk=!!$("#naam").dataset.id&&!$("#alMeld")&&(!INFO.kortingAan||INFO.lp);
   /* goudtegoed (reglement 2027): schakelaar (standaard aan, volle bedrag) en optioneel "ander bedrag"; bedragen altijd met 2 decimalen (geen verspringen) */
@@ -347,5 +347,8 @@ textarea{width:100%;font:inherit;border:1px solid var(--line-strong);background:
 .tg-sw{display:inline-flex!important;align-items:center;justify-content:flex-start;gap:8px;margin:0!important;padding:0;font-size:14.5px;font-weight:400;cursor:pointer}.tg-sw input{position:absolute;opacity:0;width:1px;height:1px}.tg-sw i{position:relative;width:32px;height:18px;border-radius:99px;background:var(--line-strong);transition:.15s;flex:none}.tg-sw i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.15s}.tg-sw input:checked+i{background:var(--navy)}.tg-sw input:checked+i::after{left:16px}.tg-sw input:focus-visible+i{box-shadow:0 0 0 3px var(--info-soft)}
 .tg-ander{all:unset;cursor:pointer;color:var(--ink);text-decoration:underline;text-underline-offset:2px}.tg-in{width:72px!important;display:inline-block;vertical-align:baseline;padding:2px 6px!important;font-size:12.5px!important;border-radius:6px!important;min-height:0}
 .kv b{font-variant-numeric:tabular-nums}
+.kv-st.st-goud{--st:var(--goud)}.kv-st.st-zilver{--st:var(--zilver)}.kv-st.st-brons{--st:var(--brons)}.kv-st.st-geen{--st:var(--muted)}
+.kv-st>b,.kv-st small{color:var(--st)!important}.kv-st small{display:flex;align-items:center;gap:6px;margin-top:3px}
+.st-pil{display:inline-block;padding:1px 8px;border-radius:99px;background:var(--st);color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.03em;line-height:1.6}
 </style>
 </body></html>
