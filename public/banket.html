@@ -256,7 +256,7 @@ function val(n){const c=document.querySelector('input[name="'+n+'"]:checked');re
 function upd(){const p=+val("personen");$("#m2").hidden=p!==2;
   const pay=$("#pay"),L=INFO.lp,n=p||1;
   /* korting volgens het puntensysteem: kostprijs, bijdrage van de vriendenkring en jouw aandeel duidelijk tonen */
-  const kader=L&&L.korting>0?`<div class="kv"><div><span>Deelnameprijs${n>1?` (${n} × ${eur2(L.basis)})`:""}</span><b>${eur2(n*L.basis)}</b></div><div class="kv-vk kv-st st-${esc(L.status.toLowerCase())}"><span class="kv-bv">Bijdrage door vriendenkring <span class="st-pil">${esc(L.status==="GEEN"?"Basis":L.status.charAt(0)+L.status.slice(1).toLowerCase())}</span></span><b>− ${eur2(n*(L.basis-L.prijs))}</b></div><div class="kv-tot"><span>Jouw aandeel</span><b>${eur2(n*L.prijs)}</b></div></div>`:"";
+  const kader=L&&L.korting>0?`<div class="kv"><div><span>Deelnameprijs${n>1?` (${n} × ${eur2(L.basis)})`:""}</span><b>${eur2(n*L.basis)}</b></div><div class="kv-vk kv-st st-${esc(L.status.toLowerCase())}"><span class="kv-bv">Statuskorting <span class="st-pil">${esc(L.status==="GEEN"?"Basis":L.status.charAt(0)+L.status.slice(1).toLowerCase())}</span></span><b>− ${eur2(n*(L.basis-L.prijs))}</b></div><div class="kv-tot"><span>Jouw aandeel</span><b>${eur2(n*L.prijs)}</b></div></div>`:"";
   /* bedragen pas tonen als een lid gekozen is (en bij korting de persoonlijke prijs gekend is) */
   const lidOk=!!$("#naam").dataset.id&&!$("#alMeld")&&(!INFO.kortingAan||INFO.lp);
   /* goudtegoed (reglement 2027): schakelaar (standaard aan, volle bedrag) en optioneel "ander bedrag"; bedragen altijd met 2 decimalen (geen verspringen) */
