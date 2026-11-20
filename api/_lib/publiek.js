@@ -106,7 +106,16 @@ export async function alIngeschreven(sb, tabel, jaar, lidId) {
   if (!lidId) return false;
   const { data, error } = await sb.from(tabel).select("id").eq("data->>lidId", String(lidId)).eq("data->>jaar", String(jaar)).limit(1);
   if (error) throw error;
-  return !!(data && data.length);
+  if (data && data.length) return true;
+  // inschrijvingen die in de beheerapp zonder koppeling aan een lid ingevoerd werden: herkennen op naam (familienaam + voornaam, in beide volgordes)
+  const { data: lr } = await sb.from("leden").select("data").eq("id", String(lidId)).maybeSingle();
+  const l = (lr && lr.data) || {};
+  const n = x => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const namen = new Set([n(`${l.naam || ""} ${l.voornaam || ""}`), n(`${l.voornaam || ""} ${l.naam || ""}`)].filter(x => x.includes(" ")));
+  if (!namen.size) return false;
+  const { data: rijen, error: e2 } = await sb.from(tabel).select("data").eq("data->>jaar", String(jaar)).limit(2000);
+  if (e2) throw e2;
+  return (rijen || []).some(r => r.data && !r.data.lidId && namen.has(n(r.data.naam || r.data.lid)));
 }
 export const AL_TEKST = (wat, jaar) => `Je bent al ingeschreven voor ${wat} ${jaar}. Een lid kan zich maar één keer inschrijven. Wil je iets wijzigen? Mail dan naar info@vbha.be.`;
 

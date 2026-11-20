@@ -210,7 +210,8 @@ function selectie(){const n=$$("#kids .kid").filter(el=>el.querySelector(".kn").
 function alMeld(inp,t){let m=document.getElementById("alMeld");const go=$("#go");
   if(!t){if(m)m.remove();if(go&&go.dataset.al){go.disabled=false;delete go.dataset.al}return}
   if(!m){m=document.createElement("div");m.id="alMeld";m.setAttribute("role","alert");m.style.cssText="margin:8px 0 0;padding:10px 12px;border-radius:10px;background:#fdecea;color:#8a1c12;border:1px solid #f5c2bd;font-size:14.5px;line-height:1.45";
-    (inp.closest(".lp")||inp.parentElement).append(m)}
+    /* persoonlijke link: het naamveld is verborgen, dus de melding bovenaan het formulier tonen */
+    {const w=inp.closest(".lp")||inp.parentElement,f=$("#f");if(f&&(inp.hidden||w.closest("[hidden]")))f.prepend(m);else w.append(m)}}
   const k=t.indexOf(". ");m.innerHTML=k>0?"<b>"+esc(t.slice(0,k+1))+"</b> "+esc(t.slice(k+2)):esc(t);if(go){go.disabled=true;go.dataset.al="1"}}
 let AC=0;async function alCheck(inp,id){const n=++AC;alMeld(inp,"");try{const r=await fetch("/api/kinderfeest?lid="+encodeURIComponent(id),{cache:"no-store"});const j=await r.json();if(n!==AC||!r.ok)return;if(j.al)alMeld(inp,j.melding)}catch(_){}}
 $("#f").addEventListener("submit",async e=>{e.preventDefault();VB.wisFouten($("#f"));read();const er=$("#err");er.textContent="";
