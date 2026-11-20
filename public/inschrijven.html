@@ -184,10 +184,14 @@ document.addEventListener("click",async e=>{if(e.target.id!=="bcNieuw")return;e.
   try{const r=await fetch("/api/betaling",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(BET)});const o=await r.json();if(!r.ok)throw new Error(o.error);
     const blok=$("#online");if(blok)blok.outerHTML=onlineBlok({...o,id:BET.id,token:BET.token},o.bedrag);volgN=0;volg()}catch(x){e.target.disabled=false;e.target.textContent="Opnieuw proberen"}});
 /* terug uit de bankapp: toon opnieuw de betaalstatus */
-(function(){if(!/[?&]betaling=terug/.test(location.search))return;let j=null;try{j=JSON.parse(sessionStorage.getItem("vbha_insch")||"null")}catch(x){}if(!j)return;history.replaceState(null,"",location.pathname);toonKlaar(j)})();
+(function(){if(!/[?&]betaling=terug/.test(location.search))return;let j=null;try{j=JSON.parse(sessionStorage.getItem("vbha_insch")||"null")}catch(x){}if(!j)return;history.replaceState(null,"",location.pathname);
+  /* eerst de status nakijken: is de betaling gelukt, dan tonen we meteen de bevestiging zonder betaalgegevens */
+  const o=j.online;if(!o||!o.id){toonKlaar(j);return}KLAAR=j;
+  $("#box").innerHTML=`<div class="card ok"><p class="lead2">Je betaling wordt nagekeken…</p></div>`;
+  fetch(`/api/betaling?id=${encodeURIComponent(o.id)}&token=${encodeURIComponent(o.token)}`).then(r=>r.json()).then(s=>{if(s&&s.status==="SUCCEEDED")betaald();else toonKlaar(j)}).catch(()=>toonKlaar(j))})();
 
 document.addEventListener("click",async e=>{const b=e.target.closest(".cp");if(!b)return;try{await navigator.clipboard.writeText(b.dataset.cp);const t=b.textContent;b.textContent="Gekopieerd";b.classList.add("ok");setTimeout(()=>{b.textContent=t;b.classList.remove("ok")},1600)}catch(x){}});
-$("#f").addEventListener("submit",async e=>{e.preventDefault();const f=e.target,er=$("#err");er.textContent="";VB.wisFouten(f);
+$("#f")&&$("#f").addEventListener("submit",async e=>{e.preventDefault();const f=e.target,er=$("#err");er.textContent="";VB.wisFouten(f);
   const d=Object.fromEntries(new FormData(f));
   const miss=[["voornaam","je voornaam"],["naam","je naam"],["adres","je adres"],["email","je e-mailadres"],["telefoon","je telefoonnummer"]].find(([k])=>!String(d[k]||"").trim());
   if(miss){er.textContent="Vul "+miss[1]+" in.";f.elements[miss[0]].focus();return}
