@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}.logo-a{display:block;flex:none;line-height:0;border-radius:4px}.logo-a:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .age.te{color:#b91c1c;font-weight:600}
-.vast-n{padding:11px 12px;border:1px solid var(--line,#e3e4e6);border-radius:8px;background:var(--sunken,#f3f4f5);font-weight:600;font-size:16px}</style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
+.vast-n{padding:11px 12px;border:1px solid var(--line,#e3e4e6);border-radius:8px;background:var(--sunken,#f3f4f5);font-weight:600;font-size:16px}</style><script>let VNAAM="";document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Kinderfeest · VBHA</title>
 <link rel="icon" href="/favicon.png">
 <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/fonts/inter.css">
@@ -184,7 +184,7 @@ function gesloten(wat,j){$("#box").innerHTML=`<div class="card bevestig"><div cl
 const VQ=new URLSearchParams(location.search);
 fetch("/api/kinderfeest"+(VQ.get("v")?"?v="+encodeURIComponent(VQ.get("v"))+"&t="+encodeURIComponent(VQ.get("t")||""):"")).then(r=>r.ok?r.json():null).then(j=>{if(!j)return;CFG={...CFG,...j};
 function vastNaam(inp,naam){inp.hidden=true;const b=document.createElement("div");b.className="vast-n";b.textContent=naam;inp.after(b)}
-  if(j.vul&&j.vul.voornaam){const d=$("#dag");d.textContent="Dag "+j.vul.voornaam+"!";d.hidden=false}
+  if(j.vul&&j.vul.voornaam){VNAAM=j.vul.voornaam;const d=$("#dag");d.textContent="Dag "+j.vul.voornaam+"!";d.hidden=false}
   if(j.vul){const i=$("#lid");i.value=j.vul.lid;i.dataset.id=j.vul.lidId;i.classList.add("lp-ok");vastNaam(i,j.vul.lid);{const w=i.closest(".full");if(w)w.hidden=true}if(typeof alCheck==="function")alCheck(i,j.vul.lidId);
     if(j.vul.kinderen&&j.vul.kinderen.length)KIDS=j.vul.kinderen.map(k=>({naam:k.naam,geb:k.geb}));try{history.replaceState(null,"",location.pathname)}catch(e){}}
   $("#h1").textContent="Kinderfeest "+j.jaar;document.title="Kinderfeest "+j.jaar+" · VBHA";
@@ -223,7 +223,7 @@ $("#f").addEventListener("submit",async e=>{e.preventDefault();VB.wisFouten($("#
   const b=$("#go");b.disabled=true;b.classList.add("is-busy");b.textContent="Inschrijving verwerken…";
   try{const r=await fetch("/api/kinderfeest",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({lid,lidId,lidMail:true,kinderen:KIDS.map(k=>({naam:k.naam,geb:k.geb})),website:$("#website").value,duur:Date.now()-t0})});
     const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Inschrijven lukte niet.");
-    $("#box").innerHTML=`<div class="card ok"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Bedankt!</h2><p>De inschrijving van ${esc(lid)} is goed ontvangen.</p><p class="sum">${KIDS.map(k=>esc(k.naam.trim())).join(", ")}</p>${j.cadeau?`<div class="kc-go"><b>Kies nu al de cadeaus</b><p>De link staat ook in je bevestigingsmail.</p><a class="btn-go" href="${esc(j.cadeau)}">Cadeaus kiezen →</a></div>`:'<p class="sum">Tot op het kinderfeest!</p>'}</div>`;window.scrollTo({top:0,behavior:"smooth"})}
+    $("#box").innerHTML=`<div class="card ok"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Bedankt${VNAAM?", "+esc(VNAAM):""}!</h2><p>Je inschrijving is goed ontvangen.</p>${j.cadeau?`<div class="kc-go"><b>Kies nu al de cadeaus</b><p>De link staat ook in je bevestigingsmail.</p><a class="btn-go" href="${esc(j.cadeau)}">Cadeaus kiezen →</a></div>`:'<p>Tot op het kinderfeest</p>'}</div>`;window.scrollTo({top:0,behavior:"smooth"})}
   catch(x){er.textContent=x.message;b.disabled=false;b.classList.remove("is-busy");b.textContent="Inschrijving bevestigen"}});
 /* naam van het lid kiezen: suggesties terwijl je typt */
 function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");const box=document.createElement("div");box.className="lp-l";box.hidden=true;box.setAttribute("role","listbox");wrap.append(box);
