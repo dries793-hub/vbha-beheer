@@ -297,7 +297,7 @@ function hulp(){const mob=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 document.addEventListener("click",e=>{if(e.target.closest("[data-hulp]")){e.preventDefault();hulp()}});
 function toon(){if(!V)return;
   $("#lead").innerHTML=V.open?`Kies per kind een of meer cadeaus op <a href="https://www.bol.com" target="_blank" rel="noopener">bol.com</a> of <a href="https://www.dreamland.be" target="_blank" rel="noopener">dreamland.be</a>, binnen het budget${V.bijbetalen?" (of betaal het verschil zelf bij)":""}. Let op de beschikbaarheid en de levertijd. Kiezen kan tot en met <b>${esc(lang(V.tot))}</b>.`:`De termijn om te kiezen is voorbij. Wie niets koos, krijgt een bon van bol.com ter waarde van het budget.`;
-  $("#box").innerHTML=V.kinderen.map(kaart).join("")+betaalBlok()+`<p class="hint" style="margin-top:16px;text-align:center">Kinderfeest ${esc(lang(V.datum))} · ${esc(V.lid)}</p>`}
+  $("#box").innerHTML=V.kinderen.map(kaart).join("")+betaalBlok()}
 function init(j){V=j;for(const k of V.kinderen){ED[k.i]={items:k.cadeau&&k.cadeau.items?k.cadeau.items.map(x=>({...x})):[],bewerk:false,man:null}}toon()}
 document.addEventListener("click",async e=>{const t=e.target.closest("button");if(!t||!V)return;const d=t.dataset;
   const k=V.kinderen.find(x=>String(x.i)===String(d.check??d.save??d.weg??d.bon??d.bewerk??d.annul??d.mok??d.mx));if(!k)return;const E=ED[k.i],msg=m=>{const el=$("#m"+k.i);if(el)el.textContent=m||""};
