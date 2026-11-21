@@ -896,7 +896,7 @@ body.vb-app .card.ok>p+.paybox,body.vb-app .card.ok .paybox{margin-top:20px!impo
 body.vb-app .card.ok .paybox>h3{margin:0 0 12px!important;font-size:16px!important;font-weight:650!important}
 /* ticketpagina in twee stappen */
 body.vb-app form.fu-st1 .fu-s2,body.vb-app form.fu-st1 .fu-s2~.hint{display:none!important}
-body.vb-app form:not(.fu-st1)>section.vb-sec:first-of-type{display:none!important}
+body.vb-app form.fu-stap:not(.fu-st1)>section.vb-sec:first-of-type{display:none!important}
 body.vb-app .vb-terug{all:unset;cursor:pointer;font-size:14px;font-weight:500;color:var(--g-red);margin:0 0 6px;display:inline-block}
 body.vb-app .vb-terug:focus-visible{outline:2px solid var(--g-ink);outline-offset:2px;border-radius:4px}
 body.vb-app .fu-sam{margin:0 0 12px!important;font-size:14px;color:var(--g-sec)}

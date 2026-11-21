@@ -250,7 +250,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("#vl button");if(
 document.addEventListener("focusout",e=>{if(e.target.id==="viaQ")setTimeout(()=>{ZL=[];vlToon()},150)});
 // bestellen
 /* twee stappen: eerst tickets en drankkaarten, daarna je gegevens */
-{const f=$("#f"),go=$("#go");f.classList.add("fu-st1");
+{const f=$("#f"),go=$("#go");f.classList.add("fu-stap","fu-st1");
   const tekst=()=>{if(!go)return;if(f.classList.contains("fu-st1")){go.dataset.t2=go.dataset.t2||go.textContent;go.dataset.d2=go.dataset.d2||(go.disabled?"1":"");go.disabled=false;go.textContent="Verder naar je gegevens"}else{go.textContent=go.dataset.t2||"Bestellen en betalen";go.disabled=go.dataset.d2==="1"}};
   const naar=(st)=>{f.classList.toggle("fu-st1",st===1);tekst();const top=f.getBoundingClientRect().top+scrollY-12;scrollTo({top:Math.max(0,top),behavior:"smooth"});if(st===2){const D=DK(),nd=D.reduce((a,k)=>a+k.aantal,0);$("#fuSam").textContent=[n()?`${n()} ${n()===1?"ticket":"tickets"}`:"",nd?`${nd} ${nd===1?"drankkaart":"drankkaarten"}`:""].filter(Boolean).join(" · ")+" · "+$("#tot").textContent;setTimeout(()=>{const v=$("#voornaam");if(v)v.focus({preventScroll:true})},350)}};
   new MutationObserver(()=>{if(f.classList.contains("fu-st1")&&go&&go.textContent!=="Verder naar je gegevens"){go.dataset.t2=go.textContent;go.dataset.d2=go.disabled?"1":"";tekst()}}).observe(go,{childList:true,attributes:true,attributeFilter:["disabled"]});
