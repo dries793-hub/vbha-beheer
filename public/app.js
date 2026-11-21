@@ -2204,7 +2204,7 @@ td,.data-table td{padding-top:9px;padding-bottom:9px}
 .seg{height:var(--ctl-h)!important;min-height:var(--ctl-h);box-sizing:border-box}
 .seg.ks-deel,.seg.ks-soort{height:var(--ctl-h)!important}
 input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]),select{min-height:var(--ctl-h)!important;box-sizing:border-box}
-input.sm,select.sm{min-height:var(--ctl-sm)!important}`,document.head.appendChild(e)}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
+input.sm,select.sm{min-height:var(--ctl-sm)!important}`,document.head.appendChild(e)}{const e=document.createElement("style");e.textContent="@media (max-width:768px){.wrap.inner{padding-bottom:20px!important}.main{padding-bottom:0!important}}",document.head.appendChild(e)}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
 .stat-grid--4{grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr))}
 @media (max-width:1100px){.stat-grid--4{grid-template-columns:repeat(3,minmax(0,1fr))}.stat-grid--4>.stat-card:first-child{grid-column:1/-1}}
 @media (max-width:640px){.stat-grid--4{grid-template-columns:repeat(2,minmax(0,1fr))}.stat-grid--4>.stat-card:last-child{grid-column:1/-1}}
