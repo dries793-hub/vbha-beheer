@@ -5,6 +5,8 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>
 /* Compact Premium: status */
+.sx-opb{margin-top:16px;padding-top:12px;border-top:1px dashed var(--g-line,#E2E3E5)}
+.sx-opbt{margin:0 0 4px!important;font-size:14px!important;font-weight:600!important;color:var(--g-ink,#18191C)!important}
 body.vb-app main{max-width:760px}
 .sx-sec.vb-sec{padding:var(--g-sec-y,18px) 0!important}
 .sx-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 6px}
@@ -230,14 +232,14 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
     else{const doel=naarDrempel[P.naar]||D.goud,pc=Math.min(100,Math.max(0,P.totaal/doel*100));
       voortgang=`<p class="sx-ok sx-naar">Nog <b>${P.nodig}</b> punten tot ${nm(P.naar)}</p>`;balk=`<div class="sx-bar ${P.volgend}" role="img" aria-label="${P.totaal} van ${doel} punten"><i style="width:${pc}%"></i></div><div class="sx-lb"><span>0</span><span>${nm(P.naar)} · ${doel} punten</span></div>`}
     const L=(P.onderdelen||[]).filter(o=>o.punten||o.noot),mx=Math.max(1,...L.map(o=>Number(o.punten)||0));
-    const punten=P.totaal>0||L.some(o=>o.punten)?`<section class="sx-sec vb-sec"><h2 class="vb-card-t">Je punten</h2>${L.map(o=>`<div class="sx-r"><div class="sx-rt"><span>${esc(o.naam)}${o.noot?`<i class="sx-noot">${esc(o.noot)}</i>`:""}</span><b>${o.punten} pt</b></div>${Array.isArray(o.detail)&&o.detail.length?`<div class="sx-det">${o.detail.map(d=>`<div><span>${esc(d.naam)}${d.datum?` · ${dag(d.datum)}`:""}${d.partner?" + partner":""}</span><span>${d.punten!=null?d.punten:(d.pt||0)} pt</span></div>`).join("")}</div>`:""}</div>`).join("")}</section>`
+    const heeft=P.totaal>0||L.some(o=>o.punten);const punten=heeft?`<div class="sx-opb"><p class="sx-opbt">Zo verzamelde je ${P.totaal} punten in ${Y}</p>${L.map(o=>`<div class="sx-r"><div class="sx-rt"><span>${esc(o.naam)}${o.noot?`<i class="sx-noot">${esc(o.noot)}</i>`:""}</span><b>${o.punten} pt</b></div>${Array.isArray(o.detail)&&o.detail.length?`<div class="sx-det">${o.detail.map(d=>`<div><span>${esc(d.naam)}${d.datum?` · ${dag(d.datum)}`:""}${d.partner?" + partner":""}</span><span>${d.punten!=null?d.punten:(d.pt||0)} pt</span></div>`).join("")}</div>`:""}</div>`).join("")}</div>`
       :`<section class="sx-sec vb-sec sx-leeg"><div class="sx-ster" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg></div><h2>Je hebt nog geen punten verzameld.</h2><p>Je punten uit ${Y} tellen mee voor je status in ${Y+1}.</p></section>`;
     $("#box").innerHTML=`<div class="sx">
      <section class="sx-sec vb-sec"><div class="sx-top"><h2 class="sx-j">Jouw voordeel · ${Y}</h2>${badge(N.status)}</div>
       <div class="sx-m"><b class="sx-big">${N.korting}%</b><span class="sx-sub">korting op betalende activiteiten</span></div><p class="sx-s">${reden}</p>${tegoed}</section>
      <section class="sx-sec vb-sec"><div class="sx-top"><h2 class="sx-j">Status voor ${Y+1}</h2>${badge(P.volgend)}</div>
-      <div class="sx-m sx-m2"><div><b class="sx-big">${P.totaal}</b><span class="sx-sub">punten in ${Y}</span></div>${voortgang}</div>${balk}${x.tegoedVolgend?`<p class="sx-s">Je goudtegoed voor ${Y+1}: <b>${eur(x.tegoedVolgend)}</b>.</p>`:""}</section>
-     ${punten}
+      <div class="sx-m sx-m2"><div><b class="sx-big">${P.totaal}</b><span class="sx-sub">punten in ${Y}</span></div>${voortgang}</div>${balk}${x.tegoedVolgend?`<p class="sx-s">Je goudtegoed voor ${Y+1}: <b>${eur(x.tegoedVolgend)}</b>.</p>`:""}${heeft?punten:""}</section>
+     ${heeft?"":punten}
      <p class="sx-w"><a href="/reglement${esc(location.search)}">Hoe werkt het puntensysteem?</a></p></div>`})
   .catch(e=>fout(e.message));
 </script>
