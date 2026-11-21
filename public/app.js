@@ -2273,7 +2273,7 @@ html,body{background:var(--vb-page)!important}
 .badge--success,.pill.good{background:var(--vb-ok-soft)!important;color:var(--vb-ok)!important}
 .badge--warning,.pill.warn{background:var(--vb-warn-soft)!important;color:var(--vb-warn-ink)!important}
 .badge--danger,.pill.bad{background:var(--vb-err-soft)!important;color:var(--vb-err-ink)!important}
-.badge--info,.pill.info{background:var(--vb-info-soft)!important;color:var(--vb-info-ink)!important}`,document.head.appendChild(e)}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
+.badge--info,.pill.info{background:var(--vb-info-soft)!important;color:var(--vb-info-ink)!important}`,document.head.appendChild(e)}{const e=document.createElement("style");e.textContent="#main .nmeld+.nmeld,#main .panel.tbd+.nmeld{margin-top:0!important}",document.head.appendChild(e)}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
 .stat-grid--4{grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr))}
 @media (max-width:1100px){.stat-grid--4{grid-template-columns:repeat(3,minmax(0,1fr))}.stat-grid--4>.stat-card:first-child{grid-column:1/-1}}
 @media (max-width:640px){.stat-grid--4{grid-template-columns:repeat(2,minmax(0,1fr))}.stat-grid--4>.stat-card:last-child{grid-column:1/-1}}
