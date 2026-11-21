@@ -148,7 +148,7 @@ async function volg(){clearTimeout(volgT);if(!BET)return;
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start()})();
 /* EventHero: eyebrow "BANKET · 2026" volgt automatisch de titel (enkel bij <p class="vb-eyebrow" data-ev>) */
 (function(){const run=()=>{const e=document.querySelector(".vb-eyebrow[data-ev]"),h=document.querySelector(".hero h1, main h1");if(!e||!h)return;
-  const zet=()=>{const t=h.textContent.trim(),m=/^(.*?)\s+(\d{4})$/.exec(t);e.textContent=m?m[1]+" · "+m[2]:t;e.hidden=!t};zet();new MutationObserver(zet).observe(h,{childList:true,characterData:true,subtree:true})};
+  const zet=()=>{const t=h.textContent.trim(),m=/^(.*?)\s+(\d{4})$/.exec(t);e.textContent="Inschrijving";e.hidden=!t};zet();new MutationObserver(zet).observe(h,{childList:true,characterData:true,subtree:true})};
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run);else run()})();
 /* gsm/desktop: komen er na een keuze extra velden bij (bv. "Met partner"), dan schuift de pagina rustig mee zodat ze in beeld komen.
    De aangeklikte keuze blijft altijd zichtbaar bovenaan; nooit verder dan nodig. */
