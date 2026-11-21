@@ -838,7 +838,7 @@ body.vb-app main,body.vb-app .card{background:transparent}
 body.vb-app .vb-checkout{background:var(--g-page)!important}
 /* eyebrow boven de titel: klein, rood, met korte accentlijn */
 body.vb-app .vb-eyebrow:not([hidden]){display:flex!important;align-items:center;gap:8px;margin:0 0 6px!important;font-size:11.5px!important;font-weight:700!important;letter-spacing:.06em!important;text-transform:uppercase;color:var(--g-red)!important}
-body.vb-app .vb-eyebrow:not([hidden])::before{content:"";width:22px;height:2px;border-radius:2px;background:var(--g-red)}
+body.vb-app .vb-eyebrow::before{content:none!important;display:none!important}
 /* belangrijke sectietitels: dunne rode accentlijn links */
 body.vb-app h2.vb-card-t{display:flex;align-items:center;gap:0;border-left:3px solid var(--g-red);padding-left:10px!important;line-height:1.2!important}
 /* deadline-icoon in het rood */
