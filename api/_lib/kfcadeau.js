@@ -239,6 +239,8 @@ function view(row, M, open) {
 }
 /* saldo goudtegoed van het lid (zonder wat op deze inschrijving al gebruikt is) */
 async function metTegoed(sb, row, v) {
+  // voornaam van het lid voor de persoonlijke begroeting op de cadeaupagina
+  try { const d = row.data; if (d.lidId) { const { data: l } = await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle(); if (l && l.data && l.data.voornaam) v = { ...v, voornaam: String(l.data.voornaam) }; } } catch (e) { }
   try { const d = row.data; if (!d.lidId) return v; const { lidStatus, tegoedGebruikt } = await import("./status.js");
     const L = await lidStatus(sb, d.lidId, d.jaar, { partner: false }); if (!L.tegoed) return v;
     return { ...v, tegoedSaldo: Math.max(0, r2(L.tegoed - await tegoedGebruikt(sb, d.lidId, d.jaar, row.id))) }; } catch (e) { return v; }
