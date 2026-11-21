@@ -150,3 +150,16 @@ async function volg(){clearTimeout(volgT);if(!BET)return;
 (function(){const run=()=>{const e=document.querySelector(".vb-eyebrow[data-ev]"),h=document.querySelector(".hero h1, main h1");if(!e||!h)return;
   const zet=()=>{const t=h.textContent.trim(),m=/^(.*?)\s+(\d{4})$/.exec(t);e.textContent=m?m[1]+" · "+m[2]:t;e.hidden=!t};zet();new MutationObserver(zet).observe(h,{childList:true,characterData:true,subtree:true})};
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run);else run()})();
+/* gsm/desktop: komen er na een keuze extra velden bij (bv. "Met partner"), dan schuift de pagina rustig mee zodat ze in beeld komen.
+   De aangeklikte keuze blijft altijd zichtbaar bovenaan; nooit verder dan nodig. */
+(function(){let bron=null,tijd=0,timer=null,nieuw=[];
+  const bar=()=>{const c=document.querySelector(".vb-checkout");return c&&getComputedStyle(c).position==="fixed"?c.offsetHeight:0};
+  document.addEventListener("change",e=>{if(e.target.closest("main")){bron=e.target.closest(".ch,label,fieldset,.stp")||e.target;tijd=Date.now()}},true);
+  document.addEventListener("click",e=>{const b=e.target.closest("main button");if(b){bron=b;tijd=Date.now()}},true);
+  const go=()=>{timer=null;const els=nieuw.filter(x=>x.isConnected&&x.offsetHeight);nieuw=[];if(!els.length||!bron||!bron.isConnected)return;
+    const onder=Math.max(...els.map(x=>x.getBoundingClientRect().bottom)),zicht=innerHeight-bar()-16,boven=bron.getBoundingClientRect().top-72;
+    const d=Math.min(onder-zicht,boven);if(d>8)scrollBy({top:d,behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"})};
+  const start=()=>{const m=document.querySelector("main");if(!m||!window.MutationObserver)return;
+    new MutationObserver(L=>{if(Date.now()-tijd>700)return;for(const r of L){if(r.type==="attributes"&&r.target.nodeType===1&&!r.target.hidden)nieuw.push(r.target);if(r.type==="childList")r.addedNodes.forEach(n=>{if(n.nodeType===1)nieuw.push(n)})}
+      if(nieuw.length&&!timer)timer=setTimeout(go,60)}).observe(m,{subtree:true,childList:true,attributes:true,attributeFilter:["hidden","class","style"]})};
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start);else start()})();
