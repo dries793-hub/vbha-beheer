@@ -74,7 +74,7 @@
   VB.bezig=(btn,tekst)=>{if(!btn)return;if(tekst){btn.disabled=true;btn.classList.add("is-busy");btn.textContent=tekst}else{btn.disabled=false;btn.classList.remove("is-busy")}};
   /* ---- gsm-toetsenbord open: afrekenbalk niet laten zweven ---- */
   {const tik=()=>{const vv=window.visualViewport;const a=document.activeElement;const typ=a&&a.matches&&a.matches("input:not([type=radio]):not([type=checkbox]),textarea");
-    document.body&&document.body.classList.toggle("vb-kb",!!typ&&(!vv||vv.height<window.innerHeight*.8||matchMedia("(pointer:coarse)").matches))};
+    document.body&&document.body.classList.toggle("vb-kb",!!typ&&(!vv||vv.height<window.innerHeight*.8||matchMedia("(pointer:coarse)").matches||matchMedia("(max-width:640px)").matches))};
     document.addEventListener("focusin",tik);document.addEventListener("focusout",()=>setTimeout(tik,60));if(window.visualViewport)visualViewport.addEventListener("resize",tik)}
 
   /* ---- datums: tonen als DD/MM/JJJJ, bewaren als JJJJ-MM-DD ---- */
