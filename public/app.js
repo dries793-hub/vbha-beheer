@@ -2293,7 +2293,9 @@ html,body{background:var(--vb-page)!important}
 .nmeld .nm-l>.nm-i:hover::after{border-color:var(--vb-ink)}
 .nmeld .nm-l>.nm-i:focus-visible{outline:2px solid var(--vb-ink);outline-offset:-2px}
 .nmeld .nm-l>.nm-more{padding:8px 16px;border-top:1px solid var(--vb-line)}
-.nmeld>.nm-body>.nm-l:last-child{padding-bottom:0!important}`,document.head.appendChild(e)}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
+.nmeld>.nm-body>.nm-l:last-child{padding-bottom:0!important}`,document.head.appendChild(e)}{const e=document.createElement("style");e.textContent=`.tbd-r .btn svg{display:none!important}
+.tbd-r .btn{min-height:var(--vb-ctl-sm)!important;height:var(--vb-ctl-sm);padding:0 12px!important;border:1px solid var(--vb-line-strong)!important;border-radius:8px!important;background:var(--vb-surface)!important;font-size:13.5px!important;font-weight:500!important;color:var(--vb-ink)!important;gap:0!important}
+.tbd-r .btn:hover{border-color:var(--vb-ink)!important}`,document.head.appendChild(e)}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
 .stat-grid--4{grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr))}
 @media (max-width:1100px){.stat-grid--4{grid-template-columns:repeat(3,minmax(0,1fr))}.stat-grid--4>.stat-card:first-child{grid-column:1/-1}}
 @media (max-width:640px){.stat-grid--4{grid-template-columns:repeat(2,minmax(0,1fr))}.stat-grid--4>.stat-card:last-child{grid-column:1/-1}}
