@@ -870,3 +870,18 @@ body.vb-app:has(#box .card.ok) .hero .dag,body.vb-app:has(#box .card.ok) .hero .
 body.vb-app:has(#box .card.ok) .vb-eyebrow{font-size:0!important;letter-spacing:0!important;display:flex!important}
 body.vb-app:has(#box .card.ok) .vb-eyebrow::after{content:"Bevestiging";font-size:11.5px;letter-spacing:.06em}
 body.vb-app:has(#box .card.ok) .hero{padding-bottom:4px}
+/* ===== Eén maatvoering voor knoppen en velden (zelfde als de beheer-app) =====
+   gsm: 44 px voor velden, keuzeknoppen, plus/min en gewone knoppen · 48 px voor de grote rode knop
+   computer: 38 px · 44 px voor de grote rode knop */
+body.vb.vb-app,.vb-ui{--g-in:44px;--g-cta:48px;--g-seg:36px}
+@media (min-width:769px){body.vb.vb-app,.vb-ui{--g-in:38px;--g-cta:44px;--g-seg:30px}}
+body.vb-app main input:not([type=checkbox]):not([type=radio]):not([type=range]),body.vb-app main select{height:var(--g-in)!important;min-height:var(--g-in)!important}
+body.vb-app main textarea{min-height:var(--g-in)!important;padding-top:9px!important;padding-bottom:9px!important}
+body.vb-app .ch label{min-height:var(--g-seg)!important}
+body.vb-app .ch{min-height:var(--g-in);box-sizing:border-box}
+body.vb-app .stp button,body.vb-app .aantal .stp input{width:var(--g-in)!important;height:var(--g-in)!important;min-height:var(--g-in)!important}
+body.vb-app .btn:not(.sm),body.vb-app .vb-checkout .btn,body.vb-app .btn.bc{min-height:var(--g-cta)!important}
+body.vb-app .kadd,body.vb-app .pp-retry,body.vb-app .btn.sec,body.vb-app .btn.ghost{min-height:var(--g-in)!important}
+.vb-ui .vb-seg>button{min-height:var(--g-seg)}
+.vb-ui .vb-qty>button{width:var(--g-in);height:var(--g-in)}
+.vb-ui .vb-btn2{min-height:var(--g-cta)}
