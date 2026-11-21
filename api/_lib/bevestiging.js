@@ -26,7 +26,7 @@ const p = (t, st = "margin:0 0 16px") => `<p style="${st}">${t}</p>`;
    Werkt in Gmail, Apple Mail, Outlook (ook 2010-2019 via de VML-knop en vaste breedte) en op gsm. */
 /* Kleuren en maten uit public/vbha-tokens.css (mails kunnen geen CSS-variabelen lezen). */
 const INK = "#18191C", MUTED = "#6F7278", ROOD = "#C0161F", GOUD = "#C1A057", ZACHT = "#F3F3F2", LIJN = "#E6E4E1", PAGINA = "#FAF9F7", OK = "#168447", OK_ZACHT = "#E7F4EC", OK_LIJN = "#8CCBA6";
-const LOGO_W = () => (process.env.VBHA_TEST === "1" ? "https://test.vbha.be" : site()) + "/mail/logo-wit.png";
+const LOGO_W = () => (process.env.VBHA_TEST === "1" ? "https://test.vbha.be" : site()) + "/mail/logo-mail.png";
 // gegevens als rijen met een fijne lijn ertussen, waarde rechts (zoals de samenvatting op de openbare pagina's)
 const rij = (k, v) => v === "" || v == null ? "" : `<tr><td class="vb-l" style="padding:8px 14px 8px 0;border-top:1px solid ${LIJN};color:${MUTED};vertical-align:top;white-space:nowrap;${F}font-size:14.5px;line-height:1.45">${esc(k)}</td><td style="padding:8px 0;border-top:1px solid ${LIJN};vertical-align:top;text-align:right;word-break:break-word;overflow-wrap:anywhere;${F}font-size:14.5px;line-height:1.45;color:${INK}">${v}</td></tr>`;
 const tabel = rows => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="${F}font-size:14.5px;color:${INK};line-height:1.45;border-collapse:collapse">${rows.join("")}</table>`;
@@ -69,7 +69,7 @@ function huisstijl(inner, ver, { groet = true, voet = "", extern = false, bovens
 <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="${PAGINA}"><tr><td align="center" style="padding:0">
 <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="${INK}"><tr><td align="center" style="padding:14px 16px">
 <!--[if mso]><table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" align="center"><tr><td><![endif]-->
-<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px"><tr><td style="padding:0 8px"><a href="${site()}" target="_blank" style="text-decoration:none"><img src="${LOGO_W()}" alt="VBHA" width="106" height="32" style="display:block;width:106px;height:32px;border:0"></a></td></tr></table>
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px"><tr><td style="padding:0 8px"><a href="${site()}" target="_blank" style="text-decoration:none"><img src="${LOGO_W()}" alt="VBHA" width="106" height="32" style="display:block;color:#ffffff;font-weight:bold;font-size:20px;width:106px;height:32px;border:0"></a></td></tr></table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table>
 <!--[if mso]><table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" align="center"><tr><td><![endif]-->
