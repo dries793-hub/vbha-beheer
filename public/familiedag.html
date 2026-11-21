@@ -267,7 +267,7 @@ const FQ=new URLSearchParams(location.search);
 fetch("/api/familiedag"+(FQ.get("v")?"?v="+encodeURIComponent(FQ.get("v"))+"&t="+encodeURIComponent(FQ.get("t")||""):"")).then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;$("#h1").textContent=j.titel;document.title=j.titel+" · VBHA";
   $("#fD").textContent=j.datum?lang(j.datum):"Datum volgt";$("#fU").textContent=j.uur?(/^\s*(vanaf|om)\b/i.test(j.uur)?j.uur:"vanaf "+j.uur):"";
   const loc=String(j.locatie||"").split(",");$("#fL").textContent=loc[0]||"Locatie volgt";$("#fL2").textContent=loc.slice(1).join(",").trim();
-  $("#fT").textContent=j.totTekst?"t.e.m. "+j.totTekst.replace(/ \d{4}$/,""):"–";VB.info();VB.meta($("#meta"),[{icon:"klok",html:j.totTekst?"Inschrijven t.e.m. "+esc(j.totTekst.replace(/ \d{4}$/,"")):""}]);$("#fP").textContent=j.prijzen.some(p=>p.lidGratis&&p.prijs>0)?"gratis voor leden":"";
+  $("#fT").textContent=j.totTekst?"tot en met "+j.totTekst.replace(/ \d{4}$/,""):"–";VB.info();VB.meta($("#meta"),[{icon:"klok",html:j.totTekst?"Inschrijven tot en met "+esc(j.totTekst.replace(/ \d{4}$/,"")):""}]);$("#fP").textContent=j.prijzen.some(p=>p.lidGratis&&p.prijs>0)?"gratis voor leden":"";
   if(j.info){$("#info").hidden=false;$("#info").textContent=j.info}$("#lead").textContent=j.prijzen.every(p=>p.lidGratis||!p.prijs)?"Een dag vol plezier voor het hele gezin, aangeboden door de vriendenkring. Schrijf je hier in.":"Een dag vol plezier voor het hele gezin. Schrijf je hier in"+(j.online?" en betaal meteen online.":".");
   $("#wie").hidden=!j.nietLeden;
   /* persoonlijke link uit de mail: het lid staat vast, naam en e-mailadres hoeven niet ingevuld */

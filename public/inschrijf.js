@@ -81,7 +81,7 @@
   VB.dmy=iso=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||"");return m?`${m[3]}/${m[2]}/${m[1]}`:""};
   VB.iso=t=>{const m=/^\s*(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})\s*$/.exec(t||"");if(!m)return "";const d=+m[1],mo=+m[2],y=+m[3];
     const dt=new Date(y,mo-1,d);if(dt.getFullYear()!==y||dt.getMonth()!==mo-1||dt.getDate()!==d)return "";return `${y}-${String(mo).padStart(2,"0")}-${String(d).padStart(2,"0")}`};
-  VB.datumVeld=inp=>{if(!inp||inp.dataset.vbd)return;inp.dataset.vbd="1";inp.type="text";inp.inputMode="numeric";inp.placeholder="DD/MM/JJJJ";inp.maxLength=10;inp.autocomplete="off";
+  VB.datumVeld=inp=>{if(!inp||inp.dataset.vbd)return;inp.dataset.vbd="1";inp.type="text";inp.inputMode="numeric";inp.placeholder="";inp.maxLength=10;inp.autocomplete="off";
     if(/^\d{4}-\d{2}-\d{2}$/.test(inp.value))inp.value=VB.dmy(inp.value);
     inp.addEventListener("input",e=>{if(e.inputType&&e.inputType.startsWith("delete"))return;let v=inp.value.replace(/[^\d]/g,"").slice(0,8);
       if(v.length>4)v=v.slice(0,2)+"/"+v.slice(2,4)+"/"+v.slice(4);else if(v.length>2)v=v.slice(0,2)+"/"+v.slice(2);inp.value=v});
