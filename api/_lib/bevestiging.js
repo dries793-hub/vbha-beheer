@@ -53,6 +53,8 @@ const modern = s => String(s)
   // oud kader (td met gekleurde linkerrand + h2 als titel) → nieuwe sectie/kader
   .replace(/<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 22px;?\s*border-collapse:separate"><tr><td\b[^>]*?border-left:5px solid (#[0-9a-fA-F]{6})[^>]*>\s*<h2\b[^>]*>([\s\S]*?)<\/h2>/g, (_, k, t) => kaderOpen(k) + kaderKop(k, t))
   .replace(/<td\b[^>]*?border-left:5px solid (#[0-9a-fA-F]{6})[^>]*>\s*<h2\b[^>]*>([\s\S]*?)<\/h2>/g, (_, k, t) => kaderOpen(k).replace(/^[\s\S]*?<tr>/, "") + kaderKop(k, t))
+  // oud kader zonder titel → grijs kader
+  .replace(/<td\b[^>]*?border-left:5px solid #[0-9a-fA-F]{6}[^>]*>/g, `<td class="vb-k" bgcolor="${ZACHT}" style="padding:14px 16px;border:1px solid ${LIJN};border-radius:12px;${F}font-size:15px;color:${INK};line-height:1.55">`)
   // oude omlijnde knop → rode knop
   .replace(/<a href="([^"]*)" target="_blank" style="[^"]*border:1\.5px solid #b30000[^"]*">([\s\S]*?)(?: &rarr;)?<\/a>/gi, (_, h, t) => `<a href="${h}" target="_blank" style="${F}display:inline-block;padding:12px 20px;font-size:16px;font-weight:bold;line-height:20px;color:#ffffff;text-decoration:none;border-radius:10px;background:${ROOD}">${t}</a>`)
   .replace(/#b30000/gi, ROOD);
