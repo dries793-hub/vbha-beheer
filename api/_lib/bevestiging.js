@@ -24,32 +24,57 @@ const site = () => "https://vbha.be"; // openbare links (in mails en op papier) 
 const p = (t, st = "margin:0 0 16px") => `<p style="${st}">${t}</p>`;
 /* ---------- huisstijl van de mails (2026): hoofding zoals op de facturen, inhoud in de stijl van de website ----------
    Werkt in Gmail, Apple Mail, Outlook (ook 2010-2019 via de VML-knop en vaste breedte) en op gsm. */
-const INK = "#1a1b1e", MUTED = "#686b71", ROOD = "#b30000", GOUD = "#C1A057", ZACHT = "#f5f5f6", LIJN = "#e5e6e8";
-const rij = (k, v) => v === "" || v == null ? "" : `<tr><td class="vb-l" style="padding:4px 16px 4px 0;color:${MUTED};vertical-align:top;white-space:nowrap;${F}font-size:15px">${esc(k)}</td><td style="padding:4px 0;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;${F}font-size:15px;color:${INK}">${v}</td></tr>`;
-const tabel = rows => `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="${F}font-size:15px;color:${INK};line-height:1.5">${rows.join("")}</table>`;
-const kaderBlok = (titel, inner, kleur = GOUD, bg = ZACHT) => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 22px;border-collapse:separate"><tr><td class="vb-k" bgcolor="${bg}" style="padding:18px 22px;border-left:5px solid ${kleur};border-radius:10px;${F}font-size:15px;color:${INK};line-height:1.55"><h2 style="${F}color:${INK};font-size:17px;line-height:1.3;font-weight:bold;margin:0 0 10px">${titel}</h2>${inner}</td></tr></table>`;
-const knop = (t, href) => { const w = Math.min(480, Math.max(180, Math.round(String(t).length * 8.6 + 44)));
-  return `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 22px"><tr><td align="center" bgcolor="#ffffff" style="border-radius:8px">`
-  + `<!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${esc(href)}" style="height:40px;v-text-anchor:middle;width:${w}px" arcsize="20%" strokecolor="${ROOD}" strokeweight="1.25pt" fillcolor="#ffffff"><w:anchorlock/><center style="color:${ROOD};font-family:Arial,sans-serif;font-size:15px;font-weight:bold">${esc(t)}</center></v:roundrect><![endif]-->`
-  + `<!--[if !mso]><!--><a href="${esc(href)}" target="_blank" style="${F}display:inline-block;padding:9px 18px;font-size:15px;font-weight:600;line-height:20px;color:${ROOD};text-decoration:none;border:1.5px solid ${ROOD};border-radius:8px;background:#ffffff">${esc(t)} &rarr;</a><!--<![endif]--></td></tr></table>`; };
-// oudere opmaak in teksten van de afzonderlijke mails meteen in de nieuwe stijl zetten
+/* Kleuren en maten uit public/vbha-tokens.css (mails kunnen geen CSS-variabelen lezen). */
+const INK = "#18191C", MUTED = "#6F7278", ROOD = "#C0161F", GOUD = "#C1A057", ZACHT = "#F3F3F2", LIJN = "#E6E4E1", PAGINA = "#FAF9F7", OK = "#168447", OK_ZACHT = "#E7F4EC", OK_LIJN = "#8CCBA6";
+const LOGO_W = () => (process.env.VBHA_TEST === "1" ? "https://test.vbha.be" : site()) + "/mail/logo-wit.png";
+// gegevens als rijen met een fijne lijn ertussen, waarde rechts (zoals de samenvatting op de openbare pagina's)
+const rij = (k, v) => v === "" || v == null ? "" : `<tr><td class="vb-l" style="padding:8px 14px 8px 0;border-top:1px solid ${LIJN};color:${MUTED};vertical-align:top;white-space:nowrap;${F}font-size:14.5px;line-height:1.45">${esc(k)}</td><td style="padding:8px 0;border-top:1px solid ${LIJN};vertical-align:top;text-align:right;word-break:break-word;overflow-wrap:anywhere;${F}font-size:14.5px;line-height:1.45;color:${INK}">${v}</td></tr>`;
+const tabel = rows => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="${F}font-size:14.5px;color:${INK};line-height:1.45;border-collapse:collapse">${rows.join("")}</table>`;
+// kopje met rode streep (zoals h2.vb-card-t)
+const KOP = t => `<h2 style="${F}color:${INK};font-size:17px;line-height:1.25;font-weight:bold;margin:0 0 8px;padding:1px 0 1px 10px;border-left:3px solid ${ROOD}">${t}</h2>`;
+const isGroen = k => /^#(1a7f45|168447)$/i.test(k), isRood = k => /^#(b30000|c0161f)$/i.test(k);
+const kaderOpen = kleur => isGroen(kleur)
+  ? `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 20px;border-collapse:separate"><tr><td class="vb-k" bgcolor="${OK_ZACHT}" style="padding:12px 16px;border:1px solid ${OK_LIJN};border-radius:12px;${F}font-size:15px;color:${INK};line-height:1.55">`
+  : isRood(kleur)
+  ? `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 20px;border-collapse:separate"><tr><td class="vb-k" bgcolor="${ZACHT}" style="padding:14px 16px 10px;border:1px solid ${LIJN};border-radius:12px;${F}font-size:15px;color:${INK};line-height:1.55">`
+  : `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:22px 0 20px;border-collapse:separate"><tr><td class="vb-s" style="padding:0;${F}font-size:15px;color:${INK};line-height:1.55">`;
+const kaderKop = (kleur, titel) => isGroen(kleur) ? `<h2 style="${F}color:${OK};font-size:15.5px;line-height:1.3;font-weight:bold;margin:0 0 4px">${titel}</h2>` : KOP(titel);
+// kaderBlok: standaard een sectie met rood kopje; rood = grijs kader (te betalen); groen = groene melding (gelukt)
+const kaderBlok = (titel, inner, kleur = GOUD) => kaderOpen(kleur) + kaderKop(kleur, titel) + inner + `</td></tr></table>`;
+// hoofdknop: rood over de volle breedte (zoals .vb-cta)
+const knop = (t, href) => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 20px"><tr><td align="center" bgcolor="${ROOD}" style="border-radius:10px">`
+  + `<!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${esc(href)}" style="height:46px;v-text-anchor:middle;width:540px" arcsize="22%" stroke="f" fillcolor="${ROOD}"><w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold">${esc(t)}</center></v:roundrect><![endif]-->`
+  + `<!--[if !mso]><!--><a href="${esc(href)}" target="_blank" style="${F}display:block;padding:13px 16px;font-size:16px;font-weight:bold;line-height:20px;color:#ffffff;text-align:center;text-decoration:none;border-radius:10px;background:${ROOD}">${esc(t)}</a><!--<![endif]--></td></tr></table>`;
+// opmaak uit eerdere versies (bewaarde sjablonen) meteen in de nieuwe stijl zetten
 const modern = s => String(s)
   .replace(/font-family:Helvetica,Arial,sans-serif;?/g, F)
-  .replace(/color:#222222/gi, "color:" + INK).replace(/color:#666666/gi, "color:" + MUTED)
+  .replace(/color:#222222/gi, "color:" + INK).replace(/color:#(666666|686b71)/gi, "color:" + MUTED)
   .replace(/<h2 style="color:#b30000;/gi, `<h2 style="${F}color:${INK};`).replace(/<h3 style="color:#b30000;/gi, `<h3 style="${F}color:${INK};`)
-  .replace(/bgcolor="#fff9f9"/gi, `bgcolor="${ZACHT}"`).replace(/border-left:5px solid #C1A057;?/gi, `border-left:5px solid ${GOUD};border-radius:10px;`);
+  // oud kader (td met gekleurde linkerrand + h2 als titel) → nieuwe sectie/kader
+  .replace(/<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:4px 0 22px;?\s*border-collapse:separate"><tr><td\b[^>]*?border-left:5px solid (#[0-9a-fA-F]{6})[^>]*>\s*<h2\b[^>]*>([\s\S]*?)<\/h2>/g, (_, k, t) => kaderOpen(k) + kaderKop(k, t))
+  .replace(/<td\b[^>]*?border-left:5px solid (#[0-9a-fA-F]{6})[^>]*>\s*<h2\b[^>]*>([\s\S]*?)<\/h2>/g, (_, k, t) => kaderOpen(k).replace(/^[\s\S]*?<tr>/, "") + kaderKop(k, t))
+  // oude omlijnde knop → rode knop
+  .replace(/<a href="([^"]*)" target="_blank" style="[^"]*border:1\.5px solid #b30000[^"]*">([\s\S]*?)(?: &rarr;)?<\/a>/gi, (_, h, t) => `<a href="${h}" target="_blank" style="${F}display:inline-block;padding:12px 20px;font-size:16px;font-weight:bold;line-height:20px;color:#ffffff;text-decoration:none;border-radius:10px;background:${ROOD}">${t}</a>`)
+  .replace(/#b30000/gi, ROOD);
 const HOOFD = (titel) => `<!DOCTYPE html><html lang="nl" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><title>${titel}</title>
 <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><style>td,p,a,h1,h2,h3,li,span{font-family:'Segoe UI',Arial,sans-serif!important}</style><![endif]-->
-<style>@media only screen and (max-width:520px){.vb-in{padding:26px 20px 20px!important}.vb-k{padding:16px 16px!important}.vb-l{padding-right:10px!important}}</style></head>`;
-function huisstijl(inner, ver, { groet = true, voet = "", extern = false } = {}) { // extern: mail aan sponsors/klanten (geen leden)
-  return `${HOOFD(esc(ver))}<body style="margin:0;padding:0;background:#f7f7f7;-webkit-text-size-adjust:100%">
-<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#f7f7f7"><tr><td align="center" style="padding:25px 10px">
-<!--[if mso]><table role="presentation" width="640" border="0" cellspacing="0" cellpadding="0" align="center"><tr><td><![endif]-->
-<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;border-collapse:separate">
-<tr><td align="center" bgcolor="#f7f7f7" style="padding:20px"><img src="${LOGO}" alt="${esc(ver)}" width="220" height="84" style="display:block;width:220px;height:84px;border:0"></td></tr>
-<tr><td class="vb-in" bgcolor="#ffffff" style="border-top:8px solid ${ROOD};border-bottom:8px solid ${ROOD};border-radius:14px;${F}font-size:15px;line-height:1.6;color:${INK};padding:32px 40px 26px">${modern(inner)}${groet ? p(`Met vriendelijke groeten,<br><b>Het bestuur${extern ? " van " + esc(ver) : ""}</b>`, "margin:8px 0 0") : ""}</td></tr>
-<tr><td align="center" style="padding:20px 20px 0">${socialRij()}</td></tr>
-<tr><td align="center" style="${F}font-size:11.5px;color:#9a9ca1;line-height:1.6;padding:12px 20px 14px">${esc(ver)} &middot; <a href="https://www.vbha.be" style="color:#9a9ca1;text-decoration:underline">vbha.be</a>${voet ? " &middot; " + voet : ""}</td></tr>
+<style>@media only screen and (max-width:520px){.vb-in{padding:24px 18px 20px!important}.vb-k{padding:12px 14px!important}.vb-l{padding-right:10px!important}.vb-h1{font-size:24px!important}}</style></head>`;
+// bovenschrift in rood met streepje + titel (zoals bovenaan de openbare pagina's)
+const TITEL = (bovenschrift, titel) => (bovenschrift ? `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 8px"><tr><td style="width:22px;border-top:2px solid ${ROOD};font-size:0;line-height:0">&nbsp;</td><td style="padding-left:10px;${F}font-size:12px;font-weight:bold;letter-spacing:1.4px;text-transform:uppercase;color:${ROOD}">${bovenschrift}</td></tr></table>` : "")
+  + (titel ? `<h1 class="vb-h1" style="${F}margin:0 0 20px;padding:0 0 16px;border-bottom:1px solid ${LIJN};font-size:27px;line-height:1.15;font-weight:bold;letter-spacing:-.3px;color:${INK}">${titel}</h1>` : "");
+function huisstijl(inner, ver, { groet = true, voet = "", extern = false, bovenschrift = "", titel = "" } = {}) { // extern: mail aan sponsors/klanten (geen leden)
+  return `${HOOFD(esc(ver))}<body style="margin:0;padding:0;background:${PAGINA};-webkit-text-size-adjust:100%">
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="${PAGINA}"><tr><td align="center" style="padding:0">
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="${INK}"><tr><td align="center" style="padding:14px 16px">
+<!--[if mso]><table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" align="center"><tr><td><![endif]-->
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px"><tr><td style="padding:0 8px"><a href="${site()}" target="_blank" style="text-decoration:none"><img src="${LOGO_W()}" alt="VBHA" width="106" height="32" style="display:block;width:106px;height:32px;border:0"></a></td></tr></table>
+<!--[if mso]></td></tr></table><![endif]-->
+</td></tr></table>
+<!--[if mso]><table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" align="center"><tr><td><![endif]-->
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px">
+<tr><td class="vb-in" style="${F}font-size:15px;line-height:1.6;color:${INK};padding:30px 24px 24px">${TITEL(bovenschrift, titel)}${modern(inner)}${groet ? p(`Met vriendelijke groeten,<br><b>Het bestuur${extern ? " van " + esc(ver) : ""}</b>`, "margin:8px 0 0") : ""}</td></tr>
+<tr><td style="padding:16px 24px 6px;border-top:1px solid ${LIJN};${F}font-size:12px;color:${MUTED};line-height:1.6">${esc(ver)} &middot; <a href="https://vbha.be" style="color:${ROOD};text-decoration:none">vbha.be</a>${voet ? " &middot; " + voet : ""}</td></tr>
+<tr><td style="padding:6px 20px 28px">${socialRij().replace('align="center" style="margin:0 auto"', 'align="left" style="margin:0"')}</td></tr>
 </table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table></body></html>`;
@@ -114,7 +139,7 @@ export async function mailBanket(sb, row) {
     betaling: betaalBlok({ betaald, betaling: d.betaling, bedrag, rekeningnummer: A.rekeningnummer || DEF_IBAN, begunstigde: A.vereniging, mededeling: `${d.naam} Banket ${jaar}`, tegen: ins.tot || jaar + "-12-01" }),
     bedrag: eur(bedrag), datum: esc(lang(datum)), uur: esc(uur), locatie: esc(locatie) });
   const html = m.html;
-  return { aan, aanNaam: L.voornaam ? L.voornaam + " " + (L.naam || "") : d.naam, onderwerp: m.onderwerp, html: huisstijl(html, A.vereniging), betaald };
+  return { aan, aanNaam: L.voornaam ? L.voornaam + " " + (L.naam || "") : d.naam, onderwerp: m.onderwerp, html: huisstijl(html, A.vereniging, { bovenschrift: "Bevestiging", titel: "Banket " + esc(jaar) }), betaald };
 }
 export async function mailNieuwLid(sb, row) {
   const d = row.data, A = await algemeen(sb), aan = String(d.email || "").trim();
@@ -127,7 +152,7 @@ export async function mailNieuwLid(sb, row) {
     betaling: betaalBlok({ betaald, betaling: d.betaling, bedrag, rekeningnummer: A.rekeningnummer || DEF_IBAN, begunstigde: A.vereniging, mededeling: `${d.naam} ${d.voornaam} Lidgeld ${jaar}`, tegen, link }),
     lidgeld: eur(bedrag), link_reglement: site() + reglementPad(row.id, jaar), knop_reglement: knop("Reglement puntensysteem lezen", site() + reglementPad(row.id, jaar)) });
   const html = m.html;
-  return { aan, aanNaam: d.voornaam + " " + d.naam, onderwerp: m.onderwerp, html: huisstijl(html, A.vereniging), betaald };
+  return { aan, aanNaam: d.voornaam + " " + d.naam, onderwerp: m.onderwerp, html: huisstijl(html, A.vereniging, { bovenschrift: "Welkom", titel: "Lid " + esc(jaar) }), betaald };
 }
 /* kinderfeest: cadeau-info in de bevestiging (instelbaar in Kinderfeest › tandwiel; config kf_<jaar>.mail) */
 export function kfMailDef(jaar, datum) {
@@ -176,7 +201,7 @@ export async function mailKinderfeest(sb, row) {
   const { kfcLink } = await import("./kfcadeau.js");
   const html = await kfMailHtml(sb, d, { A, c, jaar, link: kfcLink(row.id) });
   const M = { ...kfMailDef(jaar, c.datum || jaar + "-12-19"), ...(c.mail || {}), tot: kfMailDef(jaar, c.datum || jaar + "-12-19").tot }, cc = String(M.kopie || "").split(/[,;\s]+/).map(x => x.trim().toLowerCase()).filter(x => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(x)).slice(0, 5);
-  return { aan, aanNaam: d.lid || "", cc, onderwerp: html.onderwerp || `VBHA - Bevestiging inschrijving kinderfeest ${jaar}`, html: huisstijl(String(html), A.vereniging), betaald: true };
+  return { aan, aanNaam: d.lid || "", cc, onderwerp: html.onderwerp || `VBHA - Bevestiging inschrijving kinderfeest ${jaar}`, html: huisstijl(String(html), A.vereniging, { bovenschrift: "Bevestiging", titel: "Kinderfeest " + esc(jaar) }), betaald: true };
 }
 export async function mailFamiliedag(sb, row) {
   const d = row.data, A = await algemeen(sb), jaar = d.jaar || A.jaar, c = await configDoc(sb, "fd_" + jaar), aan = String(d.email || "").trim();
@@ -191,7 +216,7 @@ export async function mailFamiliedag(sb, row) {
     betaling: bedrag > 0 ? betaalBlok({ betaald, betaling: d.betaling, bedrag, rekeningnummer: A.rekeningnummer || DEF_IBAN, begunstigde: A.vereniging, mededeling: `${d.naam} Familiedag ${jaar}`, tegen: ins.tot }) : "",
     info: c.info ? esc(c.info).replace(/\n/g, "<br>") : "", bedrag: bedrag > 0 ? eur(bedrag) : "gratis" });
   const html = m.html;
-  return { aan, aanNaam: d.naam || "", onderwerp: m.onderwerp, html: huisstijl(html, A.vereniging), betaald: betaald || bedrag === 0 };
+  return { aan, aanNaam: d.naam || "", onderwerp: m.onderwerp, html: huisstijl(html, A.vereniging, { bovenschrift: "Bevestiging", titel: esc(titel) }), betaald: betaald || bedrag === 0 };
 }
 export async function mailBetaald(sb, tabel, row) {
   const d = row.data, A = await algemeen(sb), b = d.betaling || {};
@@ -203,7 +228,7 @@ export async function mailBetaald(sb, tabel, row) {
   const m = await sysMail(sb, "betaling-ontvangen", { voornaam: esc(voornaam || ""), wat: esc(wat), bedrag: eur(b.bedrag), lidgeld: tabel === "leden", banket: tabel === "banket", familiedag: tabel === "familiedag",
     betaling: betaalBlok({ betaald: true, betaling: b, bedrag: b.bedrag }) });
   const html = m.html.replace(/Beste\s+,/g, "Beste,");
-  return { aan, aanNaam: voornaam || "", onderwerp: m.onderwerp, html: huisstijl(html, A.vereniging), betaald: true };
+  return { aan, aanNaam: voornaam || "", onderwerp: m.onderwerp, html: huisstijl(html, A.vereniging, { bovenschrift: "Betaling ontvangen", titel: esc(wat.replace(/^(je|de|het)\s+/i, "").replace(/^./, x => x.toUpperCase())) }), betaald: true };
 }
 
 /* ---------- versturen ---------- */
