@@ -885,3 +885,4 @@ body.vb-app .kadd,body.vb-app .pp-retry,body.vb-app .btn.sec,body.vb-app .btn.gh
 .vb-ui .vb-seg>button{min-height:var(--g-seg)}
 .vb-ui .vb-qty>button{width:var(--g-in);height:var(--g-in)}
 .vb-ui .vb-btn2{min-height:var(--g-cta)}
+body.vb-app .ch label{height:var(--g-seg)!important;padding-top:0!important;padding-bottom:0!important;box-sizing:border-box}body.vb-app .ch{height:var(--g-in)!important;padding:3px!important;align-items:stretch}
