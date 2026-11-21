@@ -230,7 +230,9 @@ function gesloten(j){$("#box").innerHTML=`<div class="card bevestig"><div class=
   <h2>${j.gesloten==="uitverkocht"?"Uitverkocht!":j.gesloten==="voorbij"?"De online ticketverkoop is afgelopen":"De ticketverkoop is gesloten"}</h2><p class="lead2">${j.gesloten==="uitverkocht"?"Alle tickets zijn verkocht. Bedankt voor de massale interesse!":j.gesloten==="voorbij"?"De fuif is begonnen. Tickets en drankkaarten zijn nog te koop aan de kassa.":"Online tickets bestellen kan op dit moment niet."} Vragen? Mail naar <a href="mailto:info@vbha.be">info@vbha.be</a>.</p></div>`}
 fetch("/api/fuif").then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;kop((j.ev||j).header);$("#h1").textContent=j.naam||"In Vier en Vlam";document.title=(j.naam||"In Vier en Vlam")+" · tickets · VBHA";feiten(j);
   const a=$("#aantal");if(a){a.max=j.perBestelling;const w=$("#dkWrap");if(w&&(j.dranken||[]).length){w.innerHTML=dkBlok(j);w.hidden=false}som()}
-  if(!KLAAR&&!/[?&]betaling=terug/.test(location.search)&&(!j.open||!j.online))gesloten(j.open?{gesloten:"manueel"}:j)}).catch(()=>{});
+  if(!KLAAR&&!/[?&]betaling=terug/.test(location.search)&&(!j.open||(!j.online&&!j.test)))gesloten(j.open?{gesloten:"manueel"}:j);
+  /* testomgeving: online betalen staat uit; de pagina blijft zichtbaar om ze na te kijken, bestellen kan niet */
+  else if(j.open&&!j.online&&j.test){const g=$("#go");if(g){g.disabled=true;g.textContent="Bestellen kan niet in de testomgeving"}const f=$("#f");if(f&&!$("#tstMeld"))f.insertAdjacentHTML("afterbegin",'<p id="tstMeld" class="state" style="margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#FFF4E0;color:#7A4B00;font-size:14px">Testomgeving: online betalen staat hier uit. Je kan de pagina bekijken, maar niet bestellen.</p>')}}).catch(()=>{});
 // lid zoeken (optioneel, voor het puntensysteem)
 let zT=0,zN=0,ZL=[],zSel=-1;
 function vlToon(){const v=$("#vl");if(!ZL.length){v.hidden=true;return}v.innerHTML=ZL.map((l,i)=>`<button type="button" data-i="${i}" class="${i===zSel?"on":""}">${esc(l.naam)}</button>`).join("");v.hidden=false}

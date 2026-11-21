@@ -153,7 +153,7 @@ export default async function fuifPubliek(req, res) {
     if (req.method === "GET") {
       const n = c.max ? await bezet(sb, c.jaar) : 0, vrij = c.max ? Math.max(0, c.max - n) : null;
       const voorbij = isVoorbij(c);
-      return res.status(200).json({ ...ev, prijs: c.prijs, open: c.open !== false && !!c.datum && !voorbij && (vrij == null || vrij > 0), gesloten: c.open === false || !c.datum ? "manueel" : voorbij ? "voorbij" : vrij === 0 ? "uitverkocht" : null, vrij, verkoopTot: verkoopTot(c), perBestelling: c.perBestelling, dranken: c.dranken, drankKorting: c.drankKorting, online: onlineConfigured(), vereniging: A.vereniging });
+      return res.status(200).json({ ...ev, prijs: c.prijs, open: c.open !== false && !!c.datum && !voorbij && (vrij == null || vrij > 0), gesloten: c.open === false || !c.datum ? "manueel" : voorbij ? "voorbij" : vrij === 0 ? "uitverkocht" : null, vrij, verkoopTot: verkoopTot(c), perBestelling: c.perBestelling, dranken: c.dranken, drankKorting: c.drankKorting, online: onlineConfigured(), test: process.env.VBHA_TEST === "1", vereniging: A.vereniging });
     }
     if (req.method !== "POST") throw httpErr(405, "Gebruik GET of POST");
 
