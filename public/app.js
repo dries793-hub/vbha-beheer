@@ -2309,7 +2309,10 @@ body:not([data-kft="cad"]) .kf-tabs .kf-act{display:none}
 body:not([data-kft="cad"]) #body>.kf-act{display:none!important}
 @media (max-width:768px){#body>.kf-act{margin:0 0 12px;width:auto}#body>.kf-act .btn{flex:1 1 0;min-width:0}}`,document.head.appendChild(e)}{const e=document.createElement("style");e.textContent=`.ds-acties>.kf-act{display:contents}
 body[data-kft="cad"] .ds-acties>:not(.kf-act):not(.iconbtn){display:none!important}
-body:not([data-kft="cad"]) .ds-acties>.kf-act{display:none!important}`,document.head.appendChild(e)}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
+body:not([data-kft="cad"]) .ds-acties>.kf-act{display:none!important}`,document.head.appendChild(e)}{const e=document.createElement("style");e.textContent=`/* audit: sectiekop op smalle schermen, klikdoel ≥24px */
+.dsec-h>.btn{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dsec-h>h2{min-width:0}
+.sh-tm{min-width:24px;min-height:24px}`,document.head.appendChild(e)}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
 .stat-grid--4{grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr))}
 @media (max-width:1100px){.stat-grid--4{grid-template-columns:repeat(3,minmax(0,1fr))}.stat-grid--4>.stat-card:first-child{grid-column:1/-1}}
 @media (max-width:640px){.stat-grid--4{grid-template-columns:repeat(2,minmax(0,1fr))}.stat-grid--4>.stat-card:last-child{grid-column:1/-1}}

@@ -921,3 +921,6 @@ body.vb-app #tstMeld{background:var(--vb-warn-soft)!important;color:var(--vb-war
 body.vb-app #alMeld,body.vb-app .pp-st.fout{background:var(--vb-err-soft)!important;color:var(--vb-err-ink)!important;border:1px solid color-mix(in srgb,var(--vb-err) 35%,transparent)!important;border-radius:var(--vb-r)!important}
 /* gsm: onderaan genoeg ruimte zodat de laatste regel niet onder de (zwevende) adresbalk van de browser valt */
 @media (max-width:640px){body.vb-app:not(:has(.vb-checkout:not([hidden]))) main{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px))!important}}
+/* audit: groter klikdoel voor tekstknoppen zonder zichtbare verandering */
+body.vb .vb-aanp{position:relative}
+body.vb .vb-aanp::after{content:"";position:absolute;inset:-6px -4px}
