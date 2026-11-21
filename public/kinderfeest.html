@@ -89,6 +89,13 @@ input:focus{outline:none;border-color:var(--info);box-shadow:0 0 0 3px var(--inf
 .hero h1{font-size:26px;line-height:1.2;margin:0 0 6px;letter-spacing:-.01em}
 .kc-go{margin:18px auto 0;max-width:420px;padding:16px;border-radius:12px;background:var(--accent-soft,#fcebec);text-align:center}.kc-go b{font-size:16px}.kc-go p{margin:6px 0 12px;font-size:14px;color:var(--muted)}
 .btn-go{display:inline-block;padding:12px 20px;border-radius:8px;background:var(--accent,#c0161f);color:#fff;font-weight:600;text-decoration:none}.btn-go:hover{filter:brightness(.95)}
+/* cadeaus kiezen: zelfde stijl als de rest (grijs kader, rode hoofdknop) */
+body.vb .kc-go{margin:16px 0 0;max-width:none;padding:14px 16px;border:1px solid var(--vb-line);border-radius:var(--vb-r-lg);background:var(--vb-subtle);text-align:left}
+body.vb .kc-go b{display:block;font-size:15.5px;color:var(--vb-ink)}
+body.vb .kc-go p{margin:4px 0 12px;font-size:14px;color:var(--vb-sec)}
+body.vb a.btn-go,body.vb a.btn-go:visited{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box;min-height:var(--vb-cta);padding:0 16px;border-radius:var(--vb-r);background:var(--vb-red);color:#fff!important;font-weight:650;font-size:16px;text-decoration:none!important}
+body.vb a.btn-go:hover{background:var(--vb-red-d);filter:none}
+body.vb a.btn-go:focus-visible{outline:2px solid var(--vb-red);outline-offset:2px}
 .facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0 22px}
 .fact{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
 .fact span{display:block;font-size:12.5px;color:var(--muted);font-weight:500}
