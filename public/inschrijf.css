@@ -886,3 +886,8 @@ body.vb-app .kadd,body.vb-app .pp-retry,body.vb-app .btn.sec,body.vb-app .btn.gh
 .vb-ui .vb-qty>button{width:var(--g-in);height:var(--g-in)}
 .vb-ui .vb-btn2{min-height:var(--g-cta)}
 body.vb-app .ch label{height:var(--g-seg)!important;padding-top:0!important;padding-bottom:0!important;box-sizing:border-box}body.vb-app .ch{height:var(--g-in)!important;padding:3px!important;align-items:stretch}
+/* fuif/shop: drankkaarten als open blok (geen gekleurde kaart) */
+body.vb-app .dk{background:none!important;border:0!important;border-top:1px solid var(--g-line)!important;border-radius:0!important;padding:12px 0 0!important;margin-top:8px!important}
+body.vb-app .dk-h b{font-size:15px;font-weight:600}
+body.vb-app .dk-p{font-size:13.5px!important;color:var(--g-sec)!important}
+body.vb-app .fu-tot{display:none!important}
