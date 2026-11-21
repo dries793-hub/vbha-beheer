@@ -1,15 +1,16 @@
+@import url("/vbha-tokens.css");
 /* ============ VBHA inschrijfpagina's: één gedeeld designsysteem (banket, familiedag, kinderfeest, …) ============
    Wordt na de eigen stijl van elke pagina geladen en geldt voor <body class="vb">.
    Componenten: .vb-hdr (header) · .vb-hero (titel, begroeting, omschrijving) · .vb-info/.vb-meta (praktische info)
    .vb-card (formulier "Jouw inschrijving") · .ch (gesegmenteerde keuze) · .vb-qty (aantallen) · .vb-kid (kind)
    .vb-notice · .vb-badge (status) · .vb-credit (punten/tegoed) · .vb-sum (prijsoverzicht) · .btn (primaire knop) · .foot */
+/* waarden komen uit /vbha-tokens.css (gedeeld met de beheer-app en de kaart); hier enkel de oude namen die nog gebruikt worden */
 :root{
-  --vb-dark:#18191C;--vb-red:#C0161F;--vb-red-deep:#8F0F16;--vb-bg:#F5F5F6;--vb-card:#FFFFFF;--vb-ink:#18191C;--vb-muted:#6F7278;--vb-line:#D9DBDF;--vb-line-soft:#E8E9EC;
-  --vb-ro:#F2F2F3;--vb-gold:#B08400;--vb-silver:#6B7280;--vb-bronze:#9A5B26;--vb-green:#168447;--vb-focus:#2F6FE4;--vb-focus-soft:#E4EDFD;
+  --vb-dark:var(--vb-ink);--vb-red-deep:var(--vb-red-d);--vb-bg:var(--vb-page);--vb-card:var(--vb-surface);--vb-muted:var(--vb-sec);--vb-line-soft:var(--vb-line);
+  --vb-ro:var(--vb-subtle);--vb-gold:var(--vb-goud);--vb-silver:var(--vb-zilver);--vb-bronze:var(--vb-brons);--vb-green:var(--vb-ok);--vb-focus:var(--vb-info);--vb-focus-soft:var(--vb-info-soft);
   --vb-s1:8px;--vb-s2:12px;--vb-s3:16px;--vb-s4:24px;--vb-s5:32px;--vb-s6:40px;
-  --vb-r-in:10px;--vb-r-card:14px;--vb-h-in:50px;--vb-h-btn:54px;--vb-w:680px;
+  --vb-r-in:var(--vb-r);--vb-r-card:14px;--vb-h-in:var(--vb-ctl);--vb-h-btn:var(--vb-cta);--vb-w:680px;
   --vb-f:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-@media (prefers-color-scheme:dark){:root{--vb-dark:#0B0B0C;--vb-bg:#111214;--vb-card:#1A1B1E;--vb-ink:#ECEDEF;--vb-muted:#9B9EA5;--vb-line:#3C3F45;--vb-line-soft:#2A2C30;--vb-ro:#202226;--vb-gold:#E2B93B;--vb-silver:#B4BAC4;--vb-bronze:#D08A4F;--vb-green:#3FB57A;--vb-focus-soft:#16233D}}
 
 body.vb{margin:0;background:var(--vb-bg);color:var(--vb-ink);font:16px/1.5 var(--vb-f);-webkit-font-smoothing:antialiased}
 body.vb *,body.vb *::before,body.vb *::after{box-sizing:border-box}
@@ -906,3 +907,15 @@ body.vb-app .fu-tk{border-top:0!important;padding-top:0!important}
 body.vb-app .dk-r .stp button{width:var(--g-in)!important;height:var(--g-in)!important}
 body.vb-app .dk-r .stp input,body.vb-app .fu-tk .stp input{width:var(--g-in)!important;height:var(--g-in)!important;min-height:var(--g-in)!important;padding:0!important;font-size:16px!important;text-align:center}
 body.vb-app .fu-tk .w em{color:var(--g-ink)!important;font-weight:600}
+/* ===== Gedeelde ontwerpafspraken (/vbha-tokens.css): alle eigen namen van de openbare pagina's en de kaart wijzen naar dezelfde waarden ===== */
+body.vb.vb-app,.vb-ui{--g-page:var(--vb-page);--g-surf:var(--vb-surface);--g-soft:var(--vb-subtle);--g-track:var(--vb-subtle);--g-line:var(--vb-line);
+  --g-ink:var(--vb-ink);--g-sec:var(--vb-sec);--g-red:var(--vb-red);--g-red-d:var(--vb-red-d);--g-on-ink:var(--vb-on-ink);--g-t:var(--vb-t);
+  --g-in:var(--vb-ctl);--g-cta:var(--vb-cta);--g-seg:calc(var(--vb-ctl) - 8px)}
+/* statuslabels (inschrijfpagina's, status, reglement): zelfde component als .vb-status */
+body.vb .vb-badge.st-goud,body.vb-app .sx-b.GOUD,body.vb-app .medal.GOUD{background:var(--vb-goud-soft)!important;color:var(--vb-goud)!important;border-color:transparent!important}
+body.vb .vb-badge.st-zilver,body.vb-app .sx-b.ZILVER,body.vb-app .medal.ZILVER{background:var(--vb-zilver-soft)!important;color:var(--vb-zilver)!important;border-color:transparent!important}
+body.vb .vb-badge.st-brons,body.vb-app .sx-b.BRONS,body.vb-app .medal.BRONS{background:var(--vb-brons-soft)!important;color:var(--vb-brons)!important;border-color:transparent!important}
+body.vb-app .vb-r.korting.st-goud>b{color:var(--vb-goud)!important}body.vb-app .vb-r.korting.st-zilver>b{color:var(--vb-zilver)!important}body.vb-app .vb-r.korting.st-brons>b{color:var(--vb-brons)!important}
+/* meldingen op de openbare pagina's: zelfde kleuren als .vb-melding */
+body.vb-app #tstMeld{background:var(--vb-warn-soft)!important;color:var(--vb-warn-ink)!important;border:1px solid var(--vb-warn)!important;border-radius:var(--vb-r)!important}
+body.vb-app #alMeld,body.vb-app .pp-st.fout{background:var(--vb-err-soft)!important;color:var(--vb-err-ink)!important;border:1px solid color-mix(in srgb,var(--vb-err) 35%,transparent)!important;border-radius:var(--vb-r)!important}

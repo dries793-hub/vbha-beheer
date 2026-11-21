@@ -1,0 +1,81 @@
+/* ============ VBHA ontwerpafspraken — één bron voor de beheer-app, de openbare pagina's en de kaart ============
+   Hier staan de waarden. De beheer-app (ds.js), de openbare pagina's (inschrijf.css, .vb-ui) en de kaart
+   lezen deze variabelen; ze definiëren zelf geen eigen kleuren, maten of afrondingen meer.
+
+   KLEUREN      achtergrond warm wit · witte vlakken · zacht warm grijs voor velden en keuzebalken
+                antraciet = tekst en geselecteerd · VBHA-rood = hoofdactie, accent, fout · groen = gelukt/positief
+                info (blauw), aandacht (oranje) en de statuskleuren (basis, brons, zilver, goud)
+   MATEN        veld/knop/keuzebalk: 44 px gsm · 38 px computer · klein 34/30 · grote rode knop 48/44
+   AFSTANDEN    4 · 8 · 12 · 16 · 24 · 32
+   AFRONDINGEN  6 (klein) · 10 (velden, knoppen) · 12 (kaders, meldingen) · 16 (vensters, onderpaneel)
+   COMPONENTEN  meldingen (.vb-melding, beheer: .nmeld) · statuslabels (.vb-status) · keuzeknoppen (.vb-keuze)
+*/
+:root{
+  /* kleuren */
+  --vb-page:#FAF9F7; --vb-surface:#FFFFFF; --vb-subtle:#F3F3F2; --vb-hover:#F7F6F4;
+  --vb-line:#E6E4E1; --vb-line-strong:#CFCCC7;
+  --vb-ink:#18191C; --vb-sec:#6F7278; --vb-muted:#92959B; --vb-on-ink:#FFFFFF;
+  --vb-red:#C0161F; --vb-red-d:#9E1219; --vb-red-soft:#FCEBEC;
+  --vb-ok:#168447; --vb-ok-soft:#E7F4EC; --vb-ok-line:#8CCBA6;
+  --vb-info:#2F6FE4; --vb-info-soft:#EAF0FB; --vb-info-ink:#183B7A;
+  --vb-warn:#D99A00; --vb-warn-soft:#FFF4D6; --vb-warn-ink:#6B4A00;
+  --vb-err:#C0161F; --vb-err-soft:#FCEBEC; --vb-err-ink:#8E1016;
+  --vb-goud:#8A6A10; --vb-goud-soft:#FBF3DC; --vb-goud-line:#C8A13A;
+  --vb-zilver:#4B5563; --vb-zilver-soft:#EEF0F3;
+  --vb-brons:#8A4B1F; --vb-brons-soft:#F6ECE3;
+  --vb-basis:#6F7278; --vb-basis-soft:#F1F2F4;
+  /* maten */
+  --vb-ctl:38px; --vb-ctl-sm:30px; --vb-cta:44px; --vb-seg-pad:3px;
+  /* afstanden */
+  --vb-sp1:4px; --vb-sp2:8px; --vb-sp3:12px; --vb-sp4:16px; --vb-sp5:24px; --vb-sp6:32px;
+  /* afrondingen */
+  --vb-r-sm:6px; --vb-r:10px; --vb-r-lg:12px; --vb-r-xl:16px;
+  /* beweging */
+  --vb-t:.16s cubic-bezier(.2,.7,.3,1);
+}
+@media (max-width:768px){:root{--vb-ctl:44px; --vb-ctl-sm:34px; --vb-cta:48px}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --vb-page:#121315; --vb-surface:#1A1C1F; --vb-subtle:#222428; --vb-hover:#1F2124;
+  --vb-line:#2F3237; --vb-line-strong:#44484F;
+  --vb-ink:#ECEDEF; --vb-sec:#A3A6AD; --vb-muted:#7E8188; --vb-on-ink:#141517;
+  --vb-red:#E5343D; --vb-red-d:#C0161F; --vb-red-soft:#3A1416;
+  --vb-ok:#3FB57A; --vb-ok-soft:#12301F; --vb-ok-line:#2C6B49;
+  --vb-info:#7AA5F0; --vb-info-soft:#16233E; --vb-info-ink:#A9C2F2;
+  --vb-warn:#E2B93B; --vb-warn-soft:#2E2510; --vb-warn-ink:#F5DFA6;
+  --vb-err:#F0454E; --vb-err-soft:#3A1416; --vb-err-ink:#F7A9AD;
+  --vb-goud:#E3BE55; --vb-goud-soft:#2E2710; --vb-goud-line:#8A6A10;
+  --vb-zilver:#C3C8D0; --vb-zilver-soft:#262A30;
+  --vb-brons:#E0A274; --vb-brons-soft:#2E1F14;
+  --vb-basis:#A3A6AD; --vb-basis-soft:#24262A;
+}}
+@media (prefers-reduced-motion:reduce){:root{--vb-t:0s linear}}
+
+/* ---------- Component: melding (kader met gekleurd kopje) ----------
+   <div class="vb-melding [info|ok|warn|err]"><div class="vb-melding-h">[icoon] titel</div><div class="vb-melding-b">…</div></div>
+   Eenregelige variant zonder kopje: <p class="vb-melding [info|ok|warn|err]">tekst</p> */
+.vb-melding{--m-c:var(--vb-warn);--m-s:var(--vb-warn-soft);--m-t:var(--vb-warn-ink);
+  border:2px solid var(--m-c);border-radius:var(--vb-r-lg);background:var(--vb-surface);color:var(--vb-ink);overflow:hidden}
+.vb-melding.info{--m-c:var(--vb-info);--m-s:var(--vb-info-soft);--m-t:var(--vb-info-ink)}
+.vb-melding.ok{--m-c:var(--vb-ok);--m-s:var(--vb-ok-soft);--m-t:var(--vb-ok)}
+.vb-melding.err{--m-c:var(--vb-err);--m-s:var(--vb-err-soft);--m-t:var(--vb-err-ink)}
+.vb-melding-h{display:flex;align-items:center;gap:var(--vb-sp2);padding:10px 14px;background:var(--m-s);color:var(--m-t);font-weight:650;font-size:15px}
+.vb-melding-b{padding:10px 16px 12px;border-top:1px solid var(--vb-line)}
+p.vb-melding,div.vb-melding:not(:has(>.vb-melding-h)){border-width:1px;background:var(--m-s);color:var(--m-t);padding:10px 12px;font-size:14px;line-height:1.45;margin:0}
+
+/* ---------- Component: statuslabel ---------- */
+.vb-status{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font-size:12.5px;font-weight:650;line-height:1.5;white-space:nowrap;background:var(--vb-basis-soft);color:var(--vb-basis)}
+.vb-status.goud{background:var(--vb-goud-soft);color:var(--vb-goud)}
+.vb-status.zilver{background:var(--vb-zilver-soft);color:var(--vb-zilver)}
+.vb-status.brons{background:var(--vb-brons-soft);color:var(--vb-brons)}
+.vb-status.ok{background:var(--vb-ok-soft);color:var(--vb-ok)}
+.vb-status.info{background:var(--vb-info-soft);color:var(--vb-info-ink)}
+.vb-status.warn{background:var(--vb-warn-soft);color:var(--vb-warn-ink)}
+.vb-status.err{background:var(--vb-err-soft);color:var(--vb-err-ink)}
+
+/* ---------- Component: keuzeknoppen (segmented control) ----------
+   track zacht grijs met rand · knoppen even breed · geselecteerd = antraciet met witte tekst · hoogte = veldhoogte */
+.vb-keuze{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:var(--vb-seg-pad);min-height:var(--vb-ctl);box-sizing:border-box;
+  border:1px solid var(--vb-line);border-radius:11px;background:var(--vb-subtle)}
+.vb-keuze>button,.vb-keuze>label{display:flex;align-items:center;justify-content:center;min-height:calc(var(--vb-ctl) - 2*var(--vb-seg-pad) - 2px);padding:0 10px;
+  border:0;border-radius:8px;background:none;color:var(--vb-ink);font:500 14.5px/1.2 inherit;cursor:pointer;transition:background-color var(--vb-t),color var(--vb-t)}
+.vb-keuze>button[aria-checked="true"],.vb-keuze>button.on,.vb-keuze>label:has(input:checked){background:var(--vb-ink);color:var(--vb-on-ink);box-shadow:0 1px 2px rgba(0,0,0,.14)}
