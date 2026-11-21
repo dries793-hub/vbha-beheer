@@ -919,3 +919,5 @@ body.vb-app .vb-r.korting.st-goud>b{color:var(--vb-goud)!important}body.vb-app .
 /* meldingen op de openbare pagina's: zelfde kleuren als .vb-melding */
 body.vb-app #tstMeld{background:var(--vb-warn-soft)!important;color:var(--vb-warn-ink)!important;border:1px solid var(--vb-warn)!important;border-radius:var(--vb-r)!important}
 body.vb-app #alMeld,body.vb-app .pp-st.fout{background:var(--vb-err-soft)!important;color:var(--vb-err-ink)!important;border:1px solid color-mix(in srgb,var(--vb-err) 35%,transparent)!important;border-radius:var(--vb-r)!important}
+/* gsm: onderaan genoeg ruimte zodat de laatste regel niet onder de (zwevende) adresbalk van de browser valt */
+@media (max-width:640px){body.vb-app:not(:has(.vb-checkout:not([hidden]))) main{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px))!important}}
