@@ -3074,14 +3074,14 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
   const _c=krCard;krCard=function(){_c.apply(this,arguments);krSoortSync()};
   const e2=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   function open(soort){const ids=[...KR.ss].filter(id=>KR.byId.has(id)||KR_DEEL.has(id));if(!ids.length)return;let lid=null,L=[],sel=-1,T=null;
-    const bg=document.createElement("div");bg.className="km-bg";bg.innerHTML=`<div class="km vb-ui" role="dialog" aria-modal="true" aria-labelledby="kmT"><div class="km-h"><h3 id="kmT" class="vb-acc">Bedeling doorgeven</h3><button type="button" class="km-x" data-km="x" aria-label="Sluiten"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    const bg=document.createElement("div");bg.className="km-bg";bg.innerHTML=`<div class="km vb-ui" role="dialog" aria-modal="true" aria-labelledby="kmT"><div class="km-h"><h3 id="kmT" class="vb-acc">${soort==="r"?"Reservering doorgeven":"Bedeling doorgeven"}</h3><button type="button" class="km-x" data-km="x" aria-label="Sluiten"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
       ${(()=>{const G=new Map();for(const id of ids){const n=krNaamId(id),a=Number((KR.byId.get(id)||KR_DEEL.get(id)||{}).a)||0;G.set(n,(G.get(n)||0)+a)}const tot=[...G.values()].reduce((t,a)=>t+a,0);
         return `<p class="km-m"><b>${G.size} ${G.size===1?"straat":"straten"} · ${krNum(tot)} adressen</b></p><ul class="km-rows">${[...G].map(([n,a])=>`<li><span>${e2(n)}</span><b>${krNum(a)}</b></li>`).join("")}</ul>`})()}
-      <p class="km-q" id="kmQ">Wat wil je melden?</p>
-      <div class="vb-seg km-seg" role="radiogroup" aria-labelledby="kmQ"><button type="button" role="radio" data-ks="r">Reserveren</button><button type="button" role="radio" data-ks="d">Gedaan</button></div>
+      <p class="km-q" id="kmQ" hidden>Wat wil je melden?</p>
+      <div class="vb-seg km-seg" role="radiogroup" aria-labelledby="kmQ" hidden><button type="button" role="radio" data-ks="r">Reserveren</button><button type="button" role="radio" data-ks="d">Gedaan</button></div>
       <label for="kmN">Naam</label><div class="km-w"><input type="text" id="kmN" autocomplete="off"><div class="km-l" id="kmL" hidden></div></div><div class="km-dz" id="kmDz" hidden></div>
       <div class="km-hp" aria-hidden="true"><input type="text" id="kmW" tabindex="-1" autocomplete="off"></div><p class="km-e" id="kmE"></p>
-      <div class="km-a"><button type="button" class="vb-btn2" data-km="x">Annuleren</button><button type="button" class="vb-cta prim" data-km="ok">Bedeling doorgeven</button></div></div>`;
+      <div class="km-a"><button type="button" class="vb-btn2" data-km="x">Annuleren</button><button type="button" class="vb-cta prim" data-km="ok">${soort==="r"?"Reservering doorgeven":"Bedeling doorgeven"}</button></div></div>`;
     document.body.appendChild(bg);const inp=bg.querySelector("#kmN"),box=bg.querySelector("#kmL"),err=bg.querySelector("#kmE");
     const alRes=krAlRes();if(alRes){soort="d";const sg=bg.querySelector('[data-ks="r"]');if(sg){sg.disabled=true;sg.title="Een gekozen straat is al gereserveerd: die kan je enkel nog als gedaan doorgeven."}}
     if(window.KR_IK&&window.KR_IK.id){setTimeout(()=>{if(!lid)kies(window.KR_IK)},0);
@@ -3138,8 +3138,11 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
       try{const r=await fetch("/api/ronde",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({straten:ids,soort,lidId:lid.id,dozen:dz,website:bg.querySelector("#kmW").value})});const j=await r.json().catch(()=>({}));
         if(!r.ok)throw new Error(j.error||"Versturen lukte niet");
         bg.querySelector(".km").innerHTML=`<p class="km-okt" role="status"><i aria-hidden="true">✓</i>${soort==="d"?"Bedeling doorgegeven":"Reservering doorgegeven"}</p><p>Bedankt, ${e2(String(lid.toon||lid.naam).split(" ")[0])}! Je melding is doorgestuurd. Ze staan op de kaart met een oranje stippellijn tot het bestuur ze nagekeken heeft. Daarna worden ze ${soort==="d"?"groen (bedeeld)":"blauw (gereserveerd)"}.</p>${dz&&dz.nodig?`<p>Het bestuur weet dat je nog ${dz.nodigN?fd(dz.nodigN):"dozen"} nodig hebt.</p>`:""}<div class="km-a"><button type="button" class="vb-btn2" data-km="x">Sluiten</button></div>`;for(const id of ids)KR_PEND[id]=soort==="d"?"d":"r";krSelect(null)}
-      catch(x){err.textContent=x.message+" Je selectie en keuzes blijven bewaard: probeer opnieuw.";a.disabled=false;a.textContent="Bedeling doorgeven"}});
-    document.addEventListener("keydown",function k(e){if(e.key==="Escape"){dicht();document.removeEventListener("keydown",k)}});setTimeout(()=>inp.focus(),50)}
+      catch(x){err.textContent=x.message+" Je selectie en keuzes blijven bewaard: probeer opnieuw.";a.disabled=false;a.textContent=soort==="r"?"Reservering doorgeven":"Bedeling doorgeven"}});
+    document.addEventListener("keydown",function k(e){if(e.key==="Escape"){dicht();document.removeEventListener("keydown",k)}});
+    /* persoonlijke link + reserveren: niets meer te vragen, meteen doorsturen (één klik) */
+    if(window.KR_IK&&window.KR_IK.id&&soort==="r"){bg.querySelector(".km-ik")?.setAttribute("hidden","");setTimeout(()=>{const ok=bg.querySelector('[data-km="ok"]');if(ok&&lid)ok.click()},0)}
+    else setTimeout(()=>inp.focus(),50)}
   document.addEventListener("click",e=>{const b=e.target.closest("[data-krmeld]");if(b)open(b.dataset.krmeld)});
   try{krCard()}catch(e){}
 })();
