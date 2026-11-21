@@ -60,16 +60,16 @@ const modern = s => String(s)
   .replace(/#b30000/gi, ROOD);
 const HOOFD = (titel) => `<!DOCTYPE html><html lang="nl" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><title>${titel}</title>
 <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><style>td,p,a,h1,h2,h3,li,span{font-family:'Segoe UI',Arial,sans-serif!important}</style><![endif]-->
-<style>@media only screen and (max-width:520px){.vb-in{padding:24px 18px 20px!important}.vb-k{padding:12px 14px!important}.vb-l{padding-right:10px!important}.vb-h1{font-size:24px!important}}</style></head>`;
+<style>@media only screen and (max-width:520px){.vb-in{padding:24px 18px 20px!important}.vb-hl{padding:0 18px!important}.vb-k{padding:12px 14px!important}.vb-l{padding-right:10px!important}.vb-h1{font-size:24px!important}}</style></head>`;
 // bovenschrift in rood met streepje + titel (zoals bovenaan de openbare pagina's)
 const TITEL = (bovenschrift, titel) => (bovenschrift ? `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 8px"><tr><td style="width:22px;border-top:2px solid ${ROOD};font-size:0;line-height:0">&nbsp;</td><td style="padding-left:10px;${F}font-size:12px;font-weight:bold;letter-spacing:1.4px;text-transform:uppercase;color:${ROOD}">${bovenschrift}</td></tr></table>` : "")
   + (titel ? `<h1 class="vb-h1" style="${F}margin:0 0 20px;padding:0 0 16px;border-bottom:1px solid ${LIJN};font-size:27px;line-height:1.15;font-weight:bold;letter-spacing:-.3px;color:${INK}">${titel}</h1>` : "");
 function huisstijl(inner, ver, { groet = true, voet = "", extern = false, bovenschrift = "", titel = "" } = {}) { // extern: mail aan sponsors/klanten (geen leden)
   return `${HOOFD(esc(ver))}<body style="margin:0;padding:0;background:${PAGINA};-webkit-text-size-adjust:100%">
 <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="${PAGINA}"><tr><td align="center" style="padding:0">
-<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="${INK}"><tr><td align="center" style="padding:14px 16px">
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="${INK}"><tr><td align="center" style="padding:14px 0">
 <!--[if mso]><table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" align="center"><tr><td><![endif]-->
-<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px"><tr><td style="padding:0 8px"><a href="${site()}" target="_blank" style="text-decoration:none"><img src="${LOGO_W()}" alt="VBHA" width="106" height="32" style="display:block;color:#ffffff;font-weight:bold;font-size:20px;width:106px;height:32px;border:0"></a></td></tr></table>
+<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px"><tr><td class="vb-hl" style="padding:0 24px"><a href="${site()}" target="_blank" style="text-decoration:none"><img src="${LOGO_W()}" alt="VBHA" width="106" height="32" style="display:block;color:#ffffff;font-weight:bold;font-size:20px;width:106px;height:32px;border:0"></a></td></tr></table>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table>
 <!--[if mso]><table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" align="center"><tr><td><![endif]-->
