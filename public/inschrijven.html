@@ -169,7 +169,7 @@ function toonKlaar(j){KLAAR=j;
 let BET=null,volgT=0,volgN=0;
 function betaald(){const j=KLAAR||{};
   $("#box").innerHTML=`<div class="card bevestig"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
-  <h2>Je betaling is goed ontvangen!</h2><p class="lead2">Bedankt${j.voornaam?", "+esc(j.voornaam):""}. We ontvingen je lidgeld${j.bedrag?" van <b>"+eur(j.bedrag)+"</b>":""}${j.jaar?" voor "+esc(j.jaar):""}. Je lidmaatschap is helemaal in orde.</p>
+  <h2>Bedankt${j.voornaam?", "+esc(j.voornaam):""}!</h2><p class="lead2">We ontvingen je lidgeld${j.bedrag?" van <b>"+eur(j.bedrag)+"</b>":""}${j.jaar?" voor "+esc(j.jaar):""}. Je lidmaatschap is helemaal in orde.</p>
   <p class="tot">Welkom bij de vriendenkring!</p></div>`;window.scrollTo({top:0,behavior:"smooth"});try{sessionStorage.removeItem("vbha_insch")}catch(x){}}
 async function volg(){clearTimeout(volgT);if(!BET)return;
   try{const r=await fetch(`/api/betaling?id=${encodeURIComponent(BET.id)}&token=${encodeURIComponent(BET.token)}`);const s=await r.json();

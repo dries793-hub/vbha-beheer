@@ -281,7 +281,7 @@ async function toonTickets(){const j=KLAAR||{};let t=null;
   for(let i=0;i<6&&!(t&&t.tickets&&t.tickets.length);i++){try{const r=await fetch(`/api/fuif?b=${encodeURIComponent(j.id)}&t=${encodeURIComponent(j.token)}`);t=r.ok?await r.json():null}catch(x){}if(!(t&&t.tickets&&t.tickets.length))await new Promise(r=>setTimeout(r,1500))}
   const L=(t&&t.tickets)||[],link=`/ticket?b=${encodeURIComponent(j.id)}&t=${encodeURIComponent(j.token)}`;
   $("#box").innerHTML=`<div class="card bevestig"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
-  <h2>Betaald, tot op de fuif!</h2><p class="lead2">Bedankt${j.voornaam?", "+esc(j.voornaam):""}. Alles staat hieronder en komt ook per mail. Toon de QR-codes aan de kassa.</p>
+  <h2>Bedankt${j.voornaam?", "+esc(j.voornaam):""}!</h2><p class="lead2">Je betaling is goed ontvangen. Alles staat hieronder en komt ook per mail. Toon de QR-codes aan de kassa.</p>
   ${L.length?`<div class="tks">${L.map(x=>`<div class="tk${x.soort==="drank"?" drank":""}"><div class="n">${x.soort==="drank"?"DRANKKAART "+eur(x.waarde).replace(",00",""):"TICKET"} ${x.nr} VAN ${x.van}</div><img src="/api/fuif?qr=${esc(x.code)}" alt="QR-code ticket ${x.nr}"><div class="c">${esc(x.code.replace(/(.{4})(?=.)/g,"$1 "))}</div></div>`).join("")}</div>`:`<p class="lead2" style="margin-top:14px">Je tickets worden aangemaakt en komen zo meteen per mail.</p>`}
   <a class="btn" href="${esc(link)}" style="text-decoration:none">Tickets bewaren of opnieuw bekijken</a></div>`;
   window.scrollTo({top:0,behavior:"smooth"});try{sessionStorage.removeItem("vbha_fuif")}catch(x){}}

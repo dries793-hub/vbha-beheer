@@ -127,6 +127,6 @@ export default async function handler(req, res) {
     let cadeau = null;
     try { const { kfcLink, kfcInstellingen, budgetVan } = await import("./kfcadeau.js"); const c = await configDoc(sb, "kf_" + I.jaar), M = kfcInstellingen(c, I.jaar);
       if (M.cadeau !== false && M.keuze === true && vandaagISO() <= M.tot && kinderen.some(k => budgetVan(k.geb, M, k).budget != null)) cadeau = kfcLink(kid).replace(/^https?:\/\/[^/]+/, ""); } catch (e) { console.error("kfc link", e); }
-    res.status(200).json({ ok: true, ...I, kinderen, cadeau });
+    res.status(200).json({ ok: true, ...I, kinderen, cadeau, voornaam: lidRij.voornaam || "" });
   } catch (e) { sendError(res, e); }
 }

@@ -199,7 +199,7 @@ let BET=null,volgT=0,volgN=0;
 function betaald(){const j=KLAAR||{};const f=$$("#facts .fact");const tx=(k,sel)=>{const e=f[k]&&f[k].querySelector(sel);return e?e.textContent.trim():""};
   const menu=j.personen===2?esc(j.menu1||"")+" + "+esc(j.menu2||""):esc(j.menu1||"");
   $("#box").innerHTML=`<div class="card bevestig"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
-  <h2>Je bent succesvol ingeschreven!</h2><p class="lead2">Bedankt${j.voornaam?", "+esc(j.voornaam):""}. Je betaling${j.bedrag?" van <b>"+eur(j.bedrag)+"</b>":""} is goed ontvangen en je inschrijving voor het banket is helemaal in orde.</p>
+  <h2>Bedankt${j.voornaam?", "+esc(j.voornaam):""}!</h2><p class="lead2">Je betaling${j.bedrag?" van <b>"+eur(j.bedrag)+"</b>":""} is goed ontvangen en je inschrijving voor het banket is helemaal in orde.</p>
   <div class="sam">${j.naam?`<div><span>Naam</span><b>${esc(j.naam)}</b></div>`:""}${j.personen?`<div><span>Aanwezig</span><b>${j.personen===2?"2 personen":"1 persoon"}</b></div>`:""}${j.menu1?`<div><span>Menu</span><b>${menu}</b></div>`:""}
   ${tx(0,"b")?`<div><span>Wanneer</span><b>${esc(tx(0,"b"))}${tx(0,"small")?", "+esc(tx(0,"small")):""}</b></div>`:""}${tx(1,"b")?`<div><span>Waar</span><b>${esc(tx(1,"b"))}${tx(1,"small")?", "+esc(tx(1,"small")):""}</b></div>`:""}</div>
   <p class="tot">Tot dan!</p></div>`;window.scrollTo({top:0,behavior:"smooth"});try{sessionStorage.removeItem("vbha_banket")}catch(x){}}
