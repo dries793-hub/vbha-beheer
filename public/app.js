@@ -2237,7 +2237,14 @@ input.sm,select.sm{min-height:var(--ctl-sm)!important}`,document.head.appendChil
 .ink-pay .ink-qr{display:flex;align-items:center;gap:12px;text-align:left}
 .ink-pay .ink-qr #ipQ{flex:none;width:132px}
 .ink-pay .ink-qr #ipQ svg,.ink-pay .ink-qr #ipQ img,.ink-pay .ink-qr #ipQ canvas{width:132px!important;height:132px!important}
-.ink-pay .ink-qr p{margin:0!important;font-size:12.5px}}`,document.head.appendChild(e)}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
+.ink-pay .ink-qr p{margin:0!important;font-size:12.5px}}`,document.head.appendChild(e)}{const e=document.createElement("style");e.textContent=`@media (max-width:768px){
+body{padding-bottom:calc(58px + env(safe-area-inset-bottom,0px))!important}
+#main.wrap.inner,.wrap.inner{padding-bottom:12px!important}
+.modal .ink-pay .form input:not([type=checkbox]):not([type=radio]){min-height:40px!important;height:40px!important;font-size:15px!important}}
+/* dashboard: kopje van Te verwerken betalingen even hoog als dat van de meldingen */
+.panel.tbd>.panel-h{padding:10px 14px!important;min-height:0!important}
+.panel.tbd>.panel-h h2{font-size:15px!important;line-height:1.3;margin:0}
+.panel.tbd .tbd-ic{width:28px!important;height:28px!important}`,document.head.appendChild(e)}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
 .stat-grid--4{grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr))}
 @media (max-width:1100px){.stat-grid--4{grid-template-columns:repeat(3,minmax(0,1fr))}.stat-grid--4>.stat-card:first-child{grid-column:1/-1}}
 @media (max-width:640px){.stat-grid--4{grid-template-columns:repeat(2,minmax(0,1fr))}.stat-grid--4>.stat-card:last-child{grid-column:1/-1}}
