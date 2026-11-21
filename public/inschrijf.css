@@ -17,10 +17,10 @@ body.vb *,body.vb *::before,body.vb *::after{box-sizing:border-box}
 body.vb [hidden]{display:none!important}
 
 /* ---- header ---- */
-body.vb .hdr{background:var(--vb-dark);padding:calc(12px + env(safe-area-inset-top,0px)) 20px 12px}
-body.vb .hdr .in{max-width:var(--vb-w);margin:0 auto;display:flex;align-items:center;gap:14px;color:#fff}
-body.vb .hdr .logo{height:30px;width:auto;display:block}
-body.vb .hdr .in>span{display:block!important;min-width:0;border-left:1px solid #3a3c40;padding-left:14px;font-size:14px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.vb .hdr{background:var(--vb-dark);}
+body.vb .hdr .in{max-width:var(--vb-w);margin:0 auto;display:flex;align-items:center;color:#fff}
+body.vb .hdr .logo{width:auto;display:block}
+body.vb .hdr .in>span{min-width:0;}
 
 /* ---- pagina ---- */
 body.vb main{max-width:var(--vb-w);margin:0 auto;padding:var(--vb-s4) 20px var(--vb-s6)}
@@ -155,7 +155,7 @@ body.vb .err{color:var(--vb-red);font-weight:500;margin:var(--vb-s3) 0 0;font-si
 body.vb .err:empty{display:none}
 
 /* ---- footer ---- */
-body.vb .foot{text-align:center;margin:var(--vb-s5) 0 var(--vb-s3);font-size:14px;color:var(--vb-muted)}
+body.vb .foot{text-align:center;margin:var(--vb-s5) 0 var(--vb-s3);color:var(--vb-muted)}
 body.vb .foot a{color:inherit}
 @media (max-width:380px){body.vb .card{padding:20px 14px}body.vb .pay{padding:14px 12px}body.vb .vb-sw{gap:8px;font-size:15.5px}body.vb .vb-sw i{width:36px;height:22px}body.vb .vb-sw i::after{width:16px;height:16px}body.vb .vb-sw input:checked+i::after{left:17px}}
 body.vb .vb-sw{white-space:nowrap}body.vb .vb-nw{white-space:nowrap}
@@ -218,8 +218,8 @@ body.vb main{padding-bottom:calc(var(--vb-s6) + env(safe-area-inset-bottom,0px))
    Componenten: .vb-eyebrow · .hero/.facts (EventHero/EventInfo) · .vb-sec (RegistrationSection)
    · .vb-checkout/.vb-due (CheckoutAction) · .vb-state (Success/Error/InfoState) · .veld-fout (FieldError)
    · [data-reveal] (conditionele inhoud) · .btn.is-busy (laden) · .lp/.lp-l/.lp-i (MemberPicker) */
-body.vb.vb-app{--vb-soft:#F2F3F5;--vb-div:#E8E9EB;--vb-t:.18s cubic-bezier(.2,.7,.3,1);--vb-bg:#FFFFFF;background:#FFFFFF}
-@media (prefers-color-scheme:dark){body.vb.vb-app{--vb-soft:#202226;--vb-div:#2A2C30;--vb-bg:#141517;background:#141517}}
+body.vb.vb-app{--vb-soft:#F2F3F5;--vb-div:#E8E9EB;--vb-t:.18s cubic-bezier(.2,.7,.3,1);}
+@media (prefers-color-scheme:dark){body.vb.vb-app{--vb-soft:#202226;--vb-div:#2A2C30;}}
 /* geen horizontale scroll, maar ook geen eigen scrollcontainer (anders werkt de vaste afrekenbalk niet) */
 html:has(body.vb-app),body.vb.vb-app{overflow:visible;overflow-x:clip}
 /* header: compact, naam rechts */
@@ -230,44 +230,44 @@ body.vb .hdr .logo{height:30px}
 body.vb .hdr .in>span{display:block!important;border-left:1px solid rgba(255,255,255,.28);padding-left:14px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:none;font-size:14px;font-weight:500;line-height:20px;color:#fff}
 body.vb-app main{padding-top:28px}
 /* EventHero */
-body.vb-app .vb-eyebrow{margin:0 0 6px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--vb-red)}
+body.vb-app .vb-eyebrow{margin:0 0 6px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--vb-red)}
 body.vb-app .title{display:block;margin:0}
 body.vb-app .title img{display:none}
 body.vb-app h1{font-size:34px;line-height:1.1;letter-spacing:-.02em}
-body.vb-app .dag{margin:8px 0 0;font-size:18px;font-weight:600;color:var(--vb-ink)}
+body.vb-app .dag{margin:8px 0 0;font-weight:600;color:var(--vb-ink)}
 body.vb-app .lead{margin:6px 0 22px;font-size:16px;line-height:1.5;color:var(--vb-muted)}
 @media (max-width:360px){body.vb-app h1{font-size:30px}}
 /* EventInfo: icoon + tekst, geen kaders */
 body.vb-app .facts{grid-template-columns:1fr 1fr;gap:0;margin:0 0 14px}
-body.vb-app .fact{position:relative;display:grid;grid-template-columns:24px minmax(0,1fr);column-gap:12px;align-items:start;background:none;border:0;border-radius:0;padding:0 14px 0 0}
+body.vb-app .fact{position:relative;display:grid;align-items:start;background:none;border:0;border-radius:0;padding:0 14px 0 0}
 body.vb-app .fact+.fact{padding:0 0 0 16px;border-left:1px solid var(--vb-div)}
 body.vb-app .fact>span{grid-row:1/4;margin:1px 0 0;font-size:0;color:var(--vb-ink)}
-body.vb-app .fact>span svg{width:24px;height:24px;stroke-width:1.6}
-body.vb-app .fact b{font-size:16.5px;font-weight:500;line-height:1.3}
-body.vb-app .fact small{font-size:14.5px;margin-top:2px}
+body.vb-app .fact>span svg{stroke-width:1.6}
+body.vb-app .fact b{font-weight:500;line-height:1.3}
+body.vb-app .fact small{margin-top:2px}
 body.vb-app .vb-metas{margin:0 0 4px}
-body.vb-app .vb-meta{background:none;border:0;padding:4px 0;font-size:15px;color:var(--vb-muted);gap:12px}
-body.vb-app .vb-meta svg{width:22px;height:22px;stroke:var(--vb-ink);stroke-width:1.6}
+body.vb-app .vb-meta{background:none;border:0;padding:4px 0;color:var(--vb-muted);gap:12px}
+body.vb-app .vb-meta svg{stroke:var(--vb-ink);stroke-width:1.6}
 @media (max-width:359px){body.vb-app .facts{grid-template-columns:1fr;gap:14px}body.vb-app .fact+.fact{border-left:0;padding-left:0}}
 /* RegistrationSection */
 body.vb-app .vb-form{margin:0}
-body.vb-app .vb-sec{border-top:1px solid var(--vb-div);padding:22px 0 24px}
+body.vb-app .vb-sec{}
 body.vb-app .vb-sec>h2,body.vb-app .vb-card-t{font-size:24px;line-height:1.2;font-weight:700;letter-spacing:-.015em;margin:0 0 16px}
-body.vb-app .grid{gap:18px}
-body.vb-app label,body.vb-app .lbl,body.vb-app legend{font-size:15.5px;font-weight:600;margin-bottom:8px}
+body.vb-app .grid{}
+body.vb-app label,body.vb-app .lbl,body.vb-app legend{font-weight:600;}
 /* zachte velden */
 body.vb-app input[type=text],body.vb-app input[type=email],body.vb-app input[type=tel],body.vb-app input[type=date],body.vb-app input[type=number],body.vb-app input[type=search],body.vb-app textarea,body.vb-app select{background:var(--vb-soft);border:1px solid transparent;border-radius:12px;min-height:52px;padding:12px 16px;transition:background var(--vb-t),border-color var(--vb-t),box-shadow var(--vb-t)}
-body.vb-app textarea.vb-kort{min-height:52px;height:52px}
+body.vb-app textarea.vb-kort{}
 body.vb-app input:hover:not(:focus):not([readonly]),body.vb-app textarea:hover:not(:focus){border-color:var(--vb-line)}
 body.vb-app input:focus,body.vb-app textarea:focus,body.vb-app select:focus{background:var(--vb-card);border-color:var(--vb-focus);box-shadow:0 0 0 3px var(--vb-focus-soft)}
 body.vb-app .vast-n,body.vb-app input[readonly]{background:var(--vb-soft);border-color:transparent;border-radius:12px;min-height:52px}
 body.vb-app .is-fout,body.vb-app [aria-invalid="true"]{border-color:var(--vb-red)!important;background:var(--vb-card)}
 /* zachte segmentknoppen */
-body.vb-app .ch{background:var(--vb-soft);border:0;border-radius:12px;padding:4px;gap:4px;overflow:visible}
-body.vb-app .ch label{min-height:46px;border:0!important;border-radius:9px;font-weight:500;transition:background var(--vb-t),color var(--vb-t),box-shadow var(--vb-t)}
+body.vb-app .ch{overflow:visible}
+body.vb-app .ch label{border:0!important;font-weight:500;}
 body.vb-app .ch label:hover:not(:has(input:checked)){background:rgba(0,0,0,.04)}
-body.vb-app .ch label:has(input:checked){background:var(--vb-dark);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.18)}
-body.vb-app .ch b,body.vb-app .ch span{font-size:16px}
+body.vb-app .ch label:has(input:checked){}
+body.vb-app .ch b,body.vb-app .ch span{}
 body.vb-app .ch.is-fout{box-shadow:inset 0 0 0 1px var(--vb-red)}
 /* conditionele inhoud verschijnt rustig */
 @keyframes vb-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -280,26 +280,26 @@ body.vb-app .veld-fout{display:flex;align-items:center;gap:6px;margin:8px 0 0;fo
 body.vb-app .veld-fout::before{content:"!";display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--vb-red);color:#fff;font-size:12px;font-weight:700;flex:none}
 /* PriceSummary: zonder kader */
 body.vb-app .pay{margin:0;padding:0;background:none;border:0;border-radius:0}
-body.vb-app .vb-sum{gap:14px}
+body.vb-app .vb-sum{}
 body.vb-app .vb-r{font-size:16.5px;align-items:center}
-body.vb-app .vb-r>b{font-weight:600;font-size:16.5px}
-body.vb-app .vb-r small{font-size:14.5px}
+body.vb-app .vb-r>b{font-size:16.5px}
+body.vb-app .vb-r small{}
 body.vb-app .vb-r.credit{border-top:1px solid var(--vb-div);padding-top:14px;margin-top:2px}
 body.vb-app .vb-r>span small{flex-basis:auto;display:inline}
 body.vb-app .vb-r .vb-sub{color:var(--vb-muted);font-weight:400}
 /* CheckoutAction: totaal als anker + knop; op gsm onderaan vast zolang het formulier zichtbaar is */
-body.vb-app .vb-checkout{display:flex;align-items:center;gap:16px;border-top:1px solid var(--vb-div);padding:18px 0 4px;background:var(--vb-bg)}
-body.vb-app .vb-due{display:flex;flex-direction:column;min-width:0;flex:none}
-body.vb-app .vb-due span{font-size:14px;color:var(--vb-muted);line-height:1.2}
-body.vb-app .vb-due b{font-size:34px;line-height:1.1;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap;transition:opacity .14s,transform .14s}
+body.vb-app .vb-checkout{padding:18px 0 4px;}
+body.vb-app .vb-due{flex:none}
+body.vb-app .vb-due span{line-height:1.2}
+body.vb-app .vb-due b{white-space:nowrap;transition:opacity .14s,transform .14s}
 body.vb-app .vb-due b.vb-tik{opacity:.35;transform:translateY(2px)}
-body.vb-app .vb-checkout .btn{margin:0;flex:1 1 auto;min-height:56px;width:auto;font-size:17px;border-radius:12px}
+body.vb-app .vb-checkout .btn{flex:1 1 auto;}
 @media (max-width:640px){
-  body.vb-app .vb-checkout{position:sticky;bottom:0;z-index:5;margin:0 -20px;padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--vb-div);box-shadow:0 -6px 16px rgba(17,18,20,.05)}
+  body.vb-app .vb-checkout{position:sticky;bottom:0;z-index:5;margin:0 -20px;padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 16px rgba(17,18,20,.05)}
   body.vb-app.vb-kb .vb-checkout{position:static;box-shadow:none}
-  body.vb-app .vb-due b{font-size:28px}
+  body.vb-app .vb-due b{}
 }
-@media (max-width:360px){body.vb-app .vb-checkout{margin:0 -16px;padding-left:16px;padding-right:16px;gap:12px}body.vb-app .vb-due b{font-size:24px}body.vb-app .vb-checkout .btn{font-size:15.5px;padding:10px 12px}}
+@media (max-width:360px){body.vb-app .vb-checkout{margin:0 -16px;padding-left:16px;padding-right:16px;}body.vb-app .vb-due b{}body.vb-app .vb-checkout .btn{}}
 /* knop: micro-toestanden en laden */
 body.vb-app .btn{transition:background .15s,transform .1s}
 body.vb-app .btn:active:not(:disabled){transform:scale(.99)}
@@ -317,14 +317,14 @@ body.vb-app .lp-prijs{background:none;border:0;padding:8px 0 0;font-size:15px}
 body.vb-app .card.ok,body.vb-app .card.bevestig,body.vb-app .vb-state{background:none;border:0;border-top:1px solid var(--vb-div);border-radius:0;padding:28px 0 8px;text-align:left}
 body.vb-app .card.ok .ic,body.vb-app .card.bevestig .ic,body.vb-app .vb-state .ic{width:52px;height:52px;margin:0 0 16px;animation:vb-in .2s ease-out}
 body.vb-app .card.ok .ic svg,body.vb-app .card.bevestig .ic svg{width:28px;height:28px}
-body.vb-app .card.ok h2,body.vb-app .card.bevestig h2,body.vb-app .vb-state h2{font-size:26px;line-height:1.2;letter-spacing:-.015em;margin:0 0 8px;text-align:left}
+body.vb-app .card.ok h2,body.vb-app .card.bevestig h2,body.vb-app .vb-state h2{line-height:1.2;letter-spacing:-.015em;margin:0 0 8px;text-align:left}
 body.vb-app .card.ok>p,body.vb-app .bevestig .lead2{margin:0;max-width:none;font-size:16px;color:var(--vb-muted)}
 body.vb-app .bevestig .sam{margin:22px 0 0;max-width:none;border:0;border-top:1px solid var(--vb-div);border-radius:0}
 body.vb-app .bevestig .sam div{padding:12px 0;font-size:16px}
 body.vb-app .bevestig .sam div+div{border-top:1px solid var(--vb-div)}
 body.vb-app .bevestig .tot{text-align:left;font-size:18px}
 /* PaymentPanel */
-body.vb-app .paybox{background:none;padding:22px 0 0;margin-top:22px;border-top:1px solid var(--vb-div);border-radius:0}
+body.vb-app .paybox{border-top:1px solid var(--vb-div);}
 body.vb-app .paybox h3{text-align:left;font-size:20px}
 body.vb-app .paybox .btn.bc{min-height:56px;border-radius:12px;font-size:17px}
 body.vb-app .paybox .hint{font-size:14.5px;line-height:1.5;text-align:left}
@@ -334,7 +334,7 @@ body.vb-app .wacht:has(.cp)::before{display:none}
 body.vb-app .zelf{margin-top:18px;border-top:1px solid var(--vb-div);padding-top:14px}
 body.vb-app .zelf summary{cursor:pointer;font-weight:600;font-size:15.5px;min-height:44px;display:flex;align-items:center}
 body.vb-app .cp{min-height:36px;border-radius:8px}
-body.vb-app .foot{margin-top:28px}
+body.vb-app .foot{}
 @media (prefers-reduced-motion:reduce){body.vb-app [data-reveal]:not([hidden]),body.vb-app .opmw,body.vb-app .veld-fout,body.vb-app .ic{animation:none!important}body.vb-app .btn.is-busy::before,body.vb-app .wacht::before{animation-duration:2s}}
 /* ---- wave 2: overzicht als eigen sectie, aantallen, kinderen ---- */
 body.vb-app .vb-form>.pay{border-top:1px solid var(--vb-div);padding:22px 0 24px}
@@ -342,24 +342,24 @@ body.vb-app .vb-form>.pay .vb-sum-t{font-size:24px;line-height:1.2;font-weight:7
 body.vb-app .vb-sel small{font-size:16px;color:var(--vb-muted)}
 /* QuantitySelector: open lijst met scheidingslijnen */
 body.vb-app .pr-l{border:0;border-radius:0;border-top:1px solid var(--vb-div)}
-body.vb-app .pr-r{padding:14px 0;background:none!important;border-top:0;border-bottom:1px solid var(--vb-div)}
-body.vb-app .pr-r .nm b{font-size:16.5px}
-body.vb-app .pr-r .nm span{font-size:14.5px}
-body.vb-app .stp{gap:6px}
-body.vb-app .stp button{width:44px;height:44px;border:0;background:var(--vb-soft);font-size:22px;transition:background .12s,transform .08s}
-body.vb-app .stp button:hover:not(:disabled){background:#E6E8EB;border:0}
-body.vb-app .stp button:active:not(:disabled){transform:scale(.94)}
-body.vb-app .stp output,body.vb-app .stp input{min-width:32px;font-size:18px}
+body.vb-app .pr-r{background:none!important;border-top:0;border-bottom:1px solid var(--vb-div)}
+body.vb-app .pr-r .nm b{}
+body.vb-app .pr-r .nm span{}
+body.vb-app .stp{}
+body.vb-app .stp button{}
+body.vb-app .stp button:hover:not(:disabled){border:0}
+body.vb-app .stp button:active:not(:disabled){}
+body.vb-app .stp output,body.vb-app .stp input{}
 body.vb-app .pr-l.is-fout{box-shadow:none;border-top-color:var(--vb-red)}
 /* ChildSection */
 body.vb-app #kids{border-top:1px solid var(--vb-div)}
-body.vb-app .kid{padding:18px 0;border-bottom:1px solid var(--vb-div);gap:14px}
+body.vb-app .kid{border-bottom:1px solid var(--vb-div);gap:14px}
 body.vb-app #kids .kid:last-child{animation:vb-in .18s cubic-bezier(.2,.7,.3,1)}
-body.vb-app .kid-k b{font-size:18px;font-weight:700}
+body.vb-app .kid-k b{}
 body.vb-app .kid label{font-size:15px}
-body.vb-app .kdel{min-height:44px;padding:0 4px;color:var(--vb-red)}
-body.vb-app .kadd{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;margin-top:16px;border:1px solid var(--vb-line);border-radius:12px;background:var(--vb-card);color:var(--vb-ink);font-weight:600;font-size:16px;cursor:pointer;transition:background .15s}
-body.vb-app .kadd:hover{background:var(--vb-soft)}
+body.vb-app .kdel{min-height:44px;padding:0 4px;}
+body.vb-app .kadd{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:16px;cursor:pointer;}
+body.vb-app .kadd:hover{}
 body.vb-app .kadd:focus-visible{box-shadow:0 0 0 3px var(--vb-focus-soft)}
 body.vb-app .age{margin-top:-6px}
 /* InfoNotice: subtiel */
@@ -370,7 +370,7 @@ body.vb-app #alMeld{border-radius:12px!important}
 @media (prefers-reduced-motion:reduce){body.vb-app #kids .kid:last-child{animation:none}}
 /* voordeel van het lid (familiedag): rustige melding zonder groene kaart */
 body.vb-app #fdV:not(:empty){padding:0 0 18px}
-body.vb-app .fd-v{margin:0;padding:12px 14px;border:0;border-radius:12px;background:var(--vb-soft);font-size:15px;gap:10px}
+body.vb-app .fd-v{border-radius:12px;font-size:15px;}
 body.vb-app .fd-v input[type=checkbox]{margin-right:8px;vertical-align:-4px}
 body.vb-app .fd-v label{font-weight:500;font-size:15px;margin:0}
 
@@ -388,13 +388,13 @@ body.vb-app .state{padding:6px 0}
 body.vb-app .state b,body.vb-app .state strong{font-size:20px}
 /* totaal als anker */
 /* bedragrijen (webshop): rechts uitgelijnd; de totaalrij als anker */
-body.vb-app div.tot{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:6px 0;font-size:16.5px;font-variant-numeric:tabular-nums}
+body.vb-app div.tot{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:6px 0;font-variant-numeric:tabular-nums}
 body.vb-app div.tot.g{border-top:1px solid var(--vb-div);padding-top:14px;margin-top:8px;font-weight:600}
 body.vb-app div.tot.g>span:last-child,body.vb-app div.tot.g b{font-size:32px;font-weight:700;letter-spacing:-.02em}
 body.vb-app p.tot{font-size:18px;font-weight:700;margin:20px 0 0}
 body.vb-app .aantal .som b{font-size:26px}
 /* keuzetegels zacht (bedragen, formules, ploegen) */
-body.vb-app .opt span{background:var(--vb-soft);border:0;border-radius:12px;min-height:50px;font-size:16px}
+body.vb-app .opt span{background:var(--vb-soft);border:0;}
 body.vb-app .opt input:checked+span{background:var(--vb-dark);color:#fff}
 body.vb-app .seg2{background:var(--vb-soft);border-radius:12px;padding:4px;gap:4px}
 body.vb-app .seg2 button{border:0;background:none;min-height:46px;border-radius:9px;font-size:16px}
@@ -408,13 +408,13 @@ body.vb-app .hu-tab button.on{background:var(--vb-dark)!important;color:#fff}
 body.vb-app .stp input{background:none!important;border:0!important;min-height:44px}
 /* betaalblok: rustig, zonder grijze kaart */
 body.vb-app .paybox,body.vb-app .pay-b,body.vb-app .betaal{background:none;border:0;border-top:1px solid var(--vb-div);border-radius:0;padding:20px 0 0}
-body.vb-app .btn.bc{min-height:56px;border-radius:12px;font-size:17px}
+body.vb-app .btn.bc{}
 body.vb-app .qr{border:0;background:#fff;box-shadow:0 0 0 1px var(--vb-div)}
 body.vb-app .pd{margin:0}
 body.vb-app .pd>div{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--vb-div)}
 body.vb-app .pd dt{color:var(--vb-muted);font-size:15px}body.vb-app .pd dd{margin:0;text-align:right;font-size:15.5px}
 /* tekstlinks als secundaire knop */
-body.vb-app .lnk{color:var(--vb-ink);font-weight:500}
+body.vb-app .lnk{}
 /* leespagina's */
 body.vb-app main section+section{border-top:1px solid var(--vb-div);padding-top:20px;margin-top:20px}
 
@@ -428,7 +428,7 @@ body.vb-app .card.bet.ok b{font-size:18px}
 body.vb-app .aantal:has(#tot){display:none}
 body.vb-app form:has(.vb-checkout[data-due-from]) .tot.g{display:none}
 /* op gsm: enkel het VBHA-logo */
-@media (max-width:560px){body.vb .hdr{padding-left:16px;padding-right:16px}body.vb .hdr .logo{height:28px}body.vb .hdr .in>span{display:none!important}}
+@media (max-width:560px){body.vb .hdr{}body.vb .hdr .logo{height:28px}body.vb .hdr .in>span{display:none!important}}
 /* balk even breed als in de beheerapp: logo links, inhoud blijft een smalle kolom */
 @media (min-width:768px){body.vb .hdr{padding-left:28px;padding-right:28px}body.vb .hdr .in{max-width:1360px;min-height:42px}}
 @media (min-width:768px) and (max-width:900px){body.vb .hdr .in{min-height:34px}}
@@ -453,24 +453,24 @@ body.vb-app .lead,body.vb .lead{font-size:15px;margin-bottom:18px}
 body.vb-app .fact b{font-size:15px}body.vb-app .fact small{font-size:13.5px}
 body.vb-app .fact>span svg{width:20px;height:20px}body.vb-app .fact{grid-template-columns:20px minmax(0,1fr);column-gap:10px}
 body.vb-app .vb-meta{font-size:14px}body.vb-app .vb-meta svg{width:19px;height:19px}
-body.vb-app .vb-sec{padding:18px 0 20px}
+body.vb-app .vb-sec{}
 body.vb-app .vb-sec>h2,body.vb-app .vb-card-t,body.vb-app main .card h2,body.vb-app .vb-form>.pay .vb-sum-t{font-size:19px;margin-bottom:12px}
 body.vb-app label,body.vb-app .lbl,body.vb-app legend{font-size:14px;margin-bottom:6px}
 body.vb-app .grid{gap:14px}
 body.vb-app input[type=text],body.vb-app input[type=email],body.vb-app input[type=tel],body.vb-app input[type=date],body.vb-app input[type=number],body.vb-app input[type=search],body.vb-app textarea,body.vb-app select,body.vb-app .vast-n,body.vb-app input[readonly]{min-height:46px;padding:10px 14px;border-radius:10px}
 body.vb-app textarea.vb-kort{min-height:46px;height:46px}
-body.vb-app .ch{border-radius:10px;padding:3px;gap:3px}body.vb-app .ch label{min-height:40px;border-radius:8px}body.vb-app .ch b,body.vb-app .ch span{font-size:14.5px}
+body.vb-app .ch{}body.vb-app .ch label{}body.vb-app .ch b,body.vb-app .ch span{}
 body.vb-app .opt span{min-height:44px;font-size:14.5px;border-radius:10px}
 body.vb-app .seg2 button,body.vb-app .bm span{min-height:40px;height:40px;font-size:14.5px}
-body.vb-app .vb-r,body.vb-app .vb-r>b{font-size:15px}body.vb-app .vb-sum{gap:10px}body.vb-app .vb-r small,body.vb-app .vb-credit small{font-size:13px}
+body.vb-app .vb-r,body.vb-app .vb-r>b{}body.vb-app .vb-sum{}body.vb-app .vb-r small,body.vb-app .vb-credit small{font-size:13px}
 body.vb-app .vb-sw{font-size:15px}body.vb-app .vb-badge{font-size:11.5px}
-body.vb-app .vb-due span{font-size:12.5px}body.vb-app .vb-due b{font-size:26px}
+body.vb-app .vb-due span{}body.vb-app .vb-due b{}
 body.vb-app .vb-checkout{padding-top:14px;gap:14px}
 body.vb-app .vb-checkout .btn,body.vb-app .btn,body.vb .btn{min-height:48px;font-size:15.5px;border-radius:10px}
 body.vb-app .paybox .btn.bc,body.vb-app .btn.bc{min-height:48px;font-size:15.5px}
-body.vb-app .pr-r{padding:11px 0}body.vb-app .pr-r .nm b{font-size:15px}body.vb-app .pr-r .nm span{font-size:13.5px}
-body.vb-app .stp button{width:40px;height:40px;font-size:19px}body.vb-app .stp output,body.vb-app .stp input{font-size:16px}
-body.vb-app .kid{padding:14px 0}body.vb-app .kid-k b{font-size:15.5px}body.vb-app .kadd{min-height:44px;font-size:14.5px}
+body.vb-app .pr-r{}body.vb-app .pr-r .nm b{}body.vb-app .pr-r .nm span{}
+body.vb-app .stp button{}body.vb-app .stp output,body.vb-app .stp input{}
+body.vb-app .kid{padding:14px 0}body.vb-app .kid-k b{}body.vb-app .kadd{}
 body.vb-app .card.ok h2,body.vb-app .card.bevestig h2,body.vb-app .vb-state h2{font-size:21px}
 body.vb-app .card.ok .ic,body.vb-app .card.bevestig .ic{width:44px;height:44px}
 body.vb-app .card.ok>p,body.vb-app .bevestig .lead2,body.vb-app .bevestig .sam div{font-size:15px}
@@ -478,8 +478,8 @@ body.vb-app div.tot{font-size:15px}body.vb-app div.tot.g>span:last-child{font-si
 body.vb-app main p,body.vb-app main li{font-size:15px}
 body.vb-app main h2{font-size:19px}body.vb-app main h3{font-size:16px}
 body.vb .foot{font-size:13px}
-@media (max-width:640px){body.vb-app .vb-due b{font-size:22px}}
-@media (max-width:360px){body.vb h1,body.vb-app h1{font-size:24px}body.vb-app .vb-due b{font-size:20px}}
+@media (max-width:640px){body.vb-app .vb-due b{}}
+@media (max-width:360px){body.vb h1,body.vb-app h1{font-size:24px}body.vb-app .vb-due b{}}
 
 /* ---- afrekenbalk: prijs naast de knop, robuust in Safari ----
    Grid i.p.v. flex (Safari rekent flex-knoppen soms verkeerd), knop als blok met gecentreerde tekst,
@@ -489,11 +489,11 @@ body.vb-app .vb-checkout{display:grid!important;grid-template-columns:auto minma
 body.vb-app .vb-due[hidden]{display:none!important}
 body.vb-app .vb-due[hidden]+.btn{grid-column:1/-1}
 body.vb-app .vb-due{display:flex;flex-direction:column;min-width:0}
-body.vb-app .vb-checkout .btn{display:block!important;width:100%!important;max-width:none;margin:0!important;padding:0 12px!important;height:48px;min-height:48px;line-height:48px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:clamp(14px,3.9vw,15.5px);border-radius:10px;-webkit-tap-highlight-color:transparent;transform:translateZ(0)}
+body.vb-app .vb-checkout .btn{display:block!important;width:100%!important;max-width:none;margin:0!important;padding:0 12px!important;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-tap-highlight-color:transparent;transform:translateZ(0)}
 body.vb-app .vb-checkout .btn::before{content:none}
 body.vb-app .vb-checkout .btn.is-busy::before{content:"";display:inline-block;vertical-align:-3px;margin-right:8px}
-@media (max-width:640px){body.vb-app .vb-due b{font-size:22px}}
-@media (max-width:360px){body.vb-app .vb-checkout{column-gap:10px}body.vb-app .vb-due b{font-size:19px}body.vb-app .vb-due span{font-size:12px}}
+@media (max-width:640px){body.vb-app .vb-due b{}}
+@media (max-width:360px){body.vb-app .vb-checkout{column-gap:10px}body.vb-app .vb-due b{}body.vb-app .vb-due span{}}
 
 /* ---- PointsControl: rustig raster (schakelaar · tekst · bedrag / beschikbaar · aanpassen) ---- */
 body.vb .vb-pc{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;column-gap:12px;row-gap:3px;align-items:center}
@@ -528,15 +528,15 @@ body.vb .vb-r.korting{align-items:flex-start!important}body.vb .vb-r.korting>b{p
    Eén laatste laag die de mock-ups vastlegt; geldt voor alle pagina's met body.vb-app.
    Open compositie: secties + witruimte + typografie + dunne scheidingslijn, geen kaders.
    ====================================================================================== */
-body.vb.vb-app{--g-ink:#18191C;--g-sec:#6F7278;--g-line:#E2E3E5;--g-soft:#F7F8F9;--g-track:#F1F2F4;--g-red:var(--vb-red,#C0161F);--g-t:.16s cubic-bezier(.2,.7,.3,1);--g-in:48px;--g-cta:50px;--g-h1:26px;--g-h2:17px;--g-sec-y:18px;--g-gap:14px;--g-due:30px}
-@media (prefers-color-scheme:dark){body.vb.vb-app{--g-ink:#ECEDEF;--g-sec:#9B9EA5;--g-line:#2E3035;--g-soft:#1C1D20;--g-track:#232528}}
+body.vb.vb-app{--g-ink:#18191C;--g-sec:#6F7278;--g-t:.16s cubic-bezier(.2,.7,.3,1);--g-in:48px;--g-cta:50px;--g-h1:26px;--g-h2:17px;--g-sec-y:18px;--g-gap:14px;--g-due:30px}
+@media (prefers-color-scheme:dark){body.vb.vb-app{--g-ink:#ECEDEF;--g-sec:#9B9EA5;}}
 body.vb-app main{max-width:680px}
 @media (min-width:768px){body.vb.vb-app{--g-in:44px;--g-cta:46px;--g-h1:30px;--g-h2:19px;--g-sec-y:22px;--g-gap:14px;--g-due:34px}}
 /* hero: titel · begroeting · korte omschrijving (geen eyebrow) */
 body.vb-app .vb-eyebrow{display:none!important}
 body.vb-app .hero .title{margin:0 0 6px!important}
 body.vb-app h1,body.vb-app .title h1{font-size:var(--g-h1)!important;line-height:1.15!important;font-weight:750!important;letter-spacing:-.022em!important;color:var(--g-ink)}
-body.vb-app .dag,body.vb-app #dag{font-size:16px!important;font-weight:500!important;color:var(--g-ink)!important;margin:4px 0 0!important}
+body.vb-app .dag,body.vb-app #dag{font-size:16px!important;font-weight:500!important;margin:4px 0 0!important}
 body.vb-app .hero .lead,body.vb-app main>.lead{font-size:15px!important;line-height:1.45!important;color:var(--g-sec)!important;margin:4px 0 0!important}
 
 /* EventInfo: randloos, twee kolommen met lijn-iconen, daaronder de termijn */
@@ -553,16 +553,16 @@ body.vb-app .grid{row-gap:var(--g-gap)!important}
 body.vb-app main input[type=text],body.vb-app main input[type=email],body.vb-app main input[type=tel],body.vb-app main input[type=number],body.vb-app main input[type=search],body.vb-app main input[type=date],body.vb-app main select,body.vb-app main textarea{
   min-height:var(--g-in)!important;background:var(--g-soft)!important;border:1px solid var(--g-line)!important;border-radius:10px!important;padding:0 12px!important;font-size:16px!important;color:var(--g-ink)!important;box-shadow:none!important;
   transition:border-color var(--g-t),background-color var(--g-t),box-shadow var(--g-t)}
-body.vb-app main textarea{min-height:var(--g-in)!important;line-height:1.45}
+body.vb-app main textarea{}
 body.vb-app main input:hover:not(:focus):not([readonly]),body.vb-app main select:hover,body.vb-app main textarea:hover:not(:focus){border-color:#C9CBCF!important}
-body.vb-app main input:focus,body.vb-app main select:focus,body.vb-app main textarea:focus{outline:none!important;background:#fff!important;border-color:var(--g-ink)!important;box-shadow:0 0 0 3px rgba(24,25,28,.10)!important}
-@media (prefers-color-scheme:dark){body.vb-app main input:focus,body.vb-app main select:focus,body.vb-app main textarea:focus{background:#141517!important;box-shadow:0 0 0 3px rgba(236,237,239,.14)!important}}
+body.vb-app main input:focus,body.vb-app main select:focus,body.vb-app main textarea:focus{outline:none!important;border-color:var(--g-ink)!important;box-shadow:0 0 0 3px rgba(24,25,28,.10)!important}
+@media (prefers-color-scheme:dark){body.vb-app main input:focus,body.vb-app main select:focus,body.vb-app main textarea:focus{box-shadow:0 0 0 3px rgba(236,237,239,.14)!important}}
 body.vb-app main input::placeholder,body.vb-app main textarea::placeholder{color:#9A9DA3}
 body.vb-app main input[readonly],body.vb-app main input:disabled{background:var(--g-track)!important;color:var(--g-sec)!important}
 body.vb-app .veld-fout input,body.vb-app .veld-fout select,body.vb-app .veld-fout textarea,body.vb-app input[aria-invalid=true]{border-color:#D3131C!important;box-shadow:0 0 0 3px rgba(211,19,28,.10)!important}
 /* SegmentedControl: zacht spoor met fijne rand, selectie charcoal, 150–180ms */
-body.vb-app .ch{background:var(--g-track)!important;border:1px solid var(--g-line)!important;border-radius:11px!important;padding:3px!important;gap:3px!important}
-body.vb-app .ch label{min-height:42px!important;border-radius:8px!important;transition:background-color var(--g-t),color var(--g-t),box-shadow var(--g-t)!important}
+body.vb-app .ch{border:1px solid var(--g-line)!important;border-radius:11px!important;gap:3px!important}
+body.vb-app .ch label{border-radius:8px!important;transition:background-color var(--g-t),color var(--g-t),box-shadow var(--g-t)!important}
 body.vb-app .ch b,body.vb-app .ch span{font-size:15px!important;font-weight:500!important}
 body.vb-app .ch label:has(input:checked){background:var(--g-ink)!important;color:#fff!important;box-shadow:0 1px 2px rgba(0,0,0,.14)!important}
 body.vb-app .ch label:has(input:checked) b{font-weight:600!important}
@@ -623,7 +623,7 @@ body.vb-app .pp:has(.pp-st.fout) .hint,body.vb-app .pp:has(.pp-st.fout) .qrwrap{
 body.vb-app .pp-st.wacht{text-align:left;justify-content:flex-start}body.vb-app .btn.bc svg{color:#fff!important;stroke:currentColor!important}body.vb-app .btn.bc svg *{stroke:currentColor}
 /* QuantitySelector: 44×44, zachte vierkante knoppen, duidelijke hover/pressed/disabled */
 body.vb-app .stp{gap:8px!important}
-body.vb-app .stp button{width:44px!important;height:44px!important;border-radius:10px!important;border:1px solid var(--g-line)!important;background:var(--g-soft)!important;color:var(--g-ink)!important;font-size:20px!important;transition:background-color var(--g-t),border-color var(--g-t),transform .08s!important}
+body.vb-app .stp button{width:44px!important;height:44px!important;border-radius:10px!important;border:1px solid var(--g-line)!important;color:var(--g-ink)!important;font-size:20px!important;transition:background-color var(--g-t),border-color var(--g-t),transform .08s!important}
 body.vb-app .stp button:hover:not(:disabled){background:#fff!important;border-color:#C9CBCF!important}
 body.vb-app .stp button:active:not(:disabled){transform:scale(.94)}
 body.vb-app .stp button:disabled{opacity:.4}
@@ -701,7 +701,7 @@ body.vb-app .fk b{font-weight:600;font-variant-numeric:tabular-nums}
 
 /* ===== COMPACT PREMIUM: desktop benut de breedte ===== */
 @media (min-width:768px){
-  body.vb-app .ch label{min-height:40px!important}
+  body.vb-app .ch label{}
   body.vb-app .stp button{width:40px!important;height:40px!important}
   body.vb-app .aantal .stp input{height:40px!important;min-height:40px!important}
   body.vb-app .pr-r .nm{display:flex!important;flex-direction:row!important;flex-wrap:wrap;align-items:baseline;column-gap:6px}
@@ -794,11 +794,11 @@ body.vb-app .kid-k:has(button){justify-content:flex-end}
 /* ===== Gedeelde Public-componenten buiten de inschrijfpagina's (bv. /kaart): scope .vb-ui =====
    zelfde tokens en maten als de golden reference: SegmentedControl (.vb-seg), PrimaryButton (.vb-cta),
    SecondaryButton (.vb-btn2), TertiaryAction (.vb-tert), QuantitySelector (.vb-qty) */
-.vb-ui{--g-ink:#18191C;--g-sec:#6F7278;--g-line:#E2E3E5;--g-soft:#F7F8F9;--g-track:#F1F2F4;--g-red:#C0161F;--g-red-d:#A5121A;--g-t:.16s cubic-bezier(.2,.7,.3,1);--g-seg:44px;--g-cta:50px;--g-on-ink:#fff;--g-surf:#fff}
+.vb-ui{--g-ink:#18191C;--g-sec:#6F7278;--g-red:#C0161F;--g-red-d:#A5121A;--g-t:.16s cubic-bezier(.2,.7,.3,1);--g-seg:44px;--g-cta:50px;--g-on-ink:#fff;--g-surf:#fff}
 @media (min-width:768px){.vb-ui{--g-seg:40px;--g-cta:46px}}
-@media (prefers-color-scheme:dark){.vb-ui{--g-ink:#ECEDEF;--g-sec:#A3A6AD;--g-line:#33363C;--g-soft:#1C1E22;--g-track:#24262B;--g-on-ink:#141517;--g-surf:#17191C}}
+@media (prefers-color-scheme:dark){.vb-ui{--g-ink:#ECEDEF;--g-sec:#A3A6AD;--g-on-ink:#141517;--g-surf:#17191C}}
 .vb-ui .vb-seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;border:1px solid var(--g-line);border-radius:11px;background:var(--g-track)}
-.vb-ui .vb-seg>button{all:unset;box-sizing:border-box;min-height:var(--g-seg);display:flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;border-radius:8px;font:500 14.5px/1.2 inherit;font-family:inherit;color:var(--g-ink);cursor:pointer;text-align:center;transition:background-color var(--g-t),color var(--g-t),box-shadow var(--g-t)}
+.vb-ui .vb-seg>button{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;border-radius:8px;font:500 14.5px/1.2 inherit;font-family:inherit;color:var(--g-ink);cursor:pointer;text-align:center;transition:background-color var(--g-t),color var(--g-t),box-shadow var(--g-t)}
 .vb-ui .vb-seg>button[aria-checked=true],.vb-ui .vb-seg>button.on{background:var(--g-ink);color:var(--g-on-ink);box-shadow:0 1px 2px rgba(0,0,0,.14)}
 .vb-ui .vb-seg>button:disabled{opacity:.4;cursor:not-allowed}
 .vb-ui .vb-seg>button:focus-visible{outline:2px solid var(--g-ink);outline-offset:2px}
@@ -806,26 +806,26 @@ body.vb-app .kid-k:has(button){justify-content:flex-end}
 .vb-ui .vb-cta:hover{background:var(--g-red-d)}.vb-ui .vb-cta:active{transform:translateY(1px)}
 .vb-ui .vb-cta:focus-visible{box-shadow:0 0 0 3px var(--g-surf),0 0 0 5px var(--g-red)}
 .vb-ui .vb-cta:disabled,.vb-ui .vb-cta[aria-busy=true]{opacity:.6;cursor:default;transform:none}
-.vb-ui .vb-btn2{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;min-height:var(--g-cta);padding:0 16px;border-radius:10px;border:1px solid var(--g-line);background:var(--g-surf);color:var(--g-ink);font:600 15.5px/1.2 inherit;font-family:inherit;cursor:pointer;transition:border-color var(--g-t)}
+.vb-ui .vb-btn2{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;border-radius:10px;border:1px solid var(--g-line);background:var(--g-surf);color:var(--g-ink);font:600 15.5px/1.2 inherit;font-family:inherit;cursor:pointer;transition:border-color var(--g-t)}
 .vb-ui .vb-btn2:hover{border-color:var(--g-ink)}.vb-ui .vb-btn2:focus-visible{outline:2px solid var(--g-ink);outline-offset:2px}
 .vb-ui .vb-tert{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;min-height:32px;font:500 13.5px/1.2 inherit;font-family:inherit;color:var(--g-sec);cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--g-line)}
 .vb-ui .vb-tert:hover{color:var(--g-ink)}.vb-ui .vb-tert:focus-visible{outline:2px solid var(--g-ink);outline-offset:2px;border-radius:4px}
 .vb-ui .vb-tert svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .vb-ui .vb-qty{display:inline-flex;align-items:center;gap:8px}
-.vb-ui .vb-qty>button{all:unset;box-sizing:border-box;width:44px;height:44px;display:grid;place-items:center;border-radius:10px;border:1px solid var(--g-line);background:var(--g-soft);color:var(--g-ink);font:500 20px/1 inherit;font-family:inherit;cursor:pointer;transition:background-color var(--g-t)}
+.vb-ui .vb-qty>button{all:unset;box-sizing:border-box;display:grid;place-items:center;border-radius:10px;border:1px solid var(--g-line);background:var(--g-soft);color:var(--g-ink);font:500 20px/1 inherit;font-family:inherit;cursor:pointer;transition:background-color var(--g-t)}
 .vb-ui .vb-qty>button:hover:not(:disabled){background:var(--g-track)}.vb-ui .vb-qty>button:disabled{opacity:.35;cursor:default}
 .vb-ui .vb-qty>button:focus-visible{outline:2px solid var(--g-ink);outline-offset:2px}
 .vb-ui .vb-qty>b{min-width:26px;text-align:center;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
-@media (min-width:768px){.vb-ui .vb-qty>button{width:40px;height:40px}}
+@media (min-width:768px){.vb-ui .vb-qty>button{}}
 @keyframes vb-ui-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 .vb-ui [data-reveal]{animation:vb-ui-in .17s ease-out both}
 @media (prefers-reduced-motion:reduce){.vb-ui [data-reveal]{animation:none}.vb-ui .vb-cta,.vb-ui .vb-seg>button{transition:none}}
-body.vb-app main textarea{padding:11px 12px!important;line-height:1.4!important;min-height:var(--g-in)!important;resize:vertical}
+body.vb-app main textarea{padding:11px 12px!important;line-height:1.4!important;resize:vertical}
 /* statuskorting: bedrag in de kleur van de status */
-body.vb-app .vb-r.korting.st-goud>b{color:#9A7410!important}
-body.vb-app .vb-r.korting.st-zilver>b{color:#4B5563!important}
-body.vb-app .vb-r.korting.st-brons>b{color:#8A4B1F!important}
-@media (prefers-color-scheme:dark){body.vb-app .vb-r.korting.st-goud>b{color:#E3BE55!important}body.vb-app .vb-r.korting.st-zilver>b{color:#C3C8D0!important}body.vb-app .vb-r.korting.st-brons>b{color:#E0A274!important}}
+body.vb-app .vb-r.korting.st-goud>b{}
+body.vb-app .vb-r.korting.st-zilver>b{}
+body.vb-app .vb-r.korting.st-brons>b{}
+@media (prefers-color-scheme:dark){body.vb-app .vb-r.korting.st-goud>b{}body.vb-app .vb-r.korting.st-zilver>b{}body.vb-app .vb-r.korting.st-brons>b{}}
 /* gsm: minder witruimte onder de betaalbalk (net boven de home-balk van de iPhone) */
 @media (max-width:640px){body.vb-app:not(.vb-kb) .vb-checkout:not([hidden]){padding-top:10px!important;padding-bottom:max(10px,calc(env(safe-area-inset-bottom,0px) - 12px))!important}}
 /* ===== VBHA-karakter: warme achtergrond en micro-accenten (centraal, via tokens) =====
@@ -857,10 +857,10 @@ body.vb-app .stp button{background:var(--g-soft)!important;border-color:var(--g-
 body.vb-app .dag,body.vb-app #dag{color:#45474D!important}
 @media (prefers-color-scheme:dark){body.vb-app .dag,body.vb-app #dag{color:#C9CBD0!important}}
 /* minder witruimte onderaan alle pagina's */
-body.vb-app main{padding-bottom:20px!important}
+body.vb-app main{}
 body.vb-app main>:last-child,body.vb-app form>.vb-sec:last-of-type{margin-bottom:0!important}
 @media (max-width:640px){
-  body.vb-app:not(.vb-kb):has(.vb-checkout:not([hidden])) main{padding-bottom:4px!important}
+  body.vb-app:not(.vb-kb):has(.vb-checkout:not([hidden])) main{}
   body.vb-app:not(.vb-kb):has(.vb-checkout:not([hidden])) form .vb-sec:last-of-type{padding-bottom:10px!important}
 }
 /* iets extra wit onderaan */
@@ -874,8 +874,8 @@ body.vb-app:has(#box .card.ok) .hero{padding-bottom:4px}
 /* ===== Eén maatvoering voor knoppen en velden (zelfde als de beheer-app) =====
    gsm: 44 px voor velden, keuzeknoppen, plus/min en gewone knoppen · 48 px voor de grote rode knop
    computer: 38 px · 44 px voor de grote rode knop */
-body.vb.vb-app,.vb-ui{--g-in:44px;--g-cta:48px;--g-seg:36px}
-@media (min-width:769px){body.vb.vb-app,.vb-ui{--g-in:38px;--g-cta:44px;--g-seg:30px}}
+body.vb.vb-app,.vb-ui{}
+@media (min-width:769px){body.vb.vb-app,.vb-ui{}}
 body.vb-app main input:not([type=checkbox]):not([type=radio]):not([type=range]),body.vb-app main select{height:var(--g-in)!important;min-height:var(--g-in)!important}
 body.vb-app main textarea{min-height:var(--g-in)!important;padding-top:9px!important;padding-bottom:9px!important}
 body.vb-app .ch label{min-height:var(--g-seg)!important}
