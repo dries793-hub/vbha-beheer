@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}.logo-a{display:block;flex:none;line-height:0;border-radius:4px}.logo-a:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.naam2{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:420px){.naam2{gap:8px}}
 </style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>In Vier en Vlam · tickets · VBHA</title>
 <link rel="icon" href="/favicon.png">
@@ -193,10 +194,9 @@ html,body{overflow-x:hidden}
       <div class="full"><div class="aantal fu-tot" hidden><span class="lbl" style="margin:0">Totaal</span><div class="som"><b id="tot">€ 5,00</b></div></div><div class="spaar" id="spaar"></div></div>
     </div></section>
     <section class="vb-sec fu-s2"><button type="button" class="vb-terug" id="fuTerug">← Terug naar tickets</button><p class="fu-sam" id="fuSam"></p><h2 class="vb-card-t">Jouw gegevens</h2><div class="grid">
-      <div><label for="voornaam">Voornaam *</label><input type="text" id="voornaam" name="voornaam" autocomplete="given-name" required maxlength="80"></div>
-      <div><label for="naam">Naam *</label><input type="text" id="naam" name="naam" autocomplete="family-name" required maxlength="80"></div>
+      <div class="full"><label for="voornaam">Naam *</label><div class="naam2"><input type="text" id="voornaam" name="voornaam" autocomplete="given-name" placeholder="Voornaam" aria-label="Voornaam" required maxlength="80"><input type="text" id="naam" name="naam" autocomplete="family-name" placeholder="Familienaam" aria-label="Familienaam" required maxlength="80"></div></div>
       <div class="full"><label for="adres">Adres *</label><input type="text" id="adres" name="adres" autocomplete="street-address" placeholder="Straat nr, postcode gemeente" required maxlength="200"></div>
-      <div class="full"><label for="email">E-mail *</label><input type="email" id="email" name="email" autocomplete="email" inputmode="email" required maxlength="120"><p class="hint">Hierop ontvang je je tickets.</p></div>
+      <div class="full"><label for="email">E-mail *</label><input type="email" id="email" name="email" autocomplete="email" inputmode="email" required maxlength="120"></div>
       <div class="full via"><label for="viaQ">Via welk lid van de Vriendenkring koop je je tickets? <span style="font-weight:400;color:var(--muted)">(optioneel)</span></label><input type="text" id="viaQ" autocomplete="off" placeholder="Begin te typen: naam van het lid" maxlength="100"><div class="vl" id="vl" hidden></div><div class="vk" id="vk"></div></div>
     </div></section>
     <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
@@ -217,7 +217,7 @@ function n(){let v=parseInt($("#aantal").value,10);if(!(v>=0))v=0;return Math.mi
 const DK=()=>(INFO.dranken||[]).map(k=>{const i=$("#dk_"+k.id);let v=parseInt(i&&i.value,10);if(!(v>=0))v=0;return{...k,aantal:Math.min(v,20)}});
 function som(){const t=n()*INFO.prijs,D=DK(),dt=D.reduce((a,k)=>a+k.aantal*k.prijs,0),sp=D.reduce((a,k)=>a+k.aantal*(k.waarde-k.prijs),0),tot=t+dt;
   $("#somT").innerHTML=n()?`${n()} × ${eur(INFO.prijs)}`:"";$("#tot").textContent=eur(tot);
-  $("#spaar").textContent=sp>0?`Je bespaart ${eur(sp)} op je drankkaarten`:"";
+  $("#spaar").textContent="";
   $("#go").textContent=tot>0?`Bestellen en ${eur(tot)} betalen`:"Kies een ticket of drankkaart";$("#go").disabled=!(tot>0)}
 document.addEventListener("click",e=>{const b=e.target.closest(".stp [data-d]");if(!b)return;const i=b.parentElement.querySelector("input"),mx=i.id==="aantal"?Math.min(INFO.perBestelling,INFO.vrij==null?99:INFO.vrij):20;
   i.value=Math.max(0,Math.min((parseInt(i.value,10)||0)+ +b.dataset.d,mx));som()});
