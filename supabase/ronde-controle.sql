@@ -202,3 +202,30 @@ grant execute on function test.ronde_controle(text, text, int, text, text), test
 -- volgens de kaart (api/_lib/kr_adressen.js). Het oorspronkelijke melding-id staat in "oudVia". Zo is de teller meteen volledig
 -- en blijft hij opnieuw te berekenen. Afwijzen kan voor zo'n registratie niet (er is geen "vorige toestand"); aanpassen wel.
 -- Voor productie: dezelfde stappen met de adressen uit kr_adressen.js voor de straten die daar op "done" staan (zie het rapport).
+-- Sinds 22/11: automatisch via test.ronde_overname(jaar, [{s, a}]) bij elke GET /api/ronde (idempotent, unieke id per straat).
+-- Reden: de testomgeving wordt soms vernieuwd vanuit productie; een eenmalige overname zou dan verloren gaan.
+create or replace function test.ronde_overname(p_jaar int, p_rijen jsonb)
+returns int language plpgsql security definer set search_path to 'test' as $$
+declare n int; nu text := to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
+begin
+  perform pg_advisory_xact_lock(84211, p_jaar);
+  perform set_config('vbha.rm', '1', true);
+  with src as (
+    select r.data d, coalesce((x->>'a')::int, 0) a from jsonb_array_elements(p_rijen) x
+    join test.ronde r on r.id = p_jaar || '_' || (x->>'s') and r.data->>'status' = 'done'
+    where not exists (select 1 from test.rondemeldingen m where m.data->>'jaar' = p_jaar::text and m.data->>'soort' = 'done'
+                      and m.data ? 'controle' and m.data->>'controle' <> 'rejected' and m.data->'straten' ? (x->>'s')))
+  insert into test.rondemeldingen(id, data)
+  select 'mig' || p_jaar || '_' || (d->>'straat'), jsonb_strip_nulls(jsonb_build_object('jaar', p_jaar, 'straten', jsonb_build_array(d->>'straat'), 'soort', 'done',
+    'lidId', d->>'lidId', 'naam', d->>'by', 'toon', d->>'by', 'op', coalesce(d->>'at', nu), 'stand', 'migratie', 'bron', 'migratie',
+    'gemeld', a, 'bevestigd', a, 'adressen', a, 'controle', 'confirmed', 'effectief', a, 'vorig', '[]'::jsonb, 'oudVia', d->>'viaMelding',
+    'audit', jsonb_build_array(jsonb_build_object('t', nu, 'actie', 'overgenomen', 'door', 'migratie', 'bron', 'migratie', 'gemeld', a, 'bevestigd', a,
+      'effVoor', 0, 'effNa', a, 'delta', a, 'statusNa', 'confirmed',
+      'opm', 'Bedeelde straat zonder melding (van voor de nieuwe controle of rechtstreeks in de app aangeduid), overgenomen met het aantal adressen volgens de kaart.'))))
+  from src
+  on conflict (id) do nothing;
+  get diagnostics n = row_count;
+  return n;
+end $$;
+revoke all on function test.ronde_overname(int, jsonb) from public, anon, authenticated;
+grant execute on function test.ronde_overname(int, jsonb) to service_role;
