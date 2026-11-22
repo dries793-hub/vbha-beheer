@@ -33,6 +33,9 @@ export default async function handler(req, res) {
     // teller: som van de bijdrage van elke bedelingsmelding (gemeld zolang niet gecontroleerd, anders bevestigd; afgewezen = 0),
     // altijd opnieuw berekend uit de registraties (ronde_teller), tegenover de stock (dozen × kalenders per doos)
     let teller = null;
+    // bedeelde straten zonder registratie (van vóór dit systeem, of rechtstreeks in de app aangeduid): eenmalig overnemen met het
+    // aantal adressen volgens de kaart, zodat de teller volledig blijft en altijd uit de registraties te berekenen is
+    try { const D = out.filter(x => x.st === "d").map(x => x.s); if (D.length) { const a = await adressenVan(D); await sb.rpc("ronde_overname", { p_jaar: Number(A.jaar), p_rijen: D.map((s, i) => ({ s, a: a[i] || 0 })) }); } } catch (e) { /* teller zonder overname */ }
     try { teller = await tellerVan(sb, A.jaar, pd); } catch (e) { /* geen teller */ }
     // meldingen die het bestuur nog moet nakijken (zonder namen): oranje stippellijn op de kaart
     const open = {};
