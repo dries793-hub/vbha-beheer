@@ -238,3 +238,9 @@ grant execute on function test.ronde_overname(int, jsonb) to service_role;
 --   * enkel meldingen die nog te controleren zijn, kunnen gecontroleerd worden
 --   * de overname van oude straten (mig...) en ronde_overname zijn verwijderd (niet meer nodig: oude bedelingen zitten al in jaarleden)
 -- Toegepast op schema test als migratie "test_ronde_dozen": ronde_meld/ronde_controle met numeric aantallen, ronde_teller geeft "voorlopig".
+
+-- ================= 22/11: van kruispunt tot kruispunt =================
+-- ronde_meld krijgt p_delen ({straat: [alle stuk-ids]}): meldt een lid een stuk van een straat die als geheel op zijn naam staat,
+-- dan wordt die reservatie eerst opgesplitst in stukken (allemaal op zijn naam); enkel de gemelde stukken worden bedeeld.
+-- Migratie "test_ronde_meld_deel" (nog uit te voeren op schema test): drop de oude ronde_meld (11 parameters) en maak ze opnieuw
+-- met de extra parameter p_delen jsonb default '{}' — volledige tekst: zie de migratie in Supabase.
