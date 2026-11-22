@@ -26,7 +26,7 @@ export async function banketPrijs(sb, I, lidId) {
   if (!I.kortingAan) return { prijs: basis, basis, status: null, korting: 0, tegoed: T.saldo };
   return { prijs: Math.round(basis * (100 - S.korting)) / 100, basis, status: S.status, korting: S.korting, punten: S.punten, puntenJaar: S.puntenJaar, start: !!S.start, ere: !!S.ere, tegoed: T.saldo, viaPartner: S.viaPartner ? S.viaPartner.status : null, basisStatus: !!S.basis };
 }
-const menu = v => /veg/i.test(String(v || "")) ? "Vegetarisch" : "Normaal";
+const menu = v => /veg/i.test(String(v || "")) ? "Vegetarisch" : "Vlees en vis";
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");

@@ -28,6 +28,7 @@ const p = (t, st = "margin:0 0 16px") => `<p style="${st}">${t}</p>`;
 const INK = "#18191C", MUTED = "#6F7278", ROOD = "#C0161F", GOUD = "#C1A057", ZACHT = "#F3F3F2", LIJN = "#E6E4E1", PAGINA = "#FAF9F7", OK = "#168447", OK_ZACHT = "#E7F4EC", OK_LIJN = "#8CCBA6";
 const LOGO_W = () => (process.env.VBHA_TEST === "1" ? "https://test.vbha.be" : site()) + "/mail/logo-mail.png";
 // gegevens als rijen met een fijne lijn ertussen, waarde rechts (zoals de samenvatting op de openbare pagina's)
+const menuTxt = m => /veg/i.test(String(m || "")) ? "Vegetarisch" : m ? "Vlees en vis" : "";
 const rij = (k, v) => v === "" || v == null ? "" : `<tr><td class="vb-l" style="padding:8px 14px 8px 0;border-top:1px solid ${LIJN};color:${MUTED};vertical-align:top;white-space:nowrap;${F}font-size:14.5px;line-height:1.45">${esc(k)}</td><td style="padding:8px 0;border-top:1px solid ${LIJN};vertical-align:top;text-align:right;word-break:break-word;overflow-wrap:anywhere;${F}font-size:14.5px;line-height:1.45;color:${INK}">${v}</td></tr>`;
 const tabel = rows => `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="${F}font-size:14.5px;color:${INK};line-height:1.45;border-collapse:collapse">${rows.join("")}</table>`;
 // kopje met rode streep (zoals h2.vb-card-t)
@@ -137,7 +138,7 @@ export async function mailBanket(sb, row) {
   const datum = c.datum || jaar + "-12-12", uur = c.uur || "19u00", locatie = c.locatie || "Feestzaal De Snip, Beugemstraat 9, Moorsel";
   const m = await sysMail(sb, "banket-bevestiging", { voornaam: esc(L.voornaam || d.naam), naam: esc(d.naam), jaar, betaald,
     gegevens: tabel([rij("Wanneer", esc(lang(datum)) + (uur ? " om " + esc(uur) : "")), rij("Waar", esc(locatie)), rij("Op naam van", esc(d.naam)),
-      rij("Personen", d.personen === 2 ? "2 (jij en je partner)" : "1"), rij("Menu", esc(d.menu1) + (d.personen === 2 ? " en " + esc(d.menu2) : "")), rij("Opmerking", esc(d.opmerking || "")), rij("Bedrag", eur(bedrag) + (d.korting ? ` <span style="color:#666666">(${esc(String(d.status || "").charAt(0) + String(d.status || "").slice(1).toLowerCase())}: ${d.korting}% korting op ${eur(Number(c.prijs) || 65)} per persoon)</span>` : ""))]),
+      rij("Personen", d.personen === 2 ? "2 (jij en je partner)" : "1"), rij("Menu", esc(menuTxt(d.menu1)) + (d.personen === 2 ? " en " + esc(menuTxt(d.menu2)) : "")), rij("Opmerking", esc(d.opmerking || "")), rij("Bedrag", eur(bedrag) + (d.korting ? ` <span style="color:#666666">(${esc(String(d.status || "").charAt(0) + String(d.status || "").slice(1).toLowerCase())}: ${d.korting}% korting op ${eur(Number(c.prijs) || 65)} per persoon)</span>` : ""))]),
     betaling: betaalBlok({ betaald, betaling: d.betaling, bedrag, rekeningnummer: A.rekeningnummer || DEF_IBAN, begunstigde: A.vereniging, mededeling: `${d.naam} Banket ${jaar}`, tegen: ins.tot || jaar + "-12-01" }),
     bedrag: eur(bedrag), datum: esc(lang(datum)), uur: esc(uur), locatie: esc(locatie) });
   const html = m.html;
