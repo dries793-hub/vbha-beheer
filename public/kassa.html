@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>html{touch-action:manipulation}</style><script>document.addEventListener("gesturestart",function(e){e.preventDefault()},{passive:false});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1&&!(e.target.closest&&e.target.closest(".leaflet-container")))e.preventDefault()},{passive:false})</script>
 <title>Kassa · VBHA</title>
 <link rel="icon" href="/favicon.png">
-<link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/fonts/inter.css">
+<link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/fonts/inter.css"><link rel="stylesheet" href="/vbha-tokens.css">
 <style>
 :root{--bg:#F5F5F6;--surface:#FFFFFF;--sunken:#F1F1F2;--ink:#1A1B1E;--muted:#686B71;--line:#E5E6E8;--line-strong:#CCCED2;--navy:#18191C;--accent:#C0161F;--accent-deep:#8F0F16;--accent-soft:#FCEBEC;--good:#18794A;--good-soft:#E3F4EA;--info:#2F6FE4;--info-soft:#E4EDFD;--f:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 @media (prefers-color-scheme:dark){:root{--bg:#111214;--surface:#1A1B1E;--sunken:#202226;--ink:#ECEDEF;--muted:#9B9EA5;--line:#2A2C30;--line-strong:#3C3F45;--accent-soft:#3A1416;--good-soft:#12301F;--info-soft:#16233D}}
@@ -250,6 +250,10 @@ main.ks{max-width:none;padding:10px 10px 0}
 .np .np-k button:active{background:var(--sunken)}
 .np .np-a{display:grid;grid-template-columns:1fr 1fr;gap:8px}.np .np-a .btn{margin-top:12px}
 .np .btn.sec2{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}
+
+/* gedeelde ontwerpafspraken (vbha-tokens.css): zelfde warme achtergrond, lijnen, tekst, rood en maten als de app */
+:root,:root:not([data-theme="light"]){--bg:var(--vb-page)!important;--surface:var(--vb-surface)!important;--sunken:var(--vb-subtle)!important;--line:var(--vb-line)!important;--line-strong:var(--vb-line-strong)!important;--ink:var(--vb-ink)!important;--muted:var(--vb-sec)!important;--accent:var(--vb-red)!important;--accent-deep:var(--vb-red-d)!important;--accent-soft:var(--vb-red-soft)!important;--good:var(--vb-ok)!important;--good-soft:var(--vb-ok-soft)!important;--info:var(--vb-info)!important;--info-soft:var(--vb-info-soft)!important}
+body{background:var(--vb-page)}
 </style>
 <script src="/lib/qrcode.min.js" integrity="sha512-ZDSPMa/JM1D+7kdg2x3BsruQ6T/JpJo3jWDWkCZsP+5yVyp1KfESqLI+7RqB5k24F7p2cV7i2YHh/890y6P6Sw==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
 <script src="/kassa-iconen.js"></script>
