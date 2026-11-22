@@ -1,5 +1,4 @@
 import { admin, sendError, httpErr } from "./sb.js";
-import crypto from "node:crypto";
 import { algemeen, actieveLeden, rateLimit, norm } from "./publiek.js";
 import { meldPush } from "./push.js";
 import { kloptRonde } from "./lidlink.js";
@@ -11,12 +10,13 @@ export default async function handler(req, res) {
     // de openbare kaart kan in de app (Kalenders › Kaart) niet actief gezet worden
     const kaartUit = async () => { try { const { data } = await admin().from("config").select("data").eq("id", "kaart").maybeSingle(); return !!(data && data.data && data.data.aan === false); } catch (e) { return false; } };
     if (req.method === "POST" && await kaartUit()) throw httpErr(403, "De kalenderkaart is momenteel niet actief.");
-    if (req.method === "POST") { const bb = typeof req.body === "string" ? (() => { try { return JSON.parse(req.body); } catch { return {}; } })() : (req.body || {}); if (bb.her) return await herReserveer(req, res, bb, true); return await melding(req, res); }
+    if (req.method === "POST") { const bb = typeof req.body === "string" ? (() => { try { return JSON.parse(req.body); } catch { return {}; } })() : (req.body || {}); if (bb.her) return await herReserveer(req, res, bb, true); if (bb.actie === "vrijgeven") return await vrijgeven(req, res, bb); if (bb.actie === "meld" || bb.soort === "d") return await meld(req, res, bb); return await reserveer(req, res, bb); }
     if (req.query && req.query.her) return await herReserveer(req, res, req.query, false);
     if (req.method !== "GET") throw httpErr(405, "Gebruik GET");
     if (req.query && req.query.wie) return await wieReserveerde(req, res);
     if (req.query && req.query.dozen) return await dozenVan(req, res);
     if (req.query && req.query.ik) return await wieBenIk(req, res);
+    if (req.query && req.query.mijn != null) return await mijnStraten(req, res);
     if (req.query && req.query.geojson != null) return await geoJson(req, res);
     const sb = admin();
     let verborgen = [];
@@ -30,12 +30,10 @@ export default async function handler(req, res) {
       if (data.length < 1000) break;
     }
     const { data: pd } = await sb.from("jaren").select("data").eq("id", String(A.jaar)).maybeSingle();
-    // teller: afgewerkte dozen (verdeling) × kalenders per doos, tegenover de stock
+    // teller: som van de bijdrage van elke bedelingsmelding (gemeld zolang niet gecontroleerd, anders bevestigd; afgewezen = 0),
+    // altijd opnieuw berekend uit de registraties (ronde_teller), tegenover de stock (dozen × kalenders per doos)
     let teller = null;
-    try { const per = Number(pd?.data?.perDoos) || 100, stock = Number(pd?.data?.kalenderStock) || 0; let ui = 0;
-      for (let from = 0; ; from += 1000) { const { data: J, error: e2 } = await sb.from("jaarleden").select("data").eq("data->>jaar", String(A.jaar)).range(from, from + 999); if (e2) throw e2;
-        for (const r of J) ui += (Number(r.data?.kalUitgevoerd) || 0) - (Number(r.data?.kalTerugRest) || 0); if (J.length < 1000) break; }
-      if (stock > 0) teller = { bedeeld: Math.round(ui * per), totaal: Math.round(stock * per) }; } catch (e) { /* geen teller */ }
+    try { teller = await tellerVan(sb, A.jaar, pd); } catch (e) { /* geen teller */ }
     // meldingen die het bestuur nog moet nakijken (zonder namen): oranje stippellijn op de kaart
     const open = {};
     try {
@@ -46,43 +44,111 @@ export default async function handler(req, res) {
   } catch (e) { sendError(res, e); }
 }
 
-/* POST /api/ronde  {straten:[id], soort:"r"|"d", lidId, website}
-   Een lid meldt straten als gereserveerd of gedaan. Dat komt NIET meteen op de kaart: het bestuur controleert eerst
-   (tabel rondemeldingen, stand "open"); pas na goedkeuring in de app worden de straten aangeduid. */
-async function melding(req, res) {
+/* ---------- Reserveren en bedeling melden (rechtstreeks, zonder goedkeuring vooraf) ----------
+   Wie: persoonlijke link (l, j, t: handtekening klopt) -> bron "personal_link"; anders een gekozen naam uit de ledenlijst
+   (lidId) -> bron "manual_member_selection". Dat is identificatie, geen aanmelding: het geeft nooit toegang tot beheer of gegevens.
+   De databasefuncties (supabase/ronde-controle.sql) doen alles in één transactie, na elkaar per jaar (geen dubbele reservaties). */
+let KRA = null; // aantal adressen per straat en per stuk (gegenereerd uit de kaart)
+const adressenVan = async straten => { if (!KRA) KRA = (await import("./kr_adressen.js")).default; return straten.map(s => KRA[s]); };
+const schoonStraten = x => [...new Set((Array.isArray(x) ? x : []).map(String).filter(s => /^[\w.~-]{1,80}$/.test(s)))].slice(0, 60);
+const toonVan = l => l.voornaam && l.an ? `${l.voornaam} ${l.an}` : l.naam;
+async function wie(sb, A, b) {
+  const L = await actieveLeden(sb, A.jaar);
+  if (b.l && b.t) {
+    if (!kloptRonde(String(b.l), Number(b.j), String(b.t)) || Number(b.j) !== Number(A.jaar)) throw httpErr(400, "Deze persoonlijke link is niet (meer) geldig. Kies je naam.");
+    const lid = L.find(x => x.id === String(b.l)); if (!lid) throw httpErr(400, "Dit lid staat niet (meer) op de ledenlijst van dit jaar.");
+    return { lid, bron: "personal_link" };
+  }
+  const lid = L.find(x => x.id === String(b.lidId || ""));
+  if (!lid) throw httpErr(400, "Kies eerst je naam uit de ledenlijst.");
+  return { lid, bron: "manual_member_selection" };
+}
+async function tellerVan(sb, jaar, pd) {
+  if (pd === undefined) { const { data } = await sb.from("jaren").select("data").eq("id", String(jaar)).maybeSingle(); pd = data; }
+  const per = Number(pd?.data?.perDoos) || 100, stock = Number(pd?.data?.kalenderStock) || 0;
+  const { data: t, error } = await sb.rpc("ronde_teller", { p_jaar: Number(jaar) }); if (error) throw error;
+  return { bedeeld: Number(t?.bedeeld) || 0, totaal: Math.round(stock * per), teControleren: Number(t?.teControleren) || 0 };
+}
+const naamVan = s => { const [id, n] = String(s).split("~"); const [st, dg] = id.split("--"); const t = st.replace(/-/g, " ").replace(/^./, c => c.toUpperCase()); return (dg ? `${t} (${dg.replace(/-/g, " ").replace(/^./, c => c.toUpperCase())})` : t) + (n != null ? ` (stuk ${Number(n) + 1})` : ""); };
+const conflictTekst = C => { const n = C.map(c => naamVan(c.s)); return (n.length === 1 ? `${n[0]} is` : `${n.slice(0, -1).join(", ")} en ${n[n.length - 1]} zijn`) + " niet meer beschikbaar."; };
+function conflictFout(C, straten) {
+  const bezet = new Set(), base = s => s.split("~")[0];
+  for (const c of C) for (const s of straten) if (s === c.s || base(s) === c.s || base(c.s) === s) bezet.add(s);
+  const e = httpErr(409, conflictTekst(C) + " Er werd niets bewaard; bevestig de andere straten opnieuw."); e.extra = { conflict: [...bezet], vrij: straten.filter(s => !bezet.has(s)) }; return e;
+}
+const stuur = (res, e) => { if (e && e.extra) return res.status(e.status).json({ error: e.message, ...e.extra }); throw e; };
+
+/* POST /api/ronde {actie:"reserveer", straten, lidId | l,j,t} */
+async function reserveer(req, res, b) {
   res.setHeader("Cache-Control", "no-store");
-  let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
   if (b.website) return res.status(200).json({ ok: true }); // honeypot
-  const sb = admin();
-  await rateLimit(sb, req, "rondemelding", 60, 3600, httpErr); // ruim: leden melden vaak veel straten na elkaar, soms via hetzelfde netwerk
-  const straten = [...new Set((Array.isArray(b.straten) ? b.straten : []).map(String).filter(s => /^[\w.~-]{1,80}$/.test(s)))].slice(0, 60);
-  if (!straten.length) throw httpErr(400, "Kies minstens één straat.");
-  const soort = b.soort === "d" ? "done" : b.soort === "r" ? "reserved" : null;
-  if (!soort) throw httpErr(400, "Kies gereserveerd of gedaan.");
-  const A = await algemeen(sb);
-  const lid = (await actieveLeden(sb, A.jaar)).find(l => l.id === String(b.lidId || ""));
-  if (!lid) throw httpErr(400, "Kies je naam uit de ledenlijst.");
-  // al bedeelde straten kunnen niet meer gemeld worden; gereserveerde enkel nog als bedeeld
-  { const st = {}, W = new Set(straten);
-    for (let from = 0; ; from += 1000) {
-      const { data: cur, error: e0 } = await sb.from("ronde").select("data").eq("data->>jaar", String(A.jaar)).range(from, from + 999);
-      if (e0) throw e0;
-      for (const r of cur) { const d = r.data || {}; if (d.straat && W.has(d.straat)) st[d.straat] = d.status === "reserved" ? "r" : "d"; }
-      if (cur.length < 1000) break;
-    }
-    if (straten.some(s => st[s] === "d")) throw httpErr(400, "Een of meer straten zijn al bedeeld. Haal ze uit je selectie.");
-    if (soort === "reserved" && straten.some(s => st[s] === "r")) throw httpErr(400, "Een of meer straten zijn al gereserveerd. Die kan je enkel nog als bedeeld doorgeven."); }
-  // bij "bedeeld": hoeveel dozen het lid nog heeft, of hoeveel er afgewerkt zijn, en of er nog dozen nodig zijn
-  const dozen = soort === "done" ? schoonDozen(b.dozen) : null;
-  if (soort === "done" && b.dozen && !dozen) throw httpErr(400, "Beantwoord de vragen over je dozen.");
-  if (dozen) dozen.opBij = await opVan(sb, A.jaar, lid.id);
-  if (dozen && !(dozen.opBij > 0)) throw httpErr(400, "Volgens onze lijst heb je geen dozen. Neem contact op met het bestuur.");
-  const id = "m" + Date.now().toString(36) + crypto.randomBytes(3).toString("hex");
-  const toon = lid.voornaam && lid.an ? `${lid.voornaam} ${lid.an}` : lid.naam;
-  const { error } = await sb.from("rondemeldingen").insert({ id, data: { jaar: A.jaar, straten, soort, lidId: lid.id, naam: lid.naam, toon, op: new Date().toISOString(), stand: "open", ...(dozen ? { dozen } : {}) } });
+  const sb = admin(); await rateLimit(sb, req, "rondereserveer", 60, 3600, httpErr);
+  const straten = schoonStraten(b.straten); if (!straten.length) throw httpErr(400, "Kies minstens één straat.");
+  const A = await algemeen(sb), { lid, bron } = await wie(sb, A, b);
+  const adr = await adressenVan(straten); if (adr.some(a => a == null)) throw httpErr(400, "Een of meer straten bestaan niet op de kaart.");
+  const { data: r, error } = await sb.rpc("ronde_reserveer", { p_jaar: Number(A.jaar), p_straten: straten, p_lid: lid.id, p_by: [lid.voornaam, lid.an].filter(Boolean).join(" ") || lid.naam, p_bron: bron });
   if (error) throw error;
-  try { await meldPush(sb, "admin", { lidId: lid.id, titel: "Kalenderronde: melding te controleren", tekst: `${toon} meldt ${straten.length} ${straten.length === 1 ? "straat" : "straten"} als ${soort === "done" ? "gedaan" : "gereserveerd"}` + (dozen && dozen.nodig ? ` · heeft nog ${dozen.nodigN ? dozen.nodigN + " " : ""}dozen nodig` : ""), url: "/#ronde", tag: "ronde-" + lid.id }); } catch (e) {}
-  return res.status(200).json({ ok: true });
+  if (r && r.fout === "dubbel") throw httpErr(400, "Je koos een straat én een stuk van diezelfde straat. Kies één van beide.");
+  if (r && r.conflict) return stuur(res, conflictFout(r.conflict, straten));
+  try { await meldPush(sb, "admin", { lidId: lid.id, titel: "Kalenderronde: nieuwe reservatie", tekst: `${toonVan(lid)} reserveerde ${straten.length} ${straten.length === 1 ? "straat" : "straten"}`, url: "/#ronde", tag: "ronde-" + lid.id }); } catch (e) {}
+  return res.status(200).json({ ok: true, straten, adressen: adr.reduce((t, a) => t + a, 0), at: r.at });
+}
+
+/* POST /api/ronde {actie:"vrijgeven", straten, lidId | l,j,t}: eigen reservatie aanpassen (nog niet gemelde straten terug vrij) */
+async function vrijgeven(req, res, b) {
+  res.setHeader("Cache-Control", "no-store");
+  const sb = admin(); await rateLimit(sb, req, "rondevrij", 60, 3600, httpErr);
+  const straten = schoonStraten(b.straten); if (!straten.length) throw httpErr(400, "Kies minstens één straat.");
+  const A = await algemeen(sb), { lid } = await wie(sb, A, b);
+  const { data: r, error } = await sb.rpc("ronde_vrijgeven", { p_jaar: Number(A.jaar), p_straten: straten, p_lid: lid.id });
+  if (error) throw error;
+  return res.status(200).json({ ok: true, vrij: r.vrij || [] });
+}
+
+/* POST /api/ronde {actie:"meld", key, straten, aantal, dozen, lidId | l,j,t}
+   Telt meteen mee in de teller (controle "pending"); het bestuur controleert nadien. key = unieke id van deze melding (vanuit de
+   browser, één per melding): dezelfde melding twee keer versturen (dubbelklik, opnieuw proberen) telt nooit twee keer. */
+async function meld(req, res, b) {
+  res.setHeader("Cache-Control", "no-store");
+  if (b.website) return res.status(200).json({ ok: true });
+  const sb = admin(); await rateLimit(sb, req, "rondemelding", 60, 3600, httpErr);
+  const straten = schoonStraten(b.straten); if (!straten.length) throw httpErr(400, "Kies minstens één straat.");
+  const key = String(b.key || ""); if (!/^k[0-9a-z]{12,40}$/.test(key)) throw httpErr(400, "Ongeldige melding. Laad de pagina opnieuw.");
+  const A = await algemeen(sb), { lid, bron } = await wie(sb, A, b);
+  const adr = await adressenVan(straten); if (adr.some(a => a == null)) throw httpErr(400, "Een of meer straten bestaan niet op de kaart.");
+  const adressen = adr.reduce((t, a) => t + a, 0);
+  // aantal kalenders: standaard het aantal adressen; een lid kan minder (of iets meer) opgeven, binnen redelijke grenzen
+  const aantal = b.aantal == null || b.aantal === "" ? adressen : Number(b.aantal);
+  if (!Number.isInteger(aantal) || aantal < 0) throw httpErr(400, "Geef het aantal kalenders als geheel getal (0 of meer).");
+  if (aantal > Math.max(adressen * 2, adressen + 20)) throw httpErr(400, `Dat zijn veel meer kalenders dan adressen (${adressen}). Kijk het aantal na.`);
+  const dozen = schoonDozen(b.dozen);
+  if (b.dozen && !dozen) throw httpErr(400, "Beantwoord de vragen over je dozen.");
+  if (dozen) dozen.opBij = await opVan(sb, A.jaar, lid.id);
+  const { data: r, error } = await sb.rpc("ronde_meld", { p_id: key, p_jaar: Number(A.jaar), p_straten: straten, p_lid: lid.id, p_naam: lid.naam, p_toon: toonVan(lid),
+    p_by: [lid.voornaam, lid.an].filter(Boolean).join(" ") || lid.naam, p_bron: bron, p_gemeld: aantal, p_adressen: adressen, p_dozen: dozen });
+  if (error) { if (/id al gebruikt/.test(error.message || "")) throw httpErr(409, "Deze melding werd al verstuurd."); throw error; }
+  if (r && r.fout === "dubbel") throw httpErr(400, "Je koos een straat én een stuk van diezelfde straat. Kies één van beide.");
+  if (r && r.conflict) return stuur(res, conflictFout(r.conflict, straten));
+  if (!r.al) try { await meldPush(sb, "admin", { lidId: lid.id, titel: "Kalenderronde: bedeling te controleren", tekst: `${toonVan(lid)} meldt ${aantal} kalenders bedeeld in ${straten.length} ${straten.length === 1 ? "straat" : "straten"}` + (dozen && dozen.nodig ? ` · heeft nog ${dozen.nodigN ? dozen.nodigN + " " : ""}dozen nodig` : ""), url: "/#ronde", tag: "ronde-" + lid.id }); } catch (e) {}
+  const m = r.melding || {};
+  return res.status(200).json({ ok: true, al: !!r.al, id: key, gemeld: Number(m.gemeld) || 0, straten: m.straten || straten, controle: m.controle, teller: await tellerVan(sb, A.jaar) });
+}
+
+/* GET /api/ronde?mijn=<lidId> (of &l&j&t): "Mijn straten" — te doen (gereserveerd), gemeld (wacht op controle), afgewerkt.
+   Enkel straten en aantallen van dit lid; geen namen van bestuursleden. */
+async function mijnStraten(req, res) {
+  res.setHeader("Cache-Control", "no-store");
+  const sb = admin(); await rateLimit(sb, req, "rondemijn", 120, 600, httpErr);
+  const A = await algemeen(sb), q = req.query;
+  const { lid } = await wie(sb, A, q.l ? { l: q.l, j: q.j, t: q.t } : { lidId: q.mijn });
+  const rijen = await rondeRijen(sb, A.jaar);
+  const doen = rijen.filter(d => d.status === "reserved" && d.lidId === lid.id).map(d => ({ s: d.straat, at: d.at || "" }));
+  const { data: M, error } = await sb.from("rondemeldingen").select("id,data").eq("data->>jaar", String(A.jaar)).eq("data->>lidId", lid.id).eq("data->>soort", "done").limit(500);
+  if (error) throw error;
+  const meld = (M || []).filter(r => r.data && r.data.controle).map(r => { const d = r.data; return { id: r.id, straten: d.straten || [], op: d.op, gemeld: d.gemeld, bevestigd: d.bevestigd ?? null, controle: d.controle }; })
+    .sort((a, b) => String(b.op).localeCompare(String(a.op)));
+  return res.status(200).json({ id: lid.id, voornaam: lid.voornaam || "", toon: toonVan(lid), teDoen: doen, gemeld: meld.filter(m => m.controle === "pending"),
+    afgewerkt: meld.filter(m => m.controle === "confirmed" || m.controle === "adjusted"), afgewezen: meld.filter(m => m.controle === "rejected") });
 }
 
 /* GET /api/ronde?wie=straat1,straat2: wie reserveerde deze straten (om bij "bedeeld" de naam al in te vullen).
@@ -143,11 +209,21 @@ async function herReserveer(req, res, b, doe) {
   const mijn = new Set(nu.filter(isMijn).map(d => d.straat));
   if (!doe) { const { data: jr } = await sb.from("jaren").select("data").eq("id", String(j)).maybeSingle(); const tg = String(jr?.data?.kalTegen || "");
     return res.status(200).json({ voornaam: L.voornaam || "", jaar: j, tegen: /^\d{4}-\d{2}-\d{2}$/.test(tg) ? tg : "", straten: vorig.map(s => ({ s, st: mijn.has(s) ? "mijn" : vrij(s) ? "vrij" : "bezet" })) }); }
-  const nieuw = vorig.filter(vrij), at = new Date().toISOString();
+  let nieuw = vorig.filter(vrij);
   if (nieuw.length) {
-    const { error } = await sb.from("ronde").upsert(nieuw.map(s => ({ id: j + "_" + s, data: { jaar: j, straat: s, status: "reserved", by: toon, lidId: l, ...(() => { const r = vorigRijen.find(d => d.straat === s) || {}; const m = [{ lidId: r.lidId || null, by: r.by }, ...(Array.isArray(r.mee) ? r.mee : [])].filter(w => w && w.by && !(w.lidId ? w.lidId === l : namen.includes(nm(w.by)))); return m.length ? { mee: m } : {}; })(), at, ...(s.includes("~") ? { deel: true } : {}), via: "mail vorig jaar" } })));
-    if (error) throw error;
-    try { await meldPush(sb, "admin", { lidId: l, titel: "Kalenderronde: straten opnieuw gereserveerd", tekst: `${toon} reserveerde ${nieuw.length} ${nieuw.length === 1 ? "straat" : "straten"} van vorig jaar`, url: "/#ronde", tag: "ronde-" + l }); } catch (e) {}
+    // zelfde databasefunctie als gewoon reserveren (na elkaar, alles of niets); wat intussen bezet raakte, valt weg
+    const by = [L.voornaam, L.naam].filter(Boolean).join(" ");
+    for (let poging = 0; poging < 2 && nieuw.length; poging++) {
+      const { data: r, error } = await sb.rpc("ronde_reserveer", { p_jaar: j, p_straten: nieuw, p_lid: l, p_by: by, p_bron: "personal_link" });
+      if (error) throw error;
+      if (r && r.ok) break;
+      const weg = new Set((r && r.conflict || []).map(c => c.s)); nieuw = nieuw.filter(s => !weg.has(s) && !weg.has(s.split("~")[0]) && ![...weg].some(w => w.split("~")[0] === s));
+      if (poging === 1) nieuw = [];
+    }
+    // wie vorig jaar mee bedeelde, ook nu mee vermelden (enkel extra info bij de reservatie)
+    for (const s of nieuw) { const r = vorigRijen.find(d => d.straat === s) || {}; const m = [{ lidId: r.lidId || null, by: r.by }, ...(Array.isArray(r.mee) ? r.mee : [])].filter(w => w && w.by && !(w.lidId ? w.lidId === l : namen.includes(nm(w.by))));
+      try { const { data: cur } = await sb.from("ronde").select("data").eq("id", j + "_" + s).maybeSingle(); if (cur && cur.data && cur.data.lidId === l && cur.data.status === "reserved") await sb.from("ronde").update({ data: { ...cur.data, via: "mail vorig jaar", ...(m.length ? { mee: m } : {}) } }).eq("id", j + "_" + s); } catch (e) {} }
+    if (nieuw.length) try { await meldPush(sb, "admin", { lidId: l, titel: "Kalenderronde: straten opnieuw gereserveerd", tekst: `${toon} reserveerde ${nieuw.length} ${nieuw.length === 1 ? "straat" : "straten"} van vorig jaar`, url: "/#ronde", tag: "ronde-" + l }); } catch (e) {}
   }
   return res.status(200).json({ ok: true, gereserveerd: nieuw });
 }
