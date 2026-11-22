@@ -229,3 +229,12 @@ begin
 end $$;
 revoke all on function test.ronde_overname(int, jsonb) from public, anon, authenticated;
 grant execute on function test.ronde_overname(int, jsonb) to service_role;
+
+-- ================= 22/11 (later): terug naar DOZEN =================
+-- Op vraag van het bestuur werkt alles in dozen, niet in adressen:
+--   * gemeld/bevestigd/effectief = dozen (per kwart doos), berekend uit de antwoorden over de dozen en de verdeling
+--   * teller = (afgewerkte dozen in jaarleden + dozen van meldingen met controle "pending") × kalenders per doos
+--   * bevestigen/aanpassen: de app boekt de dozen in de verdeling (afgewerkt); de melding is dan niet meer "pending" -> nooit dubbel
+--   * enkel meldingen die nog te controleren zijn, kunnen gecontroleerd worden
+--   * de overname van oude straten (mig...) en ronde_overname zijn verwijderd (niet meer nodig: oude bedelingen zitten al in jaarleden)
+-- Toegepast op schema test als migratie "test_ronde_dozen": ronde_meld/ronde_controle met numeric aantallen, ronde_teller geeft "voorlopig".
