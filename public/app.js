@@ -2330,8 +2330,8 @@ body:not([data-kft="cad"]) .ds-acties>.kf-act{display:none!important}`,document.
 .nmeld .nm-l>.nm-i>.nm-go svg{width:18px!important;height:18px!important;margin:0!important;display:block!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round;stroke-linejoin:round}.nmeld .nm-l>.nm-i>.nm-go svg *{fill:none!important;stroke:currentColor!important;stroke-width:1.8!important}
 .tbd-r .btn.tbd-ico{margin-right:0!important}`,document.head.appendChild(e);const t=()=>document.querySelectorAll(".nmeld").forEach(n=>{const a=n.querySelector(".nm-ic svg");a&&n.querySelectorAll(".nm-l>.nm-i:not(.has-go)").forEach(s=>{const i=document.createElement("span");i.className="nm-go",i.setAttribute("aria-hidden","true"),i.appendChild(a.cloneNode(!0)),s.appendChild(i),s.classList.add("has-go")})});new MutationObserver(()=>t()).observe(document.documentElement,{childList:!0,subtree:!0}),t()}{const e=document.createElement("style");e.textContent=`
 .nmeld .nm-l>.nm-i.has-go{min-height:0!important;padding:10px 60px 10px 16px!important;gap:0!important}
-.nmeld .nm-l>.nm-i>b{margin:0!important;font-size:14.5px!important;font-weight:650!important;line-height:1.35!important}
-.nmeld .nm-l>.nm-i>span:not(.nm-go):not(.pill){margin:1px 0 0!important;font-size:12.5px!important;line-height:1.5!important}
+.nmeld .nm-l>.nm-i>b{margin:0!important;font-size:14.5px!important;font-weight:650!important;line-height:22px!important}
+.nmeld .nm-l>.nm-i>span:not(.nm-go):not(.pill){margin:0!important;font-size:12.5px!important;line-height:1.5!important}
 .nmeld .nm-l>.nm-i.has-go:not(:has(>span:not(.nm-go):not(.pill))){min-height:54px!important}
 .tbd-r .btn.tbd-ico svg,.tbd-r .btn.tbd-ico svg *{stroke-width:1.5!important}
 .nmeld .nm-l>.nm-i>.nm-go svg,.nmeld .nm-l>.nm-i>.nm-go svg *{stroke-width:1.6!important}`,document.head.appendChild(e)}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
