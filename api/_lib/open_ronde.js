@@ -17,6 +17,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.dozen) return await dozenVan(req, res);
     if (req.query && req.query.ik) return await wieBenIk(req, res);
     if (req.query && req.query.mijn != null) return await mijnStraten(req, res);
+    if (req.query && req.query.kalenders != null) { res.setHeader("Cache-Control", "public, max-age=3600"); const ids = schoonStraten(String(req.query.kalenders).split(",")); const a = await adressenVan(ids); return res.status(200).json({ kalenders: a.reduce((t, x) => t + (x || 0), 0), per: Object.fromEntries(ids.map((id, i) => [id, a[i] ?? null])) }); }
     if (req.query && req.query.geojson != null) return await geoJson(req, res);
     const sb = admin();
     let verborgen = [];
@@ -123,14 +124,26 @@ async function meld(req, res, b) {
   const A = await algemeen(sb), { lid, bron } = await wie(sb, A, b);
   const adr = await adressenVan(straten); if (adr.some(a => a == null)) throw httpErr(400, "Een of meer straten bestaan niet op de kaart.");
   const adressen = adr.reduce((t, a) => t + a, 0);
-  // we werken met dozen: het aantal afgewerkte dozen volgt uit de antwoorden over de dozen en de verdeling (dozen in handen)
-  const dozen = schoonDozen(b.dozen);
-  if (!dozen) throw httpErr(400, "Beantwoord de vragen over je dozen.");
-  dozen.opBij = await opVan(sb, A.jaar, lid.id);
-  if (!(dozen.opBij > 0)) throw httpErr(400, "Volgens onze lijst heb je geen dozen. Neem contact op met het bestuur.");
-  const aantal = Math.round(Math.max(0, dozen.over === true ? dozen.opBij - (dozen.rest || 0) : dozen.af === "alle" ? dozen.opBij : Math.min(Number(dozen.af) || 0, dozen.opBij)) * 4) / 4;
+  // we werken met dozen: het lid geeft het aantal gebruikte dozen (per kwart doos), of (oude kaart) de antwoorden over de dozen
+  const opBij = await opVan(sb, A.jaar, lid.id);
+  if (!(opBij > 0)) throw httpErr(400, "Volgens onze lijst heb je geen dozen meer in handen. Neem contact op met het bestuur.");
+  let aantal, dozen;
+  if (typeof b.dozen === "number" || (typeof b.dozen === "string" && b.dozen.trim() !== "")) {
+    aantal = Math.round(Number(b.dozen) * 4) / 4;
+    if (!(aantal > 0) || aantal > 200) throw httpErr(400, "Geef het aantal dozen dat je gebruikte.");
+    if (aantal > opBij) throw httpErr(400, `Volgens onze lijst heb je ${opBij} ${opBij === 1 ? "doos" : "dozen"} in handen. Kijk het aantal na of neem contact op met het bestuur.`);
+    dozen = { opBij, gebruikt: aantal };
+  } else {
+    dozen = schoonDozen(b.dozen);
+    if (!dozen) throw httpErr(400, "Beantwoord de vragen over je dozen.");
+    dozen.opBij = opBij;
+    aantal = Math.round(Math.max(0, dozen.over === true ? opBij - (dozen.rest || 0) : dozen.af === "alle" ? opBij : Math.min(Number(dozen.af) || 0, opBij)) * 4) / 4;
+  }
+  // stukken van een straat die als geheel op jouw naam staat: de server splitst de reservatie eerst op (alle stukken van die straat)
+  if (!KRA) KRA = (await import("./kr_adressen.js")).default;
+  const delen = {}; for (const s of straten) if (s.includes("~")) { const sid = s.split("~")[0]; if (!delen[sid]) delen[sid] = Object.keys(KRA).filter(k => k.startsWith(sid + "~")); }
   const { data: r, error } = await sb.rpc("ronde_meld", { p_id: key, p_jaar: Number(A.jaar), p_straten: straten, p_lid: lid.id, p_naam: lid.naam, p_toon: toonVan(lid),
-    p_by: [lid.voornaam, lid.an].filter(Boolean).join(" ") || lid.naam, p_bron: bron, p_gemeld: aantal, p_adressen: adressen, p_dozen: dozen });
+    p_by: [lid.voornaam, lid.an].filter(Boolean).join(" ") || lid.naam, p_bron: bron, p_gemeld: aantal, p_adressen: adressen, p_dozen: dozen, p_delen: delen });
   if (error) { if (/id al gebruikt/.test(error.message || "")) throw httpErr(409, "Deze melding werd al verstuurd."); throw error; }
   if (r && r.fout === "dubbel") throw httpErr(400, "Je koos een straat én een stuk van diezelfde straat. Kies één van beide.");
   if (r && r.conflict) return stuur(res, conflictFout(r.conflict, straten));
