@@ -2334,7 +2334,11 @@ body:not([data-kft="cad"]) .ds-acties>.kf-act{display:none!important}`,document.
 .nmeld .nm-l>.nm-i>span:not(.nm-go):not(.pill){margin:0!important;font-size:12.5px!important;line-height:1.5!important}
 .nmeld .nm-l>.nm-i.has-go:not(:has(>span:not(.nm-go):not(.pill))){min-height:54px!important}
 .tbd-r .btn.tbd-ico svg,.tbd-r .btn.tbd-ico svg *{stroke-width:1.5!important}
-.nmeld .nm-l>.nm-i>.nm-go svg,.nmeld .nm-l>.nm-i>.nm-go svg *{stroke-width:1.6!important}`,document.head.appendChild(e)}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
+.nmeld .nm-l>.nm-i>.nm-go svg,.nmeld .nm-l>.nm-i>.nm-go svg *{stroke-width:1.6!important}`,document.head.appendChild(e)}{const e=document.createElement("style");e.textContent=`
+.tbd-r .tbd-n>b,.nmeld .nm-l>.nm-i>b{line-height:18px!important;margin:0!important}
+.tbd-r .tbd-n>span,.nmeld .nm-l>.nm-i>span:not(.nm-go):not(.pill){line-height:16px!important;margin:0!important}
+.tbd-r .tbd-n{gap:0!important}
+.tbd-r,.nmeld .nm-l>.nm-i.has-go{padding-top:9px!important;padding-bottom:9px!important}`,document.head.appendChild(e)}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
 .stat-grid--4{grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr))}
 @media (max-width:1100px){.stat-grid--4{grid-template-columns:repeat(3,minmax(0,1fr))}.stat-grid--4>.stat-card:first-child{grid-column:1/-1}}
 @media (max-width:640px){.stat-grid--4{grid-template-columns:repeat(2,minmax(0,1fr))}.stat-grid--4>.stat-card:last-child{grid-column:1/-1}}
