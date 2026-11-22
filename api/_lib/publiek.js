@@ -117,7 +117,7 @@ export async function alIngeschreven(sb, tabel, jaar, lidId) {
   if (e2) throw e2;
   return (rijen || []).some(r => r.data && !r.data.lidId && namen.has(n(r.data.naam || r.data.lid)));
 }
-export const AL_TEKST = (wat, jaar) => `Je bent al ingeschreven voor ${wat} ${jaar}. Een lid kan zich maar één keer inschrijven. Wil je iets wijzigen? Mail dan naar info@vbha.be.`;
+export const AL_TEKST = (wat, jaar) => `Je bent al ingeschreven voor ${wat} ${jaar}. Wil je iets wijzigen? Mail dan naar info@vbha.be.`;
 
 // Beperkt het aantal aanvragen per IP-adres (bv. om de ledenlijst niet te kunnen "afschrapen"). Faalt open bij een databasefout.
 export async function rateLimit(sb, req, soort, max, sec, httpErr) {
