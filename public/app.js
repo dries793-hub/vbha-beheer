@@ -2323,7 +2323,12 @@ body:not([data-kft="cad"]) .ds-acties>.kf-act{display:none!important}`,document.
 .st-leg .st-r{flex-direction:row!important;align-items:center!important;justify-content:space-between;gap:8px!important;padding:6px 10px!important;min-height:36px!important}
 .st-leg .st-rt{justify-content:flex-start!important;gap:6px;font-size:13px!important}.st-leg .st-rt b{font-size:14.5px!important}
 .st-leg .st-rb{gap:0!important}.st-leg .st-rb i{display:none!important}.st-leg .st-rb small{width:auto!important;font-size:11.5px!important}
-.st-donut svg{width:128px!important;height:128px!important}}`,document.head.appendChild(e)}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
+.st-donut svg{width:128px!important;height:128px!important}}`,document.head.appendChild(e)}{const e=document.createElement("style");e.textContent=`
+.nmeld .nm-l>.nm-i.has-go::after{display:none!important}
+.nmeld .nm-l>.nm-i>.nm-go{position:absolute;right:16px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:var(--vb-ctl-sm);height:var(--vb-ctl-sm);box-sizing:border-box;margin:0!important;border:1px solid var(--vb-line-strong);border-radius:8px;background:var(--vb-surface);color:var(--vb-ink);transition:border-color var(--vb-t)}
+.nmeld .nm-l>.nm-i:hover>.nm-go{border-color:var(--vb-ink)}
+.nmeld .nm-l>.nm-i>.nm-go svg{width:18px;height:18px;display:block}
+.tbd-r .btn.tbd-ico{margin-right:0!important}`,document.head.appendChild(e);const t=()=>document.querySelectorAll(".nmeld").forEach(n=>{const a=n.querySelector(".nm-ic svg");a&&n.querySelectorAll(".nm-l>.nm-i:not(.has-go)").forEach(s=>{const i=document.createElement("span");i.className="nm-go",i.setAttribute("aria-hidden","true"),i.appendChild(a.cloneNode(!0)),s.appendChild(i),s.classList.add("has-go")})});new MutationObserver(()=>t()).observe(document.documentElement,{childList:!0,subtree:!0}),t()}DS_DESC.dashboard=()=>{const e=new Date().getHours(),t=e<12?"Goedemorgen":e<18?"Goedemiddag":"Goedenavond",n=String(typeof ME_NAME<"u"&&ME_NAME||"").split(/[\s@]/)[0];return`${t}${n?", "+n:""}`};{const e=document.createElement("style");e.textContent=`
 .stat-grid--4{grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr))}
 @media (max-width:1100px){.stat-grid--4{grid-template-columns:repeat(3,minmax(0,1fr))}.stat-grid--4>.stat-card:first-child{grid-column:1/-1}}
 @media (max-width:640px){.stat-grid--4{grid-template-columns:repeat(2,minmax(0,1fr))}.stat-grid--4>.stat-card:last-child{grid-column:1/-1}}
