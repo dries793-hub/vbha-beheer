@@ -30,12 +30,8 @@ export default async function handler(req, res) {
       if (data.length < 1000) break;
     }
     const { data: pd } = await sb.from("jaren").select("data").eq("id", String(A.jaar)).maybeSingle();
-    // teller: som van de bijdrage van elke bedelingsmelding (gemeld zolang niet gecontroleerd, anders bevestigd; afgewezen = 0),
-    // altijd opnieuw berekend uit de registraties (ronde_teller), tegenover de stock (dozen × kalenders per doos)
+    // teller: afgewerkte dozen (verdeling) + dozen van nog te controleren bedelingen, × kalenders per doos, tegenover de stock
     let teller = null;
-    // bedeelde straten zonder registratie (van vóór dit systeem, of rechtstreeks in de app aangeduid): eenmalig overnemen met het
-    // aantal adressen volgens de kaart, zodat de teller volledig blijft en altijd uit de registraties te berekenen is
-    try { const D = out.filter(x => x.st === "d").map(x => x.s); if (D.length) { const a = await adressenVan(D); await sb.rpc("ronde_overname", { p_jaar: Number(A.jaar), p_rijen: D.map((s, i) => ({ s, a: a[i] || 0 })) }); } } catch (e) { /* teller zonder overname */ }
     try { teller = await tellerVan(sb, A.jaar, pd); } catch (e) { /* geen teller */ }
     // meldingen die het bestuur nog moet nakijken (zonder namen): oranje stippellijn op de kaart
     const open = {};
@@ -67,10 +63,17 @@ async function wie(sb, A, b) {
   return { lid, bron: "manual_member_selection" };
 }
 async function tellerVan(sb, jaar, pd) {
+  // teller in dozen, zoals altijd: afgewerkte dozen in de verdeling (jaarleden) + dozen uit bedelingen die het bestuur nog moet
+  // nakijken (die tellen meteen mee). Na controle gaan de dozen in de verdeling en valt de voorlopige bijdrage weg: nooit dubbel.
   if (pd === undefined) { const { data } = await sb.from("jaren").select("data").eq("id", String(jaar)).maybeSingle(); pd = data; }
   const per = Number(pd?.data?.perDoos) || 100, stock = Number(pd?.data?.kalenderStock) || 0;
+  let ui = 0;
+  for (let from = 0; ; from += 1000) { const { data: J, error: e2 } = await sb.from("jaarleden").select("data").eq("data->>jaar", String(jaar)).range(from, from + 999); if (e2) throw e2;
+    for (const r of J) ui += (Number(r.data?.kalUitgevoerd) || 0) - (Number(r.data?.kalTerugRest) || 0); if (J.length < 1000) break; }
   const { data: t, error } = await sb.rpc("ronde_teller", { p_jaar: Number(jaar) }); if (error) throw error;
-  return { bedeeld: Number(t?.bedeeld) || 0, totaal: Math.round(stock * per), teControleren: Number(t?.teControleren) || 0 };
+  const voorl = Number(t?.voorlopig) || 0;
+  if (!(stock > 0)) return null;
+  return { bedeeld: Math.round((ui + voorl) * per), totaal: Math.round(stock * per), teControleren: Number(t?.teControleren) || 0 };
 }
 const naamVan = s => { const [id, n] = String(s).split("~"); const [st, dg] = id.split("--"); const t = st.replace(/-/g, " ").replace(/^./, c => c.toUpperCase()); return (dg ? `${t} (${dg.replace(/-/g, " ").replace(/^./, c => c.toUpperCase())})` : t) + (n != null ? ` (stuk ${Number(n) + 1})` : ""); };
 const conflictTekst = C => { const n = C.map(c => naamVan(c.s)); return (n.length === 1 ? `${n[0]} is` : `${n.slice(0, -1).join(", ")} en ${n[n.length - 1]} zijn`) + " niet meer beschikbaar."; };
@@ -120,19 +123,18 @@ async function meld(req, res, b) {
   const A = await algemeen(sb), { lid, bron } = await wie(sb, A, b);
   const adr = await adressenVan(straten); if (adr.some(a => a == null)) throw httpErr(400, "Een of meer straten bestaan niet op de kaart.");
   const adressen = adr.reduce((t, a) => t + a, 0);
-  // aantal kalenders: standaard het aantal adressen; een lid kan minder (of iets meer) opgeven, binnen redelijke grenzen
-  const aantal = b.aantal == null || b.aantal === "" ? adressen : Number(b.aantal);
-  if (!Number.isInteger(aantal) || aantal < 0) throw httpErr(400, "Geef het aantal kalenders als geheel getal (0 of meer).");
-  if (aantal > Math.max(adressen * 2, adressen + 20)) throw httpErr(400, `Dat zijn veel meer kalenders dan adressen (${adressen}). Kijk het aantal na.`);
+  // we werken met dozen: het aantal afgewerkte dozen volgt uit de antwoorden over de dozen en de verdeling (dozen in handen)
   const dozen = schoonDozen(b.dozen);
-  if (b.dozen && !dozen) throw httpErr(400, "Beantwoord de vragen over je dozen.");
-  if (dozen) dozen.opBij = await opVan(sb, A.jaar, lid.id);
+  if (!dozen) throw httpErr(400, "Beantwoord de vragen over je dozen.");
+  dozen.opBij = await opVan(sb, A.jaar, lid.id);
+  if (!(dozen.opBij > 0)) throw httpErr(400, "Volgens onze lijst heb je geen dozen. Neem contact op met het bestuur.");
+  const aantal = Math.round(Math.max(0, dozen.over === true ? dozen.opBij - (dozen.rest || 0) : dozen.af === "alle" ? dozen.opBij : Math.min(Number(dozen.af) || 0, dozen.opBij)) * 4) / 4;
   const { data: r, error } = await sb.rpc("ronde_meld", { p_id: key, p_jaar: Number(A.jaar), p_straten: straten, p_lid: lid.id, p_naam: lid.naam, p_toon: toonVan(lid),
     p_by: [lid.voornaam, lid.an].filter(Boolean).join(" ") || lid.naam, p_bron: bron, p_gemeld: aantal, p_adressen: adressen, p_dozen: dozen });
   if (error) { if (/id al gebruikt/.test(error.message || "")) throw httpErr(409, "Deze melding werd al verstuurd."); throw error; }
   if (r && r.fout === "dubbel") throw httpErr(400, "Je koos een straat én een stuk van diezelfde straat. Kies één van beide.");
   if (r && r.conflict) return stuur(res, conflictFout(r.conflict, straten));
-  if (!r.al) try { await meldPush(sb, "admin", { lidId: lid.id, titel: "Kalenderronde: bedeling te controleren", tekst: `${toonVan(lid)} meldt ${aantal} kalenders bedeeld in ${straten.length} ${straten.length === 1 ? "straat" : "straten"}` + (dozen && dozen.nodig ? ` · heeft nog ${dozen.nodigN ? dozen.nodigN + " " : ""}dozen nodig` : ""), url: "/#ronde", tag: "ronde-" + lid.id }); } catch (e) {}
+  if (!r.al) try { await meldPush(sb, "admin", { lidId: lid.id, titel: "Kalenderronde: bedeling te controleren", tekst: `${toonVan(lid)} meldt ${aantal} ${aantal === 1 ? "doos" : "dozen"} bedeeld in ${straten.length} ${straten.length === 1 ? "straat" : "straten"}` + (dozen && dozen.nodig ? ` · heeft nog ${dozen.nodigN ? dozen.nodigN + " " : ""}dozen nodig` : ""), url: "/#ronde", tag: "ronde-" + lid.id }); } catch (e) {}
   const m = r.melding || {};
   return res.status(200).json({ ok: true, al: !!r.al, id: key, gemeld: Number(m.gemeld) || 0, straten: m.straten || straten, controle: m.controle, teller: await tellerVan(sb, A.jaar) });
 }
