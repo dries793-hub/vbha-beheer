@@ -238,7 +238,7 @@ else fetch("/api/status",{method:"POST",headers:{"Content-Type":"application/jso
      <section class="sx-sec vb-sec"><div class="sx-top"><h2 class="sx-j">Jouw voordeel · ${Y}</h2>${badge(N.status)}</div>
       <div class="sx-m"><b class="sx-big">${N.korting}%</b><span class="sx-sub">korting op betalende activiteiten</span></div><p class="sx-s">${reden}</p>${tegoed}</section>
      <section class="sx-sec vb-sec"><div class="sx-top"><h2 class="sx-j">Status voor ${Y+1}</h2>${badge(P.volgend)}</div>
-      <div class="sx-m sx-m2"><div><b class="sx-big">${P.totaal}</b><span class="sx-sub">punten in ${Y}</span></div>${voortgang}</div>${balk}${x.tegoedVolgend?`<p class="sx-s">Je goudtegoed voor ${Y+1}: <b>${eur(x.tegoedVolgend)}</b>.</p>`:""}${heeft?punten:""}</section>
+      <div class="sx-m sx-m2"><div><b class="sx-big">${P.totaal}</b><span class="sx-sub">punten</span></div>${voortgang}</div>${balk}${x.tegoedVolgend?`<p class="sx-s">Je goudtegoed voor ${Y+1}: <b>${eur(x.tegoedVolgend)}</b>.</p>`:""}${heeft?punten:""}</section>
      ${heeft?"":punten}
      <p class="sx-w"><a href="/reglement${esc(location.search)}">Hoe werkt het puntensysteem?</a></p></div>`})
   .catch(e=>fout(e.message));
