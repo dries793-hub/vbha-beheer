@@ -250,7 +250,7 @@ html.kr-vol-aan,html.kr-vol-aan body{overflow:hidden}
   <div class="kr-search kr-si"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="krQ" type="search" placeholder="Zoek een straat…" autocomplete="off" enterkeyhint="go" aria-label="Zoek een straat"><ul class="kr-sug" id="krSug" hidden></ul></div>
   <div class="kr-leg"><div class="kr-teller" id="krTeller" hidden></div><span><i style="background:var(--good)"></i>Bedeeld</span><span><i style="background:var(--info)"></i>Gereserveerd</span><span><i style="background:repeating-linear-gradient(90deg,#f59e0b 0 5px,transparent 5px 8px)"></i>In behandeling</span><span><i style="background:var(--kr-todo)"></i>Nog te doen</span><small id="krStand"></small></div>
   <div class="kr-zoom"><button type="button" id="krZin" aria-label="Inzoomen">+</button><button type="button" id="krZout" aria-label="Uitzoomen">−</button><button type="button" id="krFit" aria-label="Hele kaart tonen" title="Hele kaart tonen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button></div>
-  <section class="kr-card vb-ui" id="krCard" hidden aria-labelledby="krCardT"><button type="button" class="kr-grip" aria-label="Selectie uit- of inklappen"><i></i></button><div class="kr-card-h"><div class="kr-card-t"><h3 id="krCardT" class="vb-acc">Jouw selectie</h3><p class="kr-gr" id="krGr" hidden></p><span id="krCardM"></span></div></div><div class="kr-adr" id="krOne" hidden><b id="krCardA"></b><span id="krCardAl"></span></div><div class="kr-multi" id="krMulti" hidden></div><button type="button" class="vb-tert kr-wis" id="krCardX"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg>Selectie wissen</button><div class="kr-meld" id="krMeld"><div class="vb-seg kr-soort" role="group" aria-label="Wat wil je melden?"><button type="button" role="radio" aria-checked="true" data-krsoort="r">Reserveren</button><button type="button" role="radio" aria-checked="false" data-krsoort="d">Afgewerkt</button></div><button type="button" class="vb-cta kr-go" data-krmeld="r">Bedeling doorgeven</button></div></section>
+  <section class="kr-card vb-ui" id="krCard" hidden aria-labelledby="krCardT"><button type="button" class="kr-grip" aria-label="Selectie uit- of inklappen"><i></i></button><div class="kr-card-h"><div class="kr-card-t"><h3 id="krCardT" class="vb-acc">Jouw selectie</h3><p class="kr-gr" id="krGr" hidden></p><span id="krCardM"></span></div></div><div class="kr-adr" id="krOne" hidden><b id="krCardA"></b><span id="krCardAl"></span></div><div class="kr-multi" id="krMulti" hidden></div><button type="button" class="vb-tert kr-wis" id="krCardX"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg>Selectie wissen</button><div class="kr-meld" id="krMeld"><div class="kr-wie" id="krWie"></div><div class="vb-seg kr-soort" role="group" aria-label="Wat wil je melden?"><button type="button" role="radio" aria-checked="true" data-krsoort="r">Reserveren</button><button type="button" role="radio" aria-checked="false" data-krsoort="d">Afgewerkt</button></div><button type="button" class="vb-cta kr-go" data-krmeld="r">Bedeling doorgeven</button><div id="krInl"></div></div></section>
 </div></div>
 <section class="kr-sp" id="krSp" hidden role="dialog" aria-modal="true" aria-label="Zoek een straat"><div class="kr-sp-bar"><button type="button" id="krSpBack" aria-label="Terug naar de kaart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><input id="krSpIn" type="search" placeholder="Zoek een straat…" autocomplete="off" enterkeyhint="go" aria-label="Zoek een straat"></div><p class="empty" id="krSpEmpty" hidden>Geen straat gevonden.</p><ul id="krSpList"></ul></section>
 <script src="/lib/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -3066,7 +3066,24 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
   const krAlRes=()=>[...KR.ss].some(id=>KR_STAND[id]==="r");
   /* keuze Reserveren | Gedaan in de selectie; "Bedeling doorgeven" opent de bestaande melding met die keuze */
   window.KR_SOORT=window.KR_SOORT||"r";
+  /* wie ben je: persoonlijke link (KR_IK) of één keer je naam kiezen (KR_KIES, bewaard in deze browser) */
+  try{const o=JSON.parse(localStorage.getItem("vbha.kaart.lid")||"null");if(o&&o.id&&!window.KR_KIES)window.KR_KIES=o}catch(e){}
+  let selKey="";
+  function wieTeken(){const w=$("#krWie");if(!w)return;const ik=window.KR_IK||window.KR_KIES;
+    if(ik){if(w.dataset.st==="ik:"+ik.id)return;w.dataset.st="ik:"+ik.id;w.innerHTML=window.KR_IK?"":`<p class="kr-wie-ik">Op naam van <b>${e2(ik.toon||ik.naam||"")}</b> <button type="button" class="kr-wie-x" data-krwie="x">Andere naam</button></p>`;return}
+    if(w.dataset.st==="zoek")return;w.dataset.st="zoek";
+    w.innerHTML=`<label for="krWieN" class="kr-wie-l">Wie ben je?</label><div class="km-w"><input type="text" id="krWieN" autocomplete="off" placeholder="Typ je naam…"><div class="km-l" id="krWieL" hidden></div></div>`;
+    const inp=w.querySelector("#krWieN"),box=w.querySelector("#krWieL");let L=[],T=null;
+    inp.addEventListener("input",()=>{clearTimeout(T);const q=inp.value.trim();if(q.replace(/\s/g,"").length<3){box.hidden=true;return}
+      T=setTimeout(async()=>{try{const r=await fetch("/api/leden?q="+encodeURIComponent(q));L=r.ok?await r.json():[]}catch(e){L=[]}
+        box.innerHTML=L.length?L.map((l,i)=>`<button type="button" data-i="${i}">${e2(l.toon||l.naam)}</button>`).join(""):'<p class="km-di">Niet gevonden.</p>';box.hidden=false},250)});
+    box.addEventListener("click",e=>{const b=e.target.closest("[data-i]");if(!b)return;const l=L[+b.dataset.i];window.KR_KIES={id:l.id,toon:l.toon||l.naam,naam:l.naam};
+      try{localStorage.setItem("vbha.kaart.lid",JSON.stringify(window.KR_KIES))}catch(x){}krSoortSync()})}
+  document.addEventListener("click",e=>{if(e.target.closest("[data-krwie]")){window.KR_KIES=null;try{localStorage.removeItem("vbha.kaart.lid")}catch(x){}const I=$("#krInl");if(I)I.innerHTML="";window.KR_AAN=null;krSoortSync();setTimeout(()=>{const i=$("#krWieN");if(i)i.focus()},30)}});
   window.krSoortSync=function(){const m=$("#krMeld");if(!m)return;m.hidden=!KR.ss.size;const al=krAlRes();
+    /* andere selectie: het formulier eronder sluit */
+    const k=[...KR.ss].sort().join(",");if(k!==selKey){selKey=k;const I=$("#krInl");if(I&&I.firstChild){I.innerHTML="";window.KR_AAN=null}}
+    wieTeken();const ik=!!(window.KR_IK||window.KR_KIES),sg=m.querySelector(".kr-soort");if(sg)sg.hidden=!ik;
     /* geen voorkeuze: tik op Reserveren of Afgewerkt en je gaat meteen verder */
     const open=!!document.querySelector(".km-bg");
     m.querySelectorAll("[data-krsoort]").forEach(b=>{b.classList.toggle("on",open&&b.dataset.krsoort===window.KR_AAN);b.removeAttribute("aria-checked");b.removeAttribute("role");b.tabIndex=0;
@@ -3074,14 +3091,16 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
     const g=m.querySelector("[data-krmeld]");if(g){g.dataset.krmeld=KR_SOORT;g.hidden=true}};
   document.addEventListener("click",e=>{const b=e.target.closest("[data-krsoort]");if(!b||b.disabled)return;KR_SOORT=window.KR_AAN=b.dataset.krsoort;krSoortSync();const g=document.querySelector("#krMeld [data-krmeld]");if(g){g.dataset.krmeld=window.KR_AAN;g.click()}krSoortSync();
     /* venster dicht: geen knop meer aangeduid */
-    const mo=new MutationObserver(()=>{if(!document.querySelector(".km-bg")){mo.disconnect();window.KR_AAN=null;krSoortSync()}});mo.observe(document.body,{childList:true})});
+    const mo=new MutationObserver(()=>{if(!document.querySelector(".km-bg")){mo.disconnect();window.KR_AAN=null;krSoortSync()}});mo.observe(document.body,{childList:true,subtree:true})});
   document.addEventListener("keydown",e=>{const b=e.target.closest&&e.target.closest("[data-krsoort]");if(!b||!["ArrowLeft","ArrowRight"].includes(e.key))return;const all=[...b.parentNode.querySelectorAll("[data-krsoort]:not(:disabled)")],i=all.indexOf(b),nb=all[(i+(e.key==="ArrowRight"?1:all.length-1))%all.length];if(nb){KR_SOORT=nb.dataset.krsoort;krSoortSync();nb.focus();e.preventDefault()}});
   const _c=krCard;krCard=function(){_c.apply(this,arguments);krSoortSync()};
   const e2=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   function open(soort){const ids=[...KR.ss].filter(id=>KR.byId.has(id)||KR_DEEL.has(id));if(!ids.length)return;let lid=null,L=[],sel=-1,T=null;
     /* unieke sleutel per melding: twee keer versturen (dubbelklik, opnieuw proberen) telt nooit dubbel */
+    /* in het paneel (onder Reserveren/Afgewerkt) i.p.v. een apart venster; wie: persoonlijke link of de gekozen naam */
+    const INL=document.getElementById("krInl"),IKX=window.KR_IK||window.KR_KIES||null;if(INL)INL.innerHTML="";
     const KEY="k"+Date.now().toString(36)+Math.random().toString(36).slice(2,10).padEnd(8,"0"),QL=new URLSearchParams(location.search),LINK=window.KR_IK&&QL.get("l")&&QL.get("t")?{l:QL.get("l"),j:QL.get("j"),t:QL.get("t")}:{};
-    const bg=document.createElement("div");bg.className="km-bg";bg.innerHTML=`<div class="km vb-ui" role="dialog" aria-modal="true" aria-labelledby="kmT"><div class="km-h"><h3 id="kmT" class="vb-acc">${soort==="r"?"Reservering doorgeven":"Bedeling doorgeven"}</h3><button type="button" class="km-x" data-km="x" aria-label="Sluiten"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    const bg=document.createElement("div");bg.className=INL?"km-bg km-inl":"km-bg";bg.innerHTML=`<div class="km vb-ui" role="dialog" aria-modal="true" aria-labelledby="kmT"><div class="km-h"><h3 id="kmT" class="vb-acc">${soort==="r"?"Reservering doorgeven":"Bedeling doorgeven"}</h3><button type="button" class="km-x" data-km="x" aria-label="Sluiten"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
       ${(()=>{const G=new Map();for(const id of ids){const n=krNaamId(id),a=Number((KR.byId.get(id)||KR_DEEL.get(id)||{}).a)||0;G.set(n,(G.get(n)||0)+a)}const tot=[...G.values()].reduce((t,a)=>t+a,0);
         return `<p class="km-m"><b>${G.size} ${G.size===1?"straat":"straten"} · ${krNum(tot)} adressen</b></p><ul class="km-rows">${[...G].map(([n,a])=>`<li><span>${e2(n)}</span><b>${krNum(a)}</b></li>`).join("")}</ul>`})()}
       <p class="km-q" id="kmQ" hidden>Wat wil je melden?</p>
@@ -3089,12 +3108,12 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
       <label for="kmN">Naam</label><div class="km-w"><input type="text" id="kmN" autocomplete="off"><div class="km-l" id="kmL" hidden></div></div><div class="km-dz" id="kmDz" hidden></div>
       <div class="km-hp" aria-hidden="true"><input type="text" id="kmW" tabindex="-1" autocomplete="off"></div><p class="km-e" id="kmE"></p>
       <div class="km-a"><button type="button" class="vb-btn2" data-km="x">Annuleren</button><button type="button" class="vb-cta prim" data-km="ok">${soort==="r"?"Reservering doorgeven":"Bedeling doorgeven"}</button></div></div>`;
-    document.body.appendChild(bg);const inp=bg.querySelector("#kmN"),box=bg.querySelector("#kmL"),err=bg.querySelector("#kmE");
+    (INL||document.body).appendChild(bg);const inp=bg.querySelector("#kmN"),box=bg.querySelector("#kmL"),err=bg.querySelector("#kmE");
     const alRes=krAlRes();if(alRes){soort="d";const sg=bg.querySelector('[data-ks="r"]');if(sg){sg.disabled=true;sg.title="Een gekozen straat is al gereserveerd: die kan je enkel nog als afgewerkt doorgeven."}}
-    if(window.KR_IK&&window.KR_IK.id){setTimeout(()=>{if(!lid)kies(window.KR_IK)},0);
+    if(IKX&&IKX.id){setTimeout(()=>{if(!lid)kies(IKX)},0);
       /* persoonlijke link: geen naamveld, de straten komen meteen op jouw naam */
-      const lb=bg.querySelector('label[for="kmN"]'),kw=bg.querySelector(".km-w");if(lb)lb.hidden=true;if(kw){kw.hidden=true;kw.insertAdjacentHTML("afterend",`<p class="km-ik"><span>Op naam van</span><b>${e2(window.KR_IK.toon||window.KR_IK.naam||"")}</b></p>`)}}
-    if(alRes&&!(window.KR_IK&&window.KR_IK.id))fetch("/api/ronde?wie="+encodeURIComponent(ids.join(",")),{cache:"no-store"}).then(r=>r.ok?r.json():[]).then(W=>{if(W&&W[0]&&!lid&&!inp.value.trim())kies(W[0])}).catch(()=>{});
+      const lb=bg.querySelector('label[for="kmN"]'),kw=bg.querySelector(".km-w");if(lb)lb.hidden=true;if(kw){kw.hidden=true;kw.insertAdjacentHTML("afterend",`<p class="km-ik"><span>Op naam van</span><b>${e2(IKX.toon||IKX.naam||"")}</b></p>`)}}
+    if(alRes&&!(IKX&&IKX.id))fetch("/api/ronde?wie="+encodeURIComponent(ids.join(",")),{cache:"no-store"}).then(r=>r.ok?r.json():[]).then(W=>{if(W&&W[0]&&!lid&&!inp.value.trim())kies(W[0])}).catch(()=>{});
     /* bij "bedeeld": vragen over de dozen (hoeveel heb je nog, of hoeveel zijn er afgewerkt, en heb je er nog nodig) */
     const DZ={op:null,voor:null,over:null,heel:null,deel:null,af:null,nodig:null,nodigN:null},dzBox=bg.querySelector("#kmDz");
     const KW=["","¼","½","¾"],fd=n=>{const w=Math.floor(n+1e-9),q=Math.round((n-w)*4);return (w?w:"")+(q?(w?" ":"")+KW[q]:"")+" "+(n>1?"dozen":"doos")};
@@ -3133,6 +3152,8 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
       else if(k==="af"){DZ.af=v==="alle"?"alle":+v;if(DZ.af!=="alle")DZ.nodig=DZ.nodigN=null}
       else if(k==="nodig"){DZ.nodig=v==="1";DZ.nodigN=DZ.nodig?(DZ.nodigN||1):null}else if(k==="nplus")DZ.nodigN=Math.min(50,(DZ.nodigN||1)+1);else if(k==="nmin")DZ.nodigN=Math.max(1,(DZ.nodigN||1)-1);tekenDz()});
     const zet=s=>{if(alRes&&s==="r")return;soort=s;window.KR_SOORT=s;bg.querySelectorAll("[data-ks]").forEach(b=>{b.classList.toggle("on",b.dataset.ks===s);b.setAttribute("aria-checked",b.dataset.ks===s?"true":"false")});tekenDz()};zet(soort);
+    /* in het paneel: de knoppen pas tonen als alles aangeduid is */
+    if(INL){const A=bg.querySelector(".km-a"),upd=()=>{if(!A||!A.isConnected||!bg.querySelector('[data-km="ok"]'))return;const h=!(lid&&dzKlaar());if(A.hidden!==h)A.hidden=h};new MutationObserver(upd).observe(bg,{childList:true,subtree:true,attributes:true,attributeFilter:["class"]});A.hidden=true;setTimeout(upd,0);setTimeout(upd,300)}
     const dicht=()=>bg.remove();
     const teken=()=>{if(!L.length){box.hidden=true;return}box.innerHTML=L.map((l,i)=>`<button type="button" data-i="${i}" class="${i===sel?"on":""}">${e2(l.toon||l.naam)}</button>`).join("");box.hidden=false};
     const kies=l=>{lid=l;inp.value=l.toon||l.naam;inp.classList.add("ok");box.hidden=true;err.textContent="";dzLaad()};
@@ -3145,6 +3166,7 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
       try{const r=await fetch("/api/ronde",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({actie:soort==="d"?"meld":"reserveer",key:KEY,straten:ids,lidId:lid.id,...LINK,dozen:dz,website:bg.querySelector("#kmW").value})});const j=await r.json().catch(()=>({}));
         if(!r.ok)throw new Error(j.error||"Versturen lukte niet");
         const vn=e2(String(lid.toon||lid.naam).split(" ")[0]);
+        if(INL){krMelding(soort==="d"?`Bedankt, ${String(lid.toon||lid.naam).split(" ")[0]}! ${j.gemeld>0?`Je ${fd(j.gemeld)} ${j.gemeld>1?"tellen":"telt"} meteen mee.`:""} Het bestuur kijkt je melding nog na.`:`Gereserveerd: ${ids.length===1?"de straat staat":"de straten staan"} nu op jouw naam.`);dicht();krSelect(null);try{krLive()}catch(e){}return}
         bg.querySelector(".km").innerHTML=soort==="d"?`<p class="km-okt" role="status"><i aria-hidden="true">✓</i>Bedeling doorgegeven</p><p>Bedankt, ${vn}! ${j.gemeld>0?`Je <b>${fd(j.gemeld)}</b> ${j.gemeld>1?"tellen":"telt"} meteen mee in de teller en de`:"De"} straten staan in het groen. Het bestuur kijkt je melding nog na.</p>${dz&&dz.nodig?`<p>Het bestuur weet dat je nog ${dz.nodigN?fd(dz.nodigN):"dozen"} nodig hebt.</p>`:""}<div class="km-a"><button type="button" class="vb-btn2" data-km="x">Sluiten</button></div>`
           :`<p class="km-okt" role="status"><i aria-hidden="true">✓</i>Gereserveerd</p><p>Bedankt, ${vn}! ${ids.length===1?"De straat staat":"De straten staan"} nu op jouw naam (blauw op de kaart).</p><div class="km-a"><button type="button" class="vb-btn2" data-km="x">Sluiten</button></div>`;
         krSelect(null);try{krLive()}catch(e){}}
@@ -3400,5 +3422,18 @@ body .hdr .logo{height:30px!important}
 body .hdr{padding-left:max(20px,env(safe-area-inset-left,0px))!important;padding-right:max(20px,env(safe-area-inset-right,0px))!important}
 @media (min-width:768px){body .hdr{padding-left:28px!important;padding-right:28px!important}}
 @media (max-width:560px){body .hdr .logo{height:28px!important}}
+</style>
+<style>/* formulier in het paneel i.p.v. een apart venster */
+.km-bg.km-inl{position:static!important;inset:auto!important;background:none!important;display:block!important;padding:0!important;z-index:auto!important;animation:none!important;backdrop-filter:none!important}
+.km-inl>.km{position:static!important;width:auto!important;max-width:none!important;max-height:none!important;margin:10px 0 0!important;padding:0!important;box-shadow:none!important;border:0!important;border-radius:0!important;background:none!important;animation:none!important;transform:none!important;overflow:visible!important}
+.km-inl .km-h,.km-inl .km-m,.km-inl .km-rows,.km-inl .km-ik,.km-inl .km-q,.km-inl .km-seg{display:none!important}
+.km-inl .km-a[hidden]{display:none!important}
+.kr-wie{margin:0 0 8px}.kr-wie:empty{display:none}
+.kr-wie-l{display:block;font-size:14px;font-weight:600;margin:0 0 6px;color:var(--ink,#18191C)!important}
+.kr-wie .km-w{position:relative}.kr-wie input{width:100%;box-sizing:border-box;height:44px;padding:0 12px;border:1px solid var(--vb-line,#E6E4E1);border-radius:10px;font-size:16px;background:var(--surface,#fff)}
+.kr-wie .km-l{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:5;background:var(--surface,#fff);border:1px solid var(--vb-line,#E6E4E1);border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.12);padding:4px;max-height:220px;overflow:auto}
+.kr-wie .km-l button{display:block;width:100%;text-align:left;padding:10px 12px;border:0;background:none;border-radius:8px;font-size:15px;cursor:pointer}.kr-wie .km-l button:hover{background:rgba(0,0,0,.05)}
+.kr-wie-ik{margin:0;font-size:14px;color:var(--muted)}.kr-wie-ik b{color:var(--ink)}
+.kr-wie-x{all:unset;cursor:pointer;margin-left:6px;color:var(--info);text-decoration:underline;font-size:13px}
 </style>
 </body></html>
