@@ -43,7 +43,7 @@ const schoon = s => String(s || "").replace(/<[^>]+>/g, "").replace(/\{[\w:\/]+\
 /* marker vooraan in de inhoud; huisstijl() haalt hem eruit en zet er bovenschrift + titel van */
 export function kopMarker(key, vul) {
   const k = KOP[key]; if (!k) return "";
-  const b = schoon(vul(k[0])), t = schoon(vul(k[1]));
+  const b = schoon(vul(k[0])), t0 = schoon(vul(k[1])), t = t0.charAt(0).toUpperCase() + t0.slice(1);
   return b || t ? `<!--vb-kop:${encodeURIComponent(b)}|${encodeURIComponent(t)}-->` : "";
 }
 export function leesKop(html) {
