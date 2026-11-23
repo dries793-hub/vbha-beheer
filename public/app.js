@@ -476,7 +476,7 @@ tr[data-docsleep]{cursor:grab}.doc-fold.over{outline:2px dashed var(--accent);ou
 </td></tr></table>
 <!--[if mso]><table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" align="center"><tr><td><![endif]-->
 <table role="presentation" border="0" width="100%" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px">
-<tr><td class="vb-in" style="${ML_FONT}font-size:15px;color:${ML_INK};line-height:1.6;padding:30px 24px 24px">${e}</td></tr>
+<tr><td class="vb-in" style="${ML_FONT}font-size:15px;color:${ML_INK};line-height:1.6;padding:30px 24px 24px">${/<h1[\s>]/i.test(e)?"":`<img src="${ML_LOGO_W().replace(/\/mail\/[^/]*$/,"/mail/embleem.png")}" alt="" width="40" height="45" align="right" style="float:right;width:40px;height:45px;border:0;margin:0 0 10px 14px">`}${e}</td></tr>
 <tr><td style="padding:16px 24px 6px;border-top:1px solid ${ML_LIJN};${ML_FONT}font-size:12px;color:${ML_MUTED};line-height:1.6">${n} &middot; <a href="https://vbha.be" style="color:${ML_ROOD};text-decoration:none">vbha.be</a></td></tr>
 <tr><td style="padding:6px 20px 28px"><!--vb-social--><table role="presentation" border="0" cellspacing="0" cellpadding="0" align="left" style="margin:0"><tr>${[["fb","https://www.facebook.com/vbha.aalst","Facebook"],["ig","https://www.instagram.com/vbha.aalst","Instagram"],["mail","mailto:info@vbha.be","Mail"]].map(([a,s,i])=>`<td style="padding:0 4px"><a href="${s}" target="_blank" style="text-decoration:none"><img src="https://vbha.be/mail/${a}.png" width="26" height="26" alt="${i}" style="display:block;width:26px;height:26px;border:0"></a></td>`).join("")}</tr></table></td></tr>
 </table>
