@@ -8,9 +8,10 @@ export async function erewachtGeoApi(req, res) {
   const sb = admin();
   const { data, error } = await sb.from("leden").select("id,data").eq("data->>categorie", "Erewacht").limit(500);
   if (error) throw error;
-    // opnieuw proberen: adres gewijzigd, of vorige keer niet gevonden (na een uur)
-  const uurGeleden = new Date(Date.now() - 3600e3).toISOString();
-  const todo = (data || []).filter(r => { const a = String(r.data.adres || "").trim(), g = r.data.geo; return a && (!g || g.adres !== a || (g.lat == null && String(g.op || "") < uurGeleden)); }).slice(0, 60);
+    // opnieuw proberen: adres gewijzigd, of vorige keer niet gevonden (hoogstens één keer per week: anders komt er elk uur
+    // een wijziging "geo" in het logboek voor een adres dat toch niet gevonden wordt)
+  const weekGeleden = new Date(Date.now() - 7 * 864e5).toISOString();
+  const todo = (data || []).filter(r => { const a = String(r.data.adres || "").trim(), g = r.data.geo; return a && (!g || g.adres !== a || (g.lat == null && String(g.op || "") < weekGeleden)); }).slice(0, 60);
   let n = 0;
   for (let i = 0; i < todo.length; i += 3) {
     await Promise.all(todo.slice(i, i + 3).map(async r => {
