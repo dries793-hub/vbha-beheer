@@ -3125,10 +3125,11 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
     function tekenDz(){if(soort!=="d"||!lid){dzBox.hidden=true;return}dzBox.hidden=false;
       if(DZ.op==null||DZ.voor!==lid.id){dzBox.innerHTML='<p class="km-di">Dozen opzoeken…</p>';return}const op=DZ.op;let h="";
       if(op>0){const heel=DZ.heel||0,deel=DZ.deel||0,r=heel+deel;
-        h+=vraag(`Nog kalenders over?<small>${DZ.over===true?`je hebt nog ${r>0?fd(r):"0 dozen"}`:`${DZ.vorig?"vorige melding: nog":"je hebt"} ${fd(op)}`}</small>`,knop("over","1","Ja",DZ.over===true)+knop("over","0","Nee",DZ.over===false));
+        h+=vraag(`Nog kalenders over?<small>${DZ.over===true?(r>0?`je hebt nog ${fd(r)}`:`je hebt ${fd(op)}`):`${DZ.vorig?"vorige melding: nog":"je hebt"} ${fd(op)}`}</small>`,knop("over","1","Ja",DZ.over===true)+knop("over","0","Nee",DZ.over===false));
         if(DZ.over===true){const mx=DZ.vorig?op+1e-9:op-1e-9;
-          h+=vraag(`Volledige dozen over?`,`<div class="km-st2 vb-qty"><button type="button" data-dz="hmin" aria-label="Eén doos minder"${heel<=0?" disabled":""}>−</button><b>${heel}</b><button type="button" data-dz="hplus" aria-label="Eén doos meer"${heel+1+deel>mx?" disabled":""}>+</button></div>`)
-            +vraag("Begonnen doos?",[.25,.5,.75].map(q=>knop("deel",q,KW[q*4],deel===q,heel+q>mx)).join(""))}
+          /* maar één doos (of minder): enkel de begonnen doos vragen */
+          if(Math.floor(mx)>=1)h+=vraag(`Volledige dozen over?`,`<div class="km-st2 vb-qty"><button type="button" data-dz="hmin" aria-label="Eén doos minder"${heel<=0?" disabled":""}>−</button><b>${heel}</b><button type="button" data-dz="hplus" aria-label="Eén doos meer"${heel+1+deel>mx?" disabled":""}>+</button></div>`);
+          h+=vraag("Begonnen doos over?",[.25,.5,.75].map(q=>knop("deel",q,KW[q*4],deel===q,heel+q>mx)).join(""))}
         if(DZ.over===false)h+=nodigV();
         /* korte samenvatting van wat je meldt (enkel weergave) */
         {let z="";if(DZ.over===false)z="Je meldt geen kalenders over.";else if(DZ.over===true&&r>0){const hs=heel?`${heel} volledige ${heel===1?"doos":"dozen"}`:"",ds=deel?`${KW[Math.round(deel*4)]} doos`:"";z=`Je meldt ${[hs,ds].filter(Boolean).join(" en ")} over.`}
