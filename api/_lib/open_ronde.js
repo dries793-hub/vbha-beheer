@@ -139,6 +139,9 @@ async function meld(req, res, b) {
     dozen.opBij = opBij;
     aantal = Math.round(Math.max(0, dozen.over === true ? opBij - (dozen.rest || 0) : dozen.af === "alle" ? opBij : Math.min(Number(dozen.af) || 0, opBij)) * 4) / 4;
   }
+  // optioneel: "ik deed de bedeling samen met iemand anders" (vrije tekst; het bestuur verdeelt de dozen en punten bij de controle)
+  const samen = String(b.samen || "").replace(/[\u0000-\u001f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 80);
+  if (samen) dozen.samen = samen;
   // stukken van een straat die als geheel op jouw naam staat: de server splitst de reservatie eerst op (alle stukken van die straat)
   if (!KRA) KRA = (await import("./kr_adressen.js")).default;
   const delen = {}; for (const s of straten) if (s.includes("~")) { const sid = s.split("~")[0]; if (!delen[sid]) delen[sid] = Object.keys(KRA).filter(k => k.startsWith(sid + "~")); }

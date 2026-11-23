@@ -3105,7 +3105,7 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
         return `<p class="km-m"><b>${G.size} ${G.size===1?"straat":"straten"} · ${krNum(tot)} adressen</b></p><ul class="km-rows">${[...G].map(([n,a])=>`<li><span>${e2(n)}</span><b>${krNum(a)}</b></li>`).join("")}</ul>`})()}
       <p class="km-q" id="kmQ" hidden>Wat wil je melden?</p>
       <div class="vb-seg km-seg" role="radiogroup" aria-labelledby="kmQ" hidden><button type="button" role="radio" data-ks="r">Reserveren</button><button type="button" role="radio" data-ks="d">Afgewerkt</button></div>
-      <label for="kmN">Naam</label><div class="km-w"><input type="text" id="kmN" autocomplete="off"><div class="km-l" id="kmL" hidden></div></div><div class="km-dz" id="kmDz" hidden></div>
+      <label for="kmN">Naam</label><div class="km-w"><input type="text" id="kmN" autocomplete="off"><div class="km-l" id="kmL" hidden></div></div><div class="km-dz" id="kmDz" hidden></div><div class="km-sam" id="kmSam" hidden><label class="km-samc"><input type="checkbox" id="kmSamC"><span>Ik deed de bedeling samen met iemand anders</span></label><input type="text" id="kmSamN" maxlength="80" autocomplete="off" placeholder="Met wie? (naam)" aria-label="Met wie deed je de bedeling?" hidden></div>
       <div class="km-hp" aria-hidden="true"><input type="text" id="kmW" tabindex="-1" autocomplete="off"></div><p class="km-e" id="kmE"></p>
       <div class="km-a"><button type="button" class="vb-btn2" data-km="x">Annuleren</button><button type="button" class="vb-cta prim" data-km="ok">${"Bevestigen"}</button></div></div>`;
     (INL||document.body).appendChild(bg);const inp=bg.querySelector("#kmN"),box=bg.querySelector("#kmL"),err=bg.querySelector("#kmE");
@@ -3122,7 +3122,7 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
     const vraag=(t,inh)=>`<div class="km-dq" data-reveal><span class="km-dl">${t}</span><div class="km-dc vb-seg">${inh}</div></div>`;
     const NODIG_AAN=true; // vraag "Heb je nog dozen nodig?" (bij alle dozen op): na goedkeuring door het bestuur "nog mee te geven" in de verdeling
     const nodigV=()=>!NODIG_AAN?"":vraag("Nog dozen nodig?",knop("nodig","1","Ja",DZ.nodig===true)+knop("nodig","0","Nee",DZ.nodig===false))+(DZ.nodig?vraag("Hoeveel dozen?",`<div class="km-st2 vb-qty"><button type="button" data-dz="nmin" aria-label="Minder"${(DZ.nodigN||1)<=1?" disabled":""}>−</button><b>${DZ.nodigN||1}</b><button type="button" data-dz="nplus" aria-label="Meer">+</button></div>`):"");
-    function tekenDz(){if(soort!=="d"||!lid){dzBox.hidden=true;return}dzBox.hidden=false;
+    function tekenDz(){{const sm=bg.querySelector("#kmSam");if(sm)sm.hidden=!(soort==="d"&&lid)}if(soort!=="d"||!lid){dzBox.hidden=true;return}dzBox.hidden=false;
       if(DZ.op==null||DZ.voor!==lid.id){dzBox.innerHTML='<p class="km-di">Dozen opzoeken…</p>';return}const op=DZ.op;let h="";
       if(op>0){const heel=DZ.heel||0,deel=DZ.deel||0,r=heel+deel;
         h+=vraag(`Nog kalenders over?<small>${DZ.over===true?(r>0?`je hebt nog ${fd(r)}`:`je hebt ${fd(op)}`):`${DZ.vorig?"vorige melding: nog":"je hebt"} ${fd(op)}`}</small>`,knop("over","1","Ja",DZ.over===true)+knop("over","0","Nee",DZ.over===false));
@@ -3155,7 +3155,7 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
     const zet=s=>{if(alRes&&s==="r")return;soort=s;window.KR_SOORT=s;bg.querySelectorAll("[data-ks]").forEach(b=>{b.classList.toggle("on",b.dataset.ks===s);b.setAttribute("aria-checked",b.dataset.ks===s?"true":"false")});tekenDz()};zet(soort);
     /* in het paneel: de knoppen pas tonen als alles aangeduid is */
     if(INL){const A=bg.querySelector(".km-a"),upd=()=>{if(!A||!A.isConnected||!bg.querySelector('[data-km="ok"]'))return;const h=!(lid&&dzKlaar());if(A.hidden!==h)A.hidden=h};new MutationObserver(upd).observe(bg,{childList:true,subtree:true,attributes:true,attributeFilter:["class"]});A.hidden=true;setTimeout(upd,0);setTimeout(upd,300)}
-    const dicht=()=>bg.remove();
+    {const c=bg.querySelector("#kmSamC"),n=bg.querySelector("#kmSamN");if(c&&n)c.addEventListener("change",()=>{n.hidden=!c.checked;if(c.checked)n.focus()})}const dicht=()=>bg.remove();
     const teken=()=>{if(!L.length){box.hidden=true;return}box.innerHTML=L.map((l,i)=>`<button type="button" data-i="${i}" class="${i===sel?"on":""}">${e2(l.toon||l.naam)}</button>`).join("");box.hidden=false};
     const kies=l=>{lid=l;inp.value=l.toon||l.naam;inp.classList.add("ok");box.hidden=true;err.textContent="";dzLaad()};
     inp.addEventListener("input",()=>{if(lid){lid=null;tekenDz()}lid=null;inp.classList.remove("ok");clearTimeout(T);const q=inp.value.trim();if(q.replace(/\s/g,"").length<3){L=[];teken();return}
@@ -3164,7 +3164,7 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
     bg.addEventListener("click",async e=>{if(e.target===bg)return dicht();const k=e.target.closest("[data-ks]");if(k)return zet(k.dataset.ks);const o=e.target.closest(".km-l [data-i]");if(o)return kies(L[+o.dataset.i]);
       const a=e.target.closest("[data-km]");if(!a)return;if(a.dataset.km==="x")return dicht();
       if(!lid){err.textContent="Kies je naam uit de lijst.";inp.focus();return}if(soort==="d"&&!dzKlaar()){err.textContent=DZ.op==null?"Even geduld, we zoeken je dozen op.":!(DZ.op>0)?"Je kan dit niet doorsturen: volgens onze lijst heb je geen dozen. Neem contact op met het bestuur.":"Beantwoord nog de vragen over je dozen.";return}const dz=soort==="d"?dzData():undefined;a.disabled=true;a.textContent="Versturen…";
-      try{const r=await fetch("/api/ronde",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({actie:soort==="d"?"meld":"reserveer",key:KEY,straten:ids,lidId:lid.id,...LINK,dozen:dz,website:bg.querySelector("#kmW").value})});const j=await r.json().catch(()=>({}));
+      try{const r=await fetch("/api/ronde",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({actie:soort==="d"?"meld":"reserveer",key:KEY,straten:ids,lidId:lid.id,...LINK,dozen:dz,samen:soort==="d"&&bg.querySelector("#kmSamC")&&bg.querySelector("#kmSamC").checked?(bg.querySelector("#kmSamN").value||"").trim():undefined,website:bg.querySelector("#kmW").value})});const j=await r.json().catch(()=>({}));
         if(!r.ok)throw new Error(j.error||"Versturen lukte niet");
         const vn=e2(String(lid.toon||lid.naam).split(" ")[0]);
         if(INL){krMelding(soort==="d"?`Bedankt, ${String(lid.toon||lid.naam).split(" ")[0]}! ${j.gemeld>0?`Je ${fd(j.gemeld)} ${j.gemeld>1?"tellen":"telt"} meteen mee.`:""} Het bestuur kijkt je melding nog na.`:`Gereserveerd: ${ids.length===1?"de straat staat":"de straten staan"} nu op jouw naam.`);dicht();krSelect(null);try{krLive()}catch(e){}return}
@@ -3443,4 +3443,9 @@ body #krCard .vb-qty>button{min-height:36px;height:36px}
 @media (min-width:641px){body .kr-card{width:400px}body .kr-search{width:400px}}
 </style>
 <style>.hdr .kr-sub{display:block;margin-left:4px;padding-left:14px;border-left:1px solid #3a3c40;font-size:13.5px;line-height:18px;font-weight:400;color:#A4A7AD;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}@media (max-width:640px){.hdr .kr-sub{display:none}}</style>
+<style>.km-sam{display:flex;flex-direction:column;gap:8px;margin:10px 0 2px}
+.km-sam .km-samc{display:flex!important;align-items:center;gap:10px!important;font-size:14px;font-weight:500;cursor:pointer;margin:0}
+.km-sam .km-samc input{width:20px;height:20px;margin:0 2px 0 0!important;accent-color:#18191c;flex:none}
+.km-sam input[type=text]{width:100%;box-sizing:border-box;height:44px;padding:0 12px;border:1px solid var(--vb-line,#e6e4e1);border-radius:11px;font:inherit;font-size:16px;background:#fff}
+.km-sam[hidden],.km-sam input[hidden]{display:none!important}</style>
 </body></html>
