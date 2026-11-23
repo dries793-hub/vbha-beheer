@@ -41,7 +41,8 @@ export async function sysMail(sb, key, vars) {
   const def = REG.get(key); if (!def) throw new Error("Onbekend mailsjabloon: " + key);
   const M = await laad(sb), t = M.get(key);
   const ond = t && String(t.onderwerp || "").trim() ? t.onderwerp : def.onderwerp, body = t && String(t.body || "").trim() ? t.body : await bodyVan(def);
-  return { onderwerp: tekst(vulSjabloon(ond, vars)), html: vulSjabloon(body, vars) };
+  const { kopMarker } = await import("./kop.js");
+  return { onderwerp: tekst(vulSjabloon(ond, vars)), html: kopMarker(key, t => vulSjabloon(t, vars)) + vulSjabloon(body, vars) };
 }
 
 /* rij voor de tabel templates */

@@ -1,3 +1,4 @@
+import { leesKop } from "./kop.js";
 import { admin, isDbCron, httpErr, requireUser } from "./sb.js";
 import { socialRij } from "./mailsocial.js";
 import { smtpConfigured, afzender, verstuur } from "./smtp.js";
@@ -69,6 +70,7 @@ const TITEL = (bovenschrift, titel) => (bovenschrift || titel) ? `<table role="p
 const TITEL0 = (bovenschrift, titel) => (bovenschrift ? `<table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 8px"><tr><td style="${F}font-size:12px;font-weight:bold;letter-spacing:1.4px;text-transform:uppercase;color:${ROOD}">${bovenschrift}</td></tr></table>` : "")
   + (titel ? `<h1 class="vb-h1" style="${F}margin:0 0 20px;padding:0 0 16px;border-bottom:1px solid ${LIJN};font-size:27px;line-height:1.15;font-weight:bold;letter-spacing:-.3px;color:${INK}">${titel}</h1>` : "");
 function huisstijl(inner, ver, { groet = true, voet = "", extern = false, bovenschrift = "", titel = "" } = {}) { // extern: mail aan sponsors/klanten (geen leden)
+  { const k = leesKop(inner); inner = k.html; if (!bovenschrift && !titel) { bovenschrift = esc(k.boven); titel = esc(k.titel); } }
   return `${HOOFD(esc(ver))}<body style="margin:0;padding:0;background:${PAGINA};-webkit-text-size-adjust:100%">
 <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="${PAGINA}"><tr><td align="center" style="padding:0">
 <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="${INK}"><tr><td align="center" style="padding:14px 0">
