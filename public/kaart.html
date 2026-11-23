@@ -3448,4 +3448,6 @@ body #krCard .vb-qty>button{min-height:36px;height:36px}
 .km-sam .km-samc input{width:20px;height:20px;margin:0 2px 0 0!important;accent-color:#18191c;flex:none}
 .km-sam input[type=text]{width:100%;box-sizing:border-box;height:44px;padding:0 12px;border:1px solid var(--vb-line,#e6e4e1);border-radius:11px;font:inherit;font-size:16px;background:#fff}
 .km-sam[hidden],.km-sam input[hidden]{display:none!important}</style>
+<style>/* geen scrollbalk in het kaartje (scrollen blijft mogelijk) */body .kr-card{scrollbar-width:none;-ms-overflow-style:none}body .kr-card::-webkit-scrollbar{display:none}</style>
+<script>document.addEventListener("input",e=>{const i=e.target;if(!i.closest||!i.closest("#krCard")||i.tagName!=="INPUT"||i.type!=="text")return;const go=()=>{const w=i.closest(".kr-wie,.km-w")||i.parentNode,l=w&&w.querySelector(".km-l");(l&&!l.hidden&&l.offsetHeight?l:i).scrollIntoView({block:"nearest"})};[30,200,500].forEach(t=>setTimeout(go,t))});</script>
 </body></html>
