@@ -37,6 +37,8 @@ export async function wachtrijCron(req, res) {
   const sb = admin();
   // mails die bij een onderbroken aanroep op "bezig" bleven staan: opnieuw in de rij
   await sb.from("mail_wachtrij").update({ status: "wacht" }).eq("status", "bezig").lt("volgende", new Date(Date.now() - 5 * 60000).toISOString());
+  // kalenderronde: bevestigingsmails van reservaties (één mail per lid, 15 minuten na de laatste reservatie)
+  try { const { reservatieMails } = await import("./rondemail.js"); await reservatieMails(sb); } catch (e) { console.error("reservatiemails", e && e.message); }
   if (Date.now() < await pauze(sb)) return res.status(200).json({ pauze: true });
   const nu = Date.now(), iso = ms => new Date(nu - ms).toISOString();
   const [{ count: n5 }, { count: n60 }] = await Promise.all([
