@@ -3468,6 +3468,7 @@ body #krCard .vb-qty>button{min-height:36px;height:36px}
   const deel=!!KR.deel;if(lk)lk.style.display=deel?"none":"";t.hidden=!deel;x.style.display="none"}catch(e){}return r}})();</script>
 <style>/* één scheidingslijn tussen de straten en de knoppen */body #krCard .kr-ml{border-bottom:0!important}body #krCard .kr-ml>li:last-child{border-bottom:0!important}</style>
 <style>/* namenlijsten altijd in zwarte tekst */body .km-l button,body .km-l button:hover,body .km-l button.on{color:#18191c!important;font-weight:400}</style>
+<style>/* geschatte hoeveelheid dozen ook zichtbaar als de lijst dicht is */body .kr-card.rij:not(.open) #krCardM small{display:block!important}</style>
 <script>/* pijltje (lijst open/dicht) op de hoogte van "N straten · X adressen" */
 (function(){if(typeof krCard!=="function")return;const zet=()=>{const l=document.getElementById("krCardL"),m=document.querySelector("#krCardM b");if(!l||!m||l.hidden||!m.offsetParent){if(l)l.style.transform="";return}l.style.transform="";const a=l.getBoundingClientRect(),b=m.getBoundingClientRect();const d=Math.round((b.top+b.bottom)/2-(a.top+a.bottom)/2);l.style.transform=d?`translateY(${d}px)`:""};
 const _k=krCard;krCard=function(){const r=_k.apply(this,arguments);try{zet();requestAnimationFrame(zet)}catch(e){}return r};addEventListener("resize",()=>{try{zet()}catch(e){}})})();</script>
