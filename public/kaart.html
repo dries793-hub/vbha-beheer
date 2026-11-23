@@ -3394,4 +3394,11 @@ body .kr-card .kr-meld{display:block!important;background:none!important;border:
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&leg&&leg.classList.contains("open")){leg.classList.remove("open");const b=document.querySelector(".kr-legbtn");if(b)b.setAttribute("aria-expanded","false")}});
 })();
 </script>
+<style>/* kopbalk: zelfde maat als de andere pagina's en de app (54 px hoog, logo 30 px) */
+body .hdr .in{height:54px!important}
+body .hdr .logo{height:30px!important}
+body .hdr{padding-left:max(20px,env(safe-area-inset-left,0px))!important;padding-right:max(20px,env(safe-area-inset-right,0px))!important}
+@media (min-width:768px){body .hdr{padding-left:28px!important;padding-right:28px!important}}
+@media (max-width:560px){body .hdr .logo{height:28px!important}}
+</style>
 </body></html>
