@@ -3467,4 +3467,5 @@ body #krCard .vb-qty>button{min-height:36px;height:36px}
   let t=document.getElementById("krDlT");if(!t){t=document.createElement("button");t.type="button";t.id="krDlT";t.className="vb-tert kr-wis";t.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Terug naar de hele straat';t.onclick=e=>{e.stopPropagation();const b=document.getElementById("krDlL");if(b)b.click()};x.after(t)}
   const deel=!!KR.deel;if(lk)lk.style.display=deel?"none":"";t.hidden=!deel;x.style.display="none"}catch(e){}return r}})();</script>
 <style>/* één scheidingslijn tussen de straten en de knoppen */body #krCard .kr-ml{border-bottom:0!important}body #krCard .kr-ml>li:last-child{border-bottom:0!important}</style>
+<style>/* namenlijsten altijd in zwarte tekst */body .km-l button,body .km-l button:hover,body .km-l button.on{color:#18191c!important;font-weight:400}</style>
 </body></html>
