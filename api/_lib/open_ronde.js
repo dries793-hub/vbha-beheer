@@ -153,7 +153,7 @@ async function meld(req, res, b) {
   if (r && r.conflict) { // melden: een straat op een andere naam of al afgewerkt
     const NM = (await import("./kr_namen.js")).default, C = r.conflict, nm = c => { const [sid, n] = String(c.s).split("~"); return (NM[sid] || naamVan(sid)) + (n != null ? " (deel)" : ""); }, r1 = C.filter(c => c.st === "r"), d1 = C.filter(c => c.st === "d");
     const lijst = a => a.length === 1 ? nm(a[0]) : a.slice(0, -1).map(nm).join(", ") + " en " + nm(a[a.length - 1]);
-    const msg = [r1.length ? `${lijst(r1)} ${r1.length === 1 ? "werd" : "werden"} gereserveerd op een andere naam.` : "", d1.length ? `${lijst(d1)} ${d1.length === 1 ? "is" : "zijn"} al als afgewerkt gemeld.` : ""].filter(Boolean).join(" ");
+    const msg = [r1.length ? `${lijst(r1)} ${r1.length === 1 ? "werd" : "werden"} gereserveerd op een andere naam.` : "", d1.length ? `${lijst(d1)} ${d1.length === 1 ? "is" : "zijn"} al als bedeeld gemeld.` : ""].filter(Boolean).join(" ");
     return res.status(409).json({ error: msg + " Kijk je selectie na.", conflict: C.map(c => c.s) }); }
   if (!r.al) try { await meldPush(sb, "admin", { lidId: lid.id, titel: "Kalenderronde: bedeling te controleren", tekst: `${toonVan(lid)} meldt ${aantal} ${aantal === 1 ? "doos" : "dozen"} bedeeld in ${straten.length} ${straten.length === 1 ? "straat" : "straten"}` + (dozen && dozen.nodig ? ` · heeft nog ${dozen.nodigN ? dozen.nodigN + " " : ""}dozen nodig` : ""), url: "/#ronde", tag: "ronde-" + lid.id }); } catch (e) {}
   const m = r.melding || {};
