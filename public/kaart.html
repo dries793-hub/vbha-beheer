@@ -2806,6 +2806,7 @@ function krGroepMidden(g){const P=KRE.delen(g);let best=P[0]||[],bl=-1;for(const
   const q=best.map(KRE.m),tot=KRE.lengte(q);let h=tot/2;for(let i=1;i<q.length;i++){const d=Math.hypot(q[i][0]-q[i-1][0],q[i][1]-q[i-1][1]);if(h<=d){const f=d?h/d:0;return[best[i-1][0]+(best[i][0]-best[i-1][0])*f,best[i-1][1]+(best[i][1]-best[i-1][1])*f]}h-=d}return best[0]}
 /* krGeo(sid): de te tekenen lijn van een straat (krEnkel) waarbij losse uiteinden doorgetrokken worden tot de dichtstbijzijnde
    straat (ook een andere straat) binnen 30 m, zodat kruispunten en aansluitingen netjes aaneensluiten. Eén keer berekend voor de hele kaart. */
+const KR_KOPPEL=[{sid:"ouden-dendermondse-steenweg",a:[50.95108,4.04656],b:[50.9513,4.04709]}];
 function krGeo(sid){if(!KRE.geo){const t0=Date.now(),cos=Math.cos(50.94*Math.PI/180),m=p=>[p[0]*111320,p[1]*111320*cos],terug=q=>[q[0]/111320,q[1]/(111320*cos)];
   const geo=new Map(),seg=new Map(),C=40,cel=(x,y)=>Math.floor(x/C)+"|"+Math.floor(y/C);
   for(const s of KR_STREETS){const P=(KR_LIJN.get(s.id)||krEnkel(s.g)).map(p=>p.slice());geo.set(s.id,P);
@@ -2824,6 +2825,8 @@ function krGeo(sid){if(!KRE.geo){const t0=Date.now(),cos=Math.cos(50.94*Math.PI/
       // enkel doortrekken in de richting van de straat zelf (niet zijdelings naar een evenwijdige straat)
       const q=m(nb),ux=e[0]-q[0],uy=e[1]-q[1],vx=r.x[0]-e[0],vy=r.x[1]-e[1],lu=Math.hypot(ux,uy),lv=Math.hypot(vx,vy);
       if(lv<15||(lu>0&&(ux*vx+uy*vy)/(lu*lv)>0.7))P.push([pt,terug(r.x)])}}}
+  /* straten die over een kruispunt heen doorlopen maar in de gegevens onderbroken zijn: de dichtste uiteinden verbinden */
+  for(const k of KR_KOPPEL){const P=geo.get(k.sid);if(P)P.push([k.a.slice(),k.b.slice()])}
   KRE.geo=geo;KRE.ms=Date.now()-t0}
   return KRE.geo.get(sid)||[]}
 /* ---- Achtergrond: officiële GRB-basiskaart (grijs) van Digitaal Vlaanderen als kaarttegels; lukt dat niet, dan de gekleurde
@@ -2892,7 +2895,7 @@ function krBgStyle(){if(!KR.bg)return;const c={};
 
 function krStyleAll(){const todo=krVar("--kr-todo"),sel=krVar("--kr-sel")||"#18191C";const w=krDikte(KR.map?KR.map.getZoom():15);
   const dn=krVar("--good"),rs=krVar("--info");
-  for(const [id,line] of KR.lines){const s=KR.ss.has(id),m=KR_STAND[id];line.setStyle({color:s?sel:m==="d"?dn:m==="r"?rs:todo,weight:s?w[2]:m?w[1]:w[0],opacity:1})}
+  for(const [id,line] of KR.lines){const s=KR.ss.has(id),m=KR_STAND[id];line.setStyle({color:s?sel:m==="d"?dn:m==="r"?rs:todo,weight:s?w[1]:m?w[1]:w[0],opacity:1})}
   for(const [id,line] of KR.lines){const p=KR_PEND[id];if(p&&!KR.ss.has(id)&&KR_STAND[id]!=="d"){line.setStyle({color:"#f59e0b",weight:w[1],dashArray:"7 6"});line.bringToFront()}else if(line.options.dashArray)line.setStyle({dashArray:null})}
   for(const id in KR_STAND){const l=KR.lines.get(id);if(l)l.bringToFront()}
   /* tijdelijke selectie: antraciet met witte halo (geen statuskleur) */
@@ -3228,7 +3231,7 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
     if(vrij.length&&k.length===vrij.length&&!G.some(g=>stat(g.lead)==="d")){G.forEach(g=>g.ids.forEach(i=>KR.ss.delete(i)));KR.ss.add(sid)}
     else if(!G.some(g=>g.ids.some(i=>KR.ss.has(i)))&&heelBijNiets)KR.ss.add(sid);KR.sel=sid}
   {const _a=krStyleAll;krStyleAll=function(){const r=_a.apply(this,arguments);try{teken();krCasing()}catch(e){console.error(e)}return r}}
-  function teken(){if(!KR.map)return;if(!KR.dl)KR.dl=L.layerGroup().addTo(KR.map);KR.dl.clearLayers();{const sel=krVar("--accent"),w=krDikte(KR.map.getZoom());for(const [sid,ds] of krSegSel()){if(sid===KR.deel)continue;for(const d of ds)L.polyline(d.g,{renderer:KR.renderer,interactive:false,weight:w[2],color:sel,lineCap:"round",lineJoin:"round",opacity:1}).addTo(KR.dl)}}if(!KR.deel)return;
+  function teken(){if(!KR.map)return;if(!KR.dl)KR.dl=L.layerGroup().addTo(KR.map);KR.dl.clearLayers();{const sel=krVar("--accent"),w=krDikte(KR.map.getZoom());for(const [sid,ds] of krSegSel()){if(sid===KR.deel)continue;for(const d of ds)L.polyline(d.g,{renderer:KR.renderer,interactive:false,weight:w[1],color:sel,lineCap:"round",lineJoin:"round",opacity:1}).addTo(KR.dl)}}if(!KR.deel)return;
     const base=KR.lines.get(KR.deel);if(base)base.setStyle({opacity:.2});const sel=krVar("--accent"),dn=krVar("--good"),rs=krVar("--info"),w=krDikte(KR.map.getZoom());
     for(const g of krGroepen(KR.deel)){const on=aan(g),s=stat(g.lead);
       L.polyline(g.g,{renderer:KR.renderer,weight:30,opacity:0,interactive:true}).on("click",e=>{L.DomEvent.stopPropagation(e);kies(g)}).addTo(KR.dl);
