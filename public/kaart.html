@@ -3485,4 +3485,6 @@ const _k=krCard;krCard=function(){const r=_k.apply(this,arguments);try{zet();req
 (function(){const zet=()=>{const b=document.querySelector(".kr-legbtn"),z=document.querySelector(".kr-zoom");if(!b||!z)return false;
   if(b.parentNode!==z){z.insertBefore(b,z.firstChild);[...b.childNodes].forEach(n=>{if(n.nodeType===3&&n.textContent.trim()){const sp=document.createElement("span");sp.textContent=n.textContent;n.replaceWith(sp)}});b.title="Legende";b.setAttribute("aria-label","Legende")}return true};
   if(!zet()){const mo=new MutationObserver(()=>{if(zet())mo.disconnect()});mo.observe(document.body,{childList:true,subtree:true})}})();</script>
+<script>/* legende sluit zodra je ergens anders tikt (kaart, kaartje, zoekbalk…) */
+document.addEventListener("pointerdown",e=>{const l=document.querySelector(".kr-leg.open");if(!l||e.target.closest(".kr-leg,.kr-legbtn"))return;l.classList.remove("open");const b=document.querySelector(".kr-legbtn");if(b)b.setAttribute("aria-expanded","false")},true);</script>
 </body></html>
