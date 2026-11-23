@@ -2916,7 +2916,7 @@ function krCard(){const c=$("#krCard"),SG=krSegSel(),ids=[...KR.ss].filter(id=>K
   const one=ids.length===1;$("#krOne").hidden=!one;$("#krMulti").hidden=one;c.classList.toggle("multi",!one);
   $("#krOne").hidden=true;c.classList.add("multi");
   const L=ids.map(id=>{const s=KR.byId.get(id),ds=SG.get(id);if(!ds)return s;const G=krGroepen(id),k=G.filter(g=>g.ids.every(i=>KR.ss.has(i))).length;return{...s,a:ds.reduce((t,d)=>t+d.a,0),stukken:`${k} van ${G.length} stukken`}}),tot=L.reduce((t,x)=>t+x.a,0),doz=Math.ceil(tot/PER_DOOS);
-$("#krCardM").innerHTML=`<b>${ids.length} ${ids.length===1?"straat":"straten"} · ${krNum(tot)} adressen</b><small>Geschatte hoeveelheid: ${krNum(doz)} ${doz===1?"doos":"dozen"}</small>`;{const g=$("#krGr"),ik=window.KR_IK,n=ik?String(ik.voornaam||String(ik.toon||ik.naam||"").split(" ")[0]||"").trim():"";if(g){g.hidden=!n;g.textContent=n?"Dag "+n+"!":""}}
+$("#krCardM").innerHTML=`<b>${ids.length} ${ids.length===1?"straat":"straten"} · ${krNum(tot)} adressen</b><small>Geschatte hoeveelheid: ${krNum(doz)} ${doz===1?"doos":"dozen"}</small>`;window.krGroet&&krGroet();
   const open=KR.lijstOpen??!matchMedia("(max-width:640px)").matches;
   $("#krCardT").textContent="Jouw selectie";c.classList.add("rij");c.classList.toggle("open",!!open);
   let lt=$("#krCardL");if(!lt){lt=document.createElement("button");lt.type="button";lt.id="krCardL";lt.className="btn ghost sm kr-lt";lt.setAttribute("data-krlijst","");lt.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';$("#krCard .kr-card-t").after(lt)}
@@ -3069,8 +3069,11 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
   /* wie ben je: persoonlijke link (KR_IK) of één keer je naam kiezen (KR_KIES, bewaard in deze browser) */
   try{const o=JSON.parse(localStorage.getItem("vbha.kaart.lid")||"null");if(o&&o.id&&!window.KR_KIES)window.KR_KIES=o}catch(e){}
   let selKey="";
-  function wieTeken(){const w=$("#krWie");if(!w)return;const ik=window.KR_IK||window.KR_KIES;
-    if(ik){if(w.dataset.st==="ik:"+ik.id)return;w.dataset.st="ik:"+ik.id;w.innerHTML=window.KR_IK?"":`<p class="kr-wie-ik">Op naam van <b>${e2(ik.toon||ik.naam||"")}</b> <button type="button" class="kr-wie-x" data-krwie="x">Andere naam</button></p>`;return}
+  /* "Dag Naam!" bovenaan de selectie, ook als je je naam koos; op de naam tikken = andere naam ingeven */
+  window.krGroet=function(){const g=$("#krGr");if(!g)return;const ik=window.KR_IK||window.KR_KIES,n=ik?String(ik.voornaam||String(ik.toon||ik.naam||"").split(" ")[0]||"").trim():"";g.hidden=!n;
+    g.innerHTML=!n?"":window.KR_IK?"Dag "+e2(n)+"!":`Dag <button type="button" class="kr-gr-n" data-krwie="x" title="Niet ${e2(n)}? Tik om een andere naam in te geven." aria-label="${e2(n)}: andere naam ingeven">${e2(n)}</button>!`};
+  function wieTeken(){const w=$("#krWie");if(!w)return;const ik=window.KR_IK||window.KR_KIES;krGroet();
+    if(ik){if(w.dataset.st==="ik:"+ik.id)return;w.dataset.st="ik:"+ik.id;w.innerHTML="";return}
     if(w.dataset.st==="zoek")return;w.dataset.st="zoek";
     w.innerHTML=`<label for="krWieN" class="kr-wie-l">Naam</label><div class="km-w"><input type="text" id="krWieN" autocomplete="off" placeholder="Typ je naam…"><div class="km-l" id="krWieL" hidden></div></div>`;
     const inp=w.querySelector("#krWieN"),box=w.querySelector("#krWieL");let L=[],T=null;
@@ -3457,4 +3460,5 @@ body #krCard .vb-qty>button{min-height:36px;height:36px}
 .km-sam[hidden],.km-sam input[hidden],.km-sam .km-samw[hidden]{display:none!important}.km-samw .km-l{max-height:200px;overflow:auto}</style>
 <style>/* geen scrollbalk in het kaartje (scrollen blijft mogelijk) */body .kr-card{scrollbar-width:none;-ms-overflow-style:none}body .kr-card::-webkit-scrollbar{display:none}</style>
 <script>document.addEventListener("input",e=>{const i=e.target;if(!i.closest||!i.closest("#krCard")||i.tagName!=="INPUT"||i.type!=="text")return;const go=()=>{const w=i.closest(".kr-wie,.km-w")||i.parentNode,l=w&&w.querySelector(".km-l");(l&&!l.hidden&&l.offsetHeight?l:i).scrollIntoView({block:"nearest"})};[30,200,500].forEach(t=>setTimeout(go,t))});</script>
+<style>.kr-gr .kr-gr-n{all:unset;cursor:pointer;color:inherit;text-decoration:underline;text-decoration-color:rgba(0,0,0,.25);text-underline-offset:3px}.kr-gr .kr-gr-n:hover{color:var(--ink,#18191c);text-decoration-color:currentColor}.kr-gr .kr-gr-n:focus-visible{outline:2px solid #18191c;outline-offset:2px;border-radius:3px}</style>
 </body></html>
