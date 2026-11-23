@@ -3107,7 +3107,7 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
       <div class="vb-seg km-seg" role="radiogroup" aria-labelledby="kmQ" hidden><button type="button" role="radio" data-ks="r">Reserveren</button><button type="button" role="radio" data-ks="d">Afgewerkt</button></div>
       <label for="kmN">Naam</label><div class="km-w"><input type="text" id="kmN" autocomplete="off"><div class="km-l" id="kmL" hidden></div></div><div class="km-dz" id="kmDz" hidden></div>
       <div class="km-hp" aria-hidden="true"><input type="text" id="kmW" tabindex="-1" autocomplete="off"></div><p class="km-e" id="kmE"></p>
-      <div class="km-a"><button type="button" class="vb-btn2" data-km="x">Annuleren</button><button type="button" class="vb-cta prim" data-km="ok">${soort==="r"?"Reservering doorgeven":"Bedeling doorgeven"}</button></div></div>`;
+      <div class="km-a"><button type="button" class="vb-btn2" data-km="x">Annuleren</button><button type="button" class="vb-cta prim" data-km="ok">${soort==="r"?"Reservering bevestigen":"Bedeling doorgeven"}</button></div></div>`;
     (INL||document.body).appendChild(bg);const inp=bg.querySelector("#kmN"),box=bg.querySelector("#kmL"),err=bg.querySelector("#kmE");
     const alRes=krAlRes();if(alRes){soort="d";const sg=bg.querySelector('[data-ks="r"]');if(sg){sg.disabled=true;sg.title="Een gekozen straat is al gereserveerd: die kan je enkel nog als afgewerkt doorgeven."}}
     if(IKX&&IKX.id){setTimeout(()=>{if(!lid)kies(IKX)},0);
@@ -3173,9 +3173,8 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
         krSelect(null);try{krLive()}catch(e){}}
       catch(x){err.textContent=x.message+" Je selectie en keuzes blijven bewaard: probeer opnieuw.";a.disabled=false;a.textContent=soort==="r"?"Reservering doorgeven":"Bedeling doorgeven"}});
     document.addEventListener("keydown",function k(e){if(e.key==="Escape"){dicht();document.removeEventListener("keydown",k)}});
-    /* persoonlijke link + reserveren: niets meer te vragen, meteen doorsturen (één klik) */
-    if(window.KR_IK&&window.KR_IK.id&&soort==="r"){bg.querySelector(".km-ik")?.setAttribute("hidden","");setTimeout(()=>{const ok=bg.querySelector('[data-km="ok"]');if(ok&&lid)ok.click()},0)}
-    else setTimeout(()=>inp.focus(),50)}
+    /* reserveren: altijd eerst bevestigen met de rode knop (Annuleren ernaast) */
+    if(!(IKX&&IKX.id))setTimeout(()=>inp.focus(),50)}
   document.addEventListener("click",e=>{const b=e.target.closest("[data-krmeld]");if(b)open(b.dataset.krmeld)});
   try{krCard()}catch(e){}
 })();
