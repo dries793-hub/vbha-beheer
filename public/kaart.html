@@ -3472,12 +3472,15 @@ body #krCard .vb-qty>button{min-height:36px;height:36px}
 <script>/* pijltje (lijst open/dicht) op de hoogte van "N straten · X adressen" */
 (function(){if(typeof krCard!=="function")return;const zet=()=>{const l=document.getElementById("krCardL"),m=document.querySelector("#krCardM b");if(!l||!m||l.hidden||!m.offsetParent){if(l)l.style.transform="";return}l.style.transform="";const a=l.getBoundingClientRect(),b=m.getBoundingClientRect();const d=Math.round((b.top+b.bottom)/2-(a.top+a.bottom)/2);l.style.transform=d?`translateY(${d}px)`:""};
 const _k=krCard;krCard=function(){const r=_k.apply(this,arguments);try{zet();requestAnimationFrame(zet)}catch(e){}return r};addEventListener("resize",()=>{try{zet()}catch(e){}})})();</script>
-<style>@media (max-width:640px){
-  body .kr-zoom .kr-legbtn{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:44px;height:44px;cursor:pointer;border-bottom:1px solid var(--vb-line)}
+<style>/* legende: op desktop en gsm een knop bovenaan in de kaartknoppen */
+  body .kr-zoom .kr-legbtn{all:unset;box-sizing:border-box;display:flex!important;align-items:center;justify-content:center;width:100%;height:44px;cursor:pointer;border-bottom:1px solid var(--vb-line)}
   body .kr-zoom .kr-legbtn span{display:none}
   body .kr-zoom .kr-legbtn i{display:flex;flex-direction:column;gap:3px}body .kr-zoom .kr-legbtn i b{width:16px;height:3px;border-radius:2px;display:block}
-  body .kr-zoom .kr-legbtn[aria-expanded="true"]{background:var(--vb-subtle)}
-  body .kr-leg{top:auto!important;bottom:calc(var(--kr-sheet,0px) + 10px)!important;right:60px!important}}</style>
+  body .kr-zoom .kr-legbtn:hover,body .kr-zoom .kr-legbtn[aria-expanded="true"]{background:var(--vb-subtle)}
+  body .kr-leg{display:none!important;top:auto!important;bottom:12px!important;right:64px!important;left:auto!important}
+  body .kr-leg.open{display:flex!important}
+  @media (min-width:641px){body .kr-zoom .kr-legbtn{height:40px}}
+  @media (max-width:640px){body .kr-leg{bottom:calc(var(--kr-sheet,0px) + 10px)!important;right:60px!important}}</style>
 <script>/* gsm: legende als extra knop bovenaan in de kaartknoppen (i.p.v. een losse knop) */
 (function(){const zet=()=>{const b=document.querySelector(".kr-legbtn"),z=document.querySelector(".kr-zoom");if(!b||!z)return false;
   if(b.parentNode!==z){z.insertBefore(b,z.firstChild);[...b.childNodes].forEach(n=>{if(n.nodeType===3&&n.textContent.trim()){const sp=document.createElement("span");sp.textContent=n.textContent;n.replaceWith(sp)}});b.title="Legende";b.setAttribute("aria-label","Legende")}return true};
