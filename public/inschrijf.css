@@ -944,3 +944,9 @@ body.vb .hdr .in{min-height:30px!important;gap:14px}
 body.vb .hdr .logo{height:30px!important}
 body.vb .hdr .in>span{font-size:13.5px!important;font-weight:400!important;color:#A4A7AD!important;border-left-color:#3a3c40!important;line-height:18px!important}
 @media (max-width:560px){body.vb .hdr .logo{height:28px!important}}
+/* subtiel brandweerembleem rechts naast de titel (zoals de mockup) */
+body.vb-app .title{display:flex!important;align-items:flex-start;justify-content:space-between;gap:16px}
+body.vb-app .title>div,body.vb-app .title>h1{flex:1;min-width:0}
+body.vb-app .title img{display:block!important;order:2;flex:none;height:56px;width:auto;margin-top:-4px;opacity:.95}
+body.vb-app .vb-eyebrow+.title img{margin-top:-30px}
+@media (max-width:480px){body.vb-app .title img{height:46px}body.vb-app .vb-eyebrow+.title img{margin-top:-26px}}
