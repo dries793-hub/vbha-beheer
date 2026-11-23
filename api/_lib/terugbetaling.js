@@ -241,7 +241,7 @@ export async function terugApp(req, res) {
 async function mailBoekhouding(sb, { id, naam, bedrag, reden, datum, bon, geenBon, via }) {
   try {
     const { huisstijl, kaderBlok, knop, tabel, rij, p, esc } = await import("./bevestiging.js");
-    const app = String(process.env.SITE_URL || "https://vbha-beheer.vercel.app").replace(/\/+$/, "") + "/#terug";
+    const app = String(process.env.SITE_URL || "https://beheer.vbha.be").replace(/\/+$/, "") + "/#terug";
     const bd = "€ " + Number(bedrag || 0).toFixed(2).replace(".", ",");
     const dt = /^\d{4}-\d{2}-\d{2}$/.test(datum || "") ? datum.split("-").reverse().join("/") : "";
     const m = await sysMail(sb, "onkosten-boekhouding", { naam: esc(naam), bedrag: bd, reden: esc(reden), via: via ? esc(via) : "",

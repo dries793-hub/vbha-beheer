@@ -41,7 +41,7 @@ registreer({ key: "toegang", naam: "Beheeromgeving: toegang of nieuw wachtwoord"
 <p style="margin:0 0 15px">Bij je eerste aanmelding kies je meteen je eigen wachtwoord. Het tijdelijke wachtwoord werkt daarna niet meer.</p>
 <p>{knop_aanmelden}</p>`,
   velden: [["voornaam", "Voornaam"], ["rechten", "Rechten"], ["adres", "Adres van de app (link)"], ["email", "E-mailadres"], ["wachtwoord", "Tijdelijk wachtwoord"], ["knop_aanmelden", "Knop aanmelden"], ["reset", "Voorwaarde: nieuw wachtwoord"]],
-  voorbeeld: { voornaam: "Jan", rechten: "Bestuur", adres: "vbha-beheer.vercel.app", email: "jan@voorbeeld.be", wachtwoord: "Abc-123-xyz", reset: "" } });
+  voorbeeld: { voornaam: "Jan", rechten: "Bestuur", adres: "beheer.vbha.be", email: "jan@voorbeeld.be", wachtwoord: "Abc-123-xyz", reset: "" } });
 export async function welkomMail({ naam, email, rol, wachtwoord, url, reset }, sb) {
   const m = await sysMail(sb, "toegang", { voornaam: naam ? esc(String(naam).split(" ")[0]) : "", reset: !!reset, rechten: esc(ROL_NAAM[rol] || rol), email: esc(email),
     adres: `<a href="${esc(url)}" style="color:#b30000;text-decoration:underline">${esc(url.replace(/^https?:\/\//, ""))}</a>`,
@@ -58,7 +58,7 @@ export async function gebruikers(req, res) {
   const { user, sb } = await requireUser(req, { write: true });
   // vaste adressen: de link in de welkomstmail mag niet afhangen van een (vervalsbare) Host-header
   const h = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim().toLowerCase();
-  const url = "https://" + (/^(vbha-beheer\.vercel\.app|beheer\.vbha\.be)$/.test(h) ? h : "vbha-beheer.vercel.app");
+  const url = "https://" + (/^(vbha-beheer\.vercel\.app|beheer\.vbha\.be)$/.test(h) ? h : "beheer.vbha.be");
   if (req.method === "GET") {
     const [{ data: rijen, error }, users] = await Promise.all([sb.from("bestuur").select("user_id,email,naam,rol,rechten,created_at"), alleGebruikers(sb)]);
     if (error) throw error;
