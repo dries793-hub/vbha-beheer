@@ -950,3 +950,10 @@ body.vb-app .title>div,body.vb-app .title>h1{flex:1;min-width:0}
 body.vb-app .title img{display:block!important;order:2;flex:none;height:56px;width:auto;margin-top:-4px;opacity:.95}
 body.vb-app .vb-eyebrow+.title img{margin-top:-30px}
 @media (max-width:480px){body.vb-app .title img{height:46px}body.vb-app .vb-eyebrow+.title img{margin-top:-26px}}
+
+/* betaalblok als eerste in de kaart: geen tweede lijn; overschrijving duidelijk uitklapbaar */
+body.vb-app .card>.paybox:first-child{border-top:0!important;padding-top:0!important;margin-top:0!important}
+body.vb-app .zelf summary{gap:12px;list-style:none}
+body.vb-app .zelf summary::-webkit-details-marker{display:none}
+body.vb-app .zelf summary::after{content:"";flex:none;margin-left:auto;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-3px) rotate(45deg);transition:transform .15s}
+body.vb-app .zelf[open] summary::after{transform:translateY(2px) rotate(-135deg)}
