@@ -938,3 +938,9 @@ body.vb-app .stp>input:focus-visible,.vb-ui .vb-qty>input:focus-visible{box-shad
 /* webshop: in de productkaart over de volle breedte */
 body.vb-app .pr .q{display:flex!important;justify-content:space-between!important;width:auto!important}
 body.vb-app main .stp>input:not([type=checkbox]):not([type=radio]):not([type=range]):not([hidden]),body.vb-app main .vb-qty>input:not([type=checkbox]):not([type=radio]):not([type=range]):not([hidden]){background:none!important;border:0!important;box-shadow:none!important;height:100%!important;min-height:0!important;padding:0!important;width:44px!important}
+/* ===== kopbalk: subtiel zoals de vroegere pagina's (productie) — lagere balk, ondertitel grijs en niet vet ===== */
+body.vb .hdr{padding-top:calc(12px + env(safe-area-inset-top,0px))!important;padding-bottom:12px!important}
+body.vb .hdr .in{min-height:30px!important;gap:14px}
+body.vb .hdr .logo{height:30px!important}
+body.vb .hdr .in>span{font-size:13.5px!important;font-weight:400!important;color:#A4A7AD!important;border-left-color:#3a3c40!important;line-height:18px!important}
+@media (max-width:560px){body.vb .hdr .logo{height:28px!important}}
