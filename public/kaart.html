@@ -2931,7 +2931,7 @@ function krInit(){if(!window.L){$("#krMap").innerHTML='<div class="empty">De kaa
   const map=L.map($("#krMap"),{zoomControl:false,preferCanvas:true,minZoom:12,maxZoom:19});KR.map=map;
   const renderer=L.canvas({tolerance:10});KR.renderer=renderer;
   KR.bounds=L.latLngBounds(KR_STREETS.flatMap(s=>s.g.flat()));
-  map.setView(KR_START.at,KR_START.zoom);map.setMaxBounds(KR.bounds.pad(.3));
+  map.setMaxBounds(KR.bounds.pad(.3));/* altijd starten met de hele regio */map.fitBounds(KR.bounds,{padding:[16,16]});setTimeout(()=>{try{map.invalidateSize();map.fitBounds(KR.bounds,{padding:[16,16]})}catch(e){}},250);
   map.on("zoomend",()=>krStyleAll());
   map.attributionControl.setPrefix(false);map.attributionControl.setPosition("bottomleft");
   {const ac=map.attributionControl.getContainer();ac.classList.add("kr-attr");ac.title="Bronnen van de kaart";ac.addEventListener("click",e=>{if(e.target.closest("a"))return;ac.classList.toggle("open")})}
