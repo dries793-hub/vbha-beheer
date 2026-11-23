@@ -85,6 +85,26 @@ function conflictFout(C, straten) {
 }
 const stuur = (res, e) => { if (e && e.extra) return res.status(e.status).json({ error: e.message, ...e.extra }); throw e; };
 
+/* Na een reservatie: de dozen die het lid nog moet krijgen meteen in de Verdeling zetten (jaarleden.kalMeeTeGeven).
+   Nodig = dozen voor al zijn gereserveerde (nog niet bedeelde) straten, min wat hij al in handen heeft. Nooit verlagen: wat het
+   bestuur al klaarzette blijft staan; enkel aanvullen tot het nodige aantal. Zo telt een tweede reservatie niet dubbel. */
+async function zetMeeTeGeven(sb, jaar, lidId) {
+  try {
+    const rijen = (await rondeRijen(sb, jaar)).filter(d => d.status === "reserved" && d.lidId === lidId);
+    if (!rijen.length) return;
+    const adr = (await adressenVan(rijen.map(d => d.straat))).reduce((t, a) => t + (a || 0), 0);
+    const { data: jr } = await sb.from("jaren").select("data").eq("id", String(jaar)).maybeSingle();
+    const pd = Number(jr?.data?.perDoos) || 100, id = jaar + "_" + lidId;
+    const { data: row } = await sb.from("jaarleden").select("data").eq("id", id).maybeSingle();
+    const cur = row?.data || null, hand = Number(cur?.kalOpgehaald) || 0, al = Number(cur?.kalMeeTeGeven) || 0;
+    const nodig = Math.max(0, Math.ceil(adr / pd) - hand);
+    if (nodig <= al) return;
+    const d = cur ? { ...cur, kal: true, kalToegevoegd: true, kalMeeTeGeven: nodig }
+      : { jaar: Number(jaar), lidId, naam: "", kal: true, kalToegevoegd: true, kalOpgehaald: 0, kalUitgevoerd: 0, kalLog: [], kalMeeTeGeven: nodig };
+    if (cur) await sb.from("jaarleden").update({ data: d }).eq("id", id); else await sb.from("jaarleden").insert({ id, data: d });
+  } catch (e) { /* de reservatie zelf is gelukt; de verdeling kan het bestuur ook nog met de hand aanvullen */ }
+}
+
 /* POST /api/ronde {actie:"reserveer", straten, lidId | l,j,t} */
 async function reserveer(req, res, b) {
   res.setHeader("Cache-Control", "no-store");
@@ -97,6 +117,7 @@ async function reserveer(req, res, b) {
   if (error) throw error;
   if (r && r.fout === "dubbel") throw httpErr(400, "Je koos een straat én een stuk van diezelfde straat. Kies één van beide.");
   if (r && r.conflict) return stuur(res, conflictFout(r.conflict, straten));
+  await zetMeeTeGeven(sb, Number(A.jaar), lid.id);
   try { await meldPush(sb, "admin", { lidId: lid.id, titel: "Kalenderronde: nieuwe reservatie", tekst: `${toonVan(lid)} reserveerde ${straten.length} ${straten.length === 1 ? "straat" : "straten"}`, url: "/#ronde", tag: "ronde-" + lid.id }); } catch (e) {}
   return res.status(200).json({ ok: true, straten, adressen: adr.reduce((t, a) => t + a, 0), at: r.at });
 }
@@ -249,6 +270,7 @@ async function herReserveer(req, res, b, doe) {
     // wie vorig jaar mee bedeelde, ook nu mee vermelden (enkel extra info bij de reservatie)
     for (const s of nieuw) { const r = vorigRijen.find(d => d.straat === s) || {}; const m = [{ lidId: r.lidId || null, by: r.by }, ...(Array.isArray(r.mee) ? r.mee : [])].filter(w => w && w.by && !(w.lidId ? w.lidId === l : namen.includes(nm(w.by))));
       try { const { data: cur } = await sb.from("ronde").select("data").eq("id", j + "_" + s).maybeSingle(); if (cur && cur.data && cur.data.lidId === l && cur.data.status === "reserved") await sb.from("ronde").update({ data: { ...cur.data, via: "mail vorig jaar", ...(m.length ? { mee: m } : {}) } }).eq("id", j + "_" + s); } catch (e) {} }
+    if (nieuw.length) await zetMeeTeGeven(sb, j, l);
     if (nieuw.length) try { await meldPush(sb, "admin", { lidId: l, titel: "Kalenderronde: straten opnieuw gereserveerd", tekst: `${toon} reserveerde ${nieuw.length} ${nieuw.length === 1 ? "straat" : "straten"} van vorig jaar`, url: "/#ronde", tag: "ronde-" + l }); } catch (e) {}
   }
   return res.status(200).json({ ok: true, gereserveerd: nieuw });
