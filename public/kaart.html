@@ -2829,9 +2829,9 @@ function krGeo(sid){if(!KRE.geo){const t0=Date.now(),cos=Math.cos(50.94*Math.PI/
 /* ---- Achtergrond: officiële GRB-basiskaart (grijs) van Digitaal Vlaanderen als kaarttegels; lukt dat niet, dan de gekleurde
    GRB-basiskaart (grijs gefilterd), en anders OpenStreetMap (grijs gefilterd). Straten krijgen een witte rand (casing). ---- */
 function krTegels(map){if(KR.tegels)return;const W="https://geo.api.vlaanderen.be/GRB/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&STYLE=&FORMAT=image/png&TILEMATRIXSET=GoogleMapsVL&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&LAYER=";
-  const GRB='Achtergrond: GRB, <a href="https://www.vlaanderen.be/digitaal-vlaanderen" target="_blank" rel="noopener">Digitaal Vlaanderen</a>';
-  const B=[{url:"https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",attr:'Achtergrond © Esri, © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-bijdragers',max:16,cls:"kr-esri"},
-    {url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",attr:'Achtergrond © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',max:19,cls:"kr-grijs"},{url:W+"grb_bsk_grijs",attr:GRB,max:20,cls:""}];
+  const GRB='GRB © Digitaal Vlaanderen';
+  const B=[{url:"https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",attr:'© Esri',max:16,cls:"kr-esri"},
+    {url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",attr:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-bijdragers',max:19,cls:"kr-grijs"},{url:W+"grb_bsk_grijs",attr:GRB,max:20,cls:""}];
   let i=0;const zet=()=>{const b=B[i];if(KR.tegels)map.removeLayer(KR.tegels);let ok=0,fout=0;
     const t=L.tileLayer(b.url,{maxZoom:20,maxNativeZoom:b.max,attribution:b.attr,className:"kr-tegels "+b.cls,errorTileUrl:"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"});
     t.on("tileload",()=>{ok++});t.on("tileerror",()=>{fout++;if(!ok&&fout>=4&&i<B.length-1){i++;zet()}});t.addTo(map);KR.tegels=t};zet()}
@@ -2867,7 +2867,7 @@ function krBg(){if(KR.bgLoading||KR.bg||!KR.map)return;KR.bgLoading=true;
       for(const it of items){const rings=(Array.isArray(it)?it:[it]).map(krDecode);
         g.addLayer(L.polygon(rings,{renderer:bld?rBld:rBg,pane:bld?"krBld":"krBg",interactive:false,stroke:false,fillOpacity:1,_krTok:tok}))}
       KR.bg.groups[k]=g;if(!bld)g.addTo(map)}
-    map.attributionControl.addAttribution("Achtergrond © GRB, Digitaal Vlaanderen");
+    map.attributionControl.addAttribution("GRB © Digitaal Vlaanderen");
     krGrens(map);
     map.on("zoomend",krBgZoom);krBgZoom();krBgStyle();
   }).catch(()=>{KR.bgLoading=false})}
@@ -2935,7 +2935,7 @@ function krInit(){if(!window.L){$("#krMap").innerHTML='<div class="empty">De kaa
   map.on("zoomend",()=>krStyleAll());
   map.attributionControl.setPrefix(false);map.attributionControl.setPosition("bottomleft");
   {const ac=map.attributionControl.getContainer();ac.classList.add("kr-attr");ac.title="Bronnen van de kaart";ac.addEventListener("click",e=>{if(e.target.closest("a"))return;ac.classList.toggle("open")})}
-  map.attributionControl.addAttribution('Straten © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>');
+  map.attributionControl.addAttribution('© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-bijdragers');
   for(const s of KR_STREETS){const line=L.polyline(krGeo(s.id),{renderer,weight:4,lineCap:"round",lineJoin:"round"})
     .on("click",e=>{L.DomEvent.stopPropagation(e);krToggle(s.id)}).addTo(map);KR.lines.set(s.id,line)}
   
