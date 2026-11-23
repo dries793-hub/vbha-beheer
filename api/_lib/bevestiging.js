@@ -36,11 +36,12 @@ const tabel = rows => `<table role="presentation" width="100%" border="0" cellsp
 const KOP = t => `<h2 style="${F}color:${INK};font-size:17px;line-height:1.25;font-weight:bold;margin:0 0 8px;padding:1px 0 1px 10px;border-left:3px solid ${ROOD}">${t}</h2>`;
 const isGroen = k => /^#(1a7f45|168447)$/i.test(k), isRood = k => /^#(b30000|c0161f)$/i.test(k);
 const kaderOpen = kleur => isGroen(kleur)
-  ? `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 20px;border-collapse:separate"><tr><td class="vb-k" bgcolor="${OK_ZACHT}" style="padding:12px 16px;border:1px solid ${OK_LIJN};border-radius:12px;${F}font-size:15px;color:${INK};line-height:1.55">`
+  ? `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 20px;border-collapse:separate"><tr><td class="vb-k" bgcolor="${ZACHT}" style="padding:14px 16px 10px;border:1px solid ${LIJN};border-radius:12px;${F}font-size:15px;color:${INK};line-height:1.55">`
   : isRood(kleur)
   ? `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:6px 0 20px;border-collapse:separate"><tr><td class="vb-k" bgcolor="${ZACHT}" style="padding:14px 16px 10px;border:1px solid ${LIJN};border-radius:12px;${F}font-size:15px;color:${INK};line-height:1.55">`
   : `<table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:22px 0 20px;border-collapse:separate"><tr><td class="vb-s" style="padding:0;${F}font-size:15px;color:${INK};line-height:1.55">`;
-const kaderKop = (kleur, titel) => isGroen(kleur) ? `<h2 style="${F}color:${OK};font-size:15.5px;line-height:1.3;font-weight:bold;margin:0 0 4px">${titel}</h2>` : KOP(titel);
+// groen (gelukt): zelfde grijs kader als "Nog te betalen", met een groen streepje
+const kaderKop = (kleur, titel) => isGroen(kleur) ? `<h2 style="${F}color:${INK};font-size:17px;line-height:1.25;font-weight:bold;margin:0 0 8px;padding:1px 0 1px 10px;border-left:3px solid ${OK}">${String(titel).replace(/^\s*(&#10003;|✓)\s*/, "")}</h2>` : KOP(titel);
 // kaderBlok: standaard een sectie met rood kopje; rood = grijs kader (te betalen); groen = groene melding (gelukt)
 const kaderBlok = (titel, inner, kleur = GOUD) => kaderOpen(kleur) + kaderKop(kleur, titel) + inner + `</td></tr></table>`;
 // hoofdknop: rood over de volle breedte (zoals .vb-cta)
@@ -90,7 +91,8 @@ function huisstijl(inner, ver, { groet = true, voet = "", extern = false, bovens
 function betaalBlok({ betaald, betaling, bedrag, rekeningnummer, begunstigde, mededeling, tegen, link }) {
   if (betaald) {
     const op = betaling && betaling.betaaldOp ? " op " + kort(new Date(betaling.betaaldOp).toISOString()) : "";
-    return kaderBlok("&#10003; Betaling ontvangen", p(`We ontvingen je betaling van <b>${eur(bedrag)}</b> via Bancontact. Je hoeft niets meer te doen.`, "margin:0"), "#1a7f45", "#f1faf4");
+    return kaderBlok("Betaling ontvangen", tabel([rij("Bedrag", `<b>${eur(bedrag)}</b>`), rij("Betaald via", "Bancontact"), betaling && betaling.betaaldOp ? rij("Betaald op", esc(lang(new Date(betaling.betaaldOp).toISOString().slice(0, 10)))) : ""])
+      + p("Je hoeft niets meer te doen.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#1a7f45", "#f1faf4");
   }
   return kaderBlok("Nog te betalen", tabel([rij("Bedrag", `<b>${eur(bedrag)}</b>`), rij("Rekening", `<b>${esc(rekeningnummer)}</b>`), rij("Begunstigde", esc(begunstigde)), rij("Mededeling", `<b>${esc(mededeling)}</b>`), rij("Te betalen vóór", `<b>${esc(lang(tegen))}</b>`)])
     + p("Gebruik exact deze mededeling, dan wordt je betaling automatisch herkend.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2")
