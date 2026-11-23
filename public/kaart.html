@@ -3490,4 +3490,5 @@ const _k=krCard;krCard=function(){const r=_k.apply(this,arguments);try{zet();req
   if(!zet()){const mo=new MutationObserver(()=>{if(zet())mo.disconnect()});mo.observe(document.body,{childList:true,subtree:true})}})();</script>
 <script>/* legende sluit zodra je ergens anders tikt (kaart, kaartje, zoekbalk…) */
 document.addEventListener("pointerdown",e=>{const l=document.querySelector(".kr-leg.open");if(!l||e.target.closest(".kr-leg,.kr-legbtn"))return;l.classList.remove("open");const b=document.querySelector(".kr-legbtn");if(b)b.setAttribute("aria-expanded","false")},true);</script>
+<style>/* logo even ver van de linkerrand als in de beheer-app */@media (max-width:1100px){body .hdr{padding-left:16px!important;padding-right:16px!important}}</style>
 </body></html>
