@@ -355,7 +355,7 @@ export async function bevestigingenCron(req, res) {
   res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend, betaalherinnering, fuif, kassa, shop, goud, nagestuurd, puntenMail, betaalWacht });
 }
 // gedeeld met de facturatie (api/_lib/factuur.js)
-export { huisstijl, modern, kaderBlok, knop, tabel, rij, p, esc, eur, kort, lang, vandaag, plusDagen, site };
+export { huisstijl, modern, kaderBlok, knop, tabel, rij, p, esc, eur, kort, lang, vandaag, plusDagen, site, betaalBlok };
 
 /* voorbeeld van de bevestigingsmail kinderfeest (app: Kinderfeest › tandwiel › Voorbeeld) */
 export async function kfVoorbeeld(req, res) {
