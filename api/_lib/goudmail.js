@@ -105,7 +105,7 @@ export async function goudApp(req, res) {
 }
 
 /* Automatische mails bij nieuwe punten en/of bij een wijziging van status (aan te zetten in config algemeen: puntenMail.aan, statusMail.aan).
-   Per lid wordt in de afgeschermde tabel punten_mailstand bijgehouden wat het laatst gemeld werd. Eén keer per dag om 20 u
+   Per lid wordt in de afgeschermde tabel punten_mailstand bijgehouden wat het laatst gemeld werd. Om de 3 uur overdag (8, 11, 14, 17, 20 u)
    gaat er per lid één mail met alles wat sinds de vorige mail bijkwam. De eerste keer worden enkel de standen bewaard. */
 const ONDERDELEN = [["kaarten", "kaarten", "verkoop kaarten fuif"], ["kalUitgevoerd", "kalenders", "kalenders bussen"], ["shifts", "shifts", "hulp bij activiteiten"], ["vergaderingen", "vergaderingen", "vergaderingen"]];
 let STATUS = { geen: "geen status", brons: "Brons", zilver: "Zilver", goud: "Goud" };
@@ -136,12 +136,15 @@ export async function puntenCron(sb) {
   const MS = new Map((ms || []).map(r => [r.id, r.stand]));
   const sleutel = `${PM.aan === true ? "p" : ""}${SM.aan === true ? "s" : ""}-${Y}`, eersteKeer = C.puntenStart !== sleutel;
   const verschil = [];
-  // puntenmails één keer per dag, om 20 u (Brussel; instelbaar met puntenMail.uur): alles van die dag (en wat nog niet gemeld werd) samen in één mail.
+  // puntenmails om de 3 uur overdag (Brussel: 8, 11, 14, 17 en 20 u; instelbaar met puntenMail.uren): alles wat sinds het vorige mailmoment
+  // (en nog niet gemeld) bijkwam, samen in één mail. 's Nachts (na 20 u tot 8 u) wordt niets verstuurd.
   // De gemelde stand wordt pas bijgewerkt bij het versturen, dus wijzigingen tellen vanzelf op tot het volgende mailmoment.
   const nuBxl = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hour12: false }).formatToParts(new Date()).reduce((o, x) => (o[x.type] = x.value, o), {});
   const dag = `${nuBxl.year}-${nuBxl.month}-${nuBxl.day}`, uur = Number(nuBxl.hour) % 24;
   const { data: pmd } = await sb.from("config").select("data").eq("id", "puntenmail").maybeSingle();
-  const magMailen = uur >= Number(PM.uur ?? 20) && !(pmd && pmd.data && pmd.data.dag === dag);
+  const uren = (Array.isArray(PM.uren) && PM.uren.length ? PM.uren : [8, 11, 14, 17, 20]).map(Number).sort((x, y) => x - y);
+  const slotUur = uren.filter(h => h <= uur).pop(), slot = slotUur == null ? null : `${dag}@${slotUur}`;
+  const magMailen = slot != null && !(pmd && pmd.data && (pmd.data.slot ? pmd.data.slot === slot : pmd.data.dag === dag && slotUur <= 20));
   // tijdelijke pauze (config algemeen.puntenPauze = ISO-tijd): wijzigingen tot dan worden enkel opgeslagen, niet gemaild
   const pauze = C.puntenPauze && Date.now() < Date.parse(C.puntenPauze);
   for (const r of jl || []) {
@@ -153,7 +156,7 @@ export async function puntenCron(sb) {
     // punten van vergaderingen: geen puntenmail, enkel de stand bijwerken (wie zo goud haalt, krijgt wel de proficiat-mail via goudCron)
     const omhoog = Object.keys(nu).filter(k => k !== "act" && nu[k] > (m[k] || 0));
     if (omhoog.length && omhoog.every(k => k === "vergaderingen")) { verschil.push({ r, nu, pt, st, init: true }); continue; }
-    if (!magMailen) continue; // wachten tot het dagelijkse mailmoment (20 u)
+    if (!magMailen) continue; // wachten tot het volgende mailmoment (om de 3 uur)
     verschil.push({ r, nu, pt, st, m, meer, ander });
   }
   if (!verschil.length) { if (eersteKeer) await sb.from("config").update({ data: { ...C, puntenStart: sleutel } }).eq("id", "algemeen"); return { nieuw: 0 }; }
@@ -194,7 +197,7 @@ export async function puntenCron(sb) {
   if (standen.length) { const { error } = await sb.from("punten_mailstand").upsert(standen); if (error) throw error; }
   for (const z of goudZet) await sb.from("jaarleden").update({ data: z.data }).eq("id", z.id);
   if (eersteKeer) await sb.from("config").update({ data: { ...C, puntenStart: sleutel } }).eq("id", "algemeen");
-  if (magMailen) await sb.from("config").upsert({ id: "puntenmail", data: { dag, op: new Date().toISOString(), mails: mails.length } });
+  if (magMailen) await sb.from("config").upsert({ id: "puntenmail", data: { dag, slot, op: new Date().toISOString(), mails: mails.length } });
   return { bekeken: verschil.length, mails: mails.length, eersteKeer, magMailen };
 }
 const statusRang = s => ({ brons: 1, zilver: 2, goud: 3 })[s] || 0;
