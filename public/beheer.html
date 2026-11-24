@@ -1664,9 +1664,9 @@ details[data-vrd]>summary{display:flex;align-items:baseline;gap:6px;flex-wrap:wr
 /* status inschrijfpagina en shiftlijst in de donkere modus */
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .spi-st[data-k="open"]{border-color:#1F5C3B;background:#10281C}:root:not([data-theme="light"]) .spi-st[data-k="verlopen"]{border-color:#7A5A12;background:#2E2510}:root:not([data-theme="light"]) .spi-sw-t{background:#3A3C42}:root:not([data-theme="light"]) .sh-sli.ok{background:#10281C;border-color:#1F5C3B}:root:not([data-theme="light"]) .sh-sli small{color:#7FD8A6}}
 :root[data-theme="dark"] .spi-st[data-k="open"]{border-color:#1F5C3B;background:#10281C}:root[data-theme="dark"] .spi-st[data-k="verlopen"]{border-color:#7A5A12;background:#2E2510}:root[data-theme="dark"] .sh-sli.ok{background:#10281C;border-color:#1F5C3B}
-/* gsm: alle tabbladen van Kalenders (5) passen naast elkaar; filterknoppen schuiven zonder balk */
+/* gsm: alle tabbladen van Kalenders (5) passen naast elkaar; filterknoppen lopen door op een tweede rij (alles zichtbaar) */
 @media (max-width:600px){nav.tabs{gap:0}nav.tabs a{padding:10px 7px!important;font-size:13.5px!important;flex:1 0 auto!important;justify-content:center}
- .segmented-filter{max-width:100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}.segmented-filter::-webkit-scrollbar{display:none}.segmented-filter button{flex:none;white-space:nowrap;padding-left:10px;padding-right:10px}}
+ .segmented-filter,.seg.segmented-filter{max-width:100%;flex-wrap:wrap;height:auto!important;gap:4px!important;padding:4px!important}.segmented-filter button{flex:1 1 auto;white-space:nowrap;padding:0 10px;min-height:36px;height:auto}}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
