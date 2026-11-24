@@ -295,7 +295,10 @@ export async function kfCadeauMail(sb, id, { betaald = 0, bijTeBetalen = false }
     const wijzig = !vast && vandaagISO() <= M.tot ? p(`Wil je nog iets wijzigen? Dat kan tot en met ${e(lang(M.tot))} via <a href="${e(kfcLink(row.id))}">je cadeaupagina</a>.`) : "";
     const m = await sysMail(sb, "kinderfeest-cadeaukeuze", { voornaam: e(voornaam), jaar: d.jaar, bijbetaald: betaald > 0, bijbetaling: bet, cadeaus: kids, samen: pot, wijzigen: wijzig, datum: M.datum ? e(lang(M.datum)) : "", link_cadeau: e(kfcLink(row.id)) });
     const [r] = await verstuur([{ aan, aanNaam: d.lid || "", onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging), van: afzender() }]);
-    return !!(r && r.ok);
+    const ok = !!(r && r.ok);
+    // bijhouden wanneer de bevestiging vertrok (zichtbaar in het beheer); enkel dit veld bijwerken op de actuele versie
+    if (ok) { try { const { data: nu } = await sb.from("kinderfeest").select("data").eq("id", row.id).maybeSingle(); if (nu) await sb.from("kinderfeest").update({ data: { ...nu.data, cadeauMail: { op: new Date().toISOString(), bij: bij ? S.teBetalen : 0 } } }).eq("id", row.id); } catch (e) { } }
+    return ok;
   } catch (x) { console.error("kfCadeauMail", x); return false; }
 }
 const lang = iso => { const [y, m, d] = String(iso || "").slice(0, 10).split("-").map(Number); return y ? new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("nl-BE", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }) : ""; };
@@ -402,6 +405,14 @@ export async function kfCadeauApp(req, res) {
        "check": productgegevens ophalen (zoals op de keuzepagina); "zet": de keuze van één kind bewaren (ook na de keuzetermijn). */
     if (b.actie === "check" || b.actie === "zet") {
       if (!["admin", "boekhouder"].includes(rol)) throw httpErr(403, "Enkel de administrator of de boekhouder kan cadeaus invullen.");
+      if (b.actie === "zet" && b.alleenMail === true) { // bevestiging (opnieuw) sturen voor het hele gezin
+        const { data: row } = await sb.from("kinderfeest").select("id,data").eq("id", String(b.id || "")).maybeSingle(); if (!row) throw httpErr(404, "Inschrijving niet gevonden.");
+        const M = kfcInstellingen(await configDoc(sb, "kf_" + row.data.jaar), row.data.jaar), S2 = bijStand(row.data, M);
+        if (!S2.alleGekozen) throw httpErr(400, "Nog niet voor alle kinderen van het gezin gekozen.");
+        const gemaild = await kfCadeauMail(sb, row.id, { bijTeBetalen: S2.teBetalen > 0 });
+        if (!gemaild) throw httpErr(500, "De mail kon niet verstuurd worden.");
+        return res.status(200).json({ ok: true, gemaild, teBetalen: S2.teBetalen || 0 });
+      }
       if (b.actie === "check") return res.status(200).json(await productInfo(b.url));
       const { data: row } = await sb.from("kinderfeest").select("id,data").eq("id", String(b.id || "")).maybeSingle(); if (!row) throw httpErr(404, "Inschrijving niet gevonden.");
       const c = await configDoc(sb, "kf_" + row.data.jaar), M = kfcInstellingen(c, row.data.jaar);
