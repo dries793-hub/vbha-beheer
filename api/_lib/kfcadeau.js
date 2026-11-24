@@ -143,13 +143,16 @@ async function zyteVraag(u, extractFrom, ms) {
   return { naam: p.name ? ont(p.name).slice(0, 200) : null, prijs: getal(p.price), foto: (p.mainImage && p.mainImage.url) || (Array.isArray(p.images) && p.images[0] && p.images[0].url) || null,
     artikelnr: String(gt || p.sku || p.mpn || "").slice(0, 40) || null, beschikbaar: av === "instock" ? true : av === "outofstock" ? false : null, url: p.canonicalUrl || p.url || null };
 }
+// een speelgoedprijs onder € 2 is bijna zeker verkeerd gelezen (verzendkosten, korting, prijs per stuk): dan niet automatisch overnemen
+const PRIJS_MIN = 2;
 // eerst de snelle manier (gewone opvraging, zonder browser); lukt dat niet, dan met een echte browser
 const ZYTE_MODUS = {}; // per winkel: wat de laatste keer werkte
 export async function zyteInfo(u) {
-  const w = winkelVan(u.hostname) || "?", volg = ZYTE_MODUS[w] === "browserHtml" ? ["browserHtml"] : ["httpResponseBody", "browserHtml"];
+  // bol.com: altijd de echte browserpagina (de snelle opvraging gaf soms een verkeerde prijs, bv. € 1,47 i.p.v. € 39,99)
+  const w = winkelVan(u.hostname) || "?", volg = w === "bol.com" || ZYTE_MODUS[w] === "browserHtml" ? ["browserHtml"] : ["httpResponseBody", "browserHtml"];
   let laatste = null;
   for (const m of volg) {
-    try { const p = await zyteVraag(u, m, m === "httpResponseBody" ? 28000 : 40000); if (p.naam && p.prijs != null) { ZYTE_MODUS[w] = m; return p; } laatste = p; }
+    try { const p = await zyteVraag(u, m, m === "httpResponseBody" ? 28000 : 40000); if (p.naam && p.prijs != null && p.prijs >= PRIJS_MIN) { ZYTE_MODUS[w] = m; return p; } laatste = p; }
     catch (e) { laatste = laatste || null; if (m === "browserHtml") throw e; }
   }
   return laatste || {};
@@ -192,7 +195,7 @@ export async function productInfo(url) {
     catch (e) { console.error("bol api", e.message); }
   }
   if (zyteAan()) {
-    try { const p = await zyteInfo(u); if (p && p.naam && p.prijs != null) { const { url: _u, ...rest } = p; return { ...basis, ...rest, auto: true, bron: "zyte", gecontroleerd: new Date().toISOString() }; } }
+    try { const p = await zyteInfo(u); if (p && p.naam && p.prijs != null && p.prijs >= PRIJS_MIN) { const { url: _u, ...rest } = p; return { ...basis, ...rest, auto: true, bron: "zyte", gecontroleerd: new Date().toISOString() }; } }
     catch (e) { console.error("zyte", e.message); }
   }
   let html = "", status = 0;
@@ -204,7 +207,7 @@ export async function productInfo(url) {
     if (r.url && winkelVan(new URL(r.url).hostname)) { const e = new URL(r.url); e.search = ""; e.hash = ""; basis.url = e.toString().slice(0, 500); }
   } catch (e) { status = -1; }
   const p = parseProduct(html);
-  if (!p.naam || p.prijs == null) return { ...basis, auto: false, status, naam: p.naam || null, prijs: p.prijs, foto: p.foto || null };
+  if (!p.naam || p.prijs == null || p.prijs < PRIJS_MIN) return { ...basis, auto: false, status, naam: p.naam || null, prijs: p.prijs != null && p.prijs >= PRIJS_MIN ? p.prijs : null, foto: p.foto || null };
   return { ...basis, ...p, auto: true, status, gecontroleerd: new Date().toISOString() };
 }
 
