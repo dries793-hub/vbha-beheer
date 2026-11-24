@@ -2854,23 +2854,48 @@ function krMaskStijl(){if(!KR.bg||!KR.bg.mask)return;const out=krVar("--kr-out")
 const krNum=n=>n.toLocaleString("nl-BE");
 const krFold=t=>t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const KR_SORTED=[...KR_STREETS].sort((a,b)=>a.n.localeCompare(b.n,"nl")||a.w.localeCompare(b.w,"nl"));
-function krLabels(){if(!KR.labels)return;KR.labels.clearLayers();const map=KR.map;if(map.getZoom()<KR_LABEL_ZOOM)return;
-  const view=map.getBounds().pad(.1);
-  for(const s of KR_STREETS){const {at,angle}=KR.labelAt.get(s.id);if(!view.contains(at))continue;if(KR_VERB.size&&!krGeo(s.id).some(l=>l&&l.length>1))continue;
+function krLabels(){if(!KR.labels||KR.lblRaf)return;KR.lblRaf=requestAnimationFrame(()=>{KR.lblRaf=0;krLabelsNu()})}
+/* straatnamen: enkel wat in beeld komt of verdwijnt wordt toegevoegd of weggehaald (geen volledige heropbouw bij elke beweging) */
+function krLabelsNu(){if(!KR.labels)return;const map=KR.map,M=KR.lblM||(KR.lblM=new Map()),want=new Set();
+  if(map.getZoom()>=KR_LABEL_ZOOM){const view=map.getBounds().pad(.25);
+    for(const s of KR_STREETS){const la=KR.labelAt.get(s.id);if(!la||!view.contains(la.at))continue;if(typeof KR_VERB!=="undefined"&&KR_VERB.size&&!krGeo(s.id).some(l=>l&&l.length>1))continue;want.add(s.id)}}
+  for(const [id,t] of M)if(!want.has(id)){KR.labels.removeLayer(t);M.delete(id)}
+  for(const s of KR_STREETS){if(!want.has(s.id)||M.has(s.id))continue;const {at,angle}=KR.labelAt.get(s.id);
     const t=document.createElement("span");t.textContent=s.n;t.style.transform=`rotate(${angle.toFixed(1)}deg)`;
-    KR.labels.addLayer(L.tooltip({permanent:true,direction:"center",className:"kr-lbl",interactive:false}).setLatLng(at).setContent(t))}}
+    const tt=L.tooltip({permanent:true,direction:"center",className:"kr-lbl",interactive:false}).setLatLng(at).setContent(t);KR.labels.addLayer(tt);M.set(s.id,tt)}}
+/* Achtergrond (kaart.json) als eigen kaarttegels: de vlakken worden één keer omgerekend (zoomniveau 0) en per tegel van 256 px
+   getekend, enkel de vlakken die in die tegel vallen (rasterindex). Tegels blijven bewaard bij het verschuiven en worden één voor één
+   op de achtergrond getekend, zodat in- en uitzoomen vlot blijft. Veel sneller dan tienduizenden losse Leaflet-vlakken. */
+function krBgLaag(d,pane){const P=(la,lo)=>{const s=Math.max(-.9999,Math.min(.9999,Math.sin(la*Math.PI/180)));return[(lo+180)/360*256,(.5-Math.log((1+s)/(1-s))/(4*Math.PI))*256]};
+  const opp=r=>{let a=0;for(let i=0,j=r.length-2;i<r.length;j=i,i+=2)a+=(r[j]-r[i])*(r[j+1]+r[i+1]);return a};
+  const IZ=4096/256,idx={};// rasterindex op tegels van zoomniveau 12
+  for(const [k] of KR_BG_ORDER){const M=new Map();for(const it of (d.L&&d.L[k])||[]){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+      const R=(Array.isArray(it)?it:[it]).map((s,ri)=>{const pts=krDecode(s),f=new Float64Array(pts.length*2);pts.forEach((p,i)=>{const q=P(p[0],p[1]);f[i*2]=q[0];f[i*2+1]=q[1];if(q[0]<x0)x0=q[0];if(q[0]>x1)x1=q[0];if(q[1]<y0)y0=q[1];if(q[1]>y1)y1=q[1]});
+        // buitenring en gaten tegengesteld draaien, zodat alles van één kleur in één pad kan (nonzero)
+        if((opp(f)>0)!==(ri===0)){const g=new Float64Array(f.length);for(let i=0;i<f.length;i+=2){g[i]=f[f.length-2-i];g[i+1]=f[f.length-1-i]}return g}return f});
+      if(!R.length)continue;const o={b:[x0,y0,x1,y1],r:R,t:0};
+      for(let tx=Math.floor(x0*IZ);tx<=Math.floor(x1*IZ);tx++)for(let ty=Math.floor(y0*IZ);ty<=Math.floor(y1*IZ);ty++){const key=tx*65536+ty;let a=M.get(key);if(!a)M.set(key,a=[]);a.push(o)}}
+    idx[k]=M}
+  let stempel=0;const wacht=[];let bezig=false;
+  const volgende=()=>{const t=wacht.shift();if(!t){bezig=false;return}try{t()}catch(e){}setTimeout(volgende,0)};
+  const G=L.GridLayer.extend({
+    createTile(c,done){const dpr=Math.min(2,window.devicePixelRatio||1),cv=document.createElement("canvas");cv.width=cv.height=256*dpr;
+      wacht.push(()=>{const tt=this._tiles&&this._tiles[this._tileCoordsToKey(c)];if(!tt||tt.el!==cv){done(null,cv);return}this._teken(cv,c,dpr);done(null,cv)});if(!bezig){bezig=true;setTimeout(volgende,0)}return cv},
+    _teken(cv,c,dpr){const ctx=cv.getContext("2d"),S=Math.pow(2,c.z),ox=c.x*256,oy=c.y*256,kl=this.kleur||{};ctx.setTransform(dpr,0,0,dpr,0,0);
+      const x0=c.x*256/S,y0=c.y*256/S,x1=(c.x+1)*256/S,y1=(c.y+1)*256/S,tx0=Math.floor(x0*IZ),tx1=Math.floor(x1*IZ-1e-12),ty0=Math.floor(y0*IZ),ty1=Math.floor(y1*IZ-1e-12);
+      for(const [k] of KR_BG_ORDER){if(k==="bld"&&c.z<KR_BLD_ZOOM)continue;const M=idx[k];if(!M||!M.size)continue;const st=++stempel;ctx.beginPath();let n=0;
+        for(let tx=tx0;tx<=tx1;tx++)for(let ty=ty0;ty<=ty1;ty++){const A=M.get(tx*65536+ty);if(!A)continue;
+          for(const it of A){if(it.t===st)continue;it.t=st;const q=it.b;if(q[2]<x0||q[0]>x1||q[3]<y0||q[1]>y1)continue;n++;
+            for(const f of it.r){ctx.moveTo(f[0]*S-ox,f[1]*S-oy);for(let i=2;i<f.length;i+=2)ctx.lineTo(f[i]*S-ox,f[i+1]*S-oy);ctx.closePath()}}}
+        if(n){ctx.fillStyle=kl[k]||"#ddd";ctx.fill()}}}});
+  const laag=new G({pane,tileSize:256,updateWhenZooming:false,keepBuffer:3,maxZoom:20});
+  return laag}
 const KR_BLD_ZOOM=15;
 const KR_BG_ORDER=[["green","--krb-green"],["water","--krb-water"],["road","--krb-road"],["rail","--krb-rail"],["bld","--krb-bld"]];
 function krBg(){if(KR.bgLoading||KR.bg||!KR.map)return;KR.bgLoading=true;
   fetch("/kaart.json").then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>{
     const map=KR.map;map.createPane("krBg").style.zIndex=300;map.createPane("krBld").style.zIndex=310;
-    const rBg=L.canvas({pane:"krBg",padding:.3}),rBld=L.canvas({pane:"krBld",padding:.3});
-    KR.bg={groups:{},src:d.src||""};
-    for(const [k,tok] of KR_BG_ORDER){const items=(d.L&&d.L[k])||[];if(!items.length)continue;
-      const bld=k==="bld",g=L.layerGroup();
-      for(const it of items){const rings=(Array.isArray(it)?it:[it]).map(krDecode);
-        g.addLayer(L.polygon(rings,{renderer:bld?rBld:rBg,pane:bld?"krBld":"krBg",interactive:false,stroke:false,fillOpacity:1,_krTok:tok}))}
-      KR.bg.groups[k]=g;if(!bld)g.addTo(map)}
+    KR.bg={groups:{},src:d.src||"",laag:krBgLaag(d,"krBg")};krBgStyle(true);KR.bg.laag.addTo(map);
     map.attributionControl.addAttribution("GRB © Digitaal Vlaanderen");
     krGrens(map);
     map.on("zoomend",krBgZoom);krBgZoom();krBgStyle();
@@ -2888,10 +2913,9 @@ function krGrens(map){const el=document.getElementById("krGrens");if(!el)return;
   const R=KR_GRENS;if(R&&R.length&&!KR.bg.binnen){if(!map.getPane("krIn"))map.createPane("krIn").style.zIndex=250;const rr=L.canvas({pane:"krIn",padding:.5});
     KR.bg.binnen=L.polygon(R.map(x=>[x]),{renderer:rr,pane:"krIn",interactive:false,stroke:false,fillOpacity:1,fillColor:krVar("--kr-map")||"#ECEEF1"}).addTo(map)}
   krTegels(map);const tp=map.getPane("tilePane");if(tp)tp.style.zIndex=200}catch(x){console.warn(x)}return r}}
-function krBgZoom(){const g=KR.bg&&KR.bg.groups.bld;if(!g)return;const on=KR.map.getZoom()>=KR_BLD_ZOOM;
-  if(on&&!KR.map.hasLayer(g))g.addTo(KR.map);else if(!on&&KR.map.hasLayer(g))g.remove()}
-function krBgStyle(){if(!KR.bg)return;const c={};
-  for(const g of Object.values(KR.bg.groups))g.eachLayer(l=>{const t=l.options._krTok;l.setStyle({fillColor:c[t]||(c[t]=krVar(t))})});
+function krBgZoom(){/* gebouwen vanaf KR_BLD_ZOOM: zit in krBgLaag */}
+function krBgStyle(stil){if(!KR.bg)return;
+  if(KR.bg.laag){const c={};for(const [k,t] of KR_BG_ORDER)c[k]=krVar(t);KR.bg.laag.kleur=c;if(!stil&&KR.bg.laag._map)KR.bg.laag.redraw()}
   if(KR.bg.mask)KR.bg.mask.setStyle({fillColor:krVar("--kr-out")});if(KR.bg.grens)KR.bg.grens.setStyle({color:krVar("--kr-grens")})}
 
 function krStyleAll(){const todo=krVar("--kr-todo"),sel=krVar("--kr-sel")||"#18191C";const w=krDikte(KR.map?KR.map.getZoom():15);
