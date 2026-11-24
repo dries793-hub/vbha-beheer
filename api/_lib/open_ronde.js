@@ -20,8 +20,8 @@ export default async function handler(req, res) {
     if (req.query && req.query.kalenders != null) { res.setHeader("Cache-Control", "public, max-age=3600"); const ids = schoonStraten(String(req.query.kalenders).split(",")); const a = await adressenVan(ids); return res.status(200).json({ kalenders: a.reduce((t, x) => t + (x || 0), 0), per: Object.fromEntries(ids.map((id, i) => [id, a[i] ?? null])) }); }
     if (req.query && req.query.geojson != null) return await geoJson(req, res);
     const sb = admin();
-    let verborgen = [];
-    try { const { data: kc } = await sb.from("config").select("data").eq("id", "kaart").maybeSingle(); if (kc?.data?.aan === false) return res.status(200).json({ gesloten: true }); verborgen = Array.isArray(kc?.data?.verborgen) ? kc.data.verborgen.map(String).slice(0, 2000) : []; } catch (e) { /* geen config */ }
+    let verborgen = [], reserveerStop = false;
+    try { const { data: kc } = await sb.from("config").select("data").eq("id", "kaart").maybeSingle(); if (kc?.data?.aan === false) return res.status(200).json({ gesloten: true }); reserveerStop = kc?.data?.reserveerStop === true; verborgen = Array.isArray(kc?.data?.verborgen) ? kc.data.verborgen.map(String).slice(0, 2000) : []; } catch (e) { /* geen config */ }
     const A = await algemeen(sb);
     const out = [];
     for (let from = 0; ; from += 1000) {
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       const { data: M } = await sb.from("rondemeldingen").select("data").eq("data->>jaar", String(A.jaar)).eq("data->>stand", "open").limit(500);
       for (const r of M || []) { const d = r.data || {}; for (const s of d.straten || []) if (open[s] !== "d") open[s] = d.soort === "done" ? "d" : "r"; }
     } catch (e) { /* tabel niet bereikbaar: geen meldingen tonen */ }
-    res.status(200).json({ jaar: A.jaar, perDoos: Number(pd?.data?.perDoos) || 100, straten: out, verborgen, teller, open: Object.entries(open).map(([s, st]) => ({ s, st })), nu: new Date().toISOString() });
+    res.status(200).json({ jaar: A.jaar, perDoos: Number(pd?.data?.perDoos) || 100, straten: out, verborgen, reserveerStop, teller, open: Object.entries(open).map(([s, st]) => ({ s, st })), nu: new Date().toISOString() });
   } catch (e) { sendError(res, e); }
 }
 
@@ -105,11 +105,16 @@ async function zetMeeTeGeven(sb, jaar, lidId) {
   } catch (e) { /* de reservatie zelf is gelukt; de verdeling kan het bestuur ook nog met de hand aanvullen */ }
 }
 
+/* reserveren stopgezet door het bestuur (config "kaart".reserveerStop): stock aan kalenders uitgeput; bedeling melden kan wel nog */
+const STOP_TEKST = "De stock aan kalenders is uitgeput: straten reserveren kan niet meer. Straten als bedeeld melden kan wel nog.";
+async function reserveerGestopt(sb) { try { const { data } = await sb.from("config").select("data").eq("id", "kaart").maybeSingle(); return data?.data?.reserveerStop === true; } catch (e) { return false; } }
+
 /* POST /api/ronde {actie:"reserveer", straten, lidId | l,j,t} */
 async function reserveer(req, res, b) {
   res.setHeader("Cache-Control", "no-store");
   if (b.website) return res.status(200).json({ ok: true }); // honeypot
   const sb = admin(); await rateLimit(sb, req, "rondereserveer", 60, 3600, httpErr);
+  if (await reserveerGestopt(sb)) throw httpErr(409, STOP_TEKST);
   const straten = schoonStraten(b.straten); if (!straten.length) throw httpErr(400, "Kies minstens één straat.");
   const A = await algemeen(sb), { lid, bron } = await wie(sb, A, b);
   const adr = await adressenVan(straten); if (adr.some(a => a == null)) throw httpErr(400, "Een of meer straten bestaan niet op de kaart.");
@@ -257,6 +262,7 @@ async function herReserveer(req, res, b, doe) {
   if (!doe) { const { data: jr } = await sb.from("jaren").select("data").eq("id", String(j)).maybeSingle(); const tg = String(jr?.data?.kalTegen || "");
     return res.status(200).json({ voornaam: L.voornaam || "", jaar: j, tegen: /^\d{4}-\d{2}-\d{2}$/.test(tg) ? tg : "", straten: vorig.map(s => ({ s, st: mijn.has(s) ? "mijn" : vrij(s) ? "vrij" : "bezet" })) }); }
   let nieuw = vorig.filter(vrij);
+  if (nieuw.length && await reserveerGestopt(sb)) throw httpErr(409, STOP_TEKST);
   if (nieuw.length) {
     // zelfde databasefunctie als gewoon reserveren (na elkaar, alles of niets); wat intussen bezet raakte, valt weg
     const by = [L.voornaam, L.naam].filter(Boolean).join(" ");
