@@ -391,8 +391,47 @@ export async function kfCadeauPubliek(req, res) {
 export async function kfCadeauApp(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
-    const { sb } = await requireUser(req, { write: true, functie: "kinderfeest" }), b = body(req);
+    const { sb, rol, user } = await requireUser(req, { write: true, functie: "kinderfeest" }), b = body(req);
     if (b.actie === "link") return res.status(200).json({ url: kfcLink(String(b.id || "")) });
+    /* beheer (admin of boekhouder): zelf een cadeau invullen voor een kind, bv. als de ouder de link per mail doorstuurt.
+       "check": productgegevens ophalen (zoals op de keuzepagina); "zet": de keuze van één kind bewaren (ook na de keuzetermijn). */
+    if (b.actie === "check" || b.actie === "zet") {
+      if (!["admin", "boekhouder"].includes(rol)) throw httpErr(403, "Enkel de administrator of de boekhouder kan cadeaus invullen.");
+      if (b.actie === "check") return res.status(200).json(await productInfo(b.url));
+      const { data: row } = await sb.from("kinderfeest").select("id,data").eq("id", String(b.id || "")).maybeSingle(); if (!row) throw httpErr(404, "Inschrijving niet gevonden.");
+      const c = await configDoc(sb, "kf_" + row.data.jaar), M = kfcInstellingen(c, row.data.jaar);
+      const d = row.data, i = Number(b.kind), k = (d.kinderen || [])[i];
+      if (!k) throw httpErr(400, "Dit kind staat niet in de inschrijving.");
+      if (k.besteld && k.besteld.op) throw httpErr(409, "Het cadeau van " + k.naam + " is al besteld en kan niet meer gewijzigd worden.");
+      const B = budgetVan(k.geb, M, k); if (B.voorzien || B.budget == null) throw httpErr(400, `Voor ${k.naam} voorziet de vriendenkring het cadeau.`);
+      const door = "beheer (" + String((user && user.email) || rol).slice(0, 80) + ")";
+      let cadeau = null;
+      if (b.bon) cadeau = { bon: true, op: new Date().toISOString(), door };
+      else {
+        const L = (Array.isArray(b.items) ? b.items : []).slice(0, 6);
+        if (L.length) {
+          const items = await Promise.all(L.map(async x => {
+            const oud = k.cadeau && (k.cadeau.items || []).find(o => o.url === (x && x.url));
+            if (oud) return { ...oud, keuzePrijs: oud.keuzePrijs ?? oud.prijs };
+            // net opgehaald in het beheer ("check"): niet opnieuw bij de winkel opvragen (elke opvraging kost)
+            const vers = x && x.auto && x.naam && Number(x.prijs) > 0 && winkelVan((() => { try { return new URL(x.url).hostname; } catch { return ""; } })());
+            const p = vers ? { ...Object.fromEntries(PVELD.map(f => [f, x[f] ?? null])), prijs: r2(Number(x.prijs)), auto: true, bron: x.bron || "beheer" } : await productInfo(x && x.url);
+            if (p.auto) { if (p.beschikbaar === false) throw httpErr(400, `"${p.naam}" is niet op voorraad. Kies een ander product.`); return { ...p, keuzePrijs: p.prijs }; }
+            const naam = clean(x.naam || p.naam, 200), prijs = Number(String(x.prijs ?? "").replace(",", "."));
+            if (!naam || !(prijs > 0)) throw httpErr(400, "De winkel gaf de gegevens niet vrij: vul de naam en de prijs van het product in.");
+            return { ...p, naam, prijs: r2(prijs), keuzePrijs: r2(prijs), auto: false };
+          }));
+          cadeau = { items, totaal: r2(items.reduce((t, x) => t + x.prijs, 0)), keuzeTotaal: r2(items.reduce((t, x) => t + Number(x.keuzePrijs), 0)), op: new Date().toISOString(), door };
+        }
+      }
+      const kinderen = d.kinderen.map((x, j) => { if (j !== i) return x; const n = { ...x }; if (cadeau) n.cadeau = cadeau; else delete n.cadeau; return n; });
+      const nd = { ...d, kinderen };
+      if (kinderen.every(x => budgetVan(x.geb, M, x).budget == null || x.cadeau) && !bijStand(nd, M).teBetalen && !(d.cadeau && d.cadeau.doorgegeven)) nd.cadeau = { doorgegeven: true, op: new Date().toISOString(), door };
+      const { error } = await sb.from("kinderfeest").update({ data: nd }).eq("id", row.id); if (error) throw error;
+      let gemaild = false; { const S2 = bijStand(nd, M); if (b.mail === true && S2.alleGekozen && !S2.teBetalen) { await kfCadeauMail(sb, row.id); gemaild = true; } }
+      const S2 = bijStand(nd, M);
+      return res.status(200).json({ ok: true, data: nd, teBetalen: S2.teBetalen || 0, alleGekozen: !!S2.alleGekozen, gemaild });
+    }
     // prijs vergelijken met de andere winkel voor één gekozen product (enkel in het beheer; elke vergelijking kost opvragingen bij Zyte)
     if (b.actie === "vergelijk") {
       const { data: row } = await sb.from("kinderfeest").select("id,data").eq("id", String(b.id || "")).maybeSingle(); if (!row) throw httpErr(404, "Inschrijving niet gevonden.");
