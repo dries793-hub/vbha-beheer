@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { selectAll } from "./sb.js";
 
 /* Bancontact Pay stort online betalingen per dag in één bedrag ("BulkRecon"), bv. mededeling "20261108-…-BulkRecon-…".
@@ -161,10 +162,13 @@ async function exportSplits(sb, todo, perTx, nr, proef, uit) {
 
 /* Bancontact-export (CSV uit het Bancontact-portaal) opslaan en de betrokken stortingen opnieuw (exact) opsplitsen.
    Stortingen die al per dag werden opgesplitst, worden eerst teruggezet. */
+/* rekeningnummer van de betaler: nooit bewaren, enkel een onherkenbare code om dezelfde schenker over de jaren te herkennen
+   (zelfde berekening in de app voor overschrijvingen: sha-256 van "vbha-iban:" + IBAN zonder spaties, eerste 20 tekens) */
+export const ibanCode = iban => { const v = String(iban || "").replace(/\s+/g, "").toUpperCase(); if (!/^[A-Z]{2}\d{2}[A-Z0-9]{8,30}$/.test(v)) return ""; return createHash("sha256").update("vbha-iban:" + v).digest("hex").slice(0, 20); };
 export async function bcExport(sb, rijen) {
   // ook exports zonder payoutId (volledige export van het account): dan blijft een eerder bewaarde uitbetaling behouden
   const R = (Array.isArray(rijen) ? rijen : []).filter(x => x && x.id && x.status !== "FAILED" && String(x.type || "CREDIT").toUpperCase() === "CREDIT" && String(x.status || "SUCCEEDED").toUpperCase() === "SUCCEEDED")
-    .map(x => ({ id: String(x.id).slice(0, 60), payout: x.payoutId ? String(x.payoutId).slice(0, 60) : null, data: { id: String(x.id), amount: r2(Number(String(x.amount).replace(",", ".")) || 0), date: String(x.date || ""), time: String(x.time || ""), description: String(x.description || "").slice(0, 200), reference: String(x.reference || "").slice(0, 120), debtorName: String(x.debtorName || x.debtor_name || "").slice(0, 120), technology: String(x.technology || ""), payoutId: x.payoutId ? String(x.payoutId) : "" } }));
+    .map(x => ({ id: String(x.id).slice(0, 60), payout: x.payoutId ? String(x.payoutId).slice(0, 60) : null, data: { id: String(x.id), amount: r2(Number(String(x.amount).replace(",", ".")) || 0), date: String(x.date || ""), time: String(x.time || ""), description: String(x.description || "").slice(0, 200), reference: String(x.reference || "").slice(0, 120), debtorName: String(x.debtorName || x.debtor_name || "").slice(0, 120), ...(ibanCode(x.debtorIban || x.debtor_iban) ? { ibanH: ibanCode(x.debtorIban || x.debtor_iban) } : {}), technology: String(x.technology || ""), payoutId: x.payoutId ? String(x.payoutId) : "" } }));
   if (!R.length) return { opgeslagen: 0, gesplitst: 0, uitbetalingen: 0 };
   const zonder = R.filter(r => !r.payout).map(r => r.id);
   for (let i = 0; i < zonder.length; i += 300) {
@@ -220,7 +224,7 @@ export async function kalStat(sb, jaar) {
     const iso = `${m[3]}-${m[2]}-${m[1]}`; if (iso < van || iso > tot) continue;
     const S = dagCat.get(iso); if (S && !S.has("Kalenders")) continue;
     const po = r.payout || d.payoutId; if (po ? !gestort.has(po) : !gestortDag.has(iso)) { onderweg = r2(onderweg + (Number(d.amount) || 0)); nOnderweg++; }
-    L.push({ a: r2(Number(d.amount) || 0), d: iso, t: String(d.time || "").slice(0, 5), n: String(d.debtorName || ""), m: /^payconiq /i.test(d.description || "") ? "" : String(d.description || "") }); }
+    L.push({ a: r2(Number(d.amount) || 0), d: iso, t: String(d.time || "").slice(0, 5), n: String(d.debtorName || ""), h: String(d.ibanH || ""), m: /^payconiq /i.test(d.description || "") ? "" : String(d.description || "") }); }
   const laatst = rows.reduce((m, r) => { const x = String((r.data && r.data.date) || "").split("/").reverse().join("-"); return x > m ? x : m; }, "");
   return { betalingen: L.sort((a, b) => (a.d + a.t).localeCompare(b.d + b.t)), laatsteExport: laatst || null, onderweg, nOnderweg };
 }
