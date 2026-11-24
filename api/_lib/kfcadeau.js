@@ -267,13 +267,13 @@ export function bijStand(d, M) {
 /* ---------- bevestigingsmail naar de ouder ----------
    - zodra voor alle kinderen met een budget gekozen is en er niets (meer) bij te betalen is (ook na een wijziging);
    - na een gelukte bijbetaling met Bancontact (met "betaling ontvangen"). */
-export async function kfCadeauMail(sb, id, { betaald = 0 } = {}) {
+export async function kfCadeauMail(sb, id, { betaald = 0, bijTeBetalen = false } = {}) {
   try {
     const { smtpConfigured, afzender, verstuur } = await import("./smtp.js");
     if (!smtpConfigured()) return false;
     const { data: row } = await sb.from("kinderfeest").select("id,data").eq("id", String(id)).maybeSingle(); if (!row) return false;
     const d = row.data, aan = String(d.email || "").trim(); if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(aan)) return false;
-    const { huisstijl, kaderBlok, tabel, rij, p } = await import("./bevestiging.js");
+    const { huisstijl, kaderBlok, tabel, rij, p, betaalBlok, DEF_IBAN } = await import("./bevestiging.js");
     const A = await algemeen(sb), M = kfcInstellingen(await configDoc(sb, "kf_" + d.jaar), d.jaar), S = bijStand(d, M);
     let voornaam = String(d.lid || "").split(" ").slice(-1)[0];
     if (d.lidId) { const { data: l } = await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle(); if (l && l.data && l.data.voornaam) voornaam = l.data.voornaam; }
@@ -288,7 +288,9 @@ export async function kfCadeauMail(sb, id, { betaald = 0 } = {}) {
     }).join("");
     const nKids = (d.kinderen || []).filter(k => budgetVan(k.geb, M, k).budget != null).length;
     const pot = nKids > 1 ? p(`Samen ${eu(S.besteed)} van het totale budget van ${eu(S.pot)}.`) : "";
-    const bet = betaald > 0 ? kaderBlok("Bijbetaling ontvangen", p(`We ontvingen je betaling van <b>${eu(betaald)}</b> met Bancontact. Bedankt!`, "margin:0"), "#1a7f45", "#f1faf4") : "";
+    // ingevuld via het beheer en samen boven het budget: het verschil bijbetalen (Bancontact via de cadeaupagina of overschrijving)
+    const bij = bijTeBetalen && S.teBetalen > 0 ? p(`Samen gaan de cadeaus <b>${eu(S.teBetalen)}</b> boven het budget. Dat bedrag betaal je bij.`) + betaalBlok({ bedrag: S.teBetalen, rekeningnummer: A.rekeningnummer || DEF_IBAN, begunstigde: A.vereniging, mededeling: `${d.lid || ""} Kinderfeest ${d.jaar}`.trim(), tegen: M.tot, link: kfcLink(row.id) }) : "";
+    const bet = bij ? bij : betaald > 0 ? kaderBlok("Bijbetaling ontvangen", p(`We ontvingen je betaling van <b>${eu(betaald)}</b> met Bancontact. Bedankt!`, "margin:0"), "#1a7f45", "#f1faf4") : "";
     const vast = (d.kinderen || []).some(k => k.cadeau && k.cadeau.betaald);
     const wijzig = !vast && vandaagISO() <= M.tot ? p(`Wil je nog iets wijzigen? Dat kan tot en met ${e(lang(M.tot))} via <a href="${e(kfcLink(row.id))}">je cadeaupagina</a>.`) : "";
     const m = await sysMail(sb, "kinderfeest-cadeaukeuze", { voornaam: e(voornaam), jaar: d.jaar, bijbetaald: betaald > 0, bijbetaling: bet, cadeaus: kids, samen: pot, wijzigen: wijzig, datum: M.datum ? e(lang(M.datum)) : "", link_cadeau: e(kfcLink(row.id)) });
@@ -431,7 +433,8 @@ export async function kfCadeauApp(req, res) {
       const nd = { ...d, kinderen };
       if (kinderen.every(x => budgetVan(x.geb, M, x).budget == null || x.cadeau) && !bijStand(nd, M).teBetalen && !(d.cadeau && d.cadeau.doorgegeven)) nd.cadeau = { doorgegeven: true, op: new Date().toISOString(), door };
       const { error } = await sb.from("kinderfeest").update({ data: nd }).eq("id", row.id); if (error) throw error;
-      let gemaild = false; { const S2 = bijStand(nd, M); if (b.mail === true && S2.alleGekozen && !S2.teBetalen) { await kfCadeauMail(sb, row.id); gemaild = true; } }
+      // mail pas als voor alle kinderen van het gezin gekozen is (zoals op de keuzepagina); boven het budget: met betaalgegevens
+      let gemaild = false; { const S2 = bijStand(nd, M); if (b.mail === true && S2.alleGekozen) gemaild = await kfCadeauMail(sb, row.id, { bijTeBetalen: S2.teBetalen > 0 }); }
       const S2 = bijStand(nd, M);
       return res.status(200).json({ ok: true, data: nd, teBetalen: S2.teBetalen || 0, alleGekozen: !!S2.alleGekozen, gemaild });
     }
