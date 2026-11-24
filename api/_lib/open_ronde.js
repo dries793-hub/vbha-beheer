@@ -117,8 +117,8 @@ async function stopToets(sb, jaar, lidId, nieuweStraten) {
   if (hand > 0 && hand * pd >= adr) return;
   const fd = n => (Math.round(n * 4) / 4).toLocaleString("nl-BE") + (n === 1 ? " doos" : " dozen");
   throw httpErr(409, hand > 0
-    ? `De stock aan kalenders is uitgeput. Je hebt nog ${fd(hand)} in handen (± ${Math.round(hand * pd)} kalenders), maar je gereserveerde straten samen met deze selectie tellen ± ${adr} adressen. Kies minder straten of neem contact op met het bestuur. Straten als bedeeld melden kan wel nog.`
-    : "De stock aan kalenders is uitgeput: straten reserveren kan enkel nog met dozen die je al in handen hebt. Straten als bedeeld melden kan wel nog.");
+    ? `De stock aan kalenders is uitgeput. Je hebt nog ${fd(hand)}, maar je gereserveerde straten samen met deze selectie tellen ± ${adr} adressen. Kies minder straten of neem contact op met het bestuur. Straten als bedeeld melden kan wel nog.`
+    : "De stock aan kalenders is uitgeput: straten reserveren kan enkel nog met dozen die je al hebt. Straten als bedeeld melden kan wel nog.");
 }
 async function reserveerGestopt(sb) { try { const { data } = await sb.from("config").select("data").eq("id", "kaart").maybeSingle(); return data?.data?.reserveerStop === true; } catch (e) { return false; } }
 

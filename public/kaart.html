@@ -2765,7 +2765,7 @@ const krGroepenRuw=krGroepen;
 {const _g=krGroepen,KV=new Map();krGroepen=function(sid){if(KV.has(sid))return KV.get(sid);const V=_g(sid).filter(g=>g.a>0);V.forEach((g,i)=>g.n=i+1);KV.set(sid,V);return V}}
 
 /* verborgen straten en stukken (geen woonstraat), ingesteld in de app (config "kaart".verborgen) */
-const KR_STOP_TEKST="De stock aan kalenders is uitgeput: reserveren kan enkel nog met dozen die je al in handen hebt. Straten als bedeeld melden kan wel nog.";let KR_VERB=new Set(),KR_VERB_OK=false;const KR_GV=new Map();let krGroepenBasis=null;
+const KR_STOP_TEKST="De stock aan kalenders is uitgeput: reserveren kan enkel nog met dozen die je al hebt. Straten als bedeeld melden kan wel nog.";let KR_VERB=new Set(),KR_VERB_OK=false;const KR_GV=new Map();let krGroepenBasis=null;
 const krLijnSl=(sid,p)=>sid+"@"+[p[0],p[p.length-1]].map(q=>(+q[0]).toFixed(5)+","+(+q[1]).toFixed(5)).sort().join(">");
 /* losse lijnstukken verbergen (op- en afritten, ventwegen, lussen op een kruispunt): sleutel "straat@begin>einde" */
 /* "straat#lat,lng,r": punten van lijnen van die straat binnen r meter van het punt weglaten (een haakje of lusje)
@@ -3186,7 +3186,7 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
         bg.querySelector(".km").innerHTML=soort==="d"?`<p class="km-okt" role="status"><i aria-hidden="true">✓</i>Bedeling doorgegeven</p><p>Bedankt, ${vn}! ${j.gemeld>0?`Je <b>${fd(j.gemeld)}</b> ${j.gemeld>1?"tellen":"telt"} meteen mee in de teller en de`:"De"} straten staan in het groen. Het bestuur kijkt je melding nog na.</p>${dz&&dz.nodig?`<p>Het bestuur weet dat je nog ${dz.nodigN?fd(dz.nodigN):"dozen"} nodig hebt.</p>`:""}<div class="km-a"><button type="button" class="vb-btn2" data-km="x">Sluiten</button></div>`
           :`<p class="km-okt" role="status"><i aria-hidden="true">✓</i>Gereserveerd</p><p>Bedankt, ${vn}! ${ids.length===1?"De straat staat":"De straten staan"} nu op jouw naam (blauw op de kaart).</p><div class="km-a"><button type="button" class="vb-btn2" data-km="x">Sluiten</button></div>`;
         krSelect(null);try{krLive()}catch(e){}}
-      catch(x){err.textContent=/andere naam|al als bedeeld|niet meer beschikbaar/.test(x.message)?x.message:x.message+" Je selectie en keuzes blijven bewaard: probeer opnieuw.";a.disabled=false;a.textContent="Bevestigen"}});
+      catch(x){err.textContent=/andere naam|andere collega|al als bedeeld|niet meer beschikbaar|stock aan kalenders/.test(x.message)?x.message:x.message+" Je selectie en keuzes blijven bewaard: probeer opnieuw.";a.disabled=false;a.textContent="Bevestigen"}});
     document.addEventListener("keydown",function k(e){if(e.key==="Escape"){dicht();document.removeEventListener("keydown",k)}});
     /* reserveren: altijd eerst bevestigen met de rode knop (Annuleren ernaast) */
     if(!(IKX&&IKX.id))setTimeout(()=>inp.focus(),50)}
