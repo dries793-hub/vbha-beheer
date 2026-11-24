@@ -1684,7 +1684,7 @@ table.ptab{width:100%!important}.ptab td .pt-vast{display:inline-block;min-heigh
   <div class="tiles kf-t kf-t4">${ee("Totale winst",`<span style="color:var(--${j>=0?"good":"bad"})">${j>=0?"":"−"}${kfEur(Math.abs(j))}</span>`,"")}
     ${ee("Omzet kalenders",kfEur(p),"")}
     
-    ${ee("Kosten kalenders",kfEur(u),"")}${ee("Respons",B&&KF.data?kalRespons(F,B):"–",B&&KF.data?"betalingen per bedeelde kalender":"")}</div>
+    ${ee("Kosten kalenders",kfEur(u),"")}${ee("Respons",B&&KF.data?kalRespons(F,B):"–","")}</div>
 
   <div class="panel"><div class="panel-h"><h2>Betalingen</h2><span class="kf-lg"><i></i>Bancontact${F?" "+Math.round(Q/F*100)+"%":""} <i class="ov"></i>overschrijving${F?" "+(100-Math.round(Q/F*100))+"%":""}</span></div>
    ${KF.bezig&&!KF.data?'<div class="laad" role="status"><span class="lader-c"></span><span class="sr">Laden</span></div>':KF.fout?`<div class="empty">${esc(KF.fout)}</div>`:F?`
