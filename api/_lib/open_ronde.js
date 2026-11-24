@@ -74,7 +74,11 @@ async function tellerVan(sb, jaar, pd) {
   const { data: t, error } = await sb.rpc("ronde_teller", { p_jaar: Number(jaar) }); if (error) throw error;
   const voorl = Number(t?.voorlopig) || 0;
   if (!(stock > 0)) return null;
-  return { bedeeld: Math.round((ui + voorl) * per), totaal: Math.round(stock * per), teControleren: Number(t?.teControleren) || 0 };
+  // op de openbare kaart kan het totaal begrensd worden (config kaart.openbaarMax, bv. 20.000 terwijl er in de stock een overschot zit)
+  let max = 0; try { const { data: kc } = await sb.from("config").select("data").eq("id", "kaart").maybeSingle(); max = Number(kc?.data?.openbaarMax) || 0; } catch (e) { }
+  let totaal = Math.round(stock * per), bedeeld = Math.round((ui + voorl) * per);
+  if (max > 0 && max < totaal) { totaal = max; bedeeld = Math.min(bedeeld, max); }
+  return { bedeeld, totaal, teControleren: Number(t?.teControleren) || 0 };
 }
 const naamVan = s => { const [id, n] = String(s).split("~"); const [st, dg] = id.split("--"); const t = st.replace(/-/g, " ").replace(/^./, c => c.toUpperCase()); return (dg ? `${t} (${dg.replace(/-/g, " ").replace(/^./, c => c.toUpperCase())})` : t) + (n != null ? ` (stuk ${Number(n) + 1})` : ""); };
 const conflictTekst = C => { const n = C.map(c => naamVan(c.s)); return (n.length === 1 ? `${n[0]} is` : `${n.slice(0, -1).join(", ")} en ${n[n.length - 1]} zijn`) + " niet meer beschikbaar."; };
