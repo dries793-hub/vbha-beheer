@@ -105,15 +105,15 @@ export async function goudApp(req, res) {
 }
 
 /* Automatische mails bij nieuwe punten en/of bij een wijziging van status (aan te zetten in config algemeen: puntenMail.aan, statusMail.aan).
-   Per lid wordt in de afgeschermde tabel punten_mailstand bijgehouden wat het laatst gemeld werd. Pas als er 30 minuten niets meer aan het lid veranderde,
-   gaat er één mail (zo krijgt wie meerdere dozen na elkaar ingevuld krijgt maar één bericht). De eerste keer worden enkel de standen bewaard. */
+   Per lid wordt in de afgeschermde tabel punten_mailstand bijgehouden wat het laatst gemeld werd. Eén keer per dag om 20 u
+   gaat er per lid één mail met alles wat sinds de vorige mail bijkwam. De eerste keer worden enkel de standen bewaard. */
 const ONDERDELEN = [["kaarten", "kaarten", "verkoop kaarten fuif"], ["kalUitgevoerd", "kalenders", "kalenders bussen"], ["shifts", "shifts", "hulp bij activiteiten"], ["vergaderingen", "vergaderingen", "vergaderingen"]];
 let STATUS = { geen: "geen status", brons: "Brons", zilver: "Zilver", goud: "Goud" };
 const statusVan = (pt, dr) => pt >= dr.goud ? "goud" : pt >= dr.zilver ? "zilver" : pt >= (dr.brons || 0) ? "brons" : "geen";
 const stand = j => ({ kaarten: j.kaarten || 0, kalUitgevoerd: j.kalUitgevoerd || 0, shifts: j.shifts || 0, act: aantalAct(j), shiftPt: Number(j.shiftPt) || 0, vergaderingen: j.vergaderingen || 0, extraPunten: j.extraPunten || 0 });
 registreer({ key: "punten", naam: "Puntensysteem: nieuwe punten of status", wanneer: "Als er nieuwe punten bijkomen of de status voor volgend jaar verandert (aan te zetten in de instellingen van het puntensysteem).",
   onderwerp: "{als:status_nieuw}Je status voor {volgend_jaar}: {status}{/als:status_nieuw}{niet:status_nieuw}Nieuwe punten: je totaal is nu {totaal} pt{/niet:status_nieuw}",
-  body: p("Dag {voornaam}!") + "{als:nieuwe_punten}" + p("Zonet werden er nieuwe punten voor je toegevoegd:") + kaderBlok("Nieuwe punten", "{nieuwe_punten}") + "{/als:nieuwe_punten}"
+  body: p("Dag {voornaam}!") + "{als:nieuwe_punten}" + p("Er werden nieuwe punten voor je toegevoegd:") + kaderBlok("Nieuwe punten", "{nieuwe_punten}") + "{/als:nieuwe_punten}"
     + p("Jouw totaal voor {jaar} bedraagt nu <b>{totaal} punten</b>. {status_zin}") + p("Bedankt voor je inzet voor de Vriendenkring!") + "<p>{knop_status}</p>",
   velden: [["voornaam", "Voornaam"], ["jaar", "Werkjaar"], ["volgend_jaar", "Volgend jaar"], ["totaal", "Totaal punten"], ["status", "Status volgend jaar"], ["status_vorig", "Vorige status"], ["status_zin", "Zin over de status"], ["nieuwe_punten", "Lijst nieuwe punten"], ["link_status", "Persoonlijke link statuspagina"], ["knop_status", "Knop statuspagina"], ["status_nieuw", "Voorwaarde: status gewijzigd"]],
   voorbeeld: { voornaam: "Jan", jaar: "2026", volgend_jaar: "2027", totaal: "150", status: "Zilver", status_vorig: "Brons", status_zin: "Daarmee is je status voor 2027 <b>Zilver</b>.", nieuwe_punten: "", link_status: "https://vbha.be/status", status_nieuw: "" } });
@@ -135,7 +135,13 @@ export async function puntenCron(sb) {
   const { data: ms } = await sb.from("punten_mailstand").select("id,stand").like("id", Y + "\\_%").limit(3000);
   const MS = new Map((ms || []).map(r => [r.id, r.stand]));
   const sleutel = `${PM.aan === true ? "p" : ""}${SM.aan === true ? "s" : ""}-${Y}`, eersteKeer = C.puntenStart !== sleutel;
-  const rust = Date.now() - 30 * 60000, verschil = [];
+  const verschil = [];
+  // puntenmails één keer per dag, om 20 u (Brussel; instelbaar met puntenMail.uur): alles van die dag (en wat nog niet gemeld werd) samen in één mail.
+  // De gemelde stand wordt pas bijgewerkt bij het versturen, dus wijzigingen tellen vanzelf op tot het volgende mailmoment.
+  const nuBxl = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hour12: false }).formatToParts(new Date()).reduce((o, x) => (o[x.type] = x.value, o), {});
+  const dag = `${nuBxl.year}-${nuBxl.month}-${nuBxl.day}`, uur = Number(nuBxl.hour) % 24;
+  const { data: pmd } = await sb.from("config").select("data").eq("id", "puntenmail").maybeSingle();
+  const magMailen = uur >= Number(PM.uur ?? 20) && !(pmd && pmd.data && pmd.data.dag === dag);
   // tijdelijke pauze (config algemeen.puntenPauze = ISO-tijd): wijzigingen tot dan worden enkel opgeslagen, niet gemaild
   const pauze = C.puntenPauze && Date.now() < Date.parse(C.puntenPauze);
   for (const r of jl || []) {
@@ -147,7 +153,7 @@ export async function puntenCron(sb) {
     // punten van vergaderingen: geen puntenmail, enkel de stand bijwerken (wie zo goud haalt, krijgt wel de proficiat-mail via goudCron)
     const omhoog = Object.keys(nu).filter(k => k !== "act" && nu[k] > (m[k] || 0));
     if (omhoog.length && omhoog.every(k => k === "vergaderingen")) { verschil.push({ r, nu, pt, st, init: true }); continue; }
-    if (new Date(r.updated_at || 0).getTime() > rust) continue; // nog even wachten tot het invullen klaar is
+    if (!magMailen) continue; // wachten tot het dagelijkse mailmoment (20 u)
     verschil.push({ r, nu, pt, st, m, meer, ander });
   }
   if (!verschil.length) { if (eersteKeer) await sb.from("config").update({ data: { ...C, puntenStart: sleutel } }).eq("id", "algemeen"); return { nieuw: 0 }; }
@@ -188,6 +194,7 @@ export async function puntenCron(sb) {
   if (standen.length) { const { error } = await sb.from("punten_mailstand").upsert(standen); if (error) throw error; }
   for (const z of goudZet) await sb.from("jaarleden").update({ data: z.data }).eq("id", z.id);
   if (eersteKeer) await sb.from("config").update({ data: { ...C, puntenStart: sleutel } }).eq("id", "algemeen");
-  return { bekeken: verschil.length, mails: mails.length, eersteKeer };
+  if (magMailen) await sb.from("config").upsert({ id: "puntenmail", data: { dag, op: new Date().toISOString(), mails: mails.length } });
+  return { bekeken: verschil.length, mails: mails.length, eersteKeer, magMailen };
 }
 const statusRang = s => ({ brons: 1, zilver: 2, goud: 3 })[s] || 0;
