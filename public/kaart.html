@@ -3169,7 +3169,7 @@ setInterval(()=>{if(!document.hidden)krLive()},30000);document.addEventListener(
       else h+=`<p class="km-dw">Volgens onze lijst heb je geen dozen met kalenders. Neem contact op met het bestuur.</p>`;
       dzBox.innerHTML=h}
     function dzKlaar(){if(dzBox.hidden)return true;if(DZ.op==null)return false;
-      if(DZ.op>0){if(DZ.over===false)return true;if(DZ.over!==true)return false;const r=dzRest();return r>0&&(DZ.vorig?r<=DZ.op+1e-9:r<DZ.op-1e-9)}
+      if(DZ.op>0){if(DZ.over===false)return !NODIG_AAN||DZ.nodig!=null;/* "Nog dozen nodig?" is verplicht */if(DZ.over!==true)return false;const r=dzRest();return r>0&&(DZ.vorig?r<=DZ.op+1e-9:r<DZ.op-1e-9)}
       return DZ.op>0} // geen dozen volgens de lijst: niet als gedaan melden, contact opnemen met het bestuur
     function dzData(){if(dzBox.hidden||DZ.op==null)return undefined;const o={opBij:DZ.op};
       if(DZ.op>0){o.over=DZ.over;if(DZ.over)o.rest=dzRest();else o.af="alle"}
