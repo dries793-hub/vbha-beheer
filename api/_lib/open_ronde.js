@@ -106,7 +106,20 @@ async function zetMeeTeGeven(sb, jaar, lidId) {
 }
 
 /* reserveren stopgezet door het bestuur (config "kaart".reserveerStop): stock aan kalenders uitgeput; bedeling melden kan wel nog */
-const STOP_TEKST = "De stock aan kalenders is uitgeput: straten reserveren kan niet meer. Straten als bedeeld melden kan wel nog.";
+/* bij een stop: wie nog genoeg dozen in handen heeft (verdeling, kalOpgehaald) mag wel reserveren, voor zover die dozen
+   volstaan voor al zijn gereserveerde, nog niet bedeelde straten samen met de nieuwe */
+async function stopToets(sb, jaar, lidId, nieuweStraten) {
+  if (!(await reserveerGestopt(sb))) return;
+  const hand = await opVan(sb, jaar, lidId);
+  const { data: jr } = await sb.from("jaren").select("data").eq("id", String(jaar)).maybeSingle(); const pd = Number(jr?.data?.perDoos) || 100;
+  const open = (await rondeRijen(sb, jaar)).filter(d => d.status === "reserved" && d.lidId === lidId).map(d => d.straat);
+  const ids = [...new Set([...open, ...nieuweStraten])], adr = (await adressenVan(ids)).reduce((t, a) => t + (a || 0), 0);
+  if (hand > 0 && hand * pd >= adr) return;
+  const fd = n => (Math.round(n * 4) / 4).toLocaleString("nl-BE") + (n === 1 ? " doos" : " dozen");
+  throw httpErr(409, hand > 0
+    ? `De stock aan kalenders is uitgeput. Je hebt nog ${fd(hand)} in handen (± ${Math.round(hand * pd)} kalenders), maar je gereserveerde straten samen met deze selectie tellen ± ${adr} adressen. Kies minder straten of neem contact op met het bestuur. Straten als bedeeld melden kan wel nog.`
+    : "De stock aan kalenders is uitgeput: straten reserveren kan enkel nog met dozen die je al in handen hebt. Straten als bedeeld melden kan wel nog.");
+}
 async function reserveerGestopt(sb) { try { const { data } = await sb.from("config").select("data").eq("id", "kaart").maybeSingle(); return data?.data?.reserveerStop === true; } catch (e) { return false; } }
 
 /* POST /api/ronde {actie:"reserveer", straten, lidId | l,j,t} */
@@ -114,10 +127,10 @@ async function reserveer(req, res, b) {
   res.setHeader("Cache-Control", "no-store");
   if (b.website) return res.status(200).json({ ok: true }); // honeypot
   const sb = admin(); await rateLimit(sb, req, "rondereserveer", 60, 3600, httpErr);
-  if (await reserveerGestopt(sb)) throw httpErr(409, STOP_TEKST);
   const straten = schoonStraten(b.straten); if (!straten.length) throw httpErr(400, "Kies minstens één straat.");
   const A = await algemeen(sb), { lid, bron } = await wie(sb, A, b);
   const adr = await adressenVan(straten); if (adr.some(a => a == null)) throw httpErr(400, "Een of meer straten bestaan niet op de kaart.");
+  await stopToets(sb, Number(A.jaar), lid.id, straten);
   const { data: r, error } = await sb.rpc("ronde_reserveer", { p_jaar: Number(A.jaar), p_straten: straten, p_lid: lid.id, p_by: [lid.voornaam, lid.an].filter(Boolean).join(" ") || lid.naam, p_bron: bron });
   if (error) throw error;
   if (r && r.fout === "dubbel") throw httpErr(400, "Je koos een straat én een stuk van diezelfde straat. Kies één van beide.");
@@ -262,7 +275,7 @@ async function herReserveer(req, res, b, doe) {
   if (!doe) { const { data: jr } = await sb.from("jaren").select("data").eq("id", String(j)).maybeSingle(); const tg = String(jr?.data?.kalTegen || "");
     return res.status(200).json({ voornaam: L.voornaam || "", jaar: j, tegen: /^\d{4}-\d{2}-\d{2}$/.test(tg) ? tg : "", straten: vorig.map(s => ({ s, st: mijn.has(s) ? "mijn" : vrij(s) ? "vrij" : "bezet" })) }); }
   let nieuw = vorig.filter(vrij);
-  if (nieuw.length && await reserveerGestopt(sb)) throw httpErr(409, STOP_TEKST);
+  if (nieuw.length) await stopToets(sb, j, l, nieuw);
   if (nieuw.length) {
     // zelfde databasefunctie als gewoon reserveren (na elkaar, alles of niets); wat intussen bezet raakte, valt weg
     const by = [L.voornaam, L.naam].filter(Boolean).join(" ");
