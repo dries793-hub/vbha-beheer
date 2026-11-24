@@ -957,3 +957,8 @@ body.vb-app .zelf summary{gap:12px;list-style:none}
 body.vb-app .zelf summary::-webkit-details-marker{display:none}
 body.vb-app .zelf summary::after{content:"";flex:none;margin-left:auto;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-3px) rotate(45deg);transition:transform .15s}
 body.vb-app .zelf[open] summary::after{transform:translateY(2px) rotate(-135deg)}
+
+/* donkere modus: de kopbalk blijft donker (het logo is wit) */
+body.vb .hdr{background:#18191C}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body.vb .hdr{background:#1C1D21;border-bottom:1px solid rgba(255,255,255,.08)}}
+:root[data-theme="dark"] body.vb .hdr{background:#1C1D21;border-bottom:1px solid rgba(255,255,255,.08)}

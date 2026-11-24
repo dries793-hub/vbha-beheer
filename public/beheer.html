@@ -1650,6 +1650,20 @@ details[data-vrd]>summary{display:flex;align-items:baseline;gap:6px;flex-wrap:wr
 .mp-sl{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))!important}
 .mp-sl label,.form .mp-sl label{white-space:normal!important;min-width:0;align-items:flex-start!important;line-height:1.35}
 .mp-sl label input[type=checkbox]{margin-top:0!important}
+/* variabelen die modules gebruiken maar nergens gedefinieerd waren (vielen terug op lichte kleuren, ook in de donkere modus) */
+:root{--soft:var(--sunken);--card:var(--surface);--text:var(--text-primary);--hover:rgba(0,0,0,.04);--ok:var(--good)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--hover:rgba(255,255,255,.06)}}
+:root[data-theme="dark"]{--hover:rgba(255,255,255,.06)}
+/* datumtegel in de agenda: tekst in de waarschuwingstint van het thema */
+.ag-dt{background:var(--vb-warn-soft,#fdf1dc)!important;color:var(--vb-warn-ink,#8a5a12)!important}
+/* gekozen knop in het mail- en sms-ontwerp: tekst in de achtergrondkleur (wit in licht, donker in donker) */
+.mo-si.on{color:var(--bg-page,#fff)!important}
+/* kalenderknoppen "Bezig" / "Klaar" in de donkere modus */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .kal-bezig{color:#A9C2F2!important;border-color:#2B4A85!important;background:#16233E!important}:root:not([data-theme="light"]) .kal-bezig:hover{background:#1C2D50!important}:root:not([data-theme="light"]) .kal-klaar{color:#7FD8A6!important;border-color:#1F5C3B!important;background:#10281C!important}}
+:root[data-theme="dark"] .kal-bezig{color:#A9C2F2!important;border-color:#2B4A85!important;background:#16233E!important}:root[data-theme="dark"] .kal-klaar{color:#7FD8A6!important;border-color:#1F5C3B!important;background:#10281C!important}
+/* status inschrijfpagina en shiftlijst in de donkere modus */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .spi-st[data-k="open"]{border-color:#1F5C3B;background:#10281C}:root:not([data-theme="light"]) .spi-st[data-k="verlopen"]{border-color:#7A5A12;background:#2E2510}:root:not([data-theme="light"]) .spi-sw-t{background:#3A3C42}:root:not([data-theme="light"]) .sh-sli.ok{background:#10281C;border-color:#1F5C3B}:root:not([data-theme="light"]) .sh-sli small{color:#7FD8A6}}
+:root[data-theme="dark"] .spi-st[data-k="open"]{border-color:#1F5C3B;background:#10281C}:root[data-theme="dark"] .spi-st[data-k="verlopen"]{border-color:#7A5A12;background:#2E2510}:root[data-theme="dark"] .sh-sli.ok{background:#10281C;border-color:#1F5C3B}
 </style>
 <style>
 /* ============ Kinderfeest (Administratie › Kinderfeest) — eigen klassen met prefix kf- ============ */
@@ -3493,7 +3507,7 @@ zesbunderstraat~0 12
 zesbunderstraat~1 0
 zesbunderstraat~2 0
 </script>
-<script src="/app.js?v=845b02e9cb"></script>
+<script src="/app.js?v=b77171a284"></script>
 <script type="text/plain" id="krLijn">
 t-maegelijnplein cb|uHansWKu@Ue@
 1-meistraat mq|uHm|tWc@Q qr|uH_}tWWM is|uHm}tWQOUc@I]Ce@B{C
