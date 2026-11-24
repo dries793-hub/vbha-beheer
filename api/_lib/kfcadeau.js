@@ -13,7 +13,7 @@ const KP = (t, st = "margin:0 0 16px") => `<p style="${st}">${t}</p>`;
 registreer({ key: "kinderfeest-cadeaukeuze", naam: "Kinderfeest: cadeaukeuze ontvangen", wanneer: "Als een ouder het cadeau online kiest (of de bijbetaling doet).",
   onderwerp: "{als:bijbetaald}VBHA - Bijbetaling ontvangen, cadeaus kinderfeest {jaar}{/als:bijbetaald}{niet:bijbetaald}VBHA - Cadeaukeuze kinderfeest {jaar} ontvangen{/niet:bijbetaald}",
   body: KP("Dag {voornaam}!") + KP("{als:bijbetaald}Je bijbetaling is in orde: we bestellen de cadeaus die je koos voor het kinderfeest.{/als:bijbetaald}{niet:bijbetaald}Bedankt! We ontvingen je cadeaukeuze voor het kinderfeest.{/niet:bijbetaald}")
-    + "<p>{bijbetaling}</p><p>{cadeaus}</p><p>{samen}</p><p>{wijzigen}</p>" + KP("Tot op het kinderfeest{als:datum} van {datum}{/als:datum}!"),
+    + "<p>{bijbetaling}</p><p>{cadeaus}</p><p>{samen}</p><p>{wijzigen}</p>" + KP("Tot op het kinderfeest!"),
   velden: [["voornaam", "Voornaam"], ["jaar", "Jaar"], ["datum", "Datum kinderfeest"], ["cadeaus", "Gekozen cadeaus per kind"], ["bijbetaling", "Blok bijbetaling ontvangen"], ["samen", "Zin over het totale budget"], ["wijzigen", "Zin over wijzigen"], ["link_cadeau", "Link cadeaupagina"], ["bijbetaald", "Voorwaarde: bijbetaling"]],
   voorbeeld: { voornaam: "Jan", jaar: "2026", datum: "zaterdag 19 december 2026", link_cadeau: "https://vbha.be/cadeau", bijbetaald: "" } });
 registreer({ key: "kinderfeest-cadeau-online", naam: "Kinderfeest: kies het cadeau online", wanneer: "Als je bij Kinderfeest de ingeschreven ouders laat weten dat ze het cadeau online kunnen kiezen.",
