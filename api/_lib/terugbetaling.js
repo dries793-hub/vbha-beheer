@@ -13,12 +13,12 @@ import { registreer, sysMail } from "./sjabloon.js";
 
 registreer({ key: "onkosten-link", naam: "Onkosten terugvragen (link naar een lid)", wanneer: "Als je bij Onkostennota's de algemene link naar een lid mailt.",
   onderwerp: "Onkosten terugvragen bij de Vriendenkring",
-  body: ({ p, kaderBlok }) => p("Beste {voornaam},") + p("Heb je kosten gemaakt voor de Vriendenkring? Via de knop hieronder vraag je ze eenvoudig terug.")
+  body: ({ p, kaderBlok }) => p("Dag {voornaam}!") + p("Heb je kosten gemaakt voor de Vriendenkring? Via de knop hieronder vraag je ze eenvoudig terug.")
     + kaderBlok("Hoe werkt het?", p("Kies je naam, vul het bedrag en de reden in, voeg een foto van het kasticket of de factuur toe en geef je rekeningnummer door. Na goedkeuring storten we het bedrag terug.", "margin:0")) + "<p>{knop_onkosten}</p>",
   velden: [["voornaam", "Voornaam"], ["link_onkosten", "Link onkostennota"], ["knop_onkosten", "Knop onkosten terugvragen"]], voorbeeld: { voornaam: "Jan", link_onkosten: "https://vbha.be/onkosten" } });
 registreer({ key: "terugbetaling-iban", naam: "Terugbetaling: rekeningnummer opvragen", wanneer: "Als je bij een terugbetaling de link mailt om het rekeningnummer door te geven.",
   onderwerp: "Terugbetaling: geef je rekeningnummer door",
-  body: ({ p, kaderBlok }) => p("Beste {voornaam},") + p("De Vriendenkring betaalt je <b>{bedrag}</b> terug{als:reden} voor <b>{reden}</b>{/als:reden}.")
+  body: ({ p, kaderBlok }) => p("Dag {voornaam}!") + p("De Vriendenkring betaalt je <b>{bedrag}</b> terug{als:reden} voor <b>{reden}</b>{/als:reden}.")
     + kaderBlok("Wat moet je doen?", p("Geef via de knop hieronder je rekeningnummer (IBAN) door. Daarna schrijven we het bedrag zo snel mogelijk naar je over.", "margin:0")) + "<p>{knop_iban}</p>",
   velden: [["voornaam", "Voornaam"], ["bedrag", "Bedrag"], ["reden", "Reden"], ["link_iban", "Persoonlijke link"], ["knop_iban", "Knop rekeningnummer doorgeven"]], voorbeeld: { voornaam: "Jan", bedrag: "€ 25,00", reden: "drank kinderfeest", link_iban: "https://vbha.be/terug" } });
 registreer({ key: "onkosten-boekhouding", naam: "Nieuwe onkostennota (aan de boekhouding)", wanneer: "Als iemand een onkostennota indient; gaat naar de boekhouding.",

@@ -267,17 +267,17 @@ export const pdfNaam = f => `${f.type === "credit" ? "Creditnota" : "Factuur"} $
 /* ---------- mail ---------- */
 // aanspreking: bij sponsors enkel de voornaam van het contact (of gewoon "Beste,"); anders contact of naam
 function groetVan(k) {
-  if (k.sponsorId) { const vn = String(k.voornaam || String(k.contact || "").trim().split(/\s+/)[0] || "").trim(); return vn ? `Beste ${esc(vn)},` : "Beste,"; }
-  // contactpersoon: enkel de voornaam ("Beste Sem,"); zonder contactpersoon de naam van de klant
-  if (k.contact) { const vn = String(k.contact).trim().split(/\s+/)[0]; return `Beste ${esc(vn)},`; }
-  return `Beste ${esc(k.naam || "")},`.replace(" ,", ",");
+  if (k.sponsorId) { const vn = String(k.voornaam || String(k.contact || "").trim().split(/\s+/)[0] || "").trim(); return vn ? `Dag ${esc(vn)}!` : "Hallo!"; }
+  // contactpersoon: enkel de voornaam ("Dag Sem!"); zonder contactpersoon de naam van de klant
+  if (k.contact) { const vn = String(k.contact).trim().split(/\s+/)[0]; return `Dag ${esc(vn)}!`; }
+  return `Dag ${esc(k.naam || "")}!`.replace(" !", "!").replace(/^Dag !$/, "Hallo!");
 }
 function vul(t, f, cfg, T) {
   return String(t || "").replace(/\{(\w+)\}/g, (m, k) => ({ naam: (f.klant && (f.klant.contact || f.klant.naam)) || "", nr: f.nr || "", bedrag: eur(T.totaal), vervaldatum: kort(f.vervaldatum), vereniging: cfg.vereniging }[k] ?? m));
 }
 const FKL = t => p(t, "margin:0 0 15px;font-size:13.5px;color:#666666");
-const FV = [["aanspreking", "Aanspreking (Beste …,)"], ["nr", "Factuurnummer"], ["klant", "Klant"], ["vereniging", "Naam vereniging"], ["datum", "Factuurdatum"], ["vervaldatum", "Vervaldatum"], ["bedrag", "Bedrag factuur"], ["open", "Nog te betalen"], ["mededeling", "Mededeling"], ["link_betalen", "Link online betalen"], ["factuur", "Kader met de factuurgegevens"], ["betalen", "Blok betalen (met knop)"]];
-const FVV = { aanspreking: "Beste Jan,", nr: "F2026010", klant: "Bakkerij Peeters", vereniging: "Vriendenkring Brandweer Hoofdpost Aalst", datum: "18 november 2026", vervaldatum: "18 december 2026", bedrag: "€250,00", open: "€250,00", mededeling: "+++123/4567/89012+++", link_betalen: "https://vbha.be/betaal" };
+const FV = [["aanspreking", "Aanspreking (Dag …!)"], ["nr", "Factuurnummer"], ["klant", "Klant"], ["vereniging", "Naam vereniging"], ["datum", "Factuurdatum"], ["vervaldatum", "Vervaldatum"], ["bedrag", "Bedrag factuur"], ["open", "Nog te betalen"], ["mededeling", "Mededeling"], ["link_betalen", "Link online betalen"], ["factuur", "Kader met de factuurgegevens"], ["betalen", "Blok betalen (met knop)"]];
+const FVV = { aanspreking: "Dag Jan!", nr: "F2026010", klant: "Bakkerij Peeters", vereniging: "Vriendenkring Brandweer Hoofdpost Aalst", datum: "18 november 2026", vervaldatum: "18 december 2026", bedrag: "€250,00", open: "€250,00", mededeling: "+++123/4567/89012+++", link_betalen: "https://vbha.be/betaal" };
 registreer({ key: "factuur", naam: "Factuur versturen", wanneer: "Als je een factuur mailt (de factuur zit als PDF in bijlage).",
   onderwerp: "Factuur {nr} - {vereniging}",
   body: p("{aanspreking}") + p("Hartelijk dank voor je steun aan de {vereniging}. In bijlage vind je factuur <b>{nr}</b>.") + "<p>{factuur}</p><p>{betalen}</p>" + FKL("Vragen over deze factuur? Antwoord gewoon op deze mail."),
@@ -302,12 +302,12 @@ registreer({ key: "creditnota", naam: "Creditnota versturen", wanneer: "Als je e
   body: p("{aanspreking}") + p("In bijlage vind je creditnota <b>{nr}</b>{als:voor_factuur} voor factuur <b>{voor_factuur}</b>{/als:voor_factuur} ten bedrage van <b>{bedrag}</b>.")
     + p("{als:voor_factuur}Hiermee vervalt het openstaande bedrag van die factuur. {/als:voor_factuur}Je hoeft niets te doen.") + "<p>{factuur}</p>" + FKL("Vragen over deze creditnota? Antwoord gewoon op deze mail."),
   velden: [["aanspreking", "Aanspreking"], ["nr", "Nummer creditnota"], ["voor_factuur", "Voor factuur"], ["klant", "Klant"], ["vereniging", "Naam vereniging"], ["datum", "Datum"], ["bedrag", "Bedrag"], ["factuur", "Kader met de gegevens"]],
-  voorbeeld: { aanspreking: "Beste Jan,", nr: "C2026002", voor_factuur: "F2026010", klant: "Bakkerij Peeters", vereniging: "Vriendenkring Brandweer Hoofdpost Aalst", datum: "18 november 2026", bedrag: "€250,00" } });
+  voorbeeld: { aanspreking: "Dag Jan!", nr: "C2026002", voor_factuur: "F2026010", klant: "Bakkerij Peeters", vereniging: "Vriendenkring Brandweer Hoofdpost Aalst", datum: "18 november 2026", bedrag: "€250,00" } });
 registreer({ key: "factuur-betaald", naam: "Factuur: online betaling ontvangen", wanneer: "Als een klant een factuur online betaalt met Bancontact.",
   onderwerp: "Betaling ontvangen voor factuur {nr}",
   body: p("{aanspreking}") + kaderBlok("&#10003; Betaling ontvangen", p("We ontvingen je betaling van <b>{bedrag}</b> voor factuur <b>{nr}</b> via Bancontact. Hartelijk dank!", "margin:0"), "#1a7f45", "#f1faf4")
     + "{als:bijlage}" + p("In bijlage vind je de factuur, met de vermelding dat ze betaald is.") + "{/als:bijlage}",
-  velden: [["aanspreking", "Aanspreking"], ["nr", "Factuurnummer"], ["bedrag", "Bedrag"], ["vereniging", "Naam vereniging"], ["bijlage", "Voorwaarde: factuur in bijlage"]], voorbeeld: { aanspreking: "Beste Jan,", nr: "F2026010", bedrag: "€250,00", vereniging: "Vriendenkring Brandweer Hoofdpost Aalst", bijlage: "1" } });
+  velden: [["aanspreking", "Aanspreking"], ["nr", "Factuurnummer"], ["bedrag", "Bedrag"], ["vereniging", "Naam vereniging"], ["bijlage", "Voorwaarde: factuur in bijlage"]], voorbeeld: { aanspreking: "Dag Jan!", nr: "F2026010", bedrag: "€250,00", vereniging: "Vriendenkring Brandweer Hoofdpost Aalst", bijlage: "1" } });
 export async function factuurMail(sb, f, cfg, soort = "factuur", status, extra = "") {
   const T = totalen(f), k = f.klant || {}, credit = f.type === "credit";
   const open = status ? status.open : T.totaal;

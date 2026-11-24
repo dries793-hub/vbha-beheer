@@ -104,13 +104,13 @@ const BETAALD = (d, bedrag) => d.betaling && d.betaling.status === "SUCCEEDED" &
 const AFS = t => p(t);
 registreer({ key: "banket-bevestiging", naam: "Banket: bevestiging inschrijving", wanneer: "Na een inschrijving voor het banket (na de online betaling, of na 20 minuten met de gegevens om over te schrijven).",
   onderwerp: "VBHA - Bevestiging inschrijving banket {jaar}",
-  body: AFS("Beste {voornaam},") + AFS("Bedankt voor je inschrijving voor ons banket. Hieronder vind je nog eens alle gegevens.") + kaderBlok("Banket {jaar}", "{gegevens}") + "<p>{betaling}</p>"
+  body: AFS("Dag {voornaam}!") + AFS("Bedankt voor je inschrijving voor ons banket. Hieronder vind je nog eens alle gegevens.") + kaderBlok("Banket {jaar}", "{gegevens}") + "<p>{betaling}</p>"
     + AFS("{als:betaald}Je inschrijving is volledig in orde.{/als:betaald}{niet:betaald}Zodra je betaling ontvangen is, is je inschrijving definitief.{/niet:betaald} We kijken ernaar uit om samen een gezellige avond te beleven!"),
   velden: [["voornaam", "Voornaam"], ["naam", "Op naam van"], ["jaar", "Jaar"], ["datum", "Datum banket"], ["uur", "Uur"], ["locatie", "Locatie"], ["bedrag", "Bedrag"], ["gegevens", "Tabel met de inschrijving"], ["betaling", "Blok betaling (ontvangen of over te schrijven)"], ["betaald", "Voorwaarde: al betaald"]],
   voorbeeld: { voornaam: "Jan", naam: "Peeters Jan", jaar: "2026", datum: "Zaterdag 12 december 2026", uur: "19u00", locatie: "Feestzaal De Snip, Moorsel", bedrag: "€65,00", betaald: "" } });
 registreer({ key: "lid-bevestiging", naam: "Nieuw lid: bevestiging inschrijving", wanneer: "Na een inschrijving als nieuw lid via de website.",
   onderwerp: "VBHA - Bevestiging van je inschrijving als lid",
-  body: AFS("Beste {voornaam},") + AFS("Welkom bij de <b>{vereniging}</b>! We ontvingen je inschrijving als lid. Hieronder vind je nog eens je gegevens.") + kaderBlok("Je gegevens", "{gegevens}") + "<p>{betaling}</p>"
+  body: AFS("Dag {voornaam}!") + AFS("Welkom bij de <b>{vereniging}</b>! We ontvingen je inschrijving als lid. Hieronder vind je nog eens je gegevens.") + kaderBlok("Je gegevens", "{gegevens}") + "<p>{betaling}</p>"
     + AFS("{als:betaald}Je lidmaatschap is in orde. Tot op een van onze activiteiten!{/als:betaald}{niet:betaald}Zodra je lidgeld ontvangen is, ben je volwaardig lid. Tot op een van onze activiteiten!{/niet:betaald}")
     + kaderBlok("Puntensysteem", p("Als lid verdien je punten door mee te helpen: bij activiteiten, de kalenderbedeling en meer. Die punten bepalen onder meer je korting op het banket. Lees hoe het werkt in het reglement van het puntensysteem.", "margin:0"))
     + "<p>{knop_reglement}</p>" + p("Kloppen je gegevens niet? Antwoord dan gewoon op deze mail.", "margin:0 0 15px;font-size:13.5px;color:#666666"),
@@ -118,19 +118,19 @@ registreer({ key: "lid-bevestiging", naam: "Nieuw lid: bevestiging inschrijving"
   voorbeeld: { voornaam: "Jan", naam: "Peeters Jan", vereniging: "Vriendenkring Brandweer Hoofdpost Aalst", jaar: "2026", lidgeld: "€30,00", betaald: "" } });
 registreer({ key: "kinderfeest-bevestiging", naam: "Kinderfeest: bevestiging inschrijving", wanneer: "Meteen na een inschrijving voor het kinderfeest. Het stuk over de cadeaus stel je in bij Kinderfeest › tandwiel.",
   onderwerp: "VBHA - Bevestiging inschrijving kinderfeest {jaar}",
-  body: AFS("Beste {voornaam},") + AFS("Je bent ingeschreven voor het kinderfeest op <b>{datum}</b>. Super!") + "<p>{cadeau_uitleg}</p>" + kaderBlok("Je inschrijving", "{gegevens}") + AFS("Tot dan!"),
+  body: AFS("Dag {voornaam}!") + AFS("Je bent ingeschreven voor het kinderfeest op <b>{datum}</b>. Super!") + "<p>{cadeau_uitleg}</p>" + kaderBlok("Je inschrijving", "{gegevens}") + AFS("Tot dan!"),
   velden: [["voornaam", "Voornaam"], ["jaar", "Jaar"], ["datum", "Datum kinderfeest"], ["uur", "Uur"], ["locatie", "Locatie"], ["cadeau_uitleg", "Uitleg over de cadeaus"], ["gegevens", "Tabel met de inschrijving"]],
   voorbeeld: { voornaam: "Jan", jaar: "2026", datum: "19 december 2026", uur: "14u30", locatie: "VTI - Sinte Annalaan 99b, Aalst" } });
 registreer({ key: "familiedag-bevestiging", naam: "Familiedag: bevestiging inschrijving", wanneer: "Na een inschrijving voor de familiedag.",
   onderwerp: "VBHA - Bevestiging inschrijving {titel}",
-  body: AFS("Beste {voornaam},") + AFS("Bedankt voor je inschrijving voor de {titel_klein}. Hieronder vind je nog eens alle gegevens.") + kaderBlok("{titel}", "{gegevens}") + "<p>{betaling}</p>"
+  body: AFS("Dag {voornaam}!") + AFS("Bedankt voor je inschrijving voor de {titel_klein}. Hieronder vind je nog eens alle gegevens.") + kaderBlok("{titel}", "{gegevens}") + "<p>{betaling}</p>"
     + "{als:gratis}" + kaderBlok("Niets te betalen", p("Deze familiedag is gratis voor leden: de vriendenkring trakteert. Je hoeft niets te betalen.", "margin:0"), "#1a7f45", "#f1faf4") + "{/als:gratis}"
     + "<p>{info}</p>" + AFS("We kijken ernaar uit om er samen een fijne dag van te maken!"),
   velden: [["voornaam", "Voornaam"], ["naam", "Op naam van"], ["jaar", "Jaar"], ["titel", "Titel activiteit"], ["titel_klein", "Titel (in een zin)"], ["bedrag", "Totaal"], ["gegevens", "Tabel met de inschrijving"], ["betaling", "Blok betaling"], ["info", "Extra info (instellingen familiedag)"], ["betaald", "Voorwaarde: al betaald"], ["gratis", "Voorwaarde: niets te betalen"]],
   voorbeeld: { voornaam: "Jan", naam: "Peeters Jan", jaar: "2026", titel: "Familiedag 2026", titel_klein: "familiedag 2026", bedrag: "€25,00", info: "", betaald: "", gratis: "" } });
 registreer({ key: "betaling-ontvangen", naam: "Betaling ontvangen (lidgeld, banket, familiedag)", wanneer: "Als iemand later toch online betaalt, of een lid via de lidgeldlink betaalt.",
   onderwerp: "VBHA - Betaling ontvangen voor {wat}",
-  body: AFS("Beste {voornaam},") + "<p>{betaling}</p>"
+  body: AFS("Dag {voornaam}!") + "<p>{betaling}</p>"
     + AFS("{als:lidgeld}Je lidgeld is in orde. Bedankt en tot op een van onze activiteiten!{/als:lidgeld}{als:familiedag}Je inschrijving voor de familiedag is nu volledig in orde. Tot dan!{/als:familiedag}{als:banket}Je inschrijving voor het banket is nu volledig in orde. Tot dan!{/als:banket}"),
   velden: [["voornaam", "Voornaam"], ["wat", "Waarvoor (bv. je lidgeld 2026)"], ["bedrag", "Bedrag"], ["betaling", "Blok betaling ontvangen"], ["lidgeld", "Voorwaarde: lidgeld"], ["banket", "Voorwaarde: banket"], ["familiedag", "Voorwaarde: familiedag"]],
   voorbeeld: { voornaam: "Jan", wat: "je lidgeld 2026", bedrag: "€30,00", lidgeld: "1", banket: "", familiedag: "" } });
@@ -203,7 +203,7 @@ export async function kfMailHtml(sb, d, { A, c, jaar, link }) {
   }
   const m = await sysMail(sb, "kinderfeest-bevestiging", { voornaam: esc(vn), jaar, datum: esc(lang(datum).replace(/^\S+\s/, "")), uur: esc(tijd), locatie: esc(locatie), cadeau_uitleg: html,
     gegevens: tabel([rij("Wanneer", esc(lang(datum)) + (tijd ? " om " + esc(tijd) : "")), rij("Waar", esc(locatie)), rij("Lid", esc(d.lid)), rij("Kinderen", kids || "–"), d.opmerking ? rij("Opmerking", esc(d.opmerking)) : ""]) });
-  return Object.assign(new String(m.html.replace(/Beste\s+,/g, "Beste,")), { onderwerp: m.onderwerp });
+  return Object.assign(new String(m.html.replace(/Dag\s+!/g, "Hallo!")), { onderwerp: m.onderwerp });
 }
 export async function mailKinderfeest(sb, row) {
   const d = row.data, A = await algemeen(sb), jaar = d.jaar || A.jaar, c = await configDoc(sb, "kf_" + jaar), aan = String(d.email || "").trim();
@@ -237,7 +237,7 @@ export async function mailBetaald(sb, tabel, row) {
   aan = String(aan || "").trim(); if (!aan) return null;
   const m = await sysMail(sb, "betaling-ontvangen", { voornaam: esc(voornaam || ""), wat: esc(wat), bedrag: eur(b.bedrag), lidgeld: tabel === "leden", banket: tabel === "banket", familiedag: tabel === "familiedag",
     betaling: betaalBlok({ betaald: true, betaling: b, bedrag: b.bedrag }) });
-  const html = m.html.replace(/Beste\s+,/g, "Beste,");
+  const html = m.html.replace(/Dag\s+!/g, "Hallo!");
   return { aan, aanNaam: voornaam || "", onderwerp: m.onderwerp, html: huisstijl(html, A.vereniging, { bovenschrift: "Betaling ontvangen", titel: esc(wat.replace(/^(je|de|het)\s+/i, "").replace(/^./, x => x.toUpperCase())) }), betaald: true };
 }
 
@@ -276,7 +276,7 @@ export async function nastuur(sb, id) {
   if (!(await lidgeldOntvangen(sb, id, d))) return 0;
   for (const [tpl, R] of actief) {
     const vn = esc(d.voornaam || ""), nm = esc([d.voornaam, d.naam].filter(Boolean).join(" "));
-    const vulIn = (t, h) => String(t).split("%40%40LIDID%40%40").join(encodeURIComponent(id)).split("@@LIDID@@").join(encodeURIComponent(id)).split("@@VOORNAAM@@").join(h ? vn : d.voornaam || "").split("@@NAAM@@").join(h ? nm : [d.voornaam, d.naam].filter(Boolean).join(" ")).replace(/Beste\s+,/g, "Beste,");
+    const vulIn = (t, h) => String(t).split("%40%40LIDID%40%40").join(encodeURIComponent(id)).split("@@LIDID@@").join(encodeURIComponent(id)).split("@@VOORNAAM@@").join(h ? vn : d.voornaam || "").split("@@NAAM@@").join(h ? nm : [d.voornaam, d.naam].filter(Boolean).join(" ")).replace(/Dag\s+!/g, "Hallo!");
     rijen.push({ batch: "nastuur-" + tpl.replace(/[^\w.-]/g, "") + "-" + Date.now().toString(36), data: { aan, aanNaam: [d.voornaam, d.naam].filter(Boolean).join(" "), onderwerp: vulIn(R.onderwerp, false), html: ondertekenLinks(vulIn(R.html, true)), label: "Nagestuurd: " + (R.naam || tpl) } });
     al[tpl] = new Date().toISOString();
   }

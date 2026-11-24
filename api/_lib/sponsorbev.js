@@ -82,7 +82,7 @@ const pdfNaam = (b, s) => `Sponsorbevestiging ${b.nr} ${sponsorNaam(s)}.pdf`.rep
 
 registreer({ key: "sponsorbevestiging", naam: "Sponsorbevestiging (attest voor de boekhouding)", wanneer: "Als je bij Sponsors een sponsorbevestiging mailt (met de PDF in bijlage).",
   onderwerp: "Sponsorbevestiging {nr} - {vereniging}",
-  body: p("Beste {voornaam},") + p("Hartelijk dank voor je steun aan de {vereniging}. Zoals gevraagd vind je in bijlage de bevestiging van je sponsoring voor je boekhouding.")
+  body: p("Dag {voornaam}!") + p("Hartelijk dank voor je steun aan de {vereniging}. Zoals gevraagd vind je in bijlage de bevestiging van je sponsoring voor je boekhouding.")
     + kaderBlok("Sponsorbevestiging {nr}", "{gegevens}") + p("Vragen? Antwoord gewoon op deze mail.", "margin:0 0 15px;font-size:13.5px;color:#666666"),
   velden: [["voornaam", "Voornaam"], ["vereniging", "Naam vereniging"], ["nr", "Nummer"], ["omschrijving", "Omschrijving"], ["bedrag", "Bedrag of waarde"], ["gegevens", "Tabel met de gegevens"]],
   voorbeeld: { voornaam: "Jan", vereniging: "Vriendenkring Brandweer Hoofdpost Aalst", nr: "SB2026-004", omschrijving: "Drank voor het banket", bedrag: "€150,00" } });
@@ -91,7 +91,7 @@ export async function bevMail(sb, b, s, cfg) {
   const vn = String(s.voornaam || "").trim();
   const m = await sysMail(sb, "sponsorbevestiging", { voornaam: esc(vn), vereniging: esc(cfg.vereniging), nr: esc(b.nr), omschrijving: esc(b.omschrijving), bedrag: eur(b.waarde),
     gegevens: tabel([rij("Omschrijving", esc(b.omschrijving)), rij(natura ? "Waarde" : "Bedrag", `<b>${eur(b.waarde)}</b>`), b.datum ? rij(natura ? "Ontvangen op" : "Betaald op", esc(lang(b.datum))) : "", b.tegenprestatie ? rij("Tegenprestatie", esc(b.tegenprestatie)) : ""]) });
-  return { onderwerp: m.onderwerp, html: huisstijl(m.html.replace(/Beste\s+,/g, "Beste,"), cfg.vereniging, { extern: true }) };
+  return { onderwerp: m.onderwerp, html: huisstijl(m.html.replace(/Dag\s+!/g, "Hallo!"), cfg.vereniging, { extern: true }) };
 }
 
 // Handtekening (tabel "handtekeningen", enkel leesbaar voor de server): wordt enkel gebruikt als de ondertekenaar exact die naam heeft.

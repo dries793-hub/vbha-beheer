@@ -9,7 +9,7 @@ import { registreer, sysMail } from "./sjabloon.js";
 
 registreer({ key: "ronde-reservatie", naam: "Kalenderronde: reservatie bevestigd", wanneer: "Na een reservatie van straten op de openbare kaart. De server wacht 15 minuten na de laatste reservatie, zodat alle straten die het lid kort na elkaar koos in één mail staan.",
   onderwerp: "Je straten voor de kalenderronde zijn gereserveerd",
-  body: p("Beste {voornaam},") + p("Bedankt voor je reservatie voor de kalenderronde. {als:een}Deze straat staat{/als:een}{niet:een}Deze straten staan{/niet:een} nu op jouw naam:")
+  body: p("Dag {voornaam}!") + p("Bedankt voor je reservatie voor de kalenderronde. {als:een}Deze straat staat{/als:een}{niet:een}Deze straten staan{/niet:een} nu op jouw naam:")
     + kaderBlok("Jouw straten", "{straten}") + p("Samen zijn dat <b>± {adressen} adressen</b>. Voorzie <b>{dozen}</b> kalenders.") + p("Bedankt om mee te helpen met de kalenderronde!") + "<p>{knop_kaart}</p>",
   velden: [["voornaam", "Voornaam"], ["straten", "Lijst met de straten"], ["aantal_straten", "Aantal straten"], ["adressen", "Aantal adressen"], ["dozen", "Aantal dozen (bv. 3 dozen)"], ["link_kaart", "Persoonlijke link naar de kaart"], ["knop_kaart", "Knop naar de kaart"], ["een", "Voorwaarde: één straat"]],
   voorbeeld: { voornaam: "Jan", aantal_straten: "2", adressen: "170", dozen: "2 dozen", link_kaart: "https://vbha.be/kaart", een: "" } });

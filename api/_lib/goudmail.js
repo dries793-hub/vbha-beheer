@@ -17,7 +17,7 @@ async function ledenMap(sb) { const { data } = await sb.from("leden").select("id
 
 registreer({ key: "goudstatus", naam: "Puntensysteem: proficiat goudstatus", wanneer: "Zodra een lid met de punten van dit jaar de goudstatus voor volgend jaar haalt (niet voor de erewacht).",
   onderwerp: "Proficiat: je behaalde de goudstatus voor {volgend_jaar}!",
-  body: p("Beste {voornaam},") + p("<b>Proficiat!</b> Met je inzet dit jaar heb je de <b>goudstatus voor {volgend_jaar}</b> behaald.")
+  body: p("Dag {voornaam}!") + p("<b>Proficiat!</b> Met je inzet dit jaar heb je de <b>goudstatus voor {volgend_jaar}</b> behaald.")
     + "{als:nieuwe_punten}" + kaderBlok("Nieuwe punten", "{nieuwe_punten}") + p("Jouw totaal voor {jaar} bedraagt nu <b>{totaal} punten</b>.") + "{/als:nieuwe_punten}"
     + kaderBlok("Wat betekent dat?", p("Als goudlid geniet je in {volgend_jaar} van de <b>maximale korting</b> op onze betalende activiteiten, zoals het banket.", "margin:0"))
     + p("Hartelijk dank voor je bijdrage aan de Vriendenkring. Dankzij leden zoals jij kunnen we elk jaar mooie activiteiten organiseren.") + "<p>{knop_status}</p>",
@@ -113,7 +113,7 @@ const statusVan = (pt, dr) => pt >= dr.goud ? "goud" : pt >= dr.zilver ? "zilver
 const stand = j => ({ kaarten: j.kaarten || 0, kalUitgevoerd: j.kalUitgevoerd || 0, shifts: j.shifts || 0, act: aantalAct(j), shiftPt: Number(j.shiftPt) || 0, vergaderingen: j.vergaderingen || 0, extraPunten: j.extraPunten || 0 });
 registreer({ key: "punten", naam: "Puntensysteem: nieuwe punten of status", wanneer: "Als er nieuwe punten bijkomen of de status voor volgend jaar verandert (aan te zetten in de instellingen van het puntensysteem).",
   onderwerp: "{als:status_nieuw}Je status voor {volgend_jaar}: {status}{/als:status_nieuw}{niet:status_nieuw}Nieuwe punten: je totaal is nu {totaal} pt{/niet:status_nieuw}",
-  body: p("Beste {voornaam},") + "{als:nieuwe_punten}" + p("Zonet werden er nieuwe punten voor je toegevoegd:") + kaderBlok("Nieuwe punten", "{nieuwe_punten}") + "{/als:nieuwe_punten}"
+  body: p("Dag {voornaam}!") + "{als:nieuwe_punten}" + p("Zonet werden er nieuwe punten voor je toegevoegd:") + kaderBlok("Nieuwe punten", "{nieuwe_punten}") + "{/als:nieuwe_punten}"
     + p("Jouw totaal voor {jaar} bedraagt nu <b>{totaal} punten</b>. {status_zin}") + p("Bedankt voor je inzet voor de Vriendenkring!") + "<p>{knop_status}</p>",
   velden: [["voornaam", "Voornaam"], ["jaar", "Werkjaar"], ["volgend_jaar", "Volgend jaar"], ["totaal", "Totaal punten"], ["status", "Status volgend jaar"], ["status_vorig", "Vorige status"], ["status_zin", "Zin over de status"], ["nieuwe_punten", "Lijst nieuwe punten"], ["link_status", "Persoonlijke link statuspagina"], ["knop_status", "Knop statuspagina"], ["status_nieuw", "Voorwaarde: status gewijzigd"]],
   voorbeeld: { voornaam: "Jan", jaar: "2026", volgend_jaar: "2027", totaal: "150", status: "Zilver", status_vorig: "Brons", status_zin: "Daarmee is je status voor 2027 <b>Zilver</b>.", nieuwe_punten: "", link_status: "https://vbha.be/status", status_nieuw: "" } });

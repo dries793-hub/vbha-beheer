@@ -87,7 +87,7 @@ const BH_KADER = (meded, A, x) => tabel([rij("Bedrag", `<b>${eur(x.bedrag)}</b>`
 const KLEIN = t => p(t, "margin:0 0 15px;font-size:13.5px;color:#666666");
 registreer({ key: "herinnering-banket", naam: "Herinnering betaling banket", wanneer: "Volgens de instellingen bij Financiën › Betaalherinneringen, aan wie ingeschreven is voor het banket maar nog niet betaalde.",
   onderwerp: "VBHA - Herinnering betaling banket {jaar}",
-  body: p("Beste {voornaam},") + p("Bedankt voor je inschrijving voor ons banket van {datum}. Volgens onze gegevens hebben we je betaling nog niet ontvangen.")
+  body: p("Dag {voornaam}!") + p("Bedankt voor je inschrijving voor ons banket van {datum}. Volgens onze gegevens hebben we je betaling nog niet ontvangen.")
     + p("Pas wanneer je betaling binnen is, is je inschrijving definitief. Mogen we je vragen het bedrag zo snel mogelijk over te schrijven?")
     + kaderBlok("Nog te betalen", "{overschrijving}" + p("Gebruik exact deze mededeling, dan wordt je betaling automatisch herkend.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2")
     + KLEIN("Heb je intussen al betaald? Dan kruisten onze berichten elkaar en mag je deze herinnering als niet verzonden beschouwen. Kan je toch niet komen? Laat het ons dan weten door op deze mail te antwoorden."),
@@ -127,7 +127,7 @@ async function lidgeldLijst(sb, cfg) {
 }
 registreer({ key: "herinnering-lidgeld", naam: "Herinnering lidgeld", wanneer: "Volgens de instellingen bij Financiën › Betaalherinneringen, aan leden die hun lidgeld nog niet betaalden.",
   onderwerp: "VBHA - Herinnering lidgeld {jaar}",
-  body: p("Beste {voornaam},")
+  body: p("Dag {voornaam}!")
     + p("Een tijdje geleden vroegen we je om je lidmaatschap van de <b>{vereniging}</b> voor {jaar} te verlengen. Na controle van onze rekeningen stellen we vast dat we je lidgeld nog niet mochten ontvangen.")
     + p("Mogen we je vriendelijk vragen om het lidgeld zo snel mogelijk over te maken? Betaal eenvoudig online met Bancontact via de knop hieronder. Op de betaalpagina kan je ook een QR-code scannen met je bankapp.")
     + "<p>{knop_betalen}</p>" + kaderBlok("Liever zelf overschrijven?", "{overschrijving}")

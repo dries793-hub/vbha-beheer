@@ -72,7 +72,7 @@ async function bewaarLogo(sb, logo, d, id, kj) {
 
 registreer({ key: "sponsor-bevestiging", naam: "Sponsoring kalender: bevestiging", wanneer: "Na een inschrijving als sponsor via de sponsorpagina.",
   onderwerp: "Bevestiging sponsoring brandweerkalender {kalenderjaar}{als:factuur} - factuur {factuur}{/als:factuur}",
-  body: p("Beste {voornaam},") + p("{als:nieuw}Hartelijk dank om sponsor te worden van de <b>brandweerkalender {kalenderjaar}</b>! Dankzij uw steun kunnen we onze leden in moeilijke momenten bijstaan en onze werking versterken.{/als:nieuw}{niet:nieuw}Hartelijk dank om uw sponsoring van de <b>brandweerkalender {kalenderjaar}</b> te vernieuwen. Wij waarderen uw blijvende steun enorm!{/niet:nieuw}")
+  body: p("Dag {voornaam}!") + p("{als:nieuw}Hartelijk dank om sponsor te worden van de <b>brandweerkalender {kalenderjaar}</b>! Dankzij uw steun kunnen we onze leden in moeilijke momenten bijstaan en onze werking versterken.{/als:nieuw}{niet:nieuw}Hartelijk dank om uw sponsoring van de <b>brandweerkalender {kalenderjaar}</b> te vernieuwen. Wij waarderen uw blijvende steun enorm!{/niet:nieuw}")
     + kaderBlok("Uw sponsoring", "{gegevens}") + "{als:factuur}" + p("In bijlage vindt u factuur <b>{factuur}</b>.") + "{/als:factuur}"
     + kaderBlok("Betalen", "{overschrijving}" + p("Gebruik exact deze mededeling, dan wordt uw betaling automatisch herkend.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2")
     + "<p>{knop_betalen}</p>" + "{als:logo}" + p("We ontvingen ook uw <b>logo</b>. Hartelijk dank!") + "{/als:logo}{niet:logo}" + p("<b>We ontvingen nog geen logo.</b> Stuur uw logo (liefst in hoge resolutie of als vectorbestand) nog door naar {logo_mail}, of antwoord gewoon op deze mail.") + "{/niet:logo}",
@@ -84,7 +84,7 @@ export async function bevestigingMail(sb, d, ins, C, { factuur, link, mededeling
     te_betalen_voor: esc(datumTekst(C.deadline)), nieuw: !!nieuw, logo: !!ins.logo, logo_mail: `<a href="mailto:${esc(C.logoMail)}">${esc(C.logoMail)}</a>`, link_betalen: esc(link), knop_betalen: knop("Online betalen met Bancontact of QR-code", link),
     gegevens: tabel([rij("Bedrijf", `<b>${esc(d.bedrijf)}</b>`), rij("Formule", esc(ins.formuleNaam)), rij("Bedrag", `<b>${eur(ins.bedrag)}</b>`), rij("Kalender", String(ins.kj))]),
     overschrijving: tabel([rij("Bedrag", `<b>${eur(ins.bedrag)}</b>`), rij("Rekening", `<b>${esc(String(C.iban).replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim())}</b>`), rij("Begunstigde", esc(C.vereniging)), rij("Mededeling", `<b>${esc(mededeling)}</b>`), rij("Te betalen vóór", `<b>${esc(datumTekst(C.deadline))}</b>`)]) });
-  return { onderwerp: m.onderwerp, html: huisstijl(m.html.replace(/Beste\s+,/g, "Beste,"), C.vereniging, { extern: true }) };
+  return { onderwerp: m.onderwerp, html: huisstijl(m.html.replace(/Dag\s+!/g, "Hallo!"), C.vereniging, { extern: true }) };
 }
 registreer({ key: "sponsor-melding", naam: "Sponsoring kalender: melding aan het bestuur", wanneer: "Na een inschrijving als sponsor; gaat naar de ingestelde adressen voor meldingen.",
   onderwerp: "{als:nieuw}Nieuwe sponsor{/als:nieuw}{niet:nieuw}Sponsoring vernieuwd{/niet:nieuw}: {bedrijf} ({formule}, {bedrag})",
@@ -223,7 +223,7 @@ export async function sponsorLink(req, res, b, { startBetaling, controleerBetali
 /* ---------- online betaling gelukt (zonder factuur): korte bevestiging ---------- */
 registreer({ key: "sponsor-betaald", naam: "Sponsoring kalender: betaling ontvangen", wanneer: "Als een sponsor (zonder factuur) online betaalt.",
   onderwerp: "Betaling ontvangen - sponsoring brandweerkalender {kalenderjaar}",
-  body: p("Beste {voornaam},") + kaderBlok("&#10003; Betaling ontvangen", p("We ontvingen uw betaling van <b>{bedrag}</b> voor de sponsoring van de brandweerkalender {kalenderjaar} via Bancontact. Hartelijk dank voor uw steun!", "margin:0"), "#1a7f45", "#f1faf4"),
+  body: p("Dag {voornaam}!") + kaderBlok("&#10003; Betaling ontvangen", p("We ontvingen uw betaling van <b>{bedrag}</b> voor de sponsoring van de brandweerkalender {kalenderjaar} via Bancontact. Hartelijk dank voor uw steun!", "margin:0"), "#1a7f45", "#f1faf4"),
   velden: [["voornaam", "Voornaam"], ["bedrijf", "Bedrijf"], ["bedrag", "Bedrag"], ["kalenderjaar", "Kalenderjaar"]], voorbeeld: { voornaam: "Jan", bedrijf: "Bakkerij Peeters", bedrag: "€250,00", kalenderjaar: "2027" } });
 export async function sponsorBetaald(sb, id) {
   if (!smtpConfigured()) return;
@@ -231,6 +231,6 @@ export async function sponsorBetaald(sb, id) {
   const d = row.data, bt = d.betaling || {}; if (bt.bevestigd || !okMail(String(d.email || ""))) return;
   const C = await spConfig(sb);
   const m = await sysMail(sb, "sponsor-betaald", { voornaam: esc(d.voornaam || ""), bedrijf: esc(d.bedrijf), bedrag: eur(bt.bedrag), kalenderjaar: esc(bt.jaar) });
-  await verstuur([{ aan: d.email, aanNaam: d.bedrijf, onderwerp: m.onderwerp, html: huisstijl(m.html.replace(/Beste\s+,/g, "Beste,"), C.vereniging, { extern: true }), van: afzender() }]);
+  await verstuur([{ aan: d.email, aanNaam: d.bedrijf, onderwerp: m.onderwerp, html: huisstijl(m.html.replace(/Dag\s+!/g, "Hallo!"), C.vereniging, { extern: true }), van: afzender() }]);
   await sb.from("sponsors").update({ data: { ...d, betaling: { ...bt, bevestigd: true } } }).eq("id", id);
 }

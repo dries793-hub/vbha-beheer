@@ -40,7 +40,7 @@ export async function reglement(req, res) {
 }
 export function statusHtml(L, S, j) {
   const badge = `<span style="display:inline-block;padding:4px 12px;border-radius:999px;background:${KLEUR[S.status]};color:#ffffff;font-weight:bold;letter-spacing:.5px">${esc(S.status === "GEEN" ? (S.basis ? "BASIS" : "GEEN STATUS") : S.status)}</span>`;
-  return p(`Beste ${esc(L.voornaam || L.naam || "")},`) + p(`Je vroeg je status op voor het werkjaar <b>${j}</b>.`)
+  return p(`Dag ${esc(L.voornaam || L.naam || "")}!`) + p(`Je vroeg je status op voor het werkjaar <b>${j}</b>.`)
     + kaderBlok("Jouw status " + j, tabel([rij("Status", badge), rij("Korting", `<b>${S.korting}%</b> op de kostprijs van betalende activiteiten (bv. het banket)`), S.tegoed ? rij("Goudtegoed", `<b>€ ${S.tegoed.toFixed(2).replace(".", ",")}</b> (geldig tot en met 31/12/${j})`) : ""]))
     + p(S.ere ? "Als lid van de erewacht geniet je steeds de maximale korting." : S.vrij ? `Omdat je in ${S.puntenJaar} vrijgesteld was van het puntensysteem, krijg je de goudstatus.` : S.start ? `Het puntensysteem startte pas in ${S.puntenJaar + 1}. Daarom krijgt iedereen dit jaar de goudstatus.` : `Je status is gebaseerd op de punten die je in ${S.puntenJaar} verdiende met je inzet voor de vereniging.`)
     + p("Hoe je punten verdient en wat elke status betekent, lees je in het reglement:") + knop("Reglement puntensysteem bekijken", site() + "/reglement")

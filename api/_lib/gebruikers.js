@@ -32,7 +32,7 @@ async function alleGebruikers(sb) {
 }
 registreer({ key: "toegang", naam: "Beheeromgeving: toegang of nieuw wachtwoord", wanneer: "Als je bij Gebruikers iemand toegang geeft of een nieuw tijdelijk wachtwoord aanmaakt.",
   onderwerp: "{als:reset}VBHA - Nieuw tijdelijk wachtwoord{/als:reset}{niet:reset}VBHA - Je toegang tot de beheeromgeving{/niet:reset}",
-  body: `<p style="margin:0 0 15px">Beste {voornaam},</p>
+  body: `<p style="margin:0 0 15px">Dag {voornaam}!</p>
 <p style="margin:0 0 15px">{als:reset}Er werd een nieuw tijdelijk wachtwoord voor je aangemaakt voor{/als:reset}{niet:reset}Je hebt nu toegang tot{/niet:reset} de beheeromgeving van de Vriendenkring Brandweer Hoofdpost Aalst.</p>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 18px"><tr><td bgcolor="#fff9f9" style="padding:16px 20px;border-left:5px solid #C1A057;font-family:Helvetica,Arial,sans-serif;font-size:15px;color:#222222">
 <p style="margin:0 0 5px"><b>Adres:</b> {adres}</p>
@@ -46,7 +46,7 @@ export async function welkomMail({ naam, email, rol, wachtwoord, url, reset }, s
   const m = await sysMail(sb, "toegang", { voornaam: naam ? esc(String(naam).split(" ")[0]) : "", reset: !!reset, rechten: esc(ROL_NAAM[rol] || rol), email: esc(email),
     adres: `<a href="${esc(url)}" style="color:#b30000;text-decoration:underline">${esc(url.replace(/^https?:\/\//, ""))}</a>`,
     wachtwoord: `<span style="font-family:Consolas,Menlo,monospace;font-size:16px">${esc(wachtwoord)}</span>`, knop_aanmelden: knop("Aanmelden", url) });
-  const html = huisstijl(m.html.replace(/Beste\s+,/, "Hallo,"), "Vriendenkring Brandweer Hoofdpost Aalst");
+  const html = huisstijl(m.html.replace(/Dag\s+!/, "Hallo!"), "Vriendenkring Brandweer Hoofdpost Aalst");
   return { aan: email, aanNaam: naam || "", onderwerp: m.onderwerp, html };
 }
 

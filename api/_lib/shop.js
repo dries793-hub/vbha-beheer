@@ -9,15 +9,15 @@ import { registreer, sysMail } from "./sjabloon.js";
 const SV = [["voornaam", "Voornaam"], ["nr", "Bestelnummer"], ["bestelling", "Tabel met de bestelling"], ["totaal", "Totaal"], ["adres", "Adres klant"], ["afhaaladres", "Afhaaladres"]], SVV = { voornaam: "Jan", nr: "W2026-012", totaal: "€24,00", adres: "Kerkstraat 1, 9300 Aalst", afhaaladres: "Kazerne Aalst" };
 registreer({ key: "shop-bevestiging", naam: "Webshop: bevestiging bestelling", wanneer: "Na een bestelling in de webshop.",
   onderwerp: "Je bestelling {nr} bij de VBHA webshop",
-  body: p("Beste {voornaam},") + p("Bedankt voor je bestelling! Hieronder vind je een overzicht.") + kaderBlok("Bestelling {nr}", "{bestelling}") + "<p>{betaling}</p>" + p("{levering}") + "<p>{opmerking}</p><p>{info}</p>",
+  body: p("Dag {voornaam}!") + p("Bedankt voor je bestelling! Hieronder vind je een overzicht.") + kaderBlok("Bestelling {nr}", "{bestelling}") + "<p>{betaling}</p>" + p("{levering}") + "<p>{opmerking}</p><p>{info}</p>",
   velden: [...SV, ["betaling", "Blok betaling"], ["levering", "Zin over verzending of afhalen"], ["opmerking", "Opmerking van de klant"], ["info", "Extra info (instellingen webshop)"]], voorbeeld: SVV });
 registreer({ key: "shop-verzonden", naam: "Webshop: bestelling verzonden", wanneer: "Als je een bestelling op verzonden zet.",
   onderwerp: "Je bestelling {nr} is verzonden",
-  body: p("Beste {voornaam},") + p("Goed nieuws: je bestelling <b>{nr}</b> is vandaag met bpost verzonden naar {adres}.") + kaderBlok("Bestelling {nr}", "{bestelling}") + p("Bedankt voor je steun aan de Vriendenkring!"),
+  body: p("Dag {voornaam}!") + p("Goed nieuws: je bestelling <b>{nr}</b> is vandaag met bpost verzonden naar {adres}.") + kaderBlok("Bestelling {nr}", "{bestelling}") + p("Bedankt voor je steun aan de Vriendenkring!"),
   velden: SV, voorbeeld: SVV });
 registreer({ key: "shop-klaar", naam: "Webshop: bestelling ligt klaar", wanneer: "Als je een bestelling om af te halen op klaar zet.",
   onderwerp: "Je bestelling {nr} ligt klaar",
-  body: p("Beste {voornaam},") + p("Je bestelling <b>{nr}</b> ligt klaar in de kazerne ({afhaaladres}). We nemen contact met je op om een moment af te spreken{als:cash}; je betaalt dan <b>{totaal}</b> cash{/als:cash}.") + kaderBlok("Bestelling {nr}", "{bestelling}"),
+  body: p("Dag {voornaam}!") + p("Je bestelling <b>{nr}</b> ligt klaar in de kazerne ({afhaaladres}). We nemen contact met je op om een moment af te spreken{als:cash}; je betaalt dan <b>{totaal}</b> cash{/als:cash}.") + kaderBlok("Bestelling {nr}", "{bestelling}"),
   velden: [...SV, ["cash", "Voorwaarde: cash betalen bij afhalen"]], voorbeeld: { ...SVV, cash: "" } });
 import { epcPayload, qrSvg } from "./epc.js";
 import { meldPush } from "./push.js";

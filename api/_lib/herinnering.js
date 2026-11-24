@@ -21,7 +21,7 @@ const F = "font-family:Helvetica,Arial,sans-serif;";
 
 registreer({ key: "vergadering-herinnering", naam: "Vergadering: herinnering aan het bestuur", wanneer: "Enkele dagen voor elke vergadering in de agenda (Instellingen › Herinneringen).",
   onderwerp: "Herinnering: {titel} op {datum_kort}{als:uur} om {uur}{/als:uur}",
-  body: `<p style="margin:0 0 15px">Beste {aanspreking},</p>
+  body: `<p style="margin:0 0 15px">Dag {aanspreking}!</p>
 <p style="margin:0 0 15px">Een herinnering: {wanneer} is er een <b>{soort}</b>.</p>
 <p>{details}</p>
 <p>{antwoord}</p>
@@ -132,7 +132,7 @@ export async function herinneringTest(req, res) {
    data.afgerond = {op, door, volgendeId, verslagDoc} op de afgeronde vergadering. */
 registreer({ key: "vergadering-verslag", naam: "Vergadering: verslag en volgende vergadering", wanneer: "Als je een vergadering afrondt in de agenda (verslag en datum van de volgende vergadering).",
   onderwerp: "Verslag {titel} {datum}{als:volgende} - volgende vergadering {volgende_datum_kort}{/als:volgende}",
-  body: ({ p }) => p("Beste {aanspreking},") + p("De {soort} van {datum_lang} is afgerond. {als:bijlage}In bijlage vind je het <b>verslag</b>.{/als:bijlage}") + "<p>{aanwezigheid}</p>" + "<p>{volgende}</p>"
+  body: ({ p }) => p("Dag {aanspreking}!") + p("De {soort} van {datum_lang} is afgerond. {als:bijlage}In bijlage vind je het <b>verslag</b>.{/als:bijlage}") + "<p>{aanwezigheid}</p>" + "<p>{volgende}</p>"
     + "{als:antwoord}" + p("Zet de datum alvast in je agenda.") + "<p>{antwoord}</p>{/als:antwoord}"
     + "{niet:antwoord}{als:volgende}" + p("Zet de datum alvast in je agenda. Kan je er niet bij zijn? Laat het dan even weten.") + "{/als:volgende}{niet:volgende}" + p("Opmerkingen bij het verslag? Antwoord gewoon op deze mail.") + "{/niet:volgende}{/niet:antwoord}",
   velden: [["aanspreking", "Aanspreking"], ["titel", "Titel"], ["soort", "Soort vergadering"], ["datum", "Datum"], ["datum_lang", "Datum (met dag)"], ["aanwezigheid", "Kader aanwezigheid"], ["volgende", "Kader volgende vergadering"], ["volgende_datum_kort", "Datum volgende (kort)"], ["antwoord", "Knoppen aanwezig/verontschuldigd"], ["bijlage", "Voorwaarde: verslag in bijlage"]],
