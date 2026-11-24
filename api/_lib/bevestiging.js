@@ -94,8 +94,7 @@ function betaalBlok({ betaald, betaling, bedrag, rekeningnummer, begunstigde, me
     return kaderBlok("Betaling ontvangen", tabel([rij("Bedrag", `<b>${eur(bedrag)}</b>`), rij("Betaald via", "Bancontact"), betaling && betaling.betaaldOp ? rij("Betaald op", esc(lang(new Date(betaling.betaaldOp).toISOString().slice(0, 10)))) : ""])
       + p("Je hoeft niets meer te doen.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#1a7f45", "#f1faf4");
   }
-  return kaderBlok("Nog te betalen", tabel([rij("Bedrag", `<b>${eur(bedrag)}</b>`), rij("Rekening", `<b>${esc(rekeningnummer)}</b>`), rij("Begunstigde", esc(begunstigde)), rij("Mededeling", `<b>${esc(mededeling)}</b>`), rij("Te betalen vóór", `<b>${esc(lang(tegen))}</b>`)])
-    + p("Gebruik exact deze mededeling, dan wordt je betaling automatisch herkend.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2")
+  return kaderBlok("Nog te betalen", tabel([rij("Bedrag", `<b>${eur(bedrag)}</b>`), rij("Rekening", `<b>${esc(rekeningnummer)}</b>`), rij("Begunstigde", esc(begunstigde)), rij("Mededeling", `<b>${esc(mededeling)}</b>`), rij("Te betalen vóór", `<b>${esc(lang(tegen))}</b>`)]), "#b30000", "#fdf2f2")
     + (link ? knop("Liever online betalen met Bancontact", link) : "");
 }
 const BETAALD = (d, bedrag) => d.betaling && d.betaling.status === "SUCCEEDED" && Number(d.betaling.bedrag) === Number(bedrag);

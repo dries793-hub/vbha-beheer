@@ -89,7 +89,7 @@ registreer({ key: "herinnering-banket", naam: "Herinnering betaling banket", wan
   onderwerp: "VBHA - Herinnering betaling banket {jaar}",
   body: p("Dag {voornaam}!") + p("Bedankt voor je inschrijving voor ons banket van {datum}. Volgens onze gegevens hebben we je betaling nog niet ontvangen.")
     + p("Pas wanneer je betaling binnen is, is je inschrijving definitief. Mogen we je vragen het bedrag zo snel mogelijk over te schrijven?")
-    + kaderBlok("Nog te betalen", "{overschrijving}" + p("Gebruik exact deze mededeling, dan wordt je betaling automatisch herkend.", "margin:10px 0 0;font-size:13.5px;color:#666666"), "#b30000", "#fdf2f2")
+    + kaderBlok("Nog te betalen", "{overschrijving}", "#b30000", "#fdf2f2")
     + KLEIN("Heb je intussen al betaald? Dan kruisten onze berichten elkaar en mag je deze herinnering als niet verzonden beschouwen. Kan je toch niet komen? Laat het ons dan weten door op deze mail te antwoorden."),
   velden: [["voornaam", "Voornaam"], ["naam", "Naam"], ["jaar", "Jaar"], ["datum", "Datum banket"], ["bedrag", "Bedrag"], ["mededeling", "Mededeling"], ["overschrijving", "Tabel overschrijving"]],
   voorbeeld: { voornaam: "Jan", naam: "Peeters Jan", jaar: "2026", datum: "zaterdag 12 december 2026", bedrag: "€65,00", mededeling: "Peeters Jan Banket 2026" } });

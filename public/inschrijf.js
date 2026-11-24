@@ -119,8 +119,7 @@ function lidPicker(inp){const wrap=inp.parentElement;wrap.classList.add("lp");co
 function handmatig(j){return `<dl class="pd"><div><dt>Bedrag</dt><dd><b>${eur(j.bedrag)}</b></dd></div>
   <div><dt>Rekeningnummer</dt><dd><span class="mono">${esc(j.rekeningnummer)}</span><button type="button" class="cp" data-cp="${esc(String(j.rekeningnummer).replace(/\s+/g,""))}">Kopieer</button></dd></div>
   ${j.begunstigde?`<div><dt>Begunstigde</dt><dd>${esc(j.begunstigde)}</dd></div>`:""}
-  <div><dt>Mededeling</dt><dd><span class="mono">${esc(j.mededeling)}</span><button type="button" class="cp" data-cp="${esc(j.mededeling)}">Kopieer</button></dd></div></dl>
-  <p class="hint">Gebruik exact deze mededeling, dan wordt je betaling automatisch herkend.</p>`}
+  <div><dt>Mededeling</dt><dd><span class="mono">${esc(j.mededeling)}</span><button type="button" class="cp" data-cp="${esc(j.mededeling)}">Kopieer</button></dd></div></dl>`}
 
 /* PaymentPanel – appLink: gedeeld door banket, familiedag, inschrijven, fuif, shop, steun */
 function appLink(o){if(!o||!o.deeplink)return null;const ret=location.origin+location.pathname+"?betaling=terug";return o.deeplink+(o.deeplink.includes("?")?"&":"?")+"returnUrl="+encodeURIComponent(ret)}
