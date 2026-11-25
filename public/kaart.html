@@ -3302,14 +3302,16 @@ function krDagGroet(x){/* persoonlijke begroeting staat in "Jouw selectie" (geen
     if(!L.length){fout("We vonden geen straten die je vorig jaar bedeelde.");return}
     const lab={vrij:"",mijn:"al op jouw naam",bezet:"al door iemand anders gereserveerd"};
     const lijst=`<ul class="kr-ml">${L.map(o=>`<li><span class="kr-ml-n">${e2(o.n)}${lab[o.st]?`<small>${lab[o.st]}</small>`:""}</span><span class="kr-ml-a">${krNum(o.a)}</span></li>`).join("")}</ul>`;
-    const klaar=(n,A)=>{km.innerHTML=`<h3 id="khT">Gereserveerd!</h3><p>${n?`${n} ${n===1?"straat staat":"straten staan"}`:"Je straten staan"} op jouw naam. Je hebt hiervoor <b>${krNum(doz(A))} ${doz(A)===1?"doos":"dozen"}</b> kalenders nodig. Neem contact op om ze af te halen.${tg}</p><div class="km-a"><button type="button" class="prim" id="khX">Naar de kaart</button></div>`;km.querySelector("#khX").onclick=sluit};
+    const klaar=(n,A,W)=>{const w=(W||[]).length?`<p class="km-e" style="color:inherit"><b>Intussen door een collega gereserveerd:</b> ${W.map(o=>e2(o.n)).join(", ")}. ${W.length===1?"Die straat is":"Die straten zijn"} niet op jouw naam gezet.</p>`:"";
+      if(!A.length){km.innerHTML=`<h3 id="khT">Net te laat</h3><p>Al je straten van vorig jaar werden intussen door een collega gereserveerd. Kies gerust andere straten op de kaart.</p>${w}<div class="km-a"><button type="button" class="prim" id="khX">Naar de kaart</button></div>`;km.querySelector("#khX").onclick=sluit;return}
+      km.innerHTML=`<h3 id="khT">Gereserveerd!</h3><p>${n?`${n} ${n===1?"straat staat":"straten staan"}`:"Je straten staan"} op jouw naam. Je hebt hiervoor <b>${krNum(doz(A))} ${doz(A)===1?"doos":"dozen"}</b> kalenders nodig. Neem contact op om ze af te halen.${tg}</p>${w}<div class="km-a"><button type="button" class="prim" id="khX">Naar de kaart</button></div>`;km.querySelector("#khX").onclick=sluit};
     if(!vrij.length){if(mijn.length)klaar(0,mijn);else fout("De straten die je vorig jaar bedeelde, zijn dit jaar al door iemand anders gereserveerd. Kies gerust andere straten op de kaart.");return}
     km.innerHTML=`<h3 id="khT">Jouw straten van vorig jaar</h3><p>${x.voornaam?"Dag "+e2(x.voornaam)+", vorig":"Vorig"} jaar buste je kalenders in deze straten. Wil je ze opnieuw voor jouw rekening nemen? Je hebt hiervoor <b>${krNum(doz(vrij))} ${doz(vrij)===1?"doos":"dozen"}</b> kalenders nodig.${tg}</p>${lijst}<p class="km-e" id="khE"></p>
       <div class="km-a"><button type="button" id="khN">Niet nu</button><button type="button" class="prim" id="khOk">Reserveer ${vrij.length===1?"deze straat":"deze "+vrij.length+" straten"}</button></div>`;
     km.querySelector("#khN").onclick=sluit;
     const ok=km.querySelector("#khOk");ok.onclick=async()=>{ok.disabled=true;ok.textContent="Bezig…";
       try{const r=await fetch("/api/ronde",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({her:1,l,j,t})});const y=await r.json().catch(()=>({}));if(!r.ok)throw new Error(y.error||"Reserveren mislukt.");
-        klaar((y.gereserveerd||[]).length,vrij);krLive()}catch(e){km.querySelector("#khE").textContent=e.message;ok.disabled=false;ok.textContent="Opnieuw proberen"}}})
+        const G=new Set(y.gereserveerd||[]),A=vrij.filter(o=>G.has(o.s)),W=vrij.filter(o=>!G.has(o.s));klaar(A.length,A,W);krLive()}catch(e){km.querySelector("#khE").textContent=e.message;ok.disabled=false;ok.textContent="Opnieuw proberen"}}})
   .catch(e=>fout(e.message))})();
 </script>
 <style id="krV2">
