@@ -87,6 +87,23 @@ function conflictFout(C, straten) {
   for (const c of C) for (const s of straten) if (s === c.s || base(s) === c.s || base(c.s) === s) bezet.add(s);
   const e = httpErr(409, conflictTekst(C) + " Er werd niets bewaard; bevestig de andere straten opnieuw."); e.extra = { conflict: [...bezet], vrij: straten.filter(s => !bezet.has(s)) }; return e;
 }
+/* Een hele straat kiezen terwijl een collega al een stuk ervan reserveerde of bedeelde: in plaats van alles te weigeren,
+   neemt de server enkel de stukken die nog vrij zijn (bij melden ook de stukken die al op jouw naam staan). */
+async function vrijeStukken(sb, jaar, straten, lidId, melden) {
+  if (!KRA) KRA = (await import("./kr_adressen.js")).default;
+  const uit = [], weg = [];
+  for (const s of straten) {
+    if (s.includes("~")) { uit.push(s); continue; }
+    const D = Object.keys(KRA).filter(k => k.startsWith(s + "~")); if (!D.length) { uit.push(s); continue; }
+    const { data, error } = await sb.from("ronde").select("id,data").in("id", D.map(k => `${jaar}_${k}`));
+    if (error || !data || !data.length) { uit.push(s); continue; }
+    const bezet = new Set(data.filter(r => { const d = r.data || {}; return !(melden && d.status === "reserved" && d.lidId === lidId); }).map(r => String(r.id).slice(String(jaar).length + 1)));
+    if (!bezet.size) { uit.push(...(data.length ? D : [s])); continue; }
+    const vrij = D.filter(k => !bezet.has(k)); if (!vrij.length) { uit.push(s); continue; } // niets meer vrij: laat de gewone foutmelding komen
+    uit.push(...vrij); weg.push(s);
+  }
+  return { straten: [...new Set(uit)].slice(0, 60), deels: weg };
+}
 const stuur = (res, e) => { if (e && e.extra) return res.status(e.status).json({ error: e.message, ...e.extra }); throw e; };
 
 /* Na een reservatie: de dozen die het lid nog moet krijgen meteen in de Verdeling zetten (jaarleden.kalMeeTeGeven).
@@ -131,9 +148,11 @@ async function reserveer(req, res, b) {
   res.setHeader("Cache-Control", "no-store");
   if (b.website) return res.status(200).json({ ok: true }); // honeypot
   const sb = admin(); await rateLimit(sb, req, "rondereserveer", 60, 3600, httpErr);
-  const straten = schoonStraten(b.straten); if (!straten.length) throw httpErr(400, "Kies minstens één straat.");
+  let straten = schoonStraten(b.straten); if (!straten.length) throw httpErr(400, "Kies minstens één straat.");
   const A = await algemeen(sb), { lid, bron } = await wie(sb, A, b);
-  const adr = await adressenVan(straten); if (adr.some(a => a == null)) throw httpErr(400, "Een of meer straten bestaan niet op de kaart.");
+  if ((await adressenVan(straten)).some(a => a == null)) throw httpErr(400, "Een of meer straten bestaan niet op de kaart.");
+  const VS = await vrijeStukken(sb, Number(A.jaar), straten, lid.id, false); straten = VS.straten;
+  const adr = await adressenVan(straten);
   await stopToets(sb, Number(A.jaar), lid.id, straten);
   const { data: r, error } = await sb.rpc("ronde_reserveer", { p_jaar: Number(A.jaar), p_straten: straten, p_lid: lid.id, p_by: [lid.voornaam, lid.an].filter(Boolean).join(" ") || lid.naam, p_bron: bron });
   if (error) throw error;
@@ -141,7 +160,7 @@ async function reserveer(req, res, b) {
   if (r && r.conflict) return stuur(res, conflictFout(r.conflict, straten));
   await zetMeeTeGeven(sb, Number(A.jaar), lid.id);
   try { await meldPush(sb, "admin", { lidId: lid.id, titel: "Kalenderronde: nieuwe reservatie", tekst: `${toonVan(lid)} reserveerde ${straten.length} ${straten.length === 1 ? "straat" : "straten"}`, url: "/#ronde", tag: "ronde-" + lid.id }); } catch (e) {}
-  return res.status(200).json({ ok: true, straten, adressen: adr.reduce((t, a) => t + a, 0), at: r.at });
+  return res.status(200).json({ ok: true, straten, deels: VS.deels, adressen: adr.reduce((t, a) => t + a, 0), at: r.at });
 }
 
 /* POST /api/ronde {actie:"vrijgeven", straten, lidId | l,j,t}: eigen reservatie aanpassen (nog niet gemelde straten terug vrij) */
@@ -162,10 +181,12 @@ async function meld(req, res, b) {
   res.setHeader("Cache-Control", "no-store");
   if (b.website) return res.status(200).json({ ok: true });
   const sb = admin(); await rateLimit(sb, req, "rondemelding", 60, 3600, httpErr);
-  const straten = schoonStraten(b.straten); if (!straten.length) throw httpErr(400, "Kies minstens één straat.");
+  let straten = schoonStraten(b.straten); if (!straten.length) throw httpErr(400, "Kies minstens één straat.");
   const key = String(b.key || ""); if (!/^k[0-9a-z]{12,40}$/.test(key)) throw httpErr(400, "Ongeldige melding. Laad de pagina opnieuw.");
   const A = await algemeen(sb), { lid, bron } = await wie(sb, A, b);
-  const adr = await adressenVan(straten); if (adr.some(a => a == null)) throw httpErr(400, "Een of meer straten bestaan niet op de kaart.");
+  if ((await adressenVan(straten)).some(a => a == null)) throw httpErr(400, "Een of meer straten bestaan niet op de kaart.");
+  straten = (await vrijeStukken(sb, Number(A.jaar), straten, lid.id, true)).straten;
+  const adr = await adressenVan(straten);
   const adressen = adr.reduce((t, a) => t + a, 0);
   // we werken met dozen: het lid geeft het aantal gebruikte dozen (per kwart doos), of (oude kaart) de antwoorden over de dozen
   const opBij = await opVan(sb, A.jaar, lid.id);
