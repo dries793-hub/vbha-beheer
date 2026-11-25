@@ -223,6 +223,8 @@ export async function kalStat(sb, jaar) {
     const m = String(d.date || "").match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if (!m) continue;
     const iso = `${m[3]}-${m[2]}-${m[1]}`; if (iso < van || iso > tot) continue;
     const S = dagCat.get(iso); if (S && !S.has("Kalenders")) continue;
+    // mededeling over een andere activiteit (bv. "Kinderfeest 2026 bijbetaling", "Banket 2026") is geen kalendergift
+    { const ds = String(d.description || ""); if (/kinderfeest|banket|jaarmarkt|fuif|familiedag|lidgeld|kassa/i.test(ds) && !/kalender|kalander/i.test(ds)) continue; }
     const po = r.payout || d.payoutId; if (po ? !gestort.has(po) : !gestortDag.has(iso)) { onderweg = r2(onderweg + (Number(d.amount) || 0)); nOnderweg++; }
     L.push({ a: r2(Number(d.amount) || 0), d: iso, t: String(d.time || "").slice(0, 5), n: String(d.debtorName || ""), h: String(d.ibanH || ""), m: /^payconiq /i.test(d.description || "") ? "" : String(d.description || "") }); }
   const laatst = rows.reduce((m, r) => { const x = String((r.data && r.data.date) || "").split("/").reverse().join("-"); return x > m ? x : m; }, "");
