@@ -218,8 +218,10 @@ export async function kalStat(sb, jaar) {
     if (b.bulkVan || b.bulk || b.richting === "uit" || !BC_PARTIJ.test(b.partij || "")) continue;
     const m = String(b.mededeling || "").trim().match(/^(\d{4})(\d{2})(\d{2})/); if (!m) continue;
     const d = `${m[1]}-${m[2]}-${m[3]}`, S = dagCat.get(d) || dagCat.set(d, new Set()).get(d); S.add(b.categorie || ""); }
+  // testbetalingen e.d. die niet als kalendergift meetellen (config algemeen.kalNegeerTx = [transactie-id's])
+  const negeer = new Set(Array.isArray(alg && alg.data && alg.data.kalNegeerTx) ? alg.data.kalNegeerTx.map(String) : []);
   const L = []; let onderweg = 0, nOnderweg = 0;
-  for (const r of rows) { const d = r.data || {}; if (perTx.has(String(d.id || r.id)) || /^VBHA /.test(d.reference || "")) continue;
+  for (const r of rows) { const d = r.data || {}; if (perTx.has(String(d.id || r.id)) || /^VBHA /.test(d.reference || "") || negeer.has(String(d.id || r.id))) continue;
     const m = String(d.date || "").match(/^(\d{2})\/(\d{2})\/(\d{4})$/); if (!m) continue;
     const iso = `${m[3]}-${m[2]}-${m[1]}`; if (iso < van || iso > tot) continue;
     const S = dagCat.get(iso); if (S && !S.has("Kalenders")) continue;
