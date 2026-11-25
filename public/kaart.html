@@ -3519,4 +3519,15 @@ const _k=krCard;krCard=function(){const r=_k.apply(this,arguments);try{zet();req
 <script>/* legende sluit zodra je ergens anders tikt (kaart, kaartje, zoekbalk…) */
 document.addEventListener("pointerdown",e=>{const l=document.querySelector(".kr-leg.open");if(!l||e.target.closest(".kr-leg,.kr-legbtn"))return;l.classList.remove("open");const b=document.querySelector(".kr-legbtn");if(b)b.setAttribute("aria-expanded","false")},true);</script>
 <style>/* logo even ver van de linkerrand als in de beheer-app */@media (max-width:1100px){body .hdr{padding-left:16px!important;padding-right:16px!important}}</style>
+<script>/* hele straat aantikken terwijl een stuk al bedeeld of gereserveerd is: enkel de vrije stukken worden aangeduid
+   (zelfde als met het schaartje), zodat meteen zichtbaar is wat je kiest en de bevestiging niet geweigerd wordt */
+{const _t=krToggle;krToggle=function(id){
+  if(id&&!String(id).includes("~")&&typeof KR_DELEN!=="undefined"){const al=[...KR.ss].filter(x=>String(x).startsWith(id+"~"));
+    if(al.length&&!KR.ss.has(id)){for(const x of al)KR.ss.delete(x);KR.sel=KR.ss.size?KR.sel:null;if(KR.map)krStyleAll();krCard();return}}
+  if(id&&!String(id).includes("~")&&!KR.ss.has(id)&&!KR_STAND[id]&&typeof KR_DELEN!=="undefined"){
+    const D=(KR_DELEN.get(id)||[]).filter(d=>!(typeof KR_VERB!=="undefined"&&KR_VERB.has(d.id))&&d.a>0),bezet=D.filter(d=>KR_STAND[d.id]),vrij=D.filter(d=>!KR_STAND[d.id]);
+    if(bezet.length&&vrij.length){for(const d of vrij)KR.ss.add(d.id);KR.sel=id;if(KR.map)krStyleAll();krCard();
+      const n=(KR.byId.get(id)||{}).n||"Deze straat";krMelding(`Van ${n} zijn ${bezet.length} ${bezet.length===1?"stuk":"stukken"} al bedeeld of gereserveerd: enkel de ${vrij.length} vrije ${vrij.length===1?"stuk is":"stukken zijn"} aangeduid.`);return}
+    if(bezet.length&&!vrij.length){krMelding(((KR.byId.get(id)||{}).n||"Deze straat")+" is al volledig bedeeld of gereserveerd.");return}}
+  return _t.apply(this,arguments)}}</script>
 </body></html>
