@@ -3,6 +3,7 @@
 export const KOP = {
   "banket-bevestiging": ["Bevestiging", "Banket {jaar}"],
   "herinnering-banket": ["Herinnering", "Banket {jaar}"],
+  "banket-inschrijven": ["Inschrijving", "Banket {jaar}"],
   "lid-bevestiging": ["Welkom", "Lidmaatschap {jaar}"],
   "herinnering-lidgeld": ["Herinnering", "Lidgeld {jaar}"],
   "betaling-ontvangen": ["Betaling", "Betaling ontvangen"],

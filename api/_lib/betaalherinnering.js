@@ -167,7 +167,7 @@ async function inschrijvenLijst(sb, cfg, nu) {
     if (nietBetaald.has(r.id)) continue; // lidgeld nog niet betaald
     if (insLid.has(r.id)) continue;
     const t = toks(`${l.naam} ${l.voornaam || ""}`); if (t.length >= 2 && insNaam.some(n => t.every(x => n.includes(x)))) continue; // ingeschreven zonder koppeling
-    out.push({ soort: "inschrijven", id: r.id, naam: `${l.naam} ${l.voornaam || ""}`.trim(), voornaam: l.voornaam || "", aan: String(l.email || "").trim(), jaar, deadline, feest, al: al.includes(r.id) });
+    out.push({ soort: "inschrijven", id: r.id, naam: `${l.naam} ${l.voornaam || ""}`.trim(), voornaam: l.voornaam || "", aan: String(l.email || "").trim(), jaar, deadline, feest, uur: B.uur || "19u00", locatie: B.locatie || "Feestzaal De Snip, Beugemstraat 9, Moorsel", al: al.includes(r.id) });
   }
   return { lijst: out, jaar, deadline, feest, vanaf, open: B.open !== false };
 }
@@ -175,16 +175,17 @@ registreer({ key: "banket-inschrijven", naam: "Herinnering inschrijven banket", 
   onderwerp: "VBHA - Schrijf je nog in voor ons banket van {datum_kort}",
   body: p("Dag {voornaam}!")
     + p("Op <b>{datum}</b> houden we ons jaarlijks banket. We zagen dat je nog niet ingeschreven bent, en we zouden je er heel graag bij hebben!")
-    + p("Inschrijven kan nog tot en met <b>{deadline}</b>. Via de knop hieronder staat je naam al ingevuld.")
-    + "<p>{knop_inschrijven}</p>"
-    + KLEIN("Ben je intussen al ingeschreven, of kan je er dit jaar niet bij zijn? Dan mag je deze mail als niet verzonden beschouwen."),
-  velden: [["voornaam", "Voornaam"], ["naam", "Naam"], ["jaar", "Jaar"], ["datum", "Datum banket"], ["datum_kort", "Datum banket (kort)"], ["deadline", "Inschrijven tot en met"], ["link_inschrijven", "Link inschrijfpagina"], ["knop_inschrijven", "Knop inschrijven"]],
-  voorbeeld: { voornaam: "Jan", naam: "Peeters Jan", jaar: "2026", datum: "zaterdag 12 december 2026", datum_kort: "12 december", deadline: "dinsdag 1 december", link_inschrijven: "https://vbha.be/banket" } });
+    + kaderBlok("Praktisch", "{gegevens}")
+    + p("Inschrijven kan nog tot en met <b>{deadline}</b>.")
+    + "<p>{knop_inschrijven}</p>",
+  velden: [["voornaam", "Voornaam"], ["naam", "Naam"], ["jaar", "Jaar"], ["datum", "Datum banket"], ["datum_kort", "Datum banket (kort)"], ["deadline", "Inschrijven tot en met"], ["uur", "Uur"], ["locatie", "Zaal"], ["gegevens", "Tabel wanneer en waar"], ["link_inschrijven", "Link inschrijfpagina"], ["knop_inschrijven", "Knop inschrijven"]],
+  voorbeeld: { voornaam: "Jan", naam: "Peeters Jan", jaar: "2026", datum: "zaterdag 12 december 2026", datum_kort: "12 december", deadline: "dinsdag 1 december", uur: "19:00–04:00", locatie: "Feestzaal De Snip, Beugemstraat 9, Moorsel", link_inschrijven: "https://vbha.be/banket" } });
 const kortDatum = iso => { const [y, m, d] = String(iso).split("-").map(Number); return d + " " + ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"][m - 1]; };
 export async function inschrijvenMail(sb, x, A) {
   const link = `${site()}/banket?v=${encodeURIComponent(x.id)}&j=${x.jaar}&t=${encodeURIComponent(tekenVul("bk", x.id, x.jaar))}`;
   const m = await sysMail(sb, "banket-inschrijven", { voornaam: esc(x.voornaam || x.naam), naam: esc(x.naam), jaar: x.jaar, datum: esc(lang(x.feest).replace(/^./, c => c.toLowerCase())), datum_kort: esc(kortDatum(x.feest)),
-    deadline: esc(lang(x.deadline).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase())), link_inschrijven: esc(link), knop_inschrijven: knop("Schrijf je in voor het banket", link) });
+    deadline: esc(lang(x.deadline).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase())), uur: esc(x.uur || ""), locatie: esc(x.locatie || ""),
+    gegevens: tabel([rij("Wanneer", esc(lang(x.feest))), rij("Uur", esc(x.uur || "")), rij("Waar", esc(x.locatie || ""))]), link_inschrijven: esc(link), knop_inschrijven: knop("Schrijf je in voor het banket", link) });
   return { onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging) };
 }
 /* ---------- planning (ook voor het voorbeeld in de instellingen) ---------- */
