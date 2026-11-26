@@ -117,7 +117,7 @@ registreer({ key: "lid-bevestiging", naam: "Nieuw lid: bevestiging inschrijving"
   voorbeeld: { voornaam: "Jan", naam: "Peeters Jan", vereniging: "Vriendenkring Brandweer Hoofdpost Aalst", jaar: "2026", lidgeld: "€30,00", betaald: "" } });
 registreer({ key: "kinderfeest-bevestiging", naam: "Kinderfeest: bevestiging inschrijving", wanneer: "Meteen na een inschrijving voor het kinderfeest. Het stuk over de cadeaus stel je in bij Kinderfeest › tandwiel.",
   onderwerp: "Bevestiging inschrijving kinderfeest {jaar}",
-  body: AFS("Dag {voornaam}!") + AFS("Je bent ingeschreven voor het kinderfeest op <b>{datum}</b>. Super!") + "<p>{cadeau_uitleg}</p>" + kaderBlok("Je inschrijving", "{gegevens}") + AFS("Tot dan!"),
+  body: AFS("Dag {voornaam}!") + AFS("Je bent ingeschreven voor het kinderfeest. Super!") + kaderBlok("Je inschrijving", "{gegevens}") + "{cadeau_uitleg}" + AFS("Tot dan!"),
   velden: [["voornaam", "Voornaam"], ["jaar", "Jaar"], ["datum", "Datum kinderfeest"], ["uur", "Uur"], ["locatie", "Locatie"], ["cadeau_uitleg", "Uitleg over de cadeaus"], ["gegevens", "Tabel met de inschrijving"]],
   voorbeeld: { voornaam: "Jan", jaar: "2026", datum: "19 december 2026", uur: "14u30", locatie: "VTI - Sinte Annalaan 99b, Aalst" } });
 registreer({ key: "familiedag-bevestiging", naam: "Familiedag: bevestiging inschrijving", wanneer: "Na een inschrijving voor de familiedag.",
@@ -174,34 +174,30 @@ export function kfGroepen(t) {
     .map(m => ({ van: Math.min(+m[1], +(m[2] || m[1])), tot: Math.max(+m[1], +(m[2] || m[1])), tekst: m[3] }));
 }
 const jarenTekst = (a, b) => { const L = []; for (let y = a; y <= b; y++) L.push(y); return L.length < 2 ? String(L[0]) : L.slice(0, -1).join(", ") + " en " + L[L.length - 1]; };
-const linkSite = s => { const u = String(s).trim(); if (!u) return ""; const h = /^https?:\/\//i.test(u) ? u : "https://" + u; return `<a href="${esc(h)}" style="color:#a3211a">${esc(u.replace(/^https?:\/\//i, ""))}</a>`; };
+const linkSite = s => { const u = String(s).trim(); if (!u) return ""; const h = /^https?:\/\//i.test(u) ? u : "https://" + u; return `<a href="${esc(h)}" style="color:#a3211a">${esc(u.replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/$/, ""))}</a>`; };
 export async function kfMailHtml(sb, d, { A, c, jaar, link }) {
   const datum = c.datum || jaar + "-12-19", tijd = c.tijd || "14u30", locatie = c.locatie || "VTI - Sinte Annalaan 99b, Aalst";
   const M = { ...kfMailDef(jaar, datum), ...(c.mail || {}), tot: kfMailDef(jaar, datum).tot }, G = kfGroepen(M.groepen);
   const lft = geb => { if (!geb) return ""; const [y, m, dd] = geb.split("-").map(Number), [Y, Mo, D] = datum.split("-").map(Number); let a = Y - y; if (Mo < m || (Mo === m && D < dd)) a--; return a < 1 ? "< 1 jaar" : a + " jaar"; };
   const groep = geb => { const y = Number(String(geb || "").slice(0, 4)); return G.find(g => y >= g.van && y <= g.tot); };
-  const kids = (d.kinderen || []).map(k => `<b>${esc(k.naam)}</b>${k.geb ? ` <span style="color:#666666">(${lft(k.geb)})</span>` : ""}`).join("<br>");
-  const waarde = t => { const x = String(t || "").replace(/\s*per kind\s*$/i, "").trim(); return /^\d/.test(x) ? "cadeau ter waarde van <b>" + esc(x) + "</b>" : esc(x); };
-  const perKind = (d.kinderen || []).map(k => ({ k, g: groep(k.geb) })).filter(x => x.g);
+  // bedrag kort: "50,00 EUR per kind" -> "€ 50"; andere tekst (bv. "cadeau voorzien door VBHA") blijft zoals hij is
+  const waarde = t => { const x = String(t || "").replace(/\s*per kind\s*$/i, "").trim(), m = x.match(/^(\d+(?:[.,]\d+)?)\s*(?:eur|euro|€)?$/i);
+    if (m) { const n = Number(m[1].replace(",", ".")); return "<b>€ " + (Number.isInteger(n) ? n : n.toFixed(2).replace(".", ",")) + "</b>"; } return esc(x); };
+  const perKind = (d.kinderen || []).map(k => ({ k, g: groep(k.geb) }));
   let vn = d.voornaam || "";
   if (!vn && d.lidId) { const { data: lid } = await sb.from("leden").select("data").eq("id", d.lidId).maybeSingle(); vn = (lid && lid.data && lid.data.voornaam) || ""; }
   const sites = String(M.sites || "").split(/[,;\s]+/).filter(Boolean).map(linkSite);
   const sitesT = sites.length < 2 ? sites.join("") : sites.slice(0, -1).join(", ") + " of " + sites[sites.length - 1];
-  const totL = M.tot ? lang(M.tot).replace(/^\S+\s/, "") : "";
+  const totK = M.tot ? lang(M.tot).replace(/^\S+\s/, "").replace(/\s\d{4}$/, "") : "";
+  const klein = t => p(`<span style="color:#666666;font-size:13.5px">${t}</span>`);
+  const kindTxt = ({ k, g }) => `<b>${esc(String(k.naam || "").trim().split(/\s+/)[0] || k.naam || "")}</b>${k.geb ? ` <span style="color:#666666">(${lft(k.geb)})</span>` : ""}${M.cadeau && g ? ": " + waarde(g.tekst) : ""}`;
   let html = "";
   if (M.cadeau) {
-    html += p("Dit jaar kan je zoals vorig jaar zelf het cadeau voor je kind(eren) kiezen.")
-      + (sitesT ? p(`Ga hiervoor naar de website ${sitesT} en kies 1 of meerdere cadeaus volgens de waarde die hieronder per kind vermeld staat.`) : "")
-      + (perKind.length ? `<ul style="margin:0 0 15px;padding-left:22px">${perKind.map(({ k, g }) => `<li style="margin:0 0 4px"><b>${esc(k.naam)}</b>: ${waarde(g.tekst)}</li>`).join("")}</ul>` : "")
-      + (M.keuze ? ((perKind.some(x => /\d/.test(x.g.tekst)) ? p(`Kies het cadeau${totL ? ` <b>tot en met ${esc(totL)}</b>` : ""} via de knop hieronder: plak de link van het product, wij controleren meteen de prijs en de voorraad. Indien je ${totL ? "tegen " + esc(totL) + " " : ""}geen keuze doorgeeft, krijg je een waardebon van bol.com t.w.v. het bedrag hierboven.`)
-        + knop("Cadeau kiezen", link || (site() + "/cadeau")) : ""))
-        : (
-        p(`Stuur ons ${totL ? `<b>voor ${esc(totL)}</b> ` : ""}per kind de omschrijving en het artikelnummer door${M.contact ? ` via <a href="mailto:${esc(M.contact)}" style="color:#a3211a">${esc(M.contact)}</a>` : ""}.`)
-      + p(`Gelieve ook te letten op de beschikbaarheid en levertijden van de producten.<br>Indien we ${totL ? "op " + esc(totL) + " " : ""}niets van jou hebben ontvangen, zal er een waardebon van bol.com worden voorzien t.w.v. het bedrag hierboven.`)))
-      ;
+    if (M.keuze) { if (perKind.some(x => x.g && /\d/.test(x.g.tekst))) html += p(`Kies het cadeau${totK ? ` <b>tegen ${esc(totK)}</b>` : ""}${sitesT ? ` op ${sitesT}` : ""} en plak de link via de knop.`) + knop("Cadeau kiezen", link || (site() + "/cadeau")) + klein("Geen keuze doorgegeven? Dan krijg je een waardebon van bol.com."); }
+    else html += p(`Kies het cadeau${sitesT ? ` op ${sitesT}` : ""} en stuur ons${totK ? ` <b>tegen ${esc(totK)}</b>` : ""} per kind de omschrijving en het artikelnummer${M.contact ? ` via <a href="mailto:${esc(M.contact)}" style="color:#a3211a">${esc(M.contact)}</a>` : ""}.`) + klein("Geen keuze doorgegeven? Dan krijg je een waardebon van bol.com.");
   }
   const m = await sysMail(sb, "kinderfeest-bevestiging", { voornaam: esc(vn), jaar, datum: esc(lang(datum).replace(/^\S+\s/, "")), uur: esc(tijd), locatie: esc(locatie), cadeau_uitleg: html,
-    gegevens: tabel([rij("Wanneer", esc(lang(datum)) + (tijd ? " om " + esc(tijd) : "")), rij("Waar", esc(locatie)), rij("Lid", esc(d.lid)), rij("Kinderen", kids || "–"), d.opmerking ? rij("Opmerking", esc(d.opmerking)) : ""]) });
+    gegevens: tabel([rij("Wanneer", esc(lang(datum)) + (tijd ? " om " + esc(tijd) : "")), rij("Waar", esc(locatie)), rij(M.cadeau ? "Cadeau" : (perKind.length > 1 ? "Kinderen" : "Kind"), perKind.map(kindTxt).join("<br>") || "–"), d.opmerking ? rij("Opmerking", esc(d.opmerking)) : ""]) });
   return Object.assign(new String(m.html.replace(/Dag\s+!/g, "Hallo!")), { onderwerp: m.onderwerp });
 }
 export async function mailKinderfeest(sb, row) {
