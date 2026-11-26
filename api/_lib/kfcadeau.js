@@ -11,20 +11,20 @@ import { kfMailDef, kfGroepen } from "./bevestiging.js";
 import { registreer, sysMail } from "./sjabloon.js";
 const KP = (t, st = "margin:0 0 16px") => `<p style="${st}">${t}</p>`;
 registreer({ key: "kinderfeest-cadeaukeuze", naam: "Kinderfeest: cadeaukeuze ontvangen", wanneer: "Als een ouder het cadeau online kiest (of de bijbetaling doet).",
-  onderwerp: "{als:bijbetaald}VBHA - Bijbetaling ontvangen, cadeaus kinderfeest {jaar}{/als:bijbetaald}{niet:bijbetaald}VBHA - Cadeaukeuze kinderfeest {jaar} ontvangen{/niet:bijbetaald}",
+  onderwerp: "{als:bijbetaald}Bijbetaling ontvangen, cadeaus kinderfeest {jaar}{/als:bijbetaald}{niet:bijbetaald}Cadeaukeuze kinderfeest {jaar} ontvangen{/niet:bijbetaald}",
   body: KP("Dag {voornaam}!") + KP("{als:bijbetaald}Je bijbetaling is in orde: we bestellen de cadeaus die je koos voor het kinderfeest.{/als:bijbetaald}{niet:bijbetaald}Bedankt! We ontvingen je cadeaukeuze voor het kinderfeest.{/niet:bijbetaald}")
     + "<p>{bijbetaling}</p><p>{cadeaus}</p><p>{samen}</p><p>{wijzigen}</p>" + KP("Tot op het kinderfeest!"),
   velden: [["voornaam", "Voornaam"], ["jaar", "Jaar"], ["datum", "Datum kinderfeest"], ["cadeaus", "Gekozen cadeaus per kind"], ["bijbetaling", "Blok bijbetaling ontvangen"], ["samen", "Zin over het totale budget"], ["wijzigen", "Zin over wijzigen"], ["link_cadeau", "Link cadeaupagina"], ["bijbetaald", "Voorwaarde: bijbetaling"]],
   voorbeeld: { voornaam: "Jan", jaar: "2026", datum: "zaterdag 19 december 2026", link_cadeau: "https://vbha.be/cadeau", bijbetaald: "" } });
 registreer({ key: "kinderfeest-cadeau-online", naam: "Kinderfeest: kies het cadeau online", wanneer: "Als je bij Kinderfeest de ingeschreven ouders laat weten dat ze het cadeau online kunnen kiezen.",
-  onderwerp: "VBHA - Kies nu online het cadeau voor het kinderfeest {jaar}",
+  onderwerp: "Kies nu online het cadeau voor het kinderfeest {jaar}",
   body: KP("Dag {voornaam}!") + KP("Goed nieuws: het cadeau voor je kind(eren) kies je dit jaar gewoon online. Je hoeft niets meer door te mailen.") + "<p>{kinderen}</p>"
     + KP("Kies het cadeau <b>tot en met {tot}</b> via de knop hieronder: plak de link van het product, wij controleren meteen de prijs en de voorraad. Indien je tegen {tot} geen keuze doorgeeft, krijg je een waardebon van bol.com t.w.v. het bedrag hierboven.")
     + "<p>{knop_cadeau}</p>" + KP("Gaf je je keuze al door per mail? Dan hoef je niets meer te doen."),
   velden: [["voornaam", "Voornaam"], ["jaar", "Jaar"], ["tot", "Kiezen tot en met"], ["kinderen", "Lijst kinderen met budget"], ["link_cadeau", "Link cadeaupagina"], ["knop_cadeau", "Knop cadeau kiezen"]],
   voorbeeld: { voornaam: "Jan", jaar: "2026", tot: "woensdag 9 december 2026", link_cadeau: "https://vbha.be/cadeau" } });
 registreer({ key: "kinderfeest-voorraad", naam: "Kinderfeest: gekozen cadeau niet meer op voorraad", wanneer: "Als een gekozen artikel niet meer op voorraad is (binnen de keuzetermijn).",
-  onderwerp: "VBHA - Gekozen cadeau voor {kind} niet meer op voorraad",
+  onderwerp: "Gekozen cadeau voor {kind} niet meer op voorraad",
   body: KP("Dag {voornaam}!") + KP("Het cadeau dat je koos voor <b>{kind}</b>, <b>{artikel}</b> ({winkel}), is helaas niet meer op voorraad.")
     + KP("Kies een ander artikel <b>tot en met {tot}</b> via de knop hieronder. Indien je geen nieuwe keuze doorgeeft, krijgt {kind} een waardebon van bol.com.") + "<p>{knop_cadeau}</p>",
   velden: [["voornaam", "Voornaam"], ["kind", "Naam kind"], ["artikel", "Artikel"], ["winkel", "Winkel"], ["tot", "Kiezen tot en met"], ["link_cadeau", "Link cadeaupagina"], ["knop_cadeau", "Knop ander artikel kiezen"]],

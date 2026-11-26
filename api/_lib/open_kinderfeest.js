@@ -12,7 +12,7 @@ import { lidStatus, REG27 } from "./status.js";
 import crypto from "node:crypto";
 import { registreer, sysMail } from "./sjabloon.js";
 registreer({ key: "kinderfeest-invullink", naam: "Kinderfeest: link met de kinderen al ingevuld", wanneer: "Als een lid op de inschrijfpagina van het kinderfeest vraagt om zijn gekende kinderen in te vullen.",
-  onderwerp: "VBHA - Inschrijving kinderfeest {jaar}",
+  onderwerp: "Inschrijving kinderfeest {jaar}",
   body: `<p style="margin:0 0 15px">Dag {voornaam}!</p><p style="margin:0 0 15px">Met de knop hieronder open je de inschrijving voor het kinderfeest {jaar}, met je kinderen al ingevuld.</p><p>{knop_inschrijven}</p>`,
   velden: [["voornaam", "Voornaam"], ["jaar", "Jaar"], ["link_inschrijven", "Persoonlijke link"], ["knop_inschrijven", "Knop kinderen invullen"]], voorbeeld: { voornaam: "Jan", jaar: "2026", link_inschrijven: "https://vbha.be/kinderfeest" } });
 const vSleutel = () => String(process.env.BETAAL_GEHEIM || process.env.SUPABASE_SERVICE_ROLE_KEY || "");

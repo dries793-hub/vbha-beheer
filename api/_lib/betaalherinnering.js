@@ -87,7 +87,7 @@ async function banketLijst(sb, cfg, nu) {
 const BH_KADER = (meded, A, x) => tabel([rij("Bedrag", `<b>${eur(x.bedrag)}</b>`), rij("Rekening", `<b>${esc(A.rekeningnummer || DEF_IBAN)}</b>`), rij("Begunstigde", esc(A.vereniging)), rij("Mededeling", `<b>${esc(meded)}</b>`)]);
 const KLEIN = t => p(t, "margin:0 0 15px;font-size:13.5px;color:#666666");
 registreer({ key: "herinnering-banket", naam: "Herinnering betaling banket", wanneer: "Volgens de instellingen bij Financiën › Betaalherinneringen, aan wie ingeschreven is voor het banket maar nog niet betaalde.",
-  onderwerp: "VBHA - Herinnering betaling banket {jaar}",
+  onderwerp: "Herinnering betaling banket {jaar}",
   body: p("Dag {voornaam}!") + p("Bedankt voor je inschrijving voor ons banket van {datum}. Volgens onze gegevens hebben we je betaling nog niet ontvangen.")
     + p("Pas wanneer je betaling binnen is, is je inschrijving definitief. Mogen we je vragen het bedrag zo snel mogelijk over te schrijven?")
     + kaderBlok("Nog te betalen", "{overschrijving}", "#b30000", "#fdf2f2")
@@ -127,7 +127,7 @@ async function lidgeldLijst(sb, cfg) {
   return { lijst: out, jaar: J, verval };
 }
 registreer({ key: "herinnering-lidgeld", naam: "Herinnering lidgeld", wanneer: "Volgens de instellingen bij Financiën › Betaalherinneringen, aan leden die hun lidgeld nog niet betaalden.",
-  onderwerp: "VBHA - Herinnering lidgeld {jaar}",
+  onderwerp: "Herinnering lidgeld {jaar}",
   body: p("Dag {voornaam}!")
     + p("Een tijdje geleden vroegen we je om je lidmaatschap van de <b>{vereniging}</b> voor {jaar} te verlengen. Na controle van onze rekeningen stellen we vast dat we je lidgeld nog niet mochten ontvangen.")
     + p("Mogen we je vriendelijk vragen om het lidgeld zo snel mogelijk over te maken? Betaal eenvoudig online met Bancontact via de knop hieronder. Op de betaalpagina kan je ook een QR-code scannen met je bankapp.")
@@ -176,7 +176,7 @@ async function inschrijvenLijst(sb, cfg, nu) {
   return { lijst: out, jaar, deadline, feest, vanaf, open: B.open !== false };
 }
 registreer({ key: "banket-inschrijven", naam: "Herinnering inschrijven banket", wanneer: "Een ingesteld aantal dagen vóór de inschrijvingsdeadline (Banket › tandwiel), aan leden die hun lidgeld betaalden maar nog niet ingeschreven zijn.",
-  onderwerp: "VBHA - Schrijf je nog in voor ons banket van {datum_kort}",
+  onderwerp: "Schrijf je nog in voor ons banket van {datum_kort}",
   body: p("Dag {voornaam}!")
     + p("Op <b>{datum}</b> houden we ons jaarlijks banket. We zagen dat je nog niet ingeschreven bent, en we zouden je er heel graag bij hebben!")
     + kaderBlok("Praktisch", "{gegevens}")
