@@ -114,37 +114,3 @@ export async function verkenAlles(dagen = 60) {
   return out;
 }
 
-// Proef reconciliatie-API (geen persoonsgegevens in het antwoord): welke betalingen geeft /reconciliation/payments terug
-// voor de laatste dagen, per kanaal en betaalprofiel, en zitten de betalingen via de vaste QR-code (sticker) erbij?
-export async function reconProef(dagen = 30) {
-  const key = String(process.env.BANCONTACT_API_KEY || "").trim();
-  if (!key) return { ingesteld: false };
-  const eind = new Date(Date.now() - 864e5).toISOString().slice(0, 10), start = new Date(Date.now() - Math.min(30, dagen) * 864e5).toISOString().slice(0, 10);
-  const out = { start, eind };
-  for (const [naam, H] of [["signature", { Signature: key }], ["bearer", { Authorization: "Bearer " + key }]]) {
-    try {
-      const r = await fetch(base() + `/reconciliation/payments?size=10000&page=0&start-date=${start}&end-date=${eind}`, { headers: { ...H, Accept: "application/json" } });
-      const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch {}
-      const L = (j && j.payments) || [];
-      const per = (f) => L.reduce((a, p) => { const k = String(f(p) ?? "?"); a[k] = a[k] || { n: 0, eur: 0 }; a[k].n++; a[k].eur = Math.round((a[k].eur + (Number(p.amount) || 0) / 100) * 100) / 100; return a; }, {});
-      out[naam] = { status: r.status, totaal: j?.totalElements ?? null, aantal: L.length, velden: L[0] ? Object.keys(L[0]) : [],
-        perKanaal: per(p => p.paymentChannel), perProfiel: per(p => (p.paymentProfileId || "").slice(-6)), perDag: per(p => String(p.transactionDate || "").slice(0, 10)),
-        appBetalingen: L.filter(p => /^VBHA/i.test(String(p.reference || ""))).length, metReferentie: L.filter(p => p.reference).length, metOmschrijving: L.filter(p => p.description).length,
-        fout: r.ok ? null : t.slice(0, 300) };
-      if (r.ok) break;
-    } catch (e) { out[naam] = { fout: String(e.message || e) }; }
-  }
-  // varianten (500 bij de eerste poging): kortere periode, zonder size, en de uitbetalingen zonder datum
-  out.varianten = {};
-  for (const pad of [`/reconciliation/payments?start-date=${eind}&end-date=${eind}`, `/reconciliation/payments?start-date=${eind}`, `/reconciliation/payouts`, `/reconciliation/refunds?start-date=${eind}&end-date=${eind}`]) {
-    try { const r = await fetch(base() + pad, { headers: { Signature: key, Accept: "application/json" } }); const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch {}
-      out.varianten[pad.split("?")[0] + (pad.includes("?") ? "?" + pad.split("?")[1].replace(/\d{4}-\d\d-\d\d/g, "D") : "")] = { status: r.status, totaal: j?.totalElements ?? null, velden: (j?.payments || j?.payouts || [])[0] ? Object.keys((j.payments || j.payouts)[0]) : [], kanalen: [...new Set((j?.payments || []).map(x => x.paymentChannel))], fout: r.ok ? null : t.slice(0, 160) }; }
-    catch (e) { out.varianten[pad] = { fout: String(e.message || e) }; }
-  }
-  try {
-    const r = await fetch(base() + `/reconciliation/payouts?size=100&page=0&date=${eind}`, { headers: { Signature: key, Accept: "application/json" } });
-    const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch {}
-    out.payouts = { status: r.status, aantal: (j?.payouts || []).length, velden: j?.payouts?.[0] ? Object.keys(j.payouts[0]) : [], fout: r.ok ? null : t.slice(0, 200) };
-  } catch (e) { out.payouts = { fout: String(e.message || e) }; }
-  return out;
-}
