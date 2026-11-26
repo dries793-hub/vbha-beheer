@@ -183,8 +183,8 @@ registreer({ key: "banket-inschrijven", naam: "Herinnering inschrijven banket", 
 const kortDatum = iso => { const [y, m, d] = String(iso).split("-").map(Number); return d + " " + ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"][m - 1]; };
 export async function inschrijvenMail(sb, x, A) {
   const link = `${site()}/banket?v=${encodeURIComponent(x.id)}&j=${x.jaar}&t=${encodeURIComponent(tekenVul("bk", x.id, x.jaar))}`;
-  const m = await sysMail(sb, "banket-inschrijven", { voornaam: esc(x.voornaam || x.naam), naam: esc(x.naam), jaar: x.jaar, datum: esc(lang(x.feest)), datum_kort: esc(kortDatum(x.feest)),
-    deadline: esc(lang(x.deadline).replace(/ \d{4}$/, "")), link_inschrijven: esc(link), knop_inschrijven: knop("Schrijf je in voor het banket", link) });
+  const m = await sysMail(sb, "banket-inschrijven", { voornaam: esc(x.voornaam || x.naam), naam: esc(x.naam), jaar: x.jaar, datum: esc(lang(x.feest).replace(/^./, c => c.toLowerCase())), datum_kort: esc(kortDatum(x.feest)),
+    deadline: esc(lang(x.deadline).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase())), link_inschrijven: esc(link), knop_inschrijven: knop("Schrijf je in voor het banket", link) });
   return { onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging) };
 }
 /* ---------- planning (ook voor het voorbeeld in de instellingen) ---------- */
