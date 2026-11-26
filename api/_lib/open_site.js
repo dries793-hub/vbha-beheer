@@ -173,7 +173,8 @@ export default async function site(req, res) {
       return res.status(200).json({ html });
     }
     let html, L = null;
-    try { L = await sponsorLogos(sb); } catch (e) { console.error("logos", e); }
+    // tijdelijke storing bij de database: één keer opnieuw proberen (anders zonder logo's, de pagina werkt gewoon)
+    try { L = await sponsorLogos(sb); } catch (e) { try { await new Promise(r => setTimeout(r, 400)); L = await sponsorLogos(sb); } catch (e2) { console.warn("logos", e2.message || e2); } }
     try { html = metLogos(bouw(await sjabloon(req), await leesCfg(sb), basis), L); }
     catch (e) { console.error(e); html = bouw(await sjabloon(req), schoon({}), basis); }
     res.setHeader("Content-Type", "text/html; charset=utf-8");

@@ -2893,7 +2893,7 @@ function krBgLaag(d,pane){const P=(la,lo)=>{const s=Math.max(-.9999,Math.min(.99
 const KR_BLD_ZOOM=15;
 const KR_BG_ORDER=[["green","--krb-green"],["water","--krb-water"],["road","--krb-road"],["rail","--krb-rail"],["bld","--krb-bld"]];
 function krBg(){if(KR.bgLoading||KR.bg||!KR.map)return;KR.bgLoading=true;
-  fetch("/kaart.json").then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>{
+  fetch("/kaart.json?v=0a915802ec").then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>{
     const map=KR.map;map.createPane("krBg").style.zIndex=300;map.createPane("krBld").style.zIndex=310;
     KR.bg={groups:{},src:d.src||"",laag:krBgLaag(d,"krBg")};krBgStyle(true);KR.bg.laag.addTo(map);
     map.attributionControl.addAttribution("GRB © Digitaal Vlaanderen");
