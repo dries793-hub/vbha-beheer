@@ -2856,13 +2856,23 @@ const krFold=t=>t.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const KR_SORTED=[...KR_STREETS].sort((a,b)=>a.n.localeCompare(b.n,"nl")||a.w.localeCompare(b.w,"nl"));
 function krLabels(){if(!KR.labels||KR.lblRaf)return;KR.lblRaf=requestAnimationFrame(()=>{KR.lblRaf=0;krLabelsNu()})}
 /* straatnamen: enkel wat in beeld komt of verdwijnt wordt toegevoegd of weggehaald (geen volledige heropbouw bij elke beweging) */
-function krLabelsNu(){if(!KR.labels)return;const map=KR.map,M=KR.lblM||(KR.lblM=new Map()),want=new Set();
-  if(map.getZoom()>=KR_LABEL_ZOOM){const view=map.getBounds().pad(.25);
-    for(const s of KR_STREETS){const la=KR.labelAt.get(s.id);if(!la||!view.contains(la.at))continue;if(typeof KR_VERB!=="undefined"&&KR_VERB.size&&!krGeo(s.id).some(l=>l&&l.length>1))continue;want.add(s.id)}}
+function krLabelsNu(){if(!KR.labels)return;const map=KR.map,M=KR.lblM||(KR.lblM=new Map()),z=map.getZoom();
+  /* straatnamen zonder overlap: de langste straten eerst (namen die al staan blijven staan), een naam die een andere zou raken valt weg;
+     kleinere letters bij minder inzoomen. Bij een ander zoomniveau worden de namen opnieuw verdeeld. */
+  if(KR.lblZ!==z){for(const t of M.values())KR.labels.removeLayer(t);M.clear();KR.lblZ=z}
+  const want=new Map();
+  if(z>=KR_LABEL_ZOOM){const view=map.getBounds().pad(.25),fs=z>=18?11.5:z>=17?10.5:9.5,h=fs*1.3,cw=fs*.58,C=Math.ceil(h*2),G=new Map(),d2=(h+3)*(h+3);
+    const vrij=P=>{for(const p of P){const gx=Math.floor(p[0]/C),gy=Math.floor(p[1]/C);for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){const Q=G.get((gx+i)+","+(gy+j));if(Q)for(const q of Q){const dx=p[0]-q[0],dy=p[1]-q[1];if(dx*dx+dy*dy<d2)return false}}}return true};
+    const zet=P=>{for(const p of P){const k=Math.floor(p[0]/C)+","+Math.floor(p[1]/C);let Q=G.get(k);if(!Q)G.set(k,Q=[]);Q.push(p)}};
+    const K=[];for(const s of KR_STREETS){const la=KR.labelAt.get(s.id);if(!la||!view.contains(la.at))continue;if(typeof KR_VERB!=="undefined"&&KR_VERB.size&&!krGeo(s.id).some(l=>l&&l.length>1))continue;K.push([s,la])}
+    K.sort((a,b)=>(M.has(b[0].id)-M.has(a[0].id))||((b[1].len||0)-(a[1].len||0)));
+    for(const [s,la] of K){const c=map.latLngToContainerPoint(la.at),w=s.n.length*cw,r=la.angle*Math.PI/180,ux=Math.cos(r),uy=Math.sin(r),n=Math.max(1,Math.round(w/h)),P=[];
+      for(let i=0;i<=n;i++){const d=-w/2+w*i/n;P.push([c.x+ux*d,c.y+uy*d])}
+      if(!vrij(P))continue;zet(P);want.set(s.id,fs)}}
   for(const [id,t] of M)if(!want.has(id)){KR.labels.removeLayer(t);M.delete(id)}
-  for(const s of KR_STREETS){if(!want.has(s.id)||M.has(s.id))continue;const {at,angle}=KR.labelAt.get(s.id);
-    const t=document.createElement("span");t.textContent=s.n;t.style.transform=`rotate(${angle.toFixed(1)}deg)`;
-    const tt=L.tooltip({permanent:true,direction:"center",className:"kr-lbl",interactive:false}).setLatLng(at).setContent(t);KR.labels.addLayer(tt);M.set(s.id,tt)}}
+  for(const [id,fs] of want){if(M.has(id))continue;const s=KR.byId.get(id),la=KR.labelAt.get(id);if(!s||!la)continue;
+    const t=document.createElement("span");t.textContent=s.n;t.style.transform=`rotate(${la.angle.toFixed(1)}deg)`;t.style.fontSize=fs+"px";
+    const tt=L.tooltip({permanent:true,direction:"center",className:"kr-lbl",interactive:false}).setLatLng(la.at).setContent(t);KR.labels.addLayer(tt);M.set(id,tt)}}
 /* Achtergrond (kaart.json) als eigen kaarttegels: de vlakken worden één keer omgerekend (zoomniveau 0) en per tegel van 256 px
    getekend, enkel de vlakken die in die tegel vallen (rasterindex). Tegels blijven bewaard bij het verschuiven en worden één voor één
    op de achtergrond getekend, zodat in- en uitzoomen vlot blijft. Veel sneller dan tienduizenden losse Leaflet-vlakken. */
@@ -2972,7 +2982,7 @@ function krInit(){if(!window.L){$("#krMap").innerHTML='<div class="empty">De kaa
     for(const part of (KR_VERB.size?krGeo(s.id):s.g))for(let i=1;i<part.length;i++){const a=map.project(part[i-1],KR_LABEL_ZOOM),b=map.project(part[i],KR_LABEL_ZOOM);const len=a.distanceTo(b);if(len>bl){bl=len;best=[part[i-1],part[i],a,b]}}
     if(!best){const p=s.g[0][0];return[s.id,{at:p,angle:0}]}
     const [p,q,a,b]=best;let ang=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;if(ang>90)ang-=180;if(ang<-90)ang+=180;
-    return[s.id,{at:[(p[0]+q[0])/2,(p[1]+q[1])/2],angle:ang}]}));
+    return[s.id,{at:[(p[0]+q[0])/2,(p[1]+q[1])/2],angle:ang,len:bl}]}));
   KR.labels=L.layerGroup().addTo(map);map.on("zoomend moveend",krLabels);krLabels();
   krBg();krStyleAll();
   const restyle=()=>{if(KR.map){krStyleAll();krBgStyle()}};matchMedia("(prefers-color-scheme: dark)").addEventListener("change",restyle)}
