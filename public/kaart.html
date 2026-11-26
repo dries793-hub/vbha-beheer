@@ -1459,6 +1459,8 @@ Merktweg 3 0 _}wuHe`pWOw@GMa@eAi@sA}@yB
 Brusselse steenweg 0 0 edzuHcxxWl@wB {}yuHqeyWnBeCrBkB
 </script>
 <script type="text/plain" id="krAdr">
+alfred-nichelsstraat~0 16
+alfred-nichelsstraat~1 47
 affligemdreef~0 59
 affligemdreef~1 2
 affligemdreef~2 35
@@ -2666,6 +2668,7 @@ const KR={ss:new Set(),map:null,lines:new Map(),labels:null,labelAt:null,sel:nul
    bestaande straten niet als er later straten of stukken straat bijkomen. */
 /* Aantal adressen per stuk uit het Adressenregister (<script id="krAdr">: "stuk-id aantal"); anders volgens de lengte van het stuk. */
 const KR_ADR=(()=>{const m=new Map(),el=typeof document!=="undefined"&&document.getElementById("krAdr");if(el)for(const l of el.textContent.trim().split("\n")){const x=l.trim().split(" ");if(x.length===2)m.set(x[0],+x[1])}return m})();
+const KR_KNIP=new Set(["alfred-nichelsstraat"]);
 function krMaakDelen(streets){const key=p=>p[0].toFixed(5)+","+p[1].toFixed(5),cntVan=new Map();
   const pgen=(s,i)=>s.pg?s.pg[i]:(s.gen||0);
   const cntTot=g=>{if(!cntVan.has(g)){const c=new Map();for(const s of streets){const seen=new Set();s.g.forEach((part,i)=>{if(pgen(s,i)>g)return;for(const p of part){const k=key(p);if(!seen.has(k)){seen.add(k);c.set(k,(c.get(k)||0)+1)}}})}cntVan.set(g,c)}return cntVan.get(g)};
@@ -2689,6 +2692,12 @@ function krMaakDelen(streets){const key=p=>p[0].toFixed(5)+","+p[1].toFixed(5),c
       const proj=gr=>{const pts=gr.g.flat(),m=pts[Math.floor(pts.length/2)];return (m[0]-p0[0])*ax[0]+(m[1]-p0[1])*ax[1]};
       groepen=groepen.map(gr=>({gr,v:proj(gr)})).sort((x,y)=>x.v-y.v).map(x=>x.gr);
       for(const gr of groepen)alle.push({g:gr.g,k:[kp[gr.a],kp[gr.b]]})}
+    // straten die uit losse, niet verbonden stukken bestaan en per stuk een eigen deel krijgen (KR_KNIP)
+    if(KR_KNIP.has(s.id)){const P=s.g.map(x=>x.slice()),C=P.map((_,i)=>i),f=i=>C[i]===i?i:(C[i]=f(C[i]));
+      for(let i=0;i<P.length;i++)for(let j=i+1;j<P.length;j++){const a=P[i],b=P[j];if([a[0],a[a.length-1]].some(p=>[b[0],b[b.length-1]].some(q=>dist(p,q)<8)))C[f(i)]=f(j)}
+      const M=new Map();P.forEach((g,i)=>{const r=f(i);if(!M.has(r))M.set(r,[]);M.get(r).push(g)});
+      const pts=s.g.flat(),q0=pts[0],ver=pts.reduce((b,p)=>dist(q0,p)>dist(q0,b)?p:b,q0),ax=[ver[0]-q0[0],ver[1]-q0[1]],pr=gs=>{const m=gs.flat(),c=m[Math.floor(m.length/2)];return (c[0]-q0[0])*ax[0]+(c[1]-q0[1])*ax[1]};
+      alle.length=0;for(const gs of [...M.values()].sort((a,b)=>pr(a)-pr(b))){const e=gs.flat();alle.push({g:gs,k:[e[0],e[e.length-1]]})}}
     const len=alle.map(gr=>gr.g.reduce((x,g)=>x+lengte(g),0)),L=len.reduce((a,b)=>a+b,0)||1;
     out.set(s.id,alle.map((gr,i)=>({id:s.id+"~"+i,sid:s.id,nr:i+1,g:gr.g,k:gr.k,len:len[i],a:KR_ADR.has(s.id+"~"+i)?KR_ADR.get(s.id+"~"+i):Math.max(alle.length>1?1:0,Math.round(s.a*len[i]/L))})))}
   return out}
