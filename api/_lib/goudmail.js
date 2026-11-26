@@ -171,9 +171,6 @@ export async function puntenCron(sb) {
       const ok = lid.naam && !lid.geenLid && lid.categorie !== "Erewacht" && !j.vrijstelling && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(String(lid.email || "").trim());
       const regels = [];
       for (const [k, wk, naam] of ONDERDELEN) { if (k === "vergaderingen") continue; if (cfg.nieuw && k === "shifts") { const da = x.nu.act - (x.m.act != null ? x.m.act : 0); if (da > 0) regels.push({ naam, pt: da * (w.shifts || 0), n: `${da} ${da === 1 ? "activiteit" : "activiteiten"}` }); continue; } const d = x.nu[k] - (x.m[k] || 0); if (d > 0) regels.push({ naam, pt: d * (w[wk] || 0), n: k === "kalUitgevoerd" ? `${d} ${d === 1 ? "doos" : "dozen"}` : k === "kaarten" ? `${d} ${d === 1 ? "kaart" : "kaarten"}` : k === "shifts" ? `${d} keer geholpen` : `${d}` }); }
-      { const kr = regels.find(r => r.naam === "kalenders bussen"), ex = j.kalAfExact != null ? Number(j.kalAfExact) : null;
-        if (kr && ex != null) { const d = x.nu.kalUitgevoerd - (x.m.kalUitgevoerd || 0), exD = Math.round((ex - (x.m.kalAfExact != null ? Number(x.m.kalAfExact) : (x.m.kalUitgevoerd || 0))) * 100) / 100;
-          if (exD > 0 && exD < d) kr.n = `${String(exD).replace(".", ",")} dozen bedeeld; een begonnen doos telt als volle doos`; } }
       { const ds = x.nu.shiftPt - (x.m.shiftPt || 0); if (ds > 0) regels.push({ naam: "hulp bij activiteiten", pt: ds, n: "" }); }
       const de = x.nu.extraPunten - (x.m.extraPunten || 0); if (de > 0) regels.push({ naam: j.extraTekst ? "extra: " + j.extraTekst : "extra punten", pt: de, n: "" });
       const goudVia = x.ander && x.st === "goud" && GM.aan !== false; // de proficiat-mail voor goud gaat apart
