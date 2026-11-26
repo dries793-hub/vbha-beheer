@@ -134,6 +134,13 @@ export async function reconProef(dagen = 30) {
       if (r.ok) break;
     } catch (e) { out[naam] = { fout: String(e.message || e) }; }
   }
+  // varianten (500 bij de eerste poging): kortere periode, zonder size, en de uitbetalingen zonder datum
+  out.varianten = {};
+  for (const pad of [`/reconciliation/payments?start-date=${eind}&end-date=${eind}`, `/reconciliation/payments?start-date=${eind}`, `/reconciliation/payouts`, `/reconciliation/refunds?start-date=${eind}&end-date=${eind}`]) {
+    try { const r = await fetch(base() + pad, { headers: { Signature: key, Accept: "application/json" } }); const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch {}
+      out.varianten[pad.split("?")[0] + (pad.includes("?") ? "?" + pad.split("?")[1].replace(/\d{4}-\d\d-\d\d/g, "D") : "")] = { status: r.status, totaal: j?.totalElements ?? null, velden: (j?.payments || j?.payouts || [])[0] ? Object.keys((j.payments || j.payouts)[0]) : [], kanalen: [...new Set((j?.payments || []).map(x => x.paymentChannel))], fout: r.ok ? null : t.slice(0, 160) }; }
+    catch (e) { out.varianten[pad] = { fout: String(e.message || e) }; }
+  }
   try {
     const r = await fetch(base() + `/reconciliation/payouts?size=100&page=0&date=${eind}`, { headers: { Signature: key, Accept: "application/json" } });
     const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch {}
