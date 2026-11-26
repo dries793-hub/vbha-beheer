@@ -157,6 +157,9 @@ async function inschrijvenLijst(sb, cfg, nu) {
   const nietBetaald = new Set(onb.lijst.map(x => x.id));
   const ins = rows.map(r => r.data || {}), insLid = new Set(ins.map(d => d.lidId).filter(Boolean)), insNaam = ins.map(d => toks(d.naam));
   const al = (((cfg.inschrijvenVerstuurd || {})[jaar]) || []);
+  // gezin: wie als partner gekoppeld is (partnerId, in beide richtingen) aan iemand die zich mét partner inschreef, krijgt geen herinnering
+  const metPartner = new Set(rows.filter(r => (r.data || {}).personen === 2 && (r.data || {}).lidId).map(r => r.data.lidId));
+  const partnerVan = new Map(); for (const r of leden) { const p = (r.data || {}).partnerId; if (p) { partnerVan.set(r.id, [...(partnerVan.get(r.id) || []), p]); partnerVan.set(p, [...(partnerVan.get(p) || []), r.id]); } }
   const out = [];
   for (const r of leden) {
     const l = r.data || {};
@@ -166,6 +169,7 @@ async function inschrijvenLijst(sb, cfg, nu) {
     if (nm(l.info).includes("ere-voorzitter")) continue;
     if (nietBetaald.has(r.id)) continue; // lidgeld nog niet betaald
     if (insLid.has(r.id)) continue;
+    if ((partnerVan.get(r.id) || []).some(p => metPartner.has(p))) continue; // partner schreef zich al in voor 2 personen
     const t = toks(`${l.naam} ${l.voornaam || ""}`); if (t.length >= 2 && insNaam.some(n => t.every(x => n.includes(x)))) continue; // ingeschreven zonder koppeling
     out.push({ soort: "inschrijven", id: r.id, naam: `${l.naam} ${l.voornaam || ""}`.trim(), voornaam: l.voornaam || "", aan: String(l.email || "").trim(), jaar, deadline, feest, uur: B.uur || "19u00", locatie: B.locatie || "Feestzaal De Snip, Beugemstraat 9, Moorsel", al: al.includes(r.id) });
   }
