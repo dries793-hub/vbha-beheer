@@ -177,6 +177,18 @@ export async function vergaderingAfgerond(req, res) {
       bijlagen.push({ naam: doc.data.naam || "Verslag.pdf", type: doc.data.type || "application/pdf", data: Buffer.from(await blob.arrayBuffer()) });
     }
   }
+  // extra bijlagen die bij het afronden mee opgeladen werden (Documenten › Verslagen › Bijlagen)
+  const extra = Array.isArray(af.bijlagen) ? af.bijlagen.map(String).filter(Boolean).slice(0, 20) : [];
+  if (extra.length) {
+    const { data: D } = await sb.from("documenten").select("id,data").in("id", extra);
+    const per = new Map((D || []).map(d => [d.id, d.data || {}]));
+    for (const id of extra) {
+      const d = per.get(id); if (!d || !d.pad) continue;
+      const { data: blob, error } = await sb.storage.from("documenten").download(d.pad);
+      if (error) throw httpErr(500, `De bijlage ${d.naam || ""} kon niet gelezen worden: ` + error.message);
+      bijlagen.push({ naam: d.naam || "Bijlage", type: d.type || "application/octet-stream", data: Buffer.from(await blob.arrayBuffer()) });
+    }
+  }
   const cfg = await instellingen(sb), aan = await vgOntvangers(sb, cfg);
   if (!aan.length) throw httpErr(400, "Er zijn geen ontvangers ingesteld (Instellingen › Herinneringen).");
   const { onderwerp, html, huisstijl } = await afgerondMail(v, nv, bijlagen.length > 0);
