@@ -39,7 +39,7 @@ ${v.uur ? `<p style="margin:0 0 5px">&bull; <b>Uur:</b> ${esc(v.uur)}</p>` : ""}
 ${v.locatie ? `<p style="margin:0 0 5px">&bull; <b>Locatie:</b> ${esc(v.locatie)}</p>` : ""}
 ${punten.length ? `<p style="margin:12px 0 5px"><b>Agenda</b></p><ol style="margin:0;padding-left:22px">${punten.map(p => `<li style="margin:0 0 4px">${esc(p)}</li>`).join("")}</ol>` : ""}
 </td></tr></table>`;
-  const m = await sysMail(sb, "vergadering-herinnering", { aanspreking: "bestuursleden", titel: esc(titel), soort: esc((v.soort || "vergadering").toLowerCase()), wanneer, datum: esc(lang(v.datum)),
+  const m = await sysMail(sb, "vergadering-herinnering", { aanspreking: AANSPR, titel: esc(titel), soort: esc((v.soort || "vergadering").toLowerCase()), wanneer, datum: esc(lang(v.datum)),
     datum_kort: esc(lang(v.datum).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase())), uur: esc(v.uur || ""), locatie: esc(v.locatie || ""), details,
     antwoord: v.id && vgBestuur(v) ? KNOP : `<p style="margin:0 0 15px">Kan je er niet bij zijn? Laat het dan even weten.</p>`, dagen: `${cfg.dagen} ${cfg.dagen === 1 ? "dag" : "dagen"}` });
   const html = huisstijl(m.html, "Vriendenkring Brandweer Hoofdpost Aalst", { groet: false });
@@ -70,14 +70,18 @@ const nrm = s => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, ""
 async function vgOntvangers(sb, cfg) {
   const [{ data: leden }, { data: gebr }] = await Promise.all([sb.from("leden").select("id,data").eq("data->>bestuur", "true"), sb.from("bestuur").select("email,naam")]);
   const L = (leden || []).filter(r => !r.data.geenLid), uit = [], gezien = new Set();
-  const voeg = (aan, lid, naam) => { aan = String(aan || "").trim(); if (!EMAIL.test(aan)) return; const k = aan.toLowerCase() + "|" + (lid || ""); if (gezien.has(k) || (!lid && [...gezien].some(x => x.startsWith(aan.toLowerCase() + "|")))) return; gezien.add(k); uit.push({ aan, lid: lid || null, naam: naam || "", voornaam: lid ? String(naam || "").split(" ")[0] : "" }); };
+  const voeg = (aan, lid, naam) => { aan = String(aan || "").trim(); if (!EMAIL.test(aan)) return; const k = aan.toLowerCase() + "|" + (lid || ""); if (gezien.has(k) || (!lid && [...gezien].some(x => x.startsWith(aan.toLowerCase() + "|")))) return; gezien.add(k); uit.push({ aan, lid: lid || null, naam: naam || "", voornaam: String(naam || "").trim().split(/\s+/)[0] || "" }); };
   for (const l of L) voeg(l.data.email, l.id, ((l.data.voornaam || "") + " " + (l.data.naam || "")).trim());
   for (const g of gebr || []) { if (L.some(l => nrm(l.data.email) === nrm(g.email) || nrm((l.data.voornaam || "") + " " + (l.data.naam || "")) === nrm(g.naam))) continue; voeg(g.email, null, g.naam); }
   for (const e of ontvangers(cfg)) voeg(e, null, "");
   return uit;
 }
 const zonderLid = L => L.map(x => x.aan);
-const groet = (html, o) => o.voornaam ? html.replace("Beste bestuursleden,", "Beste " + esc(o.voornaam) + ",") : html;
+/* persoonlijke aanspreking: {aanspreking} wordt eerst AANSPR (onzichtbare merktekens rond "bestuursleden"); per ontvanger komt daar de voornaam
+   (bestuurslid of gebruiker), anders blijft "bestuursleden" staan (bv. een algemeen adres). */
+const AANSPR = "<!--VGA-->bestuursleden<!--/VGA-->";
+const groet = (html, o) => { const vn = o && o.voornaam ? esc(o.voornaam) : "";
+  return String(html).replace(/<!--VGA-->[\s\S]*?<!--\/VGA-->/g, vn || "bestuursleden").replace(/\b(Beste|Dag|Hallo|Hoi) bestuursleden\b/g, (m, w) => vn ? w + " " + vn : m); };
 export async function herinneringen(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (!(await isDbCron(req))) throw httpErr(403, "Geen toegang");
@@ -120,7 +124,8 @@ export async function herinneringTest(req, res) {
   const m = await mail(admin(), v, dagenTot(nu, v.datum), site(), cfg);
   // de knoppen zoals een bestuurslid ze krijgt: met de eigen (persoonlijke) knoppen als je in de ledenlijst staat, anders de algemene knop
   let lidId = null; if (v.id) { const { data: L } = await admin().from("leden").select("id").ilike("data->>email", String(user.email || "").trim()).limit(1); lidId = (L && L[0] && L[0].id) || null; }
-  const html = v.id ? m.html.replace(KNOP, knoppen(v.id, lidId)) : m.html;
+  let vn = ""; if (lidId) { const { data: Lr } = await admin().from("leden").select("data").eq("id", lidId).maybeSingle(); vn = String((Lr && Lr.data && Lr.data.voornaam) || "").trim(); }
+  const h0 = groet(m.html, { voornaam: vn }), html = v.id ? h0.replace(KNOP, knoppen(v.id, lidId)) : h0;
   const [r] = await verstuur([{ ...m, html, aan: user.email, onderwerp: "[VOORBEELD] " + m.onderwerp, van: afzender() }]);
   if (!r || !r.ok) throw httpErr(502, "Versturen lukte niet" + (r && r.fout ? ": " + r.fout : ""));
   res.status(200).json({ ok: true, aan: user.email });
@@ -142,7 +147,7 @@ export async function afgerondMail(v, nv, bijlagenLen) {
   const { huisstijl, kaderBlok, tabel, rij, p } = await import("./bevestiging.js");
   const soort = (v.soort || "vergadering").toLowerCase(), titel = v.titel || v.soort || "Vergadering";
   const punten = nv ? String(nv.agenda || "").split(/\r?\n/).map(x => x.replace(/^\s*[-•*\d.)]+\s*/, "").trim()).filter(Boolean) : [];
-  const m = await sysMail(admin(), "vergadering-verslag", { aanspreking: "bestuursleden", soort: esc(soort), titel: esc(titel.toLowerCase() === soort ? soort : titel), datum: esc(lang(v.datum).replace(/^\S+ /, "")),
+  const m = await sysMail(admin(), "vergadering-verslag", { aanspreking: AANSPR, soort: esc(soort), titel: esc(titel.toLowerCase() === soort ? soort : titel), datum: esc(lang(v.datum).replace(/^\S+ /, "")),
     datum_lang: esc(lang(v.datum).replace(/^./, c => c.toLowerCase())), bijlage: !!bijlagen.length,
     aanwezigheid: v.aanwezig || v.verontschuldigd ? kaderBlok("Aanwezigheid", tabel([rij("Aanwezig", esc(v.aanwezig || "-")), rij("Verontschuldigd", esc(v.verontschuldigd || "-"))])) : "",
     volgende: nv ? kaderBlok("Volgende " + esc((nv.soort || "vergadering").toLowerCase()), tabel([
