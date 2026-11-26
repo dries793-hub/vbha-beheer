@@ -1,7 +1,7 @@
 import { admin, requireUser, httpErr } from "./sb.js";
 import { smtpConfigured } from "./smtp.js";
 import { algemeen, configDoc, norm, DEF_IBAN, lidgeldBoekingen } from "./publiek.js";
-import { teken } from "./lidlink.js";
+import { teken, tekenVul } from "./lidlink.js";
 import { registreer, sysMail } from "./sjabloon.js";
 import { huisstijl, kaderBlok, knop, tabel, rij, p, esc, eur, lang, plusDagen, site } from "./bevestiging.js";
 import { meldPush } from "./push.js";
@@ -18,6 +18,7 @@ export const BH_DEF = {
   uur: 10,
   banket: { aan: true, basis: "termijn", dagenNaVerval: 3, interval: 7, max: 2 },
   lidgeld: { aan: true, jaar: null, vervaldatum: "", dagenNaVerval: 7, interval: 14, max: 2 },
+  inschrijven: { aan: false, dagenVoor: 7 },
 };
 const vandaagBxl = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Brussels" }).format(new Date());
 const uurBxl = () => Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Brussels", hour: "2-digit", hour12: false }).format(new Date()));
@@ -33,7 +34,7 @@ export async function bhConfig(sb) {
   // standaard: het werkjaar waarvoor nu lidgeld gevraagd wordt (vanaf oktober het volgende jaar)
   if (!lg.jaar) lg.jaar = M >= 10 ? Y + 1 : Y;
   if (!lg.vervaldatum) lg.vervaldatum = lg.jaar + "-01-31";
-  return { ...BH_DEF, ...c, banket: { ...BH_DEF.banket, ...(c.banket || {}) }, lidgeld: lg, A };
+  return { ...BH_DEF, ...c, banket: { ...BH_DEF.banket, ...(c.banket || {}) }, lidgeld: lg, inschrijven: { ...BH_DEF.inschrijven, ...(c.inschrijven || {}) }, A };
 }
 
 async function alle(sb, tabel, jaar) {
@@ -143,6 +144,49 @@ export async function lidgeldMail(sb, x, A) {
   return { onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging) };
 }
 
+
+/* ---------- herinnering om in te schrijven voor het banket ----------
+   Aan alle leden die hun lidgeld voor het banketjaar betaalden en nog niet ingeschreven zijn, één keer per jaar,
+   een ingesteld aantal dagen vóór de inschrijvingsdeadline (config banket.inschrijvenTot), zolang de inschrijvingen open zijn. */
+async function inschrijvenLijst(sb, cfg, nu) {
+  const B = await configDoc(sb, "banket"), A = cfg.A;
+  const jaar = Number(String(B.datum || "").slice(0, 4)) || A.jaar;
+  const deadline = /^\d{4}-\d{2}-\d{2}$/.test(String(B.inschrijvenTot || "")) ? B.inschrijvenTot : jaar + "-12-01", feest = B.datum || jaar + "-12-12";
+  const vanaf = plusDagen(deadline, -(Number(cfg.inschrijven.dagenVoor) || 7));
+  const [leden, rows, onb] = await Promise.all([alle(sb, "leden"), alle(sb, "banket", jaar), lidgeldLijst(sb, { lidgeld: { jaar, vervaldatum: jaar + "-01-31" } })]);
+  const nietBetaald = new Set(onb.lijst.map(x => x.id));
+  const ins = rows.map(r => r.data || {}), insLid = new Set(ins.map(d => d.lidId).filter(Boolean)), insNaam = ins.map(d => toks(d.naam));
+  const al = (((cfg.inschrijvenVerstuurd || {})[jaar]) || []);
+  const out = [];
+  for (const r of leden) {
+    const l = r.data || {};
+    if (!l.naam || l.dubbelVan || l.geenLid || l.overleden) continue;
+    if (l.lidSinds && Number(l.lidSinds) > jaar) continue;
+    if (l.lidTot && Number(l.lidTot) < jaar) continue;
+    if (nm(l.info).includes("ere-voorzitter")) continue;
+    if (nietBetaald.has(r.id)) continue; // lidgeld nog niet betaald
+    if (insLid.has(r.id)) continue;
+    const t = toks(`${l.naam} ${l.voornaam || ""}`); if (t.length >= 2 && insNaam.some(n => t.every(x => n.includes(x)))) continue; // ingeschreven zonder koppeling
+    out.push({ soort: "inschrijven", id: r.id, naam: `${l.naam} ${l.voornaam || ""}`.trim(), voornaam: l.voornaam || "", aan: String(l.email || "").trim(), jaar, deadline, feest, al: al.includes(r.id) });
+  }
+  return { lijst: out, jaar, deadline, feest, vanaf, open: B.open !== false };
+}
+registreer({ key: "banket-inschrijven", naam: "Herinnering inschrijven banket", wanneer: "Een ingesteld aantal dagen vóór de inschrijvingsdeadline (Banket › tandwiel), aan leden die hun lidgeld betaalden maar nog niet ingeschreven zijn.",
+  onderwerp: "VBHA - Schrijf je nog in voor ons banket van {datum_kort}",
+  body: p("Dag {voornaam}!")
+    + p("Op <b>{datum}</b> houden we ons jaarlijks banket. We zagen dat je nog niet ingeschreven bent, en we zouden je er heel graag bij hebben!")
+    + p("Inschrijven kan nog tot en met <b>{deadline}</b>. Via de knop hieronder staat je naam al ingevuld.")
+    + "<p>{knop_inschrijven}</p>"
+    + KLEIN("Ben je intussen al ingeschreven, of kan je er dit jaar niet bij zijn? Dan mag je deze mail als niet verzonden beschouwen."),
+  velden: [["voornaam", "Voornaam"], ["naam", "Naam"], ["jaar", "Jaar"], ["datum", "Datum banket"], ["datum_kort", "Datum banket (kort)"], ["deadline", "Inschrijven tot en met"], ["link_inschrijven", "Link inschrijfpagina"], ["knop_inschrijven", "Knop inschrijven"]],
+  voorbeeld: { voornaam: "Jan", naam: "Peeters Jan", jaar: "2026", datum: "zaterdag 12 december 2026", datum_kort: "12 december", deadline: "dinsdag 1 december", link_inschrijven: "https://vbha.be/banket" } });
+const kortDatum = iso => { const [y, m, d] = String(iso).split("-").map(Number); return d + " " + ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"][m - 1]; };
+export async function inschrijvenMail(sb, x, A) {
+  const link = `${site()}/banket?v=${encodeURIComponent(x.id)}&j=${x.jaar}&t=${encodeURIComponent(tekenVul("bk", x.id, x.jaar))}`;
+  const m = await sysMail(sb, "banket-inschrijven", { voornaam: esc(x.voornaam || x.naam), naam: esc(x.naam), jaar: x.jaar, datum: esc(lang(x.feest)), datum_kort: esc(kortDatum(x.feest)),
+    deadline: esc(lang(x.deadline).replace(/ \d{4}$/, "")), link_inschrijven: esc(link), knop_inschrijven: knop("Schrijf je in voor het banket", link) });
+  return { onderwerp: m.onderwerp, html: huisstijl(m.html, A.vereniging) };
+}
 /* ---------- planning (ook voor het voorbeeld in de instellingen) ---------- */
 async function plan(sb, cfg, nu) {
   const res = { banket: null, lidgeld: null };
@@ -152,6 +196,9 @@ async function plan(sb, cfg, nu) {
   const lg = await lidgeldLijst(sb, cfg);
   res.lidgeld = { ...lg, lijst: undefined, open: lg.lijst.length, zonderMail: lg.lijst.filter(x => !geldig(x.aan)).length,
     nu: !cfg.lidgeld.aan ? [] : lg.lijst.filter(x => geldig(x.aan) && aanDeBeurt(x.log, x.verval, cfg.lidgeld, nu)), alle: lg.lijst };
+  const ik = await inschrijvenLijst(sb, cfg, nu);
+  res.inschrijven = { ...ik, lijst: undefined, open: ik.lijst.length, zonderMail: ik.lijst.filter(x => !geldig(x.aan)).length,
+    nu: !cfg.inschrijven.aan || !ik.open || nu < ik.vanaf || nu > ik.deadline ? [] : ik.lijst.filter(x => geldig(x.aan) && !x.al), alle: ik.lijst };
   return res;
 }
 
@@ -165,6 +212,8 @@ export async function betaalHerinneringApi(req, res) {
     vandaag: nu, smtp: smtpConfigured(),
     banket: { jaar: P.banket.jaar, verval: P.banket.verval, feest: P.banket.feest, open: P.banket.open, zonderMail: P.banket.zonderMail, nu: P.banket.nu.map(kort) },
     lidgeld: { jaar: P.lidgeld.jaar, verval: P.lidgeld.verval, open: P.lidgeld.open, zonderMail: P.lidgeld.zonderMail, nu: P.lidgeld.nu.map(kort) },
+    inschrijven: { jaar: P.inschrijven.jaar, deadline: P.inschrijven.deadline, vanaf: P.inschrijven.vanaf, open: P.inschrijven.open, aantal: P.inschrijven.alle.filter(x => !x.al).length, zonderMail: P.inschrijven.zonderMail, al: P.inschrijven.alle.filter(x => x.al).length,
+      wie: P.inschrijven.alle.filter(x => !x.al).map(x => ({ id: x.id, naam: x.naam, aan: x.aan ? x.aan.replace(/^(.{2}).*@/, "$1•••@") : "" })) },
   });
 }
 
@@ -172,12 +221,17 @@ export async function betaalHerinneringApi(req, res) {
 export async function betaalHerinneringCron(sb) {
   if (!smtpConfigured()) return { mail: "niet ingesteld" };
   const cfg = await bhConfig(sb), nu = vandaagBxl();
-  if (!cfg.banket.aan && !cfg.lidgeld.aan) return { uit: true };
+  if (!cfg.banket.aan && !cfg.lidgeld.aan && !cfg.inschrijven.aan) return { uit: true };
   if (cfg.laatsteDag === nu || uurBxl() < Number(cfg.uur ?? 10)) return { wacht: true };
   // eerst de dag vastleggen: een tweede aanroep (of een fout halverwege) mag nooit dubbel mailen
   const { data: cur } = await sb.from("config").select("data").eq("id", "betaalherinnering").maybeSingle();
   await sb.from("config").upsert({ id: "betaalherinnering", data: { ...((cur && cur.data) || {}), laatsteDag: nu } });
   const P = await plan(sb, cfg, nu), A = cfg.A, batch = "betaalherinnering-" + nu, berichten = [], log = [];
+  const ikIds = [];
+  for (const x of P.inschrijven.nu) {
+    const m = await inschrijvenMail(sb, x, A);
+    berichten.push({ batch: "banket-inschrijven-" + x.jaar, data: { aan: x.aan, aanNaam: x.naam, onderwerp: m.onderwerp, html: m.html } }); ikIds.push(x.id);
+  }
   for (const x of [...P.banket.nu, ...P.lidgeld.nu]) {
     const m = x.soort === "banket" ? await banketMail(sb, x, A) : await lidgeldMail(sb, x, A);
     berichten.push({ batch, data: { aan: x.aan, aanNaam: x.naam, onderwerp: m.onderwerp, html: m.html } });
@@ -197,7 +251,9 @@ export async function betaalHerinneringCron(sb) {
   if (berichten.length) { const { error } = await sb.from("mail_wachtrij").insert(berichten); if (error) throw error; }
   const { data: c2 } = await sb.from("config").select("data").eq("id", "betaalherinnering").maybeSingle();
   const d2 = (c2 && c2.data) || {};
-  await sb.from("config").upsert({ id: "betaalherinnering", data: { ...d2, laatsteDag: nu, laatsteRonde: { op: new Date().toISOString(), banket: P.banket.nu.length, lidgeld: P.lidgeld.nu.length }, log: [...log, ...(d2.log || [])].slice(0, 300) } });
+  const IV = { ...(d2.inschrijvenVerstuurd || {}) }; if (ikIds.length) IV[P.inschrijven.jaar] = [...new Set([...(IV[P.inschrijven.jaar] || []), ...ikIds])];
+  await sb.from("config").upsert({ id: "betaalherinnering", data: { ...d2, laatsteDag: nu, inschrijvenVerstuurd: IV, laatsteRonde: { op: new Date().toISOString(), banket: P.banket.nu.length, lidgeld: P.lidgeld.nu.length, inschrijven: ikIds.length }, log: [...log, ...(d2.log || [])].slice(0, 300) } });
   if (log.length) await meldPush(sb, "boek", { titel: log.length === 1 ? "Betalingsherinnering verstuurd" : log.length + " betalingsherinneringen verstuurd", tekst: [P.banket.nu.length ? P.banket.nu.length + " banket" : "", P.lidgeld.nu.length ? P.lidgeld.nu.length + " lidgeld" : ""].filter(Boolean).join(" · ") + (log.length <= 3 ? ": " + log.map(x => x.naam).join(", ") : ""), url: "/#dashboard", tag: "betaalherinnering" });
-  return { banket: P.banket.nu.length, lidgeld: P.lidgeld.nu.length };
+  if (ikIds.length) await meldPush(sb, "boek", { titel: ikIds.length === 1 ? "Herinnering inschrijven banket verstuurd" : ikIds.length + " herinneringen om in te schrijven voor het banket verstuurd", tekst: "Aan leden met betaald lidgeld die nog niet ingeschreven waren." }).catch(() => {});
+  return { banket: P.banket.nu.length, lidgeld: P.lidgeld.nu.length, inschrijven: ikIds.length };
 }
