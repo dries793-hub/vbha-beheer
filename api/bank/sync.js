@@ -16,11 +16,23 @@ export default async function handler(req, res) {
     if (isCron(req) || await isDbCron(req)) sb = admin();
     else { if (req.method !== "POST") throw httpErr(405, "Gebruik POST"); ({ sb } = await requireUser(req, { boek: true })); manueel = true; }
     if (!configured()) throw httpErr(501, "Enable Banking is nog niet ingesteld");
+    if (manueel) await geenDubbeleOphaling(sb);
     // wie zelf ophaalt, is aanwezig: PSU-headers meesturen (telt dan niet mee voor de daglimiet van de bank)
     const ip = manueel ? String(req.headers["x-forwarded-for"] || req.headers["x-real-ip"] || "").split(",")[0].trim() : "";
     const result = await syncAll(sb, { manueel, psu: ip ? { ip, ua: String(req.headers["user-agent"] || "").slice(0, 300) } : null });
     res.status(200).json(result);
   } catch (e) { sendError(res, e); }
+}
+
+/* "Nu ophalen": niet twee keer kort na elkaar (dubbel klikken, twee bestuursleden tegelijk, of net na de geplande ophaling).
+   Eén ophaling per 2 minuten voor de hele vereniging (teller in de databank, ook als er tegelijk geklikt wordt). */
+async function geenDubbeleOphaling(sb) {
+  const { data: kops } = await sb.from("bank_koppelingen").select("data");
+  const laatst = Math.max(0, ...(kops || []).map(k => Date.parse(k.data?.laatste_sync || "") || 0));
+  const uur = t => new Intl.DateTimeFormat("nl-BE", { timeZone: "Europe/Brussels", hour: "2-digit", minute: "2-digit" }).format(new Date(t)).replace(":", "u");
+  if (laatst && Date.now() - laatst < 120000) throw httpErr(429, `Net opgehaald om ${uur(laatst)}. Probeer het over een paar minuten opnieuw.`);
+  const { data: ok, error } = await sb.rpc("rl_hit", { p_k: "banksync:manueel", p_max: 1, p_sec: 120 });
+  if (!error && ok === false) throw httpErr(429, "De rekening wordt al opgehaald. Probeer het over een paar minuten opnieuw.");
 }
 
 /* Verrichtingen ophalen vanaf een datum. Volgt de continuation_key van de bank. Sommige banken (bv. Argenta) geven per
