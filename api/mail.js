@@ -78,6 +78,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "shop") return await shopApi(req, res); // webshop: status van een bestelling, mails
     if (req.query && req.query.f === "kfcadeau") { const { kfCadeauApp } = await import("./_lib/kfcadeau.js"); return await kfCadeauApp(req, res); } // kinderfeest: cadeaulink, prijzen en voorraad opnieuw controleren
     if (req.query && req.query.f === "vgaanw") { const { vergaderingApp } = await import("./_lib/open_vergadering.js"); return await vergaderingApp(req, res); } // bestuursvergadering: aanwezig/verontschuldigd
+    if (req.query && req.query.f === "sponsorgeo") { const { sponsorGeoApi } = await import("./_lib/erewachtgeo.js"); return await sponsorGeoApi(req, res); } // sponsors op de kalenderkaart
     if (req.query && req.query.f === "erewachtgeo") { const { erewachtGeoApi } = await import("./_lib/erewachtgeo.js"); return await erewachtGeoApi(req, res); } // erewacht op de kalenderkaart
     if (req.query && req.query.f === "kassa") return await kassaApi(req, res); // kassa: transacties wissen of nakijken
     if (req.query && req.query.f === "fuif") return await fuifApi(req, res); // fuif: tickets scannen en bestellingen beheren

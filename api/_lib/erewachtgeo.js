@@ -23,3 +23,28 @@ export async function erewachtGeoApi(req, res) {
   const { data: L } = await sb.from("leden").select("id,data->geo").eq("data->>categorie", "Erewacht").limit(500);
   return res.status(200).json({ ok: true, bijgewerkt: n, geo: Object.fromEntries((L || []).map(r => [r.id, r.geo || null])) });
 }
+
+/* Sponsors op de kalenderkaart: adres van elke sponsor omzetten naar een punt en bewaren in sponsors.data.geo
+   (zelfde vorm als bij de erewacht). Enkel opnieuw opzoeken als het adres veranderde (of na een week als het niet gevonden werd). */
+export async function sponsorGeoApi(req, res) {
+  if (req.method !== "POST") throw httpErr(405, "Gebruik POST");
+  await requireUser(req, { write: true });
+  const sb = admin();
+  const { data, error } = await sb.from("sponsors").select("id,data").limit(1000);
+  if (error) throw error;
+  const weekGeleden = new Date(Date.now() - 7 * 864e5).toISOString();
+  const todo = (data || []).filter(r => { const a = String(r.data.adres || "").trim(), g = r.data.geo; return a && (!g || g.adres !== a || (g.lat == null && String(g.op || "") < weekGeleden)); }).slice(0, 60);
+  let n = 0;
+  for (let i = 0; i < todo.length; i += 3) {
+    await Promise.all(todo.slice(i, i + 3).map(async r => {
+      const a = String(r.data.adres).trim(), P = await zoekPuntSlim(a.replace(/[’‘`´]/g, "'")), op = new Date().toISOString();
+      const geo = P && P.lat ? { adres: a, lat: +P.lat, lng: +P.lng, binnen: binnen([P.lat, P.lng]), exact: !!P.huisnummer, op } : { adres: a, lat: null, lng: null, binnen: false, op };
+      // enkel het veld geo aanpassen (de rest van de sponsor blijft zoals hij nu in de databank staat)
+      const { data: cur } = await sb.from("sponsors").select("data").eq("id", r.id).maybeSingle();
+      if (!cur) return;
+      const { error: e } = await sb.from("sponsors").update({ data: { ...cur.data, geo } }).eq("id", r.id); if (!e) n++;
+    }));
+  }
+  const { data: L } = await sb.from("sponsors").select("id,data->geo").limit(1000);
+  return res.status(200).json({ ok: true, bijgewerkt: n, geo: Object.fromEntries((L || []).map(r => [r.id, r.geo || null])) });
+}
