@@ -16,7 +16,7 @@ export function reglement27Html(c) {
   ${art(1, "Waarom een puntensysteem?", "<p>De Vriendenkring draait op vrijwilligers. Wie meehelpt, verdient punten en krijgt daarvoor voordelen: korting op ledenactiviteiten en een cadeau op het kinderfeest. Wie niet meehelpt, blijft welkom, maar betaalt de volle prijs.</p>")}
   ${art(2, "Wie doet mee?", ol(["Elk lid dat zijn lidgeld betaald heeft, verzamelt punten. Bestuursleden ook.", "Erewachters zijn altijd goud. Zij vallen buiten het puntensysteem en verzamelen geen punten.", "Word je in de loop van het jaar lid, dan ben je dat jaar meteen brons.", "Je punten zijn persoonlijk. Je kan ze niet doorgeven of verkopen. Stop je als lid, dan vervallen je punten."]))}
   ${art(3, "Zo verdien je punten", inzet([
-    ["Kalenders bussen", "20 per doos", "Alleen gebuste kalenders tellen. Meld je straten via vbha.be/kaart, vóór de deadline in bijlage 1. Samen gebust? Dan worden de punten gelijk verdeeld."],
+    ["Kalenders bussen", `${Number(c.gewichten?.kalenders) || 25} per doos`, "Alleen gebuste kalenders tellen. Meld je straten via vbha.be/kaart, vóór de deadline in bijlage 1. Samen gebust? Dan worden de punten gelijk verdeeld."],
     ["Helpen op een activiteit", "50 per activiteit", "Opbouw en afbraak tellen mee, het aantal uren niet. Je moet vooraf ingepland zijn. Niet komen zonder te verwittigen = geen punten."],
     ["Bestuursvergadering", "20 per vergadering", "Alleen voor bestuursleden die volgens het verslag aanwezig waren."],
     ["Fuifkaarten in voorverkoop", "5 per kaart", "Per verkochte en betaalde kaart."],
