@@ -33,7 +33,7 @@ registreer({ key: "pontoise-uitnodiging", naam: "Pontoise: uitnodiging om je kan
   onderwerp: "Ga je mee naar Pontoise? Weekend {weekend_kort}",
   body: p("Dag {voornaam}!")
     + p("Ook dit jaar trekken we met een groep collega's naar onze vrienden van de brandweer van <b>Pontoise</b> (Frankrijk). Het weekend gaat door op <b>{weekend}</b>.")
-    + kaderBlok("Hoe gaat het in zijn werk?", p("Er kunnen maximaal <b>{max} collega's</b> mee. Stel je kandidaat via de knop hieronder{als:tot} (ten laatste op {tot}){/als:tot}. Zijn er meer kandidaten dan plaatsen, dan krijgen leden met meer punten en een hogere status voorrang, en wie de voorbije jaren al mee was, schuift wat op in de lijst.", "margin:0"))
+    + kaderBlok("Hoe gaat het in zijn werk?", p("Er kunnen maximaal <b>{max} collega's</b> mee. Stel je kandidaat via de knop hieronder{als:tot} (ten laatste op {tot}){/als:tot}. Zijn er meer kandidaten dan plaatsen, dan maken we een selectie. Daarbij houden we rekening met je inzet voor de vriendenkring, en geven we graag ook collega’s een kans die nog niet of minder vaak mee waren.", "margin:0"))
     + "<p>{knop_inschrijven}</p>"
     + p("Na de inschrijvingen laten we je weten of je mee kan."),
   velden: [["voornaam", "Voornaam"], ["jaar", "Jaar"], ["weekend", "Datum weekend (lang)"], ["weekend_kort", "Datum weekend (kort)"], ["max", "Aantal plaatsen"], ["tot", "Kandidaat stellen tot"], ["link_inschrijven", "Persoonlijke link"], ["knop_inschrijven", "Knop kandidaat stellen"]],
