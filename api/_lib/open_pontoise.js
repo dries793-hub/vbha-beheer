@@ -36,7 +36,7 @@ registreer({ key: "pontoise-uitnodiging", naam: "Pontoise: uitnodiging om je kan
   onderwerp: "Ga je mee naar Pontoise? Weekend {weekend_kort}",
   body: p("Dag {voornaam}!")
     + p("Ook dit jaar trekken we met een groep collega's naar onze vrienden van de brandweer van <b>Pontoise</b> (Frankrijk). Het weekend gaat door {weekend_zin}.")
-    + kaderBlok("Hoe gaat het in zijn werk?", p("Er kunnen maximaal <b>{max} collega's</b> mee. Stel je kandidaat via de knop hieronder{als:tot} (ten laatste op {tot}){/als:tot}. Zijn er meer kandidaten dan plaatsen, dan maken we een selectie. Daarbij houden we rekening met je inzet voor de vriendenkring, en geven we graag ook collega’s een kans die nog niet of minder vaak mee waren.", "margin:0"))
+    + kaderBlok("Hoe gaat het in zijn werk?", p("Er kunnen maximaal <b>{max} collega's</b> mee. Stel je kandidaat via de knop hieronder{als:tot} (ten laatste op {tot}){/als:tot}. Zijn er meer kandidaten dan plaatsen, dan maken we een selectie. Daarbij houden we rekening met je inzet voor de vriendenkring en je betrokkenheid bij de verbroedering met Pontoise. Collega’s die nog niet of minder vaak mee waren, krijgen ook graag een kans.", "margin:0"))
     + "<p>{knop_inschrijven}</p>"
     + p("Na de inschrijvingen laten we je weten of je mee kan."),
   velden: [["voornaam", "Voornaam"], ["jaar", "Jaar"], ["weekend_zin", "Weekend in een zin (van … tot en met …)"], ["weekend", "Datum weekend (lang)"], ["weekend_kort", "Datum weekend (kort)"], ["max", "Aantal plaatsen"], ["tot", "Kandidaat stellen tot"], ["link_inschrijven", "Persoonlijke link"], ["knop_inschrijven", "Knop kandidaat stellen"]],
