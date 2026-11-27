@@ -52,7 +52,7 @@ registreer({ key: "pontoise-melding", naam: "Pontoise: melding nieuwe kandidaat"
   velden: [["naam", "Naam kandidaat"], ["jaar", "Jaar"], ["aantal", "Aantal kandidaten"], ["max", "Aantal plaatsen"], ["gegevens", "Tabel met de gegevens"], ["knop_app", "Knop naar de beheerapp"]],
   voorbeeld: { naam: "Peeters Jan", jaar: "2027", aantal: "4", max: "10", gegevens: "" } });
 
-async function uitnodigingMail(sb, I, l) {
+export async function uitnodigingMail(sb, I, l) {
   const link = ptLink(l.id, I.jaar);
   const m = await sysMail(sb, "pontoise-uitnodiging", { voornaam: esc(l.voornaam || l.naam), jaar: I.jaar, weekend: esc(weekend(I).replace(/^./, c => c.toLowerCase())), weekend_kort: esc(I.datum ? datumTekst(I.datum) : "datum volgt"),
     max: I.max, tot: I.open && I.tot ? esc(datumTekst(I.tot).replace(/ \d{4}$/, "")) : "", link_inschrijven: esc(link), knop_inschrijven: knop("Ik ga graag mee", link) });
