@@ -203,7 +203,8 @@ async function plan(sb, cfg, nu) {
     nu: !cfg.lidgeld.aan ? [] : lg.lijst.filter(x => geldig(x.aan) && aanDeBeurt(x.log, x.verval, cfg.lidgeld, nu)), alle: lg.lijst };
   const ik = await inschrijvenLijst(sb, cfg, nu);
   res.inschrijven = { ...ik, lijst: undefined, open: ik.lijst.length, zonderMail: ik.lijst.filter(x => !geldig(x.aan)).length,
-    nu: !cfg.inschrijven.aan || !ik.open || nu < ik.vanaf || nu > ik.deadline ? [] : ik.lijst.filter(x => geldig(x.aan) && !x.al), alle: ik.lijst };
+    // één ronde per jaar: is er voor dit banket al een herinnering vertrokken, dan krijgen later bijgekomen leden (bv. nieuwe leden) er geen meer
+    nu: !cfg.inschrijven.aan || !ik.open || nu < ik.vanaf || nu > ik.deadline || (((cfg.inschrijvenVerstuurd || {})[ik.jaar]) || []).length ? [] : ik.lijst.filter(x => geldig(x.aan) && !x.al), alle: ik.lijst };
   return res;
 }
 
