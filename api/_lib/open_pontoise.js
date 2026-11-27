@@ -21,7 +21,10 @@ export async function ptInfo(sb) {
 const publiek = I => ({ jaar: I.jaar, titel: I.titel, datum: I.datum, datumTot: I.datumTot, info: I.info, max: I.max, open: I.open, tot: I.tot, totTekst: I.totTekst, gesloten: I.gesloten, ingesteld: I.ingesteld });
 const geldigMail = a => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(a);
 const ptLink = (lidId, jaar) => `${site()}/pontoise?v=${encodeURIComponent(lidId)}&j=${jaar}&t=${encodeURIComponent(tekenVul("pt", lidId, jaar))}`;
-const weekend = I => { if (!I.datum) return "datum volgt"; const a = lang(I.datum); if (!I.datumTot || I.datumTot === I.datum) return a; return a.replace(/ \d{4}$/, "") + " tot " + lang(I.datumTot).replace(/^./, c => c.toLowerCase()); };
+// in een zin: "van <b>vrijdag 15 januari</b> tot en met <b>zondag 17 januari 2027</b>" (één dag: "op <b>…</b>")
+const weekendZin = I => { const k = x => esc(lang(x).replace(/^./, c => c.toLowerCase())); if (!I.datum) return "op een datum die nog volgt"; if (!I.datumTot || I.datumTot === I.datum) return `op <b>${k(I.datum)}</b>`;
+  return `van <b>${k(I.datum).replace(/ \d{4}$/, "")}</b> tot en met <b>${k(I.datumTot)}</b>`; };
+const weekend = I => { if (!I.datum) return "datum volgt"; const a = lang(I.datum); if (!I.datumTot || I.datumTot === I.datum) return a; return a.replace(/ \d{4}$/, "") + " tot en met " + lang(I.datumTot).replace(/^./, c => c.toLowerCase()); };
 async function alKandidaat(sb, jaar, lidId) {
   const { data } = await sb.from("pontoise").select("id").eq("data->>lidId", String(lidId)).eq("data->>jaar", String(jaar)).limit(1);
   return !!(data && data.length);
@@ -32,12 +35,12 @@ const AL = jaar => `Je staat al op de lijst voor de uitwisseling met Pontoise ${
 registreer({ key: "pontoise-uitnodiging", naam: "Pontoise: uitnodiging om je kandidaat te stellen", wanneer: "Als de beheerder in Activiteiten › Pontoise de actieve leden uitnodigt.",
   onderwerp: "Ga je mee naar Pontoise? Weekend {weekend_kort}",
   body: p("Dag {voornaam}!")
-    + p("Ook dit jaar trekken we met een groep collega's naar onze vrienden van de brandweer van <b>Pontoise</b> (Frankrijk). Het weekend gaat door op <b>{weekend}</b>.")
+    + p("Ook dit jaar trekken we met een groep collega's naar onze vrienden van de brandweer van <b>Pontoise</b> (Frankrijk). Het weekend gaat door {weekend_zin}.")
     + kaderBlok("Hoe gaat het in zijn werk?", p("Er kunnen maximaal <b>{max} collega's</b> mee. Stel je kandidaat via de knop hieronder{als:tot} (ten laatste op {tot}){/als:tot}. Zijn er meer kandidaten dan plaatsen, dan maken we een selectie. Daarbij houden we rekening met je inzet voor de vriendenkring, en geven we graag ook collega’s een kans die nog niet of minder vaak mee waren.", "margin:0"))
     + "<p>{knop_inschrijven}</p>"
     + p("Na de inschrijvingen laten we je weten of je mee kan."),
-  velden: [["voornaam", "Voornaam"], ["jaar", "Jaar"], ["weekend", "Datum weekend (lang)"], ["weekend_kort", "Datum weekend (kort)"], ["max", "Aantal plaatsen"], ["tot", "Kandidaat stellen tot"], ["link_inschrijven", "Persoonlijke link"], ["knop_inschrijven", "Knop kandidaat stellen"]],
-  voorbeeld: { voornaam: "Jan", jaar: "2027", weekend: "vrijdag 15 januari tot zondag 17 januari 2027", weekend_kort: "15 januari 2027", max: "10", tot: "15 december", link_inschrijven: "https://vbha.be/pontoise" } });
+  velden: [["voornaam", "Voornaam"], ["jaar", "Jaar"], ["weekend_zin", "Weekend in een zin (van … tot en met …)"], ["weekend", "Datum weekend (lang)"], ["weekend_kort", "Datum weekend (kort)"], ["max", "Aantal plaatsen"], ["tot", "Kandidaat stellen tot"], ["link_inschrijven", "Persoonlijke link"], ["knop_inschrijven", "Knop kandidaat stellen"]],
+  voorbeeld: { voornaam: "Jan", jaar: "2027", weekend_zin: "van <b>vrijdag 15 januari</b> tot en met <b>zondag 17 januari 2027</b>", weekend: "vrijdag 15 januari tot en met zondag 17 januari 2027", weekend_kort: "15 januari 2027", max: "10", tot: "15 december", link_inschrijven: "https://vbha.be/pontoise" } });
 registreer({ key: "pontoise-bevestiging", naam: "Pontoise: bevestiging kandidatuur", wanneer: "Nadat een lid zich kandidaat stelde voor de uitwisseling met Pontoise.",
   onderwerp: "Je kandidatuur voor Pontoise {jaar} is goed ontvangen",
   body: p("Dag {voornaam}!")
@@ -54,7 +57,7 @@ registreer({ key: "pontoise-melding", naam: "Pontoise: melding nieuwe kandidaat"
 
 export async function uitnodigingMail(sb, I, l) {
   const link = ptLink(l.id, I.jaar);
-  const m = await sysMail(sb, "pontoise-uitnodiging", { voornaam: esc(l.voornaam || l.naam), jaar: I.jaar, weekend: esc(weekend(I).replace(/^./, c => c.toLowerCase())), weekend_kort: esc(I.datum ? datumTekst(I.datum) : "datum volgt"),
+  const m = await sysMail(sb, "pontoise-uitnodiging", { voornaam: esc(l.voornaam || l.naam), jaar: I.jaar, weekend: esc(weekend(I).replace(/^./, c => c.toLowerCase())), weekend_zin: weekendZin(I), weekend_kort: esc(I.datum ? datumTekst(I.datum) : "datum volgt"),
     max: I.max, tot: I.open && I.tot ? esc(datumTekst(I.tot).replace(/ \d{4}$/, "")) : "", link_inschrijven: esc(link), knop_inschrijven: knop("Ik ga graag mee", link) });
   return { onderwerp: m.onderwerp, html: huisstijl(m.html, I.A.vereniging) };
 }

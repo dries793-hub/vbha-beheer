@@ -202,7 +202,7 @@ async function lidCheck(id){alMeld("");if(!id)return;try{const r=await fetch("/a
 function vastNaam(inp,naam){inp.hidden=true;const b=document.createElement("div");b.className="vast-n";b.textContent=naam;inp.after(b)}
 const FQ=new URLSearchParams(location.search);
 fetch("/api/pontoise"+(FQ.get("v")?"?v="+encodeURIComponent(FQ.get("v"))+"&t="+encodeURIComponent(FQ.get("t")||""):"")).then(r=>r.ok?r.json():null).then(j=>{if(!j)return;INFO=j;$("#h1").textContent=j.titel;document.title=j.titel+" · VBHA";
-  $("#fD").textContent=j.datum?lang(j.datum):"Datum volgt";$("#fU").textContent=j.datumTot&&j.datumTot!==j.datum?"tot "+lang(j.datumTot).replace(/ \d{4}$/,"").toLowerCase():"";
+  $("#fD").textContent=j.datum?lang(j.datum):"Datum volgt";$("#fU").textContent=j.datumTot&&j.datumTot!==j.datum?"tot en met "+lang(j.datumTot).replace(/ \d{4}$/,"").toLowerCase():"";
   $("#fL").textContent=j.max+" collega’s";$("#fL2").textContent="selectie na de inschrijvingen";
   VB.info();VB.meta($("#meta"),[{icon:"klok",html:j.totTekst?"Kandidaat stellen t.e.m. "+esc(j.totTekst.replace(/ \d{4}$/,"")):""}]);
   if(j.info){$("#info").hidden=false;$("#info").textContent=j.info}
