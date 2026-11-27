@@ -174,9 +174,6 @@ html,body{overflow-x:hidden}
     <div id="notice"></div>
     <div class="grid">
       <div class="full" id="wLid"><label for="naam">Naam</label><input type="text" id="naam" name="naam" maxlength="100"></div>
-      <div class="full" id="wEm"><label for="email">E-mailadres <span style="font-weight:400;color:var(--muted)">(voor de bevestiging; leeg = het adres dat we van je kennen)</span></label><input type="email" id="email" maxlength="160" autocomplete="email"></div>
-      <div class="full"><label for="gsm">Gsm <span style="font-weight:400;color:var(--muted)">(optioneel; leeg = het nummer dat we van je kennen)</span></label><input type="tel" id="gsm" maxlength="30" autocomplete="tel"></div>
-      <div class="full"><label for="opm">Opmerkingen</label><textarea id="opm" maxlength="400" placeholder="Bijvoorbeeld: ik kan pas zaterdag vertrekken"></textarea></div>
     </div>
     <p class="hint" id="kans" style="margin:14px 0 0">Er zijn een beperkt aantal plaatsen. Zijn er meer kandidaten, dan krijgen leden met meer punten en een hogere status voorrang. Wie de voorbije jaren al mee was, schuift wat op in de lijst, zodat iedereen eens een kans krijgt.</p></section>
     <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
@@ -209,15 +206,16 @@ fetch("/api/pontoise"+(FQ.get("v")?"?v="+encodeURIComponent(FQ.get("v"))+"&t="+e
   $("#fL").textContent=j.max+" collega’s";$("#fL2").textContent="selectie na de inschrijvingen";
   VB.info();VB.meta($("#meta"),[{icon:"klok",html:j.totTekst?"Kandidaat stellen t.e.m. "+esc(j.totTekst.replace(/ \d{4}$/,"")):""}]);
   if(j.info){$("#info").hidden=false;$("#info").textContent=j.info}
-  if(j.vul){const i=$("#naam");i.value=j.vul.lid;i.dataset.id=j.vul.lidId;i.classList.add("lp-ok");vastNaam(i,j.vul.lid);$("#wEm").hidden=true;
+  if(j.vul){const i=$("#naam");i.value=j.vul.lid;i.dataset.id=j.vul.lidId;i.classList.add("lp-ok");vastNaam(i,j.vul.lid);
     if(j.vul.voornaam){const d=$("#dag");d.textContent="Dag "+j.vul.voornaam+"!";d.hidden=false}
     {const w=$("#naam").closest(".full");if(w)w.hidden=true}
+    $("#sJ").textContent="Ga je mee?";
     if(j.vul.al)alMeld(j.vul.al);try{history.replaceState(null,"",location.pathname)}catch(e){}}
   if(!j.open)gesloten(j)});
 /* lidPicker (gedeeld, /inschrijf.js) roept lidPrijs(id) op als een lid gekozen of gewist wordt */
 function lidPrijs(id){lidCheck(id||"")}
 $("#f").addEventListener("submit",async e=>{e.preventDefault();VB.wisFouten($("#f"));const er=$("#err");er.textContent="";
-  const d={lidId:$("#naam").dataset.id||"",email:$("#email").value.trim(),gsm:$("#gsm").value.trim(),opmerking:$("#opm").value.trim(),website:$("#website").value,duur:Date.now()-t0};
+  const d={lidId:$("#naam").dataset.id||"",website:$("#website").value,duur:Date.now()-t0};
   if(!d.lidId){VB.veldFout($("#naam"),$("#naam").value.trim()?"Kies je naam uit de lijst van leden.":"Vul je naam in en kies ze uit de lijst.");return}
   const b=$("#go");b.disabled=true;b.classList.add("is-busy");b.textContent="Even geduld…";
   try{const r=await fetch("/api/pontoise",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||"Kandidaat stellen lukte niet.");ok(j)}
