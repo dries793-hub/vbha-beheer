@@ -68,7 +68,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "jaardoc") { const { jaardocApi } = await import("./_lib/jaardoc.js"); return await jaardocApi(req, res); } // jaarrekening / jaarverslag als PDF
     if (req.query && req.query.f === "sysSjablonen") { // sjablonen van de automatische mails aanmaken (of één terugzetten naar de standaardtekst)
       const { requireUser } = await import("./_lib/sb.js"); const { sb } = await requireUser(req, { write: true, functie: "mails" });
-      for (const m of ["bevestiging", "betaalherinnering", "betaalwacht", "factuur", "fuif", "gebruikers", "goudmail", "herinnering", "kfcadeau", "open_kinderfeest", "open_pontoise", "open_sponsor", "rondemail", "shop", "sponsorbev", "terugbetaling", "uitnodiging"]) await import(`./_lib/${m}.js`);
+      for (const m of ["bevestiging", "betaalherinnering", "betaalwacht", "factuur", "fuif", "gebruikers", "goudmail", "herinnering", "kfcadeau", "open_kinderfeest", "open_pontoise", "open_visite", "open_sponsor", "rondemail", "shop", "sponsorbev", "terugbetaling", "uitnodiging"]) await import(`./_lib/${m}.js`);
       const { zaaiSjablonen, sysDefs } = await import("./_lib/sjabloon.js"); const { admin } = await import("./_lib/sb.js");
       let b = req.body || {}; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
       const r = await zaaiSjablonen(admin(), b.herstel ? String(b.herstel) : null);
@@ -78,6 +78,7 @@ export default async function handler(req, res) {
     if (req.query && req.query.f === "shop") return await shopApi(req, res); // webshop: status van een bestelling, mails
     if (req.query && req.query.f === "kfcadeau") { const { kfCadeauApp } = await import("./_lib/kfcadeau.js"); return await kfCadeauApp(req, res); } // kinderfeest: cadeaulink, prijzen en voorraad opnieuw controleren
     if (req.query && req.query.f === "pontoise") { const { pontoiseApp } = await import("./_lib/open_pontoise.js"); return await pontoiseApp(req, res); } // Pontoise: leden uitnodigen
+    if (req.query && req.query.f === "visite") { const { visiteApp } = await import("./_lib/open_visite.js"); return await visiteApp(req, res); } // Pontoise naar Aalst: uitnodiging (Frans)
     if (req.query && req.query.f === "uitnodiging") { const { uitnodigingApi } = await import("./_lib/uitnodiging.js"); return await uitnodigingApi(req, res); } // activiteit: leden uitnodigen
     if (req.query && req.query.f === "vgaanw") { const { vergaderingApp } = await import("./_lib/open_vergadering.js"); return await vergaderingApp(req, res); } // bestuursvergadering: aanwezig/verontschuldigd
     if (req.query && req.query.f === "sponsorgeo") { const { sponsorGeoApi } = await import("./_lib/erewachtgeo.js"); return await sponsorGeoApi(req, res); } // sponsors op de kalenderkaart

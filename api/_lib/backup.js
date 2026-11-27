@@ -9,7 +9,7 @@ const BUCKET = "backups", BEWAAR = 8;
 // geheimen en tijdelijke gegevens niet mee
 const NIET = new Set(["cron_geheim", "push_sleutel", "bank_auth", "inkomend_geheim", "ratelimit", "mail_wachtrij", "logboek", "cron_log", "app_fouten"]);
 const TABELLEN = ["leden", "boekingen", "jaarleden", "sponsors", "jaren", "templates", "config", "archief", "regels", "imports", "ronde", "banket", "kinderfeest",
-  "activiteiten", "vergaderingen", "documenten", "fotoalbums", "mailings", "facturen", "familiedag", "pontoise", "tickets", "kalenderaanvragen", "kassa", "rondemeldingen",
+  "activiteiten", "vergaderingen", "documenten", "fotoalbums", "mailings", "facturen", "familiedag", "pontoise", "pontoise_bezoek", "tickets", "kalenderaanvragen", "kassa", "rondemeldingen",
   "shop_items", "shop_orders", "bestuur", "lid_iban", "lid_kinderen", "terugbetalingen", "kassatel", "social_posts", "deellinks", "handtekeningen",
   "bank_koppelingen", "punten_mailstand", "meldingen_gelezen", "push_abonnementen", "bancontact_tx", "beelden"].filter(t => !NIET.has(t));
 

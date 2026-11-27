@@ -160,6 +160,10 @@
       "destination": "/api/openbaar?f=pontoise"
     },
     {
+      "source": "/api/visite",
+      "destination": "/api/openbaar?f=visite"
+    },
+    {
       "source": "/api/vergadering",
       "destination": "/api/openbaar?f=vergadering"
     },
