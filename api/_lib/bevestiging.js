@@ -249,7 +249,12 @@ export async function stuurBevestiging(sb, tabel, id) {
   if (r.data.bevestiging && r.data.bevestiging.status === "dubbel") return false;
   const m = await MAKER[tabel](sb, r);
   if (!m) { await zet(sb, tabel, id, { bevestiging: { status: "geen-adres", op: new Date().toISOString() } }); return false; }
+  // vangnet: dezelfde bevestiging (zelfde inschrijving, betaling en betaalstatus) nooit twee keer, ook niet als de rij intussen
+  // door een verouderde kopie in de app terug op "wacht" gezet werd
+  const sleutel = `bev:${tabel}:${id}:${(r.data.betaling && r.data.betaling.id) || "-"}:${m.betaald ? 1 : 0}`;
+  try { const { data: nw, error } = await sb.from("bevestiging_log").upsert({ k: sleutel }, { onConflict: "k", ignoreDuplicates: true }).select("k"); if (!error && Array.isArray(nw) && !nw.length) { await zet(sb, tabel, id, { bevestiging: { ...(r.data.bevestiging || {}), status: "verstuurd", aan: m.aan, betaald: !!m.betaald, voor: (r.data.betaling && r.data.betaling.id) || null, al: true } }); return true; } } catch (e) { console.error("bevestiging vangnet", e); }
   const ok = await stuur(m);
+  if (!ok) { try { await sb.from("bevestiging_log").delete().eq("k", sleutel); } catch (e) {} } // niet gelukt: later opnieuw proberen mag
   if (ok) await zet(sb, tabel, id, { bevestiging: { status: "verstuurd", op: new Date().toISOString(), aan: m.aan, betaald: !!m.betaald, voor: (r.data.betaling && r.data.betaling.id) || null } });
   if (ok && tabel === "leden") { try { await nastuur(sb, id); } catch (e) { console.error("nastuur", e); } }
   return ok;
