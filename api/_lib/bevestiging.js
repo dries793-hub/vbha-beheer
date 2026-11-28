@@ -352,9 +352,11 @@ export async function bevestigingenCron(req, res) {
   try { goud = await (await import("./goudmail.js")).goudCron(sb); } catch (e) { console.error("goud", e); goud = { fout: e.message }; }
   let puntenMail = null;
   try { puntenMail = await (await import("./goudmail.js")).puntenCron(sb); } catch (e) { console.error("punten", e); puntenMail = { fout: e.message }; }
+  let kalHerinnering = null;
+  try { kalHerinnering = await (await import("./kalherinnering.js")).kalHerinneringCron(sb); } catch (e) { console.error("kalherinnering", e); kalHerinnering = { fout: e.message }; }
   let betaalWacht = null;
   try { betaalWacht = await (await import("./betaalwacht.js")).betaalWachtCron(sb); } catch (e) { console.error("betaalwacht", e); betaalWacht = { fout: e.message }; }
-  res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend, betaalherinnering, fuif, kassa, shop, goud, nagestuurd, puntenMail, betaalWacht });
+  res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend, betaalherinnering, fuif, kassa, shop, goud, nagestuurd, puntenMail, betaalWacht, kalHerinnering });
 }
 // gedeeld met de facturatie (api/_lib/factuur.js)
 export { huisstijl, modern, kaderBlok, knop, tabel, rij, p, esc, eur, kort, lang, vandaag, plusDagen, site, betaalBlok, DEF_IBAN };
