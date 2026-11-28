@@ -63,7 +63,7 @@ export default async function handler(req, res) {
     let deel = null, toch = !!b.toch;
     if (P && P.lat && P.lng) {
       const p = [P.lat, P.lng];
-      if (!binnen(p)) throw httpErr(422, "Dit adres ligt buiten de wijken waar wij de kalender bedelen (Aalst-centrum, Gijzegem, Hofstade en Nieuwerkerken). Je kan de kalender wel steunen via de knop op vbha.be.");
+      if (!binnen(p)) throw httpErr(422, "Dit adres ligt buiten de wijken waar wij de kalender bedelen (Aalst-centrum, Gijzegem, Hofstade en Nieuwerkerken). Je kan altijd een kalender afhalen in de kazerne (Kazerne Brandweer Aalst, Vrijheidstraat 55, 9300 Aalst) of de kalender steunen via de knop op vbha.be.");
       deel = dichtsteDeel(p, P.straat) || dichtsteDeel(p, "");
       // enkel blokkeren als het huisnummer exact gevonden werd: dan weten we in welk stuk van de straat het adres ligt.
       // Lange straten zijn in stukken verdeeld; enkel het stuk waar dit huisnummer ligt telt (of de hele straat als die in één keer bedeeld werd).
