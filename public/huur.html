@@ -256,7 +256,7 @@ const ok=(t,s)=>`<div class="card bevestig" style="margin-bottom:14px"><div clas
 /* ---- zonder sessie: aanmelden ---- */
 function toonLogin(melding){
   $("#box").innerHTML=`<form class="vb-form" id="fl" novalidate><section class="vb-sec"><h2 class="vb-card-t">Aanmelden</h2>${melding?VB.notice(esc(melding)):""}
-  <p class="hint" style="margin:0 0 12px">Huren kan voor leden met een betaald lidgeld. Vul je naam in: we mailen je een persoonlijke link. Daarmee zie je wat je kan huren en aan welke prijs, en reserveer en betaal je meteen.</p>
+  <p class="hint" style="margin:0 0 12px">Vul je naam in: we mailen je een persoonlijke link. Daarmee zie je wat je kan huren en aan welke prijs, en reserveer en betaal je meteen.</p>
   <div class="grid"><div class="full"><label for="naam">Je naam</label><input type="text" id="naam" maxlength="100" placeholder="Typ je naam en kies ze uit de lijst"></div></div></section>
   <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
   <p class="err" id="err" role="alert"></p><div class="vb-checkout"><button class="btn" id="go" type="submit">Stuur mij mijn persoonlijke link</button></div></form>`;
