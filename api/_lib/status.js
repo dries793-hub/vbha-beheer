@@ -66,7 +66,7 @@ export async function lidStatus(sb, lidId, jaar, { partner = true } = {}) {
 }
 export const RANG = { GEEN: 0, BRONS: 1, ZILVER: 2, GOUD: 3 };
 /* tegoed: wat al gebruikt werd bij inschrijvingen van het statusjaar (banket, familiedag, kinderfeest) + manuele correcties (jaarleden.tegoedCorr) */
-export const TEGOED_TABELLEN = ["banket", "familiedag", "kinderfeest"];
+export const TEGOED_TABELLEN = ["banket", "familiedag", "kinderfeest", "huur"];
 export async function tegoedGebruikt(sb, lidId, jaar, behalve) {
   let t = 0;
   for (const tab of TEGOED_TABELLEN) {

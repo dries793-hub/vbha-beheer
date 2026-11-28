@@ -16,6 +16,7 @@ const BRONNEN = [
   ["familiedag", r => ({ cat: "Familiedag", wie: r.naam })],
   ["kinderfeest", r => ({ cat: "Kinderfeest", wie: (r.lid || "") + " (bijbetaling cadeau)" })],
   ["tickets", r => ({ cat: "Fuif", wie: [r.voornaam, r.naam].filter(Boolean).join(" ") || "tickets" })],
+  ["huur", r => ({ cat: "Materiaalverhuur", wie: r.naam || "huur" })],
   ["shop_orders", r => ({ cat: "Webshop", wie: r.klant ? [r.klant.voornaam, r.klant.naam].filter(Boolean).join(" ") : "bestelling" })],
   // kassa: per categorie van de verkochte tegels (bv. Boekje 150 jaar -> "150 jaar"), de rest bij de activiteit
   ["kassa", r => { const def = KASSA_CAT[r.activiteit] || "Andere opbrengsten", m = new Map();

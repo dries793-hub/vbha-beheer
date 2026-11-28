@@ -52,7 +52,7 @@ export async function welkomMail({ naam, email, rol, wachtwoord, url, reset }, s
 
 // rechten per tabblad binnen een functie, bv. "kalenders:ronde"
 const tabRechten = r => Object.fromEntries(Object.entries(r || {}).filter(([k, v]) => /^[a-z]+:[a-z]+$/.test(k) && FUNCTIES.includes(k.split(":")[0]) && ["geen", "lezen", "bewerken"].includes(v)));
-export const FUNCTIES = ["leden", "punten", "overzicht", "financien", "facturen", "terug", "begroting", "historiek", "kassa", "kalenders", "kalverdeling", "fuif", "banket", "kinderfeest", "familiedag", "pontoise", "agenda", "mails", "sponsors", "documenten", "website", "shiften", "fotos", "sms", "social", "webshop"];
+export const FUNCTIES = ["leden", "punten", "overzicht", "financien", "facturen", "terug", "begroting", "historiek", "kassa", "kalenders", "kalverdeling", "fuif", "banket", "kinderfeest", "familiedag", "pontoise", "agenda", "mails", "sponsors", "documenten", "website", "shiften", "fotos", "sms", "social", "webshop", "huur"];
 export async function gebruikers(req, res) {
   res.setHeader("Cache-Control", "no-store");
   const { user, sb } = await requireUser(req, { write: true });

@@ -354,9 +354,11 @@ export async function bevestigingenCron(req, res) {
   try { puntenMail = await (await import("./goudmail.js")).puntenCron(sb); } catch (e) { console.error("punten", e); puntenMail = { fout: e.message }; }
   let kalHerinnering = null;
   try { kalHerinnering = await (await import("./kalherinnering.js")).kalHerinneringCron(sb); } catch (e) { console.error("kalherinnering", e); kalHerinnering = { fout: e.message }; }
+  let huur = null;
+  try { huur = await (await import("./huur.js")).huurCron(sb); } catch (e) { console.error("huur", e); huur = { fout: e.message }; }
   let betaalWacht = null;
   try { betaalWacht = await (await import("./betaalwacht.js")).betaalWachtCron(sb); } catch (e) { console.error("betaalwacht", e); betaalWacht = { fout: e.message }; }
-  res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend, betaalherinnering, fuif, kassa, shop, goud, nagestuurd, puntenMail, betaalWacht, kalHerinnering });
+  res.status(200).json({ verstuurd: uit, herinneringenFacturen: facturen, inkomend, betaalherinnering, fuif, kassa, shop, goud, nagestuurd, puntenMail, betaalWacht, kalHerinnering, huur });
 }
 // gedeeld met de facturatie (api/_lib/factuur.js)
 export { huisstijl, modern, kaderBlok, knop, tabel, rij, p, esc, eur, kort, lang, vandaag, plusDagen, site, betaalBlok, DEF_IBAN };
