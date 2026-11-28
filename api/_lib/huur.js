@@ -309,7 +309,7 @@ export default async function huurPubliek(req, res) {
 export async function huurBetaald(sb, id, { door, wijze, mail = true, via } = {}) {
   const { data: r } = await sb.from("huur").select("id,data").eq("id", id).maybeSingle(); if (!r || r.data.betaald) return false;
   const d = r.data, nd = { ...d, betaald: true, betaaldOp: (d.betaling && d.betaling.status === "SUCCEEDED" && d.betaling.betaaldOp) || nu(), betaalwijze: wijze || (d.betaling && d.betaling.status === "SUCCEEDED" ? "bancontact" : d.betaalwijze) || "overschrijving",
-    staat: ["tebetalen", "geannuleerd"].includes(d.staat) ? "betaald" : d.staat, nieuw: false };
+    staat: ["tebetalen", "geannuleerd"].includes(d.staat) ? "betaald" : d.staat };
   const wat = door ? "Betaling aangeduid" : via ? "Overschrijving herkend in de transacties" : "Online betaald (Bancontact)";
   const { data: upd } = await sb.from("huur").update({ data: { ...nd, log: [...(d.log || []), { op: nu(), wat: wat + (d.staat === "geannuleerd" ? " · reservatie opnieuw actief" : ""), door: door || "" }] } }).eq("id", id).eq("data->>betaald", "false").select("id");
   if (!upd || !upd.length) return false;
