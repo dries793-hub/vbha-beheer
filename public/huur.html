@@ -337,12 +337,9 @@ function toonOv(){const j=PR;const rijen=j.lijnen.map(l=>({label:(l.aantal>1?l.a
   if(j.kortingBedrag)rijen.push({label:"Korting "+j.korting+"%",status:j.lidStatus,bedrag:j.kortingBedrag,min:true});
   if(j.waarborg)rijen.push({label:"Waarborg",sub:"krijg je terug als alles in orde is",bedrag:j.waarborg});
   $("#ov").innerHTML=VB.summary({titel:"",rijen,credit:j.tegoedSaldo>0?{saldo:j.tegoedSaldo,max:Math.min(j.tegoedSaldo,j.huurNetto)}:null,totaal:{label:"Te betalen",bedrag:j.teBetalen}});
-  if(!D.online)WIJZE="overschrijving";
-  $("#bw").innerHTML=j.teBetalen>0?`<span class="lbl">Hoe betaal je?</span><div class="bwz">${D.online?`<label class="bw-o"><input type="radio" name="wz" value="bancontact"${WIJZE==="bancontact"?" checked":""}><span><b>Bancontact</b><small>Meteen betaald en je reservatie is bevestigd</small></span></label>`:""}
-    <label class="bw-o"><input type="radio" name="wz" value="overschrijving"${WIJZE==="overschrijving"?" checked":""}><span><b>Overschrijving</b><small>Bevestigd zodra je betaling op onze rekening staat (betalen binnen ${D.betaalDagen||3} dagen)</small></span></label></div>`:"";
-  $("#go").textContent=j.teBetalen>0?(WIJZE==="bancontact"?"Reserveren en betalen":"Reserveren"):"Reserveren";
+  WIJZE=D.online?"bancontact":"overschrijving";$("#bw").innerHTML="";
+  $("#go").textContent=j.teBetalen>0?"Reserveren en betalen":"Reserveren";
   VB.due($("#due"),j.teBetalen)}
-document.addEventListener("change",e=>{if(e.target.name!=="wz")return;WIJZE=e.target.value;const g=$("#go");if(g&&PR)g.textContent=PR.teBetalen>0&&WIJZE==="bancontact"?"Reserveren en betalen":"Reserveren"});
 function betaalPaneel(j){const o=j.online&&(j.online.deeplink||j.online.checkout)?j.online:null;
   const ov=`${j.qr?`<div class="qrwrap"><div class="qr">${j.qr}</div><p>Scan deze code met de app van je bank. Bedrag, rekeningnummer en mededeling staan dan al ingevuld.</p></div><div class="or"><span>of schrijf zelf over</span></div>`:""}${handmatig(j)}<p class="hint">Betaal${j.betaalTegen?" vóór <b>"+esc(lang(j.betaalTegen))+"</b>":""} en vermeld zeker de mededeling: zo herkennen we je betaling automatisch en bevestigen we je reservatie per mail.</p>`;
   return `<div class="paybox">${o?onlineBlok(o,j.bedrag)+`<details class="zelf"><summary>Geen app of lukt het niet? Betaal via overschrijving</summary>${ov}</details>`:`<h3>Betaal ${eur(j.bedrag)}</h3>${ov}`}</div>`}
