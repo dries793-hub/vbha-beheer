@@ -47,7 +47,7 @@ async function stand(sb) {
 async function mailVoor(sb, X, x, vandaag) {
   const rest = Math.max(0, Math.round((Date.parse(X.deadline) - Date.parse(vandaag || vandaagBxl())) / 864e5));
   const link = x.lidId ? site() + `/kaart?k=${encodeURIComponent(x.lidId)}&j=${X.jaar}&t=${tekenRonde(x.lidId, X.jaar)}` : "";
-  const m = await sysMail(sb, "kalender-herinnering", { voornaam: esc(x.voornaam || x.naam), dozen: esc(dozenTekst(x.dozen)), deadline: esc(lang(X.deadline).replace(/ \d{4}$/, "")),
+  const m = await sysMail(sb, "kalender-herinnering", { voornaam: esc(x.voornaam || x.naam), dozen: esc(dozenTekst(x.dozen)), deadline: esc(lang(X.deadline).replace(/ \d{4}$/, "").replace(/^./, c => c.toLowerCase())),
     dagen: rest === 1 ? "1 dag" : rest + " dagen", jaar: String(X.jaar), link_kaart: link ? esc(link) : "", knop_kaart: link ? knop("Bekijk jouw straten op de kaart", link) : "" });
   return { onderwerp: m.onderwerp, html: huisstijl(m.html, X.A.vereniging) };
 }

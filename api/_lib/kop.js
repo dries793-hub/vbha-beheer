@@ -37,6 +37,7 @@ export const KOP = {
   "goudstatus": ["Puntensysteem", "Proficiat met je goudstatus"],
   "punten": ["Puntensysteem", "Jouw punten in {jaar}"],
   "ronde-reservatie": ["Kalenderronde", "Reservatie bevestigd"],
+  "kalender-herinnering": ["Herinnering", "Kalenders {jaar}"],
   "shop-bevestiging": ["Webshop", "Bevestiging bestelling"],
   "shop-verzonden": ["Webshop", "Bestelling verzonden"],
   "shop-klaar": ["Webshop", "Bestelling ligt klaar"],
