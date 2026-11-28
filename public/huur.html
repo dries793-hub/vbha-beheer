@@ -341,9 +341,15 @@ function toonOv(){const j=PR;const rijen=j.lijnen.map(l=>({label:(l.aantal>1?l.a
   WIJZE=D.online?"bancontact":"overschrijving";$("#bw").innerHTML="";
   $("#go").textContent=j.teBetalen>0?"Reserveren en betalen":"Reserveren";
   VB.due($("#due"),j.teBetalen)}
-function betaalPaneel(j){const o=j.online&&(j.online.deeplink||j.online.checkout)?j.online:null;
-  const ov=`${j.qr?`<div class="qrwrap"><div class="qr">${j.qr}</div><p>Scan deze code met de app van je bank. Bedrag, rekeningnummer en mededeling staan dan al ingevuld.</p></div><div class="or"><span>of schrijf zelf over</span></div>`:""}${handmatig(j)}<p class="hint">Betaal${j.betaalTegen?" vóór <b>"+esc(lang(j.betaalTegen))+"</b>":""} en vermeld zeker de mededeling: zo herkennen we je betaling automatisch en bevestigen we je reservatie per mail.</p>`;
-  return `<div class="paybox">${o?onlineBlok(o,j.bedrag)+`<details class="zelf"><summary>Geen app of lukt het niet? Betaal via overschrijving</summary>${ov}</details>`:`<h3>Betaal ${eur(j.bedrag)}</h3>${ov}`}</div>`}
+function toonBetaal(j,r,nieuw){const o=j.online&&(j.online.deeplink||j.online.checkout)?j.online:null,tegen=j.betaalTegen?lang(j.betaalTegen):"";
+  $("#tb").innerHTML=`<div class="card bevestig"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+  <h2>${nieuw?"Bedankt, "+esc(D.lid.voornaam||D.lid.naam)+"!":"Betaal je reservatie"}</h2><p class="lead2">${nieuw?"Je reservatie":"Reservatie"} <b>${esc(r.nr)}</b> voor ${esc(per(r.van,r.tot))} ${nieuw?"staat klaar":"wacht op je betaling"}. Zodra je betaling binnen is, is ze bevestigd.</p>
+  <div class="paybox" id="paybox">${o?"":`<h3>Betaal ${eur(j.bedrag)}${tegen?" voor "+esc(tegen):""}</h3>`}
+  ${o?onlineBlok(o,j.bedrag)+`<details class="zelf"><summary>Geen app of lukt het niet? Betaal via overschrijving</summary>${tegen?`<p class="hint" style="margin:0 0 10px">Schrijf het bedrag over voor <b>${esc(tegen)}</b>.</p>`:""}${handmatig(j)}</details>`
+     :`${j.qr?`<div class="qrwrap"><div class="qr">${j.qr}</div><p>Scan deze code met de app van je bank. Bedrag, rekeningnummer en mededeling staan dan al ingevuld.</p></div><div class="or"><span>of schrijf zelf over</span></div>`:""}${handmatig(j)}`}
+  </div></div><p style="margin:16px 0 0"><a href="#" data-tab="res" style="color:var(--muted);font-size:14px">‹ Naar mijn reservaties</a></p>`;
+  if(o){BET={t:"huur",id:o.id,token:o.token};try{sessionStorage.setItem("vbha_huur_bet",JSON.stringify(BET))}catch(x){}volgN=0;volg()}
+  window.scrollTo({top:0,behavior:"smooth"})}
 async function verstuur(e){e.preventDefault();const er=$("#err");er.textContent="";
   if(!M.van){er.textContent="Kies eerst je data in de kalender.";return}if(!Object.keys(M.items).length){er.textContent="Kies minstens één artikel.";return}
   if(!PR){er.textContent="Even geduld, de prijs wordt berekend.";return}
@@ -351,11 +357,8 @@ async function verstuur(e){e.preventDefault();const er=$("#err");er.textContent=
   const b=$("#go"),t=b.textContent;b.disabled=true;b.classList.add("is-busy");b.textContent="Even geduld…";
   try{const j=await api({actie:"reserveer",van:M.van,tot:M.tot,items:M.items,tegoed:PR.tegoed,totaal:PR.teBetalen,wijze:WIJZE,opmerking:$("#opm").value,akkoord:true,duur:Date.now()-t0});
     M={van:"",tot:"",items:{}};KIES="van";PR=null;D=await api(null,true);TAB="res";toonWinkel();const r=j.reservatie;
-    if(j.bevestigd){$("#tb").insertAdjacentHTML("afterbegin",ok("Je reservatie is bevestigd!",`Bedankt, ${esc(D.lid.voornaam)}. Reservatie <b>${esc(r.nr)}</b> is in orde. Je krijgt een bevestiging per mail.`))}
-    else{const box=$("#p-"+r.id);if(box){box.innerHTML=betaalPaneel(j);box.closest(".rs").classList.add("nu")}
-      $("#tb").insertAdjacentHTML("afterbegin",ok("Nog één stap: betalen",`Je reservatie <b>${esc(r.nr)}</b> staat klaar. ${j.online?"Betaal met Bancontact om ze meteen te bevestigen.":"Schrijf het bedrag over; zodra het binnen is, bevestigen we je reservatie per mail."}`));
-      if(j.online){BET={t:"huur",id:j.online.id,token:j.online.token};try{sessionStorage.setItem("vbha_huur_bet",JSON.stringify(BET))}catch(x){}volgN=0;volg()}}
-    window.scrollTo({top:0,behavior:"smooth"})}
+    if(j.bevestigd){$("#tb").insertAdjacentHTML("afterbegin",ok("Je reservatie is bevestigd!",`Bedankt, ${esc(D.lid.voornaam)}. Reservatie <b>${esc(r.nr)}</b> is in orde. Je krijgt een bevestiging per mail.`));window.scrollTo({top:0,behavior:"smooth"})}
+    else toonBetaal(j,r,true)}
   catch(x){er.textContent=x.message;b.disabled=false;b.classList.remove("is-busy");b.textContent=t}}
 /* ---- mijn reservaties ---- */
 function resKaart(r){const t=Number(r.tegoed)||0;
@@ -369,17 +372,14 @@ function resKaart(r){const t=Number(r.tegoed)||0;
   const kan=r.staat==="tebetalen"&&!r.betaald;
   return `<div class="rs" id="r-${esc(r.id)}"><div class="rs-h"><div><b>${esc(per(r.van,r.tot))}</b><small>${esc(r.nr)} · ${r.dagen===1?"1 dag":r.dagen+" dagen"}</small></div><span class="st st-${esc(r.staat)}">${esc(STN[r.staat]||r.staat)}</span></div>
   <ul>${L}</ul>${msg?`<p class="msg">${msg}</p>`:""}
-  ${kan?`<div class="acts">${D.online?`<button type="button" class="btn bc" data-bet="bancontact" data-id="${esc(r.id)}">${BC_ICON}Betalen met Bancontact</button>`:""}<button type="button" class="btn ${D.online?"sec":""}" data-bet="overschrijving" data-id="${esc(r.id)}">Gegevens overschrijving</button>
-    <button type="button" class="btn sec" data-ann="${esc(r.id)}">Annuleren</button></div><div class="pay2" id="p-${esc(r.id)}"></div>`:""}</div>`}
+  ${kan?`<div class="acts"><button type="button" class="btn" data-bet="${D.online?"bancontact":"overschrijving"}" data-id="${esc(r.id)}">Betalen</button><button type="button" class="btn sec" data-ann="${esc(r.id)}">Annuleren</button></div>`:""}</div>`}
 function toonRes(){const R=D.reservaties,act=R.filter(r=>["tebetalen","betaald","uitgeleend"].includes(r.staat)),oud=R.filter(r=>!act.includes(r));
   $("#tb").innerHTML=(act.length?act.map(resKaart).join(""):'<div class="leeg-b">Je hebt geen lopende reservaties.<br><a href="#" data-tab="huren" style="color:var(--accent);font-weight:600">Materiaal huren</a></div>')
     +(oud.length?`<h2 class="vb-card-t" style="margin:22px 0 10px">Eerder gehuurd</h2>${oud.map(resKaart).join("")}`:"")}
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-ann]");if(!b)return;if(!confirm("Deze reservatie annuleren?"))return;b.disabled=true;
   try{await api({actie:"annuleer",id:b.dataset.ann});D=await api(null,true);toonWinkel()}catch(x){alert(x.message);b.disabled=false}});
-document.addEventListener("click",async e=>{const b=e.target.closest("[data-bet]");if(!b)return;const id=b.dataset.id,box=$("#p-"+id);b.disabled=true;
-  try{const j=await api({actie:"betaal",id,wijze:b.dataset.bet});box.innerHTML=betaalPaneel(j);
-    if(j.online){BET={t:"huur",id:j.online.id,token:j.online.token};try{sessionStorage.setItem("vbha_huur_bet",JSON.stringify(BET))}catch(x){}volgN=0;volg()}
-    box.scrollIntoView({behavior:"smooth",block:"start"})}catch(x){alert(x.message)}b.disabled=false});
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-bet]");if(!b)return;const id=b.dataset.id;b.disabled=true;
+  try{const j=await api({actie:"betaal",id,wijze:b.dataset.bet});toonBetaal(j,D.reservaties.find(x=>x.id===id),false)}catch(x){alert(x.message)}b.disabled=false});
 document.addEventListener("click",async e=>{const b=e.target.closest(".cp");if(!b)return;try{await navigator.clipboard.writeText(b.dataset.cp);const t=b.textContent;b.textContent="Gekopieerd";b.classList.add("ok");setTimeout(()=>{b.textContent=t;b.classList.remove("ok")},1600)}catch(x){}});
 document.addEventListener("click",async e=>{if(e.target.id!=="bcNieuw")return;e.target.disabled=true;
   try{const r=await fetch("/api/betaling",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(BET)});const o=await r.json();if(!r.ok)throw new Error(o.error);
