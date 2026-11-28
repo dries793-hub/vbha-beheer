@@ -71,7 +71,7 @@ export async function kalHerinneringCron(sb) {
   const c2 = await configDoc(sb, "kalherinnering");
   await sb.from("config").upsert({ id: "kalherinnering", data: { ...c2, verstuurd: { ...(c2.verstuurd || {}), [X.jaar]: { op: new Date().toISOString(), aantal: berichten.length, zonder: X.lijst.length - doel.length, ids: doel.map(x => x.id) } } } });
   for (let i = 0; i < berichten.length; i += 200) { const { error } = await sb.from("mail_wachtrij").insert(berichten.slice(i, i + 200)); if (error) throw error; }
-  if (berichten.length) { try { await meldPush(sb, "iedereen", { titel: "Herinnering kalenders verstuurd", tekst: `${berichten.length} ${berichten.length === 1 ? "lid" : "leden"} met dozen in handen kregen een herinnering.`, url: "/#kalenders", tag: "kal-herinnering" }); } catch (e) { console.error("kh push", e); } }
+  if (berichten.length) { try { await meldPush(sb, "beheerder", { titel: "Herinnering kalenders verstuurd", tekst: `${berichten.length} ${berichten.length === 1 ? "lid" : "leden"} met dozen in handen kregen een herinnering.`, url: "/#kalenders", tag: "kal-herinnering" }); } catch (e) { console.error("kh push", e); } }
   return { verstuurd: berichten.length };
 }
 
