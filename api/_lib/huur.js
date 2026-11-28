@@ -11,7 +11,7 @@ import { meldPush } from "./push.js";
 
 /* ============ Materiaalverhuur (huurwinkel voor leden) ============
    Tabellen: "huur_items" {naam, beschrijving, afbeeldingen:[id], hoofd, aantal, prijsModus:"dag"|"beurt"|"beurtdag", prijsDag, prijsBeurt,
-     beurtDagen, maxDagen, waarborg, korting (statuskorting toepassen), checklist:[onderdelen], actief, volgorde}
+     beurtDagen, maxDagen, waarborg, checklist:[onderdelen], actief, volgorde}
    "huur" (reservaties) {nr, jaar, lidId, naam, voornaam, email, gsm, van, tot, dagen, lijnen:[{id,naam,aantal,stuk,huur,waarborg}], huurBruto, lidStatus, korting,
      kortingBedrag, huurNetto, tegoed:[{lidId,bedrag}], waarborg, teBetalen, betaalTegen, opmerking, staat, betaald, betaalwijze, betaalToken, betaling,
      afhaling:{op,check,fotos,opm,handtekening,door}, terugname:{op,check,fotos,opm,door}, waarborgTerug, log:[], mail:{}}
@@ -105,7 +105,7 @@ async function bereken(sb, c, lidId, A, { van, tot, want, tegoed }, { R, I, beha
     const vrij = Math.max(0, vrijAantal(R, i, van, tot, behalve));
     if (aantal > vrij) throw httpErr(409, vrij ? `Van ${i.naam} ${vrij === 1 ? "is er nog 1" : "zijn er nog " + vrij} beschikbaar in die periode.` : `${i.naam} is niet beschikbaar in die periode. Kies andere data.`);
     const stuk = stukPrijs(i, dagen);
-    lijnen.push({ id, naam: i.naam, aantal, stuk, huur: r2(stuk * aantal), waarborg: r2(Number(i.waarborg || 0) * aantal), korting: i.korting !== false });
+    lijnen.push({ id, naam: i.naam, aantal, stuk, huur: r2(stuk * aantal), waarborg: r2(Number(i.waarborg || 0) * aantal), korting: true }); // statuskorting: instelling van de hele huurwinkel
   }
   if (!lijnen.length) throw httpErr(400, "Kies minstens één artikel.");
   const S = lidId ? await lidStatus(sb, lidId, A.jaar) : null;
