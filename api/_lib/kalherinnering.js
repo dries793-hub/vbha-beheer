@@ -20,7 +20,7 @@ export const dozenTekst = n => n === 1 ? "1 doos" : n === 0.5 ? "een halve doos"
 
 registreer({ key: "kalender-herinnering", naam: "Kalenders: herinnering dozen in handen",
   wanneer: "Een ingesteld aantal dagen vóór de deadline “In de bus tegen” (Kalenders › Verdeling › tandwiel), aan leden die nog dozen in handen hebben.",
-  onderwerp: "Nog even doorzetten: de laatste kalenders in de bus 📬",
+  onderwerp: "Nog even doorzetten: de laatste kalenders in de bus",
   body: p("Dag {voornaam}!") + p("Eerst en vooral: <b>bedankt</b> om mee te helpen met de kalenderronde. Dankzij jouw inzet vinden heel wat Aalstenaars onze kalender in hun brievenbus.")
     + p("Volgens onze lijst heb je nog <b>{dozen}</b> in handen. Op <b>{deadline}</b> willen we alle kalenders in de bus hebben, nog <b>{dagen}</b> dus. Hopelijk lukt het om ook die laatste kalenders tijdig rond te krijgen!")
     + p("Lukt het niet om alles rond te krijgen, of ben je al klaar maar staat dat nog niet in onze lijst? Laat het ons gewoon even weten, dan zoeken we samen een oplossing.")
