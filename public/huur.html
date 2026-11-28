@@ -279,12 +279,10 @@ function vrij(i){if(!M.van||!M.tot)return null;let max=0;for(let d=M.van;d<=M.to
 function toonWinkel(){const L=D.lid,open=D.reservaties.filter(r=>r.staat==="tebetalen").length;
   $("#dag").textContent="Dag "+(L.voornaam||L.naam)+"!";$("#dag").hidden=false;
   const voordeel=[L.korting?`${VB.badge(L.status)} <b>${L.korting}% korting</b> op de huurprijs`:L.status?`Status ${VB.badge(L.status)}`:"",L.tegoed?`<b>${eur(L.tegoed)}</b> goudtegoed`:""].filter(Boolean).join(" · ");
-  $("#box").innerHTML=`<div class="lid-k"><div class="grow">${voordeel||"Je huurt aan de ledenprijs."}</div><a href="#" id="uit">Niet ${esc(L.voornaam||L.naam)}? Afmelden</a></div>
-  ${L.actief?"":VB.notice(`Je lidgeld voor dit jaar is nog niet in orde. Je kan rondkijken, maar pas reserveren als je lidgeld betaald is.`)}
+  $("#box").innerHTML=`  ${L.actief?"":VB.notice(`Je lidgeld voor dit jaar is nog niet in orde. Je kan rondkijken, maar pas reserveren als je lidgeld betaald is.`)}
   ${D.open?"":VB.notice("De huurwinkel is momenteel gesloten. Je kan je reservaties wel nog bekijken en betalen.")}
   <nav class="hu-tabs"><button type="button" data-tab="huren" class="${TAB==="huren"?"on":""}">Huren</button><button type="button" data-tab="res" class="${TAB==="res"?"on":""}">Mijn reservaties${open?`<span class="n">${open}</span>`:""}</button></nav>
   <div id="tb"></div>`;
-  $("#uit").onclick=e=>{e.preventDefault();afmelden()};
   TAB==="res"?toonRes():toonHuren()}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-tab]");if(!t)return;e.preventDefault();TAB=t.dataset.tab;$$(".hu-tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===TAB));TAB==="res"?toonRes():toonHuren()});
 const vroegst=()=>plus(isoD(new Date()),D.minVooraf||0);
