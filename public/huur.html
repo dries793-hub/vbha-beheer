@@ -188,8 +188,22 @@ html,body{overflow-x:hidden}
 .rs .msg{margin:10px 0 0;font-size:14px;padding:10px 12px;border-radius:10px;background:var(--sunken)}
 .rs .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .rs .acts .btn{width:auto;margin:0;padding:10px 16px;font-size:15px}
-.rs .acts .btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-@media (max-width:560px){.rs .acts{flex-direction:column}.rs .acts .btn{width:100%}}
+.hft{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;flex-wrap:wrap}
+.hft .vr{font-size:13px;font-weight:600}.hft .vr.ok{color:var(--good)}.hft .vr.nee{color:var(--accent)}
+.hft .btn.kies{width:auto;margin:0;padding:9px 16px;font-size:14.5px}
+.cal{max-width:420px}.cal-h{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}.cal-h b{font-size:15.5px;text-transform:capitalize}
+.cal-h button{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--surface);font:700 18px var(--f);color:var(--ink);cursor:pointer}.cal-h button:disabled{opacity:.3;cursor:default}
+.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.cal-w{font-size:12px;color:var(--muted);text-align:center;padding:2px 0}
+.cal-d{aspect-ratio:1/1;border:1.5px solid var(--line);border-radius:9px;background:var(--surface);font:600 14.5px var(--f);color:var(--ink);cursor:pointer;padding:0;position:relative}
+.cal-d.dis{color:var(--line-strong);background:transparent;border-color:transparent;cursor:default;font-weight:500}
+.cal-d.deels{background:#FFF4DC;border-color:#F3D9A4}.cal-d.vol{background:var(--accent-soft);border-color:#F2B8BC;color:var(--accent);text-decoration:line-through}
+.cal-d.sel{background:var(--ink);border-color:var(--ink);color:#fff;text-decoration:none}.cal-d.sel.vol{background:var(--accent);border-color:var(--accent)}
+.cal-d:not(.dis):hover{border-color:var(--ink)}
+.cal-lg{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:var(--muted)}.cal-lg span{display:inline-flex;align-items:center;gap:6px}
+.cal-lg i{width:13px;height:13px;border-radius:4px;border:1.5px solid var(--line)}.cal-lg .lg-deels{background:#FFF4DC;border-color:#F3D9A4}.cal-lg .lg-vol{background:var(--accent-soft);border-color:#F2B8BC}
+.cal-sel{margin:12px 0 0;font-size:14.5px}.cal-sel:empty{display:none}
+.rs.nu{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.ch span{white-space:normal}
 .btn.sec{background:var(--surface);color:var(--ink);border:1.5px solid var(--line-strong)}.btn.sec:hover{background:var(--sunken)}
 .rs .pay2{margin-top:14px}
 .leeg-b{text-align:center;color:var(--muted);padding:26px 10px;border:1.5px dashed var(--line-strong);border-radius:12px}
@@ -224,35 +238,22 @@ const isoD=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+Str
 const plus=(iso,n)=>{const d=pd(iso);d.setDate(d.getDate()+n);return isoD(d)};
 const dagen=(a,b)=>Math.round((pd(b)-pd(a))/864e5)+1;
 const img=id=>"/api/huur?img="+encodeURIComponent(id);
-const STN={aangevraagd:"Aangevraagd",goedgekeurd:"Te betalen",betaald:"Bevestigd",uitgeleend:"Afgehaald",afgerond:"Afgerond",geweigerd:"Niet mogelijk",geannuleerd:"Geannuleerd"};
+const STN={tebetalen:"Te betalen",betaald:"Bevestigd",uitgeleend:"Afgehaald",afgerond:"Afgerond",geannuleerd:"Geannuleerd"};
 const BC_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M10 18.5h4"/></svg>';
 const LEEG_IC='<svg viewBox="0 0 24 24"><path d="M3 20h18M5 20l7-14 7 14M12 6v14"/></svg>';
-let SES=null,D=null,TAB="huren",M={van:"",tot:"",items:{},tegoed:null},PR=null,PRT=0,BET=null,volgT=0,volgN=0,PAYID=null;
+let SES=null,D=null,TAB="huren",M={van:"",tot:"",items:{}},KIES="van",CAL="",PR=null,PRT=0,BET=null,volgT=0,volgN=0,WIJZE="bancontact";
 try{SES=localStorage.getItem("vbha_huur")}catch(e){}
 {const q=new URLSearchParams(location.search);if(q.get("s")){SES=q.get("s");try{localStorage.setItem("vbha_huur",SES)}catch(e){}}
   if(q.get("s")||q.get("betaling"))history.replaceState(null,"",location.pathname);if(q.get("betaling"))TAB="res"}
 async function api(body,get){const o=get?{headers:SES?{"x-huur":SES}:{}}:{method:"POST",headers:{"Content-Type":"application/json",...(SES?{"x-huur":SES}:{})},body:JSON.stringify(body||{})};
   const r=await fetch("/api/huur",o);const j=await r.json().catch(()=>({}));if(r.status===401&&SES){afmelden(true);throw new Error(j.error||"Je link is verlopen.")}if(!r.ok)throw new Error(j.error||"Er ging iets mis.");return j}
-function afmelden(stil){SES=null;D=null;try{localStorage.removeItem("vbha_huur")}catch(e){}laad(stil?"Je persoonlijke link is verlopen of ongeldig. Vraag hieronder een nieuwe aan.":"")}
-function itemKaart(i,keuze){const f=i.hoofd||i.afbeeldingen[0];
-  return `<div class="it${keuze&&M.items[i.id]?" on":""}" data-it="${esc(i.id)}">${f?`<button type="button" class="ph" style="background-image:url('${img(f)}')" data-zoom="${esc(f)}" aria-label="Foto vergroten"></button>`:`<div class="ph leeg">${LEEG_IC}</div>`}
-  <div><h3>${esc(i.naam)}</h3><p class="pz">${esc(prijsT(i))}</p>${i.waarborg?`<p class="wb">Waarborg ${eur(i.waarborg)}${i.aantal>1?" per stuk":""} · krijg je terug</p>`:""}${i.beschrijving?`<p class="ds">${esc(i.beschrijving)}</p>`:""}
-  ${keuze?keuzeVoet(i):""}</div></div>`}
-function prijsT(i){const B=i.beurtDagen||1;if(i.prijsModus==="beurt")return eur(i.prijsBeurt)+" per huurbeurt"+(B>1?" (max. "+B+" dagen)":" (1 dag)");
-  if(i.prijsModus==="beurtdag")return eur(i.prijsBeurt)+" voor "+(B===1?"1 dag":B+" dagen")+", daarna "+eur(i.prijsDag)+" per extra dag";return eur(i.prijsDag)+" per dag"}
-function vrij(i){if(!M.van||!M.tot)return null;let max=0;const L=(D.bezet||{})[i.id]||[];for(let d=M.van;d<=M.tot;d=plus(d,1)){let n=0;for(const b of L)if(b.van<=d&&b.tot>=d)n+=b.n;if(n>max)max=n}return Math.max(0,i.aantal-max)}
-function keuzeVoet(i){const v=vrij(i),n=M.items[i.id]||0,md=i.prijsModus==="beurt"?(i.beurtDagen||1):(i.maxDagen||0),te=md&&M.van&&M.tot&&dagen(M.van,M.tot)>md;
-  const bz=((D.bezet||{})[i.id]||[]).slice().sort((a,b)=>a.van.localeCompare(b.van)).slice(0,6);
-  const st=v==null?`<span class="vr">Kies eerst je data</span>`:te?`<span class="vr nee">Max. ${md===1?"1 dag":md+" dagen"}</span>`:v>0?`<span class="vr ok">${i.aantal>1?v+" van "+i.aantal+" beschikbaar":"Beschikbaar"}</span>`:`<span class="vr nee">Niet beschikbaar in die periode</span>`;
-  const max=v==null||te?0:v;
-  return `<div class="ft">${st}${max>0||n>0?(i.aantal>1||max>1?`<div class="stp"><button type="button" data-st="-1" data-id="${esc(i.id)}" ${n<=0?"disabled":""} aria-label="Minder">−</button><output>${n}</output><button type="button" data-st="1" data-id="${esc(i.id)}" ${n>=max?"disabled":""} aria-label="Meer">+</button></div>`
-    :`<button type="button" class="btn ${n?"":"sec"}" style="width:auto;margin:0;padding:9px 16px;font-size:14.5px" data-st="${n?-1:1}" data-id="${esc(i.id)}">${n?"✓ Gekozen":"Kies"}</button>`):""}</div>
-    ${bz.length?`<p class="bz">Al gereserveerd: ${bz.map(b=>esc(perK(b.van,b.tot))).join(", ")}</p>`:""}`}
+function afmelden(stil){SES=null;D=null;$("#dag").hidden=true;try{localStorage.removeItem("vbha_huur")}catch(e){}laad(stil?"Je persoonlijke link is verlopen of ongeldig. Vraag hieronder een nieuwe aan.":"")}
+const ok=(t,s)=>`<div class="card bevestig" style="margin-bottom:14px"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>${t}</h2><p class="lead2">${s}</p></div>`;
+
 /* ---- zonder sessie: aanmelden ---- */
-function toonLogin(j,melding){
-  $("#box").innerHTML=`${j.items.length?`<section class="vb-sec"><h2 class="vb-card-t">Wat kan je huren?</h2><div class="it-l">${j.items.map(i=>itemKaart(i,false)).join("")}</div></section>`:""}
-  <form class="vb-form" id="fl" novalidate><section class="vb-sec"><h2 class="vb-card-t">Aanmelden</h2>${melding?VB.notice(esc(melding)):""}
-  <p class="hint" style="margin:0 0 12px">Huren kan enkel voor leden met een betaald lidgeld. Vul je naam in: we mailen je een persoonlijke link naar je huurwinkel. Daar kies je wat je wil huren, volg je je aanvragen op en betaal je.</p>
+function toonLogin(melding){
+  $("#box").innerHTML=`<form class="vb-form" id="fl" novalidate><section class="vb-sec"><h2 class="vb-card-t">Aanmelden</h2>${melding?VB.notice(esc(melding)):""}
+  <p class="hint" style="margin:0 0 12px">Huren kan voor leden met een betaald lidgeld. Vul je naam in: we mailen je een persoonlijke link. Daarmee zie je wat je kan huren en aan welke prijs, en reserveer en betaal je meteen.</p>
   <div class="grid"><div class="full"><label for="naam">Je naam</label><input type="text" id="naam" maxlength="100" placeholder="Typ je naam en kies ze uit de lijst"></div></div></section>
   <div class="hp" aria-hidden="true"><label for="website">Website</label><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
   <p class="err" id="err" role="alert"></p><div class="vb-checkout"><button class="btn" id="go" type="submit">Stuur mij mijn persoonlijke link</button></div></form>`;
@@ -263,95 +264,123 @@ function toonLogin(j,melding){
     try{const j=await api({actie:"login",lidId:id,website:$("#website").value});
       if(j.geenMail){er.textContent="We hebben geen e-mailadres van jou. Mail naar info@vbha.be, dan helpen we je verder.";b.disabled=false;b.textContent="Stuur mij mijn persoonlijke link";return}
       $("#fl").outerHTML=`<div class="card bevestig"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h16v11H4z"/><path d="M4 7l8 6 8-6"/></svg></div><h2>Kijk in je mailbox</h2>
-        <p class="lead2">We stuurden een persoonlijke link naar <b>${esc(j.naar||"je e-mailadres")}</b>. Klik op de knop in die mail om naar je huurwinkel te gaan. Geen mail gekregen? Kijk ook even in je spam.</p>
+        <p class="lead2">We stuurden je een mail met je persoonlijke link. Klik op de knop in die mail om naar je huurwinkel te gaan. Geen mail gekregen? Kijk ook even in je spam.</p>
         ${j.testLink?`<a class="tst" href="${esc(j.testLink)}">Testomgeving (er vertrekt geen mail): open je persoonlijke link</a>`:""}</div>`}
     catch(x){er.textContent=x.message;b.disabled=false;b.textContent="Stuur mij mijn persoonlijke link"}})}
 function lidPrijs(){}
+
 /* ---- met sessie ---- */
-function toonWinkel(){const L=D.lid,open=D.reservaties.filter(r=>["aangevraagd","goedgekeurd"].includes(r.staat)).length;
+function prijsT(i){const B=i.beurtDagen||1;if(i.prijsModus==="beurt")return eur(i.prijsBeurt)+" per huurbeurt"+(B>1?" (max. "+B+" dagen)":" (1 dag)");
+  if(i.prijsModus==="beurtdag")return eur(i.prijsBeurt)+" voor "+(B===1?"1 dag":B+" dagen")+", daarna "+eur(i.prijsDag)+" per extra dag";return eur(i.prijsDag)+" per dag"}
+const geboekt=(i,d)=>((D.bezet||{})[i.id]||[]).reduce((t,b)=>b.van<=d&&b.tot>=d?t+b.n:t,0);
+function vrij(i){if(!M.van||!M.tot)return null;let max=0;for(let d=M.van;d<=M.tot;d=plus(d,1)){const n=geboekt(i,d);if(n>max)max=n}return Math.max(0,i.aantal-max)}
+function toonWinkel(){const L=D.lid,open=D.reservaties.filter(r=>r.staat==="tebetalen").length;
   $("#dag").textContent="Dag "+(L.voornaam||L.naam)+"!";$("#dag").hidden=false;
   const voordeel=[L.korting?`${VB.badge(L.status)} <b>${L.korting}% korting</b> op de huurprijs`:L.status?`Status ${VB.badge(L.status)}`:"",L.tegoed?`<b>${eur(L.tegoed)}</b> goudtegoed`:""].filter(Boolean).join(" · ");
   $("#box").innerHTML=`<div class="lid-k"><div class="grow">${voordeel||"Je huurt aan de ledenprijs."}</div><a href="#" id="uit">Niet ${esc(L.voornaam||L.naam)}? Afmelden</a></div>
-  ${L.actief?"":VB.notice(`Je lidgeld voor dit jaar is nog niet in orde. Je kan wel rondkijken, maar pas huren als je lidgeld betaald is.`)}
+  ${L.actief?"":VB.notice(`Je lidgeld voor dit jaar is nog niet in orde. Je kan rondkijken, maar pas reserveren als je lidgeld betaald is.`)}
   ${D.open?"":VB.notice("De huurwinkel is momenteel gesloten. Je kan je reservaties wel nog bekijken en betalen.")}
   <nav class="hu-tabs"><button type="button" data-tab="huren" class="${TAB==="huren"?"on":""}">Huren</button><button type="button" data-tab="res" class="${TAB==="res"?"on":""}">Mijn reservaties${open?`<span class="n">${open}</span>`:""}</button></nav>
   <div id="tb"></div>`;
   $("#uit").onclick=e=>{e.preventDefault();afmelden()};
   TAB==="res"?toonRes():toonHuren()}
-document.addEventListener("click",e=>{const t=e.target.closest("[data-tab]");if(!t)return;TAB=t.dataset.tab;$$(".hu-tabs button").forEach(b=>b.classList.toggle("on",b===t));TAB==="res"?toonRes():toonHuren()});
-function toonHuren(){const vroegst=plus(isoD(new Date()),D.minVooraf||0);
+document.addEventListener("click",e=>{const t=e.target.closest("[data-tab]");if(!t)return;e.preventDefault();TAB=t.dataset.tab;$$(".hu-tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===TAB));TAB==="res"?toonRes():toonHuren()});
+const vroegst=()=>plus(isoD(new Date()),D.minVooraf||0);
+function toonHuren(){
+  if(!D.items.length){$("#tb").innerHTML='<div class="leeg-b">Er is momenteel nog geen materiaal om te huren.</div>';return}
   $("#tb").innerHTML=`<form class="vb-form" id="fh" novalidate>
-  <section class="vb-sec"><h2 class="vb-card-t">1. Wanneer?</h2><div class="dt2"><div><label for="van">Van</label><input type="date" id="van" min="${vroegst}" value="${esc(M.van)}"></div><div><label for="tot">Tot en met</label><input type="date" id="tot" min="${vroegst}" value="${esc(M.tot)}"></div></div>
-  <p class="hint" style="margin:8px 0 0" id="dInfo">${D.minVooraf?`Huren kan ten vroegste vanaf ${esc(lang(vroegst))}.`:""}</p></section>
+  <section class="vb-sec"><h2 class="vb-card-t">1. Wanneer?</h2><p class="hint" style="margin:0 0 10px">Tik op de eerste dag en daarna op de laatste dag van je huur.</p><div id="cal"></div><p class="cal-sel" id="dInfo"></p></section>
   <section class="vb-sec"><h2 class="vb-card-t">2. Wat wil je huren?</h2><div class="it-l" id="itl"></div></section>
-  <section class="vb-sec" id="sOv" hidden><h2 class="vb-card-t">3. Overzicht</h2><div id="ov"></div>
-    <div class="grid" style="margin-top:16px"><div><label for="gsm">Gsm-nummer</label><input type="tel" id="gsm" maxlength="40" value="${esc(D.lid.gsm||"")}"></div>
-    <div class="full"><label for="opm">Opmerking <span style="font-weight:400;color:var(--muted)">(optioneel)</span></label><textarea id="opm" maxlength="600" placeholder="Bv. waarvoor je het materiaal gebruikt of wanneer je het wil afhalen"></textarea></div>
-    <div class="full"><label class="chk"><input type="checkbox" id="akk"><span>Ik ga akkoord met de huurvoorwaarden</span></label>${D.voorwaarden?`<p class="vw">${esc(D.voorwaarden)}</p>`:""}</div></div>
-    <p class="hint" style="margin:14px 0 0">Na je aanvraag bekijkt het bestuur ze. Je krijgt een mail zodra ze goedgekeurd is; pas dan betaal je.</p></section>
+  <section class="vb-sec" id="sOv" hidden><h2 class="vb-card-t">3. Overzicht en betalen</h2><div id="ov"></div>
+    <div id="bw" style="margin-top:16px"></div>
+    <div class="grid" style="margin-top:16px"><div class="full"><label for="opm">Opmerking <span style="font-weight:400;color:var(--muted)">(optioneel)</span></label><textarea id="opm" maxlength="600" placeholder="Bv. waarvoor je het materiaal gebruikt of wanneer je het wil afhalen"></textarea></div>
+    <div class="full"><label class="chk"><input type="checkbox" id="akk"><span>Ik ga akkoord met de huurvoorwaarden</span></label>${D.voorwaarden?`<p class="vw">${esc(D.voorwaarden)}</p>`:""}</div></div></section>
   <p class="err" id="err" role="alert"></p>
-  <div class="vb-checkout"><div class="vb-due" id="due" hidden><span>Te betalen na goedkeuring</span><b></b></div><button class="btn" id="go" type="submit">Aanvraag versturen</button></div></form>`;
-  for(const id of ["van","tot"]){const i=$("#"+id);if(VB.datumVeld){VB.datumVeld(i);const k=i.parentNode.querySelector(".vb-dk input");if(k){k.removeAttribute("max");k.min=vroegst}}}
-  const lees=()=>{const v=VB.iso?VB.iso($("#van").value)||$("#van").value:$("#van").value,t=VB.iso?VB.iso($("#tot").value)||$("#tot").value:$("#tot").value;return[v,t]};
-  const dt=()=>{let[v,t]=lees();if(v&&(!t||t<v)&&/^\d{4}-\d{2}-\d{2}$/.test(v)){t=v;if(VB.dmy)$("#tot").value=VB.dmy(t);else $("#tot").value=t}
-    const v0=M.van,t0=M.tot;M.van=/^\d{4}-\d{2}-\d{2}$/.test(v)?v:"";M.tot=/^\d{4}-\d{2}-\d{2}$/.test(t)?t:"";
-    $("#dInfo").textContent=M.van&&M.tot?(M.tot<M.van?"De einddatum ligt vóór de begindatum.":M.van<vroegst?"Kies een datum vanaf "+lang(vroegst)+".":per(M.van,M.tot)+" · "+(dagen(M.van,M.tot)===1?"1 dag":dagen(M.van,M.tot)+" dagen")):(D.minVooraf?"Huren kan ten vroegste vanaf "+lang(vroegst)+".":"");
-    if(M.van===v0&&M.tot===t0)return; // niets veranderd (bv. focus verlaat het veld): niet opnieuw tekenen, anders gaat een klik verloren
-    for(const [id,n] of Object.entries(M.items)){const i=D.items.find(x=>x.id===id);const v2=i?vrij(i):0;if(!i||v2!=null&&n>v2)delete M.items[id]}tekenItems();herreken()};
-  $("#van").addEventListener("change",dt);$("#tot").addEventListener("change",dt);$("#van").addEventListener("input",dt);$("#tot").addEventListener("input",dt);
-  tekenItems();herreken();
-  $("#fh").addEventListener("submit",verstuur)}
-function tekenItems(){const el=$("#itl");if(!el)return;el.innerHTML=D.items.length?D.items.map(i=>itemKaart(i,true)).join(""):'<div class="leeg-b">Er is momenteel nog geen materiaal om te huren.</div>'}
+  <div class="vb-checkout"><div class="vb-due" id="due" hidden><span>Te betalen</span><b></b></div><button class="btn" id="go" type="submit">Reserveren en betalen</button></div></form>`;
+  tekenCal();tekenItems();herreken();$("#fh").addEventListener("submit",verstuur)}
+/* ---- maandkalender: beschikbaarheid en periode kiezen ---- */
+function dagStaat(d){const I=Object.keys(M.items).length?D.items.filter(i=>M.items[i.id]):D.items;let vol=0,deels=0;
+  for(const i of I){const n=geboekt(i,d);if(n>=i.aantal)vol++;else if(n>0)deels++}
+  return vol&&vol===I.length?"vol":vol||deels?"deels":""}
+function tekenCal(){const el=$("#cal");if(!el)return;const v0=vroegst(),max=plus(isoD(new Date()),400);
+  if(!CAL)CAL=(M.van||v0).slice(0,7);const [Y,Mo]=CAL.split("-").map(Number),eerste=new Date(Y,Mo-1,1),n=new Date(Y,Mo,0).getDate(),off=(eerste.getDay()+6)%7;
+  const kan=CAL>v0.slice(0,7);
+  let h=`<div class="cal-h"><button type="button" data-cm="-1" aria-label="Vorige maand"${kan?"":" disabled"}>‹</button><b>${MND[Mo-1]} ${Y}</b><button type="button" data-cm="1" aria-label="Volgende maand">›</button></div><div class="cal-g">${["ma","di","wo","do","vr","za","zo"].map(x=>`<span class="cal-w">${x}</span>`).join("")}`;
+  for(let k=0;k<off;k++)h+="<span></span>";
+  for(let d=1;d<=n;d++){const iso=`${CAL}-${String(d).padStart(2,"0")}`,dis=iso<v0||iso>max,st=dis?"":dagStaat(iso),inR=M.van&&M.tot&&iso>=M.van&&iso<=M.tot;
+    h+=`<button type="button" class="cal-d${dis?" dis":""}${st?" "+st:""}${inR?" sel":""}${iso===M.van?" van":""}${iso===M.tot?" tot":""}" data-cd="${iso}"${dis?" disabled":""} aria-label="${esc(lang(iso))}${st==="vol"?", volzet":st==="deels"?", deels bezet":""}">${d}</button>`}
+  el.innerHTML=h+`</div><div class="cal-lg"><span><i class="lg-vrij"></i>vrij</span><span><i class="lg-deels"></i>deels bezet</span><span><i class="lg-vol"></i>volzet</span></div>`;
+  $("#dInfo").innerHTML=M.van?`<b>${esc(per(M.van,M.tot))}</b> · ${dagen(M.van,M.tot)===1?"1 dag":dagen(M.van,M.tot)+" dagen"}${KIES==="tot"?' <span class="muted">· tik op de laatste dag (of laat zo voor 1 dag)</span>':""}`:(D.minVooraf?`Huren kan ten vroegste vanaf ${esc(lang(v0))}.`:"")}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-cm]");if(!b)return;e.preventDefault();const [Y,Mo]=CAL.split("-").map(Number),d=new Date(Y,Mo-1+Number(b.dataset.cm),1);CAL=isoD(d).slice(0,7);tekenCal()});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-cd]");if(!b||b.disabled)return;e.preventDefault();const d=b.dataset.cd;
+  if(KIES==="tot"&&M.van&&d>=M.van){M.tot=d;KIES="van"}else{M.van=d;M.tot=d;KIES="tot"}
+  for(const [id,n] of Object.entries(M.items)){const i=D.items.find(x=>x.id===id),v=i?vrij(i):0;if(!i||n>v){if(v>0)M.items[id]=v;else delete M.items[id]}}
+  tekenCal();tekenItems();herreken()});
+function itemKaart(i){const f=i.hoofd||i.afbeeldingen[0];
+  return `<div class="it${M.items[i.id]?" on":""}" data-it="${esc(i.id)}">${f?`<button type="button" class="ph" style="background-image:url('${img(f)}')" data-zoom="${esc(f)}" aria-label="Foto vergroten"></button>`:`<div class="ph leeg">${LEEG_IC}</div>`}
+  <div><h3>${esc(i.naam)}</h3><p class="pz">${esc(prijsT(i))}</p>${i.waarborg?`<p class="wb">Waarborg ${eur(i.waarborg)}${i.aantal>1?" per stuk":""} · krijg je terug</p>`:""}${i.beschrijving?`<p class="ds">${esc(i.beschrijving)}</p>`:""}${keuzeVoet(i)}</div></div>`}
+function keuzeVoet(i){const v=vrij(i),n=M.items[i.id]||0,md=i.prijsModus==="beurt"?(i.beurtDagen||1):(i.maxDagen||0),te=md&&M.van&&M.tot&&dagen(M.van,M.tot)>md;
+  const st=v==null?`<span class="vr">Kies eerst je data</span>`:te?`<span class="vr nee">Max. ${md===1?"1 dag":md+" dagen"} na elkaar</span>`:v>0?`<span class="vr ok">${i.aantal>1?v+" van "+i.aantal+" beschikbaar":"Beschikbaar"}</span>`:`<span class="vr nee">Niet beschikbaar in die periode</span>`;
+  const max=v==null||te?0:v;
+  return `<div class="hft">${st}${max>0||n>0?(i.aantal>1?`<div class="stp"><button type="button" data-st="-1" data-id="${esc(i.id)}" ${n<=0?"disabled":""} aria-label="Minder">−</button><output>${n}</output><button type="button" data-st="1" data-id="${esc(i.id)}" ${n>=max?"disabled":""} aria-label="Meer">+</button></div>`
+    :`<button type="button" class="btn ${n?"":"sec"} kies" data-st="${n?-1:1}" data-id="${esc(i.id)}">${n?"✓ Gekozen":"Kies"}</button>`):""}</div>`}
+function tekenItems(){const el=$("#itl");if(el)el.innerHTML=D.items.map(itemKaart).join("")}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-st]");if(!b)return;e.preventDefault();const id=b.dataset.id,i=D.items.find(x=>x.id===id),v=vrij(i)||0;
-  const n=Math.max(0,Math.min(v,(M.items[id]||0)+Number(b.dataset.st)));if(n)M.items[id]=n;else delete M.items[id];tekenItems();herreken()});
+  const n=Math.max(0,Math.min(v,(M.items[id]||0)+Number(b.dataset.st)));if(n)M.items[id]=n;else delete M.items[id];tekenItems();tekenCal();herreken()});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-zoom]");if(!b)return;e.preventDefault();const d=document.createElement("div");d.className="lb";d.innerHTML=`<img src="${img(b.dataset.zoom)}" alt="">`;d.onclick=()=>d.remove();document.body.append(d)});
 function herreken(){const n=Object.keys(M.items).length,s=$("#sOv");if(!s)return;
   if(!n||!M.van||!M.tot){s.hidden=true;PR=null;VB.due($("#due"),null);return}
   s.hidden=false;const k=++PRT;
-  api({actie:"prijs",van:M.van,tot:M.tot,items:M.items,tegoed:VB.credit.aan?(VB.credit.bedrag==null?999999:VB.credit.bedrag):0}).then(j=>{if(k!==PRT)return;PR=j;toonOv()}).catch(x=>{if(k!==PRT)return;PR=null;$("#ov").innerHTML=`<p class="err">${esc(x.message)}</p>`;VB.due($("#due"),null)})}
+  api({actie:"prijs",van:M.van,tot:M.tot,items:M.items,tegoed:VB.credit.aan?(VB.credit.bedrag==null?999999:VB.credit.bedrag):0}).then(j=>{if(k!==PRT)return;PR=j;toonOv()}).catch(x=>{if(k!==PRT)return;PR=null;$("#ov").innerHTML=`<p class="err">${esc(x.message)}</p>`;$("#bw").innerHTML="";VB.due($("#due"),null)})}
 VB.credit.label="Goudtegoed gebruiken";VB.credit.op=()=>herreken();
 function toonOv(){const j=PR;const rijen=j.lijnen.map(l=>({label:(l.aantal>1?l.aantal+" × ":"")+l.naam,sub:j.dagen===1?"1 dag":j.dagen+" dagen",bedrag:l.huur}));
   if(j.kortingBedrag)rijen.push({label:"Korting "+j.korting+"%",status:j.lidStatus,bedrag:j.kortingBedrag,min:true});
   if(j.waarborg)rijen.push({label:"Waarborg",sub:"krijg je terug als alles in orde is",bedrag:j.waarborg});
-  $("#ov").innerHTML=VB.summary({titel:"",rijen,credit:j.tegoedSaldo>0?{saldo:j.tegoedSaldo,max:Math.min(j.tegoedSaldo,j.huurNetto)}:null,totaal:{label:"Te betalen na goedkeuring",bedrag:j.teBetalen}});
+  $("#ov").innerHTML=VB.summary({titel:"",rijen,credit:j.tegoedSaldo>0?{saldo:j.tegoedSaldo,max:Math.min(j.tegoedSaldo,j.huurNetto)}:null,totaal:{label:"Te betalen",bedrag:j.teBetalen}});
+  if(!D.online)WIJZE="overschrijving";
+  $("#bw").innerHTML=j.teBetalen>0?`<span class="lbl">Hoe betaal je?</span><div class="ch">${D.online?`<label><input type="radio" name="wz" value="bancontact"${WIJZE==="bancontact"?" checked":""}><b>Bancontact</b><span>Meteen betaald en je reservatie is bevestigd</span></label>`:""}
+    <label><input type="radio" name="wz" value="overschrijving"${WIJZE==="overschrijving"?" checked":""}><b>Overschrijving</b><span>Bevestigd zodra je betaling op onze rekening staat (betalen binnen ${D.betaalDagen||3} dagen)</span></label></div>`:"";
+  $("#go").textContent=j.teBetalen>0?(WIJZE==="bancontact"?"Reserveren en betalen":"Reserveren"):"Reserveren";
   VB.due($("#due"),j.teBetalen)}
+document.addEventListener("change",e=>{if(e.target.name!=="wz")return;WIJZE=e.target.value;const g=$("#go");if(g&&PR)g.textContent=PR.teBetalen>0&&WIJZE==="bancontact"?"Reserveren en betalen":"Reserveren"});
+function betaalPaneel(j){const o=j.online&&(j.online.deeplink||j.online.checkout)?j.online:null;
+  const ov=`${j.qr?`<div class="qrwrap"><div class="qr">${j.qr}</div><p>Scan deze code met de app van je bank. Bedrag, rekeningnummer en mededeling staan dan al ingevuld.</p></div><div class="or"><span>of schrijf zelf over</span></div>`:""}${handmatig(j)}<p class="hint">Betaal${j.betaalTegen?" vóór <b>"+esc(lang(j.betaalTegen))+"</b>":""} en vermeld zeker de mededeling: zo herkennen we je betaling automatisch en bevestigen we je reservatie per mail.</p>`;
+  return `<div class="paybox">${o?onlineBlok(o,j.bedrag)+`<details class="zelf"><summary>Geen app of lukt het niet? Betaal via overschrijving</summary>${ov}</details>`:`<h3>Betaal ${eur(j.bedrag)}</h3>${ov}`}</div>`}
 async function verstuur(e){e.preventDefault();const er=$("#err");er.textContent="";
-  if(!M.van||!M.tot){er.textContent="Kies eerst je data.";return}if(!Object.keys(M.items).length){er.textContent="Kies minstens één artikel.";return}
+  if(!M.van){er.textContent="Kies eerst je data in de kalender.";return}if(!Object.keys(M.items).length){er.textContent="Kies minstens één artikel.";return}
   if(!PR){er.textContent="Even geduld, de prijs wordt berekend.";return}
   if(!$("#akk").checked){er.textContent="Ga akkoord met de huurvoorwaarden.";return}
-  const b=$("#go");b.disabled=true;b.classList.add("is-busy");b.textContent="Even geduld…";
-  try{const j=await api({actie:"aanvraag",van:M.van,tot:M.tot,items:M.items,tegoed:PR.tegoed,totaal:PR.teBetalen,gsm:$("#gsm").value,opmerking:$("#opm").value,akkoord:true,duur:Date.now()-t0});
-    M={van:"",tot:"",items:{},tegoed:null};PR=null;D=await api(null,true);TAB="res";toonWinkel();
-    const n=document.createElement("div");n.className="card bevestig";n.style.marginBottom="14px";n.innerHTML=`<div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Aanvraag verstuurd!</h2><p class="lead2">Bedankt, ${esc(D.lid.voornaam)}. Het bestuur bekijkt je aanvraag <b>${esc(j.reservatie.nr)}</b> zo snel mogelijk. Je krijgt een mail zodra ze goedgekeurd is; daarna kan je hier betalen.</p>`;
-    $("#tb").prepend(n);window.scrollTo({top:0,behavior:"smooth"})}
-  catch(x){er.textContent=x.message;b.disabled=false;b.classList.remove("is-busy");b.textContent="Aanvraag versturen"}}
+  const b=$("#go"),t=b.textContent;b.disabled=true;b.classList.add("is-busy");b.textContent="Even geduld…";
+  try{const j=await api({actie:"reserveer",van:M.van,tot:M.tot,items:M.items,tegoed:PR.tegoed,totaal:PR.teBetalen,wijze:WIJZE,opmerking:$("#opm").value,akkoord:true,duur:Date.now()-t0});
+    M={van:"",tot:"",items:{}};KIES="van";PR=null;D=await api(null,true);TAB="res";toonWinkel();const r=j.reservatie;
+    if(j.bevestigd){$("#tb").insertAdjacentHTML("afterbegin",ok("Je reservatie is bevestigd!",`Bedankt, ${esc(D.lid.voornaam)}. Reservatie <b>${esc(r.nr)}</b> is in orde. Je krijgt een bevestiging per mail.`))}
+    else{const box=$("#p-"+r.id);if(box){box.innerHTML=betaalPaneel(j);box.closest(".rs").classList.add("nu")}
+      $("#tb").insertAdjacentHTML("afterbegin",ok("Nog één stap: betalen",`Je reservatie <b>${esc(r.nr)}</b> staat klaar. ${j.online?"Betaal met Bancontact om ze meteen te bevestigen.":"Schrijf het bedrag over; zodra het binnen is, bevestigen we je reservatie per mail."}`));
+      if(j.online){BET={t:"huur",id:j.online.id,token:j.online.token};try{sessionStorage.setItem("vbha_huur_bet",JSON.stringify(BET))}catch(x){}volgN=0;volg()}}
+    window.scrollTo({top:0,behavior:"smooth"})}
+  catch(x){er.textContent=x.message;b.disabled=false;b.classList.remove("is-busy");b.textContent=t}}
 /* ---- mijn reservaties ---- */
 function resKaart(r){const t=Number(r.tegoed)||0;
   const L=r.lijnen.map(l=>`<li><span>${l.aantal>1?l.aantal+" × ":""}${esc(l.naam)}</span><b>${eur(l.huur)}</b></li>`).join("")
     +(r.kortingBedrag?`<li><span>Korting ${r.korting}%</span><b>− ${eur(r.kortingBedrag)}</b></li>`:"")+(t?`<li><span>Goudtegoed</span><b>− ${eur(t)}</b></li>`:"")
-    +(r.waarborg?`<li><span>Waarborg</span><b>${eur(r.waarborg)}</b></li>`:"")+`<li class="t"><span>${r.betaald?"Betaald":"Totaal"}</span><b>${eur(r.teBetalen)}</b></li>`;
-  const msg=r.staat==="aangevraagd"?"Het bestuur bekijkt je aanvraag. Je krijgt een mail zodra ze goedgekeurd is."
-    :r.staat==="goedgekeurd"?`Goedgekeurd! Betaal ${r.betaalTegen?"vóór <b>"+esc(lang(r.betaalTegen))+"</b>":"zo snel mogelijk"} om je reservatie definitief te maken.${r.bericht?"<br><i>"+esc(r.bericht)+"</i>":""}${r.betaalwijze==="overschrijving"?"<br><small>Al overgeschreven? Dan duiden we je betaling aan zodra ze binnen is.</small>":""}`
-    :r.staat==="betaald"?`Je reservatie is in orde. ${esc(D.afhaaladres?"Afhalen in de kazerne ("+D.afhaaladres+"); we nemen contact met je op voor een moment.":"")}`
-    :r.staat==="geweigerd"?"Deze aanvraag kon niet doorgaan."+(r.reden?" <b>Reden:</b> "+esc(r.reden):""):r.staat==="geannuleerd"?"Deze reservatie werd geannuleerd."+(r.reden?" "+esc(r.reden):"")
+    +(r.waarborg?`<li><span>Waarborg</span><b>${eur(r.waarborg)}</b></li>`:"")+`<li class="t"><span>${r.betaald?"Betaald":"Te betalen"}</span><b>${eur(r.teBetalen)}</b></li>`;
+  const msg=r.staat==="tebetalen"?`Nog te betalen${r.betaalTegen?" vóór <b>"+esc(lang(r.betaalTegen))+"</b>":""}. Zodra je betaling binnen is, is je reservatie bevestigd.${r.betaalwijze==="overschrijving"?"<br><small>Al overgeschreven? Dan bevestigen we automatisch zodra de betaling op onze rekening staat.</small>":""}`
+    :r.staat==="betaald"?`Je reservatie is bevestigd. ${esc(D.afhaaladres?"Afhalen in de kazerne ("+D.afhaaladres+"); we nemen contact met je op voor een moment.":"")}`
+    :r.staat==="geannuleerd"?"Deze reservatie werd geannuleerd."+(r.reden?" "+esc(r.reden):"")
     :r.staat==="afgerond"&&r.waarborgTerug?`Afgerond. Waarborg terug: ${eur(r.waarborgTerug.bedrag)}${r.waarborgTerug.ingehouden?" (ingehouden: "+eur(r.waarborgTerug.ingehouden)+")":""}.`:"";
-  const kan=["aangevraagd","goedgekeurd"].includes(r.staat)&&!r.betaald;
+  const kan=r.staat==="tebetalen"&&!r.betaald;
   return `<div class="rs" id="r-${esc(r.id)}"><div class="rs-h"><div><b>${esc(per(r.van,r.tot))}</b><small>${esc(r.nr)} · ${r.dagen===1?"1 dag":r.dagen+" dagen"}</small></div><span class="st st-${esc(r.staat)}">${esc(STN[r.staat]||r.staat)}</span></div>
   <ul>${L}</ul>${msg?`<p class="msg">${msg}</p>`:""}
-  ${r.staat==="goedgekeurd"||kan?`<div class="acts">${r.staat==="goedgekeurd"?`${D.online?`<button type="button" class="btn bc" data-bet="bancontact" data-id="${esc(r.id)}">${BC_ICON}Betalen met Bancontact</button>`:""}<button type="button" class="btn ${D.online?"sec":""}" data-bet="overschrijving" data-id="${esc(r.id)}">Betalen met overschrijving</button>`:""}
-    ${kan?`<button type="button" class="btn sec" data-ann="${esc(r.id)}">Annuleren</button>`:""}</div><div class="pay2" id="p-${esc(r.id)}"></div>`:""}</div>`}
-function toonRes(){const R=D.reservaties,act=R.filter(r=>["aangevraagd","goedgekeurd","betaald","uitgeleend"].includes(r.staat)),oud=R.filter(r=>!act.includes(r));
+  ${kan?`<div class="acts">${D.online?`<button type="button" class="btn bc" data-bet="bancontact" data-id="${esc(r.id)}">${BC_ICON}Betalen met Bancontact</button>`:""}<button type="button" class="btn ${D.online?"sec":""}" data-bet="overschrijving" data-id="${esc(r.id)}">Gegevens overschrijving</button>
+    <button type="button" class="btn sec" data-ann="${esc(r.id)}">Annuleren</button></div><div class="pay2" id="p-${esc(r.id)}"></div>`:""}</div>`}
+function toonRes(){const R=D.reservaties,act=R.filter(r=>["tebetalen","betaald","uitgeleend"].includes(r.staat)),oud=R.filter(r=>!act.includes(r));
   $("#tb").innerHTML=(act.length?act.map(resKaart).join(""):'<div class="leeg-b">Je hebt geen lopende reservaties.<br><a href="#" data-tab="huren" style="color:var(--accent);font-weight:600">Materiaal huren</a></div>')
     +(oud.length?`<h2 class="vb-card-t" style="margin:22px 0 10px">Eerder gehuurd</h2>${oud.map(resKaart).join("")}`:"")}
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-ann]");if(!b)return;if(!confirm("Deze reservatie annuleren?"))return;b.disabled=true;
   try{await api({actie:"annuleer",id:b.dataset.ann});D=await api(null,true);toonWinkel()}catch(x){alert(x.message);b.disabled=false}});
 document.addEventListener("click",async e=>{const b=e.target.closest("[data-bet]");if(!b)return;const id=b.dataset.id,box=$("#p-"+id);b.disabled=true;
-  try{const j=await api({actie:"betaal",id,wijze:b.dataset.bet});
-    if(j.betaald){D=await api(null,true);toonWinkel();return}
-    const o=j.online&&(j.online.deeplink||j.online.checkout)?j.online:null;PAYID=id;
-    box.innerHTML=`<div class="paybox">${o?onlineBlok(o,j.bedrag)+`<details class="zelf"><summary>Geen app of lukt het niet? Betaal via overschrijving</summary>${handmatig(j)}</details>`
-      :`<h3>Betaal ${eur(j.bedrag)}</h3>${j.qr?`<div class="qrwrap"><div class="qr">${j.qr}</div><p>Scan deze code met de app van je bank. Bedrag, rekeningnummer en mededeling staan dan al ingevuld.</p></div><div class="or"><span>of schrijf zelf over</span></div>`:""}${handmatig(j)}<p class="hint">We duiden je betaling aan zodra ze op onze rekening staat. Je krijgt dan een bevestiging per mail.</p>`}</div>`;
-    if(o){BET={t:"huur",id:o.id,token:o.token};try{sessionStorage.setItem("vbha_huur_bet",JSON.stringify(BET))}catch(x){}volgN=0;volg()}
+  try{const j=await api({actie:"betaal",id,wijze:b.dataset.bet});box.innerHTML=betaalPaneel(j);
+    if(j.online){BET={t:"huur",id:j.online.id,token:j.online.token};try{sessionStorage.setItem("vbha_huur_bet",JSON.stringify(BET))}catch(x){}volgN=0;volg()}
     box.scrollIntoView({behavior:"smooth",block:"start"})}catch(x){alert(x.message)}b.disabled=false});
 document.addEventListener("click",async e=>{const b=e.target.closest(".cp");if(!b)return;try{await navigator.clipboard.writeText(b.dataset.cp);const t=b.textContent;b.textContent="Gekopieerd";b.classList.add("ok");setTimeout(()=>{b.textContent=t;b.classList.remove("ok")},1600)}catch(x){}});
 document.addEventListener("click",async e=>{if(e.target.id!=="bcNieuw")return;e.target.disabled=true;
@@ -359,11 +388,11 @@ document.addEventListener("click",async e=>{if(e.target.id!=="bcNieuw")return;e.
     const blok=$("#online");if(blok)blok.outerHTML=onlineBlok({...o,id:BET.id,token:BET.token},o.bedrag);volgN=0;volg()}catch(x){e.target.disabled=false;e.target.textContent="Opnieuw proberen"}});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&BET){volgN=0;volg()}});
 async function betaald(){BET=null;try{sessionStorage.removeItem("vbha_huur_bet")}catch(x){}D=await api(null,true).catch(()=>D);TAB="res";toonWinkel();
-  const n=document.createElement("div");n.className="card bevestig";n.style.marginBottom="14px";n.innerHTML=`<div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>Betaling ontvangen!</h2><p class="lead2">Je reservatie is nu definitief. Je krijgt ook een bevestiging per mail.</p>`;$("#tb").prepend(n);window.scrollTo({top:0,behavior:"smooth"})}
+  $("#tb").insertAdjacentHTML("afterbegin",ok("Betaald, je reservatie is bevestigd!","Bedankt! Je krijgt ook een bevestiging per mail, met de info om het materiaal af te halen."));window.scrollTo({top:0,behavior:"smooth"})}
 async function laad(melding){
   try{if(SES){D=await api(null,true);$("#h1").textContent=D.titel||"Materiaalverhuur";if(D.intro)$("#lead").textContent=D.intro;document.title=(D.titel||"Materiaalverhuur")+" · VBHA";toonWinkel();
       let b=null;try{b=JSON.parse(sessionStorage.getItem("vbha_huur_bet")||"null")}catch(x){}if(b){BET=b;volgN=0;volg()}return}
-    const r=await fetch("/api/huur");const j=await r.json();$("#h1").textContent=j.titel||"Materiaalverhuur";if(j.intro)$("#lead").textContent=j.intro;document.title=(j.titel||"Materiaalverhuur")+" · VBHA";toonLogin(j,melding)}
+    const r=await fetch("/api/huur");const j=await r.json();$("#h1").textContent=j.titel||"Materiaalverhuur";if(j.intro)$("#lead").textContent=j.intro;document.title=(j.titel||"Materiaalverhuur")+" · VBHA";toonLogin(melding)}
   catch(x){if(SES)return;$("#box").innerHTML=`<div class="card"><p class="err">${esc(x.message)}</p></div>`}}
 laad();
 </script>

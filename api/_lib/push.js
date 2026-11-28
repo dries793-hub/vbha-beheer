@@ -125,7 +125,7 @@ export async function pushApi(req, res) {
    Per toestel kiest de gebruiker het uur en hoeveel op voorhand (zelfde dag, 1, 3 en/of 5 dagen); config herinneringen.push.aan = hoofdschakelaar. */
 // soorten dashboardmeldingen (afgeleid uit de tag van het bericht); per toestel uit te vinken (voorkeur.uit)
 export const PUSH_SOORTEN = [["leden", "Nieuw lid", ["lid-"]], ["banket", "Inschrijving banket", ["ins-banket-"]], ["kinderfeest", "Inschrijving kinderfeest", ["ins-kf-"]],
-  ["fuif", "Fuif: tickets besteld of aangevraagd", ["fuif-", "spk-", "gast-"]], ["webshop", "Webshop: nieuwe bestelling", ["shop-"]], ["huur", "Materiaalverhuur: aanvragen en betalingen", ["huur-"]], ["kalender", "Kalender aan huis gevraagd", ["kal-"]],
+  ["fuif", "Fuif: tickets besteld of aangevraagd", ["fuif-", "spk-", "gast-"]], ["webshop", "Webshop: nieuwe bestelling", ["shop-"]], ["huur", "Materiaalverhuur: reservaties en betalingen", ["huur-"]], ["kalender", "Kalender aan huis gevraagd", ["kal-"]],
   ["sponsors", "Nieuwe sponsor", ["sponsor-"]], ["facturen", "Facturen: betaald of inkomend", ["fc-", "inkomend"]], ["bank", "Bank: transacties te verwerken, koppeling", ["verwerken", "bank"]],
   ["herinneringen", "Betalingsherinneringen verstuurd", ["betaalherinnering"]], ["onkosten", "Onkostennota's en terugbetalingen", ["tb-"]],
   ["familiedag", "Inschrijving familiedag", ["ins-fd-"]], ["ronde", "Kalenderronde: te controleren", ["ronde-"]]];
