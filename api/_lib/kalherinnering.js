@@ -2,7 +2,7 @@ import { admin, requireUser, sendError, httpErr } from "./sb.js";
 import { algemeen, configDoc } from "./publiek.js";
 import { tekenRonde } from "./lidlink.js";
 import { registreer, sysMail } from "./sjabloon.js";
-import { huisstijl, kaderBlok, knop, p, esc, lang, plusDagen, site } from "./bevestiging.js";
+import { huisstijl, knop, p, esc, lang, plusDagen, site } from "./bevestiging.js";
 import { smtpConfigured } from "./smtp.js";
 import { meldPush } from "./push.js";
 
@@ -23,7 +23,6 @@ registreer({ key: "kalender-herinnering", naam: "Kalenders: herinnering dozen in
   onderwerp: "Nog even doorzetten: de laatste kalenders in de bus 📬",
   body: p("Dag {voornaam}!") + p("Eerst en vooral: <b>bedankt</b> om mee te helpen met de kalenderronde. Dankzij jouw inzet vinden heel wat Aalstenaars onze kalender in hun brievenbus.")
     + p("Volgens onze lijst heb je nog <b>{dozen}</b> in handen. Op <b>{deadline}</b> willen we alle kalenders in de bus hebben, nog <b>{dagen}</b> dus. Hopelijk lukt het om ook die laatste kalenders tijdig rond te krijgen!")
-    + kaderBlok("Nog even op een rij", "In handen: <b>{dozen}</b><br>In de bus tegen: <b>{deadline}</b>")
     + p("Lukt het niet om alles rond te krijgen, of ben je al klaar maar staat dat nog niet in onze lijst? Laat het ons gewoon even weten, dan zoeken we samen een oplossing.")
     + "{als:link_kaart}<p>{knop_kaart}</p>{/als:link_kaart}"
     + p("Nogmaals bedankt en veel succes met de laatste loodjes!"),
