@@ -23,7 +23,7 @@ import { epcPayload, qrSvg } from "./epc.js";
 import { meldPush } from "./push.js";
 
 /* ============ Webshop VBHA ============
-   shop_items: {naam, prijs, beschrijving, gewicht (gram), voorraad (leeg = onbeperkt), actief, volgorde, afbeeldingen:[id], hoofd: id}
+   shop_items: {naam, prijs, beschrijving, gewicht (gram), voorraad (leeg = onbeperkt), actief, actiefVanaf (ISO, ingepland zichtbaar), volgorde, afbeeldingen:[id], hoofd: id}
      afbeeldingen staan in de tabel "beelden" (id "shop-…", data {mime, web: base64}).
    shop_orders: {nr, jaar, items:[{id, naam, prijs, aantal, gewicht}], subtotaal, verzendkost, totaal, gewicht, levering: post|afhalen,
      betaalwijze: bancontact|overschrijving|cash, klant:{voornaam, naam, email, telefoon, adres}, opmerking, status: nieuw|betaald|verzonden|klaar|afgehaald|geannuleerd,
@@ -46,6 +46,11 @@ export function verzendkost(c, gewicht, subtotaal) {
 }
 async function items(sb) {
   const { data, error } = await sb.from("shop_items").select("id,data"); if (error) throw error;
+  // verborgen artikel met "actiefVanaf" (ISO): vanaf dat moment zichtbaar; de vlag wordt dan ook definitief omgezet
+  const nu = Date.now();
+  for (const r of data || []) { const v = r.data && r.data.actiefVanaf;
+    if (r.data && r.data.actief === false && v && Date.parse(v) <= nu) { r.data = { ...r.data, actief: true, actiefVanaf: null };
+      try { await sb.from("shop_items").update({ data: r.data }).eq("id", r.id); } catch (e) { console.error("shop actiefVanaf", e); } } }
   return (data || []).map(r => ({ id: r.id, ...r.data })).filter(i => i.actief !== false && i.naam && Number(i.prijs) > 0)
     .sort((a, b) => (Number(a.volgorde) || 0) - (Number(b.volgorde) || 0) || String(a.naam).localeCompare(String(b.naam), "nl"));
 }
