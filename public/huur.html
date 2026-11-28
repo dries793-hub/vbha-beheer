@@ -188,6 +188,8 @@ html,body{overflow-x:hidden}
 .rs .msg{margin:10px 0 0;font-size:14px;padding:10px 12px;border-radius:10px;background:var(--sunken)}
 .rs .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .rs .acts .btn{width:auto;margin:0;padding:10px 16px;font-size:15px}
+.rs .acts .btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:560px){.rs .acts{flex-direction:column}.rs .acts .btn{width:100%}}
 .btn.sec{background:var(--surface);color:var(--ink);border:1.5px solid var(--line-strong)}.btn.sec:hover{background:var(--sunken)}
 .rs .pay2{margin-top:14px}
 .leeg-b{text-align:center;color:var(--muted);padding:26px 10px;border:1.5px dashed var(--line-strong);border-radius:12px}
@@ -292,8 +294,9 @@ function toonHuren(){const vroegst=plus(isoD(new Date()),D.minVooraf||0);
   for(const id of ["van","tot"]){const i=$("#"+id);if(VB.datumVeld){VB.datumVeld(i);const k=i.parentNode.querySelector(".vb-dk input");if(k){k.removeAttribute("max");k.min=vroegst}}}
   const lees=()=>{const v=VB.iso?VB.iso($("#van").value)||$("#van").value:$("#van").value,t=VB.iso?VB.iso($("#tot").value)||$("#tot").value:$("#tot").value;return[v,t]};
   const dt=()=>{let[v,t]=lees();if(v&&(!t||t<v)&&/^\d{4}-\d{2}-\d{2}$/.test(v)){t=v;if(VB.dmy)$("#tot").value=VB.dmy(t);else $("#tot").value=t}
-    M.van=/^\d{4}-\d{2}-\d{2}$/.test(v)?v:"";M.tot=/^\d{4}-\d{2}-\d{2}$/.test(t)?t:"";
+    const v0=M.van,t0=M.tot;M.van=/^\d{4}-\d{2}-\d{2}$/.test(v)?v:"";M.tot=/^\d{4}-\d{2}-\d{2}$/.test(t)?t:"";
     $("#dInfo").textContent=M.van&&M.tot?(M.tot<M.van?"De einddatum ligt vóór de begindatum.":M.van<vroegst?"Kies een datum vanaf "+lang(vroegst)+".":per(M.van,M.tot)+" · "+(dagen(M.van,M.tot)===1?"1 dag":dagen(M.van,M.tot)+" dagen")):(D.minVooraf?"Huren kan ten vroegste vanaf "+lang(vroegst)+".":"");
+    if(M.van===v0&&M.tot===t0)return; // niets veranderd (bv. focus verlaat het veld): niet opnieuw tekenen, anders gaat een klik verloren
     for(const [id,n] of Object.entries(M.items)){const i=D.items.find(x=>x.id===id);const v2=i?vrij(i):0;if(!i||v2!=null&&n>v2)delete M.items[id]}tekenItems();herreken()};
   $("#van").addEventListener("change",dt);$("#tot").addEventListener("change",dt);$("#van").addEventListener("input",dt);$("#tot").addEventListener("input",dt);
   tekenItems();herreken();
@@ -335,7 +338,7 @@ function resKaart(r){const t=Number(r.tegoed)||0;
   const kan=["aangevraagd","goedgekeurd"].includes(r.staat)&&!r.betaald;
   return `<div class="rs" id="r-${esc(r.id)}"><div class="rs-h"><div><b>${esc(per(r.van,r.tot))}</b><small>${esc(r.nr)} · ${r.dagen===1?"1 dag":r.dagen+" dagen"}</small></div><span class="st st-${esc(r.staat)}">${esc(STN[r.staat]||r.staat)}</span></div>
   <ul>${L}</ul>${msg?`<p class="msg">${msg}</p>`:""}
-  ${r.staat==="goedgekeurd"||kan?`<div class="acts">${r.staat==="goedgekeurd"?`${D.online?`<button type="button" class="btn" data-bet="bancontact" data-id="${esc(r.id)}">${BC_ICON}Betalen met Bancontact</button>`:""}<button type="button" class="btn ${D.online?"sec":""}" data-bet="overschrijving" data-id="${esc(r.id)}">Betalen met overschrijving</button>`:""}
+  ${r.staat==="goedgekeurd"||kan?`<div class="acts">${r.staat==="goedgekeurd"?`${D.online?`<button type="button" class="btn bc" data-bet="bancontact" data-id="${esc(r.id)}">${BC_ICON}Betalen met Bancontact</button>`:""}<button type="button" class="btn ${D.online?"sec":""}" data-bet="overschrijving" data-id="${esc(r.id)}">Betalen met overschrijving</button>`:""}
     ${kan?`<button type="button" class="btn sec" data-ann="${esc(r.id)}">Annuleren</button>`:""}</div><div class="pay2" id="p-${esc(r.id)}"></div>`:""}</div>`}
 function toonRes(){const R=D.reservaties,act=R.filter(r=>["aangevraagd","goedgekeurd","betaald","uitgeleend"].includes(r.staat)),oud=R.filter(r=>!act.includes(r));
   $("#tb").innerHTML=(act.length?act.map(resKaart).join(""):'<div class="leeg-b">Je hebt geen lopende reservaties.<br><a href="#" data-tab="huren" style="color:var(--accent);font-weight:600">Materiaal huren</a></div>')
