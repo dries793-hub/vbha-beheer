@@ -189,9 +189,9 @@ html,body{overflow-x:hidden}
 .rs .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .rs .acts .btn{width:auto;margin:0;padding:10px 16px;font-size:15px}
 .hft{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;flex-wrap:wrap}
-.hft .vr{font-size:13px;font-weight:600}.hft .vr.ok{color:var(--good)}.hft .vr.nee{color:var(--accent)}
+.hvr{font-size:13px;font-weight:600;text-align:left;margin:0}.hvr.ok{color:var(--good)}.hvr.nee{color:var(--accent)}
 .hft .btn.kies{width:auto;margin:0;padding:9px 16px;font-size:14.5px}
-.cal{max-width:420px}.cal-h{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}.cal-h b{font-size:15.5px;text-transform:capitalize}
+#cal{max-width:420px}.cal-h{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}.cal-h b{font-size:15.5px;text-transform:capitalize}
 .cal-h button{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--line-strong);background:var(--surface);font:700 18px var(--f);color:var(--ink);cursor:pointer}.cal-h button:disabled{opacity:.3;cursor:default}
 .cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.cal-w{font-size:12px;color:var(--muted);text-align:center;padding:2px 0}
 .cal-d{aspect-ratio:1/1;border:1.5px solid var(--line);border-radius:9px;background:var(--surface);font:600 14.5px var(--f);color:var(--ink);cursor:pointer;padding:0;position:relative}
@@ -203,7 +203,9 @@ html,body{overflow-x:hidden}
 .cal-lg i{width:13px;height:13px;border-radius:4px;border:1.5px solid var(--line)}.cal-lg .lg-deels{background:#FFF4DC;border-color:#F3D9A4}.cal-lg .lg-vol{background:var(--accent-soft);border-color:#F2B8BC}
 .cal-sel{margin:12px 0 0;font-size:14.5px}.cal-sel:empty{display:none}
 .rs.nu{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
-.ch span{white-space:normal}
+.bwz{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}.bwz .bw-o{display:flex!important;gap:10px;align-items:flex-start;border:1.5px solid var(--line-strong);border-radius:12px;padding:12px 14px;cursor:pointer;background:var(--surface);margin:0;font-weight:400}
+.bwz .bw-o input{position:static!important;opacity:1!important;margin:3px 0 0!important;width:18px!important;height:18px!important;accent-color:var(--accent);flex:none}.bw-o b{display:block;font-size:15px}.bw-o small{display:block;color:var(--muted);font-size:13px;line-height:1.35;margin-top:2px}.bw-o:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+@media (max-width:560px){.bwz{grid-template-columns:1fr}}
 .btn.sec{background:var(--surface);color:var(--ink);border:1.5px solid var(--line-strong)}.btn.sec:hover{background:var(--sunken)}
 .rs .pay2{margin-top:14px}
 .leeg-b{text-align:center;color:var(--muted);padding:26px 10px;border:1.5px dashed var(--line-strong);border-radius:12px}
@@ -320,7 +322,7 @@ function itemKaart(i){const f=i.hoofd||i.afbeeldingen[0];
   return `<div class="it${M.items[i.id]?" on":""}" data-it="${esc(i.id)}">${f?`<button type="button" class="ph" style="background-image:url('${img(f)}')" data-zoom="${esc(f)}" aria-label="Foto vergroten"></button>`:`<div class="ph leeg">${LEEG_IC}</div>`}
   <div><h3>${esc(i.naam)}</h3><p class="pz">${esc(prijsT(i))}</p>${i.waarborg?`<p class="wb">Waarborg ${eur(i.waarborg)}${i.aantal>1?" per stuk":""} · krijg je terug</p>`:""}${i.beschrijving?`<p class="ds">${esc(i.beschrijving)}</p>`:""}${keuzeVoet(i)}</div></div>`}
 function keuzeVoet(i){const v=vrij(i),n=M.items[i.id]||0,md=i.prijsModus==="beurt"?(i.beurtDagen||1):(i.maxDagen||0),te=md&&M.van&&M.tot&&dagen(M.van,M.tot)>md;
-  const st=v==null?`<span class="vr">Kies eerst je data</span>`:te?`<span class="vr nee">Max. ${md===1?"1 dag":md+" dagen"} na elkaar</span>`:v>0?`<span class="vr ok">${i.aantal>1?v+" van "+i.aantal+" beschikbaar":"Beschikbaar"}</span>`:`<span class="vr nee">Niet beschikbaar in die periode</span>`;
+  const st=v==null?`<span class="hvr">Kies eerst je data</span>`:te?`<span class="hvr nee">Max. ${md===1?"1 dag":md+" dagen"} na elkaar</span>`:v>0?`<span class="hvr ok">${i.aantal>1?v+" van "+i.aantal+" beschikbaar":"Beschikbaar"}</span>`:`<span class="hvr nee">Niet beschikbaar in die periode</span>`;
   const max=v==null||te?0:v;
   return `<div class="hft">${st}${max>0||n>0?(i.aantal>1?`<div class="stp"><button type="button" data-st="-1" data-id="${esc(i.id)}" ${n<=0?"disabled":""} aria-label="Minder">−</button><output>${n}</output><button type="button" data-st="1" data-id="${esc(i.id)}" ${n>=max?"disabled":""} aria-label="Meer">+</button></div>`
     :`<button type="button" class="btn ${n?"":"sec"} kies" data-st="${n?-1:1}" data-id="${esc(i.id)}">${n?"✓ Gekozen":"Kies"}</button>`):""}</div>`}
@@ -338,8 +340,8 @@ function toonOv(){const j=PR;const rijen=j.lijnen.map(l=>({label:(l.aantal>1?l.a
   if(j.waarborg)rijen.push({label:"Waarborg",sub:"krijg je terug als alles in orde is",bedrag:j.waarborg});
   $("#ov").innerHTML=VB.summary({titel:"",rijen,credit:j.tegoedSaldo>0?{saldo:j.tegoedSaldo,max:Math.min(j.tegoedSaldo,j.huurNetto)}:null,totaal:{label:"Te betalen",bedrag:j.teBetalen}});
   if(!D.online)WIJZE="overschrijving";
-  $("#bw").innerHTML=j.teBetalen>0?`<span class="lbl">Hoe betaal je?</span><div class="ch">${D.online?`<label><input type="radio" name="wz" value="bancontact"${WIJZE==="bancontact"?" checked":""}><b>Bancontact</b><span>Meteen betaald en je reservatie is bevestigd</span></label>`:""}
-    <label><input type="radio" name="wz" value="overschrijving"${WIJZE==="overschrijving"?" checked":""}><b>Overschrijving</b><span>Bevestigd zodra je betaling op onze rekening staat (betalen binnen ${D.betaalDagen||3} dagen)</span></label></div>`:"";
+  $("#bw").innerHTML=j.teBetalen>0?`<span class="lbl">Hoe betaal je?</span><div class="bwz">${D.online?`<label class="bw-o"><input type="radio" name="wz" value="bancontact"${WIJZE==="bancontact"?" checked":""}><span><b>Bancontact</b><small>Meteen betaald en je reservatie is bevestigd</small></span></label>`:""}
+    <label class="bw-o"><input type="radio" name="wz" value="overschrijving"${WIJZE==="overschrijving"?" checked":""}><span><b>Overschrijving</b><small>Bevestigd zodra je betaling op onze rekening staat (betalen binnen ${D.betaalDagen||3} dagen)</small></span></label></div>`:"";
   $("#go").textContent=j.teBetalen>0?(WIJZE==="bancontact"?"Reserveren en betalen":"Reserveren"):"Reserveren";
   VB.due($("#due"),j.teBetalen)}
 document.addEventListener("change",e=>{if(e.target.name!=="wz")return;WIJZE=e.target.value;const g=$("#go");if(g&&PR)g.textContent=PR.teBetalen>0&&WIJZE==="bancontact"?"Reserveren en betalen":"Reserveren"});
